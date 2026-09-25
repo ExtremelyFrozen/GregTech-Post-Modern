@@ -7,6 +7,7 @@ shadow = "9.4.1"
 spotless = "8.6.0"
 modDevGradle = "2.0.141"
 lombok = "9.5.0"
+kotlin-lombok = "2.1.20"
 jetbrains-annotations = "26.1.0"
 renderNurse = "0.0.26"
 mixin = "0.8.7"
@@ -33,3 +34,4 @@ modDevGradle            = { id = "net.neoforged.moddev", version.ref = "modDevGr
 shadow                  = { id = "com.gradleup.shadow", version.ref = "shadow" }
 spotless                = { id = "com.diffplug.spotless", version.ref = "spotless" }
 lombok                  = { id = "io.freefair.lombok", version.ref = "lombok" }
+kotlin-lombok           = { id = "org.jetbrains.kotlin.plugin.lombok", version.ref = "kotlin-lombok" }

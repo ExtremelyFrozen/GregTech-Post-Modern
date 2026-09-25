@@ -9,6 +9,7 @@ plugins {
     //alias libs.plugins.shadow
     alias libs.plugins.spotless
     alias libs.plugins.lombok
+    alias libs.plugins.kotlin.lombok
 }
 
 group = maven_group
@@ -74,7 +75,6 @@ apply from: "$rootDir/gradle/scripts/resources.gradle"
 apply from: "$rootDir/gradle/scripts/publishing.gradle"
 apply from: "$rootDir/gradle/scripts/spotless.gradle"
 apply from: "$rootDir/gradle/scripts/docs.gradle"
-apply from: "$rootDir/gradle/scripts/ldlib2-migration.gradle"
 
 tasks.named('compileJava', JavaCompile) {
     dependsOn tasks.named('compileKotlin')
@@ -131,4 +131,13 @@ jacocoTestReport {
             fileTree(dir: it, exclude: '**/mixins/**')
         }))
     }
+}
+repositories {
+    mavenCentral()
+}
+dependencies {
+    testImplementation 'org.jetbrains.kotlin:kotlin-test'
+}
+kotlinLombok {
+    lombokConfigurationFile(file("lombok.config"))
 }
