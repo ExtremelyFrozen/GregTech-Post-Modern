@@ -159,7 +159,7 @@ public abstract class WorkableMultiblockMachine extends MultiblockControllerMach
         LongOpenHashSet blocks = new LongOpenHashSet();
         for (String structureName : getDefinition().getStructureNames()) {
             if (!isStructureFormed(structureName)) continue;
-            LongSet structureActiveBlocks = getMultiblockState(structureName).getMatchContext()
+            LongSet structureActiveBlocks = getMultiblockState(structureName).getFacts()
                     .getOrDefault("vaBlocks", LongSets.emptySet());
             blocks.addAll(structureActiveBlocks);
         }
@@ -169,7 +169,7 @@ public abstract class WorkableMultiblockMachine extends MultiblockControllerMach
     private IO getPartIO(IMultiPart part) {
         String structureName = part.getSubstructureName(this);
         if (structureName == null) return IO.BOTH;
-        Long2ObjectMap<IO> ioMap = getMultiblockState(structureName).getMatchContext()
+        Long2ObjectMap<IO> ioMap = getMultiblockState(structureName).getFacts()
                 .getOrDefault("ioMap", Long2ObjectMaps.emptyMap());
         return ioMap.getOrDefault(part.self().getBlockPos().asLong(), IO.BOTH);
     }

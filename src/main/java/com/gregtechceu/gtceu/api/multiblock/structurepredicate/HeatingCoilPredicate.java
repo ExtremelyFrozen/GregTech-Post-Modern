@@ -34,7 +34,7 @@ public enum HeatingCoilPredicate implements StructurePredicate {
         for (Map.Entry<ICoilType, Supplier<CoilBlock>> entry : GTCEuAPI.HEATING_COILS.entrySet()) {
             if (blockState.is(entry.getValue().get())) {
                 ICoilType stats = entry.getKey();
-                Object currentCoil = multiblockState.getMatchContext().getOrPut("CoilType", stats);
+                Object currentCoil = multiblockState.getFacts().getOrPut("CoilType", stats);
                 if (!currentCoil.equals(stats)) {
                     multiblockState.setError(new PatternStringError("gtpm.multiblock.pattern.error.coils"));
                     return false;

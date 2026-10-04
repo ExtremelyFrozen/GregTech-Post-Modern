@@ -2,7 +2,7 @@ package com.gregtechceu.gtceu.data.pattern
 
 import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition
-import com.gregtechceu.gtceu.api.multiblock.BlockPattern
+import com.gregtechceu.gtceu.api.multiblock.pattern.match.MultiBlockPattern
 import com.gregtechceu.gtceu.data.pattern.binary.PatternBinaryCodec
 import com.gregtechceu.gtceu.utils.dev.ResourceReloadDetector
 
@@ -43,8 +43,8 @@ object StructureCache {
 	private data class StructureCaches(
 		val binaryDefinitions: Map<StructurePatternKey, StructurePatternResolver.StringArrayDefinition>,
 		val jsonDefinitions: Map<StructurePatternKey, StructurePatternResolver.StringArrayDefinition>,
-		val binaryPatterns: ConcurrentHashMap<StructurePatternKey, BlockPattern> = ConcurrentHashMap(),
-		val jsonPatterns: ConcurrentHashMap<StructurePatternKey, BlockPattern> = ConcurrentHashMap(),
+		val binaryPatterns: ConcurrentHashMap<StructurePatternKey, MultiBlockPattern> = ConcurrentHashMap(),
+		val jsonPatterns: ConcurrentHashMap<StructurePatternKey, MultiBlockPattern> = ConcurrentHashMap(),
 	)
 
 	private data class PatternSource(val description: String, val root: Path)
@@ -285,7 +285,7 @@ object StructureCache {
 	}
 
 	@JvmStatic
-	fun resolvePattern(key: StructurePatternKey, definition: MultiblockMachineDefinition, javaPattern: BlockPattern): BlockPattern {
+	fun resolvePattern(key: StructurePatternKey, definition: MultiblockMachineDefinition, javaPattern: MultiBlockPattern): MultiBlockPattern {
 		val caches = requireCaches()
 		caches.binaryDefinitions[key]?.let { binaryDefinition ->
 			return caches.binaryPatterns.computeIfAbsent(key) {
@@ -397,8 +397,8 @@ object StructureCache {
 	private fun freezeCaches(
 		binaryMap: Map<StructurePatternKey, StructurePatternResolver.StringArrayDefinition>,
 		jsonMap: Map<StructurePatternKey, StructurePatternResolver.StringArrayDefinition>,
-		binaryPatterns: ConcurrentHashMap<StructurePatternKey, BlockPattern> = ConcurrentHashMap(),
-		jsonPatterns: ConcurrentHashMap<StructurePatternKey, BlockPattern> = ConcurrentHashMap(),
+		binaryPatterns: ConcurrentHashMap<StructurePatternKey, MultiBlockPattern> = ConcurrentHashMap(),
+		jsonPatterns: ConcurrentHashMap<StructurePatternKey, MultiBlockPattern> = ConcurrentHashMap(),
 	): StructureCaches = StructureCaches(
 		freezeMap(binaryMap),
 		freezeMap(jsonMap),

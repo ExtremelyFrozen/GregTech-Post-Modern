@@ -25,7 +25,8 @@ import static com.gregtechceu.gtceu.common.machine.multiblock.electric.PowerSubs
  * Serialized power substation battery predicate for JSON multiblock patterns.
  *
  * <p>
- * This predicate mirrors {@code Predicates.powerSubstationBatteries()} by matching registered PSS battery blocks and
+ * This predicate mirrors {@code PatternPredicates.powerSubstationBatteries()} by matching registered PSS battery blocks
+ * and
  * recording matched non-empty battery data in the pattern match context.
  */
 public enum PowerSubstationBatteryPredicate implements StructurePredicate {
@@ -50,11 +51,11 @@ public enum PowerSubstationBatteryPredicate implements StructurePredicate {
                 IBatteryData battery = entry.getKey();
                 if (mutateCount && battery.getTier() != -1 && battery.getCapacity() > 0) {
                     String key = PMC_BATTERY_HEADER + battery.getBatteryName();
-                    PowerSubstationMachine.BatteryMatchWrapper wrapper = multiblockState.getMatchContext().get(key);
+                    PowerSubstationMachine.BatteryMatchWrapper wrapper = multiblockState.getFacts().get(key);
                     if (wrapper == null) {
                         wrapper = new PowerSubstationMachine.BatteryMatchWrapper(battery);
                     }
-                    multiblockState.getMatchContext().set(key, wrapper.increment());
+                    multiblockState.getFacts().set(key, wrapper.increment());
                 }
                 return true;
             }

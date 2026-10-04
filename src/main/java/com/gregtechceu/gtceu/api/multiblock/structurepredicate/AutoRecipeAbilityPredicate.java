@@ -26,14 +26,15 @@ import java.util.function.Predicate;
  * Expands recipe IO requirements into hatch predicates for the owning controller.
  *
  * <p>
- * This is the JSON equivalent of {@code Predicates.autoAbilities(recipeTypes, ...)}. It derives recipe types from
+ * This is the JSON equivalent of {@code PatternPredicates.autoAbilities(recipeTypes, ...)}. It derives recipe types
+ * from
  * the controller machine definition at match time so static JSON structures do not need to duplicate recipe metadata.
  */
 public record AutoRecipeAbilityPredicate(boolean checkEnergyIn, boolean checkEnergyOut, boolean checkItemIn,
                                          boolean checkItemOut, boolean checkFluidIn, boolean checkFluidOut)
         implements StructurePredicate {
 
-    private static final Map<PartAbility, StructurePredicate> ABILITY_PREDICATES = createAbilityPredicates();
+    private static final Map<PartAbility, StructurePredicate> ABILITY_PREDICATES = createAbilityPatternPredicates();
 
     public static final MapCodec<AutoRecipeAbilityPredicate> CODEC = RecordCodecBuilder.mapCodec(instance -> instance
             .group(
@@ -59,7 +60,7 @@ public record AutoRecipeAbilityPredicate(boolean checkEnergyIn, boolean checkEne
     @Override
     public boolean test(MultiblockState multiblockState, boolean mutateCount) {
         boolean matched = false;
-        for (StructurePredicate predicate : collectPredicates(multiblockState)) {
+        for (StructurePredicate predicate : collectPatternPredicates(multiblockState)) {
             matched |= predicate.test(multiblockState, mutateCount);
         }
         return matched;
@@ -77,20 +78,20 @@ public record AutoRecipeAbilityPredicate(boolean checkEnergyIn, boolean checkEne
 
     @Override
     public @Unmodifiable List<StructurePreviewChoice> previewChoices(MultiblockMachineDefinition definition) {
-        return collectPredicates(definition.getRecipeTypes()).stream()
+        return collectPatternPredicates(definition.getRecipeTypes()).stream()
                 .flatMap(predicate -> predicate.previewChoices(definition).stream())
                 .toList();
     }
 
-    private List<StructurePredicate> collectPredicates(MultiblockState multiblockState) {
+    private List<StructurePredicate> collectPatternPredicates(MultiblockState multiblockState) {
         MultiblockControllerMachine controller = multiblockState.getController();
         if (controller == null) {
             throw new IllegalStateException("Auto recipe ability predicates require a multiblock controller");
         }
-        return collectPredicates(controller.getDefinition().getRecipeTypes());
+        return collectPatternPredicates(controller.getDefinition().getRecipeTypes());
     }
 
-    private List<StructurePredicate> collectPredicates(GTRecipeType[] recipeTypes) {
+    private List<StructurePredicate> collectPatternPredicates(GTRecipeType[] recipeTypes) {
         List<StructurePredicate> predicates = new ArrayList<>();
         addRecipePredicate(predicates, checkEnergyIn, recipeTypes,
                 type -> type.getMaxInputs(EURecipeCapability.CAP) > 0, PartAbility.INPUT_ENERGY, true);
@@ -127,7 +128,7 @@ public record AutoRecipeAbilityPredicate(boolean checkEnergyIn, boolean checkEne
         return false;
     }
 
-    private static Map<PartAbility, StructurePredicate> createAbilityPredicates() {
+    private static Map<PartAbility, StructurePredicate> createAbilityPatternPredicates() {
         return Map.of(
                 PartAbility.INPUT_ENERGY, limitedEnergyPredicate(PartAbility.INPUT_ENERGY),
                 PartAbility.OUTPUT_ENERGY, limitedEnergyPredicate(PartAbility.OUTPUT_ENERGY),

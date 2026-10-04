@@ -48,7 +48,7 @@ public enum CleanroomInnerPredicate implements StructurePredicate {
                 return false;
             }
             if (mutateCount) {
-                Set<CleanroomReceiverTrait> receivers = multiblockState.getMatchContext()
+                Set<CleanroomReceiverTrait> receivers = multiblockState.getFacts()
                         .getOrCreate("cleanroomReceiver", Sets::newHashSet);
                 machine.getTraitOptional(CleanroomReceiverTrait.TYPE).ifPresent(receivers::add);
             }

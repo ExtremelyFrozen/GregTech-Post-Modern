@@ -1,6 +1,6 @@
 package com.gregtechceu.gtceu.api.multiblock.error;
 
-import com.gregtechceu.gtceu.api.multiblock.predicates.SimplePredicate;
+import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PredicateRule;
 
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
@@ -10,10 +10,10 @@ import java.util.List;
 
 public class SinglePredicateError extends PatternError {
 
-    public final SimplePredicate predicate;
+    public final PredicateRule predicate;
     public final int type;
 
-    public SinglePredicateError(SimplePredicate predicate, int type) {
+    public SinglePredicateError(PredicateRule predicate, int type) {
         this.predicate = predicate;
         this.type = type;
     }

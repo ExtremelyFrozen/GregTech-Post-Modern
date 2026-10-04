@@ -2,7 +2,7 @@ package com.gregtechceu.gtceu.data.pattern;
 
 import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
-import com.gregtechceu.gtceu.api.multiblock.BlockPattern;
+import com.gregtechceu.gtceu.api.multiblock.pattern.match.MultiBlockPattern;
 
 import net.minecraft.resources.ResourceLocation;
 
@@ -14,12 +14,14 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicLong;
 
 public final class StructurePatternRegistry {
 
     private static final Map<StructurePatternKey, JavaDefinition> JAVA_DEFINITIONS = new ConcurrentHashMap<>();
     private static final Set<Runnable> RELOAD_LISTENERS = ConcurrentHashMap.newKeySet();
     private static final ExecutorService RELOAD_EXECUTOR = Executors.newVirtualThreadPerTaskExecutor();
+    private static final AtomicLong GENERATION = new AtomicLong();
 
     private StructurePatternRegistry() {}
 
@@ -28,15 +30,27 @@ public final class StructurePatternRegistry {
         JAVA_DEFINITIONS.put(key, new JavaDefinition(key, definition, structureName));
     }
 
-    public static BlockPattern resolvePattern(MultiblockMachineDefinition definition, String structureName) {
+    public static MultiBlockPattern resolvePattern(MultiblockMachineDefinition definition, String structureName) {
         StructurePatternKey key = new StructurePatternKey(definition.getId(), structureName);
-        BlockPattern javaPattern = definition.createJavaPattern(structureName);
+        MultiBlockPattern javaPattern = definition.createJavaPattern(structureName);
         return resolvePattern(key, definition, javaPattern);
     }
 
-    public static BlockPattern resolvePattern(StructurePatternKey key, MultiblockMachineDefinition definition,
-                                              BlockPattern javaPattern) {
+    public static MultiBlockPattern resolvePattern(StructurePatternKey key, MultiblockMachineDefinition definition,
+                                                   MultiBlockPattern javaPattern) {
         return StructureCache.resolvePattern(key, definition, javaPattern);
+    }
+
+    /**
+     * Returns the generation of the latest successfully published pattern reload.
+     *
+     * <p>
+     * Preview windows and bound terminal sessions compare this value instead of installing per-window listeners
+     * that could outlive their UI lifecycle.
+     * </p>
+     */
+    public static long generation() {
+        return GENERATION.get();
     }
 
     @ApiStatus.Internal
@@ -46,7 +60,7 @@ public final class StructurePatternRegistry {
 
     @ApiStatus.Internal
     public static CompletableFuture<Integer> reloadAllPatternsAsync() {
-        return runReloadTasksAsync((StructureDefinitionSource) null, (ResourceLocation) null);
+        return runReloadTasksAsync(null, (ResourceLocation) null);
     }
 
     @ApiStatus.Internal
@@ -118,6 +132,7 @@ public final class StructurePatternRegistry {
 
     private static int notifyReloadListeners(int refreshed) {
         if (refreshed > 0) {
+            GENERATION.incrementAndGet();
             RELOAD_LISTENERS.forEach(Runnable::run);
         }
         return refreshed;

@@ -19,9 +19,117 @@ public class IntegrationLang {
         initOwnershipLang(provider);
     }
 
-    /** JEI, EMI */
+    /**
+     * JEI, EMI
+     */
     private static void initRecipeViewerLang(RegistrateLangProvider provider) {
         provider.add("gtpm.jei.multiblock_info", "Multiblock Info");
+        provider.add("gtpm.multiblock.preview.material.selected", "Material: %s");
+        provider.add("gtpm.multiblock.preview.material.none", "No materials required");
+        provider.add("gtpm.multiblock.preview.material.required", "Required: %s");
+        provider.add("gtpm.multiblock.preview.material.structure", "  %s: %s");
+        provider.add("gtpm.multiblock.preview.material.me", "ME available: %s; allocated: %s");
+        provider.add("gtpm.multiblock.preview.material.player", "Player available: %s; allocated: %s");
+        provider.add("gtpm.multiblock.preview.material.missing", "Missing: %s");
+        provider.add("gtpm.multiblock.preview.material.unlimited", "Materials are unlimited for this plan");
+        provider.add("gtpm.multiblock.preview.material.availability_unknown",
+                "Availability is unknown in recipe previews");
+        provider.add("gtpm.multiblock.preview.demolition_count", "D:%s");
+        provider.add("gtpm.multiblock.preview.tooltip.demolition_count", "Demolition targets: %s");
+        provider.add("gtpm.multiblock.preview.cell.position", "Relative position: %s, %s, %s");
+        provider.add("gtpm.multiblock.preview.cell.contribution", "%s -> %s [%s], cell %s/%s/%s/%s/%s");
+        provider.add("gtpm.multiblock.preview.cell.direction", "Required direction: %s");
+        provider.add("gtpm.multiblock.preview.cell.conflict", "Conflicting structure targets");
+        provider.add("gtpm.multiblock.preview.cell.demolition", "Demolition target");
+        provider.add("gtpm.multiblock.preview.cell.action.controller", "controller");
+        provider.add("gtpm.multiblock.preview.cell.action.keep", "keep");
+        provider.add("gtpm.multiblock.preview.cell.action.update_direction", "update direction");
+        provider.add("gtpm.multiblock.preview.cell.action.place", "place");
+        provider.add("gtpm.multiblock.preview.cell.action.clear_for_air", "clear for air");
+        provider.add("gtpm.multiblock.preview.cell.action.demolish_candidate", "demolish");
+        provider.add("gtpm.multiblock.preview.cell.action.ignore_any", "ignore");
+        provider.add("gtpm.multiblock.preview.button.structure_all", "S:*");
+        provider.add("gtpm.multiblock.preview.button.structure", "S:%s");
+        provider.add("gtpm.multiblock.preview.button.layer_all", "L:*");
+        provider.add("gtpm.multiblock.preview.button.layer", "L:%s");
+        provider.add("gtpm.multiblock.preview.button.selected.true", "+");
+        provider.add("gtpm.multiblock.preview.button.selected.false", "-");
+        provider.add("gtpm.multiblock.preview.button.selected.locked", "Lock");
+        provider.add("gtpm.multiblock.preview.button.mode.build", "B");
+        provider.add("gtpm.multiblock.preview.button.mode.demolish", "D");
+        provider.add("gtpm.multiblock.preview.button.mode.locked", "B!");
+        provider.add("gtpm.multiblock.preview.button.flip.true", "F+");
+        provider.add("gtpm.multiblock.preview.button.flip.false", "F-");
+        provider.add("gtpm.multiblock.preview.button.repeat_unit", "U:%s");
+        provider.add("gtpm.multiblock.preview.button.repeat", "R:%s");
+        provider.add("gtpm.multiblock.preview.button.repeat_none", "R:-");
+        provider.add("gtpm.multiblock.preview.button.no_hatch.true", "H+");
+        provider.add("gtpm.multiblock.preview.button.no_hatch.false", "H-");
+        provider.add("gtpm.multiblock.preview.button.replace.true", "X+");
+        provider.add("gtpm.multiblock.preview.button.replace.false", "X-");
+        provider.add("gtpm.multiblock.preview.button.me.true", "A+");
+        provider.add("gtpm.multiblock.preview.button.me.false", "A-");
+        provider.add("gtpm.multiblock.preview.button.tier_group", "T:%s");
+        provider.add("gtpm.multiblock.preview.button.tier_group_none", "T:-");
+        provider.add("gtpm.multiblock.preview.button.tier_value", "V:%s");
+        provider.add("gtpm.multiblock.preview.button.tier_value_none", "V:-");
+        provider.add("gtpm.multiblock.preview.button.unavailable", "!");
+        provider.add("gtpm.multiblock.preview.tooltip.focus", "Focus one selected structure");
+        provider.add("gtpm.multiblock.preview.tooltip.layer", "Cycle visible layers");
+        provider.add("gtpm.multiblock.preview.tooltip.structure", "Select the structure to configure");
+        provider.add("gtpm.multiblock.preview.tooltip.selected", "Include or exclude this structure");
+        provider.add("gtpm.multiblock.preview.tooltip.selected_locked",
+                "Required by a selected build structure and cannot be removed");
+        provider.add("gtpm.multiblock.preview.tooltip.mode", "Switch between build and demolition");
+        provider.add("gtpm.multiblock.preview.tooltip.mode_locked",
+                "Required by a selected build structure and locked to build mode");
+        provider.add("gtpm.multiblock.preview.tooltip.flip", "Flip this structure");
+        provider.add("gtpm.multiblock.preview.tooltip.repeat_unit", "Select a repeatable pattern unit");
+        provider.add("gtpm.multiblock.preview.tooltip.repeat", "Change this unit's repetition count");
+        provider.add("gtpm.multiblock.preview.tooltip.no_hatch", "Minimize optional hatches");
+        provider.add("gtpm.multiblock.preview.tooltip.replace", "Allow replacing occupied targets");
+        provider.add("gtpm.multiblock.preview.tooltip.me",
+                "Real execution uses ME first, then player inventory; XEI does not query the network");
+        provider.add("gtpm.multiblock.preview.tooltip.tier_group", "Select a tiered block group");
+        provider.add("gtpm.multiblock.preview.tooltip.tier_value", "Select an exact legal tier");
+        provider.add("gtpm.multiblock.preview.tooltip.tier_group_selected", "Tier group: %s");
+        provider.add("gtpm.multiblock.preview.tooltip.tier_value_selected", "Exact tier candidate: %s (%s)");
+        provider.add("gtpm.multiblock.preview.diagnostic", "Plan diagnostic: %s");
+        provider.add("gtpm.multiblock.preview.diagnostic.unknown_structure", "Unknown structure");
+        provider.add("gtpm.multiblock.preview.diagnostic.invalid_options", "Invalid configuration");
+        provider.add("gtpm.multiblock.preview.diagnostic.pattern_unavailable", "Pattern unavailable");
+        provider.add("gtpm.multiblock.preview.diagnostic.permission_denied", "Permission denied");
+        provider.add("gtpm.multiblock.preview.diagnostic.unloaded", "Target area is not loaded");
+        provider.add("gtpm.multiblock.preview.diagnostic.blocked", "Target is blocked");
+        provider.add("gtpm.multiblock.preview.diagnostic.unsupported", "Unsupported pattern target");
+        provider.add("gtpm.multiblock.preview.diagnostic.missing_material", "Missing material");
+        provider.add("gtpm.multiblock.preview.diagnostic.place_failed", "Placement failed");
+        provider.add("gtpm.multiblock.preview.diagnostic.demolition_failed", "Demolition failed");
+        provider.add("gtpm.multiblock.preview.diagnostic.me_unavailable", "ME network unavailable");
+        provider.add("gtpm.multiblock.preview.diagnostic.player_inventory_unavailable",
+                "Player inventory unavailable");
+        provider.add("gtpm.multiblock.preview.diagnostic.ae_not_installed", "AE2 is not installed");
+        provider.add("gtpm.multiblock.preview.diagnostic.ae_not_linked", "No linked wireless terminal");
+        provider.add("gtpm.multiblock.preview.diagnostic.ae_linked_dimension_missing",
+                "Linked AE dimension unavailable");
+        provider.add("gtpm.multiblock.preview.diagnostic.ae_wrong_dimension",
+                "Linked AE access point is in another dimension");
+        provider.add("gtpm.multiblock.preview.diagnostic.ae_access_point_missing",
+                "Linked AE access point missing");
+        provider.add("gtpm.multiblock.preview.diagnostic.ae_access_point_inactive",
+                "Linked AE access point inactive");
+        provider.add("gtpm.multiblock.preview.diagnostic.ae_out_of_range", "Linked AE access point out of range");
+        provider.add("gtpm.multiblock.preview.diagnostic.ae_grid_unavailable", "Linked AE grid unavailable");
+        provider.add("gtpm.multiblock.preview.diagnostic.stale_plan", "Preview is stale; refresh before executing");
+        provider.add("gtpm.multiblock.preview.diagnostic.source_changed", "Material source changed");
+        provider.add("gtpm.multiblock.preview.diagnostic.extraction_failed", "Material extraction failed");
+        provider.add("gtpm.multiblock.preview.diagnostic.refund_failed", "Material refund failed");
+        provider.add("gtpm.multiblock.preview.diagnostic.count_overflow", "Material count overflow");
+        provider.add("gtpm.multiblock.preview.diagnostic.invalid_tier_selection", "Invalid tier selection");
+        provider.add("gtpm.multiblock.preview.diagnostic.structure_check_failed",
+                "Final structure validation failed");
+        provider.add("gtpm.multiblock.preview.diagnostic.pattern_reload_incompatible",
+                "The pattern changed incompatibly; reopen this preview after fixing the definition");
         provider.add("gtpm.jei.ore_processing_diagram", "Ore Processing Diagram");
         provider.add("gtpm.jei.ore_vein_diagram", "Ore Vein Diagram");
         provider.add("gtpm.jei.programmed_circuit", "Programmed Circuit Page");
@@ -45,7 +153,9 @@ public class IntegrationLang {
         }
     }
 
-    /** Jade */
+    /**
+     * Jade
+     */
     private static void initWailaLikeLang(RegistrateLangProvider provider) {
         provider.add("gtpm.top.working_disabled", "Working Disabled");
         provider.add("gtpm.top.energy_consumption", "Using");

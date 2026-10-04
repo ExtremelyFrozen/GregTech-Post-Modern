@@ -34,7 +34,7 @@ public enum CharcoalLogOrAirPredicate implements StructurePredicate {
         boolean log = multiblockState.getBlockState().is(BlockTags.LOGS_THAT_BURN);
         if (log || multiblockState.getBlockState().isAir()) {
             if (mutateCount) {
-                multiblockState.getMatchContext().getOrCreate("logPos", Long2BooleanOpenHashMap::new)
+                multiblockState.getFacts().getOrCreate("logPos", Long2BooleanOpenHashMap::new)
                         .put(multiblockState.getPos().asLong(), log);
             }
             return true;

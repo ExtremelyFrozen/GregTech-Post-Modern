@@ -11,6 +11,7 @@ import java.util.List;
  * @param options         user-selected build behavior
  * @param materialSources material sources used in order during planning and execution
  */
+@Deprecated(forRemoval = false, since = "7.0")
 public record AutoBuildRequest(String structureName, AutoBuildOptions options,
                                List<AutoBuildMaterialSource> materialSources) {
 

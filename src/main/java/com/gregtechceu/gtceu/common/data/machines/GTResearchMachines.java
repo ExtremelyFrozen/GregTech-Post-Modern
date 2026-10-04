@@ -11,7 +11,7 @@ import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.machine.multiblock.PartAbility;
 import com.gregtechceu.gtceu.api.machine.property.GTMachineModelProperties;
 import com.gregtechceu.gtceu.api.machine.trait.WorkLogic;
-import com.gregtechceu.gtceu.api.multiblock.FactoryBlockPattern;
+import com.gregtechceu.gtceu.api.multiblock.pattern.dsl.PatternBuilder;
 import com.gregtechceu.gtceu.api.registry.registrate.MachineBuilder;
 import com.gregtechceu.gtceu.client.util.TooltipHelper;
 import com.gregtechceu.gtceu.common.data.GTMaterials;
@@ -58,7 +58,7 @@ public class GTResearchMachines {
             .recipeType(GTRecipeTypes.RESEARCH_STATION_RECIPES)
             .appearanceBlock(ADVANCED_COMPUTER_CASING)
             .tooltips(LangHandler.getMultiLang("gtpm.machine.research_station.tooltip"))
-            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> FactoryBlockPattern.start(definition)
+            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> PatternBuilder.start(definition)
                     .aislesFromDefinition()
                     .build())
             .sidedWorkableCasingModel(GTCEu.id("block/casings/hpca/advanced_computer_casing"),
@@ -90,7 +90,7 @@ public class GTResearchMachines {
                             FormattingUtil.formatNumbers(DataBankMachine.EUT_PER_HATCH)),
                     Component.translatable("gtpm.machine.data_bank.tooltip.4",
                             FormattingUtil.formatNumbers(DataBankMachine.EUT_PER_HATCH_CHAINED)))
-            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> FactoryBlockPattern.start(definition)
+            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> PatternBuilder.start(definition)
                     .aislesFromDefinition()
                     .build())
             .workableCasingModel(GTCEu.id("block/casings/hpca/high_power_casing"),
@@ -108,7 +108,7 @@ public class GTResearchMachines {
                     Component.translatable("gtpm.machine.network_switch.tooltip.2"),
                     Component.translatable("gtpm.machine.network_switch.tooltip.3",
                             FormattingUtil.formatNumbers(NetworkSwitchMachine.EUT_PER_HATCH)))
-            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> FactoryBlockPattern.start(definition)
+            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> PatternBuilder.start(definition)
                     .aislesFromDefinition()
                     .build())
             .sidedWorkableCasingModel(GTCEu.id("block/casings/hpca/computer_casing"),
@@ -124,7 +124,7 @@ public class GTResearchMachines {
             .appearanceBlock(COMPUTER_CASING)
             .recipeType(GTRecipeTypes.DUMMY_RECIPES)
             .tooltips(LangHandler.getMultiLang("gtpm.machine.high_performance_computation_array.tooltip"))
-            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> FactoryBlockPattern.start(definition)
+            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> PatternBuilder.start(definition)
                     .aislesFromDefinition()
                     .build())
             .sidedWorkableCasingModel(GTCEu.id("block/casings/hpca/computer_casing"),

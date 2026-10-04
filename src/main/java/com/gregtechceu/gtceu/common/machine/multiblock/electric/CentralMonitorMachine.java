@@ -20,6 +20,10 @@ import com.gregtechceu.gtceu.api.machine.multiblock.PartAbility;
 import com.gregtechceu.gtceu.api.machine.multiblock.WorkableElectricMultiblockMachine;
 import com.gregtechceu.gtceu.api.misc.EnergyContainerList;
 import com.gregtechceu.gtceu.api.multiblock.*;
+import com.gregtechceu.gtceu.api.multiblock.pattern.dsl.PatternBuilder;
+import com.gregtechceu.gtceu.api.multiblock.pattern.match.MultiBlockPattern;
+import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PatternPredicate;
+import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PatternPredicates;
 import com.gregtechceu.gtceu.api.multiblock.util.RelativeDirection;
 import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.RerenderOnChanged;
@@ -104,24 +108,24 @@ public class CentralMonitorMachine extends WorkableElectricMultiblockMachine
 
     private @Nullable MultiblockState patternFindingState;
 
-    private static @Nullable TraceabilityPredicate MULTI_PREDICATE = null;
+    private static @Nullable PatternPredicate MULTI_PREDICATE = null;
 
     public CentralMonitorMachine(BlockEntityCreationInfo info) {
         super(info, new CentralMonitorLogic());
     }
 
-    public static TraceabilityPredicate getMultiPredicate() {
+    public static PatternPredicate getMultiPredicate() {
         if (MULTI_PREDICATE == null) {
-            MULTI_PREDICATE = Predicates.abilities(PartAbility.INPUT_ENERGY)
+            MULTI_PREDICATE = PatternPredicates.abilities(PartAbility.INPUT_ENERGY)
                     .setMinGlobalLimited(1).setMaxGlobalLimited(2).setPreviewCount(1)
-                    .or(Predicates.abilities(PartAbility.DATA_ACCESS).setPreviewCount(1)
-                            .or(Predicates.machines(GTMachines.BATTERY_BUFFER_4).setPreviewCount(0))
-                            .or(Predicates.machines(GTMachines.BATTERY_BUFFER_16).setPreviewCount(0))
+                    .or(PatternPredicates.abilities(PartAbility.DATA_ACCESS).setPreviewCount(1)
+                            .or(PatternPredicates.machines(GTMachines.BATTERY_BUFFER_4).setPreviewCount(0))
+                            .or(PatternPredicates.machines(GTMachines.BATTERY_BUFFER_16).setPreviewCount(0))
                             .setMaxGlobalLimited(4))
-                    .or(Predicates.machines(GTMachines.HULL))
-                    .or(Predicates.machines(GTMachines.MONITOR))
-                    .or(Predicates.machines(GTMachines.ADVANCED_MONITOR))
-                    .or(Predicates.blocks(GTBlocks.CASING_ALUMINIUM_FROSTPROOF.get()));
+                    .or(PatternPredicates.machines(GTMachines.HULL))
+                    .or(PatternPredicates.machines(GTMachines.MONITOR))
+                    .or(PatternPredicates.machines(GTMachines.ADVANCED_MONITOR))
+                    .or(PatternPredicates.blocks(GTBlocks.CASING_ALUMINIUM_FROSTPROOF.get()));
         }
         return MULTI_PREDICATE;
     }
@@ -255,7 +259,7 @@ public class CentralMonitorMachine extends WorkableElectricMultiblockMachine
     }
 
     @Override
-    public BlockPattern getPattern(String structureName) {
+    public MultiBlockPattern getPattern(String structureName) {
         if (!DEFAULT_STRUCTURE.equals(structureName)) {
             return super.getPattern(structureName);
         }
@@ -283,7 +287,7 @@ public class CentralMonitorMachine extends WorkableElectricMultiblockMachine
             aisle[i] = pattern[i].toString();
         }
 
-        BlockPattern baseline = FactoryBlockPattern.start(getDefinition())
+        MultiBlockPattern baseline = PatternBuilder.start(getDefinition())
                 .aisle("~")
                 .build();
         return StructurePatternResolver.rebuildRuntimeStringArrayPattern(

@@ -1,13 +1,20 @@
 package com.gregtechceu.gtceu.client.renderer;
 
+import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.GTValues;
-import com.gregtechceu.gtceu.api.block.MetaMachineBlock;
-import com.gregtechceu.gtceu.api.data.RotationState;
-import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
-import com.gregtechceu.gtceu.api.multiblock.MultiblockBlockInfo;
 import com.gregtechceu.gtceu.api.multiblock.MultiblockPreviewLevel;
-import com.gregtechceu.gtceu.api.multiblock.MultiblockShapeInfo;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.AutoBuildBatchRequest;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.AutoBuildSharedOptions;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.AutoBuildStructureOptions;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.AutoBuildPlan;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.CellAction;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.MergedPlanCell;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.MultiblockPlanResolver;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.PlannedBlockInfo;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.PlannedCell;
+import com.gregtechceu.gtceu.api.multiblock.preview.PatternGenerationGuard;
+import com.gregtechceu.gtceu.data.pattern.StructurePatternRegistry;
 
 import com.lowdragmc.lowdraglib2.client.scene.WorldSceneRenderer;
 
@@ -19,11 +26,10 @@ import net.minecraft.client.renderer.block.ModelBlockRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.FluidState;
@@ -34,19 +40,22 @@ import net.neoforged.neoforge.client.model.data.ModelData;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
-import lombok.Getter;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 import org.lwjgl.opengl.GL11;
 
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static net.minecraft.world.level.block.RenderShape.INVISIBLE;
 
 @OnlyIn(Dist.CLIENT)
-public class MultiblockInWorldPreviewRenderer {
+@NullMarked
+public final class MultiblockInWorldPreviewRenderer {
+
+    private MultiblockInWorldPreviewRenderer() {}
 
     private enum CacheState {
         UNUSED,
@@ -54,18 +63,25 @@ public class MultiblockInWorldPreviewRenderer {
         COMPILED
     }
 
-    @Getter(lazy = true)
-    private final static VertexBuffer[] BUFFERS = initBuffers();
+    private static final Object BUFFER_LOCK = new Object();
+    private static final int MAX_PATTERN_PUBLICATION_ATTEMPTS = 8;
+    @Nullable
+    private static volatile VertexBuffer[] buffers;
     @Nullable
     private static MultiblockPreviewLevel LEVEL = null;
     @Nullable
     private static Thread THREAD = null;
     @Nullable
+    private static Level SOURCE_LEVEL;
+    @Nullable
     private static Set<BlockPos> BLOCK_ENTITIES;
+    @Nullable
+    private static Set<BlockPos> LOADED_POSITIONS;
     private final static AtomicInteger LEFT_TICK = new AtomicInteger(-1);
+    private static final AtomicLong PREVIEW_GENERATION = new AtomicLong();
 
     /**
-     * It will be cached by lombok#@Getter(lazy=true)
+     * Creates one VBO per chunk render layer for the current preview generation.
      */
     private static VertexBuffer[] initBuffers() {
         List<RenderType> layers = RenderType.chunkBufferLayers();
@@ -83,12 +99,23 @@ public class MultiblockInWorldPreviewRenderer {
     private static int LAST_LAYER = -1;
 
     public static void cleanPreview() {
+        PREVIEW_GENERATION.incrementAndGet();
+        @Nullable
+        Thread compiling = THREAD;
+        if (compiling != null) {
+            compiling.interrupt();
+            THREAD = null;
+        }
         CACHE_STATE.set(CacheState.UNUSED);
+        releasePreviewLevel();
         LEVEL = null;
+        SOURCE_LEVEL = null;
         BLOCK_ENTITIES = null;
+        LOADED_POSITIONS = null;
         LEFT_TICK.set(-1);
         LAST_POS = null;
         LAST_LAYER = -1;
+        closeBuffers();
     }
 
     public static void removePreview(BlockPos pos) {
@@ -98,7 +125,7 @@ public class MultiblockInWorldPreviewRenderer {
     }
 
     /**
-     * Show the multiblock preview in the world by the given pos, side, and shape info.
+     * Shows the controller-oriented resolved plan in the world. Repeated use cycles logical pattern layers.
      *
      * @param pos        the pos of the controller
      * @param controller the controller
@@ -107,152 +134,146 @@ public class MultiblockInWorldPreviewRenderer {
     public static void showPreview(BlockPos pos, MultiblockControllerMachine controller,
                                    int duration) {
         if (!controller.getDefinition().isRenderWorldPreview()) return;
-        Direction front = controller.getFrontFacing();
-        Direction up = controller.getUpwardsFacing();
-        MultiblockShapeInfo shapeInfo = controller.getDefinition().getMatchingShapes().get(0);
-
-        Map<BlockPos, MultiblockBlockInfo> blockMap = new HashMap<>();
-        MultiblockControllerMachine controllerBase = null;
-        LEVEL = new MultiblockPreviewLevel();
-
-        var blocks = shapeInfo.getBlocks();
-        BlockPos controllerPatternPos = null;
-        var maxY = 0;
-        // find the pos of controller
-        for (int x = 0; x < blocks.length; x++) {
-            MultiblockBlockInfo[][] aisle = blocks[x];
-            maxY = Math.max(maxY, aisle.length);
-            for (int y = 0; y < aisle.length; y++) {
-                MultiblockBlockInfo[] column = aisle[y];
-                for (int z = 0; z < column.length; z++) {
-                    var blockState = column[z].getBlockState();
-                    // if its controller record its position offset.
-                    if (blockState.getBlock() instanceof MetaMachineBlock machineBlock &&
-                            machineBlock.getDefinition() instanceof MultiblockMachineDefinition) {
-                        controllerPatternPos = new BlockPos(x, y, z);
-                    }
-                }
+        @Nullable
+        BlockPos previousPos = LAST_POS;
+        int previousLayer = LAST_LAYER;
+        for (int publicationAttempt = 0; publicationAttempt < MAX_PATTERN_PUBLICATION_ATTEMPTS; publicationAttempt++) {
+            MultiblockPlanResolver resolver = new MultiblockPlanResolver();
+            PatternGenerationGuard.Resolution<AutoBuildPlan> resolution;
+            try {
+                resolution = PatternGenerationGuard.resolve(StructurePatternRegistry::generation, attempt -> {
+                    AutoBuildBatchRequest request = defaultPreviewRequest(controller, resolver);
+                    return resolver.resolveControllerPreview(controller, request);
+                });
+            } catch (RuntimeException exception) {
+                cleanPreview();
+                GTCEu.LOGGER.warn("Could not resolve the in-world multiblock preview for {}",
+                        controller.getDefinition().getId(), exception);
+                return;
             }
-        }
+            AutoBuildPlan plan = resolution.value();
+            if (!plan.sharedProblems().isEmpty() || plan.mergedCells().isEmpty()) {
+                cleanPreview();
+                return;
+            }
 
-        if (controllerPatternPos == null) { // if there is no controller found
+            List<Integer> layers = plan.mergedCells().keySet().stream()
+                    .map(BlockPos::getY)
+                    .distinct()
+                    .sorted()
+                    .toList();
+            int selectedLayer = selectedLayer(previousPos, previousLayer, pos, layers.size());
+            MultiblockPreviewLevel previewLevel = new MultiblockPreviewLevel(controller.getLevel());
+            Map<BlockPos, PlannedBlockInfo> blockMap = previewBlocks(plan, layers, selectedLayer, previewLevel);
+            if (StructurePatternRegistry.generation() != resolution.generation()) {
+                releasePreviewLevel(previewLevel, blockMap.keySet());
+                continue;
+            }
+
+            long previewGeneration = PREVIEW_GENERATION.incrementAndGet();
+            @Nullable
+            Thread compiling = THREAD;
+            if (compiling != null) {
+                compiling.interrupt();
+                THREAD = null;
+            }
+            CACHE_STATE.set(CacheState.UNUSED);
+            releasePreviewLevel();
+            closeBuffers();
+            LEVEL = previewLevel;
+            SOURCE_LEVEL = controller.getLevel();
+            BLOCK_ENTITIES = null;
+            LOADED_POSITIONS = Set.copyOf(blockMap.keySet());
+            LAST_POS = pos;
+            LAST_LAYER = selectedLayer;
+            if (StructurePatternRegistry.generation() != resolution.generation()) {
+                cleanPreview();
+                continue;
+            }
+            prepareBuffers(previewLevel, blockMap.keySet(), duration, previewGeneration);
             return;
         }
-
-        if (LAST_POS != null && LAST_POS.equals(pos)) {
-            LAST_LAYER++;
-            if (LAST_LAYER >= maxY) {
-                LAST_LAYER = -1;
-            }
-        } else {
-            LAST_LAYER = -1;
-        }
-        LAST_POS = pos;
-
-        for (int x = 0; x < blocks.length; x++) {
-            MultiblockBlockInfo[][] aisle = blocks[x];
-            for (int y = 0; y < aisle.length; y++) {
-                MultiblockBlockInfo[] column = aisle[y];
-                if (LAST_LAYER != -1 && LAST_LAYER != y) {
-                    continue;
-                }
-                for (int z = 0; z < column.length; z++) {
-                    var blockState = column[z].getBlockState();
-                    var offset = new BlockPos(x, y, z).subtract(controllerPatternPos);
-
-                    // rotation
-                    offset = switch (front) {
-                        case NORTH, UP, DOWN -> offset.rotate(Rotation.NONE);
-                        case SOUTH -> offset.rotate(Rotation.CLOCKWISE_180);
-                        case EAST -> offset.rotate(Rotation.COUNTERCLOCKWISE_90);
-                        case WEST -> offset.rotate(Rotation.CLOCKWISE_90);
-                    };
-
-                    Rotation r = up == Direction.NORTH ? Rotation.NONE : up == Direction.EAST ? Rotation.CLOCKWISE_90 :
-                            up == Direction.SOUTH ? Rotation.CLOCKWISE_180 :
-                                    up == Direction.WEST ? Rotation.COUNTERCLOCKWISE_90 : Rotation.NONE;
-
-                    offset = rotateByFrontAxis(offset, front, r);
-
-                    if (blockState.getBlock() instanceof MetaMachineBlock machineBlock) {
-                        var rotationState = machineBlock.getRotationState();
-                        if (rotationState != RotationState.NONE) {
-                            var face = blockState.getValue(rotationState.property);
-                            if (face.getAxis() != Direction.Axis.Y) {
-                                face = switch (front) {
-                                    case NORTH, UP, DOWN -> front;
-                                    case SOUTH -> face.getOpposite();
-                                    case WEST -> face.getCounterClockWise();
-                                    case EAST -> face.getClockWise();
-                                };
-                            }
-                            if (rotationState.test(face)) {
-                                blockState = blockState.setValue(rotationState.property, face);
-                            }
-                        }
-                    }
-
-                    BlockPos realPos = pos.offset(offset);
-
-                    // spotless:off
-                    if (column[z].getBlockEntity(realPos, controller.getLevel().registryAccess()) instanceof MultiblockControllerMachine cont) {
-                        cont.setLevel(LEVEL);
-                        controllerBase = cont;
-                    } else {
-                        blockMap.put(realPos, MultiblockBlockInfo.fromBlockState(blockState));
-                    }
-                    // spotless:on
-                }
-            }
-        }
-
-        blockMap.forEach(LEVEL::addBlock);
-        if (controllerBase != null) {
-            LEVEL.setInnerBlockEntity(controllerBase.self());
-        }
-
-        prepareBuffers(LEVEL, blockMap.keySet(), duration);
+        cleanPreview();
+        GTCEu.LOGGER.warn("Pattern generation did not stabilize while publishing the in-world preview for {}",
+                controller.getDefinition().getId());
     }
 
-    private static BlockPos rotateByFrontAxis(BlockPos pos, Direction front, Rotation rotation) {
-        if (front.getAxis() == Direction.Axis.X) {
-            return switch (rotation) {
-                default -> new BlockPos(-pos.getX(), pos.getY(), -pos.getZ());
-                case CLOCKWISE_90 -> new BlockPos(-pos.getX(), -front.getAxisDirection().getStep() * pos.getZ(),
-                        front.getAxisDirection().getStep() * -pos.getY());
-                case CLOCKWISE_180 -> new BlockPos(-pos.getX(), -pos.getY(), pos.getZ());
-                case COUNTERCLOCKWISE_90 -> new BlockPos(-pos.getX(), front.getAxisDirection().getStep() * pos.getZ(),
-                        front.getAxisDirection().getStep() * pos.getY());
-            };
-        } else if (front.getAxis() == Direction.Axis.Y) {
-            return switch (rotation) {
-                default -> new BlockPos(-front.getAxisDirection().getStep() * pos.getX(),
-                        -front.getAxisDirection().getStep() * pos.getZ(),
-                        -pos.getY());
-                case CLOCKWISE_90 -> new BlockPos(pos.getY(),
-                        -front.getAxisDirection().getStep() * pos.getZ(),
-                        -front.getAxisDirection().getStep() * pos.getX());
-                case CLOCKWISE_180 -> new BlockPos(front.getAxisDirection().getStep() * pos.getX(),
-                        -front.getAxisDirection().getStep() * pos.getZ(),
-                        pos.getY());
-                case COUNTERCLOCKWISE_90 -> new BlockPos(-pos.getY(),
-                        -front.getAxisDirection().getStep() * pos.getZ(),
-                        front.getAxisDirection().getStep() * pos.getX());
-            };
-        } else if (front.getAxis() == Direction.Axis.Z) {
-            return switch (rotation) {
-                default -> pos;
-                case CLOCKWISE_90 -> new BlockPos(front.getAxisDirection().getStep() * pos.getY(),
-                        -front.getAxisDirection().getStep() * pos.getX(), pos.getZ());
-                case CLOCKWISE_180 -> new BlockPos(-pos.getX(), -pos.getY(), pos.getZ());
-                case COUNTERCLOCKWISE_90 -> new BlockPos(front.getAxisDirection().getStep() * -pos.getY(),
-                        front.getAxisDirection().getStep() * pos.getX(), pos.getZ());
-            };
+    private static int selectedLayer(@Nullable BlockPos previousPos, int previousLayer, BlockPos pos, int layerCount) {
+        if (!pos.equals(previousPos)) return -1;
+        int nextLayer = previousLayer + 1;
+        return nextLayer >= layerCount ? -1 : nextLayer;
+    }
+
+    private static Map<BlockPos, PlannedBlockInfo> previewBlocks(AutoBuildPlan plan, List<Integer> layers,
+                                                                 int selectedLayer,
+                                                                 MultiblockPreviewLevel previewLevel) {
+        Map<BlockPos, PlannedBlockInfo> blockMap = new LinkedHashMap<>();
+        for (MergedPlanCell merged : plan.mergedCells().values()) {
+            if (selectedLayer != -1 && merged.relativePos().getY() != layers.get(selectedLayer)) {
+                continue;
+            }
+            PlannedCell representative = renderRepresentative(merged);
+            @Nullable
+            BlockPos worldPos = representative.worldPos();
+            if (representative.action() == CellAction.CONTROLLER || worldPos == null ||
+                    representative.blockState().isAir() && !merged.conflict()) {
+                continue;
+            }
+            PlannedBlockInfo blockInfo = representative.blockState().isAir() ?
+                    PlannedBlockInfo.from(Blocks.WHITE_STAINED_GLASS.defaultBlockState()) :
+                    representative.blockInfo();
+            blockMap.put(worldPos, blockInfo);
+            var previewInfo = blockInfo.createBlockInfo();
+            previewLevel.addBlock(worldPos, previewInfo);
+            @Nullable
+            BlockEntity blockEntity = previewInfo.getBlockEntity(
+                    previewLevel.registryAccess(), previewLevel, worldPos);
+            if (blockEntity != null) {
+                previewLevel.setInnerBlockEntity(blockEntity);
+            }
         }
-        return pos;
+        return blockMap;
+    }
+
+    private static PlannedCell renderRepresentative(MergedPlanCell merged) {
+        PlannedCell executionRepresentative = merged.representative();
+        if (!merged.conflict() || !executionRepresentative.blockState().isAir()) {
+            return executionRepresentative;
+        }
+        List<PlannedCell> contributors = merged.contributors();
+        for (int index = contributors.size() - 1; index >= 0; index--) {
+            PlannedCell contributor = contributors.get(index);
+            if (contributor.action() != CellAction.IGNORE_ANY && !contributor.blockState().isAir()) {
+                return contributor;
+            }
+        }
+        return executionRepresentative;
+    }
+
+    private static AutoBuildBatchRequest defaultPreviewRequest(MultiblockControllerMachine controller,
+                                                               MultiblockPlanResolver resolver) {
+        var definition = controller.getDefinition();
+        List<String> order = definition.getStructureOrder();
+        if (order.isEmpty()) {
+            throw new IllegalStateException("Multiblock definition has no structures: " + definition.getId());
+        }
+        String main = order.contains(MultiblockControllerMachine.DEFAULT_STRUCTURE) ?
+                MultiblockControllerMachine.DEFAULT_STRUCTURE : order.getFirst();
+        Set<String> selected = new LinkedHashSet<>();
+        selected.add(main);
+        selected.addAll(definition.getRequiredStructures(main));
+        List<AutoBuildStructureOptions> structures = order.stream()
+                .filter(selected::contains)
+                .map(name -> resolver.defaultStructureOptions(definition, name))
+                .toList();
+        return new AutoBuildBatchRequest(structures, AutoBuildSharedOptions.DEFAULT, List.of());
     }
 
     public static void onClientTick() {
+        if (SOURCE_LEVEL != null && SOURCE_LEVEL != Minecraft.getInstance().level) {
+            cleanPreview();
+            return;
+        }
         if (LEFT_TICK.get() > 0) {
             if (LEFT_TICK.decrementAndGet() <= 0) {
                 cleanPreview();
@@ -261,25 +282,31 @@ public class MultiblockInWorldPreviewRenderer {
     }
 
     public static void renderInWorldPreview(PoseStack poseStack, Camera camera, float partialTicks) {
-        if (CACHE_STATE.get() == CacheState.COMPILED && LEVEL != null) {
+        @Nullable
+        MultiblockPreviewLevel level = LEVEL;
+        if (CACHE_STATE.get() == CacheState.COMPILED && level != null) {
             poseStack.pushPose();
             Vec3 projectedView = camera.getPosition();
             poseStack.translate(-projectedView.x, -projectedView.y, -projectedView.z);
 
             for (int i = 0; i < RenderType.chunkBufferLayers().size(); i++) {
-                VertexBuffer vertexbuffer = getBUFFERS()[i];
+                VertexBuffer vertexbuffer = getBuffers()[i];
                 // some of stupid mod doesn't check if the buffer is invalid
                 if (vertexbuffer.isInvalid() || vertexbuffer.getFormat() == null) continue;
                 var layer = RenderType.chunkBufferLayers().get(i);
 
                 // render TESR before translucent
-                if (layer == RenderType.translucent() && BLOCK_ENTITIES != null) { // render tesr before translucent
+                @Nullable
+                Set<BlockPos> blockEntities = BLOCK_ENTITIES;
+                if (layer == RenderType.translucent() && blockEntities != null) { // render tesr before translucent
                     var buffers = Minecraft.getInstance().renderBuffers().bufferSource();
-                    for (BlockPos pos : BLOCK_ENTITIES) {
-                        BlockEntity tile = LEVEL.getBlockEntity(pos);
+                    for (BlockPos pos : blockEntities) {
+                        @Nullable
+                        BlockEntity tile = level.getBlockEntity(pos);
                         if (tile != null) {
                             poseStack.pushPose();
                             poseStack.translate(pos.getX(), pos.getY(), pos.getZ());
+                            @Nullable
                             BlockEntityRenderer<BlockEntity> ber = Minecraft.getInstance()
                                     .getBlockEntityRenderDispatcher().getRenderer(tile);
                             if (ber != null) {
@@ -371,62 +398,112 @@ public class MultiblockInWorldPreviewRenderer {
     }
 
     private static void prepareBuffers(MultiblockPreviewLevel level, Collection<BlockPos> renderedBlocks,
-                                       int duration) {
-        if (THREAD != null) {
-            THREAD.interrupt();
-        }
+                                       int duration, long generation) {
         CACHE_STATE.set(CacheState.COMPILING);
-        // call it to init the buffers
-        getBUFFERS();
+        VertexBuffer[] targetBuffers = getBuffers();
         THREAD = new Thread(() -> {
             var dispatcher = Minecraft.getInstance().getBlockRenderer();
             ModelBlockRenderer.enableCaching();
-            PoseStack poseStack = new PoseStack();
-            for (int i = 0; i < RenderType.chunkBufferLayers().size(); i++) {
-                if (Thread.interrupted())
-                    return;
-                var layer = RenderType.chunkBufferLayers().get(i);
-                var buffer = new BufferBuilder(new ByteBufferBuilder(layer.bufferSize()),
-                        VertexFormat.Mode.QUADS, DefaultVertexFormat.BLOCK);
-                renderBlocks(level, poseStack, dispatcher, layer, new WorldSceneRenderer.VertexConsumerWrapper(buffer),
-                        renderedBlocks);
-                var builder = buffer.buildOrThrow();
-                var vertexBuffer = getBUFFERS()[i];
-                Runnable toUpload = () -> {
-                    if (!vertexBuffer.isInvalid()) {
-                        vertexBuffer.bind();
-                        vertexBuffer.upload(builder);
-                        VertexBuffer.unbind();
-                    }
-                };
-                CompletableFuture.runAsync(toUpload, runnable -> {
-                    RenderSystem.recordRenderCall(runnable::run);
-                });
+            try {
+                PoseStack poseStack = new PoseStack();
+                for (int i = 0; i < RenderType.chunkBufferLayers().size(); i++) {
+                    if (stale(generation)) return;
+                    var layer = RenderType.chunkBufferLayers().get(i);
+                    var buffer = new BufferBuilder(new ByteBufferBuilder(layer.bufferSize()),
+                            VertexFormat.Mode.QUADS, DefaultVertexFormat.BLOCK);
+                    renderBlocks(level, poseStack, dispatcher, layer,
+                            new WorldSceneRenderer.VertexConsumerWrapper(buffer), renderedBlocks);
+                    var meshData = buffer.buildOrThrow();
+                    VertexBuffer vertexBuffer = targetBuffers[i];
+                    RenderSystem.recordRenderCall(() -> {
+                        try (meshData) {
+                            if (stale(generation) || vertexBuffer.isInvalid()) {
+                                return;
+                            }
+                            vertexBuffer.bind();
+                            try {
+                                vertexBuffer.upload(meshData);
+                            } finally {
+                                VertexBuffer.unbind();
+                            }
+                        }
+                    });
+                }
 
-            }
-            ModelBlockRenderer.clearCache();
-
-            // record all BlockEntities having TESR.
-            Set<BlockPos> poses = new HashSet<>();
-            for (BlockPos pos : renderedBlocks) {
-                if (Thread.interrupted())
-                    return;
-                BlockEntity tile = level.getBlockEntity(pos);
-                if (tile != null) {
-                    if (Minecraft.getInstance().getBlockEntityRenderDispatcher().getRenderer(tile) != null) {
-                        poses.add(pos);
+                Set<BlockPos> poses = new HashSet<>();
+                for (BlockPos blockPos : renderedBlocks) {
+                    if (stale(generation)) return;
+                    @Nullable
+                    BlockEntity tile = level.getBlockEntity(blockPos);
+                    if (tile != null && Minecraft.getInstance().getBlockEntityRenderDispatcher()
+                            .getRenderer(tile) != null) {
+                        poses.add(blockPos);
                     }
                 }
+                if (stale(generation)) return;
+                Set<BlockPos> compiledBlockEntities = Set.copyOf(poses);
+                RenderSystem.recordRenderCall(() -> {
+                    if (stale(generation)) return;
+                    BLOCK_ENTITIES = compiledBlockEntities;
+                    CACHE_STATE.set(CacheState.COMPILED);
+                    LEFT_TICK.set(duration);
+                });
+            } finally {
+                ModelBlockRenderer.clearCache();
+                if (PREVIEW_GENERATION.get() == generation) {
+                    THREAD = null;
+                }
             }
-
-            if (Thread.interrupted())
-                return;
-            BLOCK_ENTITIES = poses;
-            CACHE_STATE.set(CacheState.COMPILED);
-            THREAD = null;
-            LEFT_TICK.set(duration);
-        });
+        }, "GTM multiblock preview compiler");
         THREAD.start();
+    }
+
+    private static boolean stale(long generation) {
+        return Thread.currentThread().isInterrupted() || PREVIEW_GENERATION.get() != generation;
+    }
+
+    private static VertexBuffer[] getBuffers() {
+        @Nullable
+        VertexBuffer[] current = buffers;
+        if (current != null) return current;
+        synchronized (BUFFER_LOCK) {
+            if (buffers == null) {
+                buffers = initBuffers();
+            }
+            return buffers;
+        }
+    }
+
+    private static void closeBuffers() {
+        @Nullable
+        VertexBuffer[] old;
+        synchronized (BUFFER_LOCK) {
+            old = buffers;
+            buffers = null;
+        }
+        if (old == null) return;
+        Runnable close = () -> Arrays.stream(old).forEach(VertexBuffer::close);
+        if (RenderSystem.isOnRenderThread()) close.run();
+        else RenderSystem.recordRenderCall(close::run);
+    }
+
+    private static void releasePreviewLevel() {
+        @Nullable
+        MultiblockPreviewLevel oldLevel = LEVEL;
+        @Nullable
+        Set<BlockPos> oldPositions = LOADED_POSITIONS;
+        if (oldLevel == null || oldPositions == null) return;
+        releasePreviewLevel(oldLevel, oldPositions);
+    }
+
+    private static void releasePreviewLevel(MultiblockPreviewLevel level, Collection<BlockPos> positions) {
+        for (BlockPos blockPos : positions) {
+            @Nullable
+            BlockEntity blockEntity = level.getBlockEntity(blockPos);
+            if (blockEntity != null && !blockEntity.isRemoved()) {
+                blockEntity.setRemoved();
+            }
+        }
     }
 
     private static void renderBlocks(MultiblockPreviewLevel level, PoseStack poseStack,
@@ -437,8 +514,6 @@ public class MultiblockInWorldPreviewRenderer {
             BlockState state = level.getBlockState(pos);
             FluidState fluidState = state.getFluidState();
             Block block = state.getBlock();
-            BlockEntity te = level.getBlockEntity(pos);
-
             if (block == Blocks.AIR) continue;
 
             // render blocks
@@ -472,6 +547,7 @@ public class MultiblockInWorldPreviewRenderer {
                                          MultiblockPreviewLevel level, PoseStack poseStack,
                                          VertexConsumer vertexConsumer,
                                          RandomSource random, RenderType layer) {
+        @Nullable
         BlockEntity blockEntity = level.getBlockEntity(pos);
         var model = dispatcher.getBlockModel(state);
         ModelData baseData = blockEntity == null ? ModelData.EMPTY : blockEntity.getModelData();

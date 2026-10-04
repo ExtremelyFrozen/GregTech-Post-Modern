@@ -22,7 +22,7 @@ import com.gregtechceu.gtceu.api.machine.multiblock.PartAbility;
 import com.gregtechceu.gtceu.api.machine.property.GTMachineModelProperties;
 import com.gregtechceu.gtceu.api.machine.steam.SimpleSteamMachine;
 import com.gregtechceu.gtceu.api.machine.trait.WorkLogic;
-import com.gregtechceu.gtceu.api.multiblock.FactoryBlockPattern;
+import com.gregtechceu.gtceu.api.multiblock.pattern.dsl.PatternBuilder;
 import com.gregtechceu.gtceu.api.multiblock.util.RelativeDirection;
 import com.gregtechceu.gtceu.api.recipe.GTRecipeType;
 import com.gregtechceu.gtceu.api.registry.registrate.GTRegistrate;
@@ -613,7 +613,7 @@ public class GTMachineUtils {
                 .rotationState(RotationState.ALL)
                 .recipeType(DUMMY_RECIPES)
                 .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE,
-                        definition -> FactoryBlockPattern.start(definition)
+                        definition -> PatternBuilder.start(definition)
                                 .aislesFromDefinition()
                                 .build())
                 .appearanceBlock(casing);
@@ -689,7 +689,7 @@ public class GTMachineUtils {
                 .partAppearance((controller, part, side) ->
                         controller.self().getBlockPos().below().getY() == part.self().getBlockPos().getY() ?
                                          fireBox.get().defaultBlockState() : casing.get().defaultBlockState())
-                .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> FactoryBlockPattern.start(definition)
+                .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> PatternBuilder.start(definition)
                         .aislesFromDefinition()
                         .build())
                 .recoveryItems(
@@ -733,7 +733,7 @@ public class GTMachineUtils {
                 .recipeModifier(LargeCombustionEngineMachine::recipeModifier, true)
                 .appearanceBlock(casing)
                 .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE,
-                        definition -> FactoryBlockPattern.start(definition)
+                        definition -> PatternBuilder.start(definition)
                                 .aislesFromDefinition()
                                 .build())
                 .recoveryItems(
@@ -794,7 +794,7 @@ public class GTMachineUtils {
                 .recipeModifier(LargeTurbineMachine::recipeModifier, true)
                 .appearanceBlock(casing)
                 .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE,
-                        definition -> FactoryBlockPattern.start(definition)
+                        definition -> PatternBuilder.start(definition)
                                 .aislesFromDefinition()
                                 .build())
                 .recoveryItems(

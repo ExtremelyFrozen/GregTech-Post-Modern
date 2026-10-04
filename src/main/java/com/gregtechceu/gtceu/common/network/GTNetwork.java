@@ -2,6 +2,8 @@ package com.gregtechceu.gtceu.common.network;
 
 import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.GTCEuAPI;
+import com.gregtechceu.gtceu.common.item.terminal.network.CPacketTerminalAction;
+import com.gregtechceu.gtceu.common.item.terminal.network.SPacketTerminalState;
 import com.gregtechceu.gtceu.common.network.packets.*;
 import com.gregtechceu.gtceu.common.network.packets.hazard.*;
 import com.gregtechceu.gtceu.common.network.packets.prospecting.SPacketProspectBedrockFluid;
@@ -26,11 +28,13 @@ public class GTNetwork {
         registar.playToServer(CPacketDynamicItemSlotPreparedToServer.TYPE, CPacketDynamicItemSlotPreparedToServer.CODEC, CPacketDynamicItemSlotPreparedToServer::execute);
         registar.playToServer(CPacketDynamicItemSlotActivatedToServer.TYPE, CPacketDynamicItemSlotActivatedToServer.CODEC, CPacketDynamicItemSlotActivatedToServer::execute);
         registar.playToServer(CPacketDynamicItemSlotSelectionToServer.TYPE, CPacketDynamicItemSlotSelectionToServer.CODEC, CPacketDynamicItemSlotSelectionToServer::execute);
+        registar.playToServer(CPacketTerminalAction.TYPE, CPacketTerminalAction.CODEC, CPacketTerminalAction::execute);
         registar.playToClient(SPacketImageResponse.TYPE, SPacketImageResponse.CODEC, SPacketImageResponse::execute);
         registar.playToClient(SPacketMachineSyncToClient.TYPE, SPacketMachineSyncToClient.CODEC, SPacketMachineSyncToClient::execute);
         registar.playToClient(SPacketDynamicItemSlotManifestToClient.TYPE, SPacketDynamicItemSlotManifestToClient.CODEC, SPacketDynamicItemSlotManifestToClient::execute);
         registar.playToClient(SPacketDynamicItemSlotActivationToClient.TYPE, SPacketDynamicItemSlotActivationToClient.CODEC, SPacketDynamicItemSlotActivationToClient::execute);
         registar.playToClient(SPacketDynamicItemSlotSelectionToClient.TYPE, SPacketDynamicItemSlotSelectionToClient.CODEC, SPacketDynamicItemSlotSelectionToClient::execute);
+        registar.playToClient(SPacketTerminalState.TYPE, SPacketTerminalState.CODEC, SPacketTerminalState::execute);
         if (GTCEu.Mods.isAE2Loaded()) {
             registar.playToClient(SPacketMEPatternBufferProxyViewToClient.TYPE, SPacketMEPatternBufferProxyViewToClient.CODEC, SPacketMEPatternBufferProxyViewToClient::execute);
             registar.playToClient(SPacketMEOutputWaitingListSessionToClient.TYPE, SPacketMEOutputWaitingListSessionToClient.CODEC, SPacketMEOutputWaitingListSessionToClient::execute);

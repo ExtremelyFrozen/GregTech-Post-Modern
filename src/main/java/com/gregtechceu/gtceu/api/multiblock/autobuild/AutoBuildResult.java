@@ -14,6 +14,7 @@ import java.util.List;
  * @param completedStages number of committed stages
  * @param problems        diagnostics collected during planning or execution
  */
+@Deprecated(forRemoval = false, since = "7.0")
 public record AutoBuildResult(boolean success, int placed, int removed, int completedStages,
                               List<AutoBuildProblem> problems) {
 

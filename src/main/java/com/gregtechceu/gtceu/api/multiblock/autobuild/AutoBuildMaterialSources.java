@@ -1,5 +1,7 @@
 package com.gregtechceu.gtceu.api.multiblock.autobuild;
 
+import com.gregtechceu.gtceu.api.multiblock.autobuild.AutoBuildMaterialSource.Reservation;
+
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
@@ -7,8 +9,10 @@ import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.items.IItemHandler;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
+import java.util.List;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 /**
@@ -16,32 +20,42 @@ import java.util.function.Function;
  */
 public final class AutoBuildMaterialSources {
 
-    private static Function<ServerPlayer, AutoBuildMaterialSource> meSourceFactory;
+    private static @Nullable BiFunction<ServerPlayer, ItemStack, AutoBuildMaterialSource> meSourceFactory;
 
     private AutoBuildMaterialSources() {}
 
     public static AutoBuildMaterialSource playerInventory(Player player) {
-        return new ItemHandlerAutoBuildSource(player.getCapability(Capabilities.ItemHandler.ENTITY));
+        return new PlayerInventoryMaterialSource(player.getCapability(Capabilities.ItemHandler.ENTITY),
+                ItemStack.EMPTY, AutoBuildMaterialSource.SourceKind.PLAYER, player);
     }
 
     public static AutoBuildMaterialSource playerInventory(Player player, ItemStack excludedContainer) {
-        return new ItemHandlerAutoBuildSource(player.getCapability(Capabilities.ItemHandler.ENTITY),
-                excludedContainer);
+        return new PlayerInventoryMaterialSource(player.getCapability(Capabilities.ItemHandler.ENTITY),
+                excludedContainer, AutoBuildMaterialSource.SourceKind.PLAYER, player);
     }
 
     public static AutoBuildMaterialSource itemHandler(IItemHandler handler) {
-        return new ItemHandlerAutoBuildSource(handler);
+        return new PlayerInventoryMaterialSource(handler, ItemStack.EMPTY, AutoBuildMaterialSource.SourceKind.OTHER,
+                null);
     }
 
     public static AutoBuildMaterialSource itemHandler(IItemHandler handler, ItemStack excludedContainer) {
-        return new ItemHandlerAutoBuildSource(handler, excludedContainer);
+        return new PlayerInventoryMaterialSource(handler, excludedContainer,
+                AutoBuildMaterialSource.SourceKind.OTHER, null);
     }
 
     public static AutoBuildMaterialSource unavailable(AutoBuildProblem problem) {
-        return new UnavailableAutoBuildSource(problem);
+        return new UnavailableMaterialSource(problem);
     }
 
     public static void registerMESource(Function<ServerPlayer, AutoBuildMaterialSource> factory) {
+        meSourceFactory = (player, excluded) -> factory.apply(player);
+    }
+
+    /**
+     * Registers the AE source factory that can exclude the exact terminal used to open an automatic-build session.
+     */
+    public static void registerMESource(BiFunction<ServerPlayer, ItemStack, AutoBuildMaterialSource> factory) {
         meSourceFactory = factory;
     }
 
@@ -50,19 +64,50 @@ public final class AutoBuildMaterialSources {
             return unavailable(new AutoBuildProblem(AutoBuildProblem.Type.ME_UNAVAILABLE, null,
                     Component.translatable("gtpm.multiblock.autobuild.me_unavailable")));
         }
-        return meSourceFactory.apply(player);
+        return meSourceFactory.apply(player, ItemStack.EMPTY);
     }
 
-    private record UnavailableAutoBuildSource(AutoBuildProblem problem) implements AutoBuildMaterialSource {
+    public static AutoBuildMaterialSource me(ServerPlayer player, ItemStack excludedTerminal) {
+        if (meSourceFactory == null) {
+            return unavailable(new AutoBuildProblem(AutoBuildProblem.Type.ME_UNAVAILABLE, null,
+                    Component.translatable("gtpm.multiblock.autobuild.me_unavailable")));
+        }
+        return meSourceFactory.apply(player, excludedTerminal);
+    }
+
+    private record UnavailableMaterialSource(AutoBuildProblem problem) implements AutoBuildMaterialSource {
 
         @Override
-        public Session openSession() {
-            throw new IllegalStateException(problem.message().getString());
+        public SourceKind kind() {
+            return SourceKind.UNAVAILABLE;
         }
 
         @Override
-        public @Nullable AutoBuildProblem unavailableProblem() {
+        public Session openSession() {
+            return new UnavailableSession(problem);
+        }
+
+        @Override
+        public AutoBuildProblem unavailableProblem() {
             return problem;
+        }
+    }
+
+    private record UnavailableSession(AutoBuildProblem problem) implements AutoBuildMaterialSource.Session {
+
+        @Override
+        public AutoBuildProblem problem() {
+            return problem;
+        }
+
+        @Override
+        public @Nullable Reservation reserve(List<ItemStack> candidates) {
+            return null;
+        }
+
+        @Override
+        public ItemStack insert(ItemStack stack, boolean simulate) {
+            return stack;
         }
     }
 }

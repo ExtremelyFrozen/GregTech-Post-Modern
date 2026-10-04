@@ -2,8 +2,7 @@ package com.gregtechceu.gtceu.api.machine;
 
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMultiPart;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
-import com.gregtechceu.gtceu.api.multiblock.BlockPattern;
-import com.gregtechceu.gtceu.api.multiblock.MultiblockShapeInfo;
+import com.gregtechceu.gtceu.api.multiblock.pattern.match.MultiBlockPattern;
 import com.gregtechceu.gtceu.data.pattern.StructurePatternRegistry;
 
 import net.minecraft.core.Direction;
@@ -12,28 +11,26 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockState;
 
-import it.unimi.dsi.fastutil.ints.IntArrayList;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.commons.lang3.function.TriFunction;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+@NullMarked
 public class MultiblockMachineDefinition extends MachineDefinition {
 
     @Getter
     @Setter
     private boolean generator;
-    private final Map<String, Function<MultiblockMachineDefinition, BlockPattern>> patternFactories = new LinkedHashMap<>();
-    private final Map<String, BlockPattern> patterns = new LinkedHashMap<>();
-    @Setter
-    @Getter
-    private Supplier<List<MultiblockShapeInfo>> shapes;
+    private final Map<String, Function<MultiblockMachineDefinition, MultiBlockPattern>> patternFactories = new LinkedHashMap<>();
+    private final Map<String, MultiBlockPattern> patterns = new LinkedHashMap<>();
+    private Map<String, List<String>> structureDependencies = Map.of();
     /**
      * Set this to false only if your multiblock is set up such that it could have a wall-shared controller.
      */
@@ -61,29 +58,18 @@ public class MultiblockMachineDefinition extends MachineDefinition {
         super(id);
     }
 
-    public List<MultiblockShapeInfo> getMatchingShapes() {
-        var designs = shapes.get();
-        if (!designs.isEmpty()) return designs;
-        var structurePattern = getPattern(MultiblockControllerMachine.DEFAULT_STRUCTURE);
-        if (structurePattern == null) {
-            throw new IllegalStateException("Missing main structure pattern for " + getId());
-        }
-        int[][] aisleRepetitions = structurePattern.aisleRepetitions;
-        return repetitionDFS(structurePattern, new ArrayList<>(), aisleRepetitions, new IntArrayList());
-    }
-
-    public void setPatternFactory(@NotNull String structureName,
-                                  @NotNull Function<MultiblockMachineDefinition, BlockPattern> patternFactory) {
+    public void setPatternFactory(String structureName,
+                                  Function<MultiblockMachineDefinition, MultiBlockPattern> patternFactory) {
         structureName = validateStructureName(structureName);
         this.patternFactories.put(structureName, patternFactory);
         StructurePatternRegistry.registerJavaDefinition(this, structureName);
     }
 
-    public @Nullable BlockPattern getPattern(@NotNull String structureName) {
+    public MultiBlockPattern getPattern(String structureName) {
         structureName = validateStructureName(structureName);
         requirePatternFactory(structureName);
         synchronized (this.patterns) {
-            BlockPattern pattern = this.patterns.get(structureName);
+            MultiBlockPattern pattern = this.patterns.get(structureName);
             if (pattern == null) {
                 pattern = StructurePatternRegistry.resolvePattern(this, structureName);
                 patterns.put(structureName, pattern);
@@ -92,7 +78,7 @@ public class MultiblockMachineDefinition extends MachineDefinition {
         }
     }
 
-    public void reloadPattern(@NotNull String structureName) {
+    public void reloadPattern(String structureName) {
         structureName = validateStructureName(structureName);
         requirePatternFactory(structureName);
         synchronized (this.patterns) {
@@ -100,7 +86,7 @@ public class MultiblockMachineDefinition extends MachineDefinition {
         }
     }
 
-    public BlockPattern createJavaPattern(@NotNull String structureName) {
+    public MultiBlockPattern createJavaPattern(String structureName) {
         structureName = validateStructureName(structureName);
         return requirePatternFactory(structureName).apply(this);
     }
@@ -109,8 +95,73 @@ public class MultiblockMachineDefinition extends MachineDefinition {
         return Collections.unmodifiableSet(this.patternFactories.keySet());
     }
 
-    private Function<MultiblockMachineDefinition, BlockPattern> requirePatternFactory(String structureName) {
-        Function<MultiblockMachineDefinition, BlockPattern> factory = this.patternFactories.get(structureName);
+    /**
+     * Returns the stable definition order used by batch building and demolition.
+     */
+    public List<String> getStructureOrder() {
+        ArrayList<String> order = new ArrayList<>(patternFactories.size());
+        if (patternFactories.containsKey(MultiblockControllerMachine.DEFAULT_STRUCTURE)) {
+            order.add(MultiblockControllerMachine.DEFAULT_STRUCTURE);
+        }
+        patternFactories.keySet().stream()
+                .filter(name -> !MultiblockControllerMachine.DEFAULT_STRUCTURE.equals(name))
+                .forEach(order::add);
+        return List.copyOf(order);
+    }
+
+    /**
+     * Installs and validates direct structure dependencies after all patterns have been registered.
+     */
+    public void setStructureDependencies(Map<String, List<String>> dependencies) {
+        for (String structureName : dependencies.keySet()) {
+            if (!patternFactories.containsKey(structureName)) {
+                throw new IllegalArgumentException("Unknown structure dependency owner '" + structureName +
+                        "' in " + getId());
+            }
+        }
+        LinkedHashMap<String, List<String>> validated = new LinkedHashMap<>();
+        for (String structureName : getStructureOrder()) {
+            List<String> required = List.copyOf(dependencies.getOrDefault(structureName, List.of()));
+            if (new HashSet<>(required).size() != required.size()) {
+                throw new IllegalArgumentException("Duplicate required structure for '" + structureName + "' in " +
+                        getId());
+            }
+            for (String dependency : required) {
+                if (!patternFactories.containsKey(dependency)) {
+                    throw new IllegalArgumentException("Unknown required structure '" + dependency + "' for '" +
+                            structureName + "' in " + getId());
+                }
+                if (structureName.equals(dependency)) {
+                    throw new IllegalArgumentException("Structure '" + structureName + "' cannot require itself in " +
+                            getId());
+                }
+            }
+            validated.put(structureName, required);
+        }
+        validateDependencyGraph(validated);
+        structureDependencies = Collections.unmodifiableMap(validated);
+    }
+
+    /**
+     * Returns direct dependencies in their declaration order.
+     */
+    public List<String> getStructureDependencies(String structureName) {
+        requirePatternFactory(validateStructureName(structureName));
+        return structureDependencies.getOrDefault(structureName, List.of());
+    }
+
+    /**
+     * Returns the transitive dependency closure in machine definition order.
+     */
+    public List<String> getRequiredStructures(String structureName) {
+        requirePatternFactory(validateStructureName(structureName));
+        LinkedHashSet<String> required = new LinkedHashSet<>();
+        collectDependencies(structureName, required);
+        return getStructureOrder().stream().filter(required::contains).toList();
+    }
+
+    private Function<MultiblockMachineDefinition, MultiBlockPattern> requirePatternFactory(String structureName) {
+        Function<MultiblockMachineDefinition, MultiBlockPattern> factory = this.patternFactories.get(structureName);
         if (factory == null) {
             throw new IllegalArgumentException("Unknown multiblock structure '" + structureName + "' for " + getId());
         }
@@ -124,22 +175,33 @@ public class MultiblockMachineDefinition extends MachineDefinition {
         return structureName;
     }
 
-    private List<MultiblockShapeInfo> repetitionDFS(BlockPattern pattern, List<MultiblockShapeInfo> pages,
-                                                    int[][] aisleRepetitions, IntArrayList repetitionStack) {
-        if (repetitionStack.size() == aisleRepetitions.length) {
-            int[] repetition = new int[repetitionStack.size()];
-            for (int i = 0; i < repetitionStack.size(); i++) {
-                repetition[i] = repetitionStack.getInt(i);
-            }
-            pages.add(new MultiblockShapeInfo(pattern.getPreview(this, repetition)));
-        } else {
-            for (int i = aisleRepetitions[repetitionStack.size()][0]; i <=
-                    aisleRepetitions[repetitionStack.size()][1]; i++) {
-                repetitionStack.push(i);
-                repetitionDFS(pattern, pages, aisleRepetitions, repetitionStack);
-                repetitionStack.popInt();
+    private void collectDependencies(String structureName, Set<String> required) {
+        for (String dependency : structureDependencies.getOrDefault(structureName, List.of())) {
+            if (required.add(dependency)) {
+                collectDependencies(dependency, required);
             }
         }
-        return pages;
+    }
+
+    private void validateDependencyGraph(Map<String, List<String>> dependencies) {
+        Set<String> visiting = new HashSet<>();
+        Set<String> visited = new HashSet<>();
+        for (String structureName : getStructureOrder()) {
+            validateDependencyNode(structureName, dependencies, visiting, visited);
+        }
+    }
+
+    private void validateDependencyNode(String structureName, Map<String, List<String>> dependencies,
+                                        Set<String> visiting, Set<String> visited) {
+        if (visited.contains(structureName)) return;
+        if (!visiting.add(structureName)) {
+            throw new IllegalArgumentException("Cyclic structure dependency at '" + structureName + "' in " +
+                    getId());
+        }
+        for (String dependency : dependencies.getOrDefault(structureName, List.of())) {
+            validateDependencyNode(dependency, dependencies, visiting, visited);
+        }
+        visiting.remove(structureName);
+        visited.add(structureName);
     }
 }

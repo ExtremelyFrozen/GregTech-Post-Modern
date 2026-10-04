@@ -22,7 +22,7 @@ import static com.gregtechceu.gtceu.api.multiblock.structurepredicate.Util.oneOr
  *
  * <p>
  * JSON structure predicates need this when an old Java pattern used
- * {@code Predicates.ability(ability, tiers...)} instead of all registered ability blocks.
+ * {@code PatternPredicates.ability(ability, tiers...)} instead of all registered ability blocks.
  */
 public record TieredAbilityPredicate(PartAbility ability, List<Integer> tiers) implements StructurePredicate {
 

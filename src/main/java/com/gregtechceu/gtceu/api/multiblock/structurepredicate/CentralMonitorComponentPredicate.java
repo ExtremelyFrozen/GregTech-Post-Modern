@@ -26,7 +26,7 @@ public enum CentralMonitorComponentPredicate implements StructurePredicate {
 
     public static final MapCodec<CentralMonitorComponentPredicate> CODEC = MapCodec.unit(INSTANCE);
     private static final Lazy<List<StructurePredicate>> PREDICATES = Lazy
-            .of(CentralMonitorComponentPredicate::createPredicates);
+            .of(CentralMonitorComponentPredicate::createPatternPredicates);
 
     @Override
     public StructurePredicateType<?> type() {
@@ -61,7 +61,7 @@ public enum CentralMonitorComponentPredicate implements StructurePredicate {
         return PREDICATES.get();
     }
 
-    private static List<StructurePredicate> createPredicates() {
+    private static List<StructurePredicate> createPatternPredicates() {
         List<StructurePredicate> predicates = new ArrayList<>();
         predicates.add(RestrictedPredicate.builder()
                 .base(new AbilityPredicate(List.of(PartAbility.INPUT_ENERGY)))

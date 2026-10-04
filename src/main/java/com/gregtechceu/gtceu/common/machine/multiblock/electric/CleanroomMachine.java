@@ -33,8 +33,8 @@ import com.gregtechceu.gtceu.api.machine.feature.multiblock.LDLib2FancyPartUIPro
 import com.gregtechceu.gtceu.api.machine.multiblock.CleanroomType;
 import com.gregtechceu.gtceu.api.machine.multiblock.WorkableElectricMultiblockMachine;
 import com.gregtechceu.gtceu.api.misc.EnergyContainerList;
-import com.gregtechceu.gtceu.api.multiblock.BlockPattern;
-import com.gregtechceu.gtceu.api.multiblock.FactoryBlockPattern;
+import com.gregtechceu.gtceu.api.multiblock.pattern.dsl.PatternBuilder;
+import com.gregtechceu.gtceu.api.multiblock.pattern.match.MultiBlockPattern;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
 import com.gregtechceu.gtceu.common.data.GTBlocks;
@@ -144,7 +144,7 @@ public class CleanroomMachine extends WorkableElectricMultiblockMachine
         super.formStructure(structureName);
         if (!DEFAULT_STRUCTURE.equals(structureName)) return;
         initializeAbilities();
-        IFilterType filterType = getMultiblockState(DEFAULT_STRUCTURE).getMatchContext().get("FilterType");
+        IFilterType filterType = getMultiblockState(DEFAULT_STRUCTURE).getFacts().get("FilterType");
         if (filterType != null) {
             this.cleanroomType = filterType.getCleanroomType();
         } else {
@@ -157,7 +157,7 @@ public class CleanroomMachine extends WorkableElectricMultiblockMachine
             this.cleanroomReceivers.forEach(CleanroomReceiverTrait::removeCleanroom);
             this.cleanroomReceivers = null;
         }
-        Set<CleanroomReceiverTrait> receivers = getMultiblockState(DEFAULT_STRUCTURE).getMatchContext().getOrCreate(
+        Set<CleanroomReceiverTrait> receivers = getMultiblockState(DEFAULT_STRUCTURE).getFacts().getOrCreate(
                 "cleanroomReceiver",
                 Sets::newHashSet);
         this.cleanroomReceivers = ImmutableSet.copyOf(receivers);
@@ -228,7 +228,7 @@ public class CleanroomMachine extends WorkableElectricMultiblockMachine
 
     protected void initializeAbilities() {
         List<IEnergyContainer> energyContainers = new ArrayList<>();
-        Long2ObjectMap<IO> ioMap = getMultiblockState(DEFAULT_STRUCTURE).getMatchContext().getOrDefault("ioMap",
+        Long2ObjectMap<IO> ioMap = getMultiblockState(DEFAULT_STRUCTURE).getFacts().getOrDefault("ioMap",
                 Long2ObjectMaps.emptyMap());
         for (IMultiPart part : getParts()) {
             if (isPartIgnored(part)) continue;
@@ -343,7 +343,7 @@ public class CleanroomMachine extends WorkableElectricMultiblockMachine
     }
 
     @Override
-    public BlockPattern getPattern(String structureName) {
+    public MultiBlockPattern getPattern(String structureName) {
         if (!DEFAULT_STRUCTURE.equals(structureName)) {
             return super.getPattern(structureName);
         }
@@ -420,7 +420,7 @@ public class CleanroomMachine extends WorkableElectricMultiblockMachine
             c[i] = ceilingLayer[i].toString();
         }
 
-        BlockPattern baseline = FactoryBlockPattern.start(this.getDefinition(), LEFT, FRONT, UP)
+        MultiBlockPattern baseline = PatternBuilder.start(this.getDefinition(), LEFT, FRONT, UP)
                 .aisle("~")
                 .build();
         return StructurePatternResolver.rebuildRuntimeStringArrayPattern(

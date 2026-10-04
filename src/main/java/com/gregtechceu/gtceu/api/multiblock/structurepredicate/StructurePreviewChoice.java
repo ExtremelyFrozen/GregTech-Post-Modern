@@ -1,7 +1,7 @@
 package com.gregtechceu.gtceu.api.multiblock.structurepredicate;
 
 import com.gregtechceu.gtceu.api.multiblock.MultiblockBlockInfo;
-import com.gregtechceu.gtceu.api.multiblock.TraceabilityPredicate;
+import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PatternPredicate;
 import com.gregtechceu.gtceu.data.lang.LangHandler;
 
 import net.minecraft.network.chat.Component;
@@ -50,7 +50,7 @@ public record StructurePreviewChoice(List<MultiblockBlockInfo> candidates,
     /**
      * Builds the candidate tooltip list, including serialized count rules and the usual predicate hints.
      */
-    public List<Component> getTooltips(TraceabilityPredicate owner) {
+    public List<Component> getTooltips(PatternPredicate owner) {
         List<Component> result = new ArrayList<>(tooltips);
         for (StructurePreviewConstraint constraint : constraints) {
             int min = constraint.minCount().orElse(-1);

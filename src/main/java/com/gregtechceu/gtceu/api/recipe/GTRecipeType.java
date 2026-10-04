@@ -11,6 +11,7 @@ import com.gregtechceu.gtceu.api.recipe.lookup.RecipeAdditionHandler;
 import com.gregtechceu.gtceu.api.recipe.lookup.RecipeDB;
 import com.gregtechceu.gtceu.api.recipe.ui.GTRecipeTypeUI;
 import com.gregtechceu.gtceu.api.sound.SoundEntry;
+import com.gregtechceu.gtceu.common.recipe.condition.ResearchCondition;
 import com.gregtechceu.gtceu.data.recipe.builder.GTRecipeBuilder;
 import com.gregtechceu.gtceu.utils.FormattingUtil;
 
@@ -88,6 +89,11 @@ public class GTRecipeType implements RecipeType<GTRecipeDefinition> {
     private final GTRecipeCategory category;
     @Getter
     private final Map<GTRecipeCategory, Set<GTRecipeDefinition>> categoryMap = new Object2ObjectOpenHashMap<>();
+    /**
+     * Prevents recipe-viewer reloads from appending the same synthetic display recipes to the current recipe
+     * generation. The flag is reset when a new recipe staging cycle starts.
+     */
+    private boolean representativeRecipesBuilt;
     private final RecipeDB db = new RecipeDB();
     @ApiStatus.Internal
     @Getter
@@ -321,10 +327,14 @@ public class GTRecipeType implements RecipeType<GTRecipeDefinition> {
         return new RecipeHolder<>(built.id, built);
     }
 
-    public void buildRepresentativeRecipes() {
+    public synchronized void buildRepresentativeRecipes() {
+        if (representativeRecipesBuilt) {
+            return;
+        }
         for (ICustomRecipeLogic logic : customRecipeLogicRunners) {
             logic.buildRepresentativeRecipes();
         }
+        representativeRecipesBuilt = true;
     }
 
     public void addToMainCategory(GTRecipeDefinition recipe) {
@@ -357,9 +367,53 @@ public class GTRecipeType implements RecipeType<GTRecipeDefinition> {
     }
 
     @ApiStatus.Internal
-    public void beginStagingRecipes() {
-        categoryMap.clear();
+    public synchronized void beginStagingRecipes() {
         additionHandler.beginStaging();
+        clearRecipeGeneration();
+    }
+
+    /**
+     * Replaces the active lookup database with the recipes collected for the current reload.
+     */
+    @ApiStatus.Internal
+    public synchronized void completeStagingRecipes() {
+        additionHandler.completeStaging();
+        for (Set<GTRecipeDefinition> recipes : categoryMap.values()) {
+            for (GTRecipeDefinition recipe : recipes) {
+                addResearchEntries(recipe);
+            }
+        }
+    }
+
+    /**
+     * Rebuilds the client-side recipe-viewer generation from the recipes that were accepted by the current
+     * {@link net.minecraft.world.item.crafting.RecipeManager}. This removes decoded recipes from prior server syncs
+     * before recipe-viewer preload data is generated.
+     */
+    @ApiStatus.Internal
+    public synchronized void replaceClientRecipes(Iterable<GTRecipeDefinition> recipes) {
+        clearRecipeGeneration();
+        for (GTRecipeDefinition recipe : recipes) {
+            addToCategoryMap(recipe.recipeCategory, recipe);
+            addResearchEntries(recipe);
+        }
+    }
+
+    private void clearRecipeGeneration() {
+        categoryMap.clear();
+        researchEntries.clear();
+        representativeRecipesBuilt = false;
+        minRecipeConditions = 0;
+    }
+
+    private void addResearchEntries(GTRecipeDefinition recipe) {
+        for (RecipeCondition<?> condition : recipe.conditions) {
+            if (condition instanceof ResearchCondition researchCondition) {
+                for (ResearchData.ResearchEntry entry : researchCondition.data) {
+                    addDataStickEntry(entry.researchId(), recipe);
+                }
+            }
+        }
     }
 
     public interface ICustomRecipeLogic {

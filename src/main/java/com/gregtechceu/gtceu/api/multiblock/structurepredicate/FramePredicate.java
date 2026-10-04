@@ -27,7 +27,7 @@ import static com.gregtechceu.gtceu.api.multiblock.structurepredicate.Util.oneOr
  * Serialized frame predicate for JSON multiblock patterns.
  *
  * <p>
- * This predicate exists to express {@code Predicates.frames(...)} outside Java pattern declarations. It accepts
+ * This predicate exists to express {@code PatternPredicates.frames(...)} outside Java pattern declarations. It accepts
  * normal {@link TagPrefix#frameGt} material blocks and framed {@link IPipeNode} blocks whose frame material is listed
  * in the {@code materials} field.
  */

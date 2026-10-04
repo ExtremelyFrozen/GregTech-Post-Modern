@@ -7,6 +7,6 @@ public final class MEAutoBuildSources {
     private MEAutoBuildSources() {}
 
     public static void init() {
-        AutoBuildMaterialSources.registerMESource(MEAutoBuildSource::create);
+        AutoBuildMaterialSources.registerMESource(MEWirelessMaterialSource::create);
     }
 }

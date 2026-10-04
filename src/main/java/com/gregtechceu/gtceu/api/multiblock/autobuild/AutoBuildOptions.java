@@ -16,6 +16,7 @@ import java.util.Map;
  * @param noHatchMode    whether non-single predicates should avoid choosing hatch-like machine blocks
  * @param tierSelections selected one-based tier index by block category
  */
+@Deprecated(forRemoval = false, since = "7.0")
 public record AutoBuildOptions(int repeatCount, boolean replaceMode, boolean demolitionMode, boolean useME,
                                boolean flipMode, boolean noHatchMode, Map<String, Integer> tierSelections) {
 

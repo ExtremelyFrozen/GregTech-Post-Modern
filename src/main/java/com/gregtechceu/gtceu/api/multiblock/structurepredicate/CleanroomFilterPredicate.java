@@ -33,7 +33,7 @@ public enum CleanroomFilterPredicate implements StructurePredicate {
         for (Map.Entry<IFilterType, Supplier<Block>> entry : GTCEuAPI.CLEANROOM_FILTERS.entrySet()) {
             if (blockState.is(entry.getValue().get())) {
                 IFilterType stats = entry.getKey();
-                Object currentFilter = multiblockState.getMatchContext().getOrPut("FilterType", stats);
+                Object currentFilter = multiblockState.getFacts().getOrPut("FilterType", stats);
                 if (!currentFilter.equals(stats)) {
                     multiblockState.setError(new PatternStringError("gtpm.multiblock.pattern.error.filters"));
                     return false;

@@ -1,172 +1,151 @@
 package com.gregtechceu.gtceu.api.gui.widget;
 
 import com.gregtechceu.gtceu.GTCEu;
-import com.gregtechceu.gtceu.api.block.MetaMachineBlock;
 import com.gregtechceu.gtceu.api.gui.ColorPattern;
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.element.GTButtonElement;
-import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
-import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
-import com.gregtechceu.gtceu.api.gui.element.GTSceneElement;
-import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
-import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
-import com.gregtechceu.gtceu.api.multiblock.BlockPattern;
-import com.gregtechceu.gtceu.api.multiblock.MultiblockBlockInfo;
-import com.gregtechceu.gtceu.api.multiblock.MultiblockPreviewLevel;
-import com.gregtechceu.gtceu.api.multiblock.MultiblockShapeInfo;
-import com.gregtechceu.gtceu.api.multiblock.TraceabilityPredicate;
-import com.gregtechceu.gtceu.api.multiblock.predicates.SimplePredicate;
-import com.gregtechceu.gtceu.api.multiblock.structurepredicate.StructurePredicate;
-import com.gregtechceu.gtceu.api.multiblock.structurepredicate.StructurePreviewChoice;
-import com.gregtechceu.gtceu.config.ConfigHolder;
-import com.gregtechceu.gtceu.integration.xei.GTXEIHelper;
-import com.gregtechceu.gtceu.integration.xei.handlers.item.CycleItemEntryHandler;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.AutoBuildBatchRequest;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.AutoBuildMode;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.AutoBuildSharedOptions;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.AutoBuildStructureOptions;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.AutoBuildPlan;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.MultiblockPlanResolver;
+import com.gregtechceu.gtceu.api.multiblock.pattern.match.MultiBlockPattern;
+import com.gregtechceu.gtceu.api.multiblock.preview.MultiblockPreviewSnapshot;
+import com.gregtechceu.gtceu.api.multiblock.preview.PatternGenerationGuard;
+import com.gregtechceu.gtceu.data.pattern.StructurePatternRegistry;
 
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
-import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
-import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollerMode;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
-import com.lowdragmc.lowdraglib2.utils.data.ItemStackKey;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.util.Mth;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.material.Fluid;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 
 import com.mojang.blaze3d.systems.RenderSystem;
-import dev.emi.emi.screen.RecipeScreen;
 import dev.vfyjxf.taffy.style.TaffyPosition;
-import it.unimi.dsi.fastutil.longs.LongSet;
-import it.unimi.dsi.fastutil.longs.LongSets;
-import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.Locale;
+import java.util.Map;
 
+/**
+ * XEI-local multiblock configuration page.
+ *
+ * <p>
+ * Every recipe opening owns one instance and therefore one independent configuration. Changes re-run the shared
+ * resolver locally and never write a terminal component or send a network action.
+ * </p>
+ */
 @OnlyIn(Dist.CLIENT)
-public class PatternPreviewWidget extends UIElement {
+@NullMarked
+public final class PatternPreviewWidget extends UIElement {
 
-    private boolean isLoaded;
-    private static MultiblockPreviewLevel LEVEL;
-    private static final int REGION_SIZE = 512;
-    private static int LAST_OFFSET_INDEX = 0;
-    private static final Map<MultiblockMachineDefinition, MBPattern[]> CACHE = new HashMap<>();
-    private final GTSceneElement scene;
-    private final GTScrollerViewElement scrollableView;
-    private final GTButtonElement pageButton;
-    private final GTButtonElement layerButton;
-    public final MultiblockMachineDefinition controllerDefinition;
-    private final MBPattern[] patterns;
-    private final List<SimplePredicate> predicates;
-    private int index;
-    public int layer;
-    private GTItemSlotElement[] materialSlots = new GTItemSlotElement[0];
-    private GTItemSlotElement[] candidates = new GTItemSlotElement[0];
+    private static final int SIZE = 160;
+    private static final int MAX_PUBLICATION_ATTEMPTS = 8;
 
-    protected PatternPreviewWidget(MultiblockMachineDefinition controllerDefinition) {
+    private final MultiblockMachineDefinition definition;
+    private final MultiblockPlanResolver resolver = new MultiblockPlanResolver();
+    private final LinkedHashMap<String, AutoBuildStructureOptions> structureOptions = new LinkedHashMap<>();
+    private final LinkedHashSet<String> selectedStructures = new LinkedHashSet<>();
+    private final Map<String, List<ResourceLocation>> tierGroups = new LinkedHashMap<>();
+    private final Map<String, Map<ResourceLocation, List<ResourceLocation>>> tierCandidates = new LinkedHashMap<>();
+    private final List<GTButtonElement> optionButtons = new ArrayList<>();
+    private final MultiblockPreviewPanel panel;
+    private AutoBuildSharedOptions sharedOptions = AutoBuildSharedOptions.DEFAULT;
+    private int structureCursor;
+    private int repetitionCursor;
+    private int tierGroupCursor;
+    private long observedGeneration;
+    private boolean reloadFailed;
+
+    private PatternPreviewWidget(MultiblockMachineDefinition definition) {
+        this.definition = definition;
         layout(layout -> {
             layout.positionType(TaffyPosition.ABSOLUTE);
-            layout.width(160);
-            layout.height(160);
+            layout.width(SIZE);
+            layout.height(SIZE);
         });
         setOverflowVisible(false);
-        this.controllerDefinition = controllerDefinition;
-        predicates = new ArrayList<>();
-        layer = -1;
-
-        scene = new GTSceneElement(3, 3, 150, 150);
-        scene.createScene(LEVEL);
-        scene.setOnSelected(this::onPosSelected);
-        scene.setRenderFacing(false);
-        addChild(scene);
-
-        scrollableView = new GTScrollerViewElement(3, 132, 154, 22);
-        scrollableView.scrollerStyle(style -> style
-                .mode(ScrollerMode.HORIZONTAL)
-                .horizontalScrollDisplay(ScrollDisplay.AUTO)
-                .verticalScrollDisplay(ScrollDisplay.NEVER)
-                .scrollerViewStyle(0));
-        scrollableView.viewPort(viewPort -> {
-            viewPort.layout(layout -> layout.paddingAll(0));
-            viewPort.style(style -> style.backgroundTexture(IGuiTexture.EMPTY));
-        });
-        scrollableView.horizontalScroller(scroller -> {
-            scroller.layout(layout -> layout.height(4));
-            scroller.getStyle().backgroundTexture(GuiTextures.SLIDER_BACKGROUND);
-        });
-        addChild(scrollableView);
-
-        if (ConfigHolder.INSTANCE.client.useVBO) {
-            if (!RenderSystem.isOnRenderThread()) {
-                RenderSystem.recordRenderCall(scene::useCacheBuffer);
-            } else {
-                scene.useCacheBuffer();
-            }
+        PatternGenerationGuard.Resolution<MultiblockPreviewSnapshot> initial = resolveStableSnapshot(true);
+        panel = new MultiblockPreviewPanel(SIZE, SIZE,
+                initial.value(), false);
+        addChild(panel);
+        addConfigurationButtons();
+        updateButtonText();
+        observedGeneration = initial.generation();
+        if (StructurePatternRegistry.generation() != observedGeneration) {
+            publishResolvedPreview(true);
         }
+    }
 
-        addChild(createTitle());
+    public static ModularUI createModularUI(MultiblockMachineDefinition definition) {
+        return ModularUI.of(UI.of(getPatternWidget(definition)));
+    }
 
-        synchronized (CACHE) {
-            this.patterns = CACHE.computeIfAbsent(controllerDefinition, definition -> {
-                HashSet<ItemStackKey> drops = new HashSet<>();
-                drops.add(ItemStackKey.of(this.controllerDefinition.asStack()));
-                return controllerDefinition.getMatchingShapes().stream()
-                        .map(it -> initializePattern(it, drops))
-                        .toArray(MBPattern[]::new);
-            });
+    public static PatternPreviewWidget getPatternWidget(MultiblockMachineDefinition definition) {
+        if (Minecraft.getInstance().level == null) {
+            GTCEu.LOGGER.error("Tried to create a multiblock preview before the client level was loaded");
+            throw new IllegalStateException("A client level is required for multiblock previews");
         }
-
-        pageButton = createButton(138, 30);
-        pageButton.setOnClick(event -> {
-            if (patterns.length > 0) {
-                setPage(index + 1 >= patterns.length ? 0 : index + 1);
-            }
-            event.stopPropagation();
-        });
-        addChild(pageButton);
-
-        layerButton = createButton(138, 50);
-        layerButton.setOnClick(event -> {
-            updateLayer();
-            event.stopPropagation();
-        });
-        addChild(layerButton);
-
-        setPage(0);
+        return new PatternPreviewWidget(definition);
     }
 
-    public static ModularUI createModularUI(MultiblockMachineDefinition controllerDefinition) {
-        return ModularUI.of(UI.of(getPatternWidget(controllerDefinition)));
+    private void resetConfiguration() {
+        structureOptions.clear();
+        selectedStructures.clear();
+        tierGroups.clear();
+        tierCandidates.clear();
+        List<String> order = definition.getStructureOrder();
+        if (order.isEmpty()) {
+            throw new IllegalStateException("Multiblock definition has no structures: " + definition.getId());
+        }
+        for (String structureName : order) {
+            structureOptions.put(structureName, resolver.defaultStructureOptions(definition, structureName));
+            Map<ResourceLocation, List<ResourceLocation>> candidates = resolver.tierChoiceOptions(definition,
+                    structureName);
+            tierCandidates.put(structureName, candidates);
+            tierGroups.put(structureName, List.copyOf(candidates.keySet()));
+        }
+        String main = order.contains(MultiblockControllerMachine.DEFAULT_STRUCTURE) ?
+                MultiblockControllerMachine.DEFAULT_STRUCTURE : order.getFirst();
+        selectedStructures.add(main);
+        selectedStructures.addAll(definition.getRequiredStructures(main));
+        sharedOptions = AutoBuildSharedOptions.DEFAULT;
+        structureCursor = order.indexOf(main);
+        repetitionCursor = 0;
+        tierGroupCursor = 0;
+        reloadFailed = false;
     }
 
-    private GTLabelElement createTitle() {
-        GTLabelElement title = new GTLabelElement(3, 3, 154, 10);
-        title.setValue(Component.translatable(controllerDefinition.getDescriptionId()));
-        title.textStyle(style -> {
-            style.textColor(-1);
-            style.textShadow(true);
-        });
-        return title;
+    private void addConfigurationButtons() {
+        optionButtons.add(addOptionButton(2, 2, "structure", this::nextStructure));
+        optionButtons.add(addOptionButton(22, 2, "selected", this::toggleSelected));
+        optionButtons.add(addOptionButton(42, 2, "mode", this::toggleMode));
+        optionButtons.add(addOptionButton(62, 2, "flip", this::toggleFlip));
+        optionButtons.add(addOptionButton(82, 2, "repeat_unit", this::nextRepetitionUnit));
+        optionButtons.add(addOptionButton(102, 2, "repeat", this::nextRepetitionValue));
+        optionButtons.add(addOptionButton(2, 22, "no_hatch", this::toggleNoHatch));
+        optionButtons.add(addOptionButton(22, 22, "replace", this::toggleReplace));
+        optionButtons.add(addOptionButton(42, 22, "me", this::toggleME));
+        optionButtons.add(addOptionButton(62, 22, "tier_group", this::nextTierGroup));
+        optionButtons.add(addOptionButton(82, 22, "tier_value", this::nextTierValue));
     }
 
-    private static GTButtonElement createButton(int x, int y) {
+    private GTButtonElement addOptionButton(int x, int y, String actionName, Runnable action) {
         GTButtonElement button = new GTButtonElement(x, y, 18, 18);
         button.textStyle(style -> {
             style.textColor(-1);
@@ -175,418 +154,330 @@ public class PatternPreviewWidget extends UIElement {
         button.setButtonTextures(ColorPattern.T_GRAY.rectTexture(),
                 GuiTextures.group(ColorPattern.T_GRAY.rectTexture(), GuiTextures.colorRect(0x4fffffff)),
                 ColorPattern.T_GRAY.rectTexture());
+        button.style(style -> style.tooltips(
+                Component.translatable("gtpm.multiblock.preview.tooltip." + actionName)));
+        button.setOnClick(event -> {
+            if (!reloadFailed) action.run();
+            event.stopPropagation();
+        });
+        addChild(button);
         return button;
     }
 
-    private void updateLayer() {
-        if (patterns.length == 0) {
+    private void nextStructure() {
+        structureCursor = (structureCursor + 1) % definition.getStructureOrder().size();
+        repetitionCursor = 0;
+        tierGroupCursor = 0;
+        updateButtonText();
+    }
+
+    private void toggleSelected() {
+        String structure = currentStructure();
+        if (selectedStructures.contains(structure)) {
+            if (selectedStructures.size() == 1 || requiredBySelectedBuild(structure)) {
+                return;
+            }
+            selectedStructures.remove(structure);
+        } else {
+            selectedStructures.add(structure);
+            AutoBuildStructureOptions options = optionsFor(structure);
+            if (options.mode() == AutoBuildMode.BUILD) {
+                selectBuildDependencies(structure);
+            }
+        }
+        reResolve();
+    }
+
+    private void toggleMode() {
+        String structure = currentStructure();
+        AutoBuildStructureOptions options = optionsFor(structure);
+        AutoBuildMode mode = options.mode() == AutoBuildMode.BUILD ? AutoBuildMode.DEMOLISH : AutoBuildMode.BUILD;
+        if (mode == AutoBuildMode.DEMOLISH && requiredBySelectedBuild(structure)) {
             return;
         }
-        MBPattern pattern = patterns[index];
-        if (layer + 1 >= -1 && layer + 1 <= pattern.maxY - pattern.minY) {
-            layer += 1;
-            if (pattern.controllerBase.isFormed()) {
-                onFormedSwitch(false);
-            }
-        } else {
-            layer = -1;
-            if (!pattern.controllerBase.isFormed()) {
-                onFormedSwitch(true);
-            }
+        replaceOptions(options, options.repetitions(), options.tierChoices(), options.flipMode(), mode);
+        if (mode == AutoBuildMode.BUILD && selectedStructures.contains(structure)) {
+            selectBuildDependencies(structure);
         }
-        setupScene(pattern);
+        reResolve();
+    }
+
+    private void toggleFlip() {
+        if (!definition.isAllowFlip()) {
+            return;
+        }
+        AutoBuildStructureOptions options = currentOptions();
+        replaceOptions(options, options.repetitions(), options.tierChoices(), !options.flipMode(), options.mode());
+        reResolve();
+    }
+
+    private void nextRepetitionUnit() {
+        List<Integer> repetitions = currentOptions().repetitions();
+        if (!repetitions.isEmpty()) {
+            repetitionCursor = (repetitionCursor + 1) % repetitions.size();
+        }
         updateButtonText();
     }
 
-    private void setupScene(MBPattern pattern) {
-        Stream<BlockPos> stream = pattern.blockMap.keySet().stream()
-                .filter(pos -> layer == -1 || layer + pattern.minY == pos.getY());
-        if (pattern.controllerBase.isFormed()) {
-            LongSet modelDisabled = pattern.controllerBase
-                    .getMultiblockState(MultiblockControllerMachine.DEFAULT_STRUCTURE)
-                    .getMatchContext()
-                    .getOrDefault("renderMask", LongSets.EMPTY_SET);
-            if (!modelDisabled.isEmpty()) {
-                stream = stream.filter(pos -> !modelDisabled.contains(pos.asLong()));
-            }
+    private void nextRepetitionValue() {
+        AutoBuildStructureOptions options = currentOptions();
+        if (options.repetitions().isEmpty()) {
+            return;
         }
-        scene.setRenderedCore(stream.toList(), null);
+        MultiBlockPattern pattern = definition.getPattern(options.structureName());
+        int[] limits = pattern.aisleRepetitions[repetitionCursor];
+        List<Integer> repetitions = new ArrayList<>(options.repetitions());
+        int current = repetitions.get(repetitionCursor);
+        repetitions.set(repetitionCursor, current >= limits[1] ? limits[0] : current + 1);
+        replaceOptions(options, repetitions, options.tierChoices(), options.flipMode(), options.mode());
+        reResolve();
     }
 
-    public static PatternPreviewWidget getPatternWidget(MultiblockMachineDefinition controllerDefinition) {
-        if (LEVEL == null) {
-            if (Minecraft.getInstance().level == null) {
-                GTCEu.LOGGER.error("Try to init pattern previews before level load");
-                throw new IllegalStateException();
-            }
-            LEVEL = new MultiblockPreviewLevel();
-        }
-        return new PatternPreviewWidget(controllerDefinition);
+    private void toggleNoHatch() {
+        sharedOptions = new AutoBuildSharedOptions(sharedOptions.replaceMode(), !sharedOptions.noHatchMode(),
+                sharedOptions.useME());
+        reResolve();
     }
 
-    public static void clearCache() {
-        synchronized (CACHE) {
-            CACHE.clear();
-        }
+    private void toggleReplace() {
+        sharedOptions = new AutoBuildSharedOptions(!sharedOptions.replaceMode(), sharedOptions.noHatchMode(),
+                sharedOptions.useME());
+        reResolve();
     }
 
-    public void setPage(int index) {
-        if (index >= patterns.length || index < 0) return;
-        this.index = index;
-        this.layer = -1;
-        MBPattern pattern = patterns[index];
-        setupScene(pattern);
-        clearMaterialSlots();
-        clearCandidateSlots();
-        materialSlots = new GTItemSlotElement[Math.min(pattern.parts.size(), 18)];
-        var itemHandler = CycleItemEntryHandler.createFromStacks(pattern.parts);
-        int xOffset = 0;
-        for (int i = 0; i < materialSlots.length; i++) {
-            int padding = 1;
-            if (itemHandler.getStackInSlot(i).getCount() / 100_000 >= 1) {
-                padding = 10;
-            } else if (itemHandler.getStackInSlot(i).getCount() / 10_000 >= 1) {
-                padding = 7;
-            } else if (itemHandler.getStackInSlot(i).getCount() / 1_000 >= 1) {
-                padding = 4;
-            }
+    private void toggleME() {
+        sharedOptions = new AutoBuildSharedOptions(sharedOptions.replaceMode(), sharedOptions.noHatchMode(),
+                !sharedOptions.useME());
+        reResolve();
+    }
 
-            materialSlots[i] = createPreviewSlot(itemHandler, i, 4 + xOffset + padding, 0)
-                    .setItemCountDecorationXOffset(PatternPreviewWidget::getCountDecorationXOffset);
-            xOffset += 18 + (2 * padding);
-            scrollableView.addScrollViewChild(materialSlots[i]);
+    private void nextTierGroup() {
+        List<ResourceLocation> groups = tierGroups.getOrDefault(currentStructure(), List.of());
+        if (!groups.isEmpty()) {
+            tierGroupCursor = (tierGroupCursor + 1) % groups.size();
         }
-        int finalWidth = Math.max(154, xOffset + 18);
-        scrollableView.viewContainer.layout(layout -> {
-            layout.width(finalWidth);
-            layout.height(18);
-        });
         updateButtonText();
     }
 
-    private void onFormedSwitch(boolean isFormed) {
-        MBPattern pattern = patterns[index];
-        MultiblockControllerMachine controllerBase = pattern.controllerBase;
-        if (isFormed) {
-            this.layer = -1;
-            loadControllerFormed(pattern.blockMap.keySet(), controllerBase);
-        } else {
-            scene.setRenderedCore(pattern.blockMap.keySet(), null);
-            controllerBase.invalidateStructure(MultiblockControllerMachine.DEFAULT_STRUCTURE);
+    private void nextTierValue() {
+        List<ResourceLocation> groups = tierGroups.getOrDefault(currentStructure(), List.of());
+        if (groups.isEmpty()) {
+            return;
         }
+        ResourceLocation group = groups.get(Math.min(tierGroupCursor, groups.size() - 1));
+        List<ResourceLocation> candidates = tierCandidates.getOrDefault(
+                currentStructure(), Map.of()).getOrDefault(group, List.of());
+        if (candidates.isEmpty()) {
+            return;
+        }
+        AutoBuildStructureOptions options = currentOptions();
+        @Nullable
+        ResourceLocation current = options.tierChoices().get(group);
+        int index = current == null ? -1 : candidates.indexOf(current);
+        ResourceLocation next = candidates.get((index + 1) % candidates.size());
+        Map<ResourceLocation, ResourceLocation> choices = new LinkedHashMap<>(options.tierChoices());
+        choices.put(group, next);
+        replaceOptions(options, options.repetitions(), choices, options.flipMode(), options.mode());
+        reResolve();
     }
 
-    private void onPosSelected(BlockPos pos, Direction facing) {
-        if (index >= patterns.length || index < 0) return;
-        TraceabilityPredicate predicate = patterns[index].predicateMap.get(pos);
-        if (predicate != null) {
-            predicates.clear();
-            predicates.addAll(predicate.common);
-            predicates.addAll(predicate.limited);
-            predicates.removeIf(p -> p == null || p.candidates == null); // why it happens?
-            clearCandidateSlots();
-            List<List<ItemStack>> candidateStacks = new ArrayList<>();
-            List<List<Component>> predicateTips = new ArrayList<>();
-            for (SimplePredicate simplePredicate : predicates) {
-                List<ItemStack> itemStacks = simplePredicate.getCandidates();
-                if (!itemStacks.isEmpty()) {
-                    candidateStacks.add(itemStacks);
-                    predicateTips.add(simplePredicate.getToolTips(predicate));
-                }
-            }
-            for (StructurePredicate structurePredicate : predicate.structurePredicates) {
-                for (StructurePreviewChoice choice : structurePredicate.previewChoices(controllerDefinition)) {
-                    List<ItemStack> itemStacks = choice.candidates().stream()
-                            .map(info -> SimplePredicate.toItem(info.getBlockState().getBlock()))
-                            .filter(item -> item != Items.AIR)
-                            .map(Item::getDefaultInstance)
-                            .toList();
-                    if (!itemStacks.isEmpty()) {
-                        candidateStacks.add(itemStacks);
-                        predicateTips.add(choice.getTooltips(predicate));
-                    }
-                }
-            }
-            candidates = new GTItemSlotElement[candidateStacks.size()];
-            CycleItemEntryHandler itemHandler = CycleItemEntryHandler.createFromStacks(candidateStacks);
-            int maxCol = (160 - (((materialSlots.length - 1) / 9 + 1) * 18) - 35) % 18;
-            if (maxCol <= 0) {
-                maxCol = 1;
-            }
-            for (int i = 0; i < candidateStacks.size(); i++) {
-                int finalI = i;
-                candidates[i] = createPreviewSlot(itemHandler, i, 3 + (i / maxCol) * 18, 3 + (i % maxCol) * 18)
-                        .setBackgroundTexture(GuiTextures.colorRect(0x4fffffff))
-                        .setOnAddedTooltips((slot, list) -> list.addAll(predicateTips.get(finalI)));
-                addChild(candidates[i]);
+    private void selectBuildDependencies(String structure) {
+        for (String dependency : definition.getRequiredStructures(structure)) {
+            selectedStructures.add(dependency);
+            AutoBuildStructureOptions options = optionsFor(dependency);
+            if (options.mode() != AutoBuildMode.BUILD) {
+                replaceOptions(options, options.repetitions(), options.tierChoices(), options.flipMode(),
+                        AutoBuildMode.BUILD);
             }
         }
     }
 
-    private GTItemSlotElement createPreviewSlot(CycleItemEntryHandler itemHandler, int slot, int x, int y) {
-        GTItemSlotElement element = new GTItemSlotElement(itemHandler, slot);
-        element.layout(layout -> {
-            layout.positionType(TaffyPosition.ABSOLUTE);
-            layout.left(x);
-            layout.top(y);
-            layout.width(18);
-            layout.height(18);
+    private boolean requiredBySelectedBuild(String dependency) {
+        for (String structure : selectedStructures) {
+            if (structure.equals(dependency)) {
+                continue;
+            }
+            AutoBuildStructureOptions options = optionsFor(structure);
+            if (options.mode() == AutoBuildMode.BUILD &&
+                    definition.getRequiredStructures(structure).contains(dependency)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void replaceOptions(AutoBuildStructureOptions previous, List<Integer> repetitions,
+                                Map<ResourceLocation, ResourceLocation> tiers, boolean flip, AutoBuildMode mode) {
+        structureOptions.put(previous.structureName(), new AutoBuildStructureOptions(
+                previous.structureName(), repetitions, tiers, flip, mode));
+    }
+
+    private void reResolve() {
+        publishResolvedPreview(false);
+    }
+
+    private PatternGenerationGuard.Resolution<MultiblockPreviewSnapshot> resolveStableSnapshot(
+                                                                                               boolean resetFirstAttempt) {
+        return PatternGenerationGuard.resolve(StructurePatternRegistry::generation, attempt -> {
+            if (resetFirstAttempt || attempt > 0) {
+                resetConfiguration();
+            }
+            AutoBuildPlan plan = resolve();
+            return MultiblockPreviewSnapshot.canonical(definition.getId(), plan);
         });
-        element.setCanTakeItems(false);
-        element.setCanPutItems(false);
-        element.setIngredientIO(GTXEIHelper.input());
-        element.setBackgroundTexture(ColorPattern.T_GRAY.rectTexture());
-        element.xeiRecipeIngredient();
-        element.xeiRecipeSlot();
-        return element;
     }
 
-    private void clearMaterialSlots() {
-        scrollableView.clearAllScrollViewChildren();
-        materialSlots = new GTItemSlotElement[0];
-    }
-
-    private void clearCandidateSlots() {
-        for (GTItemSlotElement candidate : candidates) {
-            removeChild(candidate);
+    private void publishResolvedPreview(boolean resetFirstAttempt) {
+        for (int attempt = 0; attempt < MAX_PUBLICATION_ATTEMPTS; attempt++) {
+            PatternGenerationGuard.Resolution<MultiblockPreviewSnapshot> resolved = resolveStableSnapshot(
+                    resetFirstAttempt || attempt > 0);
+            if (StructurePatternRegistry.generation() != resolved.generation()) {
+                continue;
+            }
+            panel.updateSnapshot(resolved.value());
+            if (StructurePatternRegistry.generation() == resolved.generation()) {
+                observedGeneration = resolved.generation();
+                updateButtonText();
+                return;
+            }
         }
-        candidates = new GTItemSlotElement[0];
+        throw new IllegalStateException("Pattern generation did not stabilize while publishing the XEI preview");
+    }
+
+    private AutoBuildPlan resolve() {
+        List<AutoBuildStructureOptions> selected = definition.getStructureOrder().stream()
+                .filter(selectedStructures::contains)
+                .map(this::optionsFor)
+                .toList();
+        return resolver.resolveCanonical(definition, new AutoBuildBatchRequest(selected, sharedOptions, List.of()));
+    }
+
+    private String currentStructure() {
+        return definition.getStructureOrder().get(structureCursor);
+    }
+
+    private AutoBuildStructureOptions currentOptions() {
+        return optionsFor(currentStructure());
+    }
+
+    private AutoBuildStructureOptions optionsFor(String structureName) {
+        @Nullable
+        AutoBuildStructureOptions options = structureOptions.get(structureName);
+        if (options == null) {
+            throw new IllegalStateException("Missing XEI options for structure: " + structureName);
+        }
+        return options;
     }
 
     private void updateButtonText() {
-        pageButton.setText("P:" + index);
-        layerButton.setText(layer >= 0 ? "L:" + layer : "ALL");
-    }
-
-    private static int getCountDecorationXOffset(ItemStack itemStack) {
-        int count = itemStack.getCount();
-        if (count >= 100_000) {
-            return 9;
-        }
-        if (count >= 10_000) {
-            return 6;
-        }
-        if (count >= 1_000) {
-            return 3;
-        }
-        return 0;
-    }
-
-    /**
-     * Finds the next section of the dummy preview level to place a multiblock at in a spiral pattern.
-     * <p>
-     * This results in positions that are considerably closer to the world origin than
-     * the one it replaces, which did {@code prevPos.offset(500, 0, 500)},
-     * which results in absurdly high offsets for the later multiblocks.
-     * </p>
-     * The regions being closer to {@code (0,0)} means that Z-fighting should be less likely,
-     * since floating point inaccuracies won't be as large of a factor.
-     *
-     * @return the area to place the current multiblock at
-     */
-    public static BlockPos locateNextRegion() {
-        int currentIndex = LAST_OFFSET_INDEX++;
-
-        // Origin coordinates scaled back to the offset value, from global
-        int x = 0, z = 0;
-        if (currentIndex > 0) {
-            int v = (int) (Mth.sqrt(currentIndex + 0.25f) - 0.5f);
-            int nextV = v + 1;
-            int spiralBaseIndex = v * nextV;
-            // this is 1 or -1 depending on if v is odd or even
-            int flipFlop = (v & 1) * 2 - 1;
-
-            int offset = flipFlop * nextV / 2;
-            x += offset;
-            z += offset;
-
-            int cornerIndex = spiralBaseIndex + nextV;
-            if (currentIndex < cornerIndex) {
-                x -= flipFlop * (currentIndex - spiralBaseIndex + 1);
+        AutoBuildStructureOptions options = currentOptions();
+        boolean dependencyLocked = requiredBySelectedBuild(options.structureName());
+        boolean selectionLocked = selectedStructures.contains(options.structureName()) &&
+                (selectedStructures.size() == 1 || dependencyLocked);
+        optionButtons.get(0).setText(Component.translatable("gtpm.multiblock.preview.button.structure",
+                abbreviate(options.structureName())));
+        optionButtons.get(1).setText(selectionLocked ?
+                Component.translatable("gtpm.multiblock.preview.button.selected.locked") :
+                Component.translatable("gtpm.multiblock.preview.button.selected." +
+                        selectedStructures.contains(options.structureName())));
+        optionButtons.get(1).style(style -> style.tooltips(Component.translatable(selectionLocked ?
+                "gtpm.multiblock.preview.tooltip.selected_locked" :
+                "gtpm.multiblock.preview.tooltip.selected")));
+        optionButtons.get(2).setText(dependencyLocked ?
+                Component.translatable("gtpm.multiblock.preview.button.mode.locked") :
+                Component.translatable("gtpm.multiblock.preview.button.mode." +
+                        options.mode().name().toLowerCase(Locale.ROOT)));
+        optionButtons.get(2).style(style -> style.tooltips(Component.translatable(dependencyLocked ?
+                "gtpm.multiblock.preview.tooltip.mode_locked" :
+                "gtpm.multiblock.preview.tooltip.mode")));
+        optionButtons.get(3).setText(Component.translatable("gtpm.multiblock.preview.button.flip." +
+                options.flipMode()));
+        optionButtons.get(4).setText(Component.translatable(
+                "gtpm.multiblock.preview.button.repeat_unit", repetitionCursor));
+        optionButtons.get(5).setText(options.repetitions().isEmpty() ?
+                Component.translatable("gtpm.multiblock.preview.button.repeat_none") :
+                Component.translatable("gtpm.multiblock.preview.button.repeat",
+                        options.repetitions().get(Math.min(repetitionCursor, options.repetitions().size() - 1))));
+        optionButtons.get(6).setText(Component.translatable("gtpm.multiblock.preview.button.no_hatch." +
+                sharedOptions.noHatchMode()));
+        optionButtons.get(7).setText(Component.translatable("gtpm.multiblock.preview.button.replace." +
+                sharedOptions.replaceMode()));
+        optionButtons.get(8).setText(Component.translatable("gtpm.multiblock.preview.button.me." +
+                sharedOptions.useME()));
+        List<ResourceLocation> groups = tierGroups.getOrDefault(options.structureName(), List.of());
+        if (groups.isEmpty()) {
+            optionButtons.get(9).setText(Component.translatable("gtpm.multiblock.preview.button.tier_group_none"));
+            optionButtons.get(10).setText(Component.translatable("gtpm.multiblock.preview.button.tier_value_none"));
+            optionButtons.get(9).style(style -> style.tooltips(
+                    Component.translatable("gtpm.multiblock.preview.tooltip.tier_group")));
+            optionButtons.get(10).style(style -> style.tooltips(
+                    Component.translatable("gtpm.multiblock.preview.tooltip.tier_value")));
+        } else {
+            ResourceLocation group = groups.get(Math.min(tierGroupCursor, groups.size() - 1));
+            optionButtons.get(9).setText(Component.translatable(
+                    "gtpm.multiblock.preview.button.tier_group", abbreviate(group.getPath())));
+            optionButtons.get(9).style(style -> style.tooltips(Component.translatable(
+                    "gtpm.multiblock.preview.tooltip.tier_group_selected", group.toString())));
+            List<ResourceLocation> candidates = tierCandidates.getOrDefault(
+                    options.structureName(), Map.of()).getOrDefault(group, List.of());
+            @Nullable
+            ResourceLocation selected = options.tierChoices().get(group);
+            optionButtons.get(10).setText(selected == null || !candidates.contains(selected) ?
+                    Component.translatable("gtpm.multiblock.preview.button.tier_value_none") :
+                    Component.translatable("gtpm.multiblock.preview.button.tier_value",
+                            abbreviate(selected.getPath())));
+            if (selected != null && candidates.contains(selected)) {
+                @Nullable
+                Block selectedBlock = BuiltInRegistries.BLOCK.get(selected);
+                if (selectedBlock == null) {
+                    throw new IllegalStateException("Unknown tier candidate block: " + selected);
+                }
+                optionButtons.get(10).style(style -> style.tooltips(Component.translatable(
+                        "gtpm.multiblock.preview.tooltip.tier_value_selected",
+                        selectedBlock.getName(), selected.toString())));
             } else {
-                x -= flipFlop * nextV;
-                z -= flipFlop * (currentIndex - cornerIndex + 1);
+                optionButtons.get(10).style(style -> style.tooltips(
+                        Component.translatable("gtpm.multiblock.preview.tooltip.tier_value")));
             }
         }
-        return new BlockPos(x * REGION_SIZE, 50, z * REGION_SIZE);
+    }
+
+    private void showReloadFailure(long generation, RuntimeException exception) {
+        reloadFailed = true;
+        GTCEu.LOGGER.warn("Multiblock preview became incompatible after pattern reload for {}",
+                definition.getId(), exception);
+        MultiblockPreviewSnapshot failure = new MultiblockPreviewSnapshot(definition.getId(),
+                "reload-" + generation, false, List.of(), List.of(), List.of(),
+                List.of(new MultiblockPreviewSnapshot.Diagnostic("PATTERN_RELOAD_INCOMPATIBLE", null, null)));
+        panel.updateSnapshot(failure);
+        for (GTButtonElement button : optionButtons) {
+            button.setText(Component.translatable("gtpm.multiblock.preview.button.unavailable"));
+            button.style(style -> style.tooltips(
+                    Component.translatable("gtpm.multiblock.preview.diagnostic.pattern_reload_incompatible")));
+        }
+    }
+
+    private static String abbreviate(String value) {
+        return value.length() <= 4 ? value : value.substring(0, 4);
     }
 
     @Override
     public void screenTick() {
         super.screenTick();
-        // I can only think of this way
-        if (!isLoaded && GTCEu.Mods.isEMILoaded() && Minecraft.getInstance().screen instanceof RecipeScreen) {
-            setPage(0);
-            isLoaded = true;
+        long generation = StructurePatternRegistry.generation();
+        if (generation != observedGeneration) {
+            try {
+                publishResolvedPreview(true);
+            } catch (RuntimeException exception) {
+                showReloadFailure(generation, exception);
+                observedGeneration = StructurePatternRegistry.generation();
+            }
         }
     }
 
     @Override
-    public void drawBackgroundAdditional(@NotNull GUIContext guiContext) {
+    public void drawBackgroundAdditional(GUIContext context) {
         RenderSystem.enableBlend();
-        super.drawBackgroundAdditional(guiContext);
-    }
-
-    private MBPattern initializePattern(MultiblockShapeInfo shapeInfo, HashSet<ItemStackKey> blockDrops) {
-        Map<BlockPos, MultiblockBlockInfo> blockMap = new HashMap<>();
-        MultiblockControllerMachine controllerBase = null;
-        Set<BlockEntity> blockEntitiesToAdd = new HashSet<>();
-        BlockPos multiPos = locateNextRegion();
-
-        MultiblockBlockInfo[][][] blocks = shapeInfo.getBlocks();
-        for (int x = 0; x < blocks.length; x++) {
-            MultiblockBlockInfo[][] aisle = blocks[x];
-            for (int y = 0; y < aisle.length; y++) {
-                MultiblockBlockInfo[] column = aisle[y];
-                for (int z = 0; z < column.length; z++) {
-                    MultiblockBlockInfo blockInfo = column[z];
-                    if (blockInfo == null) continue;
-                    BlockPos pos = multiPos.offset(x, y, z);
-                    BlockEntity blockEntity = blockInfo.getBlockEntity(LEVEL.getLevel().registryAccess(), LEVEL, pos);
-                    if (blockEntity != null) {
-                        blockEntitiesToAdd.add(blockEntity);
-                        if (blockEntity instanceof MultiblockControllerMachine controller) {
-                            if (controllerBase != null && controllerBase != controller) {
-                                throw new IllegalStateException(
-                                        "Multiblock preview contains multiple controllers for " +
-                                                controllerDefinition.getId());
-                            }
-                            controllerBase = controller;
-                        }
-                    }
-                    blockMap.put(pos, blockInfo);
-                }
-            }
-        }
-
-        blockMap.forEach(LEVEL::addBlock);
-        for (BlockEntity blockEntity : blockEntitiesToAdd) {
-            LEVEL.setInnerBlockEntity(blockEntity);
-        }
-
-        if (controllerBase == null) {
-            throw new IllegalStateException("Multiblock preview contains no controller for " +
-                    controllerDefinition.getId());
-        }
-
-        Map<ItemStackKey, PartInfo> parts = gatherBlockDrops(blockMap);
-        blockDrops.addAll(parts.keySet());
-
-        Map<BlockPos, TraceabilityPredicate> predicateMap = new HashMap<>();
-        loadControllerFormed(blockMap.keySet(), controllerBase);
-        Map<BlockPos, TraceabilityPredicate> matchedPredicates = controllerBase
-                .getMultiblockState(MultiblockControllerMachine.DEFAULT_STRUCTURE)
-                .getMatchContext().get("predicates");
-        if (matchedPredicates != null) {
-            predicateMap = matchedPredicates;
-        }
-        return new MBPattern(blockMap, parts.values().stream().sorted((one, two) -> {
-            if (one.isController) return -1;
-            if (two.isController) return +1;
-            if (one.isTile && !two.isTile) return -1;
-            if (two.isTile && !one.isTile) return +1;
-            if (one.blockId != two.blockId) return two.blockId - one.blockId;
-            return two.amount - one.amount;
-        }).map(PartInfo::getItemStack).filter(list -> !list.isEmpty()).collect(Collectors.toList()), predicateMap,
-                controllerBase);
-    }
-
-    private void loadControllerFormed(Collection<BlockPos> positions, MultiblockControllerMachine controllerBase) {
-        BlockPattern pattern = controllerDefinition.getPattern(MultiblockControllerMachine.DEFAULT_STRUCTURE);
-        if (pattern == null) {
-            throw new IllegalStateException("Missing preview pattern for " + controllerDefinition.getId());
-        }
-        if (pattern.checkPatternAt(controllerBase.getMultiblockState(MultiblockControllerMachine.DEFAULT_STRUCTURE),
-                true)) {
-            controllerBase.formStructure(MultiblockControllerMachine.DEFAULT_STRUCTURE);
-        }
-        if (controllerBase.isFormed()) {
-            LongSet modelDisabled = controllerBase.getMultiblockState(MultiblockControllerMachine.DEFAULT_STRUCTURE)
-                    .getMatchContext()
-                    .getOrDefault("renderMask", LongSets.EMPTY_SET);
-            if (!modelDisabled.isEmpty()) {
-                positions = new HashSet<>(positions);
-                positions.removeIf(pos -> modelDisabled.contains(pos.asLong()));
-            }
-            scene.setRenderedCore(positions, null);
-        } else {
-            GTCEu.LOGGER.warn("Pattern formed checking failed: {}", controllerBase.self().getDefinition());
-        }
-    }
-
-    private Map<ItemStackKey, PartInfo> gatherBlockDrops(Map<BlockPos, MultiblockBlockInfo> blocks) {
-        Map<ItemStackKey, PartInfo> partsMap = new Object2ObjectOpenHashMap<>();
-        for (Map.Entry<BlockPos, MultiblockBlockInfo> entry : blocks.entrySet()) {
-            BlockPos pos = entry.getKey();
-            BlockState blockState = PatternPreviewWidget.LEVEL.getBlockState(pos);
-            ItemStack itemStack = blockState.getBlock().getCloneItemStack(PatternPreviewWidget.LEVEL, pos, blockState);
-
-            if (itemStack.isEmpty() && !blockState.getFluidState().isEmpty()) {
-                Fluid fluid = blockState.getFluidState().getType();
-                itemStack = fluid.getBucket().getDefaultInstance();
-            }
-
-            ItemStackKey itemStackKey = ItemStackKey.of(itemStack);
-            partsMap.computeIfAbsent(itemStackKey, key -> new PartInfo(key, entry.getValue())).amount++;
-        }
-        return partsMap;
-    }
-
-    private static class PartInfo {
-
-        final ItemStackKey itemStackKey;
-        boolean isController = false;
-        boolean isTile;
-        final int blockId;
-        int amount = 0;
-
-        PartInfo(final ItemStackKey itemStackKey, final MultiblockBlockInfo blockInfo) {
-            this.itemStackKey = itemStackKey;
-            this.blockId = Block.getId(blockInfo.getBlockState());
-            this.isTile = blockInfo.hasBlockEntity();
-
-            if (blockInfo.getBlockState().getBlock() instanceof MetaMachineBlock block) {
-                if (block.definition instanceof MultiblockMachineDefinition)
-                    this.isController = true;
-            }
-        }
-
-        public List<ItemStack> getItemStack() {
-            return Arrays.stream(itemStackKey.getItemStack())
-                    .map(itemStack -> {
-                        var item = itemStack.copy();
-                        item.setCount(amount);
-                        return item;
-                    }).filter((ItemStack item) -> !item.isEmpty()).toList();
-        }
-    }
-
-    public static class MBPattern {
-
-        @NotNull
-        final List<List<ItemStack>> parts;
-        @NotNull
-        final Map<BlockPos, TraceabilityPredicate> predicateMap;
-        @NotNull
-        final Map<BlockPos, MultiblockBlockInfo> blockMap;
-        @NotNull
-        final MultiblockControllerMachine controllerBase;
-        final int maxY, minY;
-
-        public MBPattern(@NotNull Map<BlockPos, MultiblockBlockInfo> blockMap, @NotNull List<List<ItemStack>> parts,
-                         @NotNull Map<BlockPos, TraceabilityPredicate> predicateMap,
-                         @NotNull MultiblockControllerMachine controllerBase) {
-            this.parts = parts;
-            this.blockMap = blockMap;
-            this.predicateMap = predicateMap;
-            this.controllerBase = controllerBase;
-            int min = Integer.MAX_VALUE, max = Integer.MIN_VALUE;
-            for (BlockPos pos : blockMap.keySet()) {
-                min = Math.min(min, pos.getY());
-                max = Math.max(max, pos.getY());
-            }
-            minY = min;
-            maxY = max;
-        }
+        super.drawBackgroundAdditional(context);
     }
 }

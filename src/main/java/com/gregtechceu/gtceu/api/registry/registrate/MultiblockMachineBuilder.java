@@ -9,8 +9,7 @@ import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMultiPart;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.machine.property.GTMachineModelProperties;
-import com.gregtechceu.gtceu.api.multiblock.BlockPattern;
-import com.gregtechceu.gtceu.api.multiblock.MultiblockShapeInfo;
+import com.gregtechceu.gtceu.api.multiblock.pattern.match.MultiBlockPattern;
 import com.gregtechceu.gtceu.utils.memoization.GTMemoizer;
 
 import net.minecraft.core.Direction;
@@ -26,18 +25,20 @@ import lombok.Getter;
 import lombok.experimental.Accessors;
 import lombok.experimental.Tolerate;
 import org.apache.commons.lang3.function.TriFunction;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
 import java.util.*;
 import java.util.function.*;
 
 @Accessors(chain = true, fluent = true)
+@NullMarked
 public class MultiblockMachineBuilder<DEFINITION extends MultiblockMachineDefinition,
         TYPE extends MultiblockMachineBuilder<DEFINITION, TYPE>> extends MachineBuilder<DEFINITION, TYPE> {
 
     private boolean generator;
-    private final Map<String, Function<MultiblockMachineDefinition, BlockPattern>> patternFactories = new LinkedHashMap<>();
-    private final List<Function<MultiblockMachineDefinition, List<MultiblockShapeInfo>>> shapeInfos = new ArrayList<>();
+    private final Map<String, Function<MultiblockMachineDefinition, MultiBlockPattern>> patternFactories = new LinkedHashMap<>();
+    private final Map<String, List<String>> structureDependencies = new LinkedHashMap<>();
     /**
      * Set this to false only if your multiblock is set up such that it could have a wall-shared controller.
      */
@@ -66,8 +67,19 @@ public class MultiblockMachineBuilder<DEFINITION extends MultiblockMachineDefini
         return getThis();
     }
 
-    public TYPE pattern(String structureName, Function<MultiblockMachineDefinition, BlockPattern> pattern) {
+    public TYPE pattern(String structureName, Function<MultiblockMachineDefinition, MultiBlockPattern> pattern) {
         this.patternFactories.put(structureName, pattern);
+        return getThis();
+    }
+
+    /**
+     * Declares structures that must be selected alongside the named structure when it is built.
+     */
+    public TYPE requiresStructure(String structureName, String... dependencies) {
+        if (this.structureDependencies.putIfAbsent(structureName, List.of(dependencies)) != null) {
+            throw new IllegalArgumentException("Dependencies were already declared for structure '" +
+                    structureName + "'");
+        }
         return getThis();
     }
 
@@ -88,16 +100,6 @@ public class MultiblockMachineBuilder<DEFINITION extends MultiblockMachineDefini
 
     public TYPE additionalDisplay(BiConsumer<MultiblockControllerMachine, List<Component>> additionalDisplay) {
         this.additionalDisplay = additionalDisplay;
-        return getThis();
-    }
-
-    public TYPE shapeInfo(Function<MultiblockMachineDefinition, MultiblockShapeInfo> shape) {
-        this.shapeInfos.add(d -> List.of(shape.apply(d)));
-        return getThis();
-    }
-
-    public TYPE shapeInfos(Function<MultiblockMachineDefinition, List<MultiblockShapeInfo>> shapes) {
-        this.shapeInfos.add(shapes);
         return getThis();
     }
 
@@ -129,8 +131,7 @@ public class MultiblockMachineBuilder<DEFINITION extends MultiblockMachineDefini
                     name);
         }
         patternFactories.forEach(definition::setPatternFactory);
-        definition.setShapes(() -> shapeInfos.stream().map(factory -> factory.apply(definition))
-                .flatMap(Collection::stream).toList());
+        definition.setStructureDependencies(structureDependencies);
         definition.setAllowFlip(allowFlip);
         if (!recoveryItems.isEmpty()) {
             definition.setRecoveryItems(

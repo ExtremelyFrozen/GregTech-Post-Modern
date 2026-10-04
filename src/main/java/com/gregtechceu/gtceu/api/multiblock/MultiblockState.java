@@ -6,9 +6,10 @@ import com.gregtechceu.gtceu.api.capability.recipe.IO;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.multiblock.error.PatternError;
 import com.gregtechceu.gtceu.api.multiblock.error.PatternStringError;
-import com.gregtechceu.gtceu.api.multiblock.predicates.SimplePredicate;
+import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternFacts;
+import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PatternPredicate;
+import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PredicateRule;
 import com.gregtechceu.gtceu.api.multiblock.structurepredicate.StructurePredicate;
-import com.gregtechceu.gtceu.api.multiblock.util.PatternMatchContext;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -38,16 +39,16 @@ public class MultiblockState {
     private BlockEntity blockEntity;
     private boolean blockEntityInitialized;
     @Getter
-    private final PatternMatchContext matchContext;
+    private final PatternFacts facts;
     @Getter
-    private Object2IntOpenHashMap<SimplePredicate> globalCount;
+    private Object2IntOpenHashMap<PredicateRule> globalCount;
     @Getter
-    private Object2IntOpenHashMap<SimplePredicate> layerCount;
+    private Object2IntOpenHashMap<PredicateRule> layerCount;
     @Getter
     private Object2IntOpenHashMap<StructurePredicate> structureGlobalCount;
     @Getter
     private Object2IntOpenHashMap<StructurePredicate> structureLayerCount;
-    public TraceabilityPredicate predicate;
+    public PatternPredicate predicate;
     public IO io;
     public PatternError error;
     @Getter
@@ -67,11 +68,11 @@ public class MultiblockState {
         this.controllerPos = controllerPos;
         this.structureName = structureName;
         this.error = UNINIT_ERROR;
-        this.matchContext = new PatternMatchContext();
+        this.facts = new PatternFacts();
     }
 
     public void clean() {
-        this.matchContext.reset();
+        this.facts.reset();
         this.globalCount = new Object2IntOpenHashMap<>();
         this.layerCount = new Object2IntOpenHashMap<>();
         this.structureGlobalCount = new Object2IntOpenHashMap<>();
@@ -79,7 +80,7 @@ public class MultiblockState {
         cache = new LongOpenHashSet();
     }
 
-    public boolean update(BlockPos posIn, TraceabilityPredicate predicate) {
+    public boolean update(BlockPos posIn, PatternPredicate predicate) {
         this.pos = posIn;
         this.blockState = null;
         this.blockEntity = null;
@@ -187,7 +188,7 @@ public class MultiblockState {
                 }
                 if (controller != null) {
                     if (controller.isStructureFormed(structureName) && state.getBlock() instanceof ActiveBlock) {
-                        LongSet activeBlocks = getMatchContext().getOrDefault("vaBlocks", LongSets.emptySet());
+                        LongSet activeBlocks = getFacts().getOrDefault("vaBlocks", LongSets.emptySet());
                         if (activeBlocks.contains(pos.asLong())) {
                             // fine! it's caused by active blocks.
                             // speed up here!

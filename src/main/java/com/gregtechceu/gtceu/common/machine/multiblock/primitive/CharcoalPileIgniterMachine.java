@@ -7,8 +7,8 @@ import com.gregtechceu.gtceu.api.item.ComponentItem;
 import com.gregtechceu.gtceu.api.machine.multiblock.WorkableMultiblockMachine;
 import com.gregtechceu.gtceu.api.machine.trait.RecipeLogic;
 import com.gregtechceu.gtceu.api.machine.trait.WorkLogic;
-import com.gregtechceu.gtceu.api.multiblock.BlockPattern;
-import com.gregtechceu.gtceu.api.multiblock.FactoryBlockPattern;
+import com.gregtechceu.gtceu.api.multiblock.pattern.dsl.PatternBuilder;
+import com.gregtechceu.gtceu.api.multiblock.pattern.match.MultiBlockPattern;
 import com.gregtechceu.gtceu.api.multiblock.util.RelativeDirection;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
 import com.gregtechceu.gtceu.common.data.GTBlocks;
@@ -68,8 +68,8 @@ public class CharcoalPileIgniterMachine extends WorkableMultiblockMachine implem
         super.formStructure(structureName);
         if (DEFAULT_STRUCTURE.equals(structureName)) {
             hasAir = false;
-            if (getMultiblockState(structureName).getMatchContext().containsKey("logPos")) {
-                Long2BooleanMap logPositions = getMultiblockState(structureName).getMatchContext().get("logPos");
+            if (getMultiblockState(structureName).getFacts().containsKey("logPos")) {
+                Long2BooleanMap logPositions = getMultiblockState(structureName).getFacts().get("logPos");
                 for (var entry : logPositions.long2BooleanEntrySet()) {
                     if (entry.getBooleanValue()) {
                         logPos.add(BlockPos.of(entry.getLongKey()));
@@ -101,7 +101,7 @@ public class CharcoalPileIgniterMachine extends WorkableMultiblockMachine implem
     public void setWorkingEnabled(boolean isWorkingAllowed) {}
 
     @Override
-    public BlockPattern getPattern(String structureName) {
+    public MultiBlockPattern getPattern(String structureName) {
         if (!DEFAULT_STRUCTURE.equals(structureName)) {
             return super.getPattern(structureName);
         }
@@ -175,7 +175,7 @@ public class CharcoalPileIgniterMachine extends WorkableMultiblockMachine implem
             c[i] = ceilingLayer[i].toString();
         }
 
-        BlockPattern baseline = FactoryBlockPattern.start(this.getDefinition(), LEFT, FRONT, UP)
+        MultiBlockPattern baseline = PatternBuilder.start(this.getDefinition(), LEFT, FRONT, UP)
                 .aisle("~")
                 .build();
         return StructurePatternResolver.rebuildRuntimeStringArrayPattern(

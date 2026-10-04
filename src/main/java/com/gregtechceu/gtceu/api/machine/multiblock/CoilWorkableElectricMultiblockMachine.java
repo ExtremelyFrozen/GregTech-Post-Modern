@@ -22,7 +22,7 @@ public class CoilWorkableElectricMultiblockMachine extends WorkableElectricMulti
     public void formStructure(String structureName) {
         super.formStructure(structureName);
         if (DEFAULT_STRUCTURE.equals(structureName)) {
-            var type = getMultiblockState(structureName).getMatchContext().get("CoilType");
+            var type = getMultiblockState(structureName).getFacts().get("CoilType");
             if (type instanceof ICoilType coil) {
                 this.coilType = coil;
             }

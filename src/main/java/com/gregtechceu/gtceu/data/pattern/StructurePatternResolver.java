@@ -1,12 +1,12 @@
 package com.gregtechceu.gtceu.data.pattern;
 
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
-import com.gregtechceu.gtceu.api.multiblock.BlockPattern;
 import com.gregtechceu.gtceu.api.multiblock.CenterOffset;
-import com.gregtechceu.gtceu.api.multiblock.FactoryBlockPattern;
-import com.gregtechceu.gtceu.api.multiblock.Predicates;
-import com.gregtechceu.gtceu.api.multiblock.TraceabilityPredicate;
-import com.gregtechceu.gtceu.api.multiblock.predicates.PredicateController;
+import com.gregtechceu.gtceu.api.multiblock.pattern.dsl.PatternBuilder;
+import com.gregtechceu.gtceu.api.multiblock.pattern.match.MultiBlockPattern;
+import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PatternPredicate;
+import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PatternPredicates;
+import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PredicateController;
 import com.gregtechceu.gtceu.api.multiblock.structurepredicate.StructurePredicate;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -31,7 +31,7 @@ public final class StructurePatternResolver {
 
     private StructurePatternResolver() {}
 
-    public static FactoryBlockPattern applyStringArrayDefinition(FactoryBlockPattern builder, StructurePatternKey key) {
+    public static PatternBuilder applyStringArrayDefinition(PatternBuilder builder, StructurePatternKey key) {
         return loadStringArrayDefinition(key).applyTo(builder);
     }
 
@@ -44,10 +44,10 @@ public final class StructurePatternResolver {
         return definition;
     }
 
-    public static BlockPattern rebuildRuntimeStringArrayPattern(MultiblockMachineDefinition owner,
-                                                                StructurePatternKey key,
-                                                                BlockPattern baselinePattern,
-                                                                List<Unit> runtimeUnits) {
+    public static MultiBlockPattern rebuildRuntimeStringArrayPattern(MultiblockMachineDefinition owner,
+                                                                     StructurePatternKey key,
+                                                                     MultiBlockPattern baselinePattern,
+                                                                     List<Unit> runtimeUnits) {
         StringArrayDefinition definition = loadStringArrayDefinition(key);
         if (definition.predicates().isEmpty()) {
             throw new IllegalStateException("Json structure definition for " + key +
@@ -81,7 +81,7 @@ public final class StructurePatternResolver {
                 return DataResult.error(() -> "Json structure definition must define a non-empty 'aisles' array");
             }
 
-            Map<Character, StructurePredicate> predicates = parsePredicates(predicatesElement);
+            Map<Character, StructurePredicate> predicates = parsePatternPredicates(predicatesElement);
             JsonArray jsonArray = aislesElement.getAsJsonArray();
             List<Unit> units = new ArrayList<>();
             for (JsonElement unitElement : jsonArray) {
@@ -173,11 +173,11 @@ public final class StructurePatternResolver {
         }
     }
 
-    static BlockPattern rebuildStringArrayPattern(MultiblockMachineDefinition owner, StructurePatternKey key,
-                                                  BlockPattern baselinePattern,
-                                                  StringArrayDefinition definition) {
+    static MultiBlockPattern rebuildStringArrayPattern(MultiblockMachineDefinition owner, StructurePatternKey key,
+                                                       MultiBlockPattern baselinePattern,
+                                                       StringArrayDefinition definition) {
         List<String[]> aisles = definition.aisles();
-        Map<Character, TraceabilityPredicate> predicates = collectPredicates(owner, key, aisles,
+        Map<Character, PatternPredicate> predicates = collectPatternPredicates(owner, key, aisles,
                 definition.predicates());
 
         int aisleHeight = aisles.getFirst().length;
@@ -185,7 +185,7 @@ public final class StructurePatternResolver {
         int aisleCount = aisles.size();
         int unitCount = definition.units().size();
 
-        TraceabilityPredicate[][][] blockMatches = new TraceabilityPredicate[aisleCount][aisleHeight][rowWidth];
+        PatternPredicate[][][] blockMatches = new PatternPredicate[aisleCount][aisleHeight][rowWidth];
         String[][] structureSlices = new String[aisleCount][];
         int[][] aisleRepetitions = new int[unitCount][];
         int[] unitStarts = new int[unitCount];
@@ -206,7 +206,7 @@ public final class StructurePatternResolver {
                 for (int row = 0; row < aisleHeight; row++) {
                     for (int column = 0; column < rowWidth; column++) {
                         char symbol = aisle[row].charAt(column);
-                        TraceabilityPredicate predicate = predicates.get(symbol);
+                        PatternPredicate predicate = predicates.get(symbol);
                         if (predicate == null) {
                             throw new IllegalArgumentException("Unknown structure symbol '" + symbol +
                                     "' in json structure definition for " + key);
@@ -228,19 +228,19 @@ public final class StructurePatternResolver {
                     " does not contain a controller predicate symbol");
         }
 
-        BlockPattern pattern = new BlockPattern(blockMatches, baselinePattern.structureDir, aisleRepetitions,
+        MultiBlockPattern pattern = new MultiBlockPattern(blockMatches, baselinePattern.structureDir, aisleRepetitions,
                 unitStarts, unitDepths, structureSlices, centerOffset, aisleCount, aisleHeight, rowWidth);
         pattern.condition = baselinePattern.condition;
         pattern.predicates = List.copyOf(predicates.values());
         return pattern;
     }
 
-    private static Map<Character, TraceabilityPredicate> collectPredicates(MultiblockMachineDefinition owner,
-                                                                           StructurePatternKey key,
-                                                                           List<String[]> aisles,
-                                                                           Map<Character, StructurePredicate> jsonPredicates) {
-        Map<Character, TraceabilityPredicate> predicates = new LinkedHashMap<>();
-        predicates.put(' ', Predicates.any());
+    private static Map<Character, PatternPredicate> collectPatternPredicates(MultiblockMachineDefinition owner,
+                                                                             StructurePatternKey key,
+                                                                             List<String[]> aisles,
+                                                                             Map<Character, StructurePredicate> jsonPatternPredicates) {
+        Map<Character, PatternPredicate> predicates = new LinkedHashMap<>();
+        predicates.put(' ', PatternPredicates.any());
         for (String[] aisle : aisles) {
             for (String row : aisle) {
                 for (int column = 0; column < row.length(); column++) {
@@ -252,9 +252,9 @@ public final class StructurePatternResolver {
                         predicates.put(symbol, defaultControllerPredicate(owner));
                         continue;
                     }
-                    StructurePredicate jsonPredicate = jsonPredicates.get(symbol);
+                    StructurePredicate jsonPredicate = jsonPatternPredicates.get(symbol);
                     if (jsonPredicate != null) {
-                        predicates.put(symbol, new TraceabilityPredicate(jsonPredicate));
+                        predicates.put(symbol, new PatternPredicate(jsonPredicate));
                         continue;
                     }
                     throw new IllegalArgumentException("Json structure definition for " + key +
@@ -265,11 +265,11 @@ public final class StructurePatternResolver {
         return predicates;
     }
 
-    private static TraceabilityPredicate defaultControllerPredicate(MultiblockMachineDefinition owner) {
-        return Predicates.controller(Predicates.blocks(owner.getBlock()));
+    private static PatternPredicate defaultControllerPredicate(MultiblockMachineDefinition owner) {
+        return PatternPredicates.controller(PatternPredicates.blocks(owner.getBlock()));
     }
 
-    private static Map<Character, StructurePredicate> parsePredicates(JsonElement predicatesElement) {
+    private static Map<Character, StructurePredicate> parsePatternPredicates(JsonElement predicatesElement) {
         if (predicatesElement == null || predicatesElement.isJsonNull()) {
             return Map.of();
         }
@@ -321,7 +321,7 @@ public final class StructurePatternResolver {
                     .toList();
         }
 
-        public FactoryBlockPattern applyTo(FactoryBlockPattern builder) {
+        public PatternBuilder applyTo(PatternBuilder builder) {
             for (Unit unit : units) {
                 if (unit.minRepeat() == 1 && unit.maxRepeat() == 1 && unit.slices().size() == 1) {
                     builder.aisle(unit.slices().getFirst());
@@ -333,7 +333,7 @@ public final class StructurePatternResolver {
                     builder.endRepeatable(unit.minRepeat(), unit.maxRepeat());
                 }
             }
-            predicates.forEach((symbol, predicate) -> builder.where(symbol, new TraceabilityPredicate(predicate)));
+            predicates.forEach((symbol, predicate) -> builder.where(symbol, new PatternPredicate(predicate)));
             return builder;
         }
     }

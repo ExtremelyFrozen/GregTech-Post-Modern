@@ -3,6 +3,7 @@ package com.gregtechceu.gtceu.common.data;
 import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.gui.factory.DynamicItemSlotMachineUIMenuType;
 import com.gregtechceu.gtceu.api.gui.factory.GTCoverUIMenuType;
+import com.gregtechceu.gtceu.common.item.terminal.menu.TerminalBoundMenuType;
 import com.gregtechceu.gtceu.integration.ae2.machine.MEPatternBufferProxyUIMenuType;
 
 import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerMenu;
@@ -29,6 +30,9 @@ public final class GTMenuTypes {
     public static final Supplier<MenuType<ModularUIContainerMenu>> DYNAMIC_ITEM_SLOT_MACHINE_UI = MENUS.register(
             "dynamic_item_slot_machine_ui",
             () -> IMenuTypeExtension.create(DynamicItemSlotMachineUIMenuType::create));
+
+    public static final Supplier<MenuType<ModularUIContainerMenu>> TERMINAL_BOUND = MENUS.register(
+            "terminal_bound", () -> IMenuTypeExtension.create(TerminalBoundMenuType::create));
 
     private GTMenuTypes() {}
 

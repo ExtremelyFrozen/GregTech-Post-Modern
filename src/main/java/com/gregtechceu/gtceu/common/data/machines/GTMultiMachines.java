@@ -15,7 +15,7 @@ import com.gregtechceu.gtceu.api.machine.multiblock.WorkableElectricMultiblockMa
 import com.gregtechceu.gtceu.api.machine.property.GTMachineModelProperties;
 import com.gregtechceu.gtceu.api.machine.trait.RecipeLogic;
 import com.gregtechceu.gtceu.api.machine.trait.WorkLogic;
-import com.gregtechceu.gtceu.api.multiblock.FactoryBlockPattern;
+import com.gregtechceu.gtceu.api.multiblock.pattern.dsl.PatternBuilder;
 import com.gregtechceu.gtceu.client.renderer.machine.*;
 import com.gregtechceu.gtceu.client.util.TooltipHelper;
 import com.gregtechceu.gtceu.common.block.BoilerFireboxType;
@@ -89,7 +89,7 @@ public class GTMultiMachines {
             .rotationState(RotationState.ALL)
             .recipeType(GTRecipeTypes.COKE_OVEN_RECIPES)
             .appearanceBlock(CASING_COKE_BRICKS)
-            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> FactoryBlockPattern.start(definition)
+            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> PatternBuilder.start(definition)
                     .aislesFromDefinition()
                     .build())
             .workableCasingModel(GTCEu.id("block/casings/solid/machine_coke_bricks"),
@@ -105,7 +105,7 @@ public class GTMultiMachines {
                     .andThen(b -> b.addDynamicRenderer(DynamicRenderHelper::createPBFLavaRender)))
             .hasBER(true)
             .appearanceBlock(CASING_PRIMITIVE_BRICKS)
-            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> FactoryBlockPattern.start(definition)
+            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> PatternBuilder.start(definition)
                     .aislesFromDefinition()
                     .build())
             .register();
@@ -116,7 +116,7 @@ public class GTMultiMachines {
             .recipeType(GTRecipeTypes.BLAST_RECIPES)
             .recipeModifiers(GTRecipeModifiers::ebfOverclock, BATCH_MODE)
             .appearanceBlock(CASING_INVAR_HEATPROOF)
-            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> FactoryBlockPattern.start(definition)
+            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> PatternBuilder.start(definition)
                     .aislesFromDefinition()
                     .build())
             .recoveryItems(
@@ -148,7 +148,7 @@ public class GTMultiMachines {
             .recipeType(GTRecipeTypes.LARGE_CHEMICAL_RECIPES)
             .recipeModifiers(DEFAULT_ENVIRONMENT_REQUIREMENT, OC_PERFECT_SUBTICK, BATCH_MODE)
             .appearanceBlock(CASING_PTFE_INERT)
-            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> FactoryBlockPattern.start(definition)
+            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> PatternBuilder.start(definition)
                     .aislesFromDefinition()
                     .build())
             .workableCasingModel(GTCEu.id("block/casings/solid/machine_casing_inert_ptfe"),
@@ -161,7 +161,7 @@ public class GTMultiMachines {
             .recipeType(GTRecipeTypes.IMPLOSION_RECIPES)
             .recipeModifiers(OC_NON_PERFECT_SUBTICK, BATCH_MODE)
             .appearanceBlock(CASING_STEEL_SOLID)
-            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> FactoryBlockPattern.start(definition)
+            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> PatternBuilder.start(definition)
                     .aislesFromDefinition()
                     .build())
             .workableCasingModel(GTCEu.id("block/casings/solid/machine_casing_solid_steel"),
@@ -174,7 +174,7 @@ public class GTMultiMachines {
             .recipeType(GTRecipeTypes.PYROLYSE_RECIPES)
             .recipeModifiers(GTRecipeModifiers::pyrolyseOvenOverclock, BATCH_MODE)
             .appearanceBlock(MACHINE_CASING_ULV)
-            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> FactoryBlockPattern.start(definition)
+            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> PatternBuilder.start(definition)
                     .aislesFromDefinition()
                     .build())
             .workableCasingModel(GTCEu.id("block/casings/voltage/ulv/side"),
@@ -196,7 +196,7 @@ public class GTMultiMachines {
             .appearanceBlock(CASING_INVAR_HEATPROOF)
             .tooltips(Component.translatable("gtpm.machine.available_recipe_map_2.tooltip",
                     Component.translatable("gtpm.electric_furnace"), Component.translatable("gtpm.alloy_smelter")))
-            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> FactoryBlockPattern.start(definition)
+            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> PatternBuilder.start(definition)
                     .aislesFromDefinition()
                     .build())
             .recoveryItems(
@@ -220,7 +220,7 @@ public class GTMultiMachines {
             .recipeType(GTRecipeTypes.CRACKING_RECIPES)
             .recipeModifiers(GTRecipeModifiers::crackerOverclock, BATCH_MODE)
             .appearanceBlock(CASING_STAINLESS_CLEAN)
-            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> FactoryBlockPattern.start(definition)
+            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> PatternBuilder.start(definition)
                     .aislesFromDefinition()
                     .build())
             .workableCasingModel(GTCEu.id("block/casings/solid/machine_casing_clean_stainless_steel"),
@@ -240,7 +240,7 @@ public class GTMultiMachines {
             .recipeType(GTRecipeTypes.DISTILLATION_RECIPES)
             .recipeModifiers(OC_NON_PERFECT_SUBTICK, BATCH_MODE)
             .appearanceBlock(CASING_STAINLESS_CLEAN)
-            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> FactoryBlockPattern
+            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> PatternBuilder
                     .start(definition, RIGHT, BACK, UP)
                     .aislesFromDefinition()
                     .build())
@@ -256,7 +256,7 @@ public class GTMultiMachines {
             .recipeType(GTRecipeTypes.VACUUM_RECIPES)
             .recipeModifiers(GTRecipeModifiers.OC_NON_PERFECT_SUBTICK, BATCH_MODE)
             .appearanceBlock(CASING_ALUMINIUM_FROSTPROOF)
-            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> FactoryBlockPattern.start(definition)
+            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> PatternBuilder.start(definition)
                     .aislesFromDefinition()
                     .build())
             .workableCasingModel(GTCEu.id("block/casings/solid/machine_casing_frost_proof"),
@@ -271,7 +271,7 @@ public class GTMultiMachines {
             .recipeModifiers(DEFAULT_ENVIRONMENT_REQUIREMENT, OC_NON_PERFECT)
             .appearanceBlock(CASING_STEEL_SOLID)
             .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE,
-                    definition -> FactoryBlockPattern.start(definition, BACK, UP, RIGHT)
+                    definition -> PatternBuilder.start(definition, BACK, UP, RIGHT)
                             .aislesFromDefinition()
                             .build())
             .partSorter(AssemblyLineMachine::partSorter)
@@ -283,7 +283,7 @@ public class GTMultiMachines {
             .multiblock("primitive_pump", PrimitivePumpMachine::new)
             .rotationState(RotationState.NON_Y_AXIS)
             .appearanceBlock(CASING_PUMP_DECK)
-            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> FactoryBlockPattern.start(definition)
+            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> PatternBuilder.start(definition)
                     .aislesFromDefinition()
                     .build())
             .allowExtendedFacing(false)
@@ -309,7 +309,7 @@ public class GTMultiMachines {
             .recipeType(GTRecipeTypes.MACERATOR_RECIPES)
             .recipeModifier(SteamParallelMultiblockMachine::recipeModifier, true)
             .addOutputLimit(ItemRecipeCapability.CAP, 1)
-            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> FactoryBlockPattern.start(definition)
+            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> PatternBuilder.start(definition)
                     .aislesFromDefinition()
                     .build())
             .workableCasingModel(GTCEu.id("block/casings/solid/machine_casing_bronze_plated_bricks"),
@@ -323,7 +323,7 @@ public class GTMultiMachines {
             .recipeType(GTRecipeTypes.FURNACE_RECIPES)
             .recipeModifier(SteamParallelMultiblockMachine::recipeModifier, true)
             .addOutputLimit(ItemRecipeCapability.CAP, 1)
-            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> FactoryBlockPattern.start(definition)
+            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> PatternBuilder.start(definition)
                     .aislesFromDefinition()
                     .build())
             .modelProperty(GTMachineModelProperties.RECIPE_LOGIC_STATUS, WorkLogic.Status.IDLE)
@@ -348,7 +348,7 @@ public class GTMultiMachines {
                             Component.translatable("gtpm.multiblock.%s_fusion_reactor.description"
                                     .formatted(VN[tier].toLowerCase(Locale.ROOT))))
                     .appearanceBlock(() -> FusionReactorMachine.getCasingState(tier))
-                    .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> FactoryBlockPattern
+                    .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> PatternBuilder
                             .start(definition)
                             .aislesFromDefinition()
                             .build())
@@ -376,7 +376,7 @@ public class GTMultiMachines {
                                     FormattingUtil.formatNumbers(FluidDrillMachine.getRigMultiplier(tier) * 1.5)))
                     .appearanceBlock(() -> FluidDrillMachine.getCasingState(tier))
                     .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE,
-                            (definition) -> FactoryBlockPattern.start(definition)
+                            (definition) -> PatternBuilder.start(definition)
                                     .aislesFromDefinition()
                                     .build())
                     .workableCasingModel(FluidDrillMachine.getBaseTexture(tier),
@@ -392,7 +392,7 @@ public class GTMultiMachines {
                     .recipeType(GTRecipeTypes.MACERATOR_RECIPES)
                     .appearanceBlock(() -> LargeMinerMachine.getCasingState(tier))
                     .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE,
-                            (definition) -> FactoryBlockPattern.start(definition)
+                            (definition) -> PatternBuilder.start(definition)
                                     .aislesFromDefinition()
                                     .build())
                     .allowExtendedFacing(true)
@@ -462,7 +462,7 @@ public class GTMultiMachines {
                 }
             })
             .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE,
-                    (definition) -> FactoryBlockPattern.start(definition)
+                    (definition) -> PatternBuilder.start(definition)
                             .aislesFromDefinition()
                             .build())
             .allowExtendedFacing(false)
@@ -519,7 +519,7 @@ public class GTMultiMachines {
                              .append(Component.translatable("gtpm.machine.active_transformer.tooltip.3")
                                      .withStyle(TooltipHelper.RAINBOW_HSL_SLOW))))
             .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE,
-                    (definition) -> FactoryBlockPattern.start(definition)
+                    (definition) -> PatternBuilder.start(definition)
                             .aislesFromDefinition()
                             .build())
             .workableCasingModel(GTCEu.id("block/casings/hpca/high_power_casing"),
@@ -544,7 +544,7 @@ public class GTMultiMachines {
                                      .withStyle(TooltipHelper.RAINBOW_HSL_SLOW))))
             .appearanceBlock(CASING_PALLADIUM_SUBSTATION)
             .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE,
-                    definition -> FactoryBlockPattern.start(definition, RIGHT, BACK, UP)
+                    definition -> PatternBuilder.start(definition, RIGHT, BACK, UP)
                             .aislesFromDefinition()
                             .build())
             .workableCasingModel(GTCEu.id("block/casings/solid/machine_casing_palladium_substation"),
@@ -560,7 +560,7 @@ public class GTMultiMachines {
                     Component.translatable("gtpm.machine.charcoal_pile.tooltip.1"),
                     Component.translatable("gtpm.machine.charcoal_pile.tooltip.2"),
                     Component.translatable("gtpm.machine.charcoal_pile.tooltip.3"))
-            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, (def) -> FactoryBlockPattern.start(def)
+            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, (def) -> PatternBuilder.start(def)
                     .aislesFromDefinition()
                     .build())
             .allowFlip(false)
@@ -587,7 +587,7 @@ public class GTMultiMachines {
                                             BedrockOreMinerMachine.getRigMultiplier(tier) * 1.5)))
                     .appearanceBlock(() -> BedrockOreMinerMachine.getCasingState(tier))
                     .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE,
-                            (definition) -> FactoryBlockPattern.start(definition)
+                            (definition) -> PatternBuilder.start(definition)
                                     .aislesFromDefinition()
                                     .build())
                     .workableCasingModel(BedrockOreMinerMachine.getBaseTexture(tier),
@@ -633,7 +633,7 @@ public class GTMultiMachines {
             .recipeType(DUMMY_RECIPES)
             .appearanceBlock(CASING_ALUMINIUM_FROSTPROOF)
             .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE,
-                    (definition) -> FactoryBlockPattern.start(definition)
+                    (definition) -> PatternBuilder.start(definition)
                             .aislesFromDefinition()
                             .build())
             .modelProperty(RecipeLogic.STATUS_PROPERTY, WorkLogic.Status.IDLE)
