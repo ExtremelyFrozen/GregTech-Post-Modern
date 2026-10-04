@@ -106,19 +106,19 @@ public class GTCommands {
                                 .executes(ctx -> reloadStructureCache(ctx.getSource()))
                                 .then(literal("binary")
                                         .executes(ctx -> reloadStructureCacheType(ctx.getSource(),
-                                                StructureDefinitionType.SERIALIZED_BLOCK_PATTERN))
+                                                StructureDefinitionType.BINARY_ZSTD))
                                         .then(argument("id", ResourceLocationArgument.id())
                                                 .suggests(STRUCTURE_IDS)
                                                 .executes(ctx -> reloadStructureCacheEntry(ctx.getSource(),
-                                                        StructureDefinitionType.SERIALIZED_BLOCK_PATTERN,
+                                                        StructureDefinitionType.BINARY_ZSTD,
                                                         ResourceLocationArgument.getId(ctx, "id")))))
                                 .then(literal("json")
                                         .executes(ctx -> reloadStructureCacheType(ctx.getSource(),
-                                                StructureDefinitionType.STRING_ARRAY_JSON))
+                                                StructureDefinitionType.JSON))
                                         .then(argument("id", ResourceLocationArgument.id())
                                                 .suggests(STRUCTURE_IDS)
                                                 .executes(ctx -> reloadStructureCacheEntry(ctx.getSource(),
-                                                        StructureDefinitionType.STRING_ARRAY_JSON,
+                                                        StructureDefinitionType.JSON,
                                                         ResourceLocationArgument.getId(ctx, "id")))))))
                 .then(literal("cape")
                         .then(literal("give")

@@ -3,7 +3,7 @@ package com.gregtechceu.gtceu.data.pattern;
 public enum StructureDefinitionSource {
 
     JSON("json"),
-    BINARY_JSON("binary");
+    BINARY_ZSTD("binary");
 
     private final String serializedName;
 
@@ -17,8 +17,8 @@ public enum StructureDefinitionSource {
 
     public static StructureDefinitionSource fromDefinitionType(StructureDefinitionType type) {
         return switch (type) {
-            case STRING_ARRAY_JSON -> JSON;
-            case SERIALIZED_BLOCK_PATTERN -> BINARY_JSON;
+            case JSON -> JSON;
+            case BINARY_ZSTD -> BINARY_ZSTD;
         };
     }
 }
