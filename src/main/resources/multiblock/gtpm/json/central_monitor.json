@@ -1,34 +1,27 @@
 {
-  "machine": "gtpm:central_monitor",
-  "axes": {
-    "depth": "front",
-    "height": "up",
-    "width": "left"
-  },
-  "orientation": {
-    "allowMirror": false,
-    "allowExtendedFacing": false
-  },
-  "origin": {
-    "token": "controller"
-  },
-  "parameters": {},
-  "fragments": {},
-  "predicates": {
-    "B": {
-      "type": "gtpm:central_monitor_components"
-    }
-  },
-  "body": {
-    "type": "fixed",
-    "layers": [
-      [
-        "B~B",
-        "BBB",
-        "BBB",
-        "BBB"
-      ]
-    ]
-  },
-  "constraints": []
+	"machine": "gtpm:central_monitor",
+	"axes": {
+		"depth": "front",
+		"height": "up",
+		"width": "left"
+	},
+	"orientation": {
+		"allowMirror": false,
+		"allowExtendedFacing": false
+	},
+	"origin": {
+		"token": "controller"
+	},
+	"parameters": {},
+	"fragments": {},
+	"predicates": {
+		"B": {
+			"type": "gtpm:central_monitor_components"
+		}
+	},
+	"body": {
+		"type": "fixed",
+		"layers": [["B~B", "BBB", "BBB", "BBB"]]
+	},
+	"constraints": []
 }

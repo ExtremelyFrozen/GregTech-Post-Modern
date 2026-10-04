@@ -1,120 +1,90 @@
 {
-  "machine": "gtpm:large_extruder",
-  "axes": {
-    "depth": "front",
-    "height": "up",
-    "width": "left"
-  },
-  "orientation": {
-    "allowMirror": false,
-    "allowExtendedFacing": false
-  },
-  "origin": {
-    "token": "controller"
-  },
-  "parameters": {},
-  "fragments": {},
-  "predicates": {
-    "X": {
-      "type": "gtpm:concatenated",
-      "predicates": [
-        {
-          "type": "gtpm:restricted",
-          "predicate": {
-            "type": "gtpm:blocks",
-            "blocks": "gtpm:stress_proof_casing"
-          },
-          "minCount": 40
-        },
-        {
-          "type": "gtpm:auto_recipe_abilities"
-        },
-        {
-          "type": "gtpm:auto_maintenance",
-          "checkMaintenance": true,
-          "checkMuffler": false,
-          "checkParallel": true
-        }
-      ]
-    },
-    "P": {
-      "type": "gtpm:blocks",
-      "blocks": "gtpm:titanium_pipe_casing"
-    },
-    "G": {
-      "type": "gtpm:blocks",
-      "blocks": "gtpm:tempered_glass"
-    },
-    "A": {
-      "type": "gtpm:air"
-    },
-    "#": {
-      "type": "gtpm:any"
-    }
-  },
-  "body": {
-    "type": "sequence",
-    "axis": "depth",
-    "children": [
-      {
-        "type": "fixed",
-        "layers": [
-          [
-            "##XXX",
-            "##XXX",
-            "##XXX"
-          ]
-        ]
-      },
-      {
-        "type": "repeat",
-        "id": "unit_1",
-        "axis": "depth",
-        "direction": "positive",
-        "min": 2,
-        "max": 2,
-        "body": {
-          "type": "fixed",
-          "layers": [
-            [
-              "##XXX",
-              "##XPX",
-              "##XGX"
-            ]
-          ]
-        }
-      },
-      {
-        "type": "fixed",
-        "layers": [
-          [
-            "XXXXX",
-            "XXXPX",
-            "XXXGX"
-          ]
-        ]
-      },
-      {
-        "type": "fixed",
-        "layers": [
-          [
-            "XXXXX",
-            "XAXPX",
-            "XXXGX"
-          ]
-        ]
-      },
-      {
-        "type": "fixed",
-        "layers": [
-          [
-            "XXXXX",
-            "X~XXX",
-            "XXXXX"
-          ]
-        ]
-      }
-    ]
-  },
-  "constraints": []
+	"machine": "gtpm:large_extruder",
+	"axes": {
+		"depth": "front",
+		"height": "up",
+		"width": "left"
+	},
+	"orientation": {
+		"allowMirror": false,
+		"allowExtendedFacing": false
+	},
+	"origin": {
+		"token": "controller"
+	},
+	"parameters": {},
+	"fragments": {},
+	"predicates": {
+		"X": {
+			"type": "gtpm:concatenated",
+			"predicates": [
+				{
+					"type": "gtpm:restricted",
+					"predicate": {
+						"type": "gtpm:blocks",
+						"blocks": "gtpm:stress_proof_casing"
+					},
+					"minCount": 40
+				},
+				{
+					"type": "gtpm:auto_recipe_abilities"
+				},
+				{
+					"type": "gtpm:auto_maintenance",
+					"checkMaintenance": true,
+					"checkMuffler": false,
+					"checkParallel": true
+				}
+			]
+		},
+		"P": {
+			"type": "gtpm:blocks",
+			"blocks": "gtpm:titanium_pipe_casing"
+		},
+		"G": {
+			"type": "gtpm:blocks",
+			"blocks": "gtpm:tempered_glass"
+		},
+		"A": {
+			"type": "gtpm:air"
+		},
+		"#": {
+			"type": "gtpm:any"
+		}
+	},
+	"body": {
+		"type": "sequence",
+		"axis": "depth",
+		"children": [
+			{
+				"type": "fixed",
+				"layers": [["##XXX", "##XXX", "##XXX"]]
+			},
+			{
+				"type": "repeat",
+				"id": "unit_1",
+				"axis": "depth",
+				"direction": "positive",
+				"min": 2,
+				"max": 2,
+				"body": {
+					"type": "fixed",
+					"layers": [["##XXX", "##XPX", "##XGX"]]
+				}
+			},
+			{
+				"type": "fixed",
+				"layers": [["XXXXX", "XXXPX", "XXXGX"]]
+			},
+			{
+				"type": "fixed",
+				"layers": [["XXXXX", "XAXPX", "XXXGX"]]
+			},
+			{
+				"type": "fixed",
+				"layers": [["XXXXX", "X~XXX", "XXXXX"]]
+			}
+		]
+	},
+	"constraints": []
 }

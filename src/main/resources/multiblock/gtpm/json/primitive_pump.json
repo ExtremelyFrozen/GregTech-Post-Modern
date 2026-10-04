@@ -1,83 +1,62 @@
 {
-  "machine": "gtpm:primitive_pump",
-  "axes": {
-    "depth": "front",
-    "height": "up",
-    "width": "left"
-  },
-  "orientation": {
-    "allowMirror": false,
-    "allowExtendedFacing": false
-  },
-  "origin": {
-    "token": "controller"
-  },
-  "parameters": {},
-  "fragments": {},
-  "predicates": {
-    "X": {
-      "type": "gtpm:blocks",
-      "blocks": "gtpm:pump_deck"
-    },
-    "F": {
-      "type": "gtpm:frames",
-      "materials": "gtpm:treated_wood"
-    },
-    "H": {
-      "type": "gtpm:concatenated",
-      "predicates": [
-        {
-          "type": "gtpm:abilities",
-          "abilities": "pump_fluid_hatch"
-        },
-        {
-          "type": "gtpm:blocks",
-          "blocks": [
-            "gtpm:ulv_output_hatch",
-            "gtpm:lv_output_hatch"
-          ]
-        }
-      ]
-    },
-    "#": {
-      "type": "gtpm:any"
-    }
-  },
-  "body": {
-    "type": "sequence",
-    "axis": "depth",
-    "children": [
-      {
-        "type": "fixed",
-        "layers": [
-          [
-            "XXXX",
-            "##F#",
-            "##F#"
-          ]
-        ]
-      },
-      {
-        "type": "fixed",
-        "layers": [
-          [
-            "XXHX",
-            "F##F",
-            "FFFF"
-          ]
-        ]
-      },
-      {
-        "type": "fixed",
-        "layers": [
-          [
-            "~XXX",
-            "##F#",
-            "##F#"
-          ]
-        ]
-      }
-    ]
-  },
-  "constraints": []
+	"machine": "gtpm:primitive_pump",
+	"axes": {
+		"depth": "front",
+		"height": "up",
+		"width": "left"
+	},
+	"orientation": {
+		"allowMirror": false,
+		"allowExtendedFacing": false
+	},
+	"origin": {
+		"token": "controller"
+	},
+	"parameters": {},
+	"fragments": {},
+	"predicates": {
+		"X": {
+			"type": "gtpm:blocks",
+			"blocks": "gtpm:pump_deck"
+		},
+		"F": {
+			"type": "gtpm:frames",
+			"materials": "gtpm:treated_wood"
+		},
+		"H": {
+			"type": "gtpm:concatenated",
+			"predicates": [
+				{
+					"type": "gtpm:abilities",
+					"abilities": "pump_fluid_hatch"
+				},
+				{
+					"type": "gtpm:blocks",
+					"blocks": ["gtpm:ulv_output_hatch", "gtpm:lv_output_hatch"]
+				}
+			]
+		},
+		"#": {
+			"type": "gtpm:any"
+		}
+	},
+	"body": {
+		"type": "sequence",
+		"axis": "depth",
+		"children": [
+			{
+				"type": "fixed",
+				"layers": [["XXXX", "##F#", "##F#"]]
+			},
+			{
+				"type": "fixed",
+				"layers": [["XXHX", "F##F", "FFFF"]]
+			},
+			{
+				"type": "fixed",
+				"layers": [["~XXX", "##F#", "##F#"]]
+			}
+		]
+	},
+	"constraints": []
 }

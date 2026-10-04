@@ -1,111 +1,84 @@
 {
-  "machine": "gtpm:cleanroom",
-  "axes": {
-    "depth": "front",
-    "height": "up",
-    "width": "left"
-  },
-  "orientation": {
-    "allowMirror": false,
-    "allowExtendedFacing": false
-  },
-  "origin": {
-    "token": "controller"
-  },
-  "parameters": {},
-  "fragments": {},
-  "predicates": {
-    "A": {
-      "type": "gtpm:cleanroom_base",
-      "allowFloorBlocks": false,
-      "allowDoors": false
-    },
-    "W": {
-      "type": "gtpm:cleanroom_base",
-      "allowFloorBlocks": false,
-      "allowDoors": true
-    },
-    "E": {
-      "type": "gtpm:cleanroom_base",
-      "allowFloorBlocks": true,
-      "allowDoors": false
-    },
-    "D": {
-      "type": "gtpm:blocks",
-      "blocks": "gtpm:plascrete"
-    },
-    "F": {
-      "type": "gtpm:cleanroom_filters"
-    },
-    "I": {
-      "type": "gtpm:cleanroom_inner"
-    },
-    "K": {
-      "type": "gtpm:concatenated",
-      "predicates": [
-        {
-          "type": "gtpm:blocks",
-          "blocks": [
-            "gtpm:plascrete",
-            "gtpm:cleanroom_glass"
-          ]
-        },
-        {
-          "type": "gtpm:block_tags",
-          "blockTagKeys": "gtpm:cleanroom_floors"
-        }
-      ]
-    }
-  },
-  "body": {
-    "type": "sequence",
-    "axis": "depth",
-    "children": [
-      {
-        "type": "fixed",
-        "layers": [
-          [
-            "AAAAA",
-            "AEEEA",
-            "AEEEA",
-            "AEEEA",
-            "AAAAA"
-          ]
-        ]
-      },
-      {
-        "type": "repeat",
-        "id": "unit_1",
-        "axis": "depth",
-        "direction": "positive",
-        "min": 3,
-        "max": 13,
-        "body": {
-          "type": "fixed",
-          "layers": [
-            [
-              "WWWWW",
-              "WIIIW",
-              "WIIIW",
-              "WIIIW",
-              "WWWWW"
-            ]
-          ]
-        }
-      },
-      {
-        "type": "fixed",
-        "layers": [
-          [
-            "DDDDD",
-            "DFFFD",
-            "DF~FD",
-            "DFFFD",
-            "DDDDD"
-          ]
-        ]
-      }
-    ]
-  },
-  "constraints": []
+	"machine": "gtpm:cleanroom",
+	"axes": {
+		"depth": "front",
+		"height": "up",
+		"width": "left"
+	},
+	"orientation": {
+		"allowMirror": false,
+		"allowExtendedFacing": false
+	},
+	"origin": {
+		"token": "controller"
+	},
+	"parameters": {},
+	"fragments": {},
+	"predicates": {
+		"A": {
+			"type": "gtpm:cleanroom_base",
+			"allowFloorBlocks": false,
+			"allowDoors": false
+		},
+		"W": {
+			"type": "gtpm:cleanroom_base",
+			"allowFloorBlocks": false,
+			"allowDoors": true
+		},
+		"E": {
+			"type": "gtpm:cleanroom_base",
+			"allowFloorBlocks": true,
+			"allowDoors": false
+		},
+		"D": {
+			"type": "gtpm:blocks",
+			"blocks": "gtpm:plascrete"
+		},
+		"F": {
+			"type": "gtpm:cleanroom_filters"
+		},
+		"I": {
+			"type": "gtpm:cleanroom_inner"
+		},
+		"K": {
+			"type": "gtpm:concatenated",
+			"predicates": [
+				{
+					"type": "gtpm:blocks",
+					"blocks": ["gtpm:plascrete", "gtpm:cleanroom_glass"]
+				},
+				{
+					"type": "gtpm:block_tags",
+					"blockTagKeys": "gtpm:cleanroom_floors"
+				}
+			]
+		}
+	},
+	"body": {
+		"type": "sequence",
+		"axis": "depth",
+		"children": [
+			{
+				"type": "fixed",
+				"layers": [["AAAAA", "AEEEA", "AEEEA", "AEEEA", "AAAAA"]]
+			},
+			{
+				"type": "repeat",
+				"id": "unit_1",
+				"axis": "depth",
+				"direction": "positive",
+				"min": 3,
+				"max": 13,
+				"body": {
+					"type": "fixed",
+					"layers": [["WWWWW", "WIIIW", "WIIIW", "WIIIW", "WWWWW"]]
+				}
+			},
+			{
+				"type": "fixed",
+				"layers": [["DDDDD", "DFFFD", "DF~FD", "DFFFD", "DDDDD"]]
+			}
+		]
+	},
+	"constraints": []
 }

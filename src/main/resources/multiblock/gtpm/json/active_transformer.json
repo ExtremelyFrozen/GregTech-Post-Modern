@@ -1,76 +1,58 @@
 {
-  "machine": "gtpm:active_transformer",
-  "axes": {
-    "depth": "front",
-    "height": "up",
-    "width": "left"
-  },
-  "orientation": {
-    "allowMirror": false,
-    "allowExtendedFacing": false
-  },
-  "origin": {
-    "token": "controller"
-  },
-  "parameters": {},
-  "fragments": {},
-  "predicates": {
-    "X": {
-      "type": "gtpm:concatenated",
-      "predicates": [
-        {
-          "type": "gtpm:restricted",
-          "predicate": {
-            "type": "gtpm:blocks",
-            "blocks": "gtpm:high_power_casing"
-          },
-          "minCount": 12
-        },
-        {
-          "type": "gtpm:active_transformer_hatches"
-        }
-      ]
-    },
-    "C": {
-      "type": "gtpm:blocks",
-      "blocks": "gtpm:superconducting_coil"
-    }
-  },
-  "body": {
-    "type": "sequence",
-    "axis": "depth",
-    "children": [
-      {
-        "type": "fixed",
-        "layers": [
-          [
-            "XXX",
-            "XXX",
-            "XXX"
-          ]
-        ]
-      },
-      {
-        "type": "fixed",
-        "layers": [
-          [
-            "XXX",
-            "XCX",
-            "XXX"
-          ]
-        ]
-      },
-      {
-        "type": "fixed",
-        "layers": [
-          [
-            "XXX",
-            "X~X",
-            "XXX"
-          ]
-        ]
-      }
-    ]
-  },
-  "constraints": []
+	"machine": "gtpm:active_transformer",
+	"axes": {
+		"depth": "front",
+		"height": "up",
+		"width": "left"
+	},
+	"orientation": {
+		"allowMirror": false,
+		"allowExtendedFacing": false
+	},
+	"origin": {
+		"token": "controller"
+	},
+	"parameters": {},
+	"fragments": {},
+	"predicates": {
+		"X": {
+			"type": "gtpm:concatenated",
+			"predicates": [
+				{
+					"type": "gtpm:restricted",
+					"predicate": {
+						"type": "gtpm:blocks",
+						"blocks": "gtpm:high_power_casing"
+					},
+					"minCount": 12
+				},
+				{
+					"type": "gtpm:active_transformer_hatches"
+				}
+			]
+		},
+		"C": {
+			"type": "gtpm:blocks",
+			"blocks": "gtpm:superconducting_coil"
+		}
+	},
+	"body": {
+		"type": "sequence",
+		"axis": "depth",
+		"children": [
+			{
+				"type": "fixed",
+				"layers": [["XXX", "XXX", "XXX"]]
+			},
+			{
+				"type": "fixed",
+				"layers": [["XXX", "XCX", "XXX"]]
+			},
+			{
+				"type": "fixed",
+				"layers": [["XXX", "X~X", "XXX"]]
+			}
+		]
+	},
+	"constraints": []
 }

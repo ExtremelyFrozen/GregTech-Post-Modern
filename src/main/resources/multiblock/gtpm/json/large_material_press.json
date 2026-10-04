@@ -1,89 +1,71 @@
 {
-  "machine": "gtpm:large_material_press",
-  "axes": {
-    "depth": "front",
-    "height": "up",
-    "width": "left"
-  },
-  "orientation": {
-    "allowMirror": false,
-    "allowExtendedFacing": false
-  },
-  "origin": {
-    "token": "controller"
-  },
-  "parameters": {},
-  "fragments": {},
-  "predicates": {
-    "X": {
-      "type": "gtpm:concatenated",
-      "predicates": [
-        {
-          "type": "gtpm:restricted",
-          "predicate": {
-            "type": "gtpm:blocks",
-            "blocks": "gtpm:stress_proof_casing"
-          },
-          "minCount": 40
-        },
-        {
-          "type": "gtpm:auto_recipe_abilities"
-        },
-        {
-          "type": "gtpm:auto_maintenance",
-          "checkMaintenance": true,
-          "checkMuffler": false,
-          "checkParallel": true
-        }
-      ]
-    },
-    "G": {
-      "type": "gtpm:blocks",
-      "blocks": "gtpm:steel_gearbox"
-    },
-    "C": {
-      "type": "gtpm:blocks",
-      "blocks": "gtpm:tempered_glass"
-    },
-    "A": {
-      "type": "gtpm:air"
-    }
-  },
-  "body": {
-    "type": "sequence",
-    "axis": "depth",
-    "children": [
-      {
-        "type": "fixed",
-        "layers": [
-          [
-            "XXXXXXX",
-            "XXXXXXX",
-            "XXXXXXX"
-          ]
-        ]
-      },
-      {
-        "type": "fixed",
-        "layers": [
-          [
-            "XXXXXXX",
-            "XAXGGGX",
-            "XXXXXXX"
-          ]
-        ]
-      },
-      {
-        "type": "fixed",
-        "layers": [
-          [
-            "XXXXXXX",
-            "X~XCCCX",
-            "XXXXXXX"
-          ]
-        ]
-      }
-    ]
-  },
-  "constraints": []
+	"machine": "gtpm:large_material_press",
+	"axes": {
+		"depth": "front",
+		"height": "up",
+		"width": "left"
+	},
+	"orientation": {
+		"allowMirror": false,
+		"allowExtendedFacing": false
+	},
+	"origin": {
+		"token": "controller"
+	},
+	"parameters": {},
+	"fragments": {},
+	"predicates": {
+		"X": {
+			"type": "gtpm:concatenated",
+			"predicates": [
+				{
+					"type": "gtpm:restricted",
+					"predicate": {
+						"type": "gtpm:blocks",
+						"blocks": "gtpm:stress_proof_casing"
+					},
+					"minCount": 40
+				},
+				{
+					"type": "gtpm:auto_recipe_abilities"
+				},
+				{
+					"type": "gtpm:auto_maintenance",
+					"checkMaintenance": true,
+					"checkMuffler": false,
+					"checkParallel": true
+				}
+			]
+		},
+		"G": {
+			"type": "gtpm:blocks",
+			"blocks": "gtpm:steel_gearbox"
+		},
+		"C": {
+			"type": "gtpm:blocks",
+			"blocks": "gtpm:tempered_glass"
+		},
+		"A": {
+			"type": "gtpm:air"
+		}
+	},
+	"body": {
+		"type": "sequence",
+		"axis": "depth",
+		"children": [
+			{
+				"type": "fixed",
+				"layers": [["XXXXXXX", "XXXXXXX", "XXXXXXX"]]
+			},
+			{
+				"type": "fixed",
+				"layers": [["XXXXXXX", "XAXGGGX", "XXXXXXX"]]
+			},
+			{
+				"type": "fixed",
+				"layers": [["XXXXXXX", "X~XCCCX", "XXXXXXX"]]
+			}
+		]
+	},
+	"constraints": []
 }

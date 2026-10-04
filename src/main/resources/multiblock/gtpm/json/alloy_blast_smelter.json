@@ -1,138 +1,98 @@
 {
-  "machine": "gtpm:alloy_blast_smelter",
-  "axes": {
-    "depth": "front",
-    "height": "up",
-    "width": "left"
-  },
-  "orientation": {
-    "allowMirror": false,
-    "allowExtendedFacing": false
-  },
-  "origin": {
-    "token": "controller"
-  },
-  "parameters": {},
-  "fragments": {},
-  "predicates": {
-    "X": {
-      "type": "gtpm:concatenated",
-      "predicates": [
-        {
-          "type": "gtpm:restricted",
-          "predicate": {
-            "type": "gtpm:blocks",
-            "blocks": "gtpm:high_temperature_smelting_casing"
-          },
-          "minCount": 30
-        },
-        {
-          "type": "gtpm:abilities",
-          "abilities": "import_items"
-        },
-        {
-          "type": "gtpm:abilities",
-          "abilities": "export_items"
-        },
-        {
-          "type": "gtpm:abilities",
-          "abilities": "import_fluids"
-        },
-        {
-          "type": "gtpm:abilities",
-          "abilities": "export_fluids"
-        },
-        {
-          "type": "gtpm:auto_maintenance",
-          "checkMaintenance": true,
-          "checkMuffler": false,
-          "checkParallel": false
-        }
-      ]
-    },
-    "C": {
-      "type": "gtpm:heating_coils"
-    },
-    "M": {
-      "type": "gtpm:abilities",
-      "abilities": "muffler"
-    },
-    "G": {
-      "type": "gtpm:blocks",
-      "blocks": "gtpm:heat_vent"
-    },
-    "A": {
-      "type": "gtpm:air"
-    },
-    "#": {
-      "type": "gtpm:any"
-    }
-  },
-  "body": {
-    "type": "sequence",
-    "axis": "depth",
-    "children": [
-      {
-        "type": "fixed",
-        "layers": [
-          [
-            "#XXX#",
-            "#CCC#",
-            "#GGG#",
-            "#CCC#",
-            "#XXX#"
-          ]
-        ]
-      },
-      {
-        "type": "fixed",
-        "layers": [
-          [
-            "XXXXX",
-            "CAAAC",
-            "GAAAG",
-            "CAAAC",
-            "XXXXX"
-          ]
-        ]
-      },
-      {
-        "type": "fixed",
-        "layers": [
-          [
-            "XXXXX",
-            "CAAAC",
-            "GAAAG",
-            "CAAAC",
-            "XXMXX"
-          ]
-        ]
-      },
-      {
-        "type": "fixed",
-        "layers": [
-          [
-            "XXXXX",
-            "CAAAC",
-            "GAAAG",
-            "CAAAC",
-            "XXXXX"
-          ]
-        ]
-      },
-      {
-        "type": "fixed",
-        "layers": [
-          [
-            "#X~X#",
-            "#CCC#",
-            "#GGG#",
-            "#CCC#",
-            "#XXX#"
-          ]
-        ]
-      }
-    ]
-  },
-  "constraints": []
+	"machine": "gtpm:alloy_blast_smelter",
+	"axes": {
+		"depth": "front",
+		"height": "up",
+		"width": "left"
+	},
+	"orientation": {
+		"allowMirror": false,
+		"allowExtendedFacing": false
+	},
+	"origin": {
+		"token": "controller"
+	},
+	"parameters": {},
+	"fragments": {},
+	"predicates": {
+		"X": {
+			"type": "gtpm:concatenated",
+			"predicates": [
+				{
+					"type": "gtpm:restricted",
+					"predicate": {
+						"type": "gtpm:blocks",
+						"blocks": "gtpm:high_temperature_smelting_casing"
+					},
+					"minCount": 30
+				},
+				{
+					"type": "gtpm:abilities",
+					"abilities": "import_items"
+				},
+				{
+					"type": "gtpm:abilities",
+					"abilities": "export_items"
+				},
+				{
+					"type": "gtpm:abilities",
+					"abilities": "import_fluids"
+				},
+				{
+					"type": "gtpm:abilities",
+					"abilities": "export_fluids"
+				},
+				{
+					"type": "gtpm:auto_maintenance",
+					"checkMaintenance": true,
+					"checkMuffler": false,
+					"checkParallel": false
+				}
+			]
+		},
+		"C": {
+			"type": "gtpm:heating_coils"
+		},
+		"M": {
+			"type": "gtpm:abilities",
+			"abilities": "muffler"
+		},
+		"G": {
+			"type": "gtpm:blocks",
+			"blocks": "gtpm:heat_vent"
+		},
+		"A": {
+			"type": "gtpm:air"
+		},
+		"#": {
+			"type": "gtpm:any"
+		}
+	},
+	"body": {
+		"type": "sequence",
+		"axis": "depth",
+		"children": [
+			{
+				"type": "fixed",
+				"layers": [["#XXX#", "#CCC#", "#GGG#", "#CCC#", "#XXX#"]]
+			},
+			{
+				"type": "fixed",
+				"layers": [["XXXXX", "CAAAC", "GAAAG", "CAAAC", "XXXXX"]]
+			},
+			{
+				"type": "fixed",
+				"layers": [["XXXXX", "CAAAC", "GAAAG", "CAAAC", "XXMXX"]]
+			},
+			{
+				"type": "fixed",
+				"layers": [["XXXXX", "CAAAC", "GAAAG", "CAAAC", "XXXXX"]]
+			},
+			{
+				"type": "fixed",
+				"layers": [["#X~X#", "#CCC#", "#GGG#", "#CCC#", "#XXX#"]]
+			}
+		]
+	},
+	"constraints": []
 }

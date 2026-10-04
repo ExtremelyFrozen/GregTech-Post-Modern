@@ -1,132 +1,114 @@
 {
-  "machine": "gtpm:cracker",
-  "axes": {
-    "depth": "front",
-    "height": "up",
-    "width": "left"
-  },
-  "orientation": {
-    "allowMirror": false,
-    "allowExtendedFacing": false
-  },
-  "origin": {
-    "token": "controller"
-  },
-  "parameters": {},
-  "fragments": {},
-  "predicates": {
-    "O": {
-      "type": "gtpm:concatenated",
-      "predicates": [
-        {
-          "type": "gtpm:restricted",
-          "predicate": {
-            "type": "gtpm:blocks",
-            "blocks": "gtpm:clean_machine_casing"
-          },
-          "minCount": 12
-        },
-        {
-          "type": "gtpm:abilities",
-          "abilities": "import_items"
-        },
-        {
-          "type": "gtpm:abilities",
-          "abilities": "export_items"
-        },
-        {
-          "type": "gtpm:abilities",
-          "abilities": "import_fluids"
-        },
-        {
-          "type": "gtpm:abilities",
-          "abilities": "export_fluids"
-        },
-        {
-          "type": "gtpm:auto_maintenance",
-          "checkMaintenance": true,
-          "checkMuffler": true,
-          "checkParallel": false
-        }
-      ]
-    },
-    "H": {
-      "type": "gtpm:concatenated",
-      "predicates": [
-        {
-          "type": "gtpm:restricted",
-          "predicate": {
-            "type": "gtpm:blocks",
-            "blocks": "gtpm:clean_machine_casing"
-          },
-          "minCount": 12
-        },
-        {
-          "type": "gtpm:abilities",
-          "abilities": "import_items"
-        },
-        {
-          "type": "gtpm:abilities",
-          "abilities": "export_items"
-        },
-        {
-          "type": "gtpm:abilities",
-          "abilities": "import_fluids"
-        },
-        {
-          "type": "gtpm:abilities",
-          "abilities": "export_fluids"
-        },
-        {
-          "type": "gtpm:auto_maintenance",
-          "checkMaintenance": true,
-          "checkMuffler": true,
-          "checkParallel": false
-        }
-      ]
-    },
-    "C": {
-      "type": "gtpm:heating_coils"
-    },
-    "#": {
-      "type": "gtpm:air"
-    }
-  },
-  "body": {
-    "type": "sequence",
-    "axis": "depth",
-    "children": [
-      {
-        "type": "fixed",
-        "layers": [
-          [
-            "HCHCH",
-            "HCHCH",
-            "HCHCH"
-          ]
-        ]
-      },
-      {
-        "type": "fixed",
-        "layers": [
-          [
-            "HCHCH",
-            "H###H",
-            "HCHCH"
-          ]
-        ]
-      },
-      {
-        "type": "fixed",
-        "layers": [
-          [
-            "HCHCH",
-            "HC~CH",
-            "HCHCH"
-          ]
-        ]
-      }
-    ]
-  },
-  "constraints": []
+	"machine": "gtpm:cracker",
+	"axes": {
+		"depth": "front",
+		"height": "up",
+		"width": "left"
+	},
+	"orientation": {
+		"allowMirror": false,
+		"allowExtendedFacing": false
+	},
+	"origin": {
+		"token": "controller"
+	},
+	"parameters": {},
+	"fragments": {},
+	"predicates": {
+		"O": {
+			"type": "gtpm:concatenated",
+			"predicates": [
+				{
+					"type": "gtpm:restricted",
+					"predicate": {
+						"type": "gtpm:blocks",
+						"blocks": "gtpm:clean_machine_casing"
+					},
+					"minCount": 12
+				},
+				{
+					"type": "gtpm:abilities",
+					"abilities": "import_items"
+				},
+				{
+					"type": "gtpm:abilities",
+					"abilities": "export_items"
+				},
+				{
+					"type": "gtpm:abilities",
+					"abilities": "import_fluids"
+				},
+				{
+					"type": "gtpm:abilities",
+					"abilities": "export_fluids"
+				},
+				{
+					"type": "gtpm:auto_maintenance",
+					"checkMaintenance": true,
+					"checkMuffler": true,
+					"checkParallel": false
+				}
+			]
+		},
+		"H": {
+			"type": "gtpm:concatenated",
+			"predicates": [
+				{
+					"type": "gtpm:restricted",
+					"predicate": {
+						"type": "gtpm:blocks",
+						"blocks": "gtpm:clean_machine_casing"
+					},
+					"minCount": 12
+				},
+				{
+					"type": "gtpm:abilities",
+					"abilities": "import_items"
+				},
+				{
+					"type": "gtpm:abilities",
+					"abilities": "export_items"
+				},
+				{
+					"type": "gtpm:abilities",
+					"abilities": "import_fluids"
+				},
+				{
+					"type": "gtpm:abilities",
+					"abilities": "export_fluids"
+				},
+				{
+					"type": "gtpm:auto_maintenance",
+					"checkMaintenance": true,
+					"checkMuffler": true,
+					"checkParallel": false
+				}
+			]
+		},
+		"C": {
+			"type": "gtpm:heating_coils"
+		},
+		"#": {
+			"type": "gtpm:air"
+		}
+	},
+	"body": {
+		"type": "sequence",
+		"axis": "depth",
+		"children": [
+			{
+				"type": "fixed",
+				"layers": [["HCHCH", "HCHCH", "HCHCH"]]
+			},
+			{
+				"type": "fixed",
+				"layers": [["HCHCH", "H###H", "HCHCH"]]
+			},
+			{
+				"type": "fixed",
+				"layers": [["HCHCH", "HC~CH", "HCHCH"]]
+			}
+		]
+	},
+	"constraints": []
 }

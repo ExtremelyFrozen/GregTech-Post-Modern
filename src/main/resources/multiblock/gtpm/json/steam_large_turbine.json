@@ -1,111 +1,93 @@
 {
-  "machine": "gtpm:steam_large_turbine",
-  "axes": {
-    "depth": "front",
-    "height": "up",
-    "width": "left"
-  },
-  "orientation": {
-    "allowMirror": false,
-    "allowExtendedFacing": false
-  },
-  "origin": {
-    "token": "controller"
-  },
-  "parameters": {},
-  "fragments": {},
-  "predicates": {
-    "G": {
-      "type": "gtpm:blocks",
-      "blocks": "gtpm:steel_gearbox"
-    },
-    "C": {
-      "type": "gtpm:blocks",
-      "blocks": "gtpm:steel_turbine_casing"
-    },
-    "R": {
-      "type": "gtpm:concatenated",
-      "predicates": [
-        {
-          "type": "gtpm:restricted",
-          "predicate": {
-            "type": "gtpm:rotor_holder",
-            "tier": 3
-          },
-          "minCount": 1,
-          "maxCount": 1
-        },
-        {
-          "type": "gtpm:restricted",
-          "predicate": {
-            "type": "gtpm:abilities",
-            "abilities": "output_energy"
-          },
-          "minCount": 1,
-          "maxCount": 1
-        }
-      ]
-    },
-    "H": {
-      "type": "gtpm:concatenated",
-      "predicates": [
-        {
-          "type": "gtpm:blocks",
-          "blocks": "gtpm:steel_turbine_casing"
-        },
-        {
-          "type": "gtpm:auto_recipe_abilities",
-          "checkEnergyIn": false,
-          "checkEnergyOut": false,
-          "checkItemIn": true,
-          "checkItemOut": true,
-          "checkFluidIn": true,
-          "checkFluidOut": true
-        },
-        {
-          "type": "gtpm:auto_maintenance",
-          "checkMaintenance": true,
-          "checkMuffler": false,
-          "checkParallel": false
-        }
-      ]
-    }
-  },
-  "body": {
-    "type": "sequence",
-    "axis": "depth",
-    "children": [
-      {
-        "type": "fixed",
-        "layers": [
-          [
-            "CCCC",
-            "CHHC",
-            "CCCC"
-          ]
-        ]
-      },
-      {
-        "type": "fixed",
-        "layers": [
-          [
-            "CHHC",
-            "RGGR",
-            "CHHC"
-          ]
-        ]
-      },
-      {
-        "type": "fixed",
-        "layers": [
-          [
-            "CCCC",
-            "C~HC",
-            "CCCC"
-          ]
-        ]
-      }
-    ]
-  },
-  "constraints": []
+	"machine": "gtpm:steam_large_turbine",
+	"axes": {
+		"depth": "front",
+		"height": "up",
+		"width": "left"
+	},
+	"orientation": {
+		"allowMirror": false,
+		"allowExtendedFacing": false
+	},
+	"origin": {
+		"token": "controller"
+	},
+	"parameters": {},
+	"fragments": {},
+	"predicates": {
+		"G": {
+			"type": "gtpm:blocks",
+			"blocks": "gtpm:steel_gearbox"
+		},
+		"C": {
+			"type": "gtpm:blocks",
+			"blocks": "gtpm:steel_turbine_casing"
+		},
+		"R": {
+			"type": "gtpm:concatenated",
+			"predicates": [
+				{
+					"type": "gtpm:restricted",
+					"predicate": {
+						"type": "gtpm:rotor_holder",
+						"tier": 3
+					},
+					"minCount": 1,
+					"maxCount": 1
+				},
+				{
+					"type": "gtpm:restricted",
+					"predicate": {
+						"type": "gtpm:abilities",
+						"abilities": "output_energy"
+					},
+					"minCount": 1,
+					"maxCount": 1
+				}
+			]
+		},
+		"H": {
+			"type": "gtpm:concatenated",
+			"predicates": [
+				{
+					"type": "gtpm:blocks",
+					"blocks": "gtpm:steel_turbine_casing"
+				},
+				{
+					"type": "gtpm:auto_recipe_abilities",
+					"checkEnergyIn": false,
+					"checkEnergyOut": false,
+					"checkItemIn": true,
+					"checkItemOut": true,
+					"checkFluidIn": true,
+					"checkFluidOut": true
+				},
+				{
+					"type": "gtpm:auto_maintenance",
+					"checkMaintenance": true,
+					"checkMuffler": false,
+					"checkParallel": false
+				}
+			]
+		}
+	},
+	"body": {
+		"type": "sequence",
+		"axis": "depth",
+		"children": [
+			{
+				"type": "fixed",
+				"layers": [["CCCC", "CHHC", "CCCC"]]
+			},
+			{
+				"type": "fixed",
+				"layers": [["CHHC", "RGGR", "CHHC"]]
+			},
+			{
+				"type": "fixed",
+				"layers": [["CCCC", "C~HC", "CCCC"]]
+			}
+		]
+	},
+	"constraints": []
 }

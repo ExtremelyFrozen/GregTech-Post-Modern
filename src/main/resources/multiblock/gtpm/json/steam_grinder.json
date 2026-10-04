@@ -1,97 +1,79 @@
 {
-  "machine": "gtpm:steam_grinder",
-  "axes": {
-    "depth": "front",
-    "height": "up",
-    "width": "left"
-  },
-  "orientation": {
-    "allowMirror": false,
-    "allowExtendedFacing": false
-  },
-  "origin": {
-    "token": "controller"
-  },
-  "parameters": {},
-  "fragments": {},
-  "predicates": {
-    "X": {
-      "type": "gtpm:concatenated",
-      "predicates": [
-        {
-          "type": "gtpm:restricted",
-          "predicate": {
-            "type": "gtpm:blocks",
-            "blocks": "gtpm:steam_machine_casing"
-          },
-          "minCount": 14
-        },
-        {
-          "type": "gtpm:restricted",
-          "predicate": {
-            "type": "gtpm:abilities",
-            "abilities": "steam_import_items"
-          },
-          "previewCount": 1
-        },
-        {
-          "type": "gtpm:restricted",
-          "predicate": {
-            "type": "gtpm:abilities",
-            "abilities": "steam_export_items"
-          },
-          "previewCount": 1
-        },
-        {
-          "type": "gtpm:restricted",
-          "predicate": {
-            "type": "gtpm:abilities",
-            "abilities": "steam"
-          },
-          "minCount": 1,
-          "maxCount": 1
-        }
-      ]
-    },
-    "#": {
-      "type": "gtpm:air"
-    }
-  },
-  "body": {
-    "type": "sequence",
-    "axis": "depth",
-    "children": [
-      {
-        "type": "fixed",
-        "layers": [
-          [
-            "XXX",
-            "XXX",
-            "XXX"
-          ]
-        ]
-      },
-      {
-        "type": "fixed",
-        "layers": [
-          [
-            "XXX",
-            "X#X",
-            "XXX"
-          ]
-        ]
-      },
-      {
-        "type": "fixed",
-        "layers": [
-          [
-            "XXX",
-            "X~X",
-            "XXX"
-          ]
-        ]
-      }
-    ]
-  },
-  "constraints": []
+	"machine": "gtpm:steam_grinder",
+	"axes": {
+		"depth": "front",
+		"height": "up",
+		"width": "left"
+	},
+	"orientation": {
+		"allowMirror": false,
+		"allowExtendedFacing": false
+	},
+	"origin": {
+		"token": "controller"
+	},
+	"parameters": {},
+	"fragments": {},
+	"predicates": {
+		"X": {
+			"type": "gtpm:concatenated",
+			"predicates": [
+				{
+					"type": "gtpm:restricted",
+					"predicate": {
+						"type": "gtpm:blocks",
+						"blocks": "gtpm:steam_machine_casing"
+					},
+					"minCount": 14
+				},
+				{
+					"type": "gtpm:restricted",
+					"predicate": {
+						"type": "gtpm:abilities",
+						"abilities": "steam_import_items"
+					},
+					"previewCount": 1
+				},
+				{
+					"type": "gtpm:restricted",
+					"predicate": {
+						"type": "gtpm:abilities",
+						"abilities": "steam_export_items"
+					},
+					"previewCount": 1
+				},
+				{
+					"type": "gtpm:restricted",
+					"predicate": {
+						"type": "gtpm:abilities",
+						"abilities": "steam"
+					},
+					"minCount": 1,
+					"maxCount": 1
+				}
+			]
+		},
+		"#": {
+			"type": "gtpm:air"
+		}
+	},
+	"body": {
+		"type": "sequence",
+		"axis": "depth",
+		"children": [
+			{
+				"type": "fixed",
+				"layers": [["XXX", "XXX", "XXX"]]
+			},
+			{
+				"type": "fixed",
+				"layers": [["XXX", "X#X", "XXX"]]
+			},
+			{
+				"type": "fixed",
+				"layers": [["XXX", "X~X", "XXX"]]
+			}
+		]
+	},
+	"constraints": []
 }

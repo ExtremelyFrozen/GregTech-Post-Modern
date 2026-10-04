@@ -1,77 +1,56 @@
 {
-  "machine": "gtpm:primitive_blast_furnace",
-  "axes": {
-    "depth": "front",
-    "height": "up",
-    "width": "left"
-  },
-  "orientation": {
-    "allowMirror": false,
-    "allowExtendedFacing": false
-  },
-  "origin": {
-    "token": "controller"
-  },
-  "parameters": {},
-  "fragments": {},
-  "predicates": {
-    "X": {
-      "type": "gtpm:blocks",
-      "blocks": "gtpm:firebricks"
-    },
-    "#": {
-      "type": "gtpm:air"
-    },
-    "&": {
-      "type": "gtpm:concatenated",
-      "predicates": [
-        {
-          "type": "gtpm:air"
-        },
-        {
-          "type": "gtpm:snow"
-        }
-      ]
-    }
-  },
-  "body": {
-    "type": "sequence",
-    "axis": "depth",
-    "children": [
-      {
-        "type": "fixed",
-        "layers": [
-          [
-            "XXX",
-            "XXX",
-            "XXX",
-            "XXX"
-          ]
-        ]
-      },
-      {
-        "type": "fixed",
-        "layers": [
-          [
-            "XXX",
-            "X&X",
-            "X#X",
-            "X#X"
-          ]
-        ]
-      },
-      {
-        "type": "fixed",
-        "layers": [
-          [
-            "XXX",
-            "X~X",
-            "XXX",
-            "XXX"
-          ]
-        ]
-      }
-    ]
-  },
-  "constraints": []
+	"machine": "gtpm:primitive_blast_furnace",
+	"axes": {
+		"depth": "front",
+		"height": "up",
+		"width": "left"
+	},
+	"orientation": {
+		"allowMirror": false,
+		"allowExtendedFacing": false
+	},
+	"origin": {
+		"token": "controller"
+	},
+	"parameters": {},
+	"fragments": {},
+	"predicates": {
+		"X": {
+			"type": "gtpm:blocks",
+			"blocks": "gtpm:firebricks"
+		},
+		"#": {
+			"type": "gtpm:air"
+		},
+		"&": {
+			"type": "gtpm:concatenated",
+			"predicates": [
+				{
+					"type": "gtpm:air"
+				},
+				{
+					"type": "gtpm:snow"
+				}
+			]
+		}
+	},
+	"body": {
+		"type": "sequence",
+		"axis": "depth",
+		"children": [
+			{
+				"type": "fixed",
+				"layers": [["XXX", "XXX", "XXX", "XXX"]]
+			},
+			{
+				"type": "fixed",
+				"layers": [["XXX", "X&X", "X#X", "X#X"]]
+			},
+			{
+				"type": "fixed",
+				"layers": [["XXX", "X~X", "XXX", "XXX"]]
+			}
+		]
+	},
+	"constraints": []
 }
