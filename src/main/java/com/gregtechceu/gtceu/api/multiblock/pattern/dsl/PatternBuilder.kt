@@ -147,7 +147,7 @@ class PatternBuilder private constructor(
 
     fun where(symbol: Char, blockMatcher: PatternPredicate): PatternBuilder {
         symbolMap[symbol] = when {
-            blockMatcher.isAny || blockMatcher.isAir -> blockMatcher
+            blockMatcher.isAny() || blockMatcher.isAir() -> blockMatcher
             blockMatcher is PredicateController -> blockMatcher.sort()
             else -> PatternPredicate(blockMatcher).sort()
         }
