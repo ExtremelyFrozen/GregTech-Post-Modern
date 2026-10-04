@@ -9,7 +9,7 @@ import org.jspecify.annotations.NullMarked
 object PatternConstraintEvaluator {
     @JvmStatic
     fun satisfied(definition: PatternDefinition, facts: PatternFacts): Boolean =
-        definition.constraints().all { constraint ->
-            constraint !is PatternConstraint.Count || facts.count(constraint.fact()) in constraint.minimum()..constraint.maximum()
+        definition.constraints.all { constraint ->
+            constraint !is PatternConstraint.Count || facts.count(constraint.fact) in constraint.minimum..constraint.maximum
         }
 }

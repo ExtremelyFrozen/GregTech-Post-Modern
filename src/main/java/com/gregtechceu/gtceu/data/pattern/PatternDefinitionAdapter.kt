@@ -27,7 +27,7 @@ object PatternDefinitionAdapter {
 
     @JvmStatic
     fun appendToBuilder(builder: PatternBuilder, definition: PatternDefinition) {
-        flatten(definition.body(), definition).forEach { unit ->
+        flatten(definition.body, definition).forEach { unit ->
             if (unit.minimum == 1 && unit.maximum == 1) {
                 builder.aisle(*unit.slices.first())
             } else {
@@ -36,21 +36,21 @@ object PatternDefinitionAdapter {
                 builder.endRepeatable(unit.minimum, unit.maximum)
             }
         }
-        definition.predicates().forEach { (symbol, predicate) -> builder.where(symbol, compilePredicate(predicate)) }
+        definition.predicates.forEach { (symbol, predicate) -> builder.where(symbol, compilePredicate(predicate)) }
     }
 
     @JvmStatic
     fun withBody(source: PatternDefinition, nodes: List<PatternNode>): PatternDefinition {
         val body = if (nodes.size == 1) nodes.first() else PatternNode.Sequence(PatternDirection.FRONT, nodes)
-        return PatternDefinition(source.machine(), source.structure(), source.axes(), source.orientation(), source.origin(),
-            source.parameters(), source.fragments(), source.predicates(), body, source.constraints())
+        return PatternDefinition(source.machine, source.structure, source.axes, source.orientation, source.origin,
+            source.parameters, source.fragments, source.predicates, body, source.constraints)
     }
 
     @JvmStatic
     fun compile(owner: MultiblockMachineDefinition, key: StructurePatternKey, baseline: MultiBlockPattern,
                 definition: PatternDefinition): MultiBlockPattern {
         PatternCompiler().compile(definition)
-        val units = flatten(definition.body(), definition)
+        val units = flatten(definition.body, definition)
         require(units.isNotEmpty()) { "Pattern body is empty for $key" }
         val height = units.first().slices.first().size
         val width = units.first().slices.first().first().length
@@ -97,21 +97,21 @@ object PatternDefinitionAdapter {
     private fun collectPredicates(owner: MultiblockMachineDefinition, definition: PatternDefinition): Map<Char, PatternPredicate> {
         val result = Object2ObjectLinkedOpenHashMap<Char, PatternPredicate>()
         result[' '] = PatternPredicates.any()
-        definition.predicates().forEach { (symbol, predicate) -> result[symbol] = compilePredicate(predicate) }
+        definition.predicates.forEach { (symbol, predicate) -> result[symbol] = compilePredicate(predicate) }
         result['~'] = PatternPredicates.controller(PatternPredicates.blocks(owner.block))
         return result
     }
 
     private fun compilePredicate(definition: PatternPredicateDefinition): PatternPredicate {
-        if (definition.type() == "gtpm:any" || definition.type() == "any") return PatternPredicates.any()
-        if (definition.type() == "gtpm:air" || definition.type() == "air") return PatternPredicates.air()
+        if (definition.type == "gtpm:any" || definition.type == "any") return PatternPredicates.any()
+        if (definition.type == "gtpm:air" || definition.type == "air") return PatternPredicates.air()
         val json = JsonObject().apply {
-            addProperty("type", definition.type())
-            definition.properties().forEach { (key, value) -> add(key, gson.toJsonTree(value)) }
+            addProperty("type", definition.type)
+            definition.properties.forEach { (key, value) -> add(key, gson.toJsonTree(value)) }
         }
         return PatternPredicate(StructurePredicate.CODEC.parse(JsonOps.INSTANCE, json)
-            .getOrThrow { error -> IllegalArgumentException("Failed to compile predicate ${definition.type()}: $error") })
-            .withFacts(definition.facts())
+            .getOrThrow { error -> IllegalArgumentException("Failed to compile predicate ${definition.type}: $error") })
+            .withFacts(definition.facts)
     }
 
     private fun flatten(node: PatternNode, definition: PatternDefinition): ObjectArrayList<Unit> = ObjectArrayList<Unit>().also {
@@ -120,12 +120,12 @@ object PatternDefinitionAdapter {
 
     private fun flattenInto(node: PatternNode, definition: PatternDefinition, result: ObjectArrayList<Unit>) {
         when (node) {
-            is PatternNode.Fixed -> result.add(Unit(node.layers().map { it.toTypedArray() }, 1, 1))
-            is PatternNode.Sequence -> node.children().forEach { flattenInto(it, definition, result) }
-            is PatternNode.Repeat -> result.add(Unit(flatten(node.body(), definition).flatMapTo(ObjectArrayList()) { it.slices }, node.minimum(), node.maximum()))
+            is PatternNode.Fixed -> result.add(Unit(node.layers.map { it.toTypedArray() }, 1, 1))
+            is PatternNode.Sequence -> node.children.forEach { flattenInto(it, definition, result) }
+            is PatternNode.Repeat -> result.add(Unit(flatten(node.body, definition).flatMapTo(ObjectArrayList()) { it.slices }, node.minimum, node.maximum))
             is PatternNode.Fragment -> {
-                val target = definition.fragments()[node.id()] ?: error("Unknown fragment ${node.id()}")
-                flattenInto(target.body(), definition, result)
+                val target = definition.fragments[node.id] ?: error("Unknown fragment ${node.id}")
+                flattenInto(target.body, definition, result)
             }
             is PatternNode.Choice -> error("Choice nodes require a selected runtime branch")
         }

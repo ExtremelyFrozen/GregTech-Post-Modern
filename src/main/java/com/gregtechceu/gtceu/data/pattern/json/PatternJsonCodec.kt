@@ -45,15 +45,15 @@ object PatternJsonCodec {
 
     @JvmStatic
     fun encode(definition: PatternDefinition): JsonObject = JsonObject().apply {
-        addProperty("machine", definition.machine().toString())
-        add("axes", encodeAxes(definition.axes()))
-        add("orientation", encodeOrientation(definition.orientation()))
-        add("origin", encodeOrigin(definition.origin()))
-        add("parameters", encodeParameters(definition.parameters()))
-        add("fragments", JsonObject().also { out -> definition.fragments().forEach { (id, value) -> out.add(id, encodeFragment(value)) } })
-        add("predicates", JsonObject().also { out -> definition.predicates().forEach { (symbol, value) -> out.add(symbol.toString(), encodePredicate(value)) } })
-        add("body", encodeNode(definition.body()))
-        add("constraints", JsonArray().also { out -> definition.constraints().forEach { out.add(encodeConstraint(it)) } })
+        addProperty("machine", definition.machine.toString())
+        add("axes", encodeAxes(definition.axes))
+        add("orientation", encodeOrientation(definition.orientation))
+        add("origin", encodeOrigin(definition.origin))
+        add("parameters", encodeParameters(definition.parameters))
+        add("fragments", JsonObject().also { out -> definition.fragments.forEach { (id, value) -> out.add(id, encodeFragment(value)) } })
+        add("predicates", JsonObject().also { out -> definition.predicates.forEach { (symbol, value) -> out.add(symbol.toString(), encodePredicate(value)) } })
+        add("body", encodeNode(definition.body))
+        add("constraints", JsonArray().also { out -> definition.constraints.forEach { out.add(encodeConstraint(it)) } })
     }
 
     private fun axes(element: JsonElement?): PatternAxes {
@@ -180,36 +180,36 @@ object PatternJsonCodec {
     }
     private fun rejectUnknown(obj: JsonObject, allowed: Set<String>, path: String) { obj.keySet().firstOrNull { it !in allowed }?.let { fail("Unknown field '$it' at $path") } }
     private fun valueOf(element: JsonElement): Any? = when { element.isJsonNull -> null; element.isJsonPrimitive -> element.asJsonPrimitive.let { if (it.isBoolean) it.asBoolean else if (it.isNumber) it.asNumber else it.asString }; element.isJsonArray -> ObjectArrayList(element.asJsonArray.map(::valueOf)); else -> Object2ObjectLinkedOpenHashMap<String, Any?>().also { element.asJsonObject.entrySet().forEach { (key, value) -> it[key] = valueOf(value) } } }
-    private fun encodeAxes(value: PatternAxes) = JsonObject().apply { addProperty("depth", value.depth().name.lowercase()); addProperty("height", value.height().name.lowercase()); addProperty("width", value.width().name.lowercase()) }
-    private fun encodeOrientation(value: PatternOrientation) = JsonObject().apply { addProperty("allowMirror", value.allowMirror()); addProperty("allowExtendedFacing", value.allowExtendedFacing()) }
-    private fun encodeOrigin(value: PatternOrigin) = JsonObject().apply { addProperty("token", value.token()); add("offset", JsonArray().also { it.add(value.offset().depth()); it.add(value.offset().height()); it.add(value.offset().width()) }) }
-    private fun encodeParameters(value: Map<String, PatternParameter>) = JsonObject().also { out -> value.forEach { (name, parameter) -> if (parameter is PatternParameter.IntegerRange) out.add(name, JsonObject().apply { addProperty("type", "integer"); addProperty("min", parameter.minimum()); addProperty("max", parameter.maximum()) }) else out.addProperty(name, parameterName(parameter)) } }
+    private fun encodeAxes(value: PatternAxes) = JsonObject().apply { addProperty("depth", value.depth.name.lowercase()); addProperty("height", value.height.name.lowercase()); addProperty("width", value.width.name.lowercase()) }
+    private fun encodeOrientation(value: PatternOrientation) = JsonObject().apply { addProperty("allowMirror", value.allowMirror); addProperty("allowExtendedFacing", value.allowExtendedFacing) }
+    private fun encodeOrigin(value: PatternOrigin) = JsonObject().apply { addProperty("token", value.token); add("offset", JsonArray().also { it.add(value.offset.depth); it.add(value.offset.height); it.add(value.offset.width) }) }
+    private fun encodeParameters(value: Map<String, PatternParameter>) = JsonObject().also { out -> value.forEach { (name, parameter) -> if (parameter is PatternParameter.IntegerRange) out.add(name, JsonObject().apply { addProperty("type", "integer"); addProperty("min", parameter.minimum); addProperty("max", parameter.maximum) }) else out.addProperty(name, parameterName(parameter)) } }
     private fun parameterName(value: PatternParameter) = when (value) { is PatternParameter.Token -> "token"; is PatternParameter.Predicate -> "predicate"; is PatternParameter.Direction -> "direction"; is PatternParameter.Fragment -> "fragment"; else -> "integer" }
     private fun encodeFragment(value: PatternFragment) = JsonObject().apply {
-        add("parameters", encodeParameters(value.parameters()))
-        add("anchors", JsonObject().also { out -> value.anchors().forEach { (id, offset) -> out.add(id, JsonArray().also { it.add(offset.depth()); it.add(offset.height()); it.add(offset.width()) }) } })
-        add("ports", JsonObject().also { out -> value.ports().forEach { (id, port) -> out.add(id, JsonObject().apply { add("offset", JsonArray().also { it.add(port.offset().depth()); it.add(port.offset().height()); it.add(port.offset().width()) }); addProperty("direction", port.direction().name.lowercase()) }) } })
-        add("body", encodeNode(value.body()))
+        add("parameters", encodeParameters(value.parameters))
+        add("anchors", JsonObject().also { out -> value.anchors.forEach { (id, offset) -> out.add(id, JsonArray().also { it.add(offset.depth); it.add(offset.height); it.add(offset.width) }) } })
+        add("ports", JsonObject().also { out -> value.ports.forEach { (id, port) -> out.add(id, JsonObject().apply { add("offset", JsonArray().also { it.add(port.offset.depth); it.add(port.offset.height); it.add(port.offset.width) }); addProperty("direction", port.direction.name.lowercase()) }) } })
+        add("body", encodeNode(value.body))
     }
-    private fun encodePredicate(value: PatternPredicateDefinition) = JsonObject().apply { addProperty("type", value.type()); if (value.name().isNotEmpty()) addProperty("name", value.name()); value.properties().forEach { (name, item) -> add(name, gson.toJsonTree(item)) }; if (value.facts().isNotEmpty()) add("facts", JsonArray().also { out -> value.facts().forEach(out::add) }) }
+    private fun encodePredicate(value: PatternPredicateDefinition) = JsonObject().apply { addProperty("type", value.type); if (value.name.isNotEmpty()) addProperty("name", value.name); value.properties.forEach { (name, item) -> add(name, gson.toJsonTree(item)) }; if (value.facts.isNotEmpty()) add("facts", JsonArray().also { out -> value.facts.forEach(out::add) }) }
     private fun encodeNode(node: PatternNode): JsonObject = when (node) {
-        is PatternNode.Fixed -> JsonObject().apply { addProperty("type", "fixed"); add("layers", JsonArray().also { out -> node.layers().forEach { layer -> out.add(JsonArray().also { rows -> layer.forEach(rows::add) }) } }) }
-        is PatternNode.Sequence -> JsonObject().apply { addProperty("type", "sequence"); addProperty("axis", node.axis().name.lowercase()); add("children", JsonArray().also { out -> node.children().forEach { out.add(encodeNode(it)) } }) }
-        is PatternNode.Repeat -> JsonObject().apply { addProperty("type", "repeat"); addProperty("id", node.id()); addProperty("axis", node.axis().name.lowercase()); addProperty("direction", node.direction().name.lowercase()); addProperty("min", node.minimum()); addProperty("max", node.maximum()); add("body", encodeNode(node.body())) }
-        is PatternNode.Choice -> JsonObject().apply { addProperty("type", "choice"); addProperty("id", node.id()); add("alternatives", JsonArray().also { out -> node.alternatives().forEach { out.add(JsonObject().apply { addProperty("id", it.id()); add("node", encodeNode(it.node())) }) } }) }
-        is PatternNode.Fragment -> JsonObject().apply { addProperty("type", "fragment"); addProperty("id", node.id()); if (node.bindings().isNotEmpty()) add("bindings", JsonObject().also { out -> node.bindings().forEach { (name, value) -> out.add(name, encodeBinding(value)) } }) }
+        is PatternNode.Fixed -> JsonObject().apply { addProperty("type", "fixed"); add("layers", JsonArray().also { out -> node.layers.forEach { layer -> out.add(JsonArray().also { rows -> layer.forEach(rows::add) }) } }) }
+        is PatternNode.Sequence -> JsonObject().apply { addProperty("type", "sequence"); addProperty("axis", node.axis.name.lowercase()); add("children", JsonArray().also { out -> node.children.forEach { out.add(encodeNode(it)) } }) }
+        is PatternNode.Repeat -> JsonObject().apply { addProperty("type", "repeat"); addProperty("id", node.id); addProperty("axis", node.axis.name.lowercase()); addProperty("direction", node.direction.name.lowercase()); addProperty("min", node.minimum); addProperty("max", node.maximum); add("body", encodeNode(node.body)) }
+        is PatternNode.Choice -> JsonObject().apply { addProperty("type", "choice"); addProperty("id", node.id); add("alternatives", JsonArray().also { out -> node.alternatives.forEach { out.add(JsonObject().apply { addProperty("id", it.id); add("node", encodeNode(it.node)) }) } }) }
+        is PatternNode.Fragment -> JsonObject().apply { addProperty("type", "fragment"); addProperty("id", node.id); if (node.bindings.isNotEmpty()) add("bindings", JsonObject().also { out -> node.bindings.forEach { (name, value) -> out.add(name, encodeBinding(value)) } }) }
     }
 
     private fun encodeBinding(binding: PatternBinding): JsonObject = JsonObject().apply {
         when (binding) {
-            is PatternBinding.Token -> { addProperty("type", "token"); addProperty("value", binding.value()) }
-            is PatternBinding.Predicate -> { addProperty("type", "predicate"); addProperty("value", binding.value()) }
-            is PatternBinding.IntegerValue -> { addProperty("type", "integer"); addProperty("value", binding.value()) }
-            is PatternBinding.Direction -> { addProperty("type", "direction"); addProperty("value", binding.value().name.lowercase()) }
-            is PatternBinding.Fragment -> { addProperty("type", "fragment"); addProperty("value", binding.value()) }
+            is PatternBinding.Token -> { addProperty("type", "token"); addProperty("value", binding.value) }
+            is PatternBinding.Predicate -> { addProperty("type", "predicate"); addProperty("value", binding.value) }
+            is PatternBinding.IntegerValue -> { addProperty("type", "integer"); addProperty("value", binding.value) }
+            is PatternBinding.Direction -> { addProperty("type", "direction"); addProperty("value", binding.value.name.lowercase()) }
+            is PatternBinding.Fragment -> { addProperty("type", "fragment"); addProperty("value", binding.value) }
         }
     }
-    private fun encodeConstraint(value: PatternConstraint): JsonObject { val count = value as PatternConstraint.Count; return JsonObject().apply { addProperty("type", "count"); addProperty("fact", count.fact()); addProperty("scope", scopeName(count.scope())); addProperty("min", count.minimum()); addProperty("max", count.maximum()); if (count.message().isNotEmpty()) addProperty("message", count.message()) } }
-    private fun scopeName(scope: PatternConstraint.Scope) = when (scope) { is PatternConstraint.Scope.All -> "all"; is PatternConstraint.Scope.Fragment -> "fragment:${scope.id()}"; is PatternConstraint.Scope.Node -> "node:${scope.id()}"; is PatternConstraint.Scope.Repeat -> "repeat:${scope.id()}" }
+    private fun encodeConstraint(value: PatternConstraint): JsonObject { val count = value as PatternConstraint.Count; return JsonObject().apply { addProperty("type", "count"); addProperty("fact", count.fact); addProperty("scope", scopeName(count.scope)); addProperty("min", count.minimum); addProperty("max", count.maximum); if (count.message.isNotEmpty()) addProperty("message", count.message) } }
+    private fun scopeName(scope: PatternConstraint.Scope) = when (scope) { is PatternConstraint.Scope.All -> "all"; is PatternConstraint.Scope.Fragment -> "fragment:${scope.id}"; is PatternConstraint.Scope.Node -> "node:${scope.id}"; is PatternConstraint.Scope.Repeat -> "repeat:${scope.id}" }
     private fun fail(message: String): Nothing = throw IllegalArgumentException(message)
 }

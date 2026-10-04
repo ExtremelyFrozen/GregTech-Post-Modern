@@ -8,12 +8,12 @@ import com.gregtechceu.gtceu.data.pattern.binary.PatternBinaryCodec
 import com.gregtechceu.gtceu.data.pattern.json.PatternJsonCodec
 import com.gregtechceu.gtceu.utils.dev.ResourceReloadDetector
 
+import net.minecraft.resources.ResourceLocation
+import net.neoforged.fml.ModList
+
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap
 import it.unimi.dsi.fastutil.objects.ObjectArrayList
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet
-
-import net.minecraft.resources.ResourceLocation
-import net.neoforged.fml.ModList
 
 import java.io.IOException
 import java.io.UncheckedIOException
@@ -508,13 +508,7 @@ object StructureCache {
 	}
 
 	@Throws(IOException::class)
-	private fun copyPatternTree(
-		source: PatternSource,
-		targetRoot: Path,
-		expectedPaths: MutableSet<Path>,
-		claimedTargets: MutableMap<Path, String>,
-		index: MutableMap<PatternResourceKey, PatternResource>,
-	) {
+	private fun copyPatternTree(source: PatternSource, targetRoot: Path, expectedPaths: MutableSet<Path>, claimedTargets: MutableMap<Path, String>, index: MutableMap<PatternResourceKey, PatternResource>) {
 		val sourceRoot = source.root
 		if (!Files.isDirectory(sourceRoot)) return
 
@@ -541,16 +535,7 @@ object StructureCache {
 	}
 
 	@Throws(IOException::class)
-	private fun copyPatternFile(
-		source: PatternSource,
-		sourceRoot: Path,
-		sourceFile: Path,
-		relative: Path,
-		targetRoot: Path,
-		target: Path,
-		claimedTargets: MutableMap<Path, String>,
-		index: MutableMap<PatternResourceKey, PatternResource>,
-	) {
+	private fun copyPatternFile(source: PatternSource, sourceRoot: Path, sourceFile: Path, relative: Path, targetRoot: Path, target: Path, claimedTargets: MutableMap<Path, String>, index: MutableMap<PatternResourceKey, PatternResource>) {
 		if (Files.exists(target) && Files.isDirectory(target)) {
 			deleteRecursively(target)
 		}
@@ -661,13 +646,7 @@ object StructureCache {
 		)
 	}
 
-	private fun <T> loadTypeFromFileSystem(
-		dataDir: Path,
-		type: StructureDefinitionType,
-		map: MutableMap<StructurePatternKey, T>,
-		claimedSources: MutableMap<StructurePatternKey, String>,
-		reader: (Path) -> T,
-	) {
+	private fun <T> loadTypeFromFileSystem(dataDir: Path, type: StructureDefinitionType, map: MutableMap<StructurePatternKey, T>, claimedSources: MutableMap<StructurePatternKey, String>, reader: (Path) -> T) {
 		val loadTasks = ObjectArrayList<CompletableFuture<Void>>()
 		Files.list(dataDir).use { modDirs ->
 			modDirs
@@ -679,14 +658,7 @@ object StructureCache {
 		CompletableFuture.allOf(*loadTasks.toTypedArray()).join()
 	}
 
-	private fun <T> enqueueStructureLoads(
-		modDir: Path,
-		type: StructureDefinitionType,
-		map: MutableMap<StructurePatternKey, T>,
-		claimedSources: MutableMap<StructurePatternKey, String>,
-		loadTasks: MutableList<CompletableFuture<Void>>,
-		reader: (Path) -> T,
-	) {
+	private fun <T> enqueueStructureLoads(modDir: Path, type: StructureDefinitionType, map: MutableMap<StructurePatternKey, T>, claimedSources: MutableMap<StructurePatternKey, String>, loadTasks: MutableList<CompletableFuture<Void>>, reader: (Path) -> T) {
 		val typeDir = modDir.resolve(type.directoryName)
 		if (!Files.isDirectory(typeDir)) return
 		try {
@@ -703,26 +675,18 @@ object StructureCache {
 		}
 	}
 
-	private fun <T> loadStructureFile(
-		modDir: Path,
-		typeDir: Path,
-		type: StructureDefinitionType,
-		file: Path,
-		map: MutableMap<StructurePatternKey, T>,
-		claimedSources: MutableMap<StructurePatternKey, String>,
-		reader: (Path) -> T,
-	) {
+	private fun <T> loadStructureFile(modDir: Path, typeDir: Path, type: StructureDefinitionType, file: Path, map: MutableMap<StructurePatternKey, T>, claimedSources: MutableMap<StructurePatternKey, String>, reader: (Path) -> T) {
 		try {
 			val def = reader(file)
 			val modid = modDir.fileName.toString()
 			val relative = typeDir.relativize(file).toString().replace('\\', '/')
 			val key = parsePatternKey(modid, type, relative)
 			if (def is PatternDefinition) {
-				check(def.machine() == key.machineId()) {
-					"Pattern machine '${def.machine()}' does not match resource key '${key.machineId()}' at $file"
+				check(def.machine == key.machineId()) {
+					"Pattern machine '${def.machine}' does not match resource key '${key.machineId()}' at $file"
 				}
-				check(def.structure() == key.resourceId()) {
-					"Pattern structure '${def.structure()}' does not match resource key '${key.resourceId()}' at $file"
+				check(def.structure == key.resourceId()) {
+					"Pattern structure '${def.structure}' does not match resource key '${key.resourceId()}' at $file"
 				}
 			}
 			val sourcePath = "multiblock/$modid/${type.directoryName}/${typeDir.relativize(file)}"
@@ -743,15 +707,7 @@ object StructureCache {
 		}
 	}
 
-	private fun <T> reloadSingleEntry(
-		dataDir: Path,
-		type: StructureDefinitionType,
-		key: StructurePatternKey,
-		file: Path,
-		map: MutableMap<StructurePatternKey, T>,
-		claimedSources: MutableMap<StructurePatternKey, String>,
-		reader: (Path) -> T,
-	) {
+	private fun <T> reloadSingleEntry(dataDir: Path, type: StructureDefinitionType, key: StructurePatternKey, file: Path, map: MutableMap<StructurePatternKey, T>, claimedSources: MutableMap<StructurePatternKey, String>, reader: (Path) -> T) {
 		val modDir = dataDir.resolve(key.machineId().namespace)
 		val typeDir = modDir.resolve(type.directoryName)
 		val normalizedTypeDir = typeDir.toAbsolutePath().normalize()

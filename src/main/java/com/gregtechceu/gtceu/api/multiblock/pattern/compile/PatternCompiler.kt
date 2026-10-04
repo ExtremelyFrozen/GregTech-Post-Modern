@@ -20,7 +20,7 @@ class PatternCompiler {
         val nodeCounts = Object2IntOpenHashMap<String>()
         val nodeIds = ObjectOpenHashSet<String>()
         val fragmentStack = ArrayDeque<String>()
-        val depth = validateNode(definition, definition.body(), "$", emptyMap(), fragmentStack, nodeIds, nodeCounts, cells, 0)
+        val depth = validateNode(definition, definition.body, "$", emptyMap(), fragmentStack, nodeIds, nodeCounts, cells, 0)
         validateConstraints(definition, nodeIds)
         return CompiledPattern(definition, cells, nodeCounts, depth)
     }
@@ -46,38 +46,38 @@ class PatternCompiler {
                 nodeCounts.addTo(path, 1)
                 recursionDepth
             }
-            is PatternNode.Sequence -> node.children().indices.maxOfOrNull { index ->
-                validateNode(definition, node.children()[index], "$path/sequence[$index]", bindings, fragmentStack,
+            is PatternNode.Sequence -> node.children.indices.maxOfOrNull { index ->
+                validateNode(definition, node.children[index], "$path/sequence[$index]", bindings, fragmentStack,
                     nodeIds, nodeCounts, cells, recursionDepth)
             } ?: recursionDepth
             is PatternNode.Repeat -> {
-                registerNodeId(nodeIds, node.id(), path)
-                val depth = validateNode(definition, node.body(), "$path/repeat:${node.id()}", bindings, fragmentStack,
+                registerNodeId(nodeIds, node.id, path)
+                val depth = validateNode(definition, node.body, "$path/repeat:${node.id}", bindings, fragmentStack,
                     nodeIds, nodeCounts, cells, recursionDepth)
-                nodeCounts.addTo("repeat:${node.id()}", node.maximum())
+                nodeCounts.addTo("repeat:${node.id}", node.maximum)
                 depth
             }
             is PatternNode.Choice -> {
-                registerNodeId(nodeIds, node.id(), path)
+                registerNodeId(nodeIds, node.id, path)
                 val alternatives = ObjectOpenHashSet<String>()
-                node.alternatives().indices.maxOfOrNull { index ->
-                    val alternative = node.alternatives()[index]
-                    if (!alternatives.add(alternative.id())) {
-                        throw PatternCompileException("Duplicate choice alternative '${alternative.id()}' at $path")
+                node.alternatives.indices.maxOfOrNull { index ->
+                    val alternative = node.alternatives[index]
+                    if (!alternatives.add(alternative.id)) {
+                        throw PatternCompileException("Duplicate choice alternative '${alternative.id}' at $path")
                     }
-                    validateNode(definition, alternative.node(), "$path/choice:${node.id()}/${alternative.id()}", bindings,
+                    validateNode(definition, alternative.node, "$path/choice:${node.id}/${alternative.id}", bindings,
                         fragmentStack, nodeIds, nodeCounts, cells, recursionDepth)
                 } ?: recursionDepth
             }
             is PatternNode.Fragment -> {
-                val fragment = definition.fragments()[node.id()]
-                    ?: throw PatternCompileException("Unknown fragment '${node.id()}' at $path")
-                if (fragmentStack.contains(node.id())) {
+                val fragment = definition.fragments[node.id]
+                    ?: throw PatternCompileException("Unknown fragment '${node.id}' at $path")
+                if (fragmentStack.contains(node.id)) {
                     throw PatternCompileException("Fragment cycle at $path: $fragmentStack")
                 }
-                validateBindings(fragment, node.bindings(), path)
-                fragmentStack.push(node.id())
-                val depth = validateNode(definition, fragment.body(), "$path/fragment:${node.id()}", node.bindings(),
+                validateBindings(fragment, node.bindings, path)
+                fragmentStack.push(node.id)
+                val depth = validateNode(definition, fragment.body, "$path/fragment:${node.id}", node.bindings,
                     fragmentStack, nodeIds, nodeCounts, cells, recursionDepth + 1)
                 fragmentStack.pop()
                 depth
@@ -86,10 +86,10 @@ class PatternCompiler {
     }
 
     private fun validateSymbols(definition: PatternDefinition, fixed: PatternNode.Fixed, path: String) {
-        fixed.layers().forEach { layer ->
+        fixed.layers.forEach { layer ->
             layer.forEach { row ->
                 row.forEach { symbol ->
-                    if (symbol != ' ' && symbol != '#' && symbol != '@' && !definition.predicates().containsKey(symbol)) {
+                    if (symbol != ' ' && symbol != '#' && symbol != '@' && !definition.predicates.containsKey(symbol)) {
                         throw PatternCompileException("Unknown predicate symbol '$symbol' at $path")
                     }
                 }
@@ -98,12 +98,12 @@ class PatternCompiler {
     }
 
     private fun validateBindings(fragment: PatternFragment, bindings: Map<String, PatternBinding>, path: String) {
-        fragment.parameters().forEach { (name, parameter) ->
+        fragment.parameters.forEach { (name, parameter) ->
             val binding = bindings[name] ?: throw PatternCompileException("Missing binding '$name' at $path")
             if (!compatible(parameter, binding)) throw PatternCompileException("Binding '$name' has the wrong type at $path")
         }
         bindings.keys.forEach { name ->
-            if (!fragment.parameters().containsKey(name)) throw PatternCompileException("Unknown fragment parameter '$name' at $path")
+            if (!fragment.parameters.containsKey(name)) throw PatternCompileException("Unknown fragment parameter '$name' at $path")
         }
     }
 
@@ -111,7 +111,7 @@ class PatternCompiler {
         parameter is PatternParameter.Token && binding is PatternBinding.Token -> true
         parameter is PatternParameter.Predicate && binding is PatternBinding.Predicate -> true
         parameter is PatternParameter.IntegerRange && binding is PatternBinding.IntegerValue ->
-            binding.value() in parameter.minimum()..parameter.maximum()
+            binding.value in parameter.minimum..parameter.maximum
         parameter is PatternParameter.Direction && binding is PatternBinding.Direction -> true
         parameter is PatternParameter.Fragment && binding is PatternBinding.Fragment -> true
         else -> false
@@ -122,12 +122,12 @@ class PatternCompiler {
     }
 
     private fun validateConstraints(definition: PatternDefinition, nodeIds: Set<String>) {
-        definition.constraints().forEach { constraint ->
+        definition.constraints.forEach { constraint ->
             if (constraint is PatternConstraint.Count) {
-                when (val scope = constraint.scope()) {
-                    is PatternConstraint.Scope.Node -> if (!nodeIds.contains(scope.id())) throw PatternCompileException("Unknown node constraint scope '${scope.id()}'")
-                    is PatternConstraint.Scope.Repeat -> if (!nodeIds.contains(scope.id())) throw PatternCompileException("Unknown repeat constraint scope '${scope.id()}'")
-                    is PatternConstraint.Scope.Fragment -> if (!definition.fragments().containsKey(scope.id())) throw PatternCompileException("Unknown fragment constraint scope '${scope.id()}'")
+                when (val scope = constraint.scope) {
+                    is PatternConstraint.Scope.Node -> if (!nodeIds.contains(scope.id)) throw PatternCompileException("Unknown node constraint scope '${scope.id}'")
+                    is PatternConstraint.Scope.Repeat -> if (!nodeIds.contains(scope.id)) throw PatternCompileException("Unknown repeat constraint scope '${scope.id}'")
+                    is PatternConstraint.Scope.Fragment -> if (!definition.fragments.containsKey(scope.id)) throw PatternCompileException("Unknown fragment constraint scope '${scope.id}'")
                     is PatternConstraint.Scope.All -> Unit
                 }
             }
