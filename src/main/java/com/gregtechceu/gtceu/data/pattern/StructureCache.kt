@@ -3,17 +3,14 @@ package com.gregtechceu.gtceu.data.pattern
 import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition
 import com.gregtechceu.gtceu.api.multiblock.BlockPattern
+import com.gregtechceu.gtceu.data.pattern.binary.PatternBinaryCodec
 import com.gregtechceu.gtceu.utils.dev.ResourceReloadDetector
 
 import net.minecraft.resources.ResourceLocation
 import net.neoforged.fml.ModList
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.dataformat.cbor.CBORFactory
-import com.github.luben.zstd.ZstdInputStream
 
-import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.io.UncheckedIOException
 import java.nio.file.Files
@@ -38,14 +35,13 @@ object StructureCache {
 	private var patternResourceIndex: PatternResourceIndex? = null
 
 	private val LOAD_EXECUTOR = Executors.newVirtualThreadPerTaskExecutor()
-	private val CBOR_MAPPER = ObjectMapper(CBORFactory())
 	private val JSON_MAPPER = ObjectMapper()
 	private val reloadInProgress = AtomicBoolean(false)
 	private val cacheStateLock = Any()
 	private val cacheLoadLock = Any()
 
 	private data class StructureCaches(
-		val binaryDefinitions: Map<StructurePatternKey, BlockPattern>,
+		val binaryDefinitions: Map<StructurePatternKey, StructurePatternResolver.StringArrayDefinition>,
 		val jsonDefinitions: Map<StructurePatternKey, StructurePatternResolver.StringArrayDefinition>,
 		val binaryPatterns: ConcurrentHashMap<StructurePatternKey, BlockPattern> = ConcurrentHashMap(),
 		val jsonPatterns: ConcurrentHashMap<StructurePatternKey, BlockPattern> = ConcurrentHashMap(),
@@ -293,7 +289,12 @@ object StructureCache {
 		val caches = requireCaches()
 		caches.binaryDefinitions[key]?.let { binaryDefinition ->
 			return caches.binaryPatterns.computeIfAbsent(key) {
-				binaryDefinition
+				StructurePatternResolver.rebuildStringArrayPattern(
+					definition,
+					key,
+					javaPattern,
+					binaryDefinition,
+				)
 			}.also { pattern ->
 				pattern.condition = javaPattern.condition
 			}
@@ -358,7 +359,7 @@ object StructureCache {
 	private fun loadCaches(): StructureCaches {
 		val root = multiblockRoot()
 		publishPatternResourceIndex(syncPatternResourcesToDisk(root))
-		val binaryMap = HashMap<StructurePatternKey, BlockPattern>()
+		val binaryMap = HashMap<StructurePatternKey, StructurePatternResolver.StringArrayDefinition>()
 		val jsonMap = HashMap<StructurePatternKey, StructurePatternResolver.StringArrayDefinition>()
 		loadFromFileSystem(root, binaryMap, jsonMap)
 		return freezeCaches(binaryMap, jsonMap)
@@ -394,7 +395,7 @@ object StructureCache {
 	}
 
 	private fun freezeCaches(
-		binaryMap: Map<StructurePatternKey, BlockPattern>,
+		binaryMap: Map<StructurePatternKey, StructurePatternResolver.StringArrayDefinition>,
 		jsonMap: Map<StructurePatternKey, StructurePatternResolver.StringArrayDefinition>,
 		binaryPatterns: ConcurrentHashMap<StructurePatternKey, BlockPattern> = ConcurrentHashMap(),
 		jsonPatterns: ConcurrentHashMap<StructurePatternKey, BlockPattern> = ConcurrentHashMap(),
@@ -637,7 +638,11 @@ object StructureCache {
 	}
 
 	@Throws(IOException::class)
-	private fun loadFromFileSystem(dataDir: Path, binaryMap: MutableMap<StructurePatternKey, BlockPattern>, jsonMap: MutableMap<StructurePatternKey, StructurePatternResolver.StringArrayDefinition>) {
+	private fun loadFromFileSystem(
+		dataDir: Path,
+		binaryMap: MutableMap<StructurePatternKey, StructurePatternResolver.StringArrayDefinition>,
+		jsonMap: MutableMap<StructurePatternKey, StructurePatternResolver.StringArrayDefinition>,
+	) {
 		if (!Files.isDirectory(dataDir)) return
 
 		val claimedSources = HashMap<StructurePatternKey, String>()
@@ -817,21 +822,7 @@ object StructureCache {
 	}
 
 	@Throws(IOException::class)
-	private fun readBinaryStructureDefinition(file: Path): BlockPattern {
-		val compressed = Files.readAllBytes(file)
-		val raw = decompressZstd(compressed)
-		return CBOR_MAPPER.readValue(raw, BlockPattern::class.java)
-	}
-
-	@Throws(IOException::class)
-	private fun decompressZstd(compressed: ByteArray): ByteArray {
-		ZstdInputStream(ByteArrayInputStream(compressed)).use { zis ->
-			ByteArrayOutputStream().use { baos ->
-				zis.transferTo(baos)
-				return baos.toByteArray()
-			}
-		}
-	}
+	private fun readBinaryStructureDefinition(file: Path): StructurePatternResolver.StringArrayDefinition = PatternBinaryCodec.read(file)
 
 	@Throws(IOException::class)
 	private fun readJsonStructureDefinition(file: Path): StructurePatternResolver.StringArrayDefinition {
