@@ -14,6 +14,7 @@ import com.gregtechceu.gtceu.api.multiblock.error.PatternStringError;
 import com.gregtechceu.gtceu.api.multiblock.error.SinglePredicateError;
 import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternDefinition;
 import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternFacts;
+import com.gregtechceu.gtceu.api.multiblock.pattern.constraint.PatternConstraintEvaluator;
 import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PatternPredicate;
 import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PredicateRule;
 import com.gregtechceu.gtceu.api.multiblock.structurepredicate.RestrictedPredicate;
@@ -337,6 +338,10 @@ public class MultiBlockPattern {
         if (!checkGlobalMinimums(worldState, globalCount, structureGlobalCount)) {
             return false;
         }
+        if (sourceDefinition != null && !PatternConstraintEvaluator.satisfied(sourceDefinition, facts)) {
+            worldState.setError(new PatternStringError("gtpm.multiblock.pattern.error.constraint"));
+            return false;
+        }
         worldState.setError(null);
         worldState.setNeededFlip(isFlipped);
         return true;
@@ -508,6 +513,11 @@ public class MultiBlockPattern {
                 worldState.setError(new PatternStringError("gtpm.multiblock.pattern.error.limited"));
                 return false;
             }
+        }
+
+        if (sourceDefinition != null && !PatternConstraintEvaluator.satisfied(sourceDefinition, facts)) {
+            worldState.setError(new PatternStringError("gtpm.multiblock.pattern.error.constraint"));
+            return false;
         }
 
         worldState.setError(null);

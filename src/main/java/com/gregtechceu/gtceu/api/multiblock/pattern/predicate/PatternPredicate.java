@@ -26,6 +26,7 @@ public class PatternPredicate {
     public List<PredicateRule> common = new ObjectArrayList<>();
     public List<PredicateRule> limited = new ObjectArrayList<>();
     public List<StructurePredicate> structurePatternPredicates = new ObjectArrayList<>();
+    public List<String> facts = new ObjectArrayList<>();
     public Function<MultiblockState, Direction> direction = o -> null;
     public Direction fixedDirection;
     public RelativeDirection relativeDirection;
@@ -66,6 +67,7 @@ public class PatternPredicate {
         common.addAll(predicate.common);
         limited.addAll(predicate.limited);
         structurePatternPredicates.addAll(predicate.structurePatternPredicates);
+        facts.addAll(predicate.facts);
         this.direction = predicate.direction;
         this.fixedDirection = predicate.fixedDirection;
         this.relativeDirection = predicate.relativeDirection;
@@ -249,8 +251,14 @@ public class PatternPredicate {
         flag = flag || structurePatternPredicates.stream().anyMatch(predicate -> predicate.test(blockWorldState, true));
         if (flag) {
             blockWorldState.setError(null);
+            facts.forEach(blockWorldState.getFacts()::addFact);
         }
         return flag;
+    }
+
+    public PatternPredicate withFacts(List<String> additionalFacts) {
+        facts.addAll(additionalFacts);
+        return this;
     }
 
     public PatternPredicate or(PatternPredicate other) {
