@@ -89,7 +89,7 @@ object PatternDefinitionAdapter {
             repetitions, starts, depths, slices.map { it ?: error("Missing pattern slice") }.toTypedArray(),
             resolvedCenter, size, height, width)
         pattern.condition = baseline.condition
-        pattern.predicates = predicates.values.toList()
+        pattern.predicates = ObjectArrayList<PatternPredicate>().also { it.addAll(predicates.values) }
         pattern.attachDefinition(definition)
         return pattern
     }

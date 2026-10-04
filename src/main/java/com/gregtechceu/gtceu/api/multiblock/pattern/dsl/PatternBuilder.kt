@@ -221,7 +221,7 @@ class PatternBuilder private constructor(
         @Suppress("UNCHECKED_CAST")
         val blockMatches = predicate as Array<Array<Array<PatternPredicate>>>
         @Suppress("UNCHECKED_CAST")
-        val slices = structureSlices as Array<Array<String>>
+        val slices = structureSlices as Array<Array<String>?>
         val pattern = MultiBlockPattern(
             blockMatches,
             structureDir,
