@@ -33,6 +33,7 @@ import net.minecraft.world.level.material.Fluid;
 
 import com.tterrag.registrate.util.entry.BlockEntry;
 import com.tterrag.registrate.util.entry.RegistryEntry;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import org.apache.commons.lang3.ArrayUtils;
 
 import java.util.Arrays;
@@ -44,8 +45,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
-
-import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 
 import static com.gregtechceu.gtceu.api.block.property.GTBlockStateProperties.ACTIVE;
 import static com.gregtechceu.gtceu.common.data.GTBlocks.BORDERLESS_LAMPS;

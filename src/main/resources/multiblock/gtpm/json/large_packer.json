@@ -1,49 +1,111 @@
 {
-	"aisles": [
-		{
-			"slices": [["XXX", "XXX", "XXX"]]
-		},
-		{
-			"slices": [["XXX", "XAX", "XXX"]]
-		},
-		{
-			"slices": [["XXX", "XAX", "XXX"]]
-		},
-		{
-			"slices": [["XXX", "XAX", "XXX"]]
-		},
-		{
-			"slices": [["XXX", "XAX", "XXX"]]
-		},
-		{
-			"slices": [["XXX", "X~X", "XXX"]]
-		}
-	],
-	"predicates": {
-		"X": {
-			"type": "gtpm:concatenated",
-			"predicates": [
-				{
-					"type": "gtpm:restricted",
-					"predicate": {
-						"type": "gtpm:blocks",
-						"blocks": "gtpm:robust_machine_casing"
-					},
-					"minCount": 30
-				},
-				{
-					"type": "gtpm:auto_recipe_abilities"
-				},
-				{
-					"type": "gtpm:auto_maintenance",
-					"checkMaintenance": true,
-					"checkMuffler": false,
-					"checkParallel": true
-				}
-			]
-		},
-		"A": {
-			"type": "gtpm:air"
-		}
-	}
+  "machine": "gtpm:large_packer",
+  "axes": {
+    "depth": "front",
+    "height": "up",
+    "width": "left"
+  },
+  "orientation": {
+    "allowMirror": false,
+    "allowExtendedFacing": false
+  },
+  "origin": {
+    "token": "controller"
+  },
+  "parameters": {},
+  "fragments": {},
+  "predicates": {
+    "X": {
+      "type": "gtpm:concatenated",
+      "predicates": [
+        {
+          "type": "gtpm:restricted",
+          "predicate": {
+            "type": "gtpm:blocks",
+            "blocks": "gtpm:robust_machine_casing"
+          },
+          "minCount": 30
+        },
+        {
+          "type": "gtpm:auto_recipe_abilities"
+        },
+        {
+          "type": "gtpm:auto_maintenance",
+          "checkMaintenance": true,
+          "checkMuffler": false,
+          "checkParallel": true
+        }
+      ]
+    },
+    "A": {
+      "type": "gtpm:air"
+    }
+  },
+  "body": {
+    "type": "sequence",
+    "axis": "depth",
+    "children": [
+      {
+        "type": "fixed",
+        "layers": [
+          [
+            "XXX",
+            "XXX",
+            "XXX"
+          ]
+        ]
+      },
+      {
+        "type": "fixed",
+        "layers": [
+          [
+            "XXX",
+            "XAX",
+            "XXX"
+          ]
+        ]
+      },
+      {
+        "type": "fixed",
+        "layers": [
+          [
+            "XXX",
+            "XAX",
+            "XXX"
+          ]
+        ]
+      },
+      {
+        "type": "fixed",
+        "layers": [
+          [
+            "XXX",
+            "XAX",
+            "XXX"
+          ]
+        ]
+      },
+      {
+        "type": "fixed",
+        "layers": [
+          [
+            "XXX",
+            "XAX",
+            "XXX"
+          ]
+        ]
+      },
+      {
+        "type": "fixed",
+        "layers": [
+          [
+            "XXX",
+            "X~X",
+            "XXX"
+          ]
+        ]
+      }
+    ]
+  },
+  "constraints": []
 }

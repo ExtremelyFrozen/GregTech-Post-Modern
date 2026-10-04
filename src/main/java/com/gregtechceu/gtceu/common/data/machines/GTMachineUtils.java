@@ -614,7 +614,7 @@ public class GTMachineUtils {
                 .recipeType(DUMMY_RECIPES)
                 .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE,
                         definition -> PatternBuilder.start(definition)
-                                .aislesFromDefinition()
+                                .appendDefinition()
                                 .build())
                 .appearanceBlock(casing);
         rendererSetup.accept(builder, GTCEu.id("block/multiblock/multiblock_tank"));
@@ -690,7 +690,7 @@ public class GTMachineUtils {
                         controller.self().getBlockPos().below().getY() == part.self().getBlockPos().getY() ?
                                          fireBox.get().defaultBlockState() : casing.get().defaultBlockState())
                 .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> PatternBuilder.start(definition)
-                        .aislesFromDefinition()
+                        .appendDefinition()
                         .build())
                 .recoveryItems(
                         () -> new ItemLike[] {
@@ -734,7 +734,7 @@ public class GTMachineUtils {
                 .appearanceBlock(casing)
                 .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE,
                         definition -> PatternBuilder.start(definition)
-                                .aislesFromDefinition()
+                                .appendDefinition()
                                 .build())
                 .recoveryItems(
                         () -> new ItemLike[] {
@@ -795,7 +795,7 @@ public class GTMachineUtils {
                 .appearanceBlock(casing)
                 .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE,
                         definition -> PatternBuilder.start(definition)
-                                .aislesFromDefinition()
+                                .appendDefinition()
                                 .build())
                 .recoveryItems(
                         () -> new ItemLike[] {

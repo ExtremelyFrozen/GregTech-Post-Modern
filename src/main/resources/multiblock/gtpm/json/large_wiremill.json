@@ -1,44 +1,85 @@
 {
-	"aisles": [
-		{
-			"slices": [["XXXXX", "XXXXX", "XXX##"]]
-		},
-		{
-			"slices": [["XXXXX", "X#CCX", "XXXXX"]]
-		},
-		{
-			"slices": [["XXXXX", "X~XXX", "XXX##"]]
-		}
-	],
-	"predicates": {
-		"X": {
-			"type": "gtpm:concatenated",
-			"predicates": [
-				{
-					"type": "gtpm:restricted",
-					"predicate": {
-						"type": "gtpm:blocks",
-						"blocks": "gtpm:stress_proof_casing"
-					},
-					"minCount": 25
-				},
-				{
-					"type": "gtpm:auto_recipe_abilities"
-				},
-				{
-					"type": "gtpm:auto_maintenance",
-					"checkMaintenance": true,
-					"checkMuffler": false,
-					"checkParallel": true
-				}
-			]
-		},
-		"C": {
-			"type": "gtpm:blocks",
-			"blocks": "gtpm:titanium_gearbox"
-		},
-		"#": {
-			"type": "gtpm:any"
-		}
-	}
+  "machine": "gtpm:large_wiremill",
+  "axes": {
+    "depth": "front",
+    "height": "up",
+    "width": "left"
+  },
+  "orientation": {
+    "allowMirror": false,
+    "allowExtendedFacing": false
+  },
+  "origin": {
+    "token": "controller"
+  },
+  "parameters": {},
+  "fragments": {},
+  "predicates": {
+    "X": {
+      "type": "gtpm:concatenated",
+      "predicates": [
+        {
+          "type": "gtpm:restricted",
+          "predicate": {
+            "type": "gtpm:blocks",
+            "blocks": "gtpm:stress_proof_casing"
+          },
+          "minCount": 25
+        },
+        {
+          "type": "gtpm:auto_recipe_abilities"
+        },
+        {
+          "type": "gtpm:auto_maintenance",
+          "checkMaintenance": true,
+          "checkMuffler": false,
+          "checkParallel": true
+        }
+      ]
+    },
+    "C": {
+      "type": "gtpm:blocks",
+      "blocks": "gtpm:titanium_gearbox"
+    },
+    "#": {
+      "type": "gtpm:any"
+    }
+  },
+  "body": {
+    "type": "sequence",
+    "axis": "depth",
+    "children": [
+      {
+        "type": "fixed",
+        "layers": [
+          [
+            "XXXXX",
+            "XXXXX",
+            "XXX##"
+          ]
+        ]
+      },
+      {
+        "type": "fixed",
+        "layers": [
+          [
+            "XXXXX",
+            "X#CCX",
+            "XXXXX"
+          ]
+        ]
+      },
+      {
+        "type": "fixed",
+        "layers": [
+          [
+            "XXXXX",
+            "X~XXX",
+            "XXX##"
+          ]
+        ]
+      }
+    ]
+  },
+  "constraints": []
 }

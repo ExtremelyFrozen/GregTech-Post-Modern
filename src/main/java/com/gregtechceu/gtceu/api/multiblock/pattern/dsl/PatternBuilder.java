@@ -105,55 +105,15 @@ public class PatternBuilder {
         return this;
     }
 
-    public PatternBuilder aisleFromDefinition(String... aisle) {
-        return aisle(aisle);
-    }
-
-    public PatternBuilder aisleFromDefinition() {
+    public PatternBuilder appendDefinition() {
         if (definition == null) {
             throw new IllegalStateException("No multiblock definition was bound to this pattern builder");
         }
-        return aisleFromDefinition(definitionKey, definitionAisleIndex++);
+        return appendDefinition(definitionKey);
     }
 
-    public PatternBuilder aisleFromDefinition(int index) {
-        if (definition == null) {
-            throw new IllegalStateException("No multiblock definition was bound to this pattern builder");
-        }
-        return aisleFromDefinition(definitionKey, index);
-    }
-
-    public PatternBuilder aisleFromDefinition(MultiblockMachineDefinition definition, String structureName) {
-        return aisleFromDefinition(new StructurePatternKey(definition.getId(), structureName), definitionAisleIndex++);
-    }
-
-    public PatternBuilder aisleFromDefinition(MultiblockMachineDefinition definition, String structureName,
-                                              int index) {
-        return aisleFromDefinition(new StructurePatternKey(definition.getId(), structureName), index);
-    }
-
-    public PatternBuilder aisleFromDefinition(StructurePatternKey key, int index) {
-        List<String[]> aisles = StructurePatternResolver.loadStringArrayDefinition(key).aisles();
-        if (index < 0 || index >= aisles.size()) {
-            throw new IllegalArgumentException("Json structure definition for " + key + " does not contain aisle " +
-                    index + "; found " + aisles.size() + " aisles");
-        }
-        return aisle(aisles.get(index));
-    }
-
-    public PatternBuilder aislesFromDefinition() {
-        if (definition == null) {
-            throw new IllegalStateException("No multiblock definition was bound to this pattern builder");
-        }
-        return aislesFromDefinition(definitionKey);
-    }
-
-    public PatternBuilder aislesFromDefinition(MultiblockMachineDefinition definition, String structureName) {
-        return aislesFromDefinition(new StructurePatternKey(definition.getId(), structureName));
-    }
-
-    public PatternBuilder aislesFromDefinition(StructurePatternKey key) {
-        return StructurePatternResolver.applyStringArrayDefinition(this, key);
+    public PatternBuilder appendDefinition(StructurePatternKey key) {
+        return StructurePatternResolver.appendDefinition(this, key);
     }
 
     public PatternBuilder beginRepeatable() {

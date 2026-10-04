@@ -22,6 +22,7 @@ import com.gregtechceu.gtceu.api.misc.EnergyContainerList;
 import com.gregtechceu.gtceu.api.multiblock.*;
 import com.gregtechceu.gtceu.api.multiblock.pattern.dsl.PatternBuilder;
 import com.gregtechceu.gtceu.api.multiblock.pattern.match.MultiBlockPattern;
+import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternNode;
 import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PatternPredicate;
 import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PatternPredicates;
 import com.gregtechceu.gtceu.api.multiblock.util.RelativeDirection;
@@ -290,11 +291,11 @@ public class CentralMonitorMachine extends WorkableElectricMultiblockMachine
         MultiBlockPattern baseline = PatternBuilder.start(getDefinition())
                 .aisle("~")
                 .build();
-        return StructurePatternResolver.rebuildRuntimeStringArrayPattern(
+        return StructurePatternResolver.rebuildRuntimePattern(
                 this.getDefinition(),
                 StructurePatternKey.main(this.getDefinition().getId()),
                 baseline,
-                List.of(new StructurePatternResolver.Unit(Collections.singletonList(aisle), 1, 1)));
+                List.of(PatternNode.Fixed.fromSlices(aisle)));
     }
 
     public BlockPos toRelative(BlockPos pos) {

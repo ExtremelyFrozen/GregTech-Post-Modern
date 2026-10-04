@@ -17,6 +17,16 @@ public sealed interface PatternNode
 
     record Fixed(List<List<String>> layers) implements PatternNode {
 
+        public static Fixed fromSlices(String[]... slices) {
+            var layers = new ObjectArrayList<List<String>>(slices.length);
+            for (String[] slice : slices) {
+                var rows = new ObjectArrayList<String>(slice.length);
+                for (String row : slice) rows.add(row);
+                layers.add(rows);
+            }
+            return new Fixed(layers);
+        }
+
         public Fixed {
             if (layers == null || layers.isEmpty()) {
                 throw new IllegalArgumentException("Fixed pattern must contain at least one layer");

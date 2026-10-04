@@ -1,372 +1,405 @@
 {
-	"aisles": [
-		{
-			"slices": [
-				[
-					"##XXXXXXXXX##",
-					"##XXXXXXXXX##",
-					"#############",
-					"#############",
-					"#############",
-					"#############",
-					"#############",
-					"#############",
-					"#############",
-					"#############",
-					"#############",
-					"#############",
-					"#############",
-					"#############",
-					"#############",
-					"#############",
-					"#############"
-				]
-			]
-		},
-		{
-			"slices": [
-				[
-					"#XXXXXXXXXXX#",
-					"#XXXXXXXXXXX#",
-					"###F#####F###",
-					"###F#####F###",
-					"###FFFFFFF###",
-					"#############",
-					"#############",
-					"#############",
-					"#############",
-					"#############",
-					"####FFFFF####",
-					"#############",
-					"#############",
-					"#############",
-					"#############",
-					"#############",
-					"#############"
-				]
-			]
-		},
-		{
-			"slices": [
-				[
-					"XXXXXXXXXXXXX",
-					"XXXXVVVVVXXXX",
-					"##F#######F##",
-					"##F#######F##",
-					"##FFFHHHFFF##",
-					"##F#######F##",
-					"##F#######F##",
-					"##F#######F##",
-					"##F#######F##",
-					"##F#######F##",
-					"##FFFHHHFFF##",
-					"#############",
-					"#############",
-					"#############",
-					"#############",
-					"#############",
-					"###TTTTTTT###"
-				]
-			]
-		},
-		{
-			"slices": [
-				[
-					"XXXXXXXXXXXXX",
-					"XXXXXXXXXXXXX",
-					"#F####P####F#",
-					"#F####P####F#",
-					"#FFHHHPHHHFF#",
-					"######P######",
-					"######P######",
-					"######P######",
-					"######P######",
-					"######P######",
-					"##FHHHPHHHF##",
-					"######P######",
-					"######P######",
-					"######P######",
-					"######P######",
-					"######P######",
-					"##TTTTPTTTT##"
-				]
-			]
-		},
-		{
-			"slices": [
-				[
-					"XXXXXXXXXXXXX",
-					"XXVXXXXXXXVXX",
-					"####BBPBB####",
-					"####TITIT####",
-					"#FFHHHHHHHFF#",
-					"####BITIB####",
-					"####CCCCC####",
-					"####CCCCC####",
-					"####CCCCC####",
-					"####BITIB####",
-					"#FFHHHHHHHFF#",
-					"####BITIB####",
-					"####CCCCC####",
-					"####CCCCC####",
-					"####CCCCC####",
-					"####BITIB####",
-					"##TTTTPTTTT##"
-				]
-			]
-		},
-		{
-			"slices": [
-				[
-					"XXXXXXXXXXXXX",
-					"XXVXXXXXXXVXX",
-					"####BAAAB####",
-					"####IAAAI####",
-					"#FHHHAAAHHHF#",
-					"####IAAAI####",
-					"####CAAAC####",
-					"####CAAAC####",
-					"####CAAAC####",
-					"####IAAAI####",
-					"#FHHHAAAHHHF#",
-					"####IAAAI####",
-					"####CAAAC####",
-					"####CAAAC####",
-					"####CAAAC####",
-					"####IAAAI####",
-					"##TTTTPTTTT##"
-				]
-			]
-		},
-		{
-			"slices": [
-				[
-					"XXXXXXXXXXXXX",
-					"XXVXXXXXXXVXX",
-					"###PPAAAPP###",
-					"###PTAAATP###",
-					"#FHPHAAAHPHF#",
-					"###PTAAATP###",
-					"###PCAAACP###",
-					"###PCAAACP###",
-					"###PCAAACP###",
-					"###PTAAATP###",
-					"#FHPHAAAHPHF#",
-					"###PTAAATP###",
-					"###PCAAACP###",
-					"###PCAAACP###",
-					"###PCAAACP###",
-					"###PTAAATP###",
-					"##TPPPMPPPT##"
-				]
-			]
-		},
-		{
-			"slices": [
-				[
-					"XXXXXXXXXXXXX",
-					"XXVXXXXXXXVXX",
-					"####BAAAB####",
-					"####IAAAI####",
-					"#FHHHAAAHHHF#",
-					"####IAAAI####",
-					"####CAAAC####",
-					"####CAAAC####",
-					"####CAAAC####",
-					"####IAAAI####",
-					"#FHHHAAAHHHF#",
-					"####IAAAI####",
-					"####CAAAC####",
-					"####CAAAC####",
-					"####CAAAC####",
-					"####IAAAI####",
-					"##TTTTPTTTT##"
-				]
-			]
-		},
-		{
-			"slices": [
-				[
-					"XXXXXXXXXXXXX",
-					"XXVXXXXXXXVXX",
-					"####BBPBB####",
-					"####TITIT####",
-					"#FFHHHHHHHFF#",
-					"####BITIB####",
-					"####CCCCC####",
-					"####CCCCC####",
-					"####CCCCC####",
-					"####BITIB####",
-					"#FFHHHHHHHFF#",
-					"####BITIB####",
-					"####CCCCC####",
-					"####CCCCC####",
-					"####CCCCC####",
-					"####BITIB####",
-					"##TTTTPTTTT##"
-				]
-			]
-		},
-		{
-			"slices": [
-				[
-					"XXXXXXXXXXXXX",
-					"XXXXXXXXXXXXX",
-					"#F####P####F#",
-					"#F####P####F#",
-					"#FFHHHPHHHFF#",
-					"######P######",
-					"######P######",
-					"######P######",
-					"######P######",
-					"######P######",
-					"##FHHHPHHHF##",
-					"######P######",
-					"######P######",
-					"######P######",
-					"######P######",
-					"######P######",
-					"##TTTTPTTTT##"
-				]
-			]
-		},
-		{
-			"slices": [
-				[
-					"XXXXXXXXXXXXX",
-					"XXXXVVVVVXXXX",
-					"##F#######F##",
-					"##F#######F##",
-					"##FFFHHHFFF##",
-					"##F#######F##",
-					"##F#######F##",
-					"##F#######F##",
-					"##F#######F##",
-					"##F#######F##",
-					"##FFFHHHFFF##",
-					"#############",
-					"#############",
-					"#############",
-					"#############",
-					"#############",
-					"###TTTTTTT###"
-				]
-			]
-		},
-		{
-			"slices": [
-				[
-					"#XXXXXXXXXXX#",
-					"#XXXXXXXXXXX#",
-					"###F#####F###",
-					"###F#####F###",
-					"###FFFFFFF###",
-					"#############",
-					"#############",
-					"#############",
-					"#############",
-					"#############",
-					"####FFFFF####",
-					"#############",
-					"#############",
-					"#############",
-					"#############",
-					"#############",
-					"#############"
-				]
-			]
-		},
-		{
-			"slices": [
-				[
-					"##XXXXXXXXX##",
-					"##XXXX~XXXX##",
-					"#############",
-					"#############",
-					"#############",
-					"#############",
-					"#############",
-					"#############",
-					"#############",
-					"#############",
-					"#############",
-					"#############",
-					"#############",
-					"#############",
-					"#############",
-					"#############",
-					"#############"
-				]
-			]
-		}
-	],
-	"predicates": {
-		"X": {
-			"type": "gtpm:concatenated",
-			"predicates": [
-				{
-					"type": "gtpm:restricted",
-					"predicate": {
-						"type": "gtpm:blocks",
-						"blocks": "gtpm:high_temperature_smelting_casing"
-					},
-					"minCount": 360
-				},
-				{
-					"type": "gtpm:auto_recipe_abilities"
-				},
-				{
-					"type": "gtpm:auto_maintenance",
-					"checkMaintenance": true,
-					"checkMuffler": false,
-					"checkParallel": true
-				}
-			]
-		},
-		"H": {
-			"type": "gtpm:restricted",
-			"predicate": {
-				"type": "gtpm:blocks",
-				"blocks": "gtpm:high_temperature_smelting_casing"
-			},
-			"minCount": 360
-		},
-		"C": {
-			"type": "gtpm:heating_coils"
-		},
-		"M": {
-			"type": "gtpm:abilities",
-			"abilities": "muffler"
-		},
-		"F": {
-			"type": "gtpm:frames",
-			"materials": "gtpm:naquadah_alloy"
-		},
-		"T": {
-			"type": "gtpm:blocks",
-			"blocks": "gtpm:robust_machine_casing"
-		},
-		"B": {
-			"type": "gtpm:blocks",
-			"blocks": "gtpm:tungstensteel_firebox_casing"
-		},
-		"P": {
-			"type": "gtpm:blocks",
-			"blocks": "gtpm:tungstensteel_pipe_casing"
-		},
-		"I": {
-			"type": "gtpm:blocks",
-			"blocks": "gtpm:extreme_engine_intake_casing"
-		},
-		"V": {
-			"type": "gtpm:blocks",
-			"blocks": "gtpm:heat_vent"
-		},
-		"A": {
-			"type": "gtpm:air"
-		},
-		"#": {
-			"type": "gtpm:any"
-		}
-	}
+  "machine": "gtpm:rotary_hearth_furnace",
+  "axes": {
+    "depth": "front",
+    "height": "up",
+    "width": "left"
+  },
+  "orientation": {
+    "allowMirror": false,
+    "allowExtendedFacing": false
+  },
+  "origin": {
+    "token": "controller"
+  },
+  "parameters": {},
+  "fragments": {},
+  "predicates": {
+    "X": {
+      "type": "gtpm:concatenated",
+      "predicates": [
+        {
+          "type": "gtpm:restricted",
+          "predicate": {
+            "type": "gtpm:blocks",
+            "blocks": "gtpm:high_temperature_smelting_casing"
+          },
+          "minCount": 360
+        },
+        {
+          "type": "gtpm:auto_recipe_abilities"
+        },
+        {
+          "type": "gtpm:auto_maintenance",
+          "checkMaintenance": true,
+          "checkMuffler": false,
+          "checkParallel": true
+        }
+      ]
+    },
+    "H": {
+      "type": "gtpm:restricted",
+      "predicate": {
+        "type": "gtpm:blocks",
+        "blocks": "gtpm:high_temperature_smelting_casing"
+      },
+      "minCount": 360
+    },
+    "C": {
+      "type": "gtpm:heating_coils"
+    },
+    "M": {
+      "type": "gtpm:abilities",
+      "abilities": "muffler"
+    },
+    "F": {
+      "type": "gtpm:frames",
+      "materials": "gtpm:naquadah_alloy"
+    },
+    "T": {
+      "type": "gtpm:blocks",
+      "blocks": "gtpm:robust_machine_casing"
+    },
+    "B": {
+      "type": "gtpm:blocks",
+      "blocks": "gtpm:tungstensteel_firebox_casing"
+    },
+    "P": {
+      "type": "gtpm:blocks",
+      "blocks": "gtpm:tungstensteel_pipe_casing"
+    },
+    "I": {
+      "type": "gtpm:blocks",
+      "blocks": "gtpm:extreme_engine_intake_casing"
+    },
+    "V": {
+      "type": "gtpm:blocks",
+      "blocks": "gtpm:heat_vent"
+    },
+    "A": {
+      "type": "gtpm:air"
+    },
+    "#": {
+      "type": "gtpm:any"
+    }
+  },
+  "body": {
+    "type": "sequence",
+    "axis": "depth",
+    "children": [
+      {
+        "type": "fixed",
+        "layers": [
+          [
+            "##XXXXXXXXX##",
+            "##XXXXXXXXX##",
+            "#############",
+            "#############",
+            "#############",
+            "#############",
+            "#############",
+            "#############",
+            "#############",
+            "#############",
+            "#############",
+            "#############",
+            "#############",
+            "#############",
+            "#############",
+            "#############",
+            "#############"
+          ]
+        ]
+      },
+      {
+        "type": "fixed",
+        "layers": [
+          [
+            "#XXXXXXXXXXX#",
+            "#XXXXXXXXXXX#",
+            "###F#####F###",
+            "###F#####F###",
+            "###FFFFFFF###",
+            "#############",
+            "#############",
+            "#############",
+            "#############",
+            "#############",
+            "####FFFFF####",
+            "#############",
+            "#############",
+            "#############",
+            "#############",
+            "#############",
+            "#############"
+          ]
+        ]
+      },
+      {
+        "type": "fixed",
+        "layers": [
+          [
+            "XXXXXXXXXXXXX",
+            "XXXXVVVVVXXXX",
+            "##F#######F##",
+            "##F#######F##",
+            "##FFFHHHFFF##",
+            "##F#######F##",
+            "##F#######F##",
+            "##F#######F##",
+            "##F#######F##",
+            "##F#######F##",
+            "##FFFHHHFFF##",
+            "#############",
+            "#############",
+            "#############",
+            "#############",
+            "#############",
+            "###TTTTTTT###"
+          ]
+        ]
+      },
+      {
+        "type": "fixed",
+        "layers": [
+          [
+            "XXXXXXXXXXXXX",
+            "XXXXXXXXXXXXX",
+            "#F####P####F#",
+            "#F####P####F#",
+            "#FFHHHPHHHFF#",
+            "######P######",
+            "######P######",
+            "######P######",
+            "######P######",
+            "######P######",
+            "##FHHHPHHHF##",
+            "######P######",
+            "######P######",
+            "######P######",
+            "######P######",
+            "######P######",
+            "##TTTTPTTTT##"
+          ]
+        ]
+      },
+      {
+        "type": "fixed",
+        "layers": [
+          [
+            "XXXXXXXXXXXXX",
+            "XXVXXXXXXXVXX",
+            "####BBPBB####",
+            "####TITIT####",
+            "#FFHHHHHHHFF#",
+            "####BITIB####",
+            "####CCCCC####",
+            "####CCCCC####",
+            "####CCCCC####",
+            "####BITIB####",
+            "#FFHHHHHHHFF#",
+            "####BITIB####",
+            "####CCCCC####",
+            "####CCCCC####",
+            "####CCCCC####",
+            "####BITIB####",
+            "##TTTTPTTTT##"
+          ]
+        ]
+      },
+      {
+        "type": "fixed",
+        "layers": [
+          [
+            "XXXXXXXXXXXXX",
+            "XXVXXXXXXXVXX",
+            "####BAAAB####",
+            "####IAAAI####",
+            "#FHHHAAAHHHF#",
+            "####IAAAI####",
+            "####CAAAC####",
+            "####CAAAC####",
+            "####CAAAC####",
+            "####IAAAI####",
+            "#FHHHAAAHHHF#",
+            "####IAAAI####",
+            "####CAAAC####",
+            "####CAAAC####",
+            "####CAAAC####",
+            "####IAAAI####",
+            "##TTTTPTTTT##"
+          ]
+        ]
+      },
+      {
+        "type": "fixed",
+        "layers": [
+          [
+            "XXXXXXXXXXXXX",
+            "XXVXXXXXXXVXX",
+            "###PPAAAPP###",
+            "###PTAAATP###",
+            "#FHPHAAAHPHF#",
+            "###PTAAATP###",
+            "###PCAAACP###",
+            "###PCAAACP###",
+            "###PCAAACP###",
+            "###PTAAATP###",
+            "#FHPHAAAHPHF#",
+            "###PTAAATP###",
+            "###PCAAACP###",
+            "###PCAAACP###",
+            "###PCAAACP###",
+            "###PTAAATP###",
+            "##TPPPMPPPT##"
+          ]
+        ]
+      },
+      {
+        "type": "fixed",
+        "layers": [
+          [
+            "XXXXXXXXXXXXX",
+            "XXVXXXXXXXVXX",
+            "####BAAAB####",
+            "####IAAAI####",
+            "#FHHHAAAHHHF#",
+            "####IAAAI####",
+            "####CAAAC####",
+            "####CAAAC####",
+            "####CAAAC####",
+            "####IAAAI####",
+            "#FHHHAAAHHHF#",
+            "####IAAAI####",
+            "####CAAAC####",
+            "####CAAAC####",
+            "####CAAAC####",
+            "####IAAAI####",
+            "##TTTTPTTTT##"
+          ]
+        ]
+      },
+      {
+        "type": "fixed",
+        "layers": [
+          [
+            "XXXXXXXXXXXXX",
+            "XXVXXXXXXXVXX",
+            "####BBPBB####",
+            "####TITIT####",
+            "#FFHHHHHHHFF#",
+            "####BITIB####",
+            "####CCCCC####",
+            "####CCCCC####",
+            "####CCCCC####",
+            "####BITIB####",
+            "#FFHHHHHHHFF#",
+            "####BITIB####",
+            "####CCCCC####",
+            "####CCCCC####",
+            "####CCCCC####",
+            "####BITIB####",
+            "##TTTTPTTTT##"
+          ]
+        ]
+      },
+      {
+        "type": "fixed",
+        "layers": [
+          [
+            "XXXXXXXXXXXXX",
+            "XXXXXXXXXXXXX",
+            "#F####P####F#",
+            "#F####P####F#",
+            "#FFHHHPHHHFF#",
+            "######P######",
+            "######P######",
+            "######P######",
+            "######P######",
+            "######P######",
+            "##FHHHPHHHF##",
+            "######P######",
+            "######P######",
+            "######P######",
+            "######P######",
+            "######P######",
+            "##TTTTPTTTT##"
+          ]
+        ]
+      },
+      {
+        "type": "fixed",
+        "layers": [
+          [
+            "XXXXXXXXXXXXX",
+            "XXXXVVVVVXXXX",
+            "##F#######F##",
+            "##F#######F##",
+            "##FFFHHHFFF##",
+            "##F#######F##",
+            "##F#######F##",
+            "##F#######F##",
+            "##F#######F##",
+            "##F#######F##",
+            "##FFFHHHFFF##",
+            "#############",
+            "#############",
+            "#############",
+            "#############",
+            "#############",
+            "###TTTTTTT###"
+          ]
+        ]
+      },
+      {
+        "type": "fixed",
+        "layers": [
+          [
+            "#XXXXXXXXXXX#",
+            "#XXXXXXXXXXX#",
+            "###F#####F###",
+            "###F#####F###",
+            "###FFFFFFF###",
+            "#############",
+            "#############",
+            "#############",
+            "#############",
+            "#############",
+            "####FFFFF####",
+            "#############",
+            "#############",
+            "#############",
+            "#############",
+            "#############",
+            "#############"
+          ]
+        ]
+      },
+      {
+        "type": "fixed",
+        "layers": [
+          [
+            "##XXXXXXXXX##",
+            "##XXXX~XXXX##",
+            "#############",
+            "#############",
+            "#############",
+            "#############",
+            "#############",
+            "#############",
+            "#############",
+            "#############",
+            "#############",
+            "#############",
+            "#############",
+            "#############",
+            "#############",
+            "#############",
+            "#############"
+          ]
+        ]
+      }
+    ]
+  },
+  "constraints": []
 }

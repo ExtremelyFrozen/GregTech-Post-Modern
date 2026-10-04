@@ -9,6 +9,9 @@ import com.gregtechceu.gtceu.api.machine.trait.RecipeLogic;
 import com.gregtechceu.gtceu.api.machine.trait.WorkLogic;
 import com.gregtechceu.gtceu.api.multiblock.pattern.dsl.PatternBuilder;
 import com.gregtechceu.gtceu.api.multiblock.pattern.match.MultiBlockPattern;
+import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternDirection;
+import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternNode;
+import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternRepeatDirection;
 import com.gregtechceu.gtceu.api.multiblock.util.RelativeDirection;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
 import com.gregtechceu.gtceu.common.data.GTBlocks;
@@ -178,15 +181,15 @@ public class CharcoalPileIgniterMachine extends WorkableMultiblockMachine implem
         MultiBlockPattern baseline = PatternBuilder.start(this.getDefinition(), LEFT, FRONT, UP)
                 .aisle("~")
                 .build();
-        return StructurePatternResolver.rebuildRuntimeStringArrayPattern(
+        return StructurePatternResolver.rebuildRuntimePattern(
                 this.getDefinition(),
                 StructurePatternKey.main(this.getDefinition().getId()),
                 baseline,
                 List.of(
-                        new StructurePatternResolver.Unit(Collections.singletonList(f), 1, 1),
-                        new StructurePatternResolver.Unit(Collections.singletonList(m), wallLayers.size(),
-                                wallLayers.size()),
-                        new StructurePatternResolver.Unit(Collections.singletonList(c), 1, 1)));
+                        PatternNode.Fixed.fromSlices(f),
+                        new PatternNode.Repeat("walls", PatternDirection.FRONT, PatternRepeatDirection.POSITIVE,
+                                wallLayers.size(), wallLayers.size(), PatternNode.Fixed.fromSlices(m)),
+                        PatternNode.Fixed.fromSlices(c)));
     }
 
     public void updateDimensions() {

@@ -1,58 +1,111 @@
 {
-	"aisles": [
-		{
-			"slices": [["XXX", "#F#", "#F#", "#F#", "###", "###", "###"]]
-		},
-		{
-			"slices": [["XXX", "FCF", "FCF", "FCF", "#F#", "#F#", "#F#"]]
-		},
-		{
-			"slices": [["X~X", "#F#", "#F#", "#F#", "###", "###", "###"]]
-		}
-	],
-	"predicates": {
-		"X": {
-			"type": "gtpm:concatenated",
-			"predicates": [
-				{
-					"type": "gtpm:restricted",
-					"predicate": {
-						"type": "gtpm:blocks",
-						"blocks": "gtpm:stable_machine_casing"
-					},
-					"minCount": 3
-				},
-				{
-					"type": "gtpm:restricted",
-					"predicate": {
-						"type": "gtpm:abilities",
-						"abilities": "input_energy"
-					},
-					"minCount": 1,
-					"maxCount": 2,
-					"previewCount": 1
-				},
-				{
-					"type": "gtpm:restricted",
-					"predicate": {
-						"type": "gtpm:abilities",
-						"abilities": "export_items"
-					},
-					"maxCount": 1,
-					"previewCount": 1
-				}
-			]
-		},
-		"C": {
-			"type": "gtpm:blocks",
-			"blocks": "gtpm:stable_machine_casing"
-		},
-		"F": {
-			"type": "gtpm:blocks",
-			"blocks": "gtpm:titanium_frame"
-		},
-		"#": {
-			"type": "gtpm:any"
-		}
-	}
+  "machine": "gtpm:hv_bedrock_ore_miner",
+  "axes": {
+    "depth": "front",
+    "height": "up",
+    "width": "left"
+  },
+  "orientation": {
+    "allowMirror": false,
+    "allowExtendedFacing": false
+  },
+  "origin": {
+    "token": "controller"
+  },
+  "parameters": {},
+  "fragments": {},
+  "predicates": {
+    "X": {
+      "type": "gtpm:concatenated",
+      "predicates": [
+        {
+          "type": "gtpm:restricted",
+          "predicate": {
+            "type": "gtpm:blocks",
+            "blocks": "gtpm:stable_machine_casing"
+          },
+          "minCount": 3
+        },
+        {
+          "type": "gtpm:restricted",
+          "predicate": {
+            "type": "gtpm:abilities",
+            "abilities": "input_energy"
+          },
+          "minCount": 1,
+          "maxCount": 2,
+          "previewCount": 1
+        },
+        {
+          "type": "gtpm:restricted",
+          "predicate": {
+            "type": "gtpm:abilities",
+            "abilities": "export_items"
+          },
+          "maxCount": 1,
+          "previewCount": 1
+        }
+      ]
+    },
+    "C": {
+      "type": "gtpm:blocks",
+      "blocks": "gtpm:stable_machine_casing"
+    },
+    "F": {
+      "type": "gtpm:blocks",
+      "blocks": "gtpm:titanium_frame"
+    },
+    "#": {
+      "type": "gtpm:any"
+    }
+  },
+  "body": {
+    "type": "sequence",
+    "axis": "depth",
+    "children": [
+      {
+        "type": "fixed",
+        "layers": [
+          [
+            "XXX",
+            "#F#",
+            "#F#",
+            "#F#",
+            "###",
+            "###",
+            "###"
+          ]
+        ]
+      },
+      {
+        "type": "fixed",
+        "layers": [
+          [
+            "XXX",
+            "FCF",
+            "FCF",
+            "FCF",
+            "#F#",
+            "#F#",
+            "#F#"
+          ]
+        ]
+      },
+      {
+        "type": "fixed",
+        "layers": [
+          [
+            "X~X",
+            "#F#",
+            "#F#",
+            "#F#",
+            "###",
+            "###",
+            "###"
+          ]
+        ]
+      }
+    ]
+  },
+  "constraints": []
 }

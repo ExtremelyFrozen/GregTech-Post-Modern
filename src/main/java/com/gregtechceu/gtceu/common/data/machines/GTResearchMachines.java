@@ -59,7 +59,7 @@ public class GTResearchMachines {
             .appearanceBlock(ADVANCED_COMPUTER_CASING)
             .tooltips(LangHandler.getMultiLang("gtpm.machine.research_station.tooltip"))
             .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> PatternBuilder.start(definition)
-                    .aislesFromDefinition()
+                    .appendDefinition()
                     .build())
             .sidedWorkableCasingModel(GTCEu.id("block/casings/hpca/advanced_computer_casing"),
                     GTCEu.id("block/multiblock/research_station"))
@@ -91,7 +91,7 @@ public class GTResearchMachines {
                     Component.translatable("gtpm.machine.data_bank.tooltip.4",
                             FormattingUtil.formatNumbers(DataBankMachine.EUT_PER_HATCH_CHAINED)))
             .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> PatternBuilder.start(definition)
-                    .aislesFromDefinition()
+                    .appendDefinition()
                     .build())
             .workableCasingModel(GTCEu.id("block/casings/hpca/high_power_casing"),
                     GTCEu.id("block/multiblock/data_bank"))
@@ -109,7 +109,7 @@ public class GTResearchMachines {
                     Component.translatable("gtpm.machine.network_switch.tooltip.3",
                             FormattingUtil.formatNumbers(NetworkSwitchMachine.EUT_PER_HATCH)))
             .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> PatternBuilder.start(definition)
-                    .aislesFromDefinition()
+                    .appendDefinition()
                     .build())
             .sidedWorkableCasingModel(GTCEu.id("block/casings/hpca/computer_casing"),
                     GTCEu.id("block/multiblock/network_switch"))
@@ -125,7 +125,7 @@ public class GTResearchMachines {
             .recipeType(GTRecipeTypes.DUMMY_RECIPES)
             .tooltips(LangHandler.getMultiLang("gtpm.machine.high_performance_computation_array.tooltip"))
             .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> PatternBuilder.start(definition)
-                    .aislesFromDefinition()
+                    .appendDefinition()
                     .build())
             .sidedWorkableCasingModel(GTCEu.id("block/casings/hpca/computer_casing"),
                     GTCEu.id("block/multiblock/hpca"))

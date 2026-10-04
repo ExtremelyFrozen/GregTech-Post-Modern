@@ -6,12 +6,11 @@ import com.gregtechceu.gtceu.api.multiblock.MultiblockBlockInfo;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import org.apache.commons.lang3.ArrayUtils;
 
 import java.util.Arrays;
 import java.util.List;
-
-import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 
 public class PredicateBlocks extends PredicateRule {
 

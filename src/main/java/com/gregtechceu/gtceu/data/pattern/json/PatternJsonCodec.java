@@ -34,12 +34,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/** Strict schema-2 JSON codec for canonical multiblock definitions. */
+/** Strict JSON codec for the canonical multiblock definition. */
 @NullMarked
 public final class PatternJsonCodec {
 
-    public static final int SCHEMA = 2;
-    private static final Set<String> TOP_LEVEL_FIELDS = Set.of("schema", "machine", "axes", "orientation", "origin",
+    private static final Set<String> TOP_LEVEL_FIELDS = Set.of("machine", "axes", "orientation", "origin",
             "parameters", "fragments", "predicates", "body", "constraints");
 
     private PatternJsonCodec() {}
@@ -50,11 +49,13 @@ public final class PatternJsonCodec {
         }
     }
 
+    public static PatternDefinition read(Path file) throws IOException {
+        return read(file, ResourceLocation.parse("gtpm:unknown"));
+    }
+
     public static PatternDefinition decode(ResourceLocation structure, JsonElement input) {
         JsonObject root = object(input, "$");
         rejectUnknown(root, TOP_LEVEL_FIELDS, "$");
-        int schema = integer(required(root, "schema", "$"), "$.schema");
-        if (schema != SCHEMA) throw error("Unsupported pattern schema " + schema + " at $.schema");
         ResourceLocation machine = root.has("machine") ?
                 ResourceLocation.parse(string(root.get("machine"), "$.machine")) : structure;
         return new PatternDefinition(machine, structure, parseAxes(root.get("axes")),
@@ -76,7 +77,6 @@ public final class PatternJsonCodec {
 
     public static JsonObject encode(PatternDefinition definition) {
         JsonObject root = new JsonObject();
-        root.addProperty("schema", SCHEMA);
         root.addProperty("machine", definition.machine().toString());
         root.add("axes", encodeAxes(definition.axes()));
         root.add("orientation", encodeOrientation(definition.orientation()));
@@ -434,7 +434,17 @@ public final class PatternJsonCodec {
 
     private static JsonObject encodeParameters(Map<String, PatternParameter> parameters) {
         JsonObject result = new JsonObject();
-        parameters.forEach((name, parameter) -> result.addProperty(name, parameterName(parameter)));
+        parameters.forEach((name, parameter) -> {
+            if (parameter instanceof PatternParameter.IntegerRange integer) {
+                JsonObject value = new JsonObject();
+                value.addProperty("type", "integer");
+                value.addProperty("min", integer.minimum());
+                value.addProperty("max", integer.maximum());
+                result.add(name, value);
+            } else {
+                result.addProperty(name, parameterName(parameter));
+            }
+        });
         return result;
     }
 
@@ -532,6 +542,30 @@ public final class PatternJsonCodec {
         PatternNode.Fragment fragment = (PatternNode.Fragment) node;
         object.addProperty("type", "fragment");
         object.addProperty("id", fragment.id());
+        JsonObject bindings = new JsonObject();
+        fragment.bindings().forEach((name, binding) -> bindings.add(name, encodeBinding(binding)));
+        if (!bindings.isEmpty()) object.add("bindings", bindings);
+        return object;
+    }
+
+    private static JsonObject encodeBinding(PatternBinding binding) {
+        JsonObject object = new JsonObject();
+        if (binding instanceof PatternBinding.Token value) {
+            object.addProperty("type", "token");
+            object.addProperty("value", value.value());
+        } else if (binding instanceof PatternBinding.Predicate value) {
+            object.addProperty("type", "predicate");
+            object.addProperty("value", value.value());
+        } else if (binding instanceof PatternBinding.IntegerValue value) {
+            object.addProperty("type", "integer");
+            object.addProperty("value", value.value());
+        } else if (binding instanceof PatternBinding.Direction value) {
+            object.addProperty("type", "direction");
+            object.addProperty("value", value.value().name().toLowerCase());
+        } else {
+            object.addProperty("type", "fragment");
+            object.addProperty("value", ((PatternBinding.Fragment) binding).value());
+        }
         return object;
     }
 

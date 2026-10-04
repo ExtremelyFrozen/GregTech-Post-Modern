@@ -35,6 +35,9 @@ import com.gregtechceu.gtceu.api.machine.multiblock.WorkableElectricMultiblockMa
 import com.gregtechceu.gtceu.api.misc.EnergyContainerList;
 import com.gregtechceu.gtceu.api.multiblock.pattern.dsl.PatternBuilder;
 import com.gregtechceu.gtceu.api.multiblock.pattern.match.MultiBlockPattern;
+import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternDirection;
+import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternNode;
+import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternRepeatDirection;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
 import com.gregtechceu.gtceu.common.data.GTBlocks;
@@ -423,15 +426,15 @@ public class CleanroomMachine extends WorkableElectricMultiblockMachine
         MultiBlockPattern baseline = PatternBuilder.start(this.getDefinition(), LEFT, FRONT, UP)
                 .aisle("~")
                 .build();
-        return StructurePatternResolver.rebuildRuntimeStringArrayPattern(
+        return StructurePatternResolver.rebuildRuntimePattern(
                 this.getDefinition(),
                 StructurePatternKey.main(this.getDefinition().getId()),
                 baseline,
                 List.of(
-                        new StructurePatternResolver.Unit(Collections.singletonList(f), 1, 1),
-                        new StructurePatternResolver.Unit(Collections.singletonList(m), wallLayers.size(),
-                                wallLayers.size()),
-                        new StructurePatternResolver.Unit(Collections.singletonList(c), 1, 1)));
+                        PatternNode.Fixed.fromSlices(f),
+                        new PatternNode.Repeat("walls", PatternDirection.FRONT, PatternRepeatDirection.POSITIVE,
+                                wallLayers.size(), wallLayers.size(), PatternNode.Fixed.fromSlices(m)),
+                        PatternNode.Fixed.fromSlices(c)));
     }
 
     // protected to allow easy addition of addon "cleanrooms"
