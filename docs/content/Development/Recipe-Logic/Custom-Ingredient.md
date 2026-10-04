@@ -302,7 +302,7 @@ public class BonkMachines {
                 var abilities = Predicates.autoAbilities(definition.getRecipeTypes())
                         .or(Predicates.autoAbilities(true, false, false))
                         .or(Predicates.abilities(BonkPartAbilities.BONK_HATCH));
-                return FactoryBlockPattern.start()
+                return PatternBuilder.start()
                         .aisle("XXX", "XCX", "XXX")
                         .aisle("XCX", "CPC", "XCX")
                         .aisle("XXX", "XSX", "XXX")

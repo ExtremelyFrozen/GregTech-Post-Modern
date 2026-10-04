@@ -15,7 +15,7 @@ GTCEuStartupEvents.registry('gtceu:machine', event => {
 		.recipeType('electrolyzer')
 		.recipeModifiers([GTRecipeModifiers.OC_NON_PERFECT_SUBTICK])
 		.appearanceBlock(() => Block.getBlock("gtceu:solid_machine_casing"))
-		.pattern(definition => FactoryBlockPattern.start()
+		.pattern(definition => PatternBuilder.start()
 			.aisle('###','   ','###')
 			.aisle('###',' S ','###')
 			.aisle('#C#','   ','###')

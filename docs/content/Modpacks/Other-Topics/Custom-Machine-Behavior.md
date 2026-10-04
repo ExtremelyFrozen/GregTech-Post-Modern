@@ -58,7 +58,7 @@ To use it, you would do:
             var casing = blocks(CASING_PTFE_INERT.get()).setMinGlobalLimited(10);
             var abilities = Predicates.autoAbilities(definition.getRecipeTypes())
                     .or(Predicates.autoAbilities(true, false, false));
-            return FactoryBlockPattern.start()
+            return PatternBuilder.start()
                     .aisle("XSX", "XXX", "XXX")
                     .aisle("XXX", "XXX", "XXX")
                     .where('S', Predicates.controller(blocks(definition.getBlock())))
