@@ -160,7 +160,7 @@ object StructureCache {
 			publishPatternResourceIndex(index)
 			val keys = index.entries.keys
 				.asSequence()
-				.filter { it.type == type && it.key.machineId() == machineId }
+				.filter { it.type == type && it.key.machineId == machineId }
 				.map { it.key }
 				.toCollection(LinkedHashSet())
 			check(keys.isNotEmpty()) {
@@ -329,8 +329,8 @@ object StructureCache {
 	fun getActiveSources(machineId: ResourceLocation): Map<StructurePatternKey, StructureDefinitionSource> {
 		val caches = requireCaches()
 		val keys = ObjectOpenHashSet<StructurePatternKey>()
-		caches.binaryDefinitions.keys.filterTo(keys) { it.machineId() == machineId }
-		caches.jsonDefinitions.keys.filterTo(keys) { it.machineId() == machineId }
+		caches.binaryDefinitions.keys.filterTo(keys) { it.machineId == machineId }
+		caches.jsonDefinitions.keys.filterTo(keys) { it.machineId == machineId }
 		return keys.associateWithTo(Object2ObjectOpenHashMap()) { key -> getActiveSourceFromCaches(caches, key) }
 	}
 
@@ -466,7 +466,7 @@ object StructureCache {
 		} else {
 			patternFile(normalizedPatternRoot, type, key)
 		}
-		val normalizedTypeDir = normalizedPatternRoot.resolve(key.machineId().namespace).resolve(type.directoryName).toAbsolutePath().normalize()
+		val normalizedTypeDir = normalizedPatternRoot.resolve(key.machineId.namespace).resolve(type.directoryName).toAbsolutePath().normalize()
 		check(target.startsWith(normalizedTypeDir)) {
 			"Refusing to sync pattern resource outside $normalizedTypeDir: $target"
 		}
@@ -682,8 +682,8 @@ object StructureCache {
 			val relative = typeDir.relativize(file).toString().replace('\\', '/')
 			val key = parsePatternKey(modid, type, relative)
 			if (def is PatternDefinition) {
-				check(def.machine == key.machineId()) {
-					"Pattern machine '${def.machine}' does not match resource key '${key.machineId()}' at $file"
+				check(def.machine == key.machineId) {
+					"Pattern machine '${def.machine}' does not match resource key '${key.machineId}' at $file"
 				}
 				check(def.structure == key.resourceId()) {
 					"Pattern structure '${def.structure}' does not match resource key '${key.resourceId()}' at $file"
@@ -708,7 +708,7 @@ object StructureCache {
 	}
 
 	private fun <T> reloadSingleEntry(dataDir: Path, type: StructureDefinitionType, key: StructurePatternKey, file: Path, map: MutableMap<StructurePatternKey, T>, claimedSources: MutableMap<StructurePatternKey, String>, reader: (Path) -> T) {
-		val modDir = dataDir.resolve(key.machineId().namespace)
+		val modDir = dataDir.resolve(key.machineId.namespace)
 		val typeDir = modDir.resolve(type.directoryName)
 		val normalizedTypeDir = typeDir.toAbsolutePath().normalize()
 		check(file.startsWith(normalizedTypeDir)) {
@@ -725,27 +725,27 @@ object StructureCache {
 		Files.deleteIfExists(patternFile(dataDir, type, key))
 		Files.deleteIfExists(
 			dataDir
-				.resolve(key.machineId().namespace)
+				.resolve(key.machineId.namespace)
 				.resolve(type.directoryName)
-				.resolve(key.machineId().path)
-				.resolve(key.structureName() + type.fileExtension)
+				.resolve(key.machineId.path)
+				.resolve(key.structureName + type.fileExtension)
 				.toAbsolutePath()
 				.normalize(),
 		)
 	}
 
 	private fun patternFile(dataDir: Path, type: StructureDefinitionType, key: StructurePatternKey): Path = dataDir
-		.resolve(key.machineId().namespace)
+		.resolve(key.machineId.namespace)
 		.resolve(type.directoryName)
 		.resolve(patternRelativePath(type, key))
 		.toAbsolutePath()
 		.normalize()
 
 	private fun patternRelativePath(type: StructureDefinitionType, key: StructurePatternKey): String {
-		if (key.isDefaultStructure) {
-			return key.machineId().path + type.fileExtension
+		if (key.isDefaultStructure()) {
+			return key.machineId.path + type.fileExtension
 		}
-		return key.machineId().path + "/" + key.structureName() + type.fileExtension
+		return key.machineId.path + "/" + key.structureName + type.fileExtension
 	}
 
 	private fun parsePatternKey(modid: String, type: StructureDefinitionType, relativeFile: String): StructurePatternKey {
