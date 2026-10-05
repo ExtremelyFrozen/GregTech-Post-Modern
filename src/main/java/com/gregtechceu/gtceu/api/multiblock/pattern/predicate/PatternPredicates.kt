@@ -90,10 +90,10 @@ object PatternPredicates {
     ): PatternPredicate = fromBlockInfos(predicate, candidates)
 
     @JvmStatic
-    fun any(): PatternPredicate = PatternPredicate(PredicateRule.ANY)
+    fun any(): PatternPredicate = PatternPredicate(PredicateRule.any)
 
     @JvmStatic
-    fun air(): PatternPredicate = PatternPredicate(PredicateRule.AIR)
+    fun air(): PatternPredicate = PatternPredicate(PredicateRule.air)
 
     @JvmStatic
     fun lamps(vararg lampEntries: BlockEntry<LampBlock>): PatternPredicate = fromBlockInfos(

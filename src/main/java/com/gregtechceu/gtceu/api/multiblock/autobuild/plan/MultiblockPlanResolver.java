@@ -476,11 +476,11 @@ public final class MultiblockPlanResolver {
     private static void addSimpleCandidates(Map<BlockState, CandidateAccumulator> result, PredicateRule simple,
                                             CandidateOrder order, ConstraintIds constraintIds) {
         ConstraintLimit limit = ConstraintLimit.fromSimple(simple, constraintIds.id(simple));
-        if (simple == PredicateRule.AIR) {
+        if (simple == PredicateRule.air) {
             addCandidate(result, MultiblockBlockInfo.EMPTY, List.of(limit), false, List.of(), order.next());
             return;
         }
-        if (simple == PredicateRule.ANY) return;
+        if (simple == PredicateRule.any) return;
         MultiblockBlockInfo representative = simple.blockInfo.get();
         if (simple.candidates == null) {
             if (representative != null) {

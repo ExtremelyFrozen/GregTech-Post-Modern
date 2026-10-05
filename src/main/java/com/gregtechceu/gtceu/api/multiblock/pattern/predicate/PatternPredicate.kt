@@ -223,7 +223,7 @@ open class PatternPredicate {
 
     fun isAny(): Boolean =
         (common.size == 1 && limited.isEmpty() && structurePatternPredicates.isEmpty() &&
-            common.first() === PredicateRule.ANY) ||
+            common.first() === PredicateRule.any) ||
             (common.isEmpty() && limited.isEmpty() && structurePatternPredicates.size == 1 &&
                 structurePatternPredicates.first().isAny())
 
@@ -233,7 +233,7 @@ open class PatternPredicate {
 
     fun isAir(): Boolean =
         (common.size == 1 && limited.isEmpty() && structurePatternPredicates.isEmpty() &&
-            common.first() === PredicateRule.AIR) ||
+            common.first() === PredicateRule.air) ||
             (common.isEmpty() && limited.isEmpty() && structurePatternPredicates.size == 1 &&
                 structurePatternPredicates.first().isAir())
 
@@ -241,5 +241,5 @@ open class PatternPredicate {
         !isAny() && !isAir() && common.size + limited.size + structurePatternPredicates.size == 1
 
     fun hasAir(): Boolean =
-        PredicateRule.AIR in common || structurePatternPredicates.any { it.hasAir() }
+        PredicateRule.air in common || structurePatternPredicates.any { it.hasAir() }
 }

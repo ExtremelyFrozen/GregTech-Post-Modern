@@ -170,16 +170,16 @@ open class PredicateRule {
         return ObjectLists.unmodifiable(result)
     }
 
-    fun addCache(): Boolean = this !== ANY
+    fun addCache(): Boolean = this !== any
 
     companion object {
         private val NULL_BLOCK_INFO = Supplier<MultiblockBlockInfo?> { null }
 
         @JvmField
-        var ANY: PredicateRule = PredicateRule({ true }, null, null)
+        var any: PredicateRule = PredicateRule({ true }, null, null)
 
         @JvmField
-        var AIR: PredicateRule = PredicateRule({ state -> state.blockState.isAir }, null, null)
+        var air: PredicateRule = PredicateRule({ state -> state.blockState.isAir }, null, null)
 
         @JvmStatic
         fun toItem(block: Block): Item = if (block is LiquidBlock) {
