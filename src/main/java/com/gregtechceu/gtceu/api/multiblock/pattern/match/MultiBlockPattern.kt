@@ -1,9 +1,5 @@
 package com.gregtechceu.gtceu.api.multiblock.pattern.match
 
-import com.fasterxml.jackson.annotation.JsonCreator
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties
-import com.fasterxml.jackson.annotation.JsonInclude
-import com.fasterxml.jackson.annotation.JsonProperty
 import com.gregtechceu.gtceu.api.block.ActiveBlock
 import com.gregtechceu.gtceu.api.machine.MetaMachine
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMultiPart
@@ -95,32 +91,6 @@ open class MultiBlockPattern private constructor(pattern: DecodedPattern) {
         val thumbLength: Int,
         val palmLength: Int,
     )
-
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    @JvmRecord
-    data class Unit(
-        val slices: List<Array<String>?>,
-        val predicates: List<Array<Array<PatternPredicate>>?>?,
-        val repeat: Repeat?,
-    )
-
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    @JvmRecord
-    data class Repeat(
-        val min: Int,
-        val max: Int,
-    )
-
-    @JsonCreator
-    constructor(
-        @JsonProperty("structureDir") structureDir: StructureDir,
-        @JsonProperty("centerOffset") centerOffset: CenterOffset,
-        @JsonProperty("thumbLength") thumbLength: Int,
-        @JsonProperty("palmLength") palmLength: Int,
-        @JsonProperty("units") units: List<Unit>,
-    ) : this(decodeSerializedPattern(structureDir, centerOffset, thumbLength, palmLength, units))
 
     constructor(
         predicatesIn: Array<Array<Array<PatternPredicate>>>,
@@ -220,23 +190,6 @@ open class MultiBlockPattern private constructor(pattern: DecodedPattern) {
     fun getPalmLength(): Int = palmLength
 
     fun getFormedRepetitionCount(): IntArray = formedRepetitionCount
-
-    fun getUnits(): List<Unit> {
-        val units = ObjectArrayList<Unit>(aisleRepetitions.size)
-        for (unitIndex in aisleRepetitions.indices) {
-            val start = unitStarts[unitIndex]
-            val depth = unitDepths[unitIndex]
-            val slices = ObjectArrayList<Array<String>?>(depth)
-            val predicates = blockMatches?.let { ObjectArrayList<Array<Array<PatternPredicate>>?>(depth) }
-            for (inner in 0 until depth) {
-                slices.add(structureSlices?.get(start + inner))
-                predicates?.add(blockMatches!![start + inner])
-            }
-            val repetition = aisleRepetitions[unitIndex]
-            units.add(Unit(slices, predicates, Repeat(repetition[0], repetition[1])))
-        }
-        return units
-    }
 
     fun checkPatternAt(worldState: MultiblockState, savePredicate: Boolean): Boolean {
         val controller = worldState.controller
@@ -658,58 +611,6 @@ open class MultiBlockPattern private constructor(pattern: DecodedPattern) {
             Direction.DOWN,
         )
         private val FACINGS_H = arrayOf(Direction.SOUTH, Direction.NORTH, Direction.WEST, Direction.EAST)
-
-        private fun decodeSerializedPattern(
-            structureDir: StructureDir,
-            centerOffset: CenterOffset,
-            thumbLength: Int,
-            palmLength: Int,
-            units: List<Unit>,
-        ): DecodedPattern {
-            require(units.isNotEmpty()) { "Serialized binary multiblock pattern is missing units" }
-            val size = units.sumOf { it.slices.size }
-            val blockMatches = arrayOfNulls<Array<Array<PatternPredicate>>>(size)
-            val structureSlices = arrayOfNulls<Array<String>>(size)
-            val aisleRepetitions = Array(units.size) { IntArray(2) }
-            val unitStarts = IntArray(units.size)
-            val unitDepths = IntArray(units.size)
-            var sliceIndex = 0
-            units.forEachIndexed { unitIndex, unit ->
-                require(unit.slices.isNotEmpty()) {
-                    "Serialized binary multiblock pattern is missing unit slices"
-                }
-                val predicates = unit.predicates
-                require(predicates != null && predicates.size == unit.slices.size) {
-                    "Serialized binary multiblock pattern is missing predicate slices"
-                }
-                val repeat = unit.repeat ?: Repeat(1, 1)
-                require(repeat.min <= repeat.max) {
-                    "Lower bound of repeat counting must smaller than upper bound!"
-                }
-                unitStarts[unitIndex] = sliceIndex
-                unitDepths[unitIndex] = unit.slices.size
-                aisleRepetitions[unitIndex][0] = repeat.min
-                aisleRepetitions[unitIndex][1] = repeat.max
-                unit.slices.forEachIndexed { inner, slice ->
-                    structureSlices[sliceIndex] = slice
-                    blockMatches[sliceIndex] = predicates[inner]
-                    sliceIndex++
-                }
-            }
-            @Suppress("UNCHECKED_CAST")
-            return DecodedPattern(
-                blockMatches as Array<Array<Array<PatternPredicate>>?>,
-                structureDir,
-                aisleRepetitions,
-                unitStarts,
-                unitDepths,
-                structureSlices as Array<Array<String>?>,
-                centerOffset,
-                size,
-                thumbLength,
-                palmLength,
-            )
-        }
 
         private fun createUnitStarts(size: Int): IntArray = IntArray(size) { it }
 
