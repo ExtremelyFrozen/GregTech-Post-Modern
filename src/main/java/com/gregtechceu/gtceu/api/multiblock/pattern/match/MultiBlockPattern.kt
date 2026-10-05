@@ -37,45 +37,44 @@ import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet
 
 import java.util.function.BiPredicate
 import java.util.function.Consumer
-import java.util.function.Supplier
 
 /** Runtime matcher for a compiled multiblock predicate grid. */
 open class MultiBlockPattern private constructor(pattern: DecodedPattern) {
 	@JvmField
-	val aisleRepetitions: Array<IntArray>
+	val aisleRepetitions: Array<IntArray> = pattern.aisleRepetitions
 
 	@JvmField
-	val unitStarts: IntArray
+	val unitStarts: IntArray = pattern.unitStarts
 
 	@JvmField
-	val unitDepths: IntArray
+	val unitDepths: IntArray = pattern.unitDepths
 
 	@JvmField
-	val structureDir: StructureDir
+	val structureDir: StructureDir = pattern.structureDir
 
 	@JvmField
-	val structureSlices: Array<Array<String>?>?
+	val structureSlices: Array<Array<String>?>? = pattern.structureSlices
 
 	@JvmField
-	protected val blockMatches: Array<Array<Array<PatternPredicate>>?>?
+	protected val blockMatches: Array<Array<Array<PatternPredicate>>?> = pattern.predicates
 
 	@JvmField
-	protected val fingerLength: Int
+	protected val fingerLength: Int = pattern.fingerLength
 
 	@JvmField
-	protected val thumbLength: Int
+	protected val thumbLength: Int = pattern.thumbLength
 
 	@JvmField
-	protected val palmLength: Int
+	protected val palmLength: Int = pattern.palmLength
 
 	@JvmField
-	protected val centerOffset: CenterOffset
+	protected val centerOffset: CenterOffset = pattern.centerOffset
 
 	@JvmField
-	protected var formedRepetitionCount: IntArray
+	protected var formedRepetitionCount: IntArray = IntArray(pattern.aisleRepetitions.size)
 
 	@JvmField
-	var predicates: MutableCollection<PatternPredicate> = ObjectArrayList<PatternPredicate>()
+	var predicates = ObjectArrayList<PatternPredicate>()
 
 	@JvmField
 	var condition: PatternCondition? = null
@@ -165,20 +164,6 @@ open class MultiBlockPattern private constructor(pattern: DecodedPattern) {
 		),
 	)
 
-	init {
-		blockMatches = pattern.predicates
-		this.structureDir = pattern.structureDir
-		this.aisleRepetitions = pattern.aisleRepetitions
-		this.unitStarts = pattern.unitStarts
-		this.unitDepths = pattern.unitDepths
-		this.structureSlices = pattern.structureSlices
-		this.formedRepetitionCount = IntArray(pattern.aisleRepetitions.size)
-		this.centerOffset = pattern.centerOffset
-		this.fingerLength = pattern.fingerLength
-		this.thumbLength = pattern.thumbLength
-		this.palmLength = pattern.palmLength
-	}
-
 	/** Attaches the canonical source definition used to produce this compiled matcher. */
 	fun attachDefinition(definition: PatternDefinition) {
 		sourceDefinition = definition
@@ -248,11 +233,11 @@ open class MultiBlockPattern private constructor(pattern: DecodedPattern) {
 
 	private fun checkPatternAtExactInternal(worldState: MultiblockState, centerPos: BlockPos, frontFacing: Direction, upwardsFacing: Direction, isFlipped: Boolean, savePredicate: Boolean, expectedRepetitions: IntArray): Boolean {
 		worldState.clean()
-		val facts = worldState.getFacts()
-		val globalCount = worldState.getGlobalCount()
-		val layerCount = worldState.getLayerCount()
-		val structureGlobalCount = worldState.getStructureGlobalCount()
-		val structureLayerCount = worldState.getStructureLayerCount()
+		val facts = worldState.facts
+		val globalCount = worldState.globalCount
+		val layerCount = worldState.layerCount
+		val structureGlobalCount = worldState.structureGlobalCount
+		val structureLayerCount = worldState.structureLayerCount
 		var z = -centerOffset.maxZ()
 
 		for (unit in expectedRepetitions.indices) {
@@ -267,23 +252,23 @@ open class MultiBlockPattern private constructor(pattern: DecodedPattern) {
 						for (column in 0 until palmLength) {
 							val x = column - centerOffset.k()
 							worldState.setError(null)
-							val predicate = blockMatches!![unitStart + inner]!![row][column]
+							val predicate = blockMatches[unitStart + inner]!![row][column]
 							val pos = setActualRelativeOffset(x, y, z, frontFacing, upwardsFacing, isFlipped)
 								.offset(centerPos.x, centerPos.y, centerPos.z)
 							if (!worldState.update(pos, predicate)) return false
 							saveMatch(facts, worldState, predicate, pos, savePredicate)
 							val canPartShared = checkPartSharing(facts, worldState, predicate)
 							if (worldState.getBlockState().block is ActiveBlock) {
-								facts.getOrCreate("vaBlocks", Supplier { LongOpenHashSet() })
-									.add(worldState.getPos().asLong())
+								facts.getOrCreate("vaBlocks") { LongOpenHashSet() }
+									.add(worldState.pos.asLong())
 							}
 							if (!predicate.test(worldState) || !canPartShared ||
 								!matchesDirectionalPredicate(predicate, worldState, frontFacing, upwardsFacing, isFlipped)
 							) {
 								return false
 							}
-							facts.getOrCreate("ioMap", Supplier { Long2ObjectOpenHashMap<Any?>() })
-								.put(worldState.getPos().asLong(), worldState.io)
+							facts.getOrCreate("ioMap") { Long2ObjectOpenHashMap<Any?>() }
+								.put(worldState.pos.asLong(), worldState.io)
 						}
 					}
 					if (!checkLayerMinimums(worldState, layerCount, structureLayerCount)) return false
@@ -297,7 +282,7 @@ open class MultiBlockPattern private constructor(pattern: DecodedPattern) {
 			return false
 		}
 		worldState.setError(null)
-		worldState.setNeededFlip(isFlipped)
+		worldState.isNeededFlip = isFlipped
 		return true
 	}
 
@@ -305,11 +290,11 @@ open class MultiBlockPattern private constructor(pattern: DecodedPattern) {
 		var findFirstAisle = false
 		var minZ = -centerOffset.maxZ()
 		worldState.clean()
-		val facts = worldState.getFacts()
-		val globalCount = worldState.getGlobalCount()
-		val layerCount = worldState.getLayerCount()
-		val structureGlobalCount = worldState.getStructureGlobalCount()
-		val structureLayerCount = worldState.getStructureLayerCount()
+		val facts = worldState.facts
+		val globalCount = worldState.globalCount
+		val layerCount = worldState.layerCount
+		val structureGlobalCount = worldState.structureGlobalCount
+		val structureLayerCount = worldState.structureLayerCount
 		var z = minZ++
 
 		var unit = 0
@@ -330,15 +315,15 @@ open class MultiBlockPattern private constructor(pattern: DecodedPattern) {
 						for (column in 0 until palmLength) {
 							val x = column - centerOffset.k()
 							worldState.setError(null)
-							val predicate = blockMatches!![unitStart + inner]!![row][column]
+							val predicate = blockMatches[unitStart + inner]!![row][column]
 							val pos = setActualRelativeOffset(x, y, z, frontFacing, upwardsFacing, isFlipped)
 								.offset(centerPos.x, centerPos.y, centerPos.z)
 							if (!worldState.update(pos, predicate)) return false
 							saveMatch(facts, worldState, predicate, pos, savePredicate)
 							val canPartShared = checkPartSharing(facts, worldState, predicate)
 							if (worldState.getBlockState().block is ActiveBlock) {
-								facts.getOrCreate("vaBlocks", Supplier { LongOpenHashSet() })
-									.add(worldState.getPos().asLong())
+								facts.getOrCreate("vaBlocks") { LongOpenHashSet() }
+									.add(worldState.pos.asLong())
 							}
 							if (!predicate.test(worldState) || !canPartShared ||
 								!matchesDirectionalPredicate(predicate, worldState, frontFacing, upwardsFacing, isFlipped)
@@ -360,8 +345,8 @@ open class MultiBlockPattern private constructor(pattern: DecodedPattern) {
 								restart = true
 								break
 							}
-							facts.getOrCreate("ioMap", Supplier { Long2ObjectOpenHashMap<Any?>() })
-								.put(worldState.getPos().asLong(), worldState.io)
+							facts.getOrCreate("ioMap") { Long2ObjectOpenHashMap<Any?>() }
+								.put(worldState.pos.asLong(), worldState.io)
 						}
 						if (restart) break
 					}
@@ -391,7 +376,7 @@ open class MultiBlockPattern private constructor(pattern: DecodedPattern) {
 			return false
 		}
 		worldState.setError(null)
-		worldState.setNeededFlip(isFlipped)
+		worldState.isNeededFlip = isFlipped
 		return true
 	}
 
@@ -399,8 +384,7 @@ open class MultiBlockPattern private constructor(pattern: DecodedPattern) {
 		if (!predicate.addCache()) return
 		worldState.addPosCache(pos)
 		if (savePredicate) {
-			facts.getOrCreate("predicates", Supplier { Object2ObjectOpenHashMap<BlockPos, PatternPredicate>() })
-				.put(pos, predicate)
+			facts.getOrCreate("predicates") { Object2ObjectOpenHashMap<BlockPos, PatternPredicate>() }[pos] = predicate
 		}
 	}
 
@@ -413,7 +397,7 @@ open class MultiBlockPattern private constructor(pattern: DecodedPattern) {
 			worldState.setError(PatternStringError("multiblocked.pattern.error.share"))
 			return false
 		}
-		facts.getOrCreate("parts", Supplier { ObjectOpenHashSet<IMultiPart>() }).add(part)
+		facts.getOrCreate("parts") { ObjectOpenHashSet<IMultiPart>() }.add(part)
 		return true
 	}
 
@@ -461,7 +445,7 @@ open class MultiBlockPattern private constructor(pattern: DecodedPattern) {
 
 	fun getMinX(): Int = -centerOffset.k()
 
-	fun getPredicate(z: Int, y: Int, x: Int): PatternPredicate = blockMatches!![z]!![y][x]
+	fun getPredicate(z: Int, y: Int, x: Int): PatternPredicate = blockMatches[z]!![y][x]
 
 	fun getActualRelativeOffset(x: Int, y: Int, z: Int, facing: Direction, upwardsFacing: Direction, isFlipped: Boolean): BlockPos = setActualRelativeOffset(x, y, z, facing, upwardsFacing, isFlipped)
 
@@ -476,10 +460,10 @@ open class MultiBlockPattern private constructor(pattern: DecodedPattern) {
 				pos,
 				machine.blockState,
 				frontFacing,
-				BiPredicate { blockPos, direction ->
+				{ blockPos, direction ->
 					!occupiedBlocks.contains(blockPos.relative(direction).asLong()) && machine.isFacingValid(direction)
 				},
-				Consumer { state ->
+				{ state ->
 					world.setBlock(pos, state, Block.UPDATE_CLIENTS or Block.UPDATE_KNOWN_SHAPE)
 				},
 			)

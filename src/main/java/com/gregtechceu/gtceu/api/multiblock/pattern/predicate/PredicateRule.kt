@@ -124,7 +124,7 @@ open class PredicateRule {
 
 	private fun checkInnerConditions(blockWorldState: MultiblockState): Boolean {
 		if (disableRenderFormed) {
-			blockWorldState.getFacts().getOrCreate("renderMask", Supplier { LongOpenHashSet() })
+			blockWorldState.facts.getOrCreate("renderMask") { LongOpenHashSet() }
 				.add(blockWorldState.pos.asLong())
 		}
 		if (io != IO.BOTH) {
@@ -135,10 +135,9 @@ open class PredicateRule {
 			}
 		}
 		slotName?.let { name ->
-			val slots: Long2ObjectMap<MutableSet<String>> = blockWorldState.getFacts().getOrCreate(
+			val slots: Long2ObjectMap<MutableSet<String>> = blockWorldState.facts.getOrCreate(
 				"slots",
-				Supplier { Long2ObjectArrayMap<MutableSet<String>>() },
-			)
+			) { Long2ObjectArrayMap() }
 			slots.computeIfAbsent(blockWorldState.pos.asLong()) { ObjectOpenHashSet() }.add(name)
 		}
 		return true
