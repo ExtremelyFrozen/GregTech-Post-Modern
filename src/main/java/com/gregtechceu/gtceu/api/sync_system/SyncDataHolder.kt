@@ -200,25 +200,17 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 		return false
 	}
 
-	private fun shouldSyncContextualField(registries: HolderLookup.Provider, field: FieldSyncData, @Nullable currentValue: Any?, fullSync: Boolean, manuallyDirty: Boolean): Boolean =
-		shouldSyncContextualField(
-			registries,
-			field,
-			currentValue,
-			fullSync,
-			manuallyDirty,
-			SyncSerializationTarget.DATA_COMPONENTS,
-		)
+	private fun shouldSyncContextualField(registries: HolderLookup.Provider, field: FieldSyncData, @Nullable currentValue: Any?, fullSync: Boolean, manuallyDirty: Boolean): Boolean = shouldSyncContextualField(
+		registries,
+		field,
+		currentValue,
+		fullSync,
+		manuallyDirty,
+		SyncSerializationTarget.DATA_COMPONENTS,
+	)
 
 	@Suppress("UNCHECKED_CAST")
-	private fun shouldSyncContextualField(
-		registries: HolderLookup.Provider,
-		field: FieldSyncData,
-		@Nullable currentValue: Any?,
-		fullSync: Boolean,
-		manuallyDirty: Boolean,
-		serializationTarget: SyncSerializationTarget,
-	): Boolean {
+	private fun shouldSyncContextualField(registries: HolderLookup.Provider, field: FieldSyncData, @Nullable currentValue: Any?, fullSync: Boolean, manuallyDirty: Boolean, serializationTarget: SyncSerializationTarget): Boolean {
 		if (currentValue == null) {
 			return false
 		}
@@ -295,14 +287,7 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 	}
 
 	@JvmOverloads
-	fun deserializeComponents(
-		registries: HolderLookup.Provider,
-		components: DataComponentMap,
-		readingClientFields: Boolean,
-		parseExplicitNull: Boolean = false,
-		fullSync: Boolean = false,
-		notifyUnchangedOnFullSync: Boolean = true,
-	) {
+	fun deserializeComponents(registries: HolderLookup.Provider, components: DataComponentMap, readingClientFields: Boolean, parseExplicitNull: Boolean = false, fullSync: Boolean = false, notifyUnchangedOnFullSync: Boolean = true) {
 		val fieldData = components.get(GTDataComponents.SYNC_FIELD_DATA.get())
 			?: return
 		deserializeFieldData(
@@ -326,14 +311,7 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 	}
 
 	@JvmOverloads
-	fun deserializeFieldData(
-		registries: HolderLookup.Provider,
-		fieldData: SyncFieldData,
-		readingClientFields: Boolean,
-		parseExplicitNull: Boolean = false,
-		fullSync: Boolean = false,
-		notifyUnchangedOnFullSync: Boolean = true,
-	) {
+	fun deserializeFieldData(registries: HolderLookup.Provider, fieldData: SyncFieldData, readingClientFields: Boolean, parseExplicitNull: Boolean = false, fullSync: Boolean = false, notifyUnchangedOnFullSync: Boolean = true) {
 		deserializeFieldDataInternal(
 			registries,
 			fieldData,
@@ -344,14 +322,7 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 		)
 	}
 
-	private fun deserializeFieldDataInternal(
-		registries: HolderLookup.Provider,
-		fieldData: SyncFieldData,
-		readingClientFields: Boolean,
-		parseExplicitNull: Boolean,
-		fullSync: Boolean,
-		notifyUnchangedOnFullSync: Boolean,
-	) {
+	private fun deserializeFieldDataInternal(registries: HolderLookup.Provider, fieldData: SyncFieldData, readingClientFields: Boolean, parseExplicitNull: Boolean, fullSync: Boolean, notifyUnchangedOnFullSync: Boolean) {
 		val fieldsToCheck = if (readingClientFields) syncData.getClientSyncFields() else syncData.getServerSaveFields()
 		val changedClientFields = ArrayList<FieldSyncData>()
 		for (field in fieldsToCheck) {
@@ -698,12 +669,7 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 			.build()
 	}
 
-	private data class PendingServerFieldUpdate(
-		val field: FieldSyncData,
-		@field:Nullable val decodedCandidate: Any?,
-		@field:Nullable var oldValue: Any? = null,
-		@field:Nullable var normalizedCandidate: Any? = null,
-	)
+	private data class PendingServerFieldUpdate(val field: FieldSyncData, @field:Nullable val decodedCandidate: Any?, @field:Nullable var oldValue: Any? = null, @field:Nullable var normalizedCandidate: Any? = null)
 
 	companion object {
 		@JvmField

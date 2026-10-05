@@ -21,13 +21,7 @@ import java.lang.reflect.Field
  * Information about the sync behaviour of fields with sync annotations in ISyncManaged classes
  */
 @ApiStatus.Internal
-class FieldSyncData(
-	field: Field,
-	@JvmField val handle: VarHandle,
-	@JvmField val changeListenerHandles: List<MethodHandle>,
-	@JvmField @field:Nullable val serverNormalizerHandle: MethodHandle?,
-	@JvmField @field:Nullable val serverChangeListenerHandle: MethodHandle?,
-) {
+class FieldSyncData(field: Field, @JvmField val handle: VarHandle, @JvmField val changeListenerHandles: List<MethodHandle>, @JvmField @field:Nullable val serverNormalizerHandle: MethodHandle?, @JvmField @field:Nullable val serverChangeListenerHandle: MethodHandle?) {
 	@JvmField
 	val fieldName: String = field.name
 

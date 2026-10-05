@@ -15,10 +15,7 @@ import java.util.IdentityHashMap
 
 class RecipeChanceCachesCodec private constructor() : ContextualFieldCodec<IdentityHashMap<RecipeCapability<*>, Object2IntMap<*>>> {
 
-	override fun serializeField(
-		value: IdentityHashMap<RecipeCapability<*>, Object2IntMap<*>>,
-		context: ContextualFieldCodec.Context<IdentityHashMap<RecipeCapability<*>, Object2IntMap<*>>>,
-	): JsonElement {
+	override fun serializeField(value: IdentityHashMap<RecipeCapability<*>, Object2IntMap<*>>, context: ContextualFieldCodec.Context<IdentityHashMap<RecipeCapability<*>, Object2IntMap<*>>>): JsonElement {
 		val chanceCache = JsonObject()
 		for ((capability, cache) in value) {
 			val cacheJson = JsonArray()
@@ -33,10 +30,7 @@ class RecipeChanceCachesCodec private constructor() : ContextualFieldCodec<Ident
 		return chanceCache
 	}
 
-	override fun deserializeField(
-		value: JsonElement,
-		context: ContextualFieldCodec.Context<IdentityHashMap<RecipeCapability<*>, Object2IntMap<*>>>,
-	): IdentityHashMap<RecipeCapability<*>, Object2IntMap<*>>? {
+	override fun deserializeField(value: JsonElement, context: ContextualFieldCodec.Context<IdentityHashMap<RecipeCapability<*>, Object2IntMap<*>>>): IdentityHashMap<RecipeCapability<*>, Object2IntMap<*>>? {
 		if (!value.isJsonObject) return context.currentValue
 		val currentValue = context.currentValue ?: return null
 
@@ -56,10 +50,9 @@ class RecipeChanceCachesCodec private constructor() : ContextualFieldCodec<Ident
 	}
 
 	@Suppress("UNCHECKED_CAST")
-	private fun getOrCreateCache(currentValue: IdentityHashMap<RecipeCapability<*>, Object2IntMap<*>>, capability: RecipeCapability<*>): Object2IntMap<Any?> =
-		currentValue.computeIfAbsent(capability) { key ->
-			(key as RecipeCapability<Any?>).makeChanceCache()
-		} as Object2IntMap<Any?>
+	private fun getOrCreateCache(currentValue: IdentityHashMap<RecipeCapability<*>, Object2IntMap<*>>, capability: RecipeCapability<*>): Object2IntMap<Any?> = currentValue.computeIfAbsent(capability) { key ->
+		(key as RecipeCapability<Any?>).makeChanceCache()
+	} as Object2IntMap<Any?>
 
 	@Suppress("UNCHECKED_CAST")
 	private fun writeEntryJson(json: JsonObject, capability: RecipeCapability<*>, content: Any?, chance: Int, context: ContextualFieldCodec.Context<*>) {
@@ -69,8 +62,7 @@ class RecipeChanceCachesCodec private constructor() : ContextualFieldCodec<Ident
 	}
 
 	@Suppress("UNCHECKED_CAST")
-	private fun readEntryJson(capability: RecipeCapability<*>, json: JsonObject, context: ContextualFieldCodec.Context<*>): Any? =
-		(capability as RecipeCapability<Any?>).serializer.fromJson(json.get("entry"), context.lookup)
+	private fun readEntryJson(capability: RecipeCapability<*>, json: JsonObject, context: ContextualFieldCodec.Context<*>): Any? = (capability as RecipeCapability<Any?>).serializer.fromJson(json.get("entry"), context.lookup)
 
 	companion object {
 		@JvmField

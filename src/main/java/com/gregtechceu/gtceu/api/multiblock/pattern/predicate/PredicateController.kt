@@ -4,7 +4,7 @@ import com.gregtechceu.gtceu.api.machine.MachineDefinition
 
 /** Predicate that marks a machine controller block. */
 open class PredicateController : PatternPredicate {
-    constructor(definition: MachineDefinition) : super(PredicateBlocks(definition.get()))
+	constructor(definition: MachineDefinition) : super(PredicateBlocks(definition.get()))
 
-    constructor(predicate: PatternPredicate) : super(predicate)
+	constructor(predicate: PatternPredicate) : super(predicate)
 }

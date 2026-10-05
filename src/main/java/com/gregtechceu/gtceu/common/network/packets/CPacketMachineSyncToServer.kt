@@ -23,12 +23,7 @@ import net.neoforged.neoforge.network.handling.IPayloadContext
 import io.netty.handler.codec.DecoderException
 import io.netty.handler.codec.EncoderException
 
-open class CPacketMachineSyncToServer private constructor(
-	private val pos: BlockPos,
-	private val blockEntityTypeId: ResourceLocation,
-	private val data: DataComponentMap,
-	private val traitTarget: MachineTraitTarget?,
-) : CustomPacketPayload {
+open class CPacketMachineSyncToServer private constructor(private val pos: BlockPos, private val blockEntityTypeId: ResourceLocation, private val data: DataComponentMap, private val traitTarget: MachineTraitTarget?) : CustomPacketPayload {
 
 	constructor(pos: BlockPos, blockEntityTypeId: ResourceLocation, data: DataComponentMap) : this(
 		pos,

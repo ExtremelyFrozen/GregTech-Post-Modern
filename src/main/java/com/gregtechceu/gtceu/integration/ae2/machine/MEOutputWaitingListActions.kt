@@ -80,8 +80,7 @@ object MEOutputWaitingListActions {
 
 	/** Creates the authenticated retry after the exact server menu element challenges this opening. */
 	@JvmStatic
-	fun createRequestFullAction(target: MEOutputWaitingListTarget, openingId: UUID, requestSequence: Int, menuSessionId: UUID): SyncActionData =
-		createRequestFullActionPayload(target, openingId, requestSequence, menuSessionId)
+	fun createRequestFullAction(target: MEOutputWaitingListTarget, openingId: UUID, requestSequence: Int, menuSessionId: UUID): SyncActionData = createRequestFullActionPayload(target, openingId, requestSequence, menuSessionId)
 
 	private fun createRequestFullActionPayload(target: MEOutputWaitingListTarget, openingId: UUID, requestSequence: Int, menuSessionId: UUID?): SyncActionData {
 		require(requestSequence >= 0) { "ME output waiting-list request sequence must be non-negative." }

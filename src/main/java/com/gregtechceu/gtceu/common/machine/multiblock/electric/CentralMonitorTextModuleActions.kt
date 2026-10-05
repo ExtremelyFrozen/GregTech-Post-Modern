@@ -40,22 +40,10 @@ interface CentralMonitorTextModuleActionHost {
 	fun getCentralMonitorActionIncarnation(): UUID
 
 	/** Checks the complete request against the current group, slot, revision, module snapshot, and requested configuration. */
-	fun canSetCentralMonitorTextModuleConfiguration(
-		groupIdentity: UUID,
-		moduleSlotIncarnation: UUID,
-		expectedConfigurationRevision: Long,
-		expectedModule: ItemStack,
-		requestedConfiguration: TextLineList,
-	): Boolean
+	fun canSetCentralMonitorTextModuleConfiguration(groupIdentity: UUID, moduleSlotIncarnation: UUID, expectedConfigurationRevision: Long, expectedModule: ItemStack, requestedConfiguration: TextLineList): Boolean
 
 	/** Applies the text configuration if every current-state check still succeeds. */
-	fun setCentralMonitorTextModuleConfiguration(
-		groupIdentity: UUID,
-		moduleSlotIncarnation: UUID,
-		expectedConfigurationRevision: Long,
-		expectedModule: ItemStack,
-		requestedConfiguration: TextLineList,
-	): Boolean
+	fun setCentralMonitorTextModuleConfiguration(groupIdentity: UUID, moduleSlotIncarnation: UUID, expectedConfigurationRevision: Long, expectedModule: ItemStack, requestedConfiguration: TextLineList): Boolean
 
 	/** Publishes the authoritative groups again after a parsed action no longer matches current state. */
 	fun resyncCentralMonitorTextModuleState()
@@ -87,15 +75,7 @@ object CentralMonitorTextModuleActions {
 
 	/** Creates one ordered compare-and-set request for the text module currently occupying a group slot. */
 	@JvmStatic
-	fun createSetTextModuleConfigurationAction(
-		holderIncarnation: UUID,
-		groupIdentity: UUID,
-		moduleSlotIncarnation: UUID,
-		expectedConfigurationRevision: Long,
-		expectedModule: ItemStack,
-		requestedConfiguration: TextLineList,
-		sequence: Int,
-	): SyncActionData {
+	fun createSetTextModuleConfigurationAction(holderIncarnation: UUID, groupIdentity: UUID, moduleSlotIncarnation: UUID, expectedConfigurationRevision: Long, expectedModule: ItemStack, requestedConfiguration: TextLineList, sequence: Int): SyncActionData {
 		require(sequence >= 0) { "Central Monitor text module sequence must be non-negative: $sequence" }
 		require(expectedConfigurationRevision in 0 until Long.MAX_VALUE) {
 			"Central Monitor text configuration revision must be non-negative and incrementable: $expectedConfigurationRevision"
@@ -335,12 +315,5 @@ object CentralMonitorTextModuleActions {
 
 	private fun hasValidStackCount(stack: ItemStack): Boolean = !stack.isEmpty && stack.count <= stack.maxStackSize
 
-	private data class TextModuleCommand(
-		val holderIncarnation: UUID,
-		val groupIdentity: UUID,
-		val moduleSlotIncarnation: UUID,
-		val expectedConfigurationRevision: Long,
-		val expectedModule: ItemStack,
-		val requestedConfiguration: TextLineList,
-	)
+	private data class TextModuleCommand(val holderIncarnation: UUID, val groupIdentity: UUID, val moduleSlotIncarnation: UUID, val expectedConfigurationRevision: Long, val expectedModule: ItemStack, val requestedConfiguration: TextLineList)
 }

@@ -77,8 +77,7 @@ object CentralMonitorMembershipActions {
 
 	/** Creates one ordered request to add a new group with a client-proposed replay-safe UUID. */
 	@JvmStatic
-	fun createGroupAction(holderIncarnation: UUID, expectedRevision: Long, groupIdentity: UUID, positions: Set<BlockPos>, sequence: Int): SyncActionData =
-		createAction(CREATE_GROUP_ACTION, holderIncarnation, expectedRevision, groupIdentity, positions, sequence)
+	fun createGroupAction(holderIncarnation: UUID, expectedRevision: Long, groupIdentity: UUID, positions: Set<BlockPos>, sequence: Int): SyncActionData = createAction(CREATE_GROUP_ACTION, holderIncarnation, expectedRevision, groupIdentity, positions, sequence)
 
 	/** Creates one ordered request to remove a non-empty set of members from an existing group. */
 	@JvmStatic

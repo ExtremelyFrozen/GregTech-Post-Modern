@@ -164,12 +164,11 @@ object MEPatternBufferProxyActions {
 	@JvmStatic
 	fun createOpenCoverAction(opening: MEPatternBufferProxyOpeningIdentity, side: Direction): SyncActionData = createCoverAction(opening, side, MEPatternBufferProxyCoverOperation.OPEN)
 
-	private fun createCoverAction(opening: MEPatternBufferProxyOpeningIdentity, side: Direction, operation: MEPatternBufferProxyCoverOperation): SyncActionData =
-		createAction(CONFIGURE_COVER_ACTION, side.get3DDataValue(), opening) { builder ->
-			builder
-				.put(SIDE_FIELD, JsonPrimitive(side.get3DDataValue()))
-				.put(COVER_OPERATION_FIELD, JsonPrimitive(operation.name.lowercase()))
-		}
+	private fun createCoverAction(opening: MEPatternBufferProxyOpeningIdentity, side: Direction, operation: MEPatternBufferProxyCoverOperation): SyncActionData = createAction(CONFIGURE_COVER_ACTION, side.get3DDataValue(), opening) { builder ->
+		builder
+			.put(SIDE_FIELD, JsonPrimitive(side.get3DDataValue()))
+			.put(COVER_OPERATION_FIELD, JsonPrimitive(operation.name.lowercase()))
+	}
 
 	private fun createAction(actionId: ResourceLocation, sequence: Int, opening: MEPatternBufferProxyOpeningIdentity, addFields: (SyncFieldData.Builder) -> Unit): SyncActionData {
 		val builder =

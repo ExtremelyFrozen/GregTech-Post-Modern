@@ -239,12 +239,5 @@ object CentralMonitorImageModuleActions {
 
 	private data class NullableUrl(val value: String?)
 
-	private data class ImageModuleCommand(
-		val holderIncarnation: UUID,
-		val groupIdentity: UUID,
-		val moduleSlotIncarnation: UUID,
-		val expectedModule: ItemStack,
-		val expectedUrl: String?,
-		val requestedUrl: String,
-	)
+	private data class ImageModuleCommand(val holderIncarnation: UUID, val groupIdentity: UUID, val moduleSlotIncarnation: UUID, val expectedModule: ItemStack, val expectedUrl: String?, val requestedUrl: String)
 }

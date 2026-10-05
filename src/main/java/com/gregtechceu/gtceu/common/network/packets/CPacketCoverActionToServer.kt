@@ -23,13 +23,7 @@ import net.neoforged.neoforge.network.handling.IPayloadContext
 
 import java.util.UUID
 
-open class CPacketCoverActionToServer(
-	private val pos: BlockPos,
-	private val side: Direction,
-	private val coverDefinitionId: ResourceLocation,
-	private val actionSessionId: UUID,
-	private val action: SyncActionData,
-) : CustomPacketPayload {
+open class CPacketCoverActionToServer(private val pos: BlockPos, private val side: Direction, private val coverDefinitionId: ResourceLocation, private val actionSessionId: UUID, private val action: SyncActionData) : CustomPacketPayload {
 
 	constructor(buffer: RegistryFriendlyByteBuf) : this(
 		buffer.readBlockPos(),

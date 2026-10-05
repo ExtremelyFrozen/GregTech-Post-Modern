@@ -447,14 +447,7 @@ object FieldCodecs {
 		}
 
 		companion object {
-			private fun serializeMapElementData(
-				@Nullable value: Any?,
-				@Nullable contextualCodec: ContextualFieldCodec<*>?,
-				@Nullable regularCodec: Codec<*>?,
-				context: ContextualFieldCodec.Context<*>,
-				type: Type,
-				fieldName: String,
-			): JsonElement {
+			private fun serializeMapElementData(@Nullable value: Any?, @Nullable contextualCodec: ContextualFieldCodec<*>?, @Nullable regularCodec: Codec<*>?, context: ContextualFieldCodec.Context<*>, type: Type, fieldName: String): JsonElement {
 				if (value == null) return JsonNull.INSTANCE
 				if (contextualCodec != null) {
 					return (contextualCodec as ContextualFieldCodec<Any>).serializeField(value, nestedContext(context, type, value, fieldName))
@@ -465,14 +458,7 @@ object FieldCodecs {
 			}
 
 			@Nullable
-			private fun deserializeMapElementData(
-				@Nullable value: JsonElement?,
-				@Nullable contextualCodec: ContextualFieldCodec<*>?,
-				@Nullable regularCodec: Codec<*>?,
-				context: ContextualFieldCodec.Context<*>,
-				type: Type,
-				fieldName: String,
-			): Any? {
+			private fun deserializeMapElementData(@Nullable value: JsonElement?, @Nullable contextualCodec: ContextualFieldCodec<*>?, @Nullable regularCodec: Codec<*>?, context: ContextualFieldCodec.Context<*>, type: Type, fieldName: String): Any? {
 				if (value == null || (value.isJsonNull && !context.parseExplicitNull)) return null
 				if (contextualCodec != null) {
 					return (contextualCodec as ContextualFieldCodec<Any>).deserializeField(value, nestedContext(context, type, null, fieldName))

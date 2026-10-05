@@ -15,12 +15,7 @@ import net.neoforged.neoforge.network.handling.IPayloadContext
 import java.util.UUID
 
 /** Delivers a linked-buffer GT field delta only to the Proxy menu session that requested it. */
-class SPacketMEPatternBufferProxyViewToClient(
-	private val containerId: Int,
-	private val menuSessionId: UUID,
-	private val opening: MEPatternBufferProxyOpeningIdentity,
-	private val update: MEPatternBufferProxyViewSnapshot,
-) : CustomPacketPayload {
+class SPacketMEPatternBufferProxyViewToClient(private val containerId: Int, private val menuSessionId: UUID, private val opening: MEPatternBufferProxyOpeningIdentity, private val update: MEPatternBufferProxyViewSnapshot) : CustomPacketPayload {
 
 	constructor(buffer: RegistryFriendlyByteBuf) : this(
 		buffer.readVarInt(),

@@ -3,15 +3,7 @@ package com.gregtechceu.gtceu.api.multiblock
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 
-data class RelativeOffset(
-	private val x: Int,
-	private val y: Int,
-	private val z: Int,
-	private val structureDir: StructureDir,
-	private val facing: Direction,
-	private val upwardsFacing: Direction,
-	private val isFlipped: Boolean,
-) {
+data class RelativeOffset(private val x: Int, private val y: Int, private val z: Int, private val structureDir: StructureDir, private val facing: Direction, private val upwardsFacing: Direction, private val isFlipped: Boolean) {
 	fun toBlockPos(): BlockPos {
 		val input = intArrayOf(x, y, z)
 		val output = IntArray(3)
