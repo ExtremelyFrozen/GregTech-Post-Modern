@@ -16,13 +16,4 @@ import java.util.Map;
  */
 public record AutoBuildStructureOptions(String structureName, List<Integer> repetitions,
                                         Map<ResourceLocation, ResourceLocation> tierChoices,
-                                        boolean flipMode, AutoBuildMode mode) {
-
-    public AutoBuildStructureOptions {
-        if (structureName.isBlank()) {
-            throw new IllegalArgumentException("structureName must not be blank");
-        }
-        repetitions = List.copyOf(repetitions);
-        tierChoices = Map.copyOf(tierChoices);
-    }
-}
+                                        boolean flipMode, AutoBuildMode mode) {}

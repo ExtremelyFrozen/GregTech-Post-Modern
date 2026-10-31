@@ -26,17 +26,4 @@ public record PlannedCell(String structureName, PatternCellKey cellKey, BlockPos
                           CellAction action, PatternPredicate predicate,
                           List<BlockState> stateCandidates, @Nullable Direction requiredDirection,
                           List<AutoBuildItemKey> materialCandidates, @Nullable AutoBuildItemKey materialKey,
-                          List<ResourceLocation> tierGroups, List<String> constraintIds) {
-
-    public PlannedCell {
-        if (structureName.isBlank()) {
-            throw new IllegalArgumentException("structureName must not be blank");
-        }
-        relativePos = relativePos.immutable();
-        worldPos = worldPos == null ? null : worldPos.immutable();
-        stateCandidates = List.copyOf(stateCandidates);
-        materialCandidates = List.copyOf(materialCandidates);
-        tierGroups = List.copyOf(tierGroups);
-        constraintIds = List.copyOf(constraintIds);
-    }
-}
+                          List<ResourceLocation> tierGroups, List<String> constraintIds) {}

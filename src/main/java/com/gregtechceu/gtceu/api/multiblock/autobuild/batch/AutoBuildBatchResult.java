@@ -8,20 +8,7 @@ import java.util.List;
 public record AutoBuildBatchResult(AutoBuildBatchStatus status, int placed, int removed,
                                    List<AutoBuildStructureResult> structures) {
 
-    public AutoBuildBatchResult {
-        if (placed < 0 || removed < 0) {
-            throw new IllegalArgumentException("Batch block counts must be non-negative");
-        }
-        structures = List.copyOf(structures);
-        if (structures.isEmpty()) {
-            throw new IllegalArgumentException("A batch result requires at least one structure result");
-        }
-    }
-
     public static AutoBuildBatchResult of(List<AutoBuildStructureResult> results) {
-        if (results.isEmpty()) {
-            throw new IllegalArgumentException("A batch result requires at least one structure result");
-        }
         int succeeded = 0;
         int placed = 0;
         int removed = 0;
