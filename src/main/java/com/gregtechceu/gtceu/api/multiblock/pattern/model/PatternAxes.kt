@@ -7,15 +7,8 @@ import org.jspecify.annotations.NullMarked
 @JvmRecord
 data class PatternAxes(val depth: PatternDirection, val height: PatternDirection, val width: PatternDirection) {
 	init {
-		require(
-			!depth.isHeight() && !depth.isWidth() &&
-				!height.isDepth() && !height.isWidth() &&
-				!width.isDepth() && !width.isHeight(),
-		) {
-			"Pattern axes must use one direction pair per local axis"
-		}
-		require(depth != height && depth != width && height != width) {
-			"Pattern axes must be unique"
+		require(depth.ordinal / 2 != height.ordinal / 2 && depth.ordinal / 2 != width.ordinal / 2 && height.ordinal / 2 != width.ordinal / 2) {
+			"Pattern axes must use three different direction pairs"
 		}
 	}
 
