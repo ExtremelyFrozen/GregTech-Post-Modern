@@ -121,7 +121,6 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         int detailHeight = showAvailability ? MATERIAL_DETAIL_HEIGHT : 0;
         int sceneHeight = height - MATERIAL_BAR_HEIGHT - detailHeight;
         scene = new GTSceneElement(0, 0, width, sceneHeight);
-        scene.createScene(previewLevel);
         scene.setRenderFacing(false);
         scene.setRenderSelect(false);
         scene.setOnSelected((pos, facing) -> selectCell(pos));
@@ -228,6 +227,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
             releaseLoadedBlocks();
             if (sourceLevel == null) {
                 sceneCells.clear();
+                scene.createScene(previewLevel);
                 scene.setRenderedCore(ObjectList.of(), new PreviewCellRenderHook(), resetCamera);
                 rebuildMaterials();
                 updateDemolitionText();
@@ -246,13 +246,11 @@ public final class ClientMultiblockPreviewElement extends UIElement {
                 BlockPos scenePos = SCENE_ORIGIN.offset(cell.relativePos());
                 MultiblockBlockInfo blockInfo = cell.renderInfo().createBlockInfo();
                 previewLevel.addBlock(scenePos, blockInfo);
-                @Nullable
-                BlockEntity blockEntity = blockInfo.getBlockEntity(
-                        previewLevel.registryAccess(), previewLevel, scenePos);
-                if (blockEntity != null) previewLevel.setInnerBlockEntity(blockEntity);
                 loadedPositions.add(scenePos);
                 sceneCells.put(scenePos, cell);
             }
+            // Scene installs a core filter: attach it only after every block initializer has run.
+            scene.createScene(previewLevel);
             rebuildRenderedCore(resetCamera);
             rebuildMaterials();
             updateDemolitionText();
@@ -465,6 +463,8 @@ public final class ClientMultiblockPreviewElement extends UIElement {
     }
 
     private void releaseLoadedBlocks() {
+        // Hidden cells still own block entities that must be initialized and released with the whole preview.
+        previewLevel.setBlockFilter(null);
         for (BlockPos pos : loadedPositions) {
             @Nullable
             BlockEntity blockEntity = previewLevel.getBlockEntity(pos);
@@ -495,10 +495,8 @@ public final class ClientMultiblockPreviewElement extends UIElement {
             sourceLevel = currentLevel;
             previewLevel = currentLevel == null ?
                     new MultiblockPreviewLevel() : new MultiblockPreviewLevel(currentLevel);
-            scene.createScene(previewLevel);
-            scene.setRenderFacing(false);
-            scene.setRenderSelect(false);
             if (currentLevel == null) {
+                scene.createScene(previewLevel);
                 scene.setRenderedCore(ObjectList.of(), new PreviewCellRenderHook(), true);
             } else {
                 rebuildPreview(true);

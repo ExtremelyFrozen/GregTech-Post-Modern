@@ -229,12 +229,6 @@ public final class MultiblockInWorldPreviewRenderer {
             blockMap.put(worldPos, blockInfo);
             var previewInfo = blockInfo.createBlockInfo();
             previewLevel.addBlock(worldPos, previewInfo);
-            @Nullable
-            BlockEntity blockEntity = previewInfo.getBlockEntity(
-                    previewLevel.registryAccess(), previewLevel, worldPos);
-            if (blockEntity != null) {
-                previewLevel.setInnerBlockEntity(blockEntity);
-            }
         }
         return blockMap;
     }

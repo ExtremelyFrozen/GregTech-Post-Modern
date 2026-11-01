@@ -16,6 +16,8 @@ public class MultiblockPreviewLevel extends TrackedDummyWorld {
 
     public MultiblockPreviewLevel(Level level) {
         super(level);
+        // Keep the source registries, but read and write only the preview's own chunks and block entities.
+        proxyWorld.clear();
     }
 
     public Level getLevel() {
