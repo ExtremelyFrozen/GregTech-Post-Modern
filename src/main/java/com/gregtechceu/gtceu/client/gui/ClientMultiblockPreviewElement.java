@@ -1,5 +1,6 @@
 package com.gregtechceu.gtceu.client.gui;
 
+import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.gui.ColorPattern;
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.element.GTButtonElement;
@@ -25,6 +26,8 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.gui.ui.event.HoverTooltips;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
+import com.lowdragmc.lowdraglib2.integration.xei.emi.LDLibEMIPlugin;
+import com.lowdragmc.lowdraglib2.integration.xei.jei.LDLibJEIPlugin;
 import com.lowdragmc.lowdraglib2.utils.data.BlockPosFace;
 
 import net.minecraft.client.Minecraft;
@@ -42,6 +45,7 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 
 import com.mojang.blaze3d.systems.RenderSystem;
+import dev.emi.emi.api.stack.EmiStack;
 import dev.vfyjxf.taffy.style.TaffyPosition;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
@@ -50,6 +54,7 @@ import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
 import it.unimi.dsi.fastutil.objects.ObjectList;
+import mezz.jei.library.ingredients.itemStacks.TypedItemStack;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
@@ -167,6 +172,16 @@ public final class ClientMultiblockPreviewElement extends UIElement {
             scroller.layout(layout -> layout.height(4));
             scroller.getStyle().backgroundTexture(GuiTextures.SLIDER_BACKGROUND);
         });
+        // The container survives material changes; per-slot recipe widgets would retain removed slots.
+        if (GTCEu.MODS.isEMILoaded()) {
+            LDLibEMIPlugin.recipeSlot(materialScroller.viewContainer, () -> EmiStack.of(getHoveredMaterial()));
+        }
+        if (GTCEu.MODS.isJEILoaded()) {
+            LDLibJEIPlugin.recipeSlot(materialScroller.viewContainer, () -> {
+                var stack = getHoveredMaterial();
+                return stack.isEmpty() ? null : TypedItemStack.create(stack);
+            }, null);
+        }
         addChild(materialScroller);
 
         focusButton = navigationButton(width - 20, 2, "gtpm.multiblock.preview.tooltip.focus");
@@ -255,6 +270,12 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         renderedViewRevision = state.getViewRevision();
     }
 
+    private ItemStack getHoveredMaterial() {
+        var hovered = getModularUI().getLastHoveredElement();
+        return hovered instanceof GTItemSlotElement slot && slot.getParent() == materialScroller.viewContainer ?
+                slot.getValue() : ItemStack.EMPTY;
+    }
+
     private void rebuildMaterials() {
         materialScroller.clearAllScrollViewChildren();
         ObjectList<List<ItemStack>> displayStacks = state.getPreview().materials().stream()
@@ -293,7 +314,6 @@ public final class ClientMultiblockPreviewElement extends UIElement {
                 rebuildMaterialDetails();
             });
             slot.xeiRecipeIngredient();
-            slot.xeiRecipeSlot();
             materialScroller.addScrollViewChild(slot);
         }
         materialScroller.viewContainer.layout(layout -> layout

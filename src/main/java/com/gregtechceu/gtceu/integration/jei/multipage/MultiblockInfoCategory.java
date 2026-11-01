@@ -6,7 +6,6 @@ import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
 import com.gregtechceu.gtceu.api.registry.GTRegistries;
 import com.gregtechceu.gtceu.common.data.machines.GTMultiMachines;
 
-import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.integration.xei.jei.ModularUIRecipeCategory;
 
 import net.minecraft.MethodsReturnNonnullByDefault;
@@ -37,7 +36,7 @@ public class MultiblockInfoCategory extends ModularUIRecipeCategory<MultiblockIn
     private final IDrawable icon;
 
     public MultiblockInfoCategory(IJeiHelpers helpers) {
-        super(MultiblockInfoCategory::createModularUI);
+        super(MultiblockInfoWrapper::createModularUI);
         this.width = PatternPreviewWidget.WIDTH;
         this.height = PatternPreviewWidget.HEIGHT;
         this.icon = helpers.getGuiHelper().createDrawableItemStack(GTMultiMachines.ELECTRIC_BLAST_FURNACE.asStack());
@@ -89,9 +88,5 @@ public class MultiblockInfoCategory extends ModularUIRecipeCategory<MultiblockIn
         builder.addSlot(RecipeIngredientRole.OUTPUT)
                 .addItemStacks(PatternPreviewWidget.getOutputs(recipe.definition))
                 .setPosition(PatternPreviewWidget.WIDTH - 22, 4);
-    }
-
-    private static ModularUI createModularUI(MultiblockInfoWrapper wrapper) {
-        return wrapper.createModularUI();
     }
 }
