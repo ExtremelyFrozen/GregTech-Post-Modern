@@ -13,7 +13,7 @@ import com.gregtechceu.gtceu.api.multiblock.pattern.layout.PatternLayout;
 import com.gregtechceu.gtceu.api.multiblock.pattern.layout.PatternLayoutCell;
 import com.gregtechceu.gtceu.api.multiblock.pattern.match.MultiBlockPattern;
 import com.gregtechceu.gtceu.api.multiblock.structurepredicate.AbilityPredicate;
-import com.gregtechceu.gtceu.api.multiblock.structurepredicate.ConcatenatedPredicate;
+import com.gregtechceu.gtceu.api.multiblock.structurepredicate.AlternativePredicate;
 import com.gregtechceu.gtceu.api.multiblock.structurepredicate.PatternObservation;
 import com.gregtechceu.gtceu.api.multiblock.structurepredicate.PatternPredicate;
 import com.gregtechceu.gtceu.api.multiblock.structurepredicate.PredicateRule;
@@ -199,7 +199,8 @@ final class CandidateExpansion {
             String category = BlockCategories.getCategory(state.getBlock());
             ObjectList<String> tierGroups = mergeTierGroups(candidate.tierGroups(),
                     category == null ? ObjectList.of() : ObjectList.of(category));
-            result.add(new ResolvedCandidate(state, blockInfo, candidate.limits(), candidate.hatch(),
+            result.add(new ResolvedCandidate(state, blockInfo, candidate.limits(),
+                    candidate.hatch() || isHatch(state.getBlock()),
                     tierGroups, candidate.order(), materialKey, false, candidate.observation()));
         }
         if (result.isEmpty()) {
@@ -243,8 +244,8 @@ final class CandidateExpansion {
                     .map(choice -> choice.withLimit(limit))
                     .collect(ObjectImmutableList.toList());
         }
-        if (predicate instanceof ConcatenatedPredicate(ObjectList<StructurePredicate> predicates)) {
-            return predicates.stream()
+        if (predicate instanceof AlternativePredicate alternatives) {
+            return alternatives.previewAlternatives(definition).stream()
                     .flatMap(child -> structureChoices(child, definition, constraintIds).stream())
                     .collect(ObjectImmutableList.toList());
         }

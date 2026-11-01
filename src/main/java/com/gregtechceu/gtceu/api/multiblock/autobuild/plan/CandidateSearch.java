@@ -68,6 +68,7 @@ final class CandidateSearch {
     ObjectList<SelectedCell> solve(ObjectList<UnresolvedCell> cells,
                                    ObjectList<ConstraintLimit> requirements,
                                    ObjectList<BuildProblem> problems) {
+        if (minimizeHatches) cells = withoutOptionalHatches(cells);
         for (ConstraintLimit requirement : requirements) limits.put(requirement.key(), requirement);
         registerLimits(cells);
         ObjectList<VariableGroup> groups = groupCells(cells);
@@ -91,6 +92,18 @@ final class CandidateSearch {
             result.add(new SelectedCell(cell, selected));
         }
         return new ObjectImmutableList<>(result);
+    }
+
+    private static ObjectList<UnresolvedCell> withoutOptionalHatches(ObjectList<UnresolvedCell> cells) {
+        return cells.stream().map(cell -> {
+            if (cell.candidates().stream().noneMatch(candidate -> !candidate.hatch())) return cell;
+            // A preview count never makes a hatch mandatory. Keep counted minimums in the exact solver's domain.
+            ObjectList<ResolvedCandidate> candidates = cell.candidates().stream()
+                    .filter(candidate -> !candidate.hatch() || candidate.limits().stream()
+                            .anyMatch(limit -> limit.min() > 0 || limit.layerMin() > 0))
+                    .collect(ObjectImmutableList.toList());
+            return cell.withCandidates(candidates);
+        }).collect(ObjectImmutableList.toList());
     }
 
     int[] projectAssignments(ObjectList<UnresolvedCell> cells, ObjectList<VariableGroup> groups,
