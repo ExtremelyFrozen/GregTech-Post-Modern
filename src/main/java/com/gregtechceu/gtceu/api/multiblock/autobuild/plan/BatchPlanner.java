@@ -7,10 +7,12 @@ import com.gregtechceu.gtceu.api.multiblock.autobuild.BuildProblem;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialKey;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialSource;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.BatchRequest;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.BuildPolicy;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.StructureOperation;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.StructureRequest;
 import com.gregtechceu.gtceu.api.multiblock.pattern.layout.PatternLayoutCell;
 import com.gregtechceu.gtceu.api.multiblock.pattern.match.MultiBlockPattern;
+import com.gregtechceu.gtceu.data.pattern.StructurePatternRegistry;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -36,6 +38,8 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.Comparator;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import static com.gregtechceu.gtceu.api.multiblock.autobuild.plan.CandidateExpansion.*;
 import static com.gregtechceu.gtceu.api.multiblock.autobuild.plan.PlanAssembly.*;
@@ -51,12 +55,23 @@ public final class BatchPlanner {
     static final Direction CANONICAL_FRONT = Direction.NORTH;
     static final Direction CANONICAL_UP = Direction.NORTH;
 
+    private static final ConcurrentMap<CanonicalKey, BatchPlan> CANONICAL_PLANS = new ConcurrentHashMap<>();
+
+    static {
+        StructurePatternRegistry.addReloadListener(CANONICAL_PLANS::clear);
+    }
+
     /**
      * Resolves an XEI-style plan against an empty world and unlimited representative materials.
      */
     public BatchPlan resolveCanonical(MultiblockMachineDefinition definition, BatchRequest request) {
-        return resolve(definition, request, new ResolutionContext(null, null, null, BlockPos.ZERO, CANONICAL_FRONT,
-                CANONICAL_UP, true, true)).plan();
+        return CANONICAL_PLANS.computeIfAbsent(
+                new CanonicalKey(definition, request.structures(), request.sharedOptions(),
+                        StructurePatternRegistry.generation()),
+                key -> resolve(definition, request,
+                        new ResolutionContext(null, null, null, BlockPos.ZERO, CANONICAL_FRONT,
+                                CANONICAL_UP, true, true))
+                        .plan());
     }
 
     /**
@@ -327,6 +342,9 @@ public final class BatchPlanner {
             return canonical ? null : origin;
         }
     }
+
+    private record CanonicalKey(MultiblockMachineDefinition definition, ObjectList<StructureRequest> structures,
+                                BuildPolicy policy, long generation) {}
 
     record PendingStructure(StructureRequest options, IntList repetitions,
                             ObjectList<UnresolvedCell> cells, ObjectList<ConstraintLimit> requirements,
