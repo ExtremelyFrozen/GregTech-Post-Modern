@@ -10,9 +10,8 @@ import net.minecraft.world.level.block.DoorBlock;
 import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
 
 import com.mojang.serialization.MapCodec;
+import it.unimi.dsi.fastutil.objects.ObjectList;
 import org.jetbrains.annotations.Unmodifiable;
-
-import java.util.List;
 
 /**
  * Matches cleanroom door blocks.
@@ -34,15 +33,15 @@ public enum CleanroomDoorPredicate implements StructurePredicate {
     }
 
     @Override
-    public @Unmodifiable List<MultiblockBlockInfo> candidates() {
-        return List.of(
+    public @Unmodifiable ObjectList<MultiblockBlockInfo> candidates() {
+        return ObjectList.of(
                 new MultiblockBlockInfo(Blocks.IRON_DOOR.defaultBlockState()),
                 new MultiblockBlockInfo(
                         Blocks.IRON_DOOR.defaultBlockState().setValue(DoorBlock.HALF, DoubleBlockHalf.UPPER)));
     }
 
     @Override
-    public @Unmodifiable List<Block> blockCandidates() {
-        return List.of(Blocks.IRON_DOOR);
+    public @Unmodifiable ObjectList<Block> blockCandidates() {
+        return ObjectList.of(Blocks.IRON_DOOR);
     }
 }

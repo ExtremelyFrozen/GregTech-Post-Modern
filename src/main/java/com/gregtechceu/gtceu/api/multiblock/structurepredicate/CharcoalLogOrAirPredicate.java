@@ -11,9 +11,9 @@ import net.minecraft.world.level.block.Block;
 
 import com.mojang.serialization.MapCodec;
 import it.unimi.dsi.fastutil.longs.Long2BooleanOpenHashMap;
+import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
+import it.unimi.dsi.fastutil.objects.ObjectList;
 import org.jetbrains.annotations.Unmodifiable;
-
-import java.util.List;
 
 /**
  * Matches burnable logs or air and records log positions for the charcoal pile burn conversion.
@@ -43,17 +43,17 @@ public enum CharcoalLogOrAirPredicate implements StructurePredicate {
     }
 
     @Override
-    public @Unmodifiable List<MultiblockBlockInfo> candidates() {
-        return blockCandidates().stream().map(MultiblockBlockInfo::fromBlock).toList();
+    public @Unmodifiable ObjectList<MultiblockBlockInfo> candidates() {
+        return blockCandidates().stream().map(MultiblockBlockInfo::fromBlock).collect(ObjectImmutableList.toList());
     }
 
     @Override
-    public @Unmodifiable List<Block> blockCandidates() {
+    public @Unmodifiable ObjectList<Block> blockCandidates() {
         return BuiltInRegistries.BLOCK.getTag(BlockTags.LOGS_THAT_BURN)
                 .stream()
                 .flatMap(HolderSet.Named::stream)
                 .map(Holder::value)
-                .toList();
+                .collect(ObjectImmutableList.toList());
     }
 
     @Override

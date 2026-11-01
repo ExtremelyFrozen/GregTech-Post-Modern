@@ -6,18 +6,18 @@ import com.gregtechceu.gtceu.utils.GTUtil;
 
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
 
 import com.mojang.serialization.MapCodec;
+import it.unimi.dsi.fastutil.objects.ObjectList;
 import org.jetbrains.annotations.Unmodifiable;
-
-import java.util.List;
 
 /**
  * Serialized snow predicate for JSON multiblock patterns.
  *
  * <p>
  * This predicate replaces Java-only custom snow checks and accepts the same states as
- * {@link GTUtil#isBlockSnow(net.minecraft.world.level.block.state.BlockState)}.
+ * {@link GTUtil#isBlockSnow(BlockState)}.
  */
 public enum SnowPredicate implements StructurePredicate {
 
@@ -39,12 +39,12 @@ public enum SnowPredicate implements StructurePredicate {
     }
 
     @Override
-    public @Unmodifiable List<MultiblockBlockInfo> candidates() {
-        return List.of(MultiblockBlockInfo.fromBlockState(Blocks.SNOW_BLOCK.defaultBlockState()));
+    public @Unmodifiable ObjectList<MultiblockBlockInfo> candidates() {
+        return ObjectList.of(MultiblockBlockInfo.fromBlockState(Blocks.SNOW_BLOCK.defaultBlockState()));
     }
 
     @Override
-    public @Unmodifiable List<Block> blockCandidates() {
-        return List.of(Blocks.SNOW_BLOCK);
+    public @Unmodifiable ObjectList<Block> blockCandidates() {
+        return ObjectList.of(Blocks.SNOW_BLOCK);
     }
 }

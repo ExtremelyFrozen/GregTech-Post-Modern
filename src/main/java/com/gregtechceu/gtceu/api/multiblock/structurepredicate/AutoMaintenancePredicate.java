@@ -11,10 +11,10 @@ import net.minecraft.world.level.block.Block;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
+import it.unimi.dsi.fastutil.objects.ObjectList;
 import org.jetbrains.annotations.Unmodifiable;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * JSON predicate for the maintenance, muffler and parallel-hatch branch of legacy {@code autoAbilities(...)}.
@@ -23,11 +23,11 @@ public record AutoMaintenancePredicate(boolean checkMaintenance, boolean checkMu
         implements StructurePredicate {
 
     private static final StructurePredicate MUFFLER = RestrictedPredicate.builder()
-            .base(new AbilityPredicate(List.of(PartAbility.MUFFLER)))
+            .base(new AbilityPredicate(ObjectList.of(PartAbility.MUFFLER)))
             .exactCount(1)
             .build();
     private static final StructurePredicate PARALLEL = RestrictedPredicate.builder()
-            .base(new AbilityPredicate(List.of(PartAbility.PARALLEL_HATCH)))
+            .base(new AbilityPredicate(ObjectList.of(PartAbility.PARALLEL_HATCH)))
             .maxCount(1)
             .previewCount(1)
             .build();
@@ -56,22 +56,25 @@ public record AutoMaintenancePredicate(boolean checkMaintenance, boolean checkMu
     }
 
     @Override
-    public @Unmodifiable List<MultiblockBlockInfo> candidates() {
-        return predicates().stream().flatMap(predicate -> predicate.candidates().stream()).toList();
+    public @Unmodifiable ObjectList<MultiblockBlockInfo> candidates() {
+        return predicates().stream().flatMap(predicate -> predicate.candidates().stream())
+                .collect(ObjectImmutableList.toList());
     }
 
     @Override
-    public @Unmodifiable List<Block> blockCandidates() {
-        return predicates().stream().flatMap(predicate -> predicate.blockCandidates().stream()).toList();
+    public @Unmodifiable ObjectList<Block> blockCandidates() {
+        return predicates().stream().flatMap(predicate -> predicate.blockCandidates().stream())
+                .collect(ObjectImmutableList.toList());
     }
 
     @Override
-    public @Unmodifiable List<StructurePreviewChoice> previewChoices(MultiblockMachineDefinition definition) {
-        return predicates().stream().flatMap(predicate -> predicate.previewChoices(definition).stream()).toList();
+    public @Unmodifiable ObjectList<StructurePreviewChoice> previewChoices(MultiblockMachineDefinition definition) {
+        return predicates().stream().flatMap(predicate -> predicate.previewChoices(definition).stream())
+                .collect(ObjectImmutableList.toList());
     }
 
-    private List<StructurePredicate> predicates() {
-        List<StructurePredicate> predicates = new ArrayList<>();
+    private ObjectList<StructurePredicate> predicates() {
+        ObjectList<StructurePredicate> predicates = new ObjectArrayList<>();
         if (checkMaintenance) {
             predicates.add(maintenancePredicate());
         }
@@ -92,12 +95,12 @@ public record AutoMaintenancePredicate(boolean checkMaintenance, boolean checkMu
     private static final class MaintenancePredicate {
 
         private static final StructurePredicate ENABLED = RestrictedPredicate.builder()
-                .base(new AbilityPredicate(List.of(PartAbility.MAINTENANCE)))
+                .base(new AbilityPredicate(ObjectList.of(PartAbility.MAINTENANCE)))
                 .minCount(1)
                 .maxCount(1)
                 .build();
         private static final StructurePredicate DISABLED = RestrictedPredicate.builder()
-                .base(new AbilityPredicate(List.of(PartAbility.MAINTENANCE)))
+                .base(new AbilityPredicate(ObjectList.of(PartAbility.MAINTENANCE)))
                 .minCount(0)
                 .maxCount(1)
                 .build();

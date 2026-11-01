@@ -19,12 +19,11 @@ import com.gregtechceu.gtceu.common.machine.trait.CleanroomReceiverTrait;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 
-import com.google.common.collect.Sets;
 import com.mojang.serialization.MapCodec;
+import it.unimi.dsi.fastutil.objects.ObjectList;
+import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
+import it.unimi.dsi.fastutil.objects.ObjectSet;
 import org.jetbrains.annotations.Unmodifiable;
-
-import java.util.List;
-import java.util.Set;
 
 /**
  * Matches any cleanroom interior block while rejecting machine types that contaminate the room.
@@ -48,8 +47,8 @@ public enum CleanroomInnerPredicate implements StructurePredicate {
                 return false;
             }
             if (mutateCount) {
-                Set<CleanroomReceiverTrait> receivers = multiblockState.getFacts()
-                        .getOrCreate("cleanroomReceiver", Sets::newHashSet);
+                ObjectSet<CleanroomReceiverTrait> receivers = multiblockState.getFacts()
+                        .getOrCreate("cleanroomReceiver", ObjectOpenHashSet::new);
                 machine.getTraitOptional(CleanroomReceiverTrait.TYPE).ifPresent(receivers::add);
             }
         }
@@ -57,13 +56,13 @@ public enum CleanroomInnerPredicate implements StructurePredicate {
     }
 
     @Override
-    public @Unmodifiable List<MultiblockBlockInfo> candidates() {
-        return List.of();
+    public @Unmodifiable ObjectList<MultiblockBlockInfo> candidates() {
+        return ObjectList.of();
     }
 
     @Override
-    public @Unmodifiable List<Block> blockCandidates() {
-        return List.of();
+    public @Unmodifiable ObjectList<Block> blockCandidates() {
+        return ObjectList.of();
     }
 
     @Override

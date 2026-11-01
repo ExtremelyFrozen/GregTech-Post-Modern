@@ -14,10 +14,13 @@ import net.neoforged.neoforge.common.util.Lazy;
 
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import it.unimi.dsi.fastutil.objects.ObjectCollection;
+import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
+import it.unimi.dsi.fastutil.objects.ObjectList;
 import org.jetbrains.annotations.Unmodifiable;
 import org.jspecify.annotations.Nullable;
 
-import java.util.*;
+import java.util.Objects;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -30,12 +33,13 @@ public final class BlockTagPredicate implements StructurePredicate {
                     .forGetter(BlockTagPredicate::blockTagKeys))
             .apply(instance, BlockTagPredicate::new));
 
-    private final List<TagKey<Block>> blockTagKeys;
-    private final Lazy<List<Block>> candidates;
+    private final ObjectList<TagKey<Block>> blockTagKeys;
+    private final Lazy<ObjectList<Block>> candidates;
 
-    public BlockTagPredicate(List<TagKey<Block>> blockTagKeys) {
+    public BlockTagPredicate(ObjectList<TagKey<Block>> blockTagKeys) {
         this.blockTagKeys = blockTagKeys;
-        this.candidates = Lazy.of(() -> unwrapTags(BuiltInRegistries.BLOCK, blockTagKeys).toList());
+        this.candidates = Lazy.of(() -> unwrapTags(BuiltInRegistries.BLOCK, blockTagKeys)
+                .collect(ObjectImmutableList.toList()));
     }
 
     @Override
@@ -44,12 +48,12 @@ public final class BlockTagPredicate implements StructurePredicate {
     }
 
     @Override
-    public List<MultiblockBlockInfo> candidates() {
-        return candidates.get().stream().map(MultiblockBlockInfo::new).toList();
+    public ObjectList<MultiblockBlockInfo> candidates() {
+        return candidates.get().stream().map(MultiblockBlockInfo::new).collect(ObjectImmutableList.toList());
     }
 
     @Override
-    public @Unmodifiable List<Block> blockCandidates() {
+    public @Unmodifiable ObjectList<Block> blockCandidates() {
         return candidates.get();
     }
 
@@ -64,13 +68,13 @@ public final class BlockTagPredicate implements StructurePredicate {
     }
 
     // FIXME: find a better way or move to utils
-    static <T> Stream<T> unwrapTags(Registry<T> registry, Collection<TagKey<T>> tagKeys) {
+    static <T> Stream<T> unwrapTags(Registry<T> registry, ObjectCollection<TagKey<T>> tagKeys) {
         return tagKeys.stream()
                 .flatMap(key -> StreamSupport.stream(registry.getTagOrEmpty(key).spliterator(), false)
                         .map(Holder::value));
     }
 
-    public List<TagKey<Block>> blockTagKeys() {
+    public ObjectList<TagKey<Block>> blockTagKeys() {
         return blockTagKeys;
     }
 

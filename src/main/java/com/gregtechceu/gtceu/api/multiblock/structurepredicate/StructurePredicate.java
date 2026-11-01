@@ -14,9 +14,6 @@ import com.mojang.serialization.DataResult;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectList;
 import it.unimi.dsi.fastutil.objects.ObjectLists;
-import org.jetbrains.annotations.Unmodifiable;
-
-import java.util.*;
 
 public interface StructurePredicate {
 
@@ -39,7 +36,7 @@ public interface StructurePredicate {
     default ObjectList<BlockState> candidateStates() {
         var states = new ObjectArrayList<BlockState>();
         for (Block block : blockCandidates()) states.add(block.defaultBlockState());
-        return ObjectLists.unmodifiable(states);
+        return states;
     }
 
     Codec<StructurePredicate> CODEC = typeCodec()
@@ -64,14 +61,12 @@ public interface StructurePredicate {
                 });
     }
 
-    @Unmodifiable
-    default List<MultiblockBlockInfo> candidates() {
-        return List.of();
+    default ObjectList<MultiblockBlockInfo> candidates() {
+        return ObjectList.of();
     }
 
-    @Unmodifiable
-    default List<Block> blockCandidates() {
-        return List.of();
+    default ObjectList<Block> blockCandidates() {
+        return ObjectList.of();
     }
 
     /**
@@ -81,8 +76,7 @@ public interface StructurePredicate {
      * @param definition machine definition owning the pattern being previewed
      * @return ordered preview choices, or an empty list when this predicate cannot provide a representative block
      */
-    @Unmodifiable
-    default List<StructurePreviewChoice> previewChoices(MultiblockMachineDefinition definition) {
+    default ObjectList<StructurePreviewChoice> previewChoices(MultiblockMachineDefinition definition) {
         var previewCandidates = new ObjectArrayList<MultiblockBlockInfo>();
         for (BlockState state : candidateStates()) previewCandidates.add(new MultiblockBlockInfo(state));
         if (!previewCandidates.isEmpty()) {

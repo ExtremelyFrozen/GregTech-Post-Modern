@@ -7,18 +7,16 @@ import com.gregtechceu.gtceu.api.multiblock.MultiblockState;
 import com.gregtechceu.gtceu.api.multiblock.error.PatternStringError;
 import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PatternObservation;
 import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PatternPredicates;
-import com.gregtechceu.gtceu.common.block.CoilBlock;
 
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 
 import com.mojang.serialization.MapCodec;
+import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
+import it.unimi.dsi.fastutil.objects.ObjectList;
 import org.jetbrains.annotations.Unmodifiable;
 
 import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Supplier;
 
 public enum HeatingCoilPredicate implements StructurePredicate {
 
@@ -39,7 +37,7 @@ public enum HeatingCoilPredicate implements StructurePredicate {
     @Override
     public boolean test(MultiblockState multiblockState, boolean mutateCount) {
         var blockState = multiblockState.getBlockState();
-        for (Map.Entry<ICoilType, Supplier<CoilBlock>> entry : GTCEuAPI.HEATING_COILS.entrySet()) {
+        for (var entry : GTCEuAPI.HEATING_COILS.entrySet()) {
             if (blockState.is(entry.getValue().get())) {
                 ICoilType stats = entry.getKey();
                 Object currentCoil = multiblockState.getFacts().getOrPut("CoilType", stats);
@@ -54,18 +52,18 @@ public enum HeatingCoilPredicate implements StructurePredicate {
     }
 
     @Override
-    public @Unmodifiable List<MultiblockBlockInfo> candidates() {
+    public @Unmodifiable ObjectList<MultiblockBlockInfo> candidates() {
         return GTCEuAPI.HEATING_COILS.entrySet().stream()
                 .sorted(Comparator.comparingInt(value -> value.getKey().getTier()))
                 .map(coil -> MultiblockBlockInfo.fromBlockState(coil.getValue().get().defaultBlockState()))
-                .toList();
+                .collect(ObjectImmutableList.toList());
     }
 
     @Override
-    public @Unmodifiable List<Block> blockCandidates() {
+    public @Unmodifiable ObjectList<Block> blockCandidates() {
         return GTCEuAPI.HEATING_COILS.entrySet().stream()
                 .sorted(Comparator.comparingInt(value -> value.getKey().getTier()))
                 .map(coil -> (Block) coil.getValue().get())
-                .toList();
+                .collect(ObjectImmutableList.toList());
     }
 }

@@ -11,9 +11,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ObjectList;
-import it.unimi.dsi.fastutil.objects.ObjectLists;
 
-import java.util.List;
 import java.util.function.Function;
 
 /**
@@ -28,20 +26,13 @@ public record StructurePreviewChoice(ObjectList<MultiblockBlockInfo> candidates,
                                      ObjectList<Component> tooltips,
                                      Function<BlockState, PatternObservation> observer) {
 
-    public StructurePreviewChoice {
-        candidates = ObjectLists.unmodifiable(new ObjectArrayList<>(candidates));
-        constraints = ObjectLists.unmodifiable(new ObjectArrayList<>(constraints));
-        tooltips = ObjectLists.unmodifiable(new ObjectArrayList<>(tooltips));
+    /** Absent an explicit observer, only the supplied full states can succeed. */
+    public StructurePreviewChoice(ObjectList<MultiblockBlockInfo> candidates,
+                                  ObjectList<StructurePreviewConstraint> constraints, ObjectList<Component> tooltips) {
+        this(candidates, constraints, tooltips, declaredStates(candidates));
     }
 
-    /** Original collection API boundary; absent an explicit observer only declared full states can succeed. */
-    public StructurePreviewChoice(List<MultiblockBlockInfo> candidates,
-                                  List<StructurePreviewConstraint> constraints, List<Component> tooltips) {
-        this(new ObjectArrayList<>(candidates), new ObjectArrayList<>(constraints),
-                new ObjectArrayList<>(tooltips), declaredStates(candidates));
-    }
-
-    private static Function<BlockState, PatternObservation> declaredStates(List<MultiblockBlockInfo> candidates) {
+    private static Function<BlockState, PatternObservation> declaredStates(ObjectList<MultiblockBlockInfo> candidates) {
         var states = new ObjectLinkedOpenHashSet<BlockState>();
         for (MultiblockBlockInfo candidate : candidates) states.add(candidate.getBlockState());
         return state -> PatternObservation.of(states.contains(state));
@@ -59,15 +50,15 @@ public record StructurePreviewChoice(ObjectList<MultiblockBlockInfo> candidates,
     /**
      * Creates an unrestricted choice for a leaf predicate.
      */
-    public static StructurePreviewChoice unrestricted(List<MultiblockBlockInfo> candidates) {
-        return new StructurePreviewChoice(candidates, List.of(), List.of());
+    public static StructurePreviewChoice unrestricted(ObjectList<MultiblockBlockInfo> candidates) {
+        return new StructurePreviewChoice(candidates, ObjectList.of(), ObjectList.of());
     }
 
     /**
      * Adds an enclosing restriction without discarding constraints owned by nested predicates.
      */
     public StructurePreviewChoice restrictedBy(StructurePreviewConstraint constraint,
-                                               List<Component> additionalTooltips) {
+                                               ObjectList<Component> additionalTooltips) {
         var combinedConstraints = new ObjectArrayList<StructurePreviewConstraint>(constraints.size() + 1);
         combinedConstraints.addAll(constraints);
         combinedConstraints.add(constraint);

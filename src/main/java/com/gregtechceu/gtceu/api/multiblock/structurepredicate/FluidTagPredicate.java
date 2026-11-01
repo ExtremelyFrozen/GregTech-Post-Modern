@@ -13,10 +13,12 @@ import net.neoforged.neoforge.common.util.Lazy;
 
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
+import it.unimi.dsi.fastutil.objects.ObjectList;
 import org.jetbrains.annotations.Unmodifiable;
 import org.jspecify.annotations.Nullable;
 
-import java.util.*;
+import java.util.Objects;
 
 import static com.gregtechceu.gtceu.api.multiblock.structurepredicate.Util.oneOrMore;
 
@@ -26,12 +28,13 @@ public final class FluidTagPredicate implements StructurePredicate {
             .group(oneOrMore(TagKey.codec(Registries.FLUID)).fieldOf("fluidTagKeys")
                     .forGetter(FluidTagPredicate::fluidTagKeys))
             .apply(instance, FluidTagPredicate::new));
-    private final List<TagKey<Fluid>> fluidTagKeys;
-    private final Lazy<List<Fluid>> candidates;
+    private final ObjectList<TagKey<Fluid>> fluidTagKeys;
+    private final Lazy<ObjectList<Fluid>> candidates;
 
-    public FluidTagPredicate(List<TagKey<Fluid>> fluidTagKeys) {
+    public FluidTagPredicate(ObjectList<TagKey<Fluid>> fluidTagKeys) {
         this.fluidTagKeys = fluidTagKeys;
-        this.candidates = Lazy.of(() -> BlockTagPredicate.unwrapTags(BuiltInRegistries.FLUID, fluidTagKeys).toList());
+        this.candidates = Lazy.of(() -> BlockTagPredicate.unwrapTags(BuiltInRegistries.FLUID, fluidTagKeys)
+                .collect(ObjectImmutableList.toList()));
     }
 
     @Override
@@ -40,17 +43,17 @@ public final class FluidTagPredicate implements StructurePredicate {
     }
 
     @Override
-    public List<MultiblockBlockInfo> candidates() {
-        return candidates.get().stream().map(FluidPredicate::blockInfoFromFluid).toList();
+    public ObjectList<MultiblockBlockInfo> candidates() {
+        return candidates.get().stream().map(FluidPredicate::blockInfoFromFluid).collect(ObjectImmutableList.toList());
     }
 
     @Override
-    public @Unmodifiable List<Block> blockCandidates() {
+    public @Unmodifiable ObjectList<Block> blockCandidates() {
         return candidates.get().stream()
                 .map(FluidPredicate::blockStateFromFluid)
                 .map(BlockState::getBlock)
                 .distinct()
-                .toList();
+                .collect(ObjectImmutableList.toList());
     }
 
     @Override
@@ -58,7 +61,7 @@ public final class FluidTagPredicate implements StructurePredicate {
         return candidates.get().contains(multiblockState.getBlockState().getFluidState().getType());
     }
 
-    public List<TagKey<Fluid>> fluidTagKeys() {
+    public ObjectList<TagKey<Fluid>> fluidTagKeys() {
         return fluidTagKeys;
     }
 

@@ -15,11 +15,13 @@ import net.minecraft.world.level.block.Block;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
+import it.unimi.dsi.fastutil.objects.ObjectList;
 import org.jetbrains.annotations.Unmodifiable;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 import java.util.function.Predicate;
 
 /**
@@ -34,7 +36,7 @@ public record AutoRecipeAbilityPredicate(boolean checkEnergyIn, boolean checkEne
                                          boolean checkItemOut, boolean checkFluidIn, boolean checkFluidOut)
         implements StructurePredicate {
 
-    private static final Map<PartAbility, StructurePredicate> ABILITY_PREDICATES = createAbilityPatternPredicates();
+    private static final Object2ObjectMap<PartAbility, StructurePredicate> ABILITY_PREDICATES = createAbilityPatternPredicates();
 
     public static final MapCodec<AutoRecipeAbilityPredicate> CODEC = RecordCodecBuilder.mapCodec(instance -> instance
             .group(
@@ -67,23 +69,23 @@ public record AutoRecipeAbilityPredicate(boolean checkEnergyIn, boolean checkEne
     }
 
     @Override
-    public @Unmodifiable List<MultiblockBlockInfo> candidates() {
-        return List.of();
+    public @Unmodifiable ObjectList<MultiblockBlockInfo> candidates() {
+        return ObjectList.of();
     }
 
     @Override
-    public @Unmodifiable List<Block> blockCandidates() {
-        return List.of();
+    public @Unmodifiable ObjectList<Block> blockCandidates() {
+        return ObjectList.of();
     }
 
     @Override
-    public @Unmodifiable List<StructurePreviewChoice> previewChoices(MultiblockMachineDefinition definition) {
+    public @Unmodifiable ObjectList<StructurePreviewChoice> previewChoices(MultiblockMachineDefinition definition) {
         return collectPatternPredicates(definition.getRecipeTypes()).stream()
                 .flatMap(predicate -> predicate.previewChoices(definition).stream())
-                .toList();
+                .collect(ObjectImmutableList.toList());
     }
 
-    private List<StructurePredicate> collectPatternPredicates(MultiblockState multiblockState) {
+    private ObjectList<StructurePredicate> collectPatternPredicates(MultiblockState multiblockState) {
         MultiblockControllerMachine controller = multiblockState.getController();
         if (controller == null) {
             throw new IllegalStateException("Auto recipe ability predicates require a multiblock controller");
@@ -91,8 +93,8 @@ public record AutoRecipeAbilityPredicate(boolean checkEnergyIn, boolean checkEne
         return collectPatternPredicates(controller.getDefinition().getRecipeTypes());
     }
 
-    private List<StructurePredicate> collectPatternPredicates(GTRecipeType[] recipeTypes) {
-        List<StructurePredicate> predicates = new ArrayList<>();
+    private ObjectList<StructurePredicate> collectPatternPredicates(GTRecipeType[] recipeTypes) {
+        ObjectList<StructurePredicate> predicates = new ObjectArrayList<>();
         addRecipePredicate(predicates, checkEnergyIn, recipeTypes,
                 type -> type.getMaxInputs(EURecipeCapability.CAP) > 0, PartAbility.INPUT_ENERGY, true);
         addRecipePredicate(predicates, checkEnergyOut, recipeTypes,
@@ -108,7 +110,7 @@ public record AutoRecipeAbilityPredicate(boolean checkEnergyIn, boolean checkEne
         return predicates;
     }
 
-    private static void addRecipePredicate(List<StructurePredicate> predicates, boolean enabled,
+    private static void addRecipePredicate(ObjectList<StructurePredicate> predicates, boolean enabled,
                                            GTRecipeType[] recipeTypes,
                                            Predicate<GTRecipeType> capabilityMatcher,
                                            PartAbility ability,
@@ -128,19 +130,20 @@ public record AutoRecipeAbilityPredicate(boolean checkEnergyIn, boolean checkEne
         return false;
     }
 
-    private static Map<PartAbility, StructurePredicate> createAbilityPatternPredicates() {
-        return Map.of(
-                PartAbility.INPUT_ENERGY, limitedEnergyPredicate(PartAbility.INPUT_ENERGY),
-                PartAbility.OUTPUT_ENERGY, limitedEnergyPredicate(PartAbility.OUTPUT_ENERGY),
-                PartAbility.IMPORT_ITEMS, previewPredicate(PartAbility.IMPORT_ITEMS),
-                PartAbility.EXPORT_ITEMS, previewPredicate(PartAbility.EXPORT_ITEMS),
-                PartAbility.IMPORT_FLUIDS, previewPredicate(PartAbility.IMPORT_FLUIDS),
-                PartAbility.EXPORT_FLUIDS, previewPredicate(PartAbility.EXPORT_FLUIDS));
+    private static Object2ObjectMap<PartAbility, StructurePredicate> createAbilityPatternPredicates() {
+        Object2ObjectMap<PartAbility, StructurePredicate> predicates = new Object2ObjectOpenHashMap<>();
+        predicates.put(PartAbility.INPUT_ENERGY, limitedEnergyPredicate(PartAbility.INPUT_ENERGY));
+        predicates.put(PartAbility.OUTPUT_ENERGY, limitedEnergyPredicate(PartAbility.OUTPUT_ENERGY));
+        predicates.put(PartAbility.IMPORT_ITEMS, previewPredicate(PartAbility.IMPORT_ITEMS));
+        predicates.put(PartAbility.EXPORT_ITEMS, previewPredicate(PartAbility.EXPORT_ITEMS));
+        predicates.put(PartAbility.IMPORT_FLUIDS, previewPredicate(PartAbility.IMPORT_FLUIDS));
+        predicates.put(PartAbility.EXPORT_FLUIDS, previewPredicate(PartAbility.EXPORT_FLUIDS));
+        return predicates;
     }
 
     private static RestrictedPredicate limitedEnergyPredicate(PartAbility ability) {
         return RestrictedPredicate.builder()
-                .base(new AbilityPredicate(List.of(ability)))
+                .base(new AbilityPredicate(ObjectList.of(ability)))
                 .minCount(1)
                 .maxCount(2)
                 .previewCount(1)
@@ -149,7 +152,7 @@ public record AutoRecipeAbilityPredicate(boolean checkEnergyIn, boolean checkEne
 
     private static RestrictedPredicate previewPredicate(PartAbility ability) {
         return RestrictedPredicate.builder()
-                .base(new AbilityPredicate(List.of(ability)))
+                .base(new AbilityPredicate(ObjectList.of(ability)))
                 .previewCount(1)
                 .build();
     }

@@ -10,20 +10,17 @@ import net.minecraft.world.level.block.state.BlockState;
 
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
 import it.unimi.dsi.fastutil.objects.ObjectList;
-import it.unimi.dsi.fastutil.objects.ObjectLists;
 import org.jetbrains.annotations.Unmodifiable;
-
-import java.util.*;
 
 import static com.gregtechceu.gtceu.api.multiblock.structurepredicate.Util.oneOrMore;
 
-public record BlockStatePredicate(List<BlockState> blockStates) implements StructurePredicate {
+public record BlockStatePredicate(ObjectList<BlockState> blockStates) implements StructurePredicate {
 
     @Override
     public ObjectList<BlockState> candidateStates() {
-        return ObjectLists.unmodifiable(new ObjectArrayList<>(blockStates));
+        return blockStates;
     }
 
     @Override
@@ -41,13 +38,13 @@ public record BlockStatePredicate(List<BlockState> blockStates) implements Struc
     }
 
     @Override
-    public List<MultiblockBlockInfo> candidates() {
-        return blockStates.stream().map(MultiblockBlockInfo::new).toList();
+    public ObjectList<MultiblockBlockInfo> candidates() {
+        return blockStates.stream().map(MultiblockBlockInfo::new).collect(ObjectImmutableList.toList());
     }
 
     @Override
-    public @Unmodifiable List<Block> blockCandidates() {
-        return blockStates.stream().map(BlockState::getBlock).distinct().toList();
+    public @Unmodifiable ObjectList<Block> blockCandidates() {
+        return blockStates.stream().map(BlockState::getBlock).distinct().collect(ObjectImmutableList.toList());
     }
 
     @Override

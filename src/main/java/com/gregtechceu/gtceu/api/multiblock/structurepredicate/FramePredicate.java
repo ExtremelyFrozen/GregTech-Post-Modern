@@ -19,10 +19,10 @@ import net.neoforged.neoforge.common.util.Lazy;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
+import it.unimi.dsi.fastutil.objects.ObjectList;
 import it.unimi.dsi.fastutil.objects.ObjectLists;
 import org.jetbrains.annotations.Unmodifiable;
-
-import java.util.List;
 
 import static com.gregtechceu.gtceu.api.multiblock.structurepredicate.Util.oneOrMore;
 
@@ -64,7 +64,7 @@ public final class FramePredicate implements StructurePredicate {
     /**
      * Material ids accepted by this predicate for both frame blocks and framed pipe nodes.
      */
-    private final List<ResourceLocation> materialIds;
+    private final ObjectList<ResourceLocation> materialIds;
 
     /**
      * Lazily resolved materials accepted by this predicate.
@@ -72,7 +72,7 @@ public final class FramePredicate implements StructurePredicate {
      * <p>
      * Resolution fails fast if any configured material id is unknown or resolves to the null material.
      */
-    private final Lazy<List<Material>> materials;
+    private final Lazy<ObjectList<Material>> materials;
 
     /**
      * Lazily resolved {@link TagPrefix#frameGt} block candidates for {@link #materials}.
@@ -81,13 +81,10 @@ public final class FramePredicate implements StructurePredicate {
      * Resolution is delayed until the block table is ready, then fails fast if a configured material has no bound
      * frame block.
      */
-    private final Lazy<List<Block>> frameBlocks;
+    private final Lazy<ObjectList<Block>> frameBlocks;
 
-    public FramePredicate(List<ResourceLocation> materialIds) {
-        if (materialIds.isEmpty()) {
-            throw new IllegalArgumentException("Frame predicate requires at least one material");
-        }
-        this.materialIds = List.copyOf(materialIds);
+    public FramePredicate(ObjectList<ResourceLocation> materialIds) {
+        this.materialIds = materialIds;
         this.materials = Lazy.of(this::resolveMaterials);
         this.frameBlocks = Lazy.of(this::resolveFrameBlocks);
     }
@@ -110,33 +107,33 @@ public final class FramePredicate implements StructurePredicate {
     }
 
     @Override
-    public @Unmodifiable List<MultiblockBlockInfo> candidates() {
+    public @Unmodifiable ObjectList<MultiblockBlockInfo> candidates() {
         return frameBlocks().stream()
                 .map(MultiblockBlockInfo::fromBlock)
-                .toList();
+                .collect(ObjectImmutableList.toList());
     }
 
     @Override
-    public @Unmodifiable List<Block> blockCandidates() {
+    public @Unmodifiable ObjectList<Block> blockCandidates() {
         return frameBlocks();
     }
 
-    public List<ResourceLocation> materialIds() {
+    public ObjectList<ResourceLocation> materialIds() {
         return materialIds;
     }
 
-    public List<Material> materials() {
+    public ObjectList<Material> materials() {
         return materials.get();
     }
 
-    public List<Block> frameBlocks() {
+    public ObjectList<Block> frameBlocks() {
         return frameBlocks.get();
     }
 
-    private List<Material> resolveMaterials() {
+    private ObjectList<Material> resolveMaterials() {
         return materialIds.stream()
                 .map(this::resolveMaterial)
-                .toList();
+                .collect(ObjectImmutableList.toList());
     }
 
     private Material resolveMaterial(ResourceLocation materialId) {
@@ -147,10 +144,10 @@ public final class FramePredicate implements StructurePredicate {
         return material;
     }
 
-    private List<Block> resolveFrameBlocks() {
+    private ObjectList<Block> resolveFrameBlocks() {
         return materials().stream()
                 .map(this::resolveFrameBlock)
-                .toList();
+                .collect(ObjectImmutableList.toList());
     }
 
     private Block resolveFrameBlock(Material material) {

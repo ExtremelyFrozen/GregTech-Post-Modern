@@ -15,12 +15,12 @@ import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
-import it.unimi.dsi.fastutil.ints.IntLists;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
+import it.unimi.dsi.fastutil.objects.ObjectList;
 import org.jetbrains.annotations.Unmodifiable;
 
 import java.util.Arrays;
-import java.util.List;
 
 import static com.gregtechceu.gtceu.api.multiblock.structurepredicate.Util.oneOrMore;
 
@@ -32,11 +32,6 @@ import static com.gregtechceu.gtceu.api.multiblock.structurepredicate.Util.oneOr
  * {@code PatternPredicates.ability(ability, tiers...)} instead of all registered ability blocks.
  */
 public record TieredAbilityPredicate(PartAbility ability, IntList tiers) implements StructurePredicate {
-
-    /** Codec collection boundary; runtime storage and access remain primitive. */
-    public TieredAbilityPredicate(PartAbility ability, List<Integer> tiers) {
-        this(ability, new IntArrayList(tiers));
-    }
 
     @Override
     public PatternObservation observeCandidate(BlockState state) {
@@ -59,15 +54,9 @@ public record TieredAbilityPredicate(PartAbility ability, IntList tiers) impleme
     public static final MapCodec<TieredAbilityPredicate> CODEC = RecordCodecBuilder.mapCodec(instance -> instance
             .group(
                     ABILITY_CODEC.fieldOf("ability").forGetter(TieredAbilityPredicate::ability),
-                    oneOrMore(Codec.INT).fieldOf("tiers").forGetter(TieredAbilityPredicate::tiers))
+                    oneOrMore(Codec.INT).<IntList>xmap(IntArrayList::new, ObjectArrayList::new)
+                            .fieldOf("tiers").forGetter(TieredAbilityPredicate::tiers))
             .apply(instance, TieredAbilityPredicate::new));
-
-    public TieredAbilityPredicate {
-        tiers = IntLists.unmodifiable(new IntArrayList(tiers));
-        if (tiers.isEmpty()) {
-            throw new IllegalArgumentException("Tiered ability predicate requires at least one tier");
-        }
-    }
 
     @Override
     public StructurePredicateType<?> type() {
@@ -75,14 +64,14 @@ public record TieredAbilityPredicate(PartAbility ability, IntList tiers) impleme
     }
 
     @Override
-    public @Unmodifiable List<MultiblockBlockInfo> candidates() {
-        return blockCandidates().stream().map(MultiblockBlockInfo::new).toList();
+    public @Unmodifiable ObjectList<MultiblockBlockInfo> candidates() {
+        return blockCandidates().stream().map(MultiblockBlockInfo::new).collect(ObjectImmutableList.toList());
     }
 
     @Override
-    public @Unmodifiable List<Block> blockCandidates() {
+    public @Unmodifiable ObjectList<Block> blockCandidates() {
         int[] tierArray = tiers.toIntArray();
-        return List.copyOf(ability.getBlocks(tierArray));
+        return new ObjectImmutableList<>(ability.getBlocks(tierArray));
     }
 
     @Override

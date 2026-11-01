@@ -14,6 +14,8 @@ import net.minecraft.world.level.block.state.BlockState;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
 import it.unimi.dsi.fastutil.objects.ObjectList;
 import lombok.Getter;
 import lombok.Setter;
@@ -22,12 +24,12 @@ import lombok.experimental.Accessors;
 import org.jetbrains.annotations.Unmodifiable;
 import org.jspecify.annotations.Nullable;
 
-import java.util.*;
+import java.util.Optional;
 
 public record RestrictedPredicate(StructurePredicate predicate, Optional<Integer> minCount,
                                   Optional<Integer> maxCount, Optional<Integer> minCountByLayer,
                                   Optional<Integer> maxCountByLayer, Optional<Integer> previewCount,
-                                  Optional<List<Component>> tooltips)
+                                  Optional<ObjectList<Component>> tooltips)
         implements StructurePredicate {
 
     @Override
@@ -48,7 +50,9 @@ public record RestrictedPredicate(StructurePredicate predicate, Optional<Integer
                     Codec.INT.optionalFieldOf("minCountByLayer").forGetter(RestrictedPredicate::minCountByLayer),
                     Codec.INT.optionalFieldOf("maxCountByLayer").forGetter(RestrictedPredicate::maxCountByLayer),
                     Codec.INT.optionalFieldOf("previewCount").forGetter(RestrictedPredicate::previewCount),
-                    ComponentSerialization.CODEC.listOf().optionalFieldOf("tooltips")
+                    ComponentSerialization.CODEC.listOf()
+                            .<ObjectList<Component>>xmap(ObjectArrayList::new, value -> value)
+                            .optionalFieldOf("tooltips")
                             .forGetter(RestrictedPredicate::tooltips))
             .apply(instance, RestrictedPredicate::new));
 
@@ -58,23 +62,23 @@ public record RestrictedPredicate(StructurePredicate predicate, Optional<Integer
     }
 
     @Override
-    public List<MultiblockBlockInfo> candidates() {
+    public ObjectList<MultiblockBlockInfo> candidates() {
         return predicate.candidates();
     }
 
     @Override
-    public @Unmodifiable List<Block> blockCandidates() {
+    public @Unmodifiable ObjectList<Block> blockCandidates() {
         return predicate.blockCandidates();
     }
 
     @Override
-    public @Unmodifiable List<StructurePreviewChoice> previewChoices(MultiblockMachineDefinition definition) {
+    public @Unmodifiable ObjectList<StructurePreviewChoice> previewChoices(MultiblockMachineDefinition definition) {
         StructurePreviewConstraint constraint = new StructurePreviewConstraint(this, minCount, maxCount,
                 minCountByLayer, maxCountByLayer, previewCount);
-        List<Component> additionalTooltips = tooltips.orElse(List.of());
+        ObjectList<Component> additionalTooltips = tooltips.orElse(ObjectList.of());
         return predicate.previewChoices(definition).stream()
                 .map(choice -> choice.restrictedBy(constraint, additionalTooltips))
-                .toList();
+                .collect(ObjectImmutableList.toList());
     }
 
     @Override
@@ -135,7 +139,7 @@ public record RestrictedPredicate(StructurePredicate predicate, Optional<Integer
         private StructurePredicate base;
         private @Nullable Integer minCount = null, maxCount = null, minCountByLayer = null, maxCountByLayer = null,
                 previewCount = null;
-        private @Nullable List<Component> tooltips = null;
+        private @Nullable ObjectList<Component> tooltips = null;
 
         public Builder exactCount(int count) {
             return minCount(count).maxCount(count);

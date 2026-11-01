@@ -12,12 +12,11 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 
 import com.mojang.serialization.MapCodec;
+import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
+import it.unimi.dsi.fastutil.objects.ObjectList;
 import org.jetbrains.annotations.Unmodifiable;
 
 import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Supplier;
 
 public enum CleanroomFilterPredicate implements StructurePredicate {
 
@@ -38,7 +37,7 @@ public enum CleanroomFilterPredicate implements StructurePredicate {
     @Override
     public boolean test(MultiblockState multiblockState, boolean mutateCount) {
         var blockState = multiblockState.getBlockState();
-        for (Map.Entry<IFilterType, Supplier<Block>> entry : GTCEuAPI.CLEANROOM_FILTERS.entrySet()) {
+        for (var entry : GTCEuAPI.CLEANROOM_FILTERS.entrySet()) {
             if (blockState.is(entry.getValue().get())) {
                 IFilterType stats = entry.getKey();
                 Object currentFilter = multiblockState.getFacts().getOrPut("FilterType", stats);
@@ -53,18 +52,18 @@ public enum CleanroomFilterPredicate implements StructurePredicate {
     }
 
     @Override
-    public @Unmodifiable List<MultiblockBlockInfo> candidates() {
+    public @Unmodifiable ObjectList<MultiblockBlockInfo> candidates() {
         return GTCEuAPI.CLEANROOM_FILTERS.entrySet().stream()
                 .sorted(Comparator.comparing(entry -> entry.getKey().getSerializedName()))
                 .map(entry -> MultiblockBlockInfo.fromBlockState(entry.getValue().get().defaultBlockState()))
-                .toList();
+                .collect(ObjectImmutableList.toList());
     }
 
     @Override
-    public @Unmodifiable List<Block> blockCandidates() {
+    public @Unmodifiable ObjectList<Block> blockCandidates() {
         return GTCEuAPI.CLEANROOM_FILTERS.entrySet().stream()
                 .sorted(Comparator.comparing(entry -> entry.getKey().getSerializedName()))
                 .map(entry -> entry.getValue().get())
-                .toList();
+                .collect(ObjectImmutableList.toList());
     }
 }

@@ -11,10 +11,12 @@ import net.neoforged.neoforge.common.util.Lazy;
 
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
+import it.unimi.dsi.fastutil.objects.ObjectList;
 import org.jetbrains.annotations.Unmodifiable;
 import org.jspecify.annotations.Nullable;
 
-import java.util.*;
+import java.util.Objects;
 import java.util.function.Supplier;
 
 import static com.gregtechceu.gtceu.api.multiblock.structurepredicate.Util.oneOrMore;
@@ -25,18 +27,18 @@ public final class BlockPredicate implements StructurePredicate {
             .group(oneOrMore(ResourceLocation.CODEC).fieldOf("blocks").forGetter(BlockPredicate::blockIds))
             .apply(instance, BlockPredicate::new));
 
-    private final Lazy<List<ResourceLocation>> blockIds;
-    private final Lazy<List<Block>> blocks;
+    private final Lazy<ObjectList<ResourceLocation>> blockIds;
+    private final Lazy<ObjectList<Block>> blocks;
 
-    public BlockPredicate(List<ResourceLocation> blockIds) {
-        this(constantBlockIds(blockIds));
+    public BlockPredicate(ObjectList<ResourceLocation> blockIds) {
+        this(() -> blockIds);
     }
 
-    public BlockPredicate(Supplier<List<ResourceLocation>> blockIds) {
-        this.blockIds = Lazy.of(() -> List.copyOf(blockIds.get()));
+    public BlockPredicate(Supplier<ObjectList<ResourceLocation>> blockIds) {
+        this.blockIds = Lazy.of(blockIds);
         this.blocks = Lazy.of(() -> blockIds().stream()
                 .map(BlockPredicate::resolveBlock)
-                .toList());
+                .collect(ObjectImmutableList.toList()));
     }
 
     @Override
@@ -45,12 +47,12 @@ public final class BlockPredicate implements StructurePredicate {
     }
 
     @Override
-    public List<MultiblockBlockInfo> candidates() {
-        return blocks().stream().map(MultiblockBlockInfo::new).toList();
+    public ObjectList<MultiblockBlockInfo> candidates() {
+        return blocks().stream().map(MultiblockBlockInfo::new).collect(ObjectImmutableList.toList());
     }
 
     @Override
-    public @Unmodifiable List<Block> blockCandidates() {
+    public @Unmodifiable ObjectList<Block> blockCandidates() {
         return blocks();
     }
 
@@ -67,21 +69,16 @@ public final class BlockPredicate implements StructurePredicate {
         return block;
     }
 
-    private static Supplier<List<ResourceLocation>> constantBlockIds(List<ResourceLocation> blockIds) {
-        List<ResourceLocation> copy = List.copyOf(blockIds);
-        return () -> copy;
-    }
-
     @Override
     public boolean hasAir() {
         return blocks().contains(Blocks.AIR);
     }
 
-    public List<ResourceLocation> blockIds() {
+    public ObjectList<ResourceLocation> blockIds() {
         return blockIds.get();
     }
 
-    public List<Block> blocks() {
+    public ObjectList<Block> blocks() {
         return blocks.get();
     }
 

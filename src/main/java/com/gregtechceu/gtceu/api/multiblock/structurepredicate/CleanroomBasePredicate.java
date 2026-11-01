@@ -17,10 +17,10 @@ import net.neoforged.neoforge.common.util.Lazy;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
+import it.unimi.dsi.fastutil.objects.ObjectList;
 import org.jetbrains.annotations.Unmodifiable;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Serialized cleanroom boundary predicate.
@@ -43,7 +43,7 @@ public record CleanroomBasePredicate(boolean allowFloorBlocks, boolean allowDoor
     private static final Lazy<StructurePredicate> WALL_BLOCKS = Lazy.of(
             () -> new BlockPredicate(CleanroomBasePredicate::wallBlocks));
     private static final Lazy<StructurePredicate> INPUT_ENERGY = Lazy.of(() -> RestrictedPredicate.builder()
-            .base(new AbilityPredicate(List.of(PartAbility.INPUT_ENERGY)))
+            .base(new AbilityPredicate(ObjectList.of(PartAbility.INPUT_ENERGY)))
             .minCount(1)
             .maxCount(2)
             .build());
@@ -58,7 +58,7 @@ public record CleanroomBasePredicate(boolean allowFloorBlocks, boolean allowDoor
             .maxCount(1)
             .build());
     private static final Lazy<StructurePredicate> FLOOR_BLOCKS = Lazy.of(
-            () -> new BlockTagPredicate(List.of(CustomTags.CLEANROOM_FLOORS)));
+            () -> new BlockTagPredicate(ObjectList.of(CustomTags.CLEANROOM_FLOORS)));
     private static final Lazy<StructurePredicate> DOORS = Lazy.of(() -> RestrictedPredicate.builder()
             .base(CleanroomDoorPredicate.INSTANCE)
             .maxCount(8)
@@ -79,22 +79,25 @@ public record CleanroomBasePredicate(boolean allowFloorBlocks, boolean allowDoor
     }
 
     @Override
-    public @Unmodifiable List<MultiblockBlockInfo> candidates() {
-        return predicates(null).stream().flatMap(predicate -> predicate.candidates().stream()).toList();
+    public @Unmodifiable ObjectList<MultiblockBlockInfo> candidates() {
+        return predicates(null).stream().flatMap(predicate -> predicate.candidates().stream())
+                .collect(ObjectImmutableList.toList());
     }
 
     @Override
-    public @Unmodifiable List<Block> blockCandidates() {
-        return predicates(null).stream().flatMap(predicate -> predicate.blockCandidates().stream()).toList();
+    public @Unmodifiable ObjectList<Block> blockCandidates() {
+        return predicates(null).stream().flatMap(predicate -> predicate.blockCandidates().stream())
+                .collect(ObjectImmutableList.toList());
     }
 
     @Override
-    public @Unmodifiable List<StructurePreviewChoice> previewChoices(MultiblockMachineDefinition definition) {
-        return predicates(null).stream().flatMap(predicate -> predicate.previewChoices(definition).stream()).toList();
+    public @Unmodifiable ObjectList<StructurePreviewChoice> previewChoices(MultiblockMachineDefinition definition) {
+        return predicates(null).stream().flatMap(predicate -> predicate.previewChoices(definition).stream())
+                .collect(ObjectImmutableList.toList());
     }
 
-    private List<StructurePredicate> predicates(MultiblockState multiblockState) {
-        List<StructurePredicate> predicates = new ArrayList<>();
+    private ObjectList<StructurePredicate> predicates(MultiblockState multiblockState) {
+        ObjectList<StructurePredicate> predicates = new ObjectArrayList<>();
         StructurePredicate wallBlocks = WALL_BLOCKS.get();
         predicates.add(allowFloorBlocks ? wallBlocks.or(FLOOR_BLOCKS.get()) : wallBlocks);
         predicates.add(INPUT_ENERGY.get());
@@ -119,19 +122,19 @@ public record CleanroomBasePredicate(boolean allowFloorBlocks, boolean allowDoor
             throw new IllegalStateException("Cleanroom base predicate can only be used by cleanroom structures");
         }
         return RestrictedPredicate.builder()
-                .base(new AbilityPredicate(List.of(PartAbility.PASSTHROUGH_HATCH)))
+                .base(new AbilityPredicate(ObjectList.of(PartAbility.PASSTHROUGH_HATCH)))
                 .maxCount(cleanroom.getDynamicPatternFloorArea() / 4)
                 .build();
     }
 
-    private static List<ResourceLocation> wallBlocks() {
-        return List.of(
+    private static ObjectList<ResourceLocation> wallBlocks() {
+        return ObjectList.of(
                 GTBlocks.PLASTCRETE.getId(),
                 GTBlocks.CLEANROOM_GLASS.getId());
     }
 
-    private static List<ResourceLocation> maintenanceBlocks() {
-        return List.of(
+    private static ObjectList<ResourceLocation> maintenanceBlocks() {
+        return ObjectList.of(
                 GTMachines.MAINTENANCE_HATCH.getId(),
                 GTMachines.AUTO_MAINTENANCE_HATCH.getId());
     }

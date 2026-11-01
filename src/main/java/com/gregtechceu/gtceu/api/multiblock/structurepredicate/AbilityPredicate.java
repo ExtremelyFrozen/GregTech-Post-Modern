@@ -14,14 +14,13 @@ import com.mojang.serialization.DataResult;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
+import it.unimi.dsi.fastutil.objects.ObjectList;
 import org.jetbrains.annotations.Unmodifiable;
-
-import java.util.Collection;
-import java.util.List;
 
 import static com.gregtechceu.gtceu.api.multiblock.structurepredicate.Util.oneOrMore;
 
-public record AbilityPredicate(List<PartAbility> abilities) implements StructurePredicate {
+public record AbilityPredicate(ObjectList<PartAbility> abilities) implements StructurePredicate {
 
     @Override
     public PatternObservation observeCandidate(BlockState state) {
@@ -46,26 +45,21 @@ public record AbilityPredicate(List<PartAbility> abilities) implements Structure
             .group(oneOrMore(ABILITY_CODEC).fieldOf("abilities").forGetter(AbilityPredicate::abilities))
             .apply(instance, AbilityPredicate::new));
 
-    public AbilityPredicate {
-        abilities = List.copyOf(abilities);
-    }
-
     @Override
     public StructurePredicateType<?> type() {
         return StructurePredicateType.ABILITIES;
     }
 
     @Override
-    public @Unmodifiable List<MultiblockBlockInfo> candidates() {
-        return blockCandidates().stream().map(MultiblockBlockInfo::new).toList();
+    public @Unmodifiable ObjectList<MultiblockBlockInfo> candidates() {
+        return blockCandidates().stream().map(MultiblockBlockInfo::new).collect(ObjectImmutableList.toList());
     }
 
     @Override
-    public @Unmodifiable List<Block> blockCandidates() {
+    public @Unmodifiable ObjectList<Block> blockCandidates() {
         return abilities.stream()
-                .map(PartAbility::getAllBlocks)
-                .flatMap(Collection::stream)
-                .toList();
+                .flatMap(ability -> ability.getAllBlocks().stream())
+                .collect(ObjectImmutableList.toList());
     }
 
     @Override

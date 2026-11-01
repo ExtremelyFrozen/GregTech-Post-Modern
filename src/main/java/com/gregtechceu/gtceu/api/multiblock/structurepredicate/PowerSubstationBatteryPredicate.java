@@ -5,19 +5,17 @@ import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
 import com.gregtechceu.gtceu.api.machine.multiblock.IBatteryData;
 import com.gregtechceu.gtceu.api.multiblock.MultiblockBlockInfo;
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState;
-import com.gregtechceu.gtceu.common.block.BatteryBlock;
 import com.gregtechceu.gtceu.common.machine.multiblock.electric.PowerSubstationMachine;
 
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 
 import com.mojang.serialization.MapCodec;
+import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
+import it.unimi.dsi.fastutil.objects.ObjectList;
 import org.jetbrains.annotations.Unmodifiable;
 
 import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Supplier;
 
 import static com.gregtechceu.gtceu.common.machine.multiblock.electric.PowerSubstationMachine.PMC_BATTERY_HEADER;
 
@@ -46,7 +44,7 @@ public enum PowerSubstationBatteryPredicate implements StructurePredicate {
     @Override
     public boolean test(MultiblockState multiblockState, boolean mutateCount) {
         BlockState state = multiblockState.getBlockState();
-        for (Map.Entry<IBatteryData, Supplier<BatteryBlock>> entry : GTCEuAPI.PSS_BATTERIES.entrySet()) {
+        for (var entry : GTCEuAPI.PSS_BATTERIES.entrySet()) {
             if (state.is(entry.getValue().get())) {
                 IBatteryData battery = entry.getKey();
                 if (mutateCount && battery.getTier() != -1 && battery.getCapacity() > 0) {
@@ -64,31 +62,33 @@ public enum PowerSubstationBatteryPredicate implements StructurePredicate {
     }
 
     @Override
-    public @Unmodifiable List<MultiblockBlockInfo> candidates() {
+    public @Unmodifiable ObjectList<MultiblockBlockInfo> candidates() {
         return sortedBatteries().stream()
-                .map(entry -> new MultiblockBlockInfo(entry.getValue().get().defaultBlockState(), null))
-                .toList();
+                .map(battery -> new MultiblockBlockInfo(GTCEuAPI.PSS_BATTERIES.get(battery).get().defaultBlockState(),
+                        null))
+                .collect(ObjectImmutableList.toList());
     }
 
     @Override
-    public @Unmodifiable List<Block> blockCandidates() {
+    public @Unmodifiable ObjectList<Block> blockCandidates() {
         return sortedBatteries().stream()
-                .map(entry -> (Block) entry.getValue().get())
-                .toList();
+                .map(battery -> (Block) GTCEuAPI.PSS_BATTERIES.get(battery).get())
+                .collect(ObjectImmutableList.toList());
     }
 
     @Override
-    public @Unmodifiable List<StructurePreviewChoice> previewChoices(MultiblockMachineDefinition definition) {
-        List<MultiblockBlockInfo> batteries = sortedBatteries().stream()
-                .filter(entry -> entry.getKey().getTier() >= 0 && entry.getKey().getCapacity() > 0)
-                .map(entry -> new MultiblockBlockInfo(entry.getValue().get().defaultBlockState(), null))
-                .toList();
-        return List.of(StructurePreviewChoice.unrestricted(batteries));
+    public @Unmodifiable ObjectList<StructurePreviewChoice> previewChoices(MultiblockMachineDefinition definition) {
+        ObjectList<MultiblockBlockInfo> batteries = sortedBatteries().stream()
+                .filter(battery -> battery.getTier() >= 0 && battery.getCapacity() > 0)
+                .map(battery -> new MultiblockBlockInfo(GTCEuAPI.PSS_BATTERIES.get(battery).get().defaultBlockState(),
+                        null))
+                .collect(ObjectImmutableList.toList());
+        return ObjectList.of(StructurePreviewChoice.unrestricted(batteries));
     }
 
-    private List<Map.Entry<IBatteryData, Supplier<BatteryBlock>>> sortedBatteries() {
-        return GTCEuAPI.PSS_BATTERIES.entrySet().stream()
-                .sorted(Comparator.comparingInt(entry -> entry.getKey().getTier()))
-                .toList();
+    private ObjectList<IBatteryData> sortedBatteries() {
+        return GTCEuAPI.PSS_BATTERIES.keySet().stream()
+                .sorted(Comparator.comparingInt(IBatteryData::getTier))
+                .collect(ObjectImmutableList.toList());
     }
 }

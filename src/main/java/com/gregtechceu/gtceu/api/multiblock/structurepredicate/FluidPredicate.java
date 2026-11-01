@@ -10,13 +10,13 @@ import net.minecraft.world.level.material.Fluid;
 
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
+import it.unimi.dsi.fastutil.objects.ObjectList;
 import org.jetbrains.annotations.Unmodifiable;
-
-import java.util.*;
 
 import static com.gregtechceu.gtceu.api.multiblock.structurepredicate.Util.oneOrMore;
 
-public record FluidPredicate(List<Fluid> fluids) implements StructurePredicate {
+public record FluidPredicate(ObjectList<Fluid> fluids) implements StructurePredicate {
 
     public static final MapCodec<FluidPredicate> CODEC = RecordCodecBuilder.mapCodec(instance -> instance
             .group(oneOrMore(BuiltInRegistries.FLUID.byNameCodec()).fieldOf("fluids").forGetter(FluidPredicate::fluids))
@@ -28,19 +28,19 @@ public record FluidPredicate(List<Fluid> fluids) implements StructurePredicate {
     }
 
     @Override
-    public List<MultiblockBlockInfo> candidates() {
+    public ObjectList<MultiblockBlockInfo> candidates() {
         return fluids.stream()
                 .map(FluidPredicate::blockInfoFromFluid)
-                .toList();
+                .collect(ObjectImmutableList.toList());
     }
 
     @Override
-    public @Unmodifiable List<Block> blockCandidates() {
+    public @Unmodifiable ObjectList<Block> blockCandidates() {
         return fluids.stream()
                 .map(FluidPredicate::blockStateFromFluid)
                 .map(BlockState::getBlock)
                 .distinct()
-                .toList();
+                .collect(ObjectImmutableList.toList());
     }
 
     @Override

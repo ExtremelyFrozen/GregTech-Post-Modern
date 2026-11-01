@@ -11,9 +11,10 @@ import net.neoforged.neoforge.common.util.Lazy;
 
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
+import it.unimi.dsi.fastutil.objects.ObjectList;
 import org.jetbrains.annotations.Unmodifiable;
 
-import java.util.List;
 import java.util.stream.Stream;
 
 /**
@@ -80,30 +81,30 @@ public final class DataHatchOrPredicate implements StructurePredicate {
     }
 
     @Override
-    public @Unmodifiable List<MultiblockBlockInfo> candidates() {
+    public @Unmodifiable ObjectList<MultiblockBlockInfo> candidates() {
         if (!ConfigHolder.INSTANCE.machines.enableResearch) {
             return alternative.candidates();
         }
         return Stream.concat(dataHatches.get().candidates().stream(), alternative.candidates().stream())
-                .toList();
+                .collect(ObjectImmutableList.toList());
     }
 
     @Override
-    public @Unmodifiable List<Block> blockCandidates() {
+    public @Unmodifiable ObjectList<Block> blockCandidates() {
         if (!ConfigHolder.INSTANCE.machines.enableResearch) {
             return alternative.blockCandidates();
         }
         return Stream.concat(dataHatches.get().blockCandidates().stream(), alternative.blockCandidates().stream())
-                .toList();
+                .collect(ObjectImmutableList.toList());
     }
 
     @Override
-    public @Unmodifiable List<StructurePreviewChoice> previewChoices(MultiblockMachineDefinition definition) {
+    public @Unmodifiable ObjectList<StructurePreviewChoice> previewChoices(MultiblockMachineDefinition definition) {
         if (!ConfigHolder.INSTANCE.machines.enableResearch) {
             return alternative.previewChoices(definition);
         }
         return Stream.concat(dataHatches.get().previewChoices(definition).stream(),
-                alternative.previewChoices(definition).stream()).toList();
+                alternative.previewChoices(definition).stream()).collect(ObjectImmutableList.toList());
     }
 
     @Override
@@ -116,7 +117,7 @@ public final class DataHatchOrPredicate implements StructurePredicate {
     }
 
     private static RestrictedPredicate createDataHatches() {
-        AbilityPredicate dataAccess = new AbilityPredicate(List.of(
+        AbilityPredicate dataAccess = new AbilityPredicate(ObjectList.of(
                 PartAbility.DATA_ACCESS,
                 PartAbility.OPTICAL_DATA_RECEPTION));
         return RestrictedPredicate.builder()

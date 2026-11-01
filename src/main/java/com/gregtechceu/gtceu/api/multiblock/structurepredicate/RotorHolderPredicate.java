@@ -12,9 +12,9 @@ import net.minecraft.world.level.block.Block;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
+import it.unimi.dsi.fastutil.objects.ObjectList;
 import org.jetbrains.annotations.Unmodifiable;
-
-import java.util.List;
 
 /**
  * Matches turbine rotor holders and checks the rotor front clearance.
@@ -41,15 +41,15 @@ public record RotorHolderPredicate(int tier) implements StructurePredicate {
     }
 
     @Override
-    public @Unmodifiable List<MultiblockBlockInfo> candidates() {
-        return blockCandidates().stream().map(MultiblockBlockInfo::fromBlock).toList();
+    public @Unmodifiable ObjectList<MultiblockBlockInfo> candidates() {
+        return blockCandidates().stream().map(MultiblockBlockInfo::fromBlock).collect(ObjectImmutableList.toList());
     }
 
     @Override
-    public @Unmodifiable List<Block> blockCandidates() {
+    public @Unmodifiable ObjectList<Block> blockCandidates() {
         return PartAbility.ROTOR_HOLDER.getAllBlocks().stream()
                 .filter(block -> block instanceof MetaMachineBlock machineBlock &&
                         machineBlock.getDefinition().getTier() == tier)
-                .toList();
+                .collect(ObjectImmutableList.toList());
     }
 }
