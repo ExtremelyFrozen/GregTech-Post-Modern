@@ -3,6 +3,7 @@ package com.gregtechceu.gtceu.api.multiblock.autobuild;
 import com.gregtechceu.gtceu.GTCEu;
 
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -18,15 +19,11 @@ import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ReferenceSet;
 import org.jspecify.annotations.Nullable;
 
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Supplies automatic-build materials from the player's ordered inventory and supported nested item handlers.
  */
 final class PlayerInventoryMaterialSource implements MaterialSource {
-
-    private static final int MAX_CONTAINER_DEPTH = 4;
-    private static final AtomicBoolean DEPTH_LIMIT_LOGGED = new AtomicBoolean();
 
     private final @Nullable IItemHandler root;
     private final ItemStack excludedContainer;
@@ -40,6 +37,12 @@ final class PlayerInventoryMaterialSource implements MaterialSource {
         this.excludedContainer = excludedContainer;
         this.kind = kind;
         this.refundOwner = refundOwner;
+    }
+
+    static MaterialRequest.Result request(ServerPlayer player, MaterialRequest request) {
+        return request.fulfill(new PlayerInventoryMaterialSource(
+                player.getCapability(Capabilities.ItemHandler.ENTITY), request.getExcludedContainer(),
+                SourceKind.PLAYER, player));
     }
 
     @Override
@@ -80,7 +83,7 @@ final class PlayerInventoryMaterialSource implements MaterialSource {
                 problem = new BuildProblem(BuildProblem.Type.PLAYER_INVENTORY_UNAVAILABLE, null,
                         Component.translatable("gtpm.multiblock.autobuild.player_inventory_unavailable"));
             } else {
-                collectSlots(root, 0);
+                collectSlots(root);
             }
         }
 
@@ -130,9 +133,6 @@ final class PlayerInventoryMaterialSource implements MaterialSource {
 
         @Override
         public @Nullable Reservation reserve(MaterialKey key, long amount) {
-            if (amount <= 0) {
-                throw new IllegalArgumentException("Reserved material amount must be positive");
-            }
             if (root == null) {
                 return null;
             }
@@ -217,7 +217,7 @@ final class PlayerInventoryMaterialSource implements MaterialSource {
             }
         }
 
-        private void collectSlots(IItemHandler handler, int depth) {
+        private void collectSlots(IItemHandler handler) {
             if (!visitedHandlers.add(handler)) {
                 return;
             }
@@ -229,19 +229,14 @@ final class PlayerInventoryMaterialSource implements MaterialSource {
                 }
                 IItemHandler child = stack.getCapability(Capabilities.ItemHandler.ITEM);
                 if (child != null) {
-                    if (depth < MAX_CONTAINER_DEPTH) {
-                        children.add(child);
-                    } else if (DEPTH_LIMIT_LOGGED.compareAndSet(false, true)) {
-                        GTCEu.LOGGER.debug("Automatic-build inventory traversal stopped at maximum depth {}",
-                                MAX_CONTAINER_DEPTH);
-                    }
+                    children.add(child);
                 } else {
                     slots.add(new SlotRef(handler, slot));
                 }
             }
             insertionHandlers.add(new InsertionHandler(handler, excludedContainer));
             for (IItemHandler child : children) {
-                collectSlots(child, depth + 1);
+                collectSlots(child);
             }
         }
 

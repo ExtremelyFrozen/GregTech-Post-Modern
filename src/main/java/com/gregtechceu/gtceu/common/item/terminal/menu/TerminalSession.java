@@ -5,6 +5,7 @@ import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.BuildProblem;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialRequest;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialSource;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialSources;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.BatchRequest;
@@ -168,11 +169,10 @@ public final class TerminalSession {
         state = new TerminalMenuState(definitionId, acceptedSequence, revision, profile, state.preview(), true,
                 state.meSource(), lastExecution);
         try {
-            MultiblockControllerMachine controller = openedController;
             BatchRequest request = profile.createRequest(definition,
                     createSources(player));
             long expectedPlanFingerprint = Long.parseUnsignedLong(expectedFingerprint, 16);
-            BatchResult result = controller.autoBuildBatch(player, request, expectedPlanFingerprint);
+            BatchResult result = openedController.autoBuildBatch(player, request, expectedPlanFingerprint);
             lastExecution = TerminalExecutionSummary.from(result);
             player.displayClientMessage(Component.translatable("gtpm.multiblock.autobuild.execution_result",
                     Component.translatable("gtpm.multiblock.autobuild.status." +
@@ -266,9 +266,8 @@ public final class TerminalSession {
 
     private TerminalMenuState buildState(ServerPlayer player) {
         ObjectList<MaterialSource> sources = createSources(player);
-        MultiblockControllerMachine controller = openedController;
         BatchRequest request = profile.createRequest(definition, sources);
-        BatchResolution resolved = resolver.resolveBatch(controller, player, request);
+        BatchResolution resolved = resolver.resolveBatch(openedController, player, request);
         StructurePreview preview = StructurePreview.bound(definitionId, resolved);
         TerminalMESourceDisplay meSource = resolved.materialSnapshots().stream()
                 .map(MaterialSource.Availability::descriptor)
@@ -286,16 +285,17 @@ public final class TerminalSession {
             return ObjectList.of();
         }
         ObjectList<MaterialSource> sources = new ObjectArrayList<>();
-        if (profile.sharedOptions().useME()) {
-            if (GTCEu.MODS.AE2.isLoaded()) {
-                sources.add(MaterialSources.me(player, openedTerminal));
-            } else {
-                sources.add(MaterialSources.unavailable(new BuildProblem(
-                        BuildProblem.Type.AE_NOT_INSTALLED, null,
-                        Component.translatable("gtpm.multiblock.autobuild.me_unavailable"))));
-            }
+        boolean useME = profile.sharedOptions().useME();
+        if (useME && !MaterialSources.hasProvider(MaterialSource.SourceKind.ME)) {
+            sources.add(MaterialSources.unavailable(new BuildProblem(
+                    BuildProblem.Type.AE_NOT_INSTALLED, null,
+                    Component.translatable("gtpm.multiblock.autobuild.me_unavailable"))));
         }
-        sources.add(MaterialSources.playerInventory(player, openedTerminal));
+        MaterialRequest request = new MaterialRequest(ObjectList.of(), openedTerminal,
+                kind -> useME || kind != MaterialSource.SourceKind.ME);
+        for (MaterialRequest.Result result : MaterialSources.request(player, request)) {
+            sources.add(result.source());
+        }
         return new ObjectImmutableList<>(sources);
     }
 
@@ -343,7 +343,7 @@ public final class TerminalSession {
                 }
                 for (int index = 0; index < stored.repetitions().size(); index++) {
                     var limits = definition.getPattern(structureName).getRepeatDescriptors().get(index);
-                    int repetition = stored.repetitions().get(index);
+                    int repetition = stored.repetitions().getInt(index);
                     if (repetition < limits.minimum() || repetition > limits.maximum()) {
                         return false;
                     }

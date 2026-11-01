@@ -4,11 +4,12 @@ import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState;
 import com.gregtechceu.gtceu.api.multiblock.MultiblockWorldSavedData;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.BuildProblem;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialKey;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialRequest;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialSource;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialSource.Reservation;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialSource.SourceKind;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.BuildProblem;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.BatchRequest;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.BatchResult;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.StructureOperation;
@@ -56,8 +57,8 @@ public final class BatchExecutor {
     private BatchExecutor() {}
 
     public static BatchResult execute(MultiblockControllerMachine controller, ServerPlayer player,
-                                               BatchRequest request, BatchPlan plan,
-                                               long expectedFingerprint) {
+                                      BatchRequest request, BatchPlan plan,
+                                      long expectedFingerprint) {
         BuildProblem targetProblem = validateTarget(controller, player);
         if (targetProblem != null) {
             return failAll(plan, targetProblem);
@@ -138,9 +139,9 @@ public final class BatchExecutor {
     }
 
     private static StructureResult executeStructure(MultiblockControllerMachine controller,
-                                                             ServerPlayer player,
-                                                             BatchRequest request,
-                                                             StructurePlan structure) {
+                                                    ServerPlayer player,
+                                                    BatchRequest request,
+                                                    StructurePlan structure) {
         if (!structure.problems().isEmpty()) {
             return failed(structure, structure.problems());
         }
@@ -165,6 +166,9 @@ public final class BatchExecutor {
         }
         StructureWork work = assess(controller, player, level, request, structure, sessions);
         if (!work.problems().isEmpty()) {
+            return failed(structure, work.problems());
+        }
+        if (!player.isCreative() && !reserveMaterials(work)) {
             return failed(structure, work.problems());
         }
         if (!approveClears(player, level, work)) {
@@ -283,42 +287,36 @@ public final class BatchExecutor {
                 work.problems().add(placementProblem);
                 return work;
             }
-            Placement placement = new Placement(cell);
-            SourcedReservation reservation = player.isCreative() ? null :
-                    reserve(materialKey, 1, sessions, 0, work);
-            if (!player.isCreative() && reservation == null) {
-                if (!work.problems().isEmpty()) return work;
-                work.problems().add(problem(BuildProblem.Type.MISSING_MATERIAL, pos,
-                        "gtpm.multiblock.autobuild.missing_material", position(pos)));
-                return work;
-            }
-            if (reservation != null) placement.reservations().add(reservation);
-            work.placements().add(placement);
+            work.placements().add(new Placement(cell));
         }
         return work;
     }
 
-    private static @Nullable SourcedReservation reserve(MaterialKey key, long amount,
-                                                        ObjectList<MaterialSource.Session> sessions,
-                                                        int firstSource, StructureWork work) {
-        for (int index = firstSource; index < sessions.size(); index++) {
-            MaterialSource.Session session = sessions.get(index);
-            BuildProblem sessionProblem = session.problem();
-            if (sessionProblem != null) {
-                work.problems().add(sessionProblem);
-                return null;
-            }
-            Reservation reservation = session.reserve(key, amount);
-            if (reservation == null) continue;
-            if (!key.equals(reservation.key()) || reservation.reservedAmount() <= 0 ||
-                    reservation.reservedAmount() > amount) {
-                work.problems().add(problem(BuildProblem.Type.EXTRACTION_FAILED, null,
-                        "gtpm.multiblock.autobuild.invalid_reservation"));
-                return null;
-            }
-            return new SourcedReservation(index, reservation);
+    private static boolean reserveMaterials(StructureWork work) {
+        ObjectList<MaterialRequest.Demand> demands = new ObjectArrayList<>(work.placements().size());
+        for (Placement placement : work.placements()) {
+            demands.add(new MaterialRequest.Demand(placement.cell().materialKey(), 1));
         }
-        return null;
+        MaterialRequest request = new MaterialRequest(demands, ItemStack.EMPTY, kind -> true);
+        for (int index = 0; index < work.sessions().size(); index++) {
+            MaterialRequest.Reservations result = work.sessions().get(index).request(request);
+            if (result.problem() != null) {
+                work.problems().add(result.problem());
+                return false;
+            }
+            for (MaterialRequest.Allocation allocation : result.allocations()) {
+                work.placements().get(allocation.demandIndex()).reservations()
+                        .add(new SourcedReservation(index, allocation.reservation()));
+            }
+        }
+        int missing = request.firstUnfulfilled();
+        if (missing >= 0) {
+            BlockPos pos = work.placements().get(missing).cell().worldPos();
+            work.problems().add(problem(BuildProblem.Type.MISSING_MATERIAL, pos,
+                    "gtpm.multiblock.autobuild.missing_material", position(pos)));
+            return false;
+        }
+        return true;
     }
 
     private static boolean approveClears(ServerPlayer player, ServerLevel level, StructureWork work) {
@@ -336,37 +334,22 @@ public final class BatchExecutor {
 
     private static boolean commitMaterials(ServerLevel level, BlockPos fallbackPos, StructureWork work) {
         for (Placement placement : work.placements()) {
-            if (placement.reservations().isEmpty()) continue;
-            long remaining = 1;
-            int nextSource = 0;
-            for (int index = 0; remaining > 0; index++) {
-                SourcedReservation sourced;
-                if (index < placement.reservations().size()) {
-                    sourced = placement.reservations().get(index);
-                } else {
-                    sourced = reserve(placement.cell().materialKey(), remaining, work.sessions(), nextSource, work);
-                    if (sourced == null) break;
-                    placement.reservations().add(sourced);
-                }
+            for (SourcedReservation sourced : placement.reservations()) {
                 MaterialSource.CommitResult result = sourced.reservation().commitExact();
                 sourced.committed = Math.addExact(sourced.committed, result.committed());
-                remaining -= result.committed();
-                nextSource = sourced.sourceIndex() + 1;
                 drainRejectedStacks(level, fallbackPos, work, sourced);
                 if (result.problem() != null) {
                     work.problems().add(result.problem());
                     return false;
                 }
                 if (!work.problems().isEmpty()) return false;
-            }
-            if (remaining > 0) {
-                if (work.problems().isEmpty()) {
+                if (!result.complete()) {
                     work.problems().add(problem(BuildProblem.Type.EXTRACTION_FAILED,
                             placement.cell().worldPos(),
                             "gtpm.multiblock.autobuild.extraction_changed",
                             position(placement.cell().worldPos())));
+                    return false;
                 }
-                return false;
             }
         }
         return true;
@@ -533,8 +516,8 @@ public final class BatchExecutor {
     }
 
     private static @Nullable BuildProblem validateClear(MultiblockControllerMachine controller,
-                                                            ServerPlayer player, ServerLevel level,
-                                                            BlockPos pos, BlockState state) {
+                                                        ServerPlayer player, ServerLevel level,
+                                                        BlockPos pos, BlockState state) {
         if (pos.equals(controller.getBlockPos())) {
             return problem(BuildProblem.Type.PERMISSION_DENIED, pos,
                     "gtpm.multiblock.autobuild.controller_protected");
@@ -561,7 +544,7 @@ public final class BatchExecutor {
     }
 
     private static @Nullable BuildProblem validateStateCorrection(ServerPlayer player, ServerLevel level,
-                                                                      BlockPos pos, PlannedCell cell) {
+                                                                  BlockPos pos, PlannedCell cell) {
         ItemStack stack = cell.materialKey() == null ? player.getMainHandItem() : cell.materialKey().prototype();
         if (!level.mayInteract(player, pos) ||
                 !player.mayUseItemAt(pos.relative(Direction.UP), Direction.UP, stack)) {
@@ -582,7 +565,7 @@ public final class BatchExecutor {
     }
 
     private static @Nullable BuildProblem validatePlacement(ServerPlayer player, ServerLevel level,
-                                                                BlockPos pos, PlannedCell cell, boolean willClear) {
+                                                            BlockPos pos, PlannedCell cell, boolean willClear) {
         ItemStack stack = cell.materialKey().prototype();
         if (!(stack.getItem() instanceof BlockItem blockItem) ||
                 !blockItem.getBlock().isEnabled(level.enabledFeatures()) ||
@@ -682,12 +665,12 @@ public final class BatchExecutor {
     }
 
     private static StructureResult failed(StructurePlan structure,
-                                                   ObjectList<BuildProblem> problems) {
+                                          ObjectList<BuildProblem> problems) {
         return new StructureResult(structure.structureName(), structure.mode(), false, 0, 0, problems);
     }
 
     private static BuildProblem problem(BuildProblem.Type type, @Nullable BlockPos pos,
-                                            String translationKey, Object... args) {
+                                        String translationKey, Object... args) {
         return new BuildProblem(type, pos, Component.translatable(translationKey, args));
     }
 

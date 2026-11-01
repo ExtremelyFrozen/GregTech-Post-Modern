@@ -1,9 +1,10 @@
 package com.gregtechceu.gtceu.integration.ae2.autobuild;
 
 import com.gregtechceu.gtceu.GTCEu;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialKey;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialSource;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.BuildProblem;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialKey;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialRequest;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialSource;
 
 import net.minecraft.core.GlobalPos;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -39,7 +40,6 @@ import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ReferenceSet;
 import org.jspecify.annotations.Nullable;
 
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Supplies automatic-build materials through one deterministic AE wireless-terminal binding.
@@ -50,11 +50,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * and may select a different first valid binding.
  * </p>
  */
-final class MEWirelessMaterialSource implements MaterialSource {
-
-    private static final int MAX_CONTAINER_DEPTH = 4;
-    private static final int MAX_DISPLAY_TEXT = 256;
-    private static final AtomicBoolean DEPTH_LIMIT_LOGGED = new AtomicBoolean();
+public final class MEWirelessMaterialSource implements MaterialSource {
 
     private final ServerPlayer player;
     private final @Nullable WirelessBinding binding;
@@ -66,8 +62,9 @@ final class MEWirelessMaterialSource implements MaterialSource {
         this.selectionProblem = selection.problem();
     }
 
-    static MaterialSource create(ServerPlayer player, ItemStack excludedTerminal) {
-        return new MEWirelessMaterialSource(player, selectBinding(player, excludedTerminal));
+    public static MaterialRequest.Result request(ServerPlayer player, MaterialRequest request) {
+        return request.fulfill(new MEWirelessMaterialSource(player,
+                selectBinding(player, request.getExcludedContainer())));
     }
 
     @Override
@@ -96,7 +93,8 @@ final class MEWirelessMaterialSource implements MaterialSource {
         SourceDescriptor descriptor = binding == null ? null : binding.descriptor();
         long bindingFingerprint = binding == null ? 0 : binding.fingerprint();
         if (access.problem() != null) {
-            return new Availability(kind(), Object2LongMaps.emptyMap(), access.problem(), descriptor, bindingFingerprint);
+            return new Availability(kind(), Object2LongMaps.emptyMap(), access.problem(), descriptor,
+                    bindingFingerprint);
         }
         Object2LongMap<MaterialKey> availability = new Object2LongLinkedOpenHashMap<>();
         for (MaterialKey key : keys) {
@@ -128,7 +126,7 @@ final class MEWirelessMaterialSource implements MaterialSource {
             return Selection.failed(problem(BuildProblem.Type.ME_UNAVAILABLE,
                     "gtpm.multiblock.autobuild.me_no_player_inventory"));
         }
-        Selection selected = selectBinding(player, excludedTerminal, inventory, new WirelessSearch(), 0, IntList.of());
+        Selection selected = selectBinding(player, excludedTerminal, inventory, new ReferenceOpenHashSet<>(), IntList.of());
         if (selected.binding() != null || selected.problem() != null) {
             return selected;
         }
@@ -137,9 +135,9 @@ final class MEWirelessMaterialSource implements MaterialSource {
     }
 
     private static Selection selectBinding(ServerPlayer player, ItemStack excludedTerminal, IItemHandler handler,
-                                           WirelessSearch search, int depth,
+                                           ReferenceSet<IItemHandler> visitedHandlers,
                                            IntList parentPath) {
-        if (!search.visitedHandlers.add(handler)) {
+        if (!visitedHandlers.add(handler)) {
             return Selection.empty();
         }
         Selection firstFailure = Selection.empty();
@@ -177,11 +175,7 @@ final class MEWirelessMaterialSource implements MaterialSource {
             IntList slotPath = append(parentPath, slot);
             IItemHandler childHandler = stack.getCapability(Capabilities.ItemHandler.ITEM);
             if (childHandler != null) {
-                if (depth >= MAX_CONTAINER_DEPTH) {
-                    search.logDepthLimit();
-                    continue;
-                }
-                Selection nested = selectBinding(player, excludedTerminal, childHandler, search, depth + 1,
+                Selection nested = selectBinding(player, excludedTerminal, childHandler, visitedHandlers,
                         slotPath);
                 if (nested.binding() != null && nested.problem() == null) {
                     return nested;
@@ -192,18 +186,6 @@ final class MEWirelessMaterialSource implements MaterialSource {
             }
         }
         return firstFailure;
-    }
-
-    private static final class WirelessSearch {
-
-        private final ReferenceSet<IItemHandler> visitedHandlers = new ReferenceOpenHashSet<>();
-
-        private void logDepthLimit() {
-            if (DEPTH_LIMIT_LOGGED.compareAndSet(false, true)) {
-                GTCEu.LOGGER.debug("AE wireless-terminal search stopped at maximum nested depth {}",
-                        MAX_CONTAINER_DEPTH);
-            }
-        }
     }
 
     private static InventoryAccess validateBinding(ServerPlayer player, WirelessBinding binding) {
@@ -305,13 +287,6 @@ final class MEWirelessMaterialSource implements MaterialSource {
                                    IntList slotPath, String terminalName, String selectionIdentity,
                                    long fingerprint) {
 
-        private WirelessBinding {
-            slotPath = new IntImmutableList(slotPath);
-            if (slotPath.isEmpty() || slotPath.size() > MAX_CONTAINER_DEPTH + 1) {
-                throw new IllegalArgumentException("AE wireless terminal slot path is invalid");
-            }
-        }
-
         private static WirelessBinding create(ItemStack terminal, GlobalPos linkTarget, IntList slotPath) {
             ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(terminal.getItem());
             MaterialKey terminalKey = MaterialKey.of(terminal);
@@ -319,15 +294,7 @@ final class MEWirelessMaterialSource implements MaterialSource {
                     slotPath.intStream().mapToObj(Integer::toString).collect(ObjectImmutableList.toList()));
             String componentHash = Integer.toUnsignedString(terminalKey.hashCode(), 16);
             String identity = path + '@' + itemId + '#' + componentHash;
-            if (identity.length() > MAX_DISPLAY_TEXT) {
-                identity = path + "@#" + Integer.toUnsignedString(itemId.hashCode(), 16) + '#' + componentHash;
-            }
             String name = terminal.getHoverName().getString();
-            if (name.isBlank()) {
-                name = itemId.toString();
-            } else if (name.length() > MAX_DISPLAY_TEXT) {
-                name = name.substring(0, MAX_DISPLAY_TEXT);
-            }
             long fingerprint = 0xcbf29ce484222325L;
             fingerprint = hash(fingerprint, itemId.hashCode());
             fingerprint = hash(fingerprint, terminalKey.hashCode());
@@ -405,9 +372,6 @@ final class MEWirelessMaterialSource implements MaterialSource {
 
         @Override
         public @Nullable Reservation reserve(MaterialKey key, long amount) {
-            if (amount <= 0) {
-                throw new IllegalArgumentException("Reserved material amount must be positive");
-            }
             InventoryAccess access = validatedInventory();
             if (access.problem() != null) {
                 return null;
@@ -427,7 +391,7 @@ final class MEWirelessMaterialSource implements MaterialSource {
                 return null;
             }
             long simulated = access.inventory().extract(aeKey, requested, Actionable.SIMULATE, actionSource);
-            long reserved = Math.min(amount, Math.max(0, simulated - alreadyReserved));
+            long reserved = Math.clamp(simulated - alreadyReserved, 0, amount);
             if (reserved == 0) {
                 return null;
             }
@@ -450,7 +414,7 @@ final class MEWirelessMaterialSource implements MaterialSource {
             }
             long inserted = access.inventory().insert(key, stack.getCount(),
                     simulate ? Actionable.SIMULATE : Actionable.MODULATE, actionSource);
-            int insertedCount = (int) Math.min(Math.max(0, inserted), stack.getCount());
+            int insertedCount = Math.clamp(inserted, 0, stack.getCount());
             ItemStack remainder = stack.copy();
             remainder.shrink(insertedCount);
             return remainder;
@@ -530,10 +494,15 @@ final class MEWirelessMaterialSource implements MaterialSource {
             } else {
                 long extracted = access.inventory().extract(aeKey, reservedAmount, Actionable.MODULATE,
                         session.actionSource);
-                committed = Math.min(reservedAmount, Math.max(0, extracted));
+                committed = Math.clamp(extracted, 0, reservedAmount);
             }
             session.release(aeKey, reservedAmount);
             return new CommitResult(reservedAmount, committed, commitProblem);
+        }
+
+        @Override
+        public ObjectList<ItemStack> rejectedStacks() {
+            return ObjectList.of();
         }
 
         @Override
@@ -550,7 +519,7 @@ final class MEWirelessMaterialSource implements MaterialSource {
             }
             long inserted = access.inventory().insert(aeKey, committed - restored, Actionable.MODULATE,
                     session.actionSource);
-            restored += Math.min(committed - restored, Math.max(0, inserted));
+            restored += Math.clamp(inserted, 0, committed - restored);
             BuildProblem refundProblem = restored == committed ? null : problem(
                     BuildProblem.Type.REFUND_FAILED, "gtpm.multiblock.autobuild.refund_failed");
             return new RollbackResult(committed, restored, refundProblem);

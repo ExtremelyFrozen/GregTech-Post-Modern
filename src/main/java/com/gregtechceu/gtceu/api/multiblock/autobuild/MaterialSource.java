@@ -131,6 +131,14 @@ public interface MaterialSource {
     interface Session {
 
         /**
+         * Reserves this source's contribution to an ordered demand list without extracting backing storage.
+         * The shared request retains unfulfilled counts for later sources and records exact reservation ownership.
+         */
+        default MaterialRequest.Reservations request(MaterialRequest request) {
+            return request.reserve(this);
+        }
+
+        /**
          * Reports a problem discovered while opening or traversing this source.
          */
         @Nullable
@@ -140,15 +148,8 @@ public interface MaterialSource {
 
         /**
          * Returns the unreserved amount currently available for an exact key.
-         *
-         * <p>
-         * The default keeps legacy addon sources binary-compatible; such sources do not participate in
-         * availability displays until they implement this method.
-         * </p>
          */
-        default long available(MaterialKey key) {
-            return 0;
-        }
+        long available(MaterialKey key);
 
         /**
          * Reserves one item matching any candidate stack, without mutating backing storage.
@@ -160,12 +161,7 @@ public interface MaterialSource {
          * Reserves up to {@code amount} items for an exact key without mutating backing storage.
          */
         @Nullable
-        default Reservation reserve(MaterialKey key, long amount) {
-            if (amount <= 0) {
-                throw new IllegalArgumentException("Reserved material amount must be positive");
-            }
-            return amount == 1 ? reserve(ObjectList.of(key.prototype())) : null;
-        }
+        Reservation reserve(MaterialKey key, long amount);
 
         /**
          * Inserts a returned drop into this source.
@@ -185,16 +181,12 @@ public interface MaterialSource {
         /**
          * Returns the exact material represented by this reservation.
          */
-        default MaterialKey key() {
-            return MaterialKey.of(stack());
-        }
+        MaterialKey key();
 
         /**
          * Returns how many items were reserved without relying on the bounded ItemStack count.
          */
-        default long reservedAmount() {
-            return stack().getCount();
-        }
+        long reservedAmount();
 
         /**
          * Commits this reservation to backing storage.
@@ -204,25 +196,17 @@ public interface MaterialSource {
         /**
          * Commits this reservation and reports the exact extracted amount.
          */
-        default CommitResult commitExact() {
-            long requested = reservedAmount();
-            return new CommitResult(requested, commit() ? requested : 0, null);
-        }
+        CommitResult commitExact();
 
         /**
          * Restores material extracted by the last commit attempt.
          */
-        default RollbackResult rollback() {
-            long requested = reservedAmount();
-            return new RollbackResult(requested, 0, null);
-        }
+        RollbackResult rollback();
 
         /**
          * Returns unexpected stacks a generic source could not restore itself after a broken handler response.
          */
-        default ObjectList<ItemStack> rejectedStacks() {
-            return ObjectList.of();
-        }
+        ObjectList<ItemStack> rejectedStacks();
     }
 
     enum SourceKind {
@@ -236,39 +220,18 @@ public interface MaterialSource {
     record SourceDescriptor(SourceKind kind, String displayName, String selectionIdentity,
                             @Nullable GlobalPos linkTarget) {
 
-        public SourceDescriptor {
-            if (displayName.isBlank() || displayName.length() > 256 ||
-                    selectionIdentity.isBlank() || selectionIdentity.length() > 256) {
-                throw new IllegalArgumentException("Material source display identity must be present and bounded");
-            }
-        }
     }
 
     /**
      * Immutable availability values for one material source.
      */
     record Availability(SourceKind kind, Object2LongMap<MaterialKey> available,
-                    @Nullable BuildProblem problem, @Nullable SourceDescriptor descriptor,
-                    long bindingFingerprint) {
+                        @Nullable BuildProblem problem, @Nullable SourceDescriptor descriptor,
+                        long bindingFingerprint) {
 
         public Availability(SourceKind kind, Object2LongMap<MaterialKey> available,
-                        @Nullable BuildProblem problem) {
+                            @Nullable BuildProblem problem) {
             this(kind, available, problem, null, 0);
-        }
-
-        public Availability {
-            if (descriptor != null && descriptor.kind() != kind) {
-                throw new IllegalArgumentException("Material snapshot descriptor kind does not match its source");
-            }
-            Object2LongLinkedOpenHashMap<MaterialKey> ordered = new Object2LongLinkedOpenHashMap<>();
-            for (var entry : available.object2LongEntrySet()) {
-                long value = entry.getLongValue();
-                if (value < 0) {
-                    throw new IllegalArgumentException("Material snapshot values must be non-negative");
-                }
-                ordered.put(entry.getKey(), value);
-            }
-            available = Object2LongMaps.unmodifiable(ordered);
         }
 
         public long available(MaterialKey key) {
@@ -281,12 +244,6 @@ public interface MaterialSource {
      */
     record CommitResult(long requested, long committed, @Nullable BuildProblem problem) {
 
-        public CommitResult {
-            if (requested < 0 || committed < 0 || committed > requested) {
-                throw new IllegalArgumentException("Invalid material commit amounts");
-            }
-        }
-
         public boolean complete() {
             return requested == committed && problem == null;
         }
@@ -296,12 +253,6 @@ public interface MaterialSource {
      * Exact outcome of restoring a committed reservation.
      */
     record RollbackResult(long requested, long restored, @Nullable BuildProblem problem) {
-
-        public RollbackResult {
-            if (requested < 0 || restored < 0 || restored > requested) {
-                throw new IllegalArgumentException("Invalid material rollback amounts");
-            }
-        }
 
         public boolean complete() {
             return requested == restored && problem == null;
