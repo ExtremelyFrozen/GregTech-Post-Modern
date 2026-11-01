@@ -3,6 +3,7 @@ package com.gregtechceu.gtceu.api.multiblock.pattern.predicate
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition
 import com.gregtechceu.gtceu.api.multiblock.MultiblockBlockInfo
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState
+import com.gregtechceu.gtceu.api.multiblock.pattern.match.PatternDiagnostic
 
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.BlockState
@@ -19,6 +20,7 @@ class ObservedPatternPredicate(
 	private val kind: String = "",
 	private val candidateObservation: Function<BlockState, PatternObservation>? = null,
 	states: Supplier<ObjectList<BlockState>>? = null,
+	private val diagnostic: Function<PatternDiagnostic, PatternDiagnostic> = Function.identity(),
 ) : PatternPredicate(
 	{ state -> observer.apply(state).matched },
 	Supplier {
@@ -42,6 +44,7 @@ class ObservedPatternPredicate(
 	override fun isAir(): Boolean = kind == "air" || super.isAir()
 	override fun addCache(): Boolean = kind != "any" && super.addCache()
 	fun observe(state: MultiblockState): PatternObservation = observer.apply(state).withAliases(facts)
+	override fun diagnose(failure: PatternDiagnostic): PatternDiagnostic = diagnostic.apply(failure)
 
 	/** Applies legacy limit/IO metadata only after a pure observation has succeeded. */
 	fun accept(state: MultiblockState, observation: PatternObservation): Boolean = observation.matched && super.test(state)

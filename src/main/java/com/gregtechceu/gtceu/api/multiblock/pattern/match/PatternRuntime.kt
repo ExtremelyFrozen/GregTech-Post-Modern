@@ -77,27 +77,26 @@ internal class PatternRuntime(private val pattern: MultiBlockPattern, private va
 					predicate,
 				)
 			) {
-				error(path, repeatPath, depth, height, width, position, token)
+				val failure = PatternDiagnostic(path, repeatPath, PatternCoordinate(depth, height, width), position, if (state.world.isLoaded(position)) state.world.getBlockState(position) else null, token, "", 0)
+				errors.add(predicate.diagnose(failure))
 				break
 			}
 			if (observation == null) observation = predicate.observeAccepted(state)
 			val positionFacts = ObjectOpenHashSet<String>()
 			positionFacts.add("token:$token")
-			if (observation != null) {
-				positionFacts.addAll(observation.facts)
-				observation.properties.forEach { (key, value) ->
-					val prior: Any? = facts.get(key)
-					if (prior != null && prior != value) {
-						error(
-							path,
-							repeatPath,
-							depth,
-							height,
-							width, position, "consistent $key", key, 1,
-						)
-					}
-					facts.set(key, value)
+			positionFacts.addAll(observation.facts)
+			observation.properties.forEach { (key, value) ->
+				val prior: Any? = facts.get(key)
+				if (prior != null && prior != value) {
+					error(
+						path,
+						repeatPath,
+						depth,
+						height,
+						width, position, "consistent $key", key, 1,
+					)
 				}
+				facts.set(key, value)
 			}
 			positionFacts.addAll(predicate.facts)
 			facts.ensureScopes(scopes)

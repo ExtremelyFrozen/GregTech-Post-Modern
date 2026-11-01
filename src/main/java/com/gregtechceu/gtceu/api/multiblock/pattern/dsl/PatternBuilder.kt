@@ -1,7 +1,6 @@
 package com.gregtechceu.gtceu.api.multiblock.pattern.dsl
 
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition
-import com.gregtechceu.gtceu.api.multiblock.CenterOffset
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState
 import com.gregtechceu.gtceu.api.multiblock.PatternCondition
 import com.gregtechceu.gtceu.api.multiblock.StructureDir
@@ -37,8 +36,8 @@ import it.unimi.dsi.fastutil.objects.ObjectLists
 import java.util.function.Predicate
 
 /** Java DSL entry point for defining a multiblock structure. */
-class PatternBuilder private constructor(charDir: RelativeDirection, stringDir: RelativeDirection, aisleDir: RelativeDirection, private var definition: MultiblockMachineDefinition?, private val structureName: String) {
-	private val definitionKey get() = definition?.let { StructurePatternKey(it.id, structureName) }
+class PatternBuilder private constructor(charDir: RelativeDirection, stringDir: RelativeDirection, aisleDir: RelativeDirection, private val definition: MultiblockMachineDefinition, private val structureName: String) {
+	private val definitionKey get() = StructurePatternKey(definition.id, structureName)
 	private val units = ObjectArrayList<AisleUnit>()
 	private val symbolMap: Char2ObjectMap<PatternPredicate?> = Char2ObjectArrayMap()
 	private val structureDir = StructureDir(charDir, stringDir, aisleDir)
@@ -71,7 +70,7 @@ class PatternBuilder private constructor(charDir: RelativeDirection, stringDir: 
 	init {
 		structureDir.check()
 		symbolMap[' '] = PatternPredicates.any()
-		definition?.let { symbolMap['~'] = PatternPredicates.controller(PatternPredicates.blocks(it.block)) }
+		symbolMap['~'] = PatternPredicates.controller(PatternPredicates.blocks(definition.block))
 	}
 
 	/** Adds a single aisle to this pattern. Multiple calls increase the aisleDir by 1. */
@@ -105,10 +104,7 @@ class PatternBuilder private constructor(charDir: RelativeDirection, stringDir: 
 		return this
 	}
 
-	fun appendDefinition(): PatternBuilder {
-		val key = definitionKey ?: error("No multiblock definition was bound to this pattern builder")
-		return appendDefinition(key)
-	}
+	fun appendDefinition(): PatternBuilder = appendDefinition(definitionKey)
 
 	fun appendDefinition(key: StructurePatternKey): PatternBuilder = StructurePatternResolver.appendDefinition(this, key)
 
@@ -155,7 +151,6 @@ class PatternBuilder private constructor(charDir: RelativeDirection, stringDir: 
 	fun where(symbol: String, blockMatcher: PatternPredicate): PatternBuilder = where(symbol[0], blockMatcher)
 
 	fun where(symbol: Char, blockMatcher: PatternPredicate): PatternBuilder {
-		if (definition == null && blockMatcher is PredicateController) definition = blockMatcher.owner as? MultiblockMachineDefinition
 		symbolMap[symbol] = when {
 			blockMatcher.isAny() || blockMatcher.isAir() -> blockMatcher
 			blockMatcher is PredicateController -> blockMatcher.sort()
@@ -182,82 +177,10 @@ class PatternBuilder private constructor(charDir: RelativeDirection, stringDir: 
 		}
 	}
 
-	fun build(): MultiBlockPattern {
-		if (definition != null && extraNodes.isNotEmpty()) return MultiBlockPattern.fromDefinition(buildDefinition()).also { it.condition = condition }
-		check(repeatableGroup == null) {
-			"Repeatable aisle group must be closed before building the pattern"
-		}
-		checkMissingPatternPredicates()
-		val unitCount = units.size
-		val size = units.sumOf { it.slices.size }
-		var centerOffset: CenterOffset? = null
-		val aisleRepetitions = Array(unitCount) { IntArray(2) }
-		val unitStarts = IntArray(unitCount)
-		val unitDepths = IntArray(unitCount)
-		val structureSlices = arrayOfNulls<Array<String>>(size)
-		val predicate = arrayOfNulls<Array<Array<PatternPredicate?>?>>(size)
-
-		var sliceIndex = 0
-		var minZ = 0
-		var maxZ = 0
-		units.forEachIndexed { unitIndex, unit ->
-			val unitDepth = unit.slices.size
-			unitStarts[unitIndex] = sliceIndex
-			unitDepths[unitIndex] = unitDepth
-			aisleRepetitions[unitIndex][0] = unit.minRepeat
-			aisleRepetitions[unitIndex][1] = unit.maxRepeat
-			unit.slices.forEachIndexed { inner, aisle ->
-				structureSlices[sliceIndex] = aisle.copyOf()
-				val layerPredicates = arrayOfNulls<Array<PatternPredicate?>>(aisleHeight)
-				aisle.forEachIndexed { rowIndex, row ->
-					row.forEachIndexed { columnIndex, symbol ->
-						val matched = symbolMap[symbol]
-						if (matched != null) {
-							val rowPredicates: Array<PatternPredicate?> = layerPredicates[rowIndex]
-								?: arrayOfNulls<PatternPredicate?>(rowWidth).also { layerPredicates[rowIndex] = it }
-							rowPredicates[columnIndex] = matched
-							if (matched is PredicateController) {
-								centerOffset = CenterOffset(columnIndex, rowIndex, sliceIndex, minZ + inner, maxZ + inner)
-							}
-						}
-					}
-				}
-				predicate[sliceIndex] = layerPredicates
-				sliceIndex++
-			}
-			minZ += unitDepth * unit.minRepeat
-			maxZ += unitDepth * unit.maxRepeat
-		}
-
-		@Suppress("UNCHECKED_CAST")
-		val blockMatches = predicate as Array<Array<Array<PatternPredicate>>>
-
-		val slices = structureSlices
-		val pattern = MultiBlockPattern(
-			blockMatches,
-			structureDir,
-			aisleRepetitions,
-			unitStarts,
-			unitDepths,
-			slices,
-			centerOffset ?: error("Pattern controller predicate is missing"),
-			size,
-			aisleHeight,
-			rowWidth,
-		)
-		condition?.let { pattern.condition = it }
-		definition?.let {
-			val predicates = ObjectArrayList<PatternPredicate>(symbolMap.size)
-			symbolMap.values.forEach { value -> if (value != null) predicates.add(value) }
-			pattern.predicates = predicates
-			pattern.attachDefinition(buildDefinition())
-		}
-		return pattern
-	}
+	fun build(): MultiBlockPattern = MultiBlockPattern.fromDefinition(buildDefinition()).also { it.condition = condition }
 
 	/** Builds the canonical AST consumed by JSON, binary and compiler paths. */
 	fun buildDefinition(): PatternDefinition {
-		val machine = definition ?: error("A Java pattern definition must be bound to a machine")
 		checkMissingPatternPredicates()
 		check(repeatableGroup == null) { "Repeatable group must be closed before building" }
 		val nodes = ObjectArrayList<PatternNode>(units.size + extraNodes.size)
@@ -287,8 +210,8 @@ class PatternBuilder private constructor(charDir: RelativeDirection, stringDir: 
 			predicates[entry.charKey] = PatternPredicateDefinition("java", "", mapOf("runtime" to requireNotNull(entry.value)), emptyList())
 		}
 		return PatternDefinition(
-			machine.id,
-			definitionKey!!.resourceId(),
+			definition.id,
+			definitionKey.resourceId(),
 			PatternAxes(
 				toPatternDirection(structureDir.aisleDir()),
 				toPatternDirection(structureDir.stringDir()),
@@ -308,15 +231,6 @@ class PatternBuilder private constructor(charDir: RelativeDirection, stringDir: 
 		private val DEFAULT_STRUCTURE = StructurePatternKey.DEFAULT_STRUCTURE_NAME
 
 		@JvmStatic
-		fun start(): PatternBuilder = PatternBuilder(
-			RelativeDirection.LEFT,
-			RelativeDirection.UP,
-			RelativeDirection.FRONT,
-			null,
-			DEFAULT_STRUCTURE,
-		)
-
-		@JvmStatic
 		fun start(definition: MultiblockMachineDefinition): PatternBuilder = PatternBuilder(
 			RelativeDirection.LEFT,
 			RelativeDirection.UP,
@@ -333,9 +247,6 @@ class PatternBuilder private constructor(charDir: RelativeDirection, stringDir: 
 			definition,
 			structureName,
 		)
-
-		@JvmStatic
-		fun start(charDir: RelativeDirection, stringDir: RelativeDirection, aisleDir: RelativeDirection): PatternBuilder = PatternBuilder(charDir, stringDir, aisleDir, null, DEFAULT_STRUCTURE)
 
 		@JvmStatic
 		fun start(definition: MultiblockMachineDefinition, charDir: RelativeDirection, stringDir: RelativeDirection, aisleDir: RelativeDirection): PatternBuilder = PatternBuilder(charDir, stringDir, aisleDir, definition, DEFAULT_STRUCTURE)

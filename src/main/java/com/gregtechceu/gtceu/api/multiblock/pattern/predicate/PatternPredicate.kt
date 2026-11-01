@@ -4,6 +4,7 @@ import com.gregtechceu.gtceu.api.capability.recipe.IO
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition
 import com.gregtechceu.gtceu.api.multiblock.MultiblockBlockInfo
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState
+import com.gregtechceu.gtceu.api.multiblock.pattern.match.PatternDiagnostic
 import com.gregtechceu.gtceu.api.multiblock.structurepredicate.StructurePredicate
 import com.gregtechceu.gtceu.api.multiblock.util.RelativeDirection
 
@@ -24,6 +25,9 @@ import java.util.function.Supplier
 
 /** Composite runtime predicate used by the matcher and structure planner. */
 open class PatternPredicate {
+	/** Builds the failure shown at this position; extensions retain its path and coordinates when adding detail. */
+	open fun diagnose(failure: PatternDiagnostic): PatternDiagnostic = failure
+
 	/** Observes a candidate without constructing block entities, mutating counters or consulting a world. */
 	open fun observeCandidate(state: BlockState): PatternObservation {
 		observeRulesCandidate(state)?.let { return it }
