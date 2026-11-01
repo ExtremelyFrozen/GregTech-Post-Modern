@@ -13,10 +13,9 @@ import dev.emi.emi.api.recipe.EmiRecipeCategory;
 import dev.emi.emi.api.stack.EmiStack;
 import dev.emi.emi.api.widget.SlotWidget;
 import dev.emi.emi.api.widget.WidgetHolder;
+import it.unimi.dsi.fastutil.objects.ObjectList;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import java.util.List;
 
 public class MultiblockInfoEmiRecipe extends ModularUIEMIRecipe {
 
@@ -31,7 +30,8 @@ public class MultiblockInfoEmiRecipe extends ModularUIEMIRecipe {
     public void addWidgets(@NotNull WidgetHolder widgets) {
         super.addWidgets(widgets);
         // numbers gotten from the size of the widget
-        SlotWidget slotWidget = new SlotWidget(EmiStack.of(definition.getItem().asItem()), 138, 12)
+        SlotWidget slotWidget = new SlotWidget(EmiStack.of(definition.getItem().asItem()),
+                PatternPreviewWidget.WIDTH - 22, 4)
                 .recipeContext(this)
                 .drawBack(false);
 
@@ -49,18 +49,18 @@ public class MultiblockInfoEmiRecipe extends ModularUIEMIRecipe {
     }
 
     @Override
-    public @NotNull List<EmiStack> getOutputs() {
-        return List.of(EmiStack.of(definition.getItem()));
+    public @NotNull ObjectList<EmiStack> getOutputs() {
+        return ObjectList.of(EmiStack.of(definition.getItem()));
     }
 
     @Override
     public int getDisplayWidth() {
-        return 160;
+        return PatternPreviewWidget.WIDTH;
     }
 
     @Override
     public int getDisplayHeight() {
-        return 160;
+        return PatternPreviewWidget.HEIGHT;
     }
 
     private static ModularUI createModularUI(ModularUIEMIRecipe recipe) {

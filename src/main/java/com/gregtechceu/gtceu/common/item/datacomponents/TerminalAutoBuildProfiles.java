@@ -1,7 +1,6 @@
 package com.gregtechceu.gtceu.common.item.datacomponents;
 
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.AutoBuildOptions;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.AutoBuildMode;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.AutoBuildSharedOptions;
 
@@ -15,13 +14,12 @@ import com.mojang.serialization.DataResult;
 import com.mojang.serialization.Decoder;
 import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntList;
+import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectMaps;
 import org.jspecify.annotations.NullMarked;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Stores independent automatic-build profiles by multiblock machine definition.
@@ -32,7 +30,7 @@ import java.util.Map;
  * </p>
  */
 @NullMarked
-public record TerminalAutoBuildProfiles(Map<ResourceLocation, TerminalMachineProfile> profiles) {
+public record TerminalAutoBuildProfiles(Object2ObjectMap<ResourceLocation, TerminalMachineProfile> profiles) {
 
     private static final int MAX_MACHINES = 256;
     private static final int MAX_STRUCTURES = 128;
@@ -40,33 +38,36 @@ public record TerminalAutoBuildProfiles(Map<ResourceLocation, TerminalMachinePro
     private static final int MAX_TIER_CHOICES = 128;
     private static final int MAX_STRUCTURE_NAME = 128;
     private static final int MAX_RESOURCE_LOCATION = 256;
+    private static final int MAX_CHOICES = 128;
+    private static final int MAX_CHOICE_PATH = 2048;
 
-    public static final TerminalAutoBuildProfiles EMPTY = new TerminalAutoBuildProfiles(Map.of());
+    public static final TerminalAutoBuildProfiles EMPTY = new TerminalAutoBuildProfiles(Object2ObjectMaps.emptyMap());
 
     private static final Codec<TerminalAutoBuildProfiles> CURRENT_CODEC = RecordCodecBuilder.create(instance -> instance
             .group(
-                    Codec.unboundedMap(ResourceLocation.CODEC, TerminalMachineProfile.CODEC).fieldOf("profiles")
+                    Codec.unboundedMap(ResourceLocation.CODEC, TerminalMachineProfile.CODEC)
+                            .<Object2ObjectMap<ResourceLocation, TerminalMachineProfile>>xmap(
+                                    Object2ObjectLinkedOpenHashMap::new, value -> value)
+                            .fieldOf("profiles")
                             .forGetter(TerminalAutoBuildProfiles::profiles))
             .apply(instance, TerminalAutoBuildProfiles::new));
-
-    private static final Codec<LegacyConfig> LEGACY_CODEC = RecordCodecBuilder.create(instance -> instance.group(
-            Codec.STRING.optionalFieldOf("structure_name", "main").forGetter(LegacyConfig::structureName),
-            AutoBuildOptions.CODEC.optionalFieldOf("options", AutoBuildOptions.DEFAULT)
-                    .forGetter(LegacyConfig::options))
-            .apply(instance, LegacyConfig::new));
 
     private static final Decoder<TerminalAutoBuildProfiles> DECODER = new Decoder<>() {
 
         @Override
         public <T> DataResult<Pair<TerminalAutoBuildProfiles, T>> decode(DynamicOps<T> ops, T input) {
             return ops.getMap(input).flatMap(map -> {
-                if (map.get("profiles") != null) {
-                    return CURRENT_CODEC.decode(ops, input);
+                if (map.get("profiles") != null) return CURRENT_CODEC.decode(ops, input);
+                T structure = map.get("structure_name");
+                T options = map.get("options");
+                if (structure == null && options == null) {
+                    return DataResult
+                            .error(() -> "Terminal data is neither current nor retired single-structure format");
                 }
-                if (map.get("structure_name") != null || map.get("options") != null) {
-                    return LEGACY_CODEC.decode(ops, input).map(pair -> Pair.of(EMPTY, pair.getSecond()));
-                }
-                return DataResult.error(() -> "Terminal auto-build data is neither current nor legacy format");
+                DataResult<String> name = structure == null ? DataResult.success("main") :
+                        Codec.STRING.parse(ops, structure);
+                return name.flatMap(ignored -> options == null ? DataResult.success(Pair.of(EMPTY, ops.empty())) :
+                        ops.getMap(options).map(retired -> Pair.of(EMPTY, ops.empty())));
             });
         }
     };
@@ -80,22 +81,24 @@ public record TerminalAutoBuildProfiles(Map<ResourceLocation, TerminalMachinePro
         if (profiles.size() > MAX_MACHINES) {
             throw new IllegalArgumentException("Terminal machine profiles exceed " + MAX_MACHINES);
         }
-        LinkedHashMap<ResourceLocation, TerminalMachineProfile> ordered = new LinkedHashMap<>();
+        Object2ObjectMap<ResourceLocation, TerminalMachineProfile> ordered = new Object2ObjectLinkedOpenHashMap<>();
         profiles.forEach((definitionId, profile) -> {
             if (definitionId.toString().length() > MAX_RESOURCE_LOCATION) {
                 throw new IllegalArgumentException("Terminal machine definition ID is unbounded");
             }
             ordered.put(definitionId, profile);
         });
-        profiles = Collections.unmodifiableMap(ordered);
+        profiles = Object2ObjectMaps.unmodifiable(ordered);
     }
 
     public TerminalMachineProfile getOrCreate(MultiblockMachineDefinition definition) {
-        return profiles.getOrDefault(definition.getId(), TerminalMachineProfile.defaults(definition));
+        TerminalMachineProfile profile = profiles.get(definition.getId());
+        return profile == null ? TerminalMachineProfile.defaults(definition) : profile;
     }
 
     public TerminalAutoBuildProfiles withProfile(ResourceLocation definitionId, TerminalMachineProfile profile) {
-        LinkedHashMap<ResourceLocation, TerminalMachineProfile> updated = new LinkedHashMap<>(profiles);
+        Object2ObjectMap<ResourceLocation, TerminalMachineProfile> updated = new Object2ObjectLinkedOpenHashMap<>(
+                profiles);
         updated.put(definitionId, profile);
         return new TerminalAutoBuildProfiles(updated);
     }
@@ -110,7 +113,7 @@ public record TerminalAutoBuildProfiles(Map<ResourceLocation, TerminalMachinePro
 
     private static TerminalAutoBuildProfiles decode(RegistryFriendlyByteBuf buffer) {
         int size = readBoundedSize(buffer, MAX_MACHINES, "terminal machine profiles");
-        LinkedHashMap<ResourceLocation, TerminalMachineProfile> profiles = new LinkedHashMap<>();
+        Object2ObjectMap<ResourceLocation, TerminalMachineProfile> profiles = new Object2ObjectLinkedOpenHashMap<>();
         for (int index = 0; index < size; index++) {
             ResourceLocation id = readResourceLocation(buffer);
             if (profiles.put(id, decodeMachine(buffer)) != null) {
@@ -132,11 +135,16 @@ public record TerminalAutoBuildProfiles(Map<ResourceLocation, TerminalMachinePro
             buffer.writeEnum(structure.mode());
             buffer.writeBoolean(structure.flipMode());
             writeBoundedSize(buffer, structure.repetitions().size(), MAX_REPETITIONS, "terminal repetitions");
-            structure.repetitions().forEach(buffer::writeVarInt);
+            for (int repetition : structure.repetitions()) buffer.writeVarInt(repetition);
             writeBoundedSize(buffer, structure.tierChoices().size(), MAX_TIER_CHOICES, "terminal tier choices");
             structure.tierChoices().forEach((group, choice) -> {
-                writeResourceLocation(buffer, group);
+                buffer.writeUtf(group, MAX_RESOURCE_LOCATION);
                 writeResourceLocation(buffer, choice);
+            });
+            writeBoundedSize(buffer, structure.choices().size(), MAX_CHOICES, "terminal branch choices");
+            structure.choices().forEach((path, branch) -> {
+                buffer.writeUtf(path, MAX_CHOICE_PATH);
+                buffer.writeUtf(branch, MAX_RESOURCE_LOCATION);
             });
         });
     }
@@ -145,27 +153,36 @@ public record TerminalAutoBuildProfiles(Map<ResourceLocation, TerminalMachinePro
         AutoBuildSharedOptions shared = new AutoBuildSharedOptions(buffer.readBoolean(), buffer.readBoolean(),
                 buffer.readBoolean());
         int structuresSize = readBoundedSize(buffer, MAX_STRUCTURES, "terminal structures");
-        LinkedHashMap<String, TerminalStructureProfile> structures = new LinkedHashMap<>();
+        Object2ObjectMap<String, TerminalStructureProfile> structures = new Object2ObjectLinkedOpenHashMap<>();
         for (int structureIndex = 0; structureIndex < structuresSize; structureIndex++) {
             String name = buffer.readUtf(MAX_STRUCTURE_NAME);
             boolean selected = buffer.readBoolean();
             AutoBuildMode mode = buffer.readEnum(AutoBuildMode.class);
             boolean flip = buffer.readBoolean();
             int repetitionsSize = readBoundedSize(buffer, MAX_REPETITIONS, "terminal repetitions");
-            List<Integer> repetitions = new ArrayList<>(repetitionsSize);
+            IntList repetitions = new IntArrayList(repetitionsSize);
             for (int repetitionIndex = 0; repetitionIndex < repetitionsSize; repetitionIndex++) {
                 repetitions.add(buffer.readVarInt());
             }
             int tiersSize = readBoundedSize(buffer, MAX_TIER_CHOICES, "terminal tier choices");
-            LinkedHashMap<ResourceLocation, ResourceLocation> tiers = new LinkedHashMap<>();
+            Object2ObjectMap<String, ResourceLocation> tiers = new Object2ObjectLinkedOpenHashMap<>();
             for (int tierIndex = 0; tierIndex < tiersSize; tierIndex++) {
-                ResourceLocation group = readResourceLocation(buffer);
+                String group = buffer.readUtf(MAX_RESOURCE_LOCATION);
                 ResourceLocation choice = readResourceLocation(buffer);
                 if (tiers.put(group, choice) != null) {
                     throw new IllegalArgumentException("Duplicate terminal tier choice: " + group);
                 }
             }
-            if (structures.put(name, new TerminalStructureProfile(selected, mode, repetitions, flip, tiers)) != null) {
+            int choiceCount = readBoundedSize(buffer, MAX_CHOICES, "terminal branch choices");
+            Object2ObjectMap<String, String> choices = new Object2ObjectLinkedOpenHashMap<>();
+            for (int choiceIndex = 0; choiceIndex < choiceCount; choiceIndex++) {
+                String path = buffer.readUtf(MAX_CHOICE_PATH);
+                if (choices.put(path, buffer.readUtf(MAX_RESOURCE_LOCATION)) != null) {
+                    throw new IllegalArgumentException("Duplicate terminal branch choice: " + path);
+                }
+            }
+            if (structures.put(name, new TerminalStructureProfile(selected, mode, repetitions, flip, tiers, choices)) !=
+                    null) {
                 throw new IllegalArgumentException("Duplicate terminal structure profile: " + name);
             }
         }
@@ -194,6 +211,4 @@ public record TerminalAutoBuildProfiles(Map<ResourceLocation, TerminalMachinePro
     private static ResourceLocation readResourceLocation(RegistryFriendlyByteBuf buffer) {
         return ResourceLocation.parse(buffer.readUtf(MAX_RESOURCE_LOCATION));
     }
-
-    private record LegacyConfig(String structureName, AutoBuildOptions options) {}
 }

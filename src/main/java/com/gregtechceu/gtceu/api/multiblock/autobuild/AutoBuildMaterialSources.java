@@ -9,9 +9,9 @@ import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.items.IItemHandler;
 
+import it.unimi.dsi.fastutil.objects.ObjectList;
 import org.jspecify.annotations.Nullable;
 
-import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -101,7 +101,7 @@ public final class AutoBuildMaterialSources {
         }
 
         @Override
-        public @Nullable Reservation reserve(List<ItemStack> candidates) {
+        public @Nullable Reservation reserve(ObjectList<ItemStack> candidates) {
             return null;
         }
 

@@ -12,8 +12,6 @@ import com.gregtechceu.gtceu.api.machine.trait.multiblock.MultiblockMachineTrait
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState;
 import com.gregtechceu.gtceu.api.multiblock.MultiblockWorldSavedData;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.AutoBuildProblem;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.AutoBuildRequest;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.AutoBuildResult;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.AutoBuildBatchRequest;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.AutoBuildBatchResult;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.AutoBuildStructureResult;
@@ -38,6 +36,8 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.level.block.state.BlockState;
 
+import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
+import it.unimi.dsi.fastutil.objects.ObjectList;
 import lombok.Getter;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
@@ -370,11 +370,6 @@ public class MultiblockControllerMachine extends MetaMachine {
         return getDefinition().getPattern(structureName);
     }
 
-    @Deprecated(forRemoval = false, since = "7.0")
-    public AutoBuildResult autoBuild(ServerPlayer player, AutoBuildRequest request) {
-        return MultiblockAutoBuild.execute(this, player, request);
-    }
-
     /**
      * Resolves and executes a batch immediately with the newly generated fingerprint.
      */
@@ -408,8 +403,8 @@ public class MultiblockControllerMachine extends MetaMachine {
     private AutoBuildBatchResult batchFailure(AutoBuildBatchRequest request, AutoBuildProblem problem) {
         return AutoBuildBatchResult.of(request.structures().stream()
                 .map(options -> new AutoBuildStructureResult(options.structureName(), options.mode(), false, 0, 0,
-                        List.of(problem)))
-                .toList());
+                        ObjectList.of(problem)))
+                .collect(ObjectImmutableList.toList()));
     }
 
     /**

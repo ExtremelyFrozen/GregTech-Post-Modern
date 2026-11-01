@@ -5,12 +5,10 @@ import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PatternPredicate;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.state.BlockState;
 
+import it.unimi.dsi.fastutil.objects.ObjectList;
 import org.jspecify.annotations.Nullable;
-
-import java.util.List;
 
 /**
  * One exact, resolved session cell shared by preview, material accounting and execution.
@@ -24,6 +22,6 @@ public record PlannedCell(String structureName, PatternCellKey cellKey, BlockPos
                           @Nullable BlockPos worldPos, BlockState blockState, @Nullable BlockState observedState,
                           PlannedBlockInfo blockInfo,
                           CellAction action, PatternPredicate predicate,
-                          List<BlockState> stateCandidates, @Nullable Direction requiredDirection,
-                          List<AutoBuildItemKey> materialCandidates, @Nullable AutoBuildItemKey materialKey,
-                          List<ResourceLocation> tierGroups, List<String> constraintIds) {}
+                          ObjectList<BlockState> stateCandidates, @Nullable Direction requiredDirection,
+                          ObjectList<AutoBuildItemKey> materialCandidates, @Nullable AutoBuildItemKey materialKey,
+                          ObjectList<String> tierGroups, ObjectList<String> constraintIds) {}

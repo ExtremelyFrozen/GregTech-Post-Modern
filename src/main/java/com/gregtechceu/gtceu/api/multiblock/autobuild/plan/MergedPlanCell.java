@@ -2,14 +2,13 @@ package com.gregtechceu.gtceu.api.multiblock.autobuild.plan;
 
 import net.minecraft.core.BlockPos;
 
+import it.unimi.dsi.fastutil.objects.ObjectList;
 import org.jspecify.annotations.Nullable;
-
-import java.util.List;
 
 /**
  * All selected structure contributions at one controller-relative position.
  */
-public record MergedPlanCell(BlockPos relativePos, @Nullable BlockPos worldPos, List<PlannedCell> contributors,
+public record MergedPlanCell(BlockPos relativePos, @Nullable BlockPos worldPos, ObjectList<PlannedCell> contributors,
                              MergeState mergeState) {
 
     public boolean conflict() {

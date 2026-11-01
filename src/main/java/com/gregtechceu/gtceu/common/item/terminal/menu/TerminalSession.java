@@ -14,46 +14,43 @@ import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.AutoBuildPlan;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.MultiblockPlanResolver;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.ResolvedAutoBuildSnapshot;
 import com.gregtechceu.gtceu.api.multiblock.preview.MultiblockPreviewSnapshot;
-import com.gregtechceu.gtceu.api.registry.GTRegistries;
 import com.gregtechceu.gtceu.common.data.GTDataComponents;
 import com.gregtechceu.gtceu.common.item.datacomponents.TerminalAutoBuildProfiles;
+import com.gregtechceu.gtceu.common.item.datacomponents.TerminalControllerBinding;
 import com.gregtechceu.gtceu.common.item.datacomponents.TerminalMachineProfile;
 import com.gregtechceu.gtceu.common.item.terminal.profile.TerminalProfileUpdate;
 import com.gregtechceu.gtceu.common.machine.owner.MachineOwner;
 import com.gregtechceu.gtceu.data.pattern.StructurePatternRegistry;
 
-import com.lowdragmc.lowdraglib2.gui.factory.IContainerUIHolder;
-import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
-
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.MenuProvider;
-import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
+import it.unimi.dsi.fastutil.objects.ObjectList;
 import org.jspecify.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.UUID;
 
 /** Captures one exact terminal, controller and session for a server-authoritative automatic-build menu. */
-public final class TerminalBoundMenuHolder implements MenuProvider, IContainerUIHolder {
+public final class TerminalSession {
 
-    private final Player player;
+    private final ServerPlayer player;
     private final InteractionHand hand;
     private final ItemStack openedTerminal;
-    private final @Nullable MultiblockControllerMachine openedController;
+    private final @Nullable TerminalControllerBinding openedBinding;
+    private final MultiblockControllerMachine openedController;
     private final MultiblockMachineDefinition definition;
     private final BlockPos controllerPos;
     private final ResourceKey<Level> dimension;
@@ -63,9 +60,7 @@ public final class TerminalBoundMenuHolder implements MenuProvider, IContainerUI
     private TerminalMachineProfile profile;
     private TerminalMenuState state;
     @Nullable
-    private TerminalBoundMenu serverMenu;
-    @Nullable
-    private TerminalBoundMenuUI openedUI;
+    private AbstractContainerMenu serverMenu;
     private long acceptedSequence;
     private long revision;
     private long visibleSignature;
@@ -76,11 +71,12 @@ public final class TerminalBoundMenuHolder implements MenuProvider, IContainerUI
     private TerminalExecutionSummary lastExecution;
 
     /** Captures the exact server objects used for every later validation. */
-    public TerminalBoundMenuHolder(ServerPlayer player, InteractionHand hand, ItemStack terminal,
-                                   MultiblockControllerMachine controller) {
+    public TerminalSession(ServerPlayer player, InteractionHand hand, ItemStack terminal,
+                           MultiblockControllerMachine controller) {
         this.player = player;
         this.hand = hand;
         this.openedTerminal = terminal;
+        this.openedBinding = terminal.get(GTDataComponents.TERMINAL_CONTROLLER);
         this.openedController = controller;
         this.definition = controller.getDefinition();
         this.controllerPos = controller.getBlockPos().immutable();
@@ -91,44 +87,6 @@ public final class TerminalBoundMenuHolder implements MenuProvider, IContainerUI
         patternGeneration = StructurePatternRegistry.generation();
         state = buildState(player);
         visibleSignature = visibleSignature(state);
-    }
-
-    private TerminalBoundMenuHolder(Player player, InteractionHand hand, ItemStack openedTerminal,
-                                    MultiblockMachineDefinition definition, BlockPos controllerPos,
-                                    ResourceKey<Level> dimension, UUID sessionId, TerminalMenuState openingState) {
-        this.player = player;
-        this.hand = hand;
-        this.openedTerminal = openedTerminal;
-        this.openedController = null;
-        this.definition = definition;
-        this.controllerPos = controllerPos.immutable();
-        this.dimension = dimension;
-        this.definitionId = definition.getId();
-        this.sessionId = sessionId;
-        this.profile = openingState.profile();
-        this.state = openingState;
-        acceptedSequence = openingState.acknowledgedSequence();
-        revision = openingState.revision();
-        executing = openingState.executing();
-        lastExecution = openingState.lastExecution();
-        patternGeneration = StructurePatternRegistry.generation();
-        visibleSignature = visibleSignature(openingState);
-    }
-
-    /** Reconstructs the client holder solely from server-owned opening identity and state. */
-    static TerminalBoundMenuHolder client(Player player, InteractionHand hand, BlockPos pos,
-                                          ResourceKey<Level> dimension, ResourceLocation definitionId,
-                                          UUID sessionId, TerminalMenuState state) {
-        if (!state.definitionId().equals(definitionId)) {
-            throw new IllegalArgumentException("Terminal opening state has the wrong machine definition");
-        }
-        var registered = GTRegistries.MACHINES.get(definitionId);
-        if (!(registered instanceof MultiblockMachineDefinition definition)) {
-            throw new IllegalArgumentException("Terminal opening references an unknown multiblock definition: " +
-                    definitionId);
-        }
-        return new TerminalBoundMenuHolder(player, hand, player.getItemInHand(hand), definition, pos, dimension,
-                sessionId, state);
     }
 
     public UUID sessionId() {
@@ -143,56 +101,24 @@ public final class TerminalBoundMenuHolder implements MenuProvider, IContainerUI
         return definition;
     }
 
-    @Override
-    public Component getDisplayName() {
-        return definition.getBlock().getName();
-    }
-
-    @Override
-    public AbstractContainerMenu createMenu(int containerId, Inventory inventory, Player player) {
-        if (!(player instanceof ServerPlayer) || this.player != player || serverMenu != null) {
-            throw new IllegalStateException("A terminal holder can create exactly one server menu");
+    /** Attaches this session once to the generic held-item menu that owns its ModularUI. */
+    public void attachMenu(AbstractContainerMenu menu) {
+        if (serverMenu != null && serverMenu != menu) {
+            throw new IllegalStateException("A terminal session cannot move to another menu");
         }
-        requireValid("before menu creation");
-        TerminalBoundMenu menu = new TerminalBoundMenu(containerId, inventory, this);
         serverMenu = menu;
-        requireValid("after menu creation");
-        return menu;
     }
 
-    @Override
-    public void writeClientSideData(AbstractContainerMenu menu, RegistryFriendlyByteBuf buffer) {
-        if (menu != serverMenu) {
-            throw new IllegalStateException("Terminal opening data belongs to another server menu");
-        }
-        buffer.writeEnum(hand);
-        buffer.writeBlockPos(controllerPos);
-        buffer.writeResourceLocation(dimension.location());
-        buffer.writeResourceLocation(definitionId);
-        buffer.writeUUID(sessionId);
-        TerminalMenuState.STREAM_CODEC.encode(buffer, state);
-    }
-
-    @Override
-    public ModularUI createUI(Player player) {
-        if (this.player != player || openedUI != null || !isStillValid(player)) {
-            throw new IllegalStateException("Terminal holder rejected UI creation");
-        }
-        openedUI = new TerminalBoundMenuUI(this, player);
-        return ModularUI.of(openedUI.create(), player);
-    }
-
-    @Override
     public boolean isStillValid(Player player) {
         if (closed || this.player != player || player.isSpectator() ||
                 !player.level().dimension().equals(dimension)) {
             return false;
         }
         ItemStack currentTerminal = player.getItemInHand(hand);
-        if (player.level().isClientSide) {
-            return ItemStack.isSameItem(currentTerminal, openedTerminal);
+        if (!Objects.equals(openedBinding, currentTerminal.get(GTDataComponents.TERMINAL_CONTROLLER))) {
+            return false;
         }
-        if (openedController == null || !player.level().isLoaded(controllerPos) ||
+        if (!player.level().isLoaded(controllerPos) ||
                 player.distanceToSqr(Vec3.atCenterOf(controllerPos)) > 64 ||
                 !player.level().mayInteract(player, controllerPos)) {
             return false;
@@ -206,7 +132,8 @@ public final class TerminalBoundMenuHolder implements MenuProvider, IContainerUI
     }
 
     /** Applies one sequence- and revision-validated profile patch and persists it immediately. */
-    boolean applyUpdate(ServerPlayer player, long sequence, long expectedRevision, TerminalProfileUpdate update) {
+    public boolean applyUpdate(ServerPlayer player, long sequence, long expectedRevision,
+                               TerminalProfileUpdate update) {
         if (!beginAction(player, sequence, expectedRevision)) {
             return false;
         }
@@ -232,16 +159,16 @@ public final class TerminalBoundMenuHolder implements MenuProvider, IContainerUI
 
     /** Executes only the server plan whose fingerprint is still visible to this exact menu session. */
     @Nullable
-    AutoBuildBatchResult execute(ServerPlayer player, long sequence, long expectedRevision) {
+    public AutoBuildBatchResult execute(ServerPlayer player, long sequence, long expectedRevision) {
         if (!beginAction(player, sequence, expectedRevision)) {
             return null;
         }
-        String expectedFingerprint = state.fingerprint();
+        String expectedFingerprint = state.preview().fingerprint();
         executing = true;
         state = new TerminalMenuState(definitionId, acceptedSequence, revision, profile, state.preview(), true,
                 state.meSource(), lastExecution);
         try {
-            MultiblockControllerMachine controller = serverController();
+            MultiblockControllerMachine controller = openedController;
             AutoBuildBatchRequest request = profile.createRequest(definition,
                     createSources(player));
             long expectedPlanFingerprint = Long.parseUnsignedLong(expectedFingerprint, 16);
@@ -269,7 +196,7 @@ public final class TerminalBoundMenuHolder implements MenuProvider, IContainerUI
     }
 
     /** Refreshes material/world state at the bounded menu polling cadence and returns whether it changed. */
-    boolean refresh(ServerPlayer player) {
+    public boolean refresh(ServerPlayer player) {
         requireValid("during refresh");
         long currentGeneration = StructurePatternRegistry.generation();
         if (currentGeneration != patternGeneration) {
@@ -302,36 +229,11 @@ public final class TerminalBoundMenuHolder implements MenuProvider, IContainerUI
         return true;
     }
 
-    /** Installs a session-validated state update on the client. */
-    boolean applyClientState(Player player, TerminalMenuState update) {
-        if (!player.level().isClientSide || this.player != player || !isStillValid(player) ||
-                !definitionId.equals(update.definitionId()) ||
-                update.acknowledgedSequence() < state.acknowledgedSequence() || update.revision() < state.revision()) {
-            return false;
-        }
-        state = update;
-        acceptedSequence = update.acknowledgedSequence();
-        revision = update.revision();
-        executing = update.executing();
-        lastExecution = update.lastExecution();
-        visibleSignature = visibleSignature(update);
-        if (openedUI != null) {
-            openedUI.update(update);
-        }
-        return true;
-    }
-
-    void close(Player player) {
+    public void close(Player player) {
         if (this.player != player) {
             throw new IllegalArgumentException("Terminal menu belongs to another player");
         }
         closed = true;
-    }
-
-    void updateClientInteractivity() {
-        if (openedUI != null) {
-            openedUI.updateInteractivity();
-        }
     }
 
     private boolean beginAction(ServerPlayer player, long sequence, long expectedRevision) {
@@ -363,8 +265,8 @@ public final class TerminalBoundMenuHolder implements MenuProvider, IContainerUI
     }
 
     private TerminalMenuState buildState(ServerPlayer player) {
-        List<AutoBuildMaterialSource> sources = createSources(player);
-        MultiblockControllerMachine controller = serverController();
+        ObjectList<AutoBuildMaterialSource> sources = createSources(player);
+        MultiblockControllerMachine controller = openedController;
         AutoBuildBatchRequest request = profile.createRequest(definition, sources);
         ResolvedAutoBuildSnapshot resolved = resolver.resolveWorldSnapshot(controller, player, request);
         MultiblockPreviewSnapshot preview = MultiblockPreviewSnapshot.bound(definitionId, resolved);
@@ -377,13 +279,13 @@ public final class TerminalBoundMenuHolder implements MenuProvider, IContainerUI
                 lastExecution);
     }
 
-    private List<AutoBuildMaterialSource> createSources(ServerPlayer player) {
+    private ObjectList<AutoBuildMaterialSource> createSources(ServerPlayer player) {
         boolean hasBuild = profile.structures().values().stream()
                 .anyMatch(structure -> structure.selected() && structure.mode() == AutoBuildMode.BUILD);
         if (!hasBuild) {
-            return List.of();
+            return ObjectList.of();
         }
-        List<AutoBuildMaterialSource> sources = new ArrayList<>();
+        ObjectList<AutoBuildMaterialSource> sources = new ObjectArrayList<>();
         if (profile.sharedOptions().useME()) {
             if (GTCEu.Mods.isAE2Loaded()) {
                 sources.add(AutoBuildMaterialSources.me(player, openedTerminal));
@@ -394,11 +296,11 @@ public final class TerminalBoundMenuHolder implements MenuProvider, IContainerUI
             }
         }
         sources.add(AutoBuildMaterialSources.playerInventory(player, openedTerminal));
-        return List.copyOf(sources);
+        return new ObjectImmutableList<>(sources);
     }
 
     private void ensureSemanticallyValid(TerminalMachineProfile profile) {
-        AutoBuildPlan plan = resolver.resolveCanonical(definition, profile.createRequest(definition, List.of()));
+        AutoBuildPlan plan = resolver.resolveCanonical(definition, profile.createRequest(definition, ObjectList.of()));
         boolean invalid = plan.executionOrder().stream().flatMap(structure -> structure.problems().stream())
                 .anyMatch(problem -> switch (problem.type()) {
                     case UNKNOWN_STRUCTURE, INVALID_OPTIONS, INVALID_TIER_SELECTION, PATTERN_UNAVAILABLE -> true;
@@ -427,7 +329,7 @@ public final class TerminalBoundMenuHolder implements MenuProvider, IContainerUI
 
     private static boolean isValidProfile(MultiblockMachineDefinition definition,
                                           TerminalMachineProfile profile) {
-        if (!List.copyOf(profile.structures().keySet()).equals(definition.getStructureOrder())) {
+        if (!new ObjectImmutableList<>(profile.structures().keySet()).equals(definition.getStructureOrder())) {
             return false;
         }
         MultiblockPlanResolver resolver = new MultiblockPlanResolver();
@@ -440,9 +342,9 @@ public final class TerminalBoundMenuHolder implements MenuProvider, IContainerUI
                     return false;
                 }
                 for (int index = 0; index < stored.repetitions().size(); index++) {
-                    int[] limits = definition.getPattern(structureName).aisleRepetitions[index];
+                    var limits = definition.getPattern(structureName).getRepeatDescriptors().get(index);
                     int repetition = stored.repetitions().get(index);
-                    if (repetition < limits[0] || repetition > limits[1]) {
+                    if (repetition < limits.minimum() || repetition > limits.maximum()) {
                         return false;
                     }
                 }
@@ -455,6 +357,12 @@ public final class TerminalBoundMenuHolder implements MenuProvider, IContainerUI
                         return false;
                     }
                 }
+                var choices = definition.getPattern(structureName).getChoiceDescriptors();
+                for (var selected : stored.choices().object2ObjectEntrySet()) {
+                    if (choices.stream().noneMatch(choice -> choice.path().equals(selected.getKey()) &&
+                            choice.alternatives().contains(selected.getValue())))
+                        return false;
+                }
                 if (stored.selected() && stored.mode() == AutoBuildMode.BUILD) {
                     for (String dependency : definition.getRequiredStructures(structureName)) {
                         var dependencyProfile = profile.structures().get(dependency);
@@ -464,7 +372,7 @@ public final class TerminalBoundMenuHolder implements MenuProvider, IContainerUI
                     }
                 }
             }
-            profile.createRequest(definition, List.of());
+            profile.createRequest(definition, ObjectList.of());
             return true;
         } catch (IllegalArgumentException | IllegalStateException exception) {
             GTCEu.LOGGER.warn("Terminal profile validation failed for {}: {}", definition.getId(),
@@ -512,12 +420,5 @@ public final class TerminalBoundMenuHolder implements MenuProvider, IContainerUI
         if (player.containerMenu == serverMenu) {
             player.closeContainer();
         }
-    }
-
-    private MultiblockControllerMachine serverController() {
-        if (openedController == null) {
-            throw new IllegalStateException("Client terminal holder has no authoritative controller instance");
-        }
-        return openedController;
     }
 }

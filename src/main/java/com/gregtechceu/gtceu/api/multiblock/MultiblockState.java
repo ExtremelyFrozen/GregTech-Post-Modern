@@ -54,6 +54,7 @@ public class MultiblockState {
     @Getter
     @Setter
     private boolean neededFlip = false;
+    @Getter
     public final Level world;
     public final BlockPos controllerPos;
     @Getter
@@ -151,10 +152,6 @@ public class MultiblockState {
             return blockState;
         }
         return world.getBlockState(this.pos.relative(face));
-    }
-
-    public Level getWorld() {
-        return world;
     }
 
     public void addPosCache(BlockPos pos) {

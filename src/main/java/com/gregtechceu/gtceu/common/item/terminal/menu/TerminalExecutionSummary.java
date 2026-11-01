@@ -7,12 +7,13 @@ import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.AutoBuildMode;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 
-import java.util.ArrayList;
-import java.util.List;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
+import it.unimi.dsi.fastutil.objects.ObjectList;
 
 /** Bounded, client-safe projection of the last batch result shown by a terminal menu. */
 public record TerminalExecutionSummary(AutoBuildBatchStatus status, int placed, int removed,
-                                       List<Structure> structures) {
+                                       ObjectList<Structure> structures) {
 
     private static final int MAX_STRUCTURES = 128;
     private static final int MAX_PROBLEMS = 64;
@@ -25,7 +26,7 @@ public record TerminalExecutionSummary(AutoBuildBatchStatus status, int placed, 
         if (placed < 0 || removed < 0 || structures.size() > MAX_STRUCTURES) {
             throw new IllegalArgumentException("Terminal execution summary values are invalid or unbounded");
         }
-        structures = List.copyOf(structures);
+        structures = new ObjectImmutableList<>(structures);
     }
 
     public static TerminalExecutionSummary from(AutoBuildBatchResult result) {
@@ -33,8 +34,8 @@ public record TerminalExecutionSummary(AutoBuildBatchStatus status, int placed, 
                 result.structures().stream().map(structure -> new Structure(
                         structure.structureName(), structure.mode(), structure.success(), structure.placed(),
                         structure.removed(), structure.problems().stream().map(problem -> problem.type().name())
-                                .toList()))
-                        .toList());
+                                .collect(ObjectImmutableList.toList())))
+                        .collect(ObjectImmutableList.toList()));
     }
 
     private static void encode(RegistryFriendlyByteBuf buffer, TerminalExecutionSummary value) {
@@ -52,7 +53,7 @@ public record TerminalExecutionSummary(AutoBuildBatchStatus status, int placed, 
         int placed = readNonNegative(buffer, "placed");
         int removed = readNonNegative(buffer, "removed");
         int size = readSize(buffer, MAX_STRUCTURES, "execution structures");
-        List<Structure> structures = new ArrayList<>(size);
+        ObjectList<Structure> structures = new ObjectArrayList<>(size);
         for (int index = 0; index < size; index++) {
             structures.add(Structure.decode(buffer));
         }
@@ -61,7 +62,7 @@ public record TerminalExecutionSummary(AutoBuildBatchStatus status, int placed, 
 
     /** One structure's compact result and stable problem codes. */
     public record Structure(String name, AutoBuildMode mode, boolean success, int placed, int removed,
-                            List<String> problems) {
+                            ObjectList<String> problems) {
 
         public Structure {
             if (name.isBlank() || name.length() > MAX_TEXT || placed < 0 ||
@@ -69,7 +70,7 @@ public record TerminalExecutionSummary(AutoBuildBatchStatus status, int placed, 
                             .anyMatch(problem -> problem.isBlank() || problem.length() > MAX_TEXT)) {
                 throw new IllegalArgumentException("Terminal structure result is invalid or unbounded");
             }
-            problems = List.copyOf(problems);
+            problems = new ObjectImmutableList<>(problems);
         }
 
         private void encode(RegistryFriendlyByteBuf buffer) {
@@ -89,7 +90,7 @@ public record TerminalExecutionSummary(AutoBuildBatchStatus status, int placed, 
             int placed = readNonNegative(buffer, "placed");
             int removed = readNonNegative(buffer, "removed");
             int size = readSize(buffer, MAX_PROBLEMS, "execution problems");
-            List<String> problems = new ArrayList<>(size);
+            ObjectList<String> problems = new ObjectArrayList<>(size);
             for (int index = 0; index < size; index++) {
                 problems.add(buffer.readUtf(MAX_TEXT));
             }

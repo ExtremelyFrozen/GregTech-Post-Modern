@@ -26,6 +26,7 @@ import com.gregtechceu.gtceu.api.item.IGTTool;
 import com.gregtechceu.gtceu.api.item.MetaMachineItem;
 import com.gregtechceu.gtceu.api.machine.MachineDefinition;
 import com.gregtechceu.gtceu.api.misc.forge.QuantumFluidHandlerItemStack;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.AutoBuildBlockMap;
 import com.gregtechceu.gtceu.api.multiblock.structurepredicate.StructurePredicateType;
 import com.gregtechceu.gtceu.api.recipe.chance.logic.ChanceLogic;
 import com.gregtechceu.gtceu.api.recipe.ingredient.IntCircuitIngredient;
@@ -355,6 +356,7 @@ public class CommonProxy {
     @SubscribeEvent
     public static void commonSetup(FMLCommonSetupEvent event) {
         event.enqueueWork(() -> {
+            AutoBuildBlockMap.initialize();
             // register the map ingredient converters for all of our ingredients
             // spotless:off
             MapIngredientTypeManager.registerMapIngredient(SizedFluidIngredient.class, (ingredient) -> {

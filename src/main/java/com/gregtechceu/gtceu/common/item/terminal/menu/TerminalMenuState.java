@@ -8,9 +8,8 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.resources.ResourceLocation;
 
+import it.unimi.dsi.fastutil.objects.Object2ObjectMaps;
 import org.jspecify.annotations.Nullable;
-
-import java.util.Map;
 
 /** Server-authoritative profile and preview state for one terminal menu revision. */
 public record TerminalMenuState(ResourceLocation definitionId, long acknowledgedSequence, long revision,
@@ -31,16 +30,12 @@ public record TerminalMenuState(ResourceLocation definitionId, long acknowledged
         }
     }
 
-    public String fingerprint() {
-        return preview.fingerprint();
-    }
-
     private static void encode(RegistryFriendlyByteBuf buffer, TerminalMenuState value) {
         buffer.writeResourceLocation(value.definitionId);
         buffer.writeVarLong(value.acknowledgedSequence);
         buffer.writeVarLong(value.revision);
         TerminalAutoBuildProfiles.STREAM_CODEC.encode(buffer,
-                new TerminalAutoBuildProfiles(Map.of(value.definitionId, value.profile)));
+                new TerminalAutoBuildProfiles(Object2ObjectMaps.singleton(value.definitionId, value.profile)));
         MultiblockPreviewSnapshot.STREAM_CODEC.encode(buffer, value.preview);
         buffer.writeBoolean(value.executing);
         buffer.writeBoolean(value.meSource != null);

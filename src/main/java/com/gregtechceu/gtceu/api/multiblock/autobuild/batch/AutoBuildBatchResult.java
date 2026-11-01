@@ -1,14 +1,14 @@
 package com.gregtechceu.gtceu.api.multiblock.autobuild.batch;
 
-import java.util.List;
+import it.unimi.dsi.fastutil.objects.ObjectList;
 
 /**
  * Aggregate and per-structure result of one best-effort batch.
  */
 public record AutoBuildBatchResult(AutoBuildBatchStatus status, int placed, int removed,
-                                   List<AutoBuildStructureResult> structures) {
+                                   ObjectList<AutoBuildStructureResult> structures) {
 
-    public static AutoBuildBatchResult of(List<AutoBuildStructureResult> results) {
+    public static AutoBuildBatchResult of(ObjectList<AutoBuildStructureResult> results) {
         int succeeded = 0;
         int placed = 0;
         int removed = 0;

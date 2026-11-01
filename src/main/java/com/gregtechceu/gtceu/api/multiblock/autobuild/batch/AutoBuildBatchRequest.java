@@ -2,7 +2,7 @@ package com.gregtechceu.gtceu.api.multiblock.autobuild.batch;
 
 import com.gregtechceu.gtceu.api.multiblock.autobuild.AutoBuildMaterialSource;
 
-import java.util.List;
+import it.unimi.dsi.fastutil.objects.ObjectList;
 
 /**
  * Request for one deterministic multi-structure operation.
@@ -11,6 +11,6 @@ import java.util.List;
  * @param sharedOptions   behavior shared by the whole batch
  * @param materialSources material sources in strict allocation priority order
  */
-public record AutoBuildBatchRequest(List<AutoBuildStructureOptions> structures,
+public record AutoBuildBatchRequest(ObjectList<AutoBuildStructureOptions> structures,
                                     AutoBuildSharedOptions sharedOptions,
-                                    List<AutoBuildMaterialSource> materialSources) {}
+                                    ObjectList<AutoBuildMaterialSource> materialSources) {}

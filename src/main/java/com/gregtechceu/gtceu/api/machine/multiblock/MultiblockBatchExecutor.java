@@ -39,13 +39,13 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.neoforged.neoforge.common.CommonHooks;
 
+import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
+import it.unimi.dsi.fastutil.objects.ObjectList;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
-
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Executes an already resolved batch without performing any candidate selection.
@@ -80,11 +80,11 @@ public final class MultiblockBatchExecutor {
             }
         }
 
-        LinkedHashMap<String, AutoBuildStructureOptions> optionsByName = new LinkedHashMap<>();
+        Object2ObjectLinkedOpenHashMap<String, AutoBuildStructureOptions> optionsByName = new Object2ObjectLinkedOpenHashMap<>();
         for (AutoBuildStructureOptions options : request.structures()) {
             optionsByName.put(options.structureName(), options);
         }
-        ArrayList<AutoBuildStructureResult> results = new ArrayList<>(plan.executionOrder().size());
+        ObjectArrayList<AutoBuildStructureResult> results = new ObjectArrayList<>(plan.executionOrder().size());
         for (ResolvedStructurePlan structure : plan.executionOrder()) {
             results.add(executeStructure(controller, player, request, structure));
         }
@@ -149,7 +149,7 @@ public final class MultiblockBatchExecutor {
                     "gtpm.multiblock.autobuild.server_only"));
         }
 
-        ArrayList<AutoBuildMaterialSource.Session> sessions = new ArrayList<>();
+        ObjectArrayList<AutoBuildMaterialSource.Session> sessions = new ObjectArrayList<>();
         if (structure.mode() == AutoBuildMode.BUILD && !player.isCreative()) {
             for (AutoBuildMaterialSource source : request.materialSources()) {
                 AutoBuildMaterialSource.Session session = source.openSession();
@@ -197,16 +197,16 @@ public final class MultiblockBatchExecutor {
         if (structure.mode() == AutoBuildMode.DEMOLISH) {
             if (removed > 0) controller.invalidateStructure(structure.structureName());
             return new AutoBuildStructureResult(structure.structureName(), structure.mode(), true, 0, removed,
-                    List.of());
+                    ObjectList.of());
         }
         return new AutoBuildStructureResult(structure.structureName(), structure.mode(), true, placed, removed,
-                List.of());
+                ObjectList.of());
     }
 
     private static StructureWork assess(MultiblockControllerMachine controller, ServerPlayer player,
                                         ServerLevel level, AutoBuildBatchRequest request,
                                         ResolvedStructurePlan structure,
-                                        List<AutoBuildMaterialSource.Session> sessions) {
+                                        ObjectList<AutoBuildMaterialSource.Session> sessions) {
         StructureWork work = new StructureWork(sessions);
         for (PlannedCell cell : structure.cells()) {
             BlockPos pos = cell.worldPos();
@@ -299,7 +299,7 @@ public final class MultiblockBatchExecutor {
     }
 
     private static @Nullable SourcedReservation reserve(AutoBuildItemKey key, long amount,
-                                                        List<AutoBuildMaterialSource.Session> sessions,
+                                                        ObjectList<AutoBuildMaterialSource.Session> sessions,
                                                         int firstSource, StructureWork work) {
         for (int index = firstSource; index < sessions.size(); index++) {
             AutoBuildMaterialSource.Session session = sessions.get(index);
@@ -377,7 +377,7 @@ public final class MultiblockBatchExecutor {
         for (BlockPos pos : work.clears()) {
             BlockState state = level.getBlockState(pos);
             if (state.isAir()) continue;
-            List<ItemStack> drops = Block.getDrops(state, level, pos, level.getBlockEntity(pos), player,
+            var drops = Block.getDrops(state, level, pos, level.getBlockEntity(pos), player,
                     player.getMainHandItem());
             if (!level.destroyBlock(pos, false, player)) {
                 work.problems().add(problem(AutoBuildProblem.Type.DEMOLITION_FAILED, pos,
@@ -499,7 +499,7 @@ public final class MultiblockBatchExecutor {
 
     private static void drainRejectedStacks(ServerLevel level, BlockPos fallbackPos, StructureWork work,
                                             SourcedReservation sourced) {
-        List<ItemStack> rejected = sourced.reservation().rejectedStacks();
+        ObjectList<ItemStack> rejected = sourced.reservation().rejectedStacks();
         if (rejected.size() <= sourced.rejectedStacksDrained) return;
         for (int index = sourced.rejectedStacksDrained; index < rejected.size(); index++) {
             ItemStack stack = rejected.get(index);
@@ -516,12 +516,12 @@ public final class MultiblockBatchExecutor {
     }
 
     private static void insertOrDrop(ServerLevel level, BlockPos pos,
-                                     List<AutoBuildMaterialSource.Session> sessions, ItemStack stack) {
+                                     ObjectList<AutoBuildMaterialSource.Session> sessions, ItemStack stack) {
         insertOrDrop(level, pos, sessions, stack, -1);
     }
 
     private static void insertOrDrop(ServerLevel level, BlockPos pos,
-                                     List<AutoBuildMaterialSource.Session> sessions, ItemStack stack,
+                                     ObjectList<AutoBuildMaterialSource.Session> sessions, ItemStack stack,
                                      int excludedSource) {
         ItemStack remainder = stack.copy();
         for (int index = 0; index < sessions.size(); index++) {
@@ -617,22 +617,22 @@ public final class MultiblockBatchExecutor {
     private static boolean matchesExactStructure(MultiblockControllerMachine controller,
                                                  AutoBuildStructureOptions options) {
         MultiBlockPattern pattern = controller.getPattern(options.structureName());
-        if (options.repetitions().size() != pattern.aisleRepetitions.length) return false;
-        int[] repetitions = options.repetitions().stream().mapToInt(Integer::intValue).toArray();
+        if (options.repetitions().size() != pattern.getRepeatDescriptors().size()) return false;
+        int[] repetitions = options.repetitions().toIntArray();
         var lock = controller.getPatternLock();
         lock.lock();
         try {
             MultiblockState state = controller.getMultiblockState(options.structureName());
             return pattern.checkPatternAtExact(state, controller.getBlockPos(), controller.getFrontFacing(),
-                    controller.getUpwardsFacing(), options.flipMode(), true, repetitions);
+                    controller.getUpwardsFacing(), options.flipMode(), true, repetitions, options.choices());
         } finally {
             lock.unlock();
         }
     }
 
     private static void finalizeSuccessfulBuilds(MultiblockControllerMachine controller,
-                                                 List<AutoBuildStructureResult> results,
-                                                 Map<String, AutoBuildStructureOptions> optionsByName) {
+                                                 ObjectList<AutoBuildStructureResult> results,
+                                                 Object2ObjectMap<String, AutoBuildStructureOptions> optionsByName) {
         if (!(controller.getLevel() instanceof ServerLevel level)) return;
         for (int index = 0; index < results.size(); index++) {
             AutoBuildStructureResult result = results.get(index);
@@ -640,7 +640,7 @@ public final class MultiblockBatchExecutor {
             AutoBuildStructureOptions options = optionsByName.get(result.structureName());
             if (!matchesExactStructure(controller, options)) {
                 controller.invalidateStructure(result.structureName());
-                ArrayList<AutoBuildProblem> problems = new ArrayList<>(result.problems());
+                ObjectArrayList<AutoBuildProblem> problems = new ObjectArrayList<>(result.problems());
                 problems.add(problem(AutoBuildProblem.Type.STRUCTURE_CHECK_FAILED, controller.getBlockPos(),
                         "gtpm.multiblock.autobuild.structure_check_failed", result.structureName()));
                 results.set(index, new AutoBuildStructureResult(result.structureName(), result.mode(), false,
@@ -667,22 +667,22 @@ public final class MultiblockBatchExecutor {
     }
 
     private static AutoBuildBatchResult failAll(AutoBuildPlan plan, AutoBuildProblem problem) {
-        return failAll(plan, List.of(problem));
+        return failAll(plan, ObjectList.of(problem));
     }
 
-    private static AutoBuildBatchResult failAll(AutoBuildPlan plan, List<AutoBuildProblem> problems) {
+    private static AutoBuildBatchResult failAll(AutoBuildPlan plan, ObjectList<AutoBuildProblem> problems) {
         return AutoBuildBatchResult.of(plan.executionOrder().stream()
                 .map(structure -> new AutoBuildStructureResult(structure.structureName(), structure.mode(), false,
                         0, 0, problems))
-                .toList());
+                .collect(ObjectImmutableList.toList()));
     }
 
     private static AutoBuildStructureResult failed(ResolvedStructurePlan structure, AutoBuildProblem problem) {
-        return failed(structure, List.of(problem));
+        return failed(structure, ObjectList.of(problem));
     }
 
     private static AutoBuildStructureResult failed(ResolvedStructurePlan structure,
-                                                   List<AutoBuildProblem> problems) {
+                                                   ObjectList<AutoBuildProblem> problems) {
         return new AutoBuildStructureResult(structure.structureName(), structure.mode(), false, 0, 0, problems);
     }
 
@@ -697,34 +697,34 @@ public final class MultiblockBatchExecutor {
 
     private static final class StructureWork {
 
-        private final List<AutoBuildMaterialSource.Session> sessions;
-        private final List<BlockPos> clears = new ArrayList<>();
-        private final List<StateCorrection> stateCorrections = new ArrayList<>();
-        private final List<Placement> placements = new ArrayList<>();
-        private final List<AutoBuildProblem> problems = new ArrayList<>();
+        private final ObjectList<AutoBuildMaterialSource.Session> sessions;
+        private final ObjectList<BlockPos> clears = new ObjectArrayList<>();
+        private final ObjectList<StateCorrection> stateCorrections = new ObjectArrayList<>();
+        private final ObjectList<Placement> placements = new ObjectArrayList<>();
+        private final ObjectList<AutoBuildProblem> problems = new ObjectArrayList<>();
         private int consumedPlacements;
 
-        private StructureWork(List<AutoBuildMaterialSource.Session> sessions) {
-            this.sessions = List.copyOf(sessions);
+        private StructureWork(ObjectList<AutoBuildMaterialSource.Session> sessions) {
+            this.sessions = new ObjectImmutableList<>(sessions);
         }
 
-        private List<AutoBuildMaterialSource.Session> sessions() {
+        private ObjectList<AutoBuildMaterialSource.Session> sessions() {
             return sessions;
         }
 
-        private List<BlockPos> clears() {
+        private ObjectList<BlockPos> clears() {
             return clears;
         }
 
-        private List<StateCorrection> stateCorrections() {
+        private ObjectList<StateCorrection> stateCorrections() {
             return stateCorrections;
         }
 
-        private List<Placement> placements() {
+        private ObjectList<Placement> placements() {
             return placements;
         }
 
-        private List<AutoBuildProblem> problems() {
+        private ObjectList<AutoBuildProblem> problems() {
             return problems;
         }
 
@@ -742,7 +742,7 @@ public final class MultiblockBatchExecutor {
     private static final class Placement {
 
         private final PlannedCell cell;
-        private final List<SourcedReservation> reservations = new ArrayList<>();
+        private final ObjectList<SourcedReservation> reservations = new ObjectArrayList<>();
 
         private Placement(PlannedCell cell) {
             this.cell = cell;
@@ -752,7 +752,7 @@ public final class MultiblockBatchExecutor {
             return cell;
         }
 
-        private List<SourcedReservation> reservations() {
+        private ObjectList<SourcedReservation> reservations() {
             return reservations;
         }
     }

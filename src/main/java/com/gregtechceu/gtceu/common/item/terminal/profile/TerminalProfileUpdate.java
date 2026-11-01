@@ -3,6 +3,7 @@ package com.gregtechceu.gtceu.common.item.terminal.profile;
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.AutoBuildMode;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.AutoBuildSharedOptions;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.AutoBuildStructureOptions;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.MultiblockPlanResolver;
 import com.gregtechceu.gtceu.api.multiblock.pattern.match.MultiBlockPattern;
 import com.gregtechceu.gtceu.common.item.datacomponents.TerminalMachineProfile;
@@ -12,27 +13,36 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.resources.ResourceLocation;
 
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntList;
+import it.unimi.dsi.fastutil.objects.ObjectList;
 import org.jspecify.annotations.Nullable;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * One bounded, typed terminal profile mutation sent to the authoritative server menu.
  */
 public record TerminalProfileUpdate(Type type, @Nullable String structureName, int repetitionIndex,
                                     int repetitionValue, boolean booleanValue, @Nullable AutoBuildMode mode,
-                                    @Nullable ResourceLocation tierGroup, @Nullable ResourceLocation tierChoice) {
+                                    @Nullable String tierGroup, @Nullable ResourceLocation tierChoice,
+                                    @Nullable String choicePath, @Nullable String choiceBranch) {
 
     private static final int MAX_STRUCTURE_NAME = 128;
     private static final int MAX_RESOURCE_LOCATION = 256;
+    private static final int MAX_CHOICE_PATH = 2048;
 
     public static final StreamCodec<RegistryFriendlyByteBuf, TerminalProfileUpdate> STREAM_CODEC = StreamCodec
             .of(TerminalProfileUpdate::encode, TerminalProfileUpdate::decode);
 
+    public TerminalProfileUpdate(Type type, @Nullable String structureName, int repetitionIndex,
+                                 int repetitionValue, boolean booleanValue, @Nullable AutoBuildMode mode,
+                                 @Nullable String tierGroup, @Nullable ResourceLocation tierChoice) {
+        this(type, structureName, repetitionIndex, repetitionValue, booleanValue, mode, tierGroup, tierChoice, null,
+                null);
+    }
+
     public TerminalProfileUpdate {
         boolean structureAction = switch (type) {
-            case STRUCTURE_SELECTED, STRUCTURE_MODE, STRUCTURE_FLIP, REPETITION, TIER -> true;
+            case STRUCTURE_SELECTED, STRUCTURE_MODE, STRUCTURE_FLIP, REPETITION, TIER, CHOICE -> true;
             default -> false;
         };
         if (structureAction && (structureName == null || structureName.isBlank() ||
@@ -48,8 +58,13 @@ public record TerminalProfileUpdate(Type type, @Nullable String structureName, i
         if (type == Type.TIER && (tierGroup == null || tierChoice == null)) {
             throw new IllegalArgumentException("Tier group and choice are required");
         }
+        if (type == Type.CHOICE && (choicePath == null || choicePath.isBlank() ||
+                choicePath.length() > MAX_CHOICE_PATH ||
+                choiceBranch == null || choiceBranch.isBlank() || choiceBranch.length() > MAX_RESOURCE_LOCATION)) {
+            throw new IllegalArgumentException("A bounded choice path and branch are required");
+        }
         if (tierGroup != null && tierChoice != null &&
-                (tierGroup.toString().length() > MAX_RESOURCE_LOCATION ||
+                (tierGroup.isBlank() || tierGroup.length() > MAX_RESOURCE_LOCATION ||
                         tierChoice.toString().length() > MAX_RESOURCE_LOCATION)) {
             throw new IllegalArgumentException("Tier group and choice must be bounded");
         }
@@ -83,8 +98,12 @@ public record TerminalProfileUpdate(Type type, @Nullable String structureName, i
         return new TerminalProfileUpdate(Type.REPETITION, name, index, value, false, null, null, null);
     }
 
-    public static TerminalProfileUpdate tier(String name, ResourceLocation group, ResourceLocation choice) {
+    public static TerminalProfileUpdate tier(String name, String group, ResourceLocation choice) {
         return new TerminalProfileUpdate(Type.TIER, name, 0, 0, false, null, group, choice);
+    }
+
+    public static TerminalProfileUpdate choice(String name, String path, String branch) {
+        return new TerminalProfileUpdate(Type.CHOICE, name, 0, 0, false, null, null, null, path, branch);
     }
 
     /** Applies this change only after validating structure identity, dependency rules and repetition bounds. */
@@ -101,6 +120,7 @@ public record TerminalProfileUpdate(Type type, @Nullable String structureName, i
             case STRUCTURE_FLIP -> changeFlip(definition, profile);
             case REPETITION -> changeRepetition(definition, profile);
             case TIER -> changeTier(definition, profile);
+            case CHOICE -> changeChoice(definition, profile);
         };
     }
 
@@ -160,20 +180,22 @@ public record TerminalProfileUpdate(Type type, @Nullable String structureName, i
                                                     TerminalMachineProfile profile) {
         TerminalStructureProfile structure = requireStructure(profile);
         MultiBlockPattern pattern = definition.getPattern(structureName);
-        if (repetitionIndex >= pattern.aisleRepetitions.length) {
+        var descriptors = pattern.getRepeatDescriptors();
+        if (repetitionIndex >= descriptors.size()) {
             throw new IllegalArgumentException("Unknown repetition unit " + repetitionIndex + " for " +
                     structureName);
         }
-        int[] limits = pattern.aisleRepetitions[repetitionIndex];
-        if (repetitionValue < limits[0] || repetitionValue > limits[1]) {
+        var limits = descriptors.get(repetitionIndex);
+        if (repetitionValue < limits.minimum() || repetitionValue > limits.maximum()) {
             throw new IllegalArgumentException("Repetition value is outside pattern limits");
         }
-        List<Integer> repetitions = new ArrayList<>(structure.repetitions());
-        if (repetitions.size() != pattern.aisleRepetitions.length) {
+        IntList repetitions = new IntArrayList(structure.repetitions());
+        if (repetitions.size() != descriptors.size()) {
             throw new IllegalArgumentException("Stored repetition vector no longer matches the pattern");
         }
         repetitions.set(repetitionIndex, repetitionValue);
-        return updateStructure(definition, profile, structure.withRepetitions(repetitions));
+        return updateStructure(definition, profile,
+                normalizeLayoutTiers(definition, structure.withRepetitions(repetitions)));
     }
 
     private TerminalMachineProfile changeFlip(MultiblockMachineDefinition definition,
@@ -186,13 +208,36 @@ public record TerminalProfileUpdate(Type type, @Nullable String structureName, i
 
     private TerminalMachineProfile changeTier(MultiblockMachineDefinition definition,
                                               TerminalMachineProfile profile) {
-        List<ResourceLocation> choices = new MultiblockPlanResolver().tierChoiceOptions(definition, structureName)
+        ObjectList<ResourceLocation> choices = new MultiblockPlanResolver().tierChoiceOptions(definition, structureName)
                 .get(tierGroup);
         if (choices == null || !choices.contains(tierChoice)) {
             throw new IllegalArgumentException("Tier choice does not belong to this structure predicate");
         }
         return updateStructure(definition, profile,
                 requireStructure(profile).withTierChoice(tierGroup, tierChoice));
+    }
+
+    private TerminalMachineProfile changeChoice(MultiblockMachineDefinition definition,
+                                                TerminalMachineProfile profile) {
+        boolean valid = definition.getPattern(structureName).getChoiceDescriptors().stream()
+                .anyMatch(choice -> choice.path().equals(choicePath) && choice.alternatives().contains(choiceBranch));
+        if (!valid) throw new IllegalArgumentException("Choice branch does not belong to this structure node");
+        return updateStructure(definition, profile,
+                normalizeLayoutTiers(definition, requireStructure(profile).withChoice(choicePath, choiceBranch)));
+    }
+
+    private TerminalStructureProfile normalizeLayoutTiers(MultiblockMachineDefinition definition,
+                                                          TerminalStructureProfile structure) {
+        var options = new AutoBuildStructureOptions(structureName, structure.repetitions(), structure.tierChoices(),
+                structure.flipMode(), structure.mode(), structure.choices());
+        var domains = new MultiblockPlanResolver().activeTierChoiceOptions(definition, options);
+        TerminalStructureProfile normalized = structure;
+        for (var entry : domains.entrySet()) {
+            if (!entry.getValue().contains(structure.tierChoices().get(entry.getKey()))) {
+                normalized = normalized.withTierChoice(entry.getKey(), entry.getValue().getFirst());
+            }
+        }
+        return normalized;
     }
 
     private TerminalMachineProfile updateStructure(MultiblockMachineDefinition definition,
@@ -235,8 +280,13 @@ public record TerminalProfileUpdate(Type type, @Nullable String structureName, i
             }
             case TIER -> {
                 buffer.writeUtf(update.structureName, MAX_STRUCTURE_NAME);
-                writeResourceLocation(buffer, update.tierGroup);
+                buffer.writeUtf(update.tierGroup, MAX_RESOURCE_LOCATION);
                 writeResourceLocation(buffer, update.tierChoice);
+            }
+            case CHOICE -> {
+                buffer.writeUtf(update.structureName, MAX_STRUCTURE_NAME);
+                buffer.writeUtf(update.choicePath, MAX_CHOICE_PATH);
+                buffer.writeUtf(update.choiceBranch, MAX_RESOURCE_LOCATION);
             }
         }
     }
@@ -251,8 +301,10 @@ public record TerminalProfileUpdate(Type type, @Nullable String structureName, i
                     buffer.readEnum(AutoBuildMode.class));
             case REPETITION -> repetition(buffer.readUtf(MAX_STRUCTURE_NAME), buffer.readVarInt(),
                     buffer.readVarInt());
-            case TIER -> tier(buffer.readUtf(MAX_STRUCTURE_NAME), readResourceLocation(buffer),
+            case TIER -> tier(buffer.readUtf(MAX_STRUCTURE_NAME), buffer.readUtf(MAX_RESOURCE_LOCATION),
                     readResourceLocation(buffer));
+            case CHOICE -> choice(buffer.readUtf(MAX_STRUCTURE_NAME), buffer.readUtf(MAX_CHOICE_PATH),
+                    buffer.readUtf(MAX_RESOURCE_LOCATION));
         };
     }
 
@@ -272,6 +324,7 @@ public record TerminalProfileUpdate(Type type, @Nullable String structureName, i
         STRUCTURE_MODE,
         STRUCTURE_FLIP,
         REPETITION,
-        TIER
+        TIER,
+        CHOICE
     }
 }

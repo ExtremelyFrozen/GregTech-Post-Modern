@@ -40,6 +40,10 @@ import net.neoforged.neoforge.client.model.data.ModelData;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
+import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
+import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet;
+import it.unimi.dsi.fastutil.objects.ObjectList;
+import it.unimi.dsi.fastutil.objects.ObjectSet;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 import org.lwjgl.opengl.GL11;
@@ -253,20 +257,20 @@ public final class MultiblockInWorldPreviewRenderer {
     private static AutoBuildBatchRequest defaultPreviewRequest(MultiblockControllerMachine controller,
                                                                MultiblockPlanResolver resolver) {
         var definition = controller.getDefinition();
-        List<String> order = definition.getStructureOrder();
+        var order = definition.getStructureOrder();
         if (order.isEmpty()) {
             throw new IllegalStateException("Multiblock definition has no structures: " + definition.getId());
         }
         String main = order.contains(MultiblockControllerMachine.DEFAULT_STRUCTURE) ?
                 MultiblockControllerMachine.DEFAULT_STRUCTURE : order.getFirst();
-        Set<String> selected = new LinkedHashSet<>();
+        ObjectSet<String> selected = new ObjectLinkedOpenHashSet<>();
         selected.add(main);
         selected.addAll(definition.getRequiredStructures(main));
-        List<AutoBuildStructureOptions> structures = order.stream()
+        ObjectList<AutoBuildStructureOptions> structures = order.stream()
                 .filter(selected::contains)
                 .map(name -> resolver.defaultStructureOptions(definition, name))
-                .toList();
-        return new AutoBuildBatchRequest(structures, AutoBuildSharedOptions.DEFAULT, List.of());
+                .collect(ObjectImmutableList.toList());
+        return new AutoBuildBatchRequest(structures, AutoBuildSharedOptions.DEFAULT, ObjectList.of());
     }
 
     public static void onClientTick() {

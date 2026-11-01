@@ -9,12 +9,15 @@ import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.items.IItemHandler;
 
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
+import it.unimi.dsi.fastutil.objects.ObjectList;
+import it.unimi.dsi.fastutil.objects.Reference2LongMap;
+import it.unimi.dsi.fastutil.objects.Reference2LongOpenHashMap;
+import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
+import it.unimi.dsi.fastutil.objects.ReferenceSet;
 import org.jspecify.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.IdentityHashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -58,13 +61,13 @@ final class PlayerInventoryMaterialSource implements AutoBuildMaterialSource {
     private static final class PlayerInventorySession implements Session {
 
         private final @Nullable IItemHandler root;
-        private final List<SlotRef> slots = new ArrayList<>();
-        private final List<InsertionHandler> insertionHandlers = new ArrayList<>();
+        private final ObjectList<SlotRef> slots = new ObjectArrayList<>();
+        private final ObjectList<InsertionHandler> insertionHandlers = new ObjectArrayList<>();
         private final ItemStack excludedContainer;
         @Nullable
         private final Player refundOwner;
-        private final Map<IItemHandler, Boolean> visitedHandlers = new IdentityHashMap<>();
-        private final Map<SlotRef, Long> reservations = new IdentityHashMap<>();
+        private final ReferenceSet<IItemHandler> visitedHandlers = new ReferenceOpenHashSet<>();
+        private final Reference2LongMap<SlotRef> reservations = new Reference2LongOpenHashMap<>();
         @Nullable
         private AutoBuildProblem problem;
 
@@ -94,7 +97,7 @@ final class PlayerInventoryMaterialSource implements AutoBuildMaterialSource {
                 if (!key.matches(stack)) {
                     continue;
                 }
-                long slotAvailable = Math.max(0, stack.getCount() - reservations.getOrDefault(slot, 0L));
+                long slotAvailable = Math.max(0, stack.getCount() - reservations.getLong(slot));
                 ItemStack simulated = slot.handler().extractItem(slot.slot(), 1, true);
                 if (slotAvailable == 0 || !key.matches(simulated) || simulated.getCount() != 1) {
                     continue;
@@ -112,7 +115,7 @@ final class PlayerInventoryMaterialSource implements AutoBuildMaterialSource {
         }
 
         @Override
-        public @Nullable Reservation reserve(List<ItemStack> candidates) {
+        public @Nullable Reservation reserve(ObjectList<ItemStack> candidates) {
             for (ItemStack candidate : candidates) {
                 if (candidate.isEmpty()) {
                     continue;
@@ -134,13 +137,13 @@ final class PlayerInventoryMaterialSource implements AutoBuildMaterialSource {
                 return null;
             }
             long remaining = amount;
-            List<SlotAllocation> allocations = new ArrayList<>();
+            ObjectList<SlotAllocation> allocations = new ObjectArrayList<>();
             for (SlotRef slot : slots) {
                 ItemStack stack = slot.stack();
                 if (!key.matches(stack)) {
                     continue;
                 }
-                long alreadyReserved = reservations.getOrDefault(slot, 0L);
+                long alreadyReserved = reservations.getLong(slot);
                 long available = Math.max(0, stack.getCount() - alreadyReserved);
                 ItemStack simulated = slot.handler().extractItem(slot.slot(), 1, true);
                 if (available == 0 || !key.matches(simulated) || simulated.getCount() != 1) {
@@ -202,23 +205,23 @@ final class PlayerInventoryMaterialSource implements AutoBuildMaterialSource {
             return remainder;
         }
 
-        private void release(List<SlotAllocation> allocations) {
+        private void release(ObjectList<SlotAllocation> allocations) {
             for (SlotAllocation allocation : allocations) {
-                reservations.compute(allocation.slot(), (slot, reserved) -> {
-                    if (reserved == null || reserved < allocation.amount()) {
-                        throw new IllegalStateException("Material reservation accounting is inconsistent");
-                    }
-                    long remaining = reserved - allocation.amount();
-                    return remaining == 0 ? null : remaining;
-                });
+                long reserved = reservations.getLong(allocation.slot());
+                if (reserved < allocation.amount()) {
+                    throw new IllegalStateException("Material reservation accounting is inconsistent");
+                }
+                long remaining = reserved - allocation.amount();
+                if (remaining == 0) reservations.removeLong(allocation.slot());
+                else reservations.put(allocation.slot(), remaining);
             }
         }
 
         private void collectSlots(IItemHandler handler, int depth) {
-            if (visitedHandlers.put(handler, Boolean.TRUE) != null) {
+            if (!visitedHandlers.add(handler)) {
                 return;
             }
-            List<IItemHandler> children = new ArrayList<>();
+            ObjectList<IItemHandler> children = new ObjectArrayList<>();
             for (int slot = 0; slot < handler.getSlots(); slot++) {
                 ItemStack stack = handler.getStackInSlot(slot);
                 if (isExcluded(stack)) {
@@ -269,20 +272,20 @@ final class PlayerInventoryMaterialSource implements AutoBuildMaterialSource {
         private final PlayerInventorySession session;
         private final AutoBuildItemKey key;
         private final long reservedAmount;
-        private final List<SlotAllocation> allocations;
+        private final ObjectList<SlotAllocation> allocations;
         private boolean attempted;
         private long committed;
         private long restored;
-        private final List<ItemStack> rejectedStacks = new ArrayList<>();
+        private final ObjectList<ItemStack> rejectedStacks = new ObjectArrayList<>();
         @Nullable
         private AutoBuildProblem commitProblem;
 
         private PlayerInventoryReservation(PlayerInventorySession session, AutoBuildItemKey key, long reservedAmount,
-                                           List<SlotAllocation> allocations) {
+                                           ObjectList<SlotAllocation> allocations) {
             this.session = session;
             this.key = key;
             this.reservedAmount = reservedAmount;
-            this.allocations = List.copyOf(allocations);
+            this.allocations = new ObjectImmutableList<>(allocations);
         }
 
         @Override
@@ -369,8 +372,8 @@ final class PlayerInventoryMaterialSource implements AutoBuildMaterialSource {
         }
 
         @Override
-        public List<ItemStack> rejectedStacks() {
-            return rejectedStacks.stream().map(ItemStack::copy).toList();
+        public ObjectList<ItemStack> rejectedStacks() {
+            return rejectedStacks.stream().map(ItemStack::copy).collect(ObjectImmutableList.toList());
         }
 
         private CommitResult commitResult() {

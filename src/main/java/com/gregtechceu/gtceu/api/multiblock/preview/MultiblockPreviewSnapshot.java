@@ -23,16 +23,22 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 
+import it.unimi.dsi.fastutil.objects.Object2IntLinkedOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import it.unimi.dsi.fastutil.objects.Object2LongLinkedOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2LongMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectMaps;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
+import it.unimi.dsi.fastutil.objects.ObjectList;
+import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
+import it.unimi.dsi.fastutil.objects.ObjectSet;
 import org.jspecify.annotations.Nullable;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * Immutable, client-library-neutral projection of one resolved multiblock plan.
@@ -44,8 +50,9 @@ import java.util.Set;
  * </p>
  */
 public record MultiblockPreviewSnapshot(ResourceLocation definitionId, String fingerprint,
-                                        boolean availabilityKnown, List<Structure> structures, List<Cell> cells,
-                                        List<Material> materials, List<Diagnostic> diagnostics) {
+                                        boolean availabilityKnown, ObjectList<Structure> structures,
+                                        ObjectList<Cell> cells,
+                                        ObjectList<Material> materials, ObjectList<Diagnostic> diagnostics) {
 
     public static final int MAX_STRUCTURES = 128;
     public static final int MAX_CELLS = 65_536;
@@ -70,10 +77,10 @@ public record MultiblockPreviewSnapshot(ResourceLocation definitionId, String fi
             ResourceLocation definitionId = buffer.readResourceLocation();
             String fingerprint = buffer.readUtf(MAX_FINGERPRINT_LENGTH);
             boolean availabilityKnown = buffer.readBoolean();
-            List<Structure> structures = readList(buffer, MAX_STRUCTURES, Structure.STREAM_CODEC);
-            List<Cell> cells = readList(buffer, MAX_CELLS, Cell.STREAM_CODEC);
-            List<Material> materials = readList(buffer, MAX_MATERIALS, Material.STREAM_CODEC);
-            List<Diagnostic> diagnostics = readList(buffer, MAX_DIAGNOSTICS, Diagnostic.STREAM_CODEC);
+            ObjectList<Structure> structures = readList(buffer, MAX_STRUCTURES, Structure.STREAM_CODEC);
+            ObjectList<Cell> cells = readList(buffer, MAX_CELLS, Cell.STREAM_CODEC);
+            ObjectList<Material> materials = readList(buffer, MAX_MATERIALS, Material.STREAM_CODEC);
+            ObjectList<Diagnostic> diagnostics = readList(buffer, MAX_DIAGNOSTICS, Diagnostic.STREAM_CODEC);
             return new MultiblockPreviewSnapshot(definitionId, fingerprint, availabilityKnown,
                     structures, cells, materials, diagnostics);
         }
@@ -97,7 +104,7 @@ public record MultiblockPreviewSnapshot(ResourceLocation definitionId, String fi
         materials = boundedCopy(materials, MAX_MATERIALS, "materials");
         diagnostics = boundedCopy(diagnostics, MAX_DIAGNOSTICS, "diagnostics");
 
-        Set<String> names = new HashSet<>();
+        ObjectSet<String> names = new ObjectOpenHashSet<>();
         for (Structure structure : structures) {
             if (!names.add(structure.name)) {
                 throw new IllegalArgumentException("Duplicate preview structure: " + structure.name);
@@ -155,18 +162,18 @@ public record MultiblockPreviewSnapshot(ResourceLocation definitionId, String fi
     private static MultiblockPreviewSnapshot fromPlan(ResourceLocation definitionId, AutoBuildPlan plan,
                                                       @Nullable ResolvedAutoBuildSnapshot resolved,
                                                       boolean retainCandidateGroups) {
-        List<ResolvedStructurePlan> executionOrder = plan.executionOrder();
-        List<Structure> structures = structureSnapshots(plan);
-        List<Cell> cells = cellSnapshots(plan, executionOrder);
-        List<Material> materials = materialSnapshots(plan, resolved, retainCandidateGroups);
-        List<Diagnostic> diagnostics = diagnosticSnapshots(plan);
+        ObjectList<ResolvedStructurePlan> executionOrder = plan.executionOrder();
+        ObjectList<Structure> structures = structureSnapshots(plan);
+        ObjectList<Cell> cells = cellSnapshots(plan, executionOrder);
+        ObjectList<Material> materials = materialSnapshots(plan, resolved, retainCandidateGroups);
+        ObjectList<Diagnostic> diagnostics = diagnosticSnapshots(plan);
         return new MultiblockPreviewSnapshot(definitionId, Long.toUnsignedString(plan.fingerprint(), 16),
                 resolved != null, structures, cells, materials, diagnostics);
     }
 
-    private static List<Structure> structureSnapshots(AutoBuildPlan plan) {
-        LinkedHashMap<String, Mode> structures = new LinkedHashMap<>();
-        List<ResolvedStructurePlan> demolitionInDefinitionOrder = new ArrayList<>(plan.demolitionPlans());
+    private static ObjectList<Structure> structureSnapshots(AutoBuildPlan plan) {
+        Object2ObjectLinkedOpenHashMap<String, Mode> structures = new Object2ObjectLinkedOpenHashMap<>();
+        ObjectList<ResolvedStructurePlan> demolitionInDefinitionOrder = new ObjectArrayList<>(plan.demolitionPlans());
         Collections.reverse(demolitionInDefinitionOrder);
         for (ResolvedStructurePlan structure : demolitionInDefinitionOrder) {
             structures.put(structure.structureName(), Mode.DEMOLISH);
@@ -176,11 +183,12 @@ public record MultiblockPreviewSnapshot(ResourceLocation definitionId, String fi
         }
         return structures.entrySet().stream()
                 .map(entry -> new Structure(entry.getKey(), entry.getValue()))
-                .toList();
+                .collect(ObjectImmutableList.toList());
     }
 
-    private static List<Cell> cellSnapshots(AutoBuildPlan plan, List<ResolvedStructurePlan> executionOrder) {
-        Map<String, Integer> executionIndex = new LinkedHashMap<>();
+    private static ObjectList<Cell> cellSnapshots(AutoBuildPlan plan,
+                                                  ObjectList<ResolvedStructurePlan> executionOrder) {
+        Object2IntMap<String> executionIndex = new Object2IntLinkedOpenHashMap<>();
         for (int index = 0; index < executionOrder.size(); index++) {
             executionIndex.put(executionOrder.get(index).structureName(), index);
         }
@@ -189,26 +197,28 @@ public record MultiblockPreviewSnapshot(ResourceLocation definitionId, String fi
                         .thenComparingInt(merged -> merged.relativePos().getX())
                         .thenComparingInt(merged -> merged.relativePos().getZ()))
                 .map(merged -> {
-                    List<Contribution> contributions = merged.contributors().stream()
+                    ObjectList<Contribution> contributions = merged.contributors().stream()
                             .sorted(Comparator.comparingInt(contributor -> executionIndex
                                     .getOrDefault(contributor.structureName(), Integer.MAX_VALUE)))
                             .map(Contribution::fromPlan)
-                            .toList();
+                            .collect(ObjectImmutableList.toList());
                     return new Cell(merged.relativePos(), merged.worldPos(), contributions, merged.conflict());
                 })
-                .toList();
+                .collect(ObjectImmutableList.toList());
     }
 
-    private static List<Material> materialSnapshots(AutoBuildPlan plan,
-                                                    @Nullable ResolvedAutoBuildSnapshot resolved,
-                                                    boolean retainCandidateGroups) {
-        LinkedHashMap<List<AutoBuildItemKey>, MaterialRequirement> requirements = collectMaterialRequirements(plan,
+    private static ObjectList<Material> materialSnapshots(AutoBuildPlan plan,
+                                                          @Nullable ResolvedAutoBuildSnapshot resolved,
+                                                          boolean retainCandidateGroups) {
+        Object2ObjectLinkedOpenHashMap<ObjectList<AutoBuildItemKey>, MaterialRequirement> requirements = collectMaterialRequirements(
+                plan,
                 retainCandidateGroups);
-        Map<AutoBuildItemKey, AllocationCursor> allocations = resolved == null ? Map.of() :
+        Object2ObjectMap<AutoBuildItemKey, AllocationCursor> allocations = resolved == null ?
+                Object2ObjectMaps.emptyMap() :
                 allocationCursors(resolved);
-        List<Material> materials = new ArrayList<>(requirements.size());
-        for (Map.Entry<List<AutoBuildItemKey>, MaterialRequirement> entry : requirements.entrySet()) {
-            List<AutoBuildItemKey> candidates = entry.getKey();
+        ObjectList<Material> materials = new ObjectArrayList<>(requirements.size());
+        for (var entry : requirements.object2ObjectEntrySet()) {
+            ObjectList<AutoBuildItemKey> candidates = entry.getKey();
             MaterialRequirement requirement = entry.getValue();
             long meAvailable = resolved == null ? 0 :
                     availability(candidates, resolved.materialSnapshots(), AutoBuildMaterialSource.SourceKind.ME);
@@ -219,69 +229,70 @@ public record MultiblockPreviewSnapshot(ResourceLocation definitionId, String fi
             long missing = 0;
             boolean unlimited = false;
             if (resolved != null) {
-                for (Map.Entry<AutoBuildItemKey, Long> keyRequirement : requirement.keyCounts.entrySet()) {
+                for (var keyRequirement : requirement.keyCounts.object2LongEntrySet()) {
                     @Nullable
                     AllocationCursor cursor = allocations.get(keyRequirement.getKey());
                     if (cursor == null) {
                         throw new IllegalStateException("Resolver omitted a required material allocation");
                     }
-                    AllocationPart part = cursor.take(keyRequirement.getValue(), resolved.materialSnapshots());
+                    AllocationPart part = cursor.take(keyRequirement.getLongValue(), resolved.materialSnapshots());
                     meAllocated = checkedAdd(meAllocated, part.meAllocated, "ME allocation");
                     playerAllocated = checkedAdd(playerAllocated, part.playerAllocated, "player allocation");
                     missing = checkedAdd(missing, part.missing, "missing material count");
                     unlimited |= part.unlimited;
                 }
             }
-            materials.add(new Material(candidates.stream().map(AutoBuildItemKey::prototype).toList(),
+            materials.add(new Material(
+                    candidates.stream().map(AutoBuildItemKey::prototype).collect(ObjectImmutableList.toList()),
                     requirement.total, meAvailable, meAllocated, playerAvailable, playerAllocated, missing,
                     unlimited, requirement.structureAmounts()));
         }
         allocations.values().forEach(AllocationCursor::verifyConsumed);
-        return List.copyOf(materials);
+        return new ObjectImmutableList<>(materials);
     }
 
-    private static LinkedHashMap<List<AutoBuildItemKey>, MaterialRequirement> collectMaterialRequirements(
-                                                                                                          AutoBuildPlan plan,
-                                                                                                          boolean retainCandidateGroups) {
-        LinkedHashMap<List<AutoBuildItemKey>, MaterialRequirement> requirements = new LinkedHashMap<>();
+    private static Object2ObjectLinkedOpenHashMap<ObjectList<AutoBuildItemKey>, MaterialRequirement> collectMaterialRequirements(
+                                                                                                                                 AutoBuildPlan plan,
+                                                                                                                                 boolean retainCandidateGroups) {
+        Object2ObjectLinkedOpenHashMap<ObjectList<AutoBuildItemKey>, MaterialRequirement> requirements = new Object2ObjectLinkedOpenHashMap<>();
         for (ResolvedStructurePlan structure : plan.executionOrder()) {
-            LinkedHashMap<AutoBuildItemKey, Long> remaining = new LinkedHashMap<>(structure.materials());
+            Object2LongMap<AutoBuildItemKey> remaining = new Object2LongLinkedOpenHashMap<>(structure.materials());
             for (PlannedCell cell : structure.cells()) {
                 @Nullable
                 AutoBuildItemKey selected = cell.materialKey();
                 if (cell.action() != CellAction.PLACE || selected == null) continue;
-                long count = remaining.getOrDefault(selected, 0L);
+                long count = remaining.getLong(selected);
                 if (count <= 0) {
                     throw new IllegalStateException("Resolved structure material totals do not match PLACE cells");
                 }
                 remaining.put(selected, count - 1);
-                List<AutoBuildItemKey> group = materialGroup(cell, selected, retainCandidateGroups);
+                ObjectList<AutoBuildItemKey> group = materialGroup(cell, selected, retainCandidateGroups);
                 requirements.computeIfAbsent(group, ignored -> new MaterialRequirement())
                         .increment(structure.structureName(), selected);
             }
-            if (remaining.values().stream().anyMatch(count -> count != 0)) {
+            if (remaining.values().longStream().anyMatch(count -> count != 0)) {
                 throw new IllegalStateException("Resolved structure material totals contain unprojected demand");
             }
         }
         return requirements;
     }
 
-    private static List<AutoBuildItemKey> materialGroup(PlannedCell cell, AutoBuildItemKey selected,
-                                                        boolean retainCandidateGroups) {
+    private static ObjectList<AutoBuildItemKey> materialGroup(PlannedCell cell, AutoBuildItemKey selected,
+                                                              boolean retainCandidateGroups) {
         if (retainCandidateGroups && cell.tierGroups().isEmpty() && !cell.materialCandidates().isEmpty()) {
             return cell.materialCandidates();
         }
-        return List.of(selected);
+        return ObjectList.of(selected);
     }
 
-    private static Map<AutoBuildItemKey, AllocationCursor> allocationCursors(ResolvedAutoBuildSnapshot resolved) {
-        LinkedHashMap<AutoBuildItemKey, AllocationCursor> cursors = new LinkedHashMap<>();
+    private static Object2ObjectMap<AutoBuildItemKey, AllocationCursor> allocationCursors(ResolvedAutoBuildSnapshot resolved) {
+        Object2ObjectLinkedOpenHashMap<AutoBuildItemKey, AllocationCursor> cursors = new Object2ObjectLinkedOpenHashMap<>();
         resolved.materials().forEach((key, allocation) -> cursors.put(key, new AllocationCursor(allocation)));
         return cursors;
     }
 
-    private static long availability(List<AutoBuildItemKey> keys,
-                                     List<AutoBuildMaterialSource.Snapshot> snapshots,
+    private static long availability(ObjectList<AutoBuildItemKey> keys,
+                                     ObjectList<AutoBuildMaterialSource.Snapshot> snapshots,
                                      AutoBuildMaterialSource.SourceKind kind) {
         long total = 0;
         for (AutoBuildMaterialSource.Snapshot snapshot : snapshots) {
@@ -293,8 +304,8 @@ public record MultiblockPreviewSnapshot(ResourceLocation definitionId, String fi
         return total;
     }
 
-    private static List<Diagnostic> diagnosticSnapshots(AutoBuildPlan plan) {
-        List<Diagnostic> diagnostics = new ArrayList<>();
+    private static ObjectList<Diagnostic> diagnosticSnapshots(AutoBuildPlan plan) {
+        ObjectList<Diagnostic> diagnostics = new ObjectArrayList<>();
         for (AutoBuildProblem problem : plan.sharedProblems()) {
             diagnostics.add(new Diagnostic(problem.type().name(), null, relativeProblemPos(problem, plan)));
         }
@@ -365,7 +376,7 @@ public record MultiblockPreviewSnapshot(ResourceLocation definitionId, String fi
     /**
      * One merged coordinate and all exact structure contributions at that coordinate.
      */
-    public record Cell(BlockPos relativePos, @Nullable BlockPos worldPos, List<Contribution> contributions,
+    public record Cell(BlockPos relativePos, @Nullable BlockPos worldPos, ObjectList<Contribution> contributions,
                        boolean conflict) {
 
         private static final StreamCodec<RegistryFriendlyByteBuf, Cell> STREAM_CODEC = new StreamCodec<>() {
@@ -375,7 +386,7 @@ public record MultiblockPreviewSnapshot(ResourceLocation definitionId, String fi
                 BlockPos relativePos = buffer.readBlockPos();
                 @Nullable
                 BlockPos worldPos = buffer.readBoolean() ? buffer.readBlockPos() : null;
-                List<Contribution> contributions = readList(buffer, MAX_CONTRIBUTORS, Contribution.STREAM_CODEC);
+                ObjectList<Contribution> contributions = readList(buffer, MAX_CONTRIBUTORS, Contribution.STREAM_CODEC);
                 return new Cell(relativePos, worldPos, contributions, buffer.readBoolean());
             }
 
@@ -446,8 +457,9 @@ public record MultiblockPreviewSnapshot(ResourceLocation definitionId, String fi
                     executionRepresentative.requiredDirection, AIR_CONFLICT_RENDER_INFO);
         }
 
-        public List<String> contributorNames() {
-            return contributions.stream().map(Contribution::structureName).distinct().toList();
+        public ObjectList<String> contributorNames() {
+            return contributions.stream().map(Contribution::structureName).distinct()
+                    .collect(ObjectImmutableList.toList());
         }
 
         public boolean controller() {
@@ -615,17 +627,17 @@ public record MultiblockPreviewSnapshot(ResourceLocation definitionId, String fi
     /**
      * One complete, never-truncated material row.
      */
-    public record Material(List<ItemStack> candidates, long required,
+    public record Material(ObjectList<ItemStack> candidates, long required,
                            long meAvailable, long meAllocated,
                            long playerAvailable, long playerAllocated,
-                           long missing, boolean unlimited, List<StructureAmount> structures) {
+                           long missing, boolean unlimited, ObjectList<StructureAmount> structures) {
 
         private static final StreamCodec<RegistryFriendlyByteBuf, Material> STREAM_CODEC = new StreamCodec<>() {
 
             @Override
             public Material decode(RegistryFriendlyByteBuf buffer) {
                 int count = readBoundedCount(buffer, MAX_CANDIDATES, "material candidates");
-                List<ItemStack> candidates = new ArrayList<>(count);
+                ObjectList<ItemStack> candidates = new ObjectArrayList<>(count);
                 for (int index = 0; index < count; index++) {
                     candidates.add(ItemStack.OPTIONAL_STREAM_CODEC.decode(buffer));
                 }
@@ -636,7 +648,7 @@ public record MultiblockPreviewSnapshot(ResourceLocation definitionId, String fi
                 long playerAllocated = buffer.readVarLong();
                 long missing = buffer.readVarLong();
                 boolean unlimited = buffer.readBoolean();
-                List<StructureAmount> structures = readList(buffer, MAX_STRUCTURES, StructureAmount.STREAM_CODEC);
+                ObjectList<StructureAmount> structures = readList(buffer, MAX_STRUCTURES, StructureAmount.STREAM_CODEC);
                 return new Material(candidates, required, meAvailable, meAllocated, playerAvailable,
                         playerAllocated, missing, unlimited, structures);
             }
@@ -665,7 +677,7 @@ public record MultiblockPreviewSnapshot(ResourceLocation definitionId, String fi
             if (candidates.size() > MAX_CANDIDATES) {
                 throw new IllegalArgumentException("Too many preview material candidates: " + candidates.size());
             }
-            List<ItemStack> copies = new ArrayList<>(candidates.size());
+            ObjectList<ItemStack> copies = new ObjectArrayList<>(candidates.size());
             for (ItemStack candidate : candidates) {
                 if (candidate.isEmpty()) {
                     throw new IllegalArgumentException("Preview material candidate must not be empty");
@@ -674,7 +686,7 @@ public record MultiblockPreviewSnapshot(ResourceLocation definitionId, String fi
                 copy.setCount(1);
                 copies.add(copy);
             }
-            candidates = List.copyOf(copies);
+            candidates = new ObjectImmutableList<>(copies);
             requireNonNegative(required, "required");
             requireNonNegative(meAvailable, "meAvailable");
             requireNonNegative(meAllocated, "meAllocated");
@@ -689,7 +701,7 @@ public record MultiblockPreviewSnapshot(ResourceLocation definitionId, String fi
             }
             structures = boundedCopy(structures, MAX_STRUCTURES, "material structure amounts");
             long structureTotal = 0;
-            Set<String> structureNames = new HashSet<>();
+            ObjectSet<String> structureNames = new ObjectOpenHashSet<>();
             for (StructureAmount structure : structures) {
                 if (!structureNames.add(structure.structureName)) {
                     throw new IllegalArgumentException(
@@ -704,8 +716,8 @@ public record MultiblockPreviewSnapshot(ResourceLocation definitionId, String fi
         }
 
         @Override
-        public List<ItemStack> candidates() {
-            return candidates.stream().map(ItemStack::copy).toList();
+        public ObjectList<ItemStack> candidates() {
+            return candidates.stream().map(ItemStack::copy).collect(ObjectImmutableList.toList());
         }
 
         public ItemStack displayStack() {
@@ -785,15 +797,15 @@ public record MultiblockPreviewSnapshot(ResourceLocation definitionId, String fi
         }
     }
 
-    private static <T> List<T> readList(RegistryFriendlyByteBuf buffer, int maximum,
-                                        StreamCodec<RegistryFriendlyByteBuf, T> codec) {
+    private static <T> ObjectList<T> readList(RegistryFriendlyByteBuf buffer, int maximum,
+                                              StreamCodec<RegistryFriendlyByteBuf, T> codec) {
         int count = readBoundedCount(buffer, maximum, "preview list");
-        List<T> values = new ArrayList<>(count);
+        ObjectList<T> values = new ObjectArrayList<>(count);
         for (int index = 0; index < count; index++) values.add(codec.decode(buffer));
         return values;
     }
 
-    private static <T> void writeList(RegistryFriendlyByteBuf buffer, List<T> values, int maximum,
+    private static <T> void writeList(RegistryFriendlyByteBuf buffer, ObjectList<T> values, int maximum,
                                       StreamCodec<RegistryFriendlyByteBuf, T> codec) {
         writeCount(buffer, values.size(), maximum, "preview list");
         for (T value : values) codec.encode(buffer, value);
@@ -814,11 +826,11 @@ public record MultiblockPreviewSnapshot(ResourceLocation definitionId, String fi
         buffer.writeVarInt(count);
     }
 
-    private static <T> List<T> boundedCopy(List<T> values, int maximum, String label) {
+    private static <T> ObjectList<T> boundedCopy(ObjectList<T> values, int maximum, String label) {
         if (values.size() > maximum) {
             throw new IllegalArgumentException("Too many " + label + ": " + values.size());
         }
-        return List.copyOf(values);
+        return new ObjectImmutableList<>(values);
     }
 
     private static void requireStringLength(String value, int maximum, String label) {
@@ -842,20 +854,20 @@ public record MultiblockPreviewSnapshot(ResourceLocation definitionId, String fi
     private static final class MaterialRequirement {
 
         private long total;
-        private final LinkedHashMap<String, Long> structures = new LinkedHashMap<>();
-        private final LinkedHashMap<AutoBuildItemKey, Long> keyCounts = new LinkedHashMap<>();
+        private final Object2LongMap<String> structures = new Object2LongLinkedOpenHashMap<>();
+        private final Object2LongMap<AutoBuildItemKey> keyCounts = new Object2LongLinkedOpenHashMap<>();
 
         private void increment(String structureName, AutoBuildItemKey key) {
             total = checkedAdd(total, 1, "material demand");
-            structures.put(structureName, checkedAdd(structures.getOrDefault(structureName, 0L), 1,
+            structures.put(structureName, checkedAdd(structures.getLong(structureName), 1,
                     "structure material demand"));
-            keyCounts.put(key, checkedAdd(keyCounts.getOrDefault(key, 0L), 1, "exact material demand"));
+            keyCounts.put(key, checkedAdd(keyCounts.getLong(key), 1, "exact material demand"));
         }
 
-        private List<StructureAmount> structureAmounts() {
-            return structures.entrySet().stream()
-                    .map(entry -> new StructureAmount(entry.getKey(), entry.getValue()))
-                    .toList();
+        private ObjectList<StructureAmount> structureAmounts() {
+            return structures.object2LongEntrySet().stream()
+                    .map(entry -> new StructureAmount(entry.getKey(), entry.getLongValue()))
+                    .collect(ObjectImmutableList.toList());
         }
     }
 
@@ -868,15 +880,12 @@ public record MultiblockPreviewSnapshot(ResourceLocation definitionId, String fi
 
         private AllocationCursor(ResolvedAutoBuildSnapshot.MaterialAllocation allocation) {
             remainingRequired = allocation.required();
-            remainingBySource = new long[allocation.allocatedBySource().size()];
-            for (int index = 0; index < remainingBySource.length; index++) {
-                remainingBySource[index] = allocation.allocatedBySource().get(index);
-            }
+            remainingBySource = allocation.allocatedBySource().toLongArray();
             remainingMissing = allocation.missing();
             unlimited = allocation.unlimited();
         }
 
-        private AllocationPart take(long requested, List<AutoBuildMaterialSource.Snapshot> snapshots) {
+        private AllocationPart take(long requested, ObjectList<AutoBuildMaterialSource.Snapshot> snapshots) {
             if (requested < 0 || requested > remainingRequired) {
                 throw new IllegalStateException("Preview requested more material allocation than the resolver made");
             }

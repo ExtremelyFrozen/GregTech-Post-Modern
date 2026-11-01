@@ -43,15 +43,18 @@ import net.neoforged.api.distmarker.OnlyIn;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import dev.vfyjxf.taffy.style.TaffyPosition;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
+import it.unimi.dsi.fastutil.objects.ObjectList;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
 /**
  * Client-owned scene, focus/layer controls and complete material scroller for one preview window.
@@ -79,10 +82,11 @@ public final class ClientMultiblockPreviewElement extends UIElement {
     private final boolean showAvailability;
     private final int materialViewportWidth;
     private final int materialDetailViewportWidth;
-    private final Map<BlockPos, MultiblockPreviewSnapshot.Cell> sceneCells = new LinkedHashMap<>();
-    private final Map<String, Integer> structureColors = new HashMap<>();
-    private final List<BlockPos> loadedPositions = new ArrayList<>();
+    private final Object2ObjectMap<BlockPos, MultiblockPreviewSnapshot.Cell> sceneCells = new Object2ObjectLinkedOpenHashMap<>();
+    private final Object2IntMap<String> structureColors = new Object2IntOpenHashMap<>();
+    private final ObjectList<BlockPos> loadedPositions = new ObjectArrayList<>();
     private int selectedMaterialIndex;
+    private long renderedViewRevision;
     private boolean removed;
 
     public ClientMultiblockPreviewElement(int width, int height, MultiblockPreviewState state,
@@ -209,7 +213,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
             releaseLoadedBlocks();
             if (sourceLevel == null) {
                 sceneCells.clear();
-                scene.setRenderedCore(List.of(), new PreviewCellRenderHook(), resetCamera);
+                scene.setRenderedCore(ObjectList.of(), new PreviewCellRenderHook(), resetCamera);
                 rebuildMaterials();
                 updateDemolitionText();
                 updateNavigationText();
@@ -243,21 +247,22 @@ public final class ClientMultiblockPreviewElement extends UIElement {
     }
 
     private void rebuildRenderedCore(boolean resetCamera) {
-        List<BlockPos> rendered = state.visibleCells().stream()
+        ObjectList<BlockPos> rendered = state.visibleCells().stream()
                 .filter(cell -> !cell.renderState().isAir())
                 .map(cell -> SCENE_ORIGIN.offset(cell.relativePos()))
-                .toList();
+                .collect(ObjectImmutableList.toList());
         scene.setRenderedCore(rendered, new PreviewCellRenderHook(), resetCamera);
+        renderedViewRevision = state.viewRevision();
     }
 
     private void rebuildMaterials() {
         materialScroller.clearAllScrollViewChildren();
-        List<List<ItemStack>> displayStacks = state.snapshot().materials().stream()
-                .map(material -> material.candidates().stream()
+        ObjectList<List<ItemStack>> displayStacks = state.snapshot().materials().stream()
+                .<List<ItemStack>>map(material -> material.candidates().stream()
                         .map(candidate -> candidate
                                 .copyWithCount((int) Math.min(material.required(), Integer.MAX_VALUE)))
-                        .toList())
-                .toList();
+                        .collect(ObjectImmutableList.toList()))
+                .collect(ObjectImmutableList.toList());
         if (displayStacks.isEmpty()) {
             selectedMaterialIndex = 0;
             materialScroller.viewContainer.layout(layout -> layout.width(1).height(18));
@@ -302,8 +307,8 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         GTScrollerViewElement details = materialDetails;
         if (details == null) return;
         details.clearAllScrollViewChildren();
-        List<MultiblockPreviewSnapshot.Material> materials = state.snapshot().materials();
-        List<Component> lines = new ArrayList<>();
+        ObjectList<MultiblockPreviewSnapshot.Material> materials = state.snapshot().materials();
+        ObjectList<Component> lines = new ObjectArrayList<>();
         if (materials.isEmpty()) {
             lines.add(Component.translatable("gtpm.multiblock.preview.material.none"));
         } else {
@@ -368,7 +373,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         @Nullable
         Cell cell = sceneCells.get(hovered.pos());
         if (cell == null) return;
-        List<Component> tooltips = new ArrayList<>();
+        ObjectList<Component> tooltips = new ObjectArrayList<>();
         tooltips.add(cell.renderState().getBlock().getName());
         tooltips.add(Component.translatable("gtpm.multiblock.preview.cell.position",
                 cell.relativePos().getX(), cell.relativePos().getY(), cell.relativePos().getZ()));
@@ -418,7 +423,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
     }
 
     private void updateDiagnosticText() {
-        List<MultiblockPreviewSnapshot.Diagnostic> diagnostics = state.snapshot().diagnostics();
+        ObjectList<MultiblockPreviewSnapshot.Diagnostic> diagnostics = state.snapshot().diagnostics();
         diagnosticLabel.setText(diagnostics.isEmpty() ? Component.empty() :
                 Component.translatable("gtpm.multiblock.preview.diagnostic",
                         diagnosticDescription(diagnostics.getFirst())));
@@ -456,6 +461,9 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         Level currentLevel = Minecraft.getInstance().level;
         if (currentLevel != sourceLevel) {
             rebuildForLevel(currentLevel);
+        } else if (renderedViewRevision != state.viewRevision()) {
+            rebuildRenderedCore(false);
+            updateNavigationText();
         }
     }
 
@@ -471,7 +479,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
             scene.setRenderFacing(false);
             scene.setRenderSelect(false);
             if (currentLevel == null) {
-                scene.setRenderedCore(List.of(), new PreviewCellRenderHook(), true);
+                scene.setRenderedCore(ObjectList.of(), new PreviewCellRenderHook(), true);
             } else {
                 rebuildSnapshot(true);
             }

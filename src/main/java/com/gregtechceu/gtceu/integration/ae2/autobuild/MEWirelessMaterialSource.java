@@ -25,15 +25,20 @@ import appeng.api.networking.security.IActionSource;
 import appeng.api.stacks.AEItemKey;
 import appeng.api.storage.MEStorage;
 import appeng.items.tools.powered.WirelessTerminalItem;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntImmutableList;
+import it.unimi.dsi.fastutil.ints.IntList;
+import it.unimi.dsi.fastutil.objects.Object2LongLinkedOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2LongMap;
+import it.unimi.dsi.fastutil.objects.Object2LongMaps;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
+import it.unimi.dsi.fastutil.objects.ObjectCollection;
+import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
+import it.unimi.dsi.fastutil.objects.ObjectList;
+import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
+import it.unimi.dsi.fastutil.objects.ReferenceSet;
 import org.jspecify.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.IdentityHashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -86,14 +91,14 @@ final class MEWirelessMaterialSource implements AutoBuildMaterialSource {
     }
 
     @Override
-    public Snapshot snapshot(Collection<AutoBuildItemKey> keys) {
+    public Snapshot snapshot(ObjectCollection<AutoBuildItemKey> keys) {
         InventoryAccess access = validatedInventory();
         SourceDescriptor descriptor = binding == null ? null : binding.descriptor();
         long bindingFingerprint = binding == null ? 0 : binding.fingerprint();
         if (access.problem() != null) {
-            return new Snapshot(kind(), Map.of(), access.problem(), descriptor, bindingFingerprint);
+            return new Snapshot(kind(), Object2LongMaps.emptyMap(), access.problem(), descriptor, bindingFingerprint);
         }
-        Map<AutoBuildItemKey, Long> availability = new LinkedHashMap<>();
+        Object2LongMap<AutoBuildItemKey> availability = new Object2LongLinkedOpenHashMap<>();
         for (AutoBuildItemKey key : keys) {
             AEItemKey aeKey = AEItemKey.of(key.prototype());
             long amount = aeKey == null ? 0 : access.inventory().extract(aeKey, Long.MAX_VALUE,
@@ -123,7 +128,7 @@ final class MEWirelessMaterialSource implements AutoBuildMaterialSource {
             return Selection.failed(problem(AutoBuildProblem.Type.ME_UNAVAILABLE,
                     "gtpm.multiblock.autobuild.me_no_player_inventory"));
         }
-        Selection selected = selectBinding(player, excludedTerminal, inventory, new WirelessSearch(), 0, List.of());
+        Selection selected = selectBinding(player, excludedTerminal, inventory, new WirelessSearch(), 0, IntList.of());
         if (selected.binding() != null || selected.problem() != null) {
             return selected;
         }
@@ -133,8 +138,8 @@ final class MEWirelessMaterialSource implements AutoBuildMaterialSource {
 
     private static Selection selectBinding(ServerPlayer player, ItemStack excludedTerminal, IItemHandler handler,
                                            WirelessSearch search, int depth,
-                                           List<Integer> parentPath) {
-        if (search.visitedHandlers.put(handler, Boolean.TRUE) != null) {
+                                           IntList parentPath) {
+        if (!search.visitedHandlers.add(handler)) {
             return Selection.empty();
         }
         Selection firstFailure = Selection.empty();
@@ -144,7 +149,7 @@ final class MEWirelessMaterialSource implements AutoBuildMaterialSource {
             if (stack.isEmpty() || stack == excludedTerminal) {
                 continue;
             }
-            List<Integer> slotPath = append(parentPath, slot);
+            IntList slotPath = append(parentPath, slot);
             if (stack.getItem() instanceof WirelessTerminalItem) {
                 GlobalPos linkedPos = stack.get(AEComponents.WIRELESS_LINK_TARGET);
                 if (linkedPos == null) {
@@ -169,7 +174,7 @@ final class MEWirelessMaterialSource implements AutoBuildMaterialSource {
             if (stack.isEmpty() || stack == excludedTerminal) {
                 continue;
             }
-            List<Integer> slotPath = append(parentPath, slot);
+            IntList slotPath = append(parentPath, slot);
             IItemHandler childHandler = stack.getCapability(Capabilities.ItemHandler.ITEM);
             if (childHandler != null) {
                 if (depth >= MAX_CONTAINER_DEPTH) {
@@ -191,7 +196,7 @@ final class MEWirelessMaterialSource implements AutoBuildMaterialSource {
 
     private static final class WirelessSearch {
 
-        private final Map<IItemHandler, Boolean> visitedHandlers = new IdentityHashMap<>();
+        private final ReferenceSet<IItemHandler> visitedHandlers = new ReferenceOpenHashSet<>();
 
         private void logDepthLimit() {
             if (DEPTH_LIMIT_LOGGED.compareAndSet(false, true)) {
@@ -209,7 +214,7 @@ final class MEWirelessMaterialSource implements AutoBuildMaterialSource {
         }
         ItemStack terminal = ItemStack.EMPTY;
         for (int pathIndex = 0; pathIndex < binding.slotPath().size(); pathIndex++) {
-            int slot = binding.slotPath().get(pathIndex);
+            int slot = binding.slotPath().getInt(pathIndex);
             if (slot < 0 || slot >= handler.getSlots()) {
                 return InventoryAccess.failed(sourceChanged());
             }
@@ -270,11 +275,11 @@ final class MEWirelessMaterialSource implements AutoBuildMaterialSource {
         return new InventoryAccess(grid.getStorageService().getInventory(), null);
     }
 
-    private static List<Integer> append(List<Integer> path, int slot) {
-        ArrayList<Integer> nested = new ArrayList<>(path.size() + 1);
+    private static IntList append(IntList path, int slot) {
+        IntList nested = new IntArrayList(path.size() + 1);
         nested.addAll(path);
         nested.add(slot);
-        return List.copyOf(nested);
+        return new IntImmutableList(nested);
     }
 
     private static AutoBuildProblem sourceChanged() {
@@ -297,20 +302,21 @@ final class MEWirelessMaterialSource implements AutoBuildMaterialSource {
     }
 
     private record WirelessBinding(ResourceLocation itemId, AutoBuildItemKey terminalKey, GlobalPos linkTarget,
-                                   List<Integer> slotPath, String terminalName, String selectionIdentity,
+                                   IntList slotPath, String terminalName, String selectionIdentity,
                                    long fingerprint) {
 
         private WirelessBinding {
-            slotPath = List.copyOf(slotPath);
+            slotPath = new IntImmutableList(slotPath);
             if (slotPath.isEmpty() || slotPath.size() > MAX_CONTAINER_DEPTH + 1) {
                 throw new IllegalArgumentException("AE wireless terminal slot path is invalid");
             }
         }
 
-        private static WirelessBinding create(ItemStack terminal, GlobalPos linkTarget, List<Integer> slotPath) {
+        private static WirelessBinding create(ItemStack terminal, GlobalPos linkTarget, IntList slotPath) {
             ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(terminal.getItem());
             AutoBuildItemKey terminalKey = AutoBuildItemKey.of(terminal);
-            String path = "inventory/" + String.join("/", slotPath.stream().map(String::valueOf).toList());
+            String path = "inventory/" + String.join("/",
+                    slotPath.intStream().mapToObj(Integer::toString).collect(ObjectImmutableList.toList()));
             String componentHash = Integer.toUnsignedString(terminalKey.hashCode(), 16);
             String identity = path + '@' + itemId + '#' + componentHash;
             if (identity.length() > MAX_DISPLAY_TEXT) {
@@ -385,7 +391,7 @@ final class MEWirelessMaterialSource implements AutoBuildMaterialSource {
         }
 
         @Override
-        public @Nullable Reservation reserve(List<ItemStack> candidates) {
+        public @Nullable Reservation reserve(ObjectList<ItemStack> candidates) {
             for (ItemStack candidate : candidates) {
                 if (!candidate.isEmpty()) {
                     Reservation reservation = reserve(AutoBuildItemKey.of(candidate), 1);

@@ -6,13 +6,12 @@ import net.minecraft.core.GlobalPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 
+import it.unimi.dsi.fastutil.objects.Object2LongLinkedOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2LongMap;
+import it.unimi.dsi.fastutil.objects.Object2LongMaps;
+import it.unimi.dsi.fastutil.objects.ObjectCollection;
+import it.unimi.dsi.fastutil.objects.ObjectList;
 import org.jspecify.annotations.Nullable;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Provides material transactions for automatic multiblock building.
@@ -54,19 +53,21 @@ public interface AutoBuildMaterialSource {
     /**
      * Reads exact availability for the requested keys without changing backing storage.
      */
-    default Snapshot snapshot(Collection<AutoBuildItemKey> keys) {
+    default Snapshot snapshot(ObjectCollection<AutoBuildItemKey> keys) {
         SourceDescriptor sourceDescriptor = descriptor();
         long sourceBindingFingerprint = bindingFingerprint();
         AutoBuildProblem problem = unavailableProblem();
         if (problem != null) {
-            return new Snapshot(kind(), Map.of(), problem, sourceDescriptor, sourceBindingFingerprint);
+            return new Snapshot(kind(), Object2LongMaps.emptyMap(), problem, sourceDescriptor,
+                    sourceBindingFingerprint);
         }
         Session session = openSession();
         AutoBuildProblem sessionProblem = session.problem();
         if (sessionProblem != null) {
-            return new Snapshot(kind(), Map.of(), sessionProblem, sourceDescriptor, sourceBindingFingerprint);
+            return new Snapshot(kind(), Object2LongMaps.emptyMap(), sessionProblem, sourceDescriptor,
+                    sourceBindingFingerprint);
         }
-        Map<AutoBuildItemKey, Long> availability = new LinkedHashMap<>();
+        Object2LongMap<AutoBuildItemKey> availability = new Object2LongLinkedOpenHashMap<>();
         try {
             for (AutoBuildItemKey key : keys) {
                 availability.put(key, session.available(key));
@@ -90,7 +91,7 @@ public interface AutoBuildMaterialSource {
     /**
      * Contributes the selected source identity and exact requested availability to a visible plan fingerprint.
      */
-    default long planFingerprint(Collection<AutoBuildItemKey> keys) {
+    default long planFingerprint(ObjectCollection<AutoBuildItemKey> keys) {
         Snapshot snapshot = snapshot(keys);
         return planFingerprint(keys, snapshot);
     }
@@ -98,7 +99,7 @@ public interface AutoBuildMaterialSource {
     /**
      * Computes the source contribution from the exact snapshot already used by material allocation.
      */
-    default long planFingerprint(Collection<AutoBuildItemKey> keys, Snapshot snapshot) {
+    default long planFingerprint(ObjectCollection<AutoBuildItemKey> keys, Snapshot snapshot) {
         long result = 0xcbf29ce484222325L;
         result = fingerprint(result, snapshot.kind().ordinal());
         SourceDescriptor descriptor = snapshot.descriptor();
@@ -153,7 +154,7 @@ public interface AutoBuildMaterialSource {
          * Reserves one item matching any candidate stack, without mutating backing storage.
          */
         @Nullable
-        Reservation reserve(List<ItemStack> candidates);
+        Reservation reserve(ObjectList<ItemStack> candidates);
 
         /**
          * Reserves up to {@code amount} items for an exact key without mutating backing storage.
@@ -163,7 +164,7 @@ public interface AutoBuildMaterialSource {
             if (amount <= 0) {
                 throw new IllegalArgumentException("Reserved material amount must be positive");
             }
-            return amount == 1 ? reserve(List.of(key.prototype())) : null;
+            return amount == 1 ? reserve(ObjectList.of(key.prototype())) : null;
         }
 
         /**
@@ -219,8 +220,8 @@ public interface AutoBuildMaterialSource {
         /**
          * Returns unexpected stacks a generic source could not restore itself after a broken handler response.
          */
-        default List<ItemStack> rejectedStacks() {
-            return List.of();
+        default ObjectList<ItemStack> rejectedStacks() {
+            return ObjectList.of();
         }
     }
 
@@ -246,11 +247,11 @@ public interface AutoBuildMaterialSource {
     /**
      * Immutable availability values for one material source.
      */
-    record Snapshot(SourceKind kind, Map<AutoBuildItemKey, Long> available,
+    record Snapshot(SourceKind kind, Object2LongMap<AutoBuildItemKey> available,
                     @Nullable AutoBuildProblem problem, @Nullable SourceDescriptor descriptor,
                     long bindingFingerprint) {
 
-        public Snapshot(SourceKind kind, Map<AutoBuildItemKey, Long> available,
+        public Snapshot(SourceKind kind, Object2LongMap<AutoBuildItemKey> available,
                         @Nullable AutoBuildProblem problem) {
             this(kind, available, problem, null, 0);
         }
@@ -259,18 +260,19 @@ public interface AutoBuildMaterialSource {
             if (descriptor != null && descriptor.kind() != kind) {
                 throw new IllegalArgumentException("Material snapshot descriptor kind does not match its source");
             }
-            LinkedHashMap<AutoBuildItemKey, Long> ordered = new LinkedHashMap<>();
-            available.forEach((key, value) -> {
+            Object2LongLinkedOpenHashMap<AutoBuildItemKey> ordered = new Object2LongLinkedOpenHashMap<>();
+            for (var entry : available.object2LongEntrySet()) {
+                long value = entry.getLongValue();
                 if (value < 0) {
                     throw new IllegalArgumentException("Material snapshot values must be non-negative");
                 }
-                ordered.put(key, value);
-            });
-            available = Collections.unmodifiableMap(ordered);
+                ordered.put(entry.getKey(), value);
+            }
+            available = Object2LongMaps.unmodifiable(ordered);
         }
 
         public long available(AutoBuildItemKey key) {
-            return available.getOrDefault(key, 0L);
+            return available.getLong(key);
         }
     }
 

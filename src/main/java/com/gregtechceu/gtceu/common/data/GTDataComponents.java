@@ -227,6 +227,11 @@ public class GTDataComponents {
                     builder -> builder.persistent(TerminalAutoBuildProfiles.CODEC)
                             .networkSynchronized(TerminalAutoBuildProfiles.STREAM_CODEC));
 
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<TerminalControllerBinding>> TERMINAL_CONTROLLER = DATA_COMPONENTS
+            .registerComponentType("terminal_controller",
+                    builder -> builder.persistent(TerminalControllerBinding.CODEC)
+                            .networkSynchronized(TerminalControllerBinding.STREAM_CODEC));
+
     public static final DeferredHolder<DataComponentType<?>, DataComponentType<SyncFieldData>> SYNC_FIELD_DATA = DATA_COMPONENTS
             .registerComponentType("sync_field_data", builder -> builder.persistent(SyncFieldData.CODEC)
                     .networkSynchronized(SyncFieldData.STREAM_CODEC));

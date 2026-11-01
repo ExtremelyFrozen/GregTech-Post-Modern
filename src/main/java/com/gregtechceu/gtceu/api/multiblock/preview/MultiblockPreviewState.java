@@ -1,8 +1,12 @@
 package com.gregtechceu.gtceu.api.multiblock.preview;
 
+import it.unimi.dsi.fastutil.ints.IntAVLTreeSet;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
+import it.unimi.dsi.fastutil.objects.ObjectList;
+import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
+import it.unimi.dsi.fastutil.objects.ObjectSet;
 import org.jspecify.annotations.Nullable;
-
-import java.util.List;
 
 /**
  * Window-local navigation state for a multiblock preview.
@@ -15,6 +19,9 @@ import java.util.List;
 public final class MultiblockPreviewState {
 
     private MultiblockPreviewSnapshot snapshot;
+    private final ObjectSet<String> hiddenStructures = new ObjectOpenHashSet<>();
+    private final IntArrayList layers = new IntArrayList();
+    private long viewRevision;
     @Nullable
     private String focusedStructure;
     @Nullable
@@ -22,6 +29,7 @@ public final class MultiblockPreviewState {
 
     public MultiblockPreviewState(MultiblockPreviewSnapshot snapshot) {
         this.snapshot = snapshot;
+        updateLayers();
     }
 
     public MultiblockPreviewSnapshot snapshot() {
@@ -33,14 +41,48 @@ public final class MultiblockPreviewState {
      */
     public void replaceSnapshot(MultiblockPreviewSnapshot snapshot) {
         this.snapshot = snapshot;
+        hiddenStructures.removeIf(name -> snapshot.structures().stream()
+                .noneMatch(structure -> structure.name().equals(name)));
         if (focusedStructure != null && snapshot.structures().stream()
                 .noneMatch(structure -> structure.name().equals(focusedStructure))) {
             focusedStructure = null;
         }
-        if (visibleLayer != null && snapshot.cells().stream()
-                .noneMatch(cell -> cell.relativePos().getY() == visibleLayer)) {
-            visibleLayer = null;
+        updateLayers();
+        viewRevision++;
+    }
+
+    /** View changes stay local to the open window and never change build selection or material requirements. */
+    public boolean isStructureVisible(String structureName) {
+        return !hiddenStructures.contains(structureName);
+    }
+
+    public void setStructureVisible(String structureName, boolean visible) {
+        if (snapshot.structures().stream().noneMatch(structure -> structure.name().equals(structureName))) {
+            throw new IllegalArgumentException("Unknown preview structure: " + structureName);
         }
+        if (visible) hiddenStructures.remove(structureName);
+        else hiddenStructures.add(structureName);
+        if (!visible && structureName.equals(focusedStructure)) focusedStructure = null;
+        updateLayers();
+        viewRevision++;
+    }
+
+    public long viewRevision() {
+        return viewRevision;
+    }
+
+    private void updateLayers() {
+        IntAVLTreeSet available = new IntAVLTreeSet();
+        for (var cell : snapshot.cells()) {
+            if (hasVisibleContributor(cell)) available.add(cell.relativePos().getY());
+        }
+        layers.clear();
+        layers.addAll(available);
+        if (visibleLayer != null && !layers.contains(visibleLayer.intValue())) visibleLayer = null;
+    }
+
+    private boolean hasVisibleContributor(MultiblockPreviewSnapshot.Cell cell) {
+        return cell.contributions().stream().anyMatch(contribution -> isStructureVisible(contribution.structureName()));
     }
 
     @Nullable
@@ -57,28 +99,22 @@ public final class MultiblockPreviewState {
             throw new IllegalArgumentException("Unknown preview structure: " + structureName);
         }
         focusedStructure = structureName;
+        viewRevision++;
     }
 
     /**
      * Cycles through all structures in definition order and then returns to the merged view.
      */
     public void focusNext() {
-        if (snapshot.structures().isEmpty()) {
-            focusedStructure = null;
-            return;
-        }
-        if (focusedStructure == null) {
-            focusedStructure = snapshot.structures().getFirst().name();
-            return;
-        }
-        for (int index = 0; index < snapshot.structures().size(); index++) {
-            if (snapshot.structures().get(index).name().equals(focusedStructure)) {
-                focusedStructure = index + 1 < snapshot.structures().size() ?
-                        snapshot.structures().get(index + 1).name() : null;
+        boolean next = focusedStructure == null;
+        for (var structure : snapshot.structures()) {
+            if (next && isStructureVisible(structure.name())) {
+                focus(structure.name());
                 return;
             }
+            if (structure.name().equals(focusedStructure)) next = true;
         }
-        focusedStructure = null;
+        focus(null);
     }
 
     @Nullable
@@ -90,37 +126,23 @@ public final class MultiblockPreviewState {
      * Cycles through controller-relative Y layers and then returns to the all-layer view.
      */
     public void layerNext() {
-        List<Integer> layers = snapshot.cells().stream()
-                .map(cell -> cell.relativePos().getY())
-                .distinct()
-                .sorted()
-                .toList();
-        if (layers.isEmpty()) {
-            visibleLayer = null;
-            return;
-        }
-        if (visibleLayer == null) {
-            visibleLayer = layers.getFirst();
-            return;
-        }
-        int index = layers.indexOf(visibleLayer);
-        if (index >= 0 && index + 1 < layers.size()) {
-            visibleLayer = layers.get(index + 1);
-            return;
-        }
-        visibleLayer = null;
+        int index = visibleLayer == null ? -1 : layers.indexOf(visibleLayer.intValue());
+        visibleLayer = index + 1 < layers.size() ? layers.getInt(index + 1) : null;
+        viewRevision++;
     }
 
     /**
-     * Returns cells in the active layer. Focus changes emphasis in the widget, so it does not remove other cells.
+     * Returns cells with at least one visible contributor in the active layer. Shared cells remain visible when
+     * another visible structure needs them; focus only changes emphasis.
      */
-    public List<MultiblockPreviewSnapshot.Cell> visibleCells() {
-        if (visibleLayer == null) {
+    public ObjectList<MultiblockPreviewSnapshot.Cell> visibleCells() {
+        if (visibleLayer == null && hiddenStructures.isEmpty()) {
             return snapshot.cells();
         }
         return snapshot.cells().stream()
-                .filter(cell -> cell.relativePos().getY() == visibleLayer)
-                .toList();
+                .filter(this::hasVisibleContributor)
+                .filter(cell -> visibleLayer == null || cell.relativePos().getY() == visibleLayer)
+                .collect(ObjectImmutableList.toList());
     }
 
     /**
