@@ -8,10 +8,6 @@ import org.jspecify.annotations.NullMarked
 
 /** A serialized predicate reference and its stable fact aliases. */
 @NullMarked
-@JvmRecord
 data class PatternPredicateDefinition(val type: String, val name: String, val properties: Object2ObjectMap<String, Any>, val facts: ObjectList<String>) {
 	constructor(type: String, name: String, properties: Map<String, Any>, facts: List<String>) : this(type, name, Object2ObjectLinkedOpenHashMap(properties), ObjectArrayList(facts))
-	init {
-		require(type.isNotBlank()) { "Predicate type must not be blank" }
-	}
 }

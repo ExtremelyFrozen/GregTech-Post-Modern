@@ -8,11 +8,6 @@ import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternDefinition
 import it.unimi.dsi.fastutil.objects.Object2IntMap
 import it.unimi.dsi.fastutil.objects.ObjectList
 
-@JvmRecord
 data class CompiledPattern(val definition: PatternDefinition, val cells: ObjectList<PatternLayoutCell>, val nodeCounts: Object2IntMap<String>, val maximumRecursionDepth: Int, val layout: PatternLayoutResolver) {
-	init {
-		require(maximumRecursionDepth >= 0) { "Maximum recursion depth must not be negative" }
-	}
-
 	fun expand(repetitions: IntArray, choices: Map<String, String>): PatternLayout = layout.expand(repetitions, choices)
 }

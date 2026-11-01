@@ -9,7 +9,6 @@ import org.jspecify.annotations.NullMarked
 
 /** A reusable recursive pattern fragment with an explicit parameter scope. */
 @NullMarked
-@JvmRecord
 data class PatternFragment @JvmOverloads constructor(
 	val parameters: Object2ObjectMap<String, PatternParameter>,
 	val anchors: Object2ObjectMap<String, PatternOrigin.Offset>,
@@ -26,6 +25,5 @@ data class PatternFragment @JvmOverloads constructor(
 		predicates: Map<Char, PatternPredicateDefinition> = emptyMap(),
 	) : this(Object2ObjectLinkedOpenHashMap(parameters), Object2ObjectLinkedOpenHashMap(anchors), Object2ObjectLinkedOpenHashMap(ports), body, Char2ObjectLinkedOpenHashMap(predicates))
 
-	@JvmRecord
 	data class Port(val offset: PatternOrigin.Offset, val direction: PatternDirection)
 }

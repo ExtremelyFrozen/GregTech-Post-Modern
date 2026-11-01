@@ -8,7 +8,6 @@ import org.jspecify.annotations.NullMarked
 
 /** Immutable result shared by machine matching, preview and auto-build. */
 @NullMarked
-@JvmRecord
 data class PatternMatchResult(val matched: Boolean, val facts: PatternFacts, val diagnostics: ObjectList<PatternDiagnostic>) {
 	companion object {
 		@JvmStatic

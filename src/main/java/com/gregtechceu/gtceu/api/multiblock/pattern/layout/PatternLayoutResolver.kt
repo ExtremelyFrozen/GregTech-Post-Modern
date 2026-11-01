@@ -4,8 +4,8 @@ import com.gregtechceu.gtceu.api.multiblock.pattern.compile.PatternCompileExcept
 import com.gregtechceu.gtceu.api.multiblock.pattern.fragment.FragmentRegistry
 import com.gregtechceu.gtceu.api.multiblock.pattern.model.*
 import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PatternPredicate
-import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PatternPredicateCompiler
 import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PatternPredicates
+import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PatternPredicateCompiler
 import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PredicateController
 
 import net.minecraft.resources.ResourceLocation
@@ -67,7 +67,6 @@ class PatternLayoutResolver(private val definition: PatternDefinition) {
 	fun allPredicates(): ObjectList<PatternPredicate> {
 		val result = ObjectArrayList<PatternPredicate>()
 		fun visit(node: PatternNode, symbols: Char2ObjectMap<PatternPredicate>, level: Int) {
-			require(level <= 64) { "Pattern nesting exceeds 64" }
 			when (node) {
 				is PatternNode.Fixed -> node.layers.forEach { layer -> layer.forEach { row -> row.forEach { symbol -> result.add(symbols[symbol] ?: error("Unknown local token $symbol")) } } }
 
@@ -159,7 +158,6 @@ class PatternLayoutResolver(private val definition: PatternDefinition) {
 		?: FragmentRegistry.require(ResourceLocation.parse(id))
 
 	private fun describe(node: PatternNode, path: String, nested: Boolean, stack: ObjectSet<String>, level: Int) {
-		require(level <= 64) { "Pattern nesting exceeds 64 at $path" }
 		maximumDepth = maxOf(maximumDepth, level)
 		when (node) {
 			is PatternNode.Fixed -> if (!nested) repeats.add(PatternRepeatDescriptor(repeats.size, path, path, PatternAxis.DEPTH, 1, 1))
@@ -230,7 +228,6 @@ class PatternLayoutResolver(private val definition: PatternDefinition) {
 	}
 
 	private fun validateSymbols(node: PatternNode, path: String, symbols: CharSet, level: Int) {
-		require(level <= 64) { "Pattern nesting exceeds 64 at $path" }
 		when (node) {
 			is PatternNode.Fixed -> node.layers.forEach { layer -> layer.forEach { row -> row.forEach { require(symbols.contains(it)) { "Undeclared local token '$it' at $path" } } } }
 
@@ -296,7 +293,6 @@ class PatternLayoutResolver(private val definition: PatternDefinition) {
 		repetition: Int,
 		level: Int,
 	): Box {
-		require(level <= 64) { "Pattern nesting exceeds 64 at $path" }
 		val descriptor = repeats.firstOrNull { it.path == declaration }
 		val currentUnit = if (unit < 0 && descriptor != null) descriptor.index else unit
 		return when (node) {

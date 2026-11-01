@@ -14,8 +14,4 @@ class PatternCompiler {
 		val initial = layout.expand(IntArray(layout.repeatDescriptors().size) { layout.repeatDescriptors()[it].minimum }, emptyMap())
 		return CompiledPattern(definition, initial.cells, counts, layout.maximumDepth, layout)
 	}
-
-	companion object {
-		const val MAX_RECURSION_DEPTH: Int = 64
-	}
 }

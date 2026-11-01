@@ -12,7 +12,6 @@ import org.jspecify.annotations.NullMarked
 
 /** Canonical source model shared by Java DSL, JSON and compressed binary definitions. */
 @NullMarked
-@JvmRecord
 data class PatternDefinition(
 	val machine: ResourceLocation,
 	val structure: ResourceLocation,

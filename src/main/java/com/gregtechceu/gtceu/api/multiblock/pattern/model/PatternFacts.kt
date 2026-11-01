@@ -33,7 +33,6 @@ class PatternFacts {
 	}
 
 	fun addFact(fact: String) {
-		require(fact.isNotBlank()) { "Fact name must not be blank" }
 		counts.addTo(fact, 1)
 	}
 

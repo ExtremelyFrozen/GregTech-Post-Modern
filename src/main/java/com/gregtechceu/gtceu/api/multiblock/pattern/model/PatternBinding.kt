@@ -5,31 +5,15 @@ import org.jspecify.annotations.NullMarked
 /** A value bound to a fragment parameter at a call site. */
 @NullMarked
 sealed interface PatternBinding {
-	@JvmRecord
-	data class Token(val value: String) : PatternBinding {
-		init {
-			require(value.isNotBlank()) { "Token binding must not be blank" }
-		}
-	}
+	data class Token(val value: String) : PatternBinding
 
-	@JvmRecord
-	data class Predicate @JvmOverloads constructor(val value: String, val definition: PatternPredicateDefinition? = null) : PatternBinding {
+	data class Predicate(val value: String, val definition: PatternPredicateDefinition? = null) : PatternBinding {
 		constructor(definition: PatternPredicateDefinition) : this("", definition)
-		init {
-			require(value.isNotBlank() || definition != null) { "Predicate binding must not be blank" }
-		}
 	}
 
-	@JvmRecord
 	data class IntegerValue(val value: Int) : PatternBinding
 
-	@JvmRecord
 	data class Direction(val value: PatternDirection) : PatternBinding
 
-	@JvmRecord
-	data class Fragment(val value: String) : PatternBinding {
-		init {
-			require(value.isNotBlank()) { "Fragment binding must not be blank" }
-		}
-	}
+	data class Fragment(val value: String) : PatternBinding
 }

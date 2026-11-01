@@ -46,10 +46,6 @@ open class MultiBlockPattern private constructor(private val sourceDefinition: P
 	private val layoutResolver = compiledPattern.layout
 	private val runtime = PatternRuntime(this, sourceDefinition)
 
-	init {
-		require(compiledPattern.cells.isNotEmpty()) { "Pattern must contain cells" }
-	}
-
 	private val minimumDepth = compiledPattern.cells.minOf { it.depth }
 	private val minimumHeight = compiledPattern.cells.minOf { it.height }
 	private val minimumWidth = compiledPattern.cells.minOf { it.width }
