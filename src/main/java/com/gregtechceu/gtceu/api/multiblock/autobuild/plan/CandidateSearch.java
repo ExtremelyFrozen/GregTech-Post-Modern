@@ -179,7 +179,7 @@ final class CandidateSearch {
                             candidate.blockInfo().hasBlockEntity(), candidate.hatch(), candidate.any(),
                             candidate.order(), candidate.tierGroups(), candidate.limits().stream()
                                     .map(ConstraintLimit::id).sorted().collect(ObjectImmutableList.toList()),
-                            candidate.properties()))
+                            candidate.observation().properties()))
                     .collect(ObjectImmutableList.toList());
             GroupKey key = new GroupKey(cell.layer(), cell.observedState(), cell.requiredDirection(),
                     cell.relativePos().equals(BlockPos.ZERO), candidates);
@@ -308,12 +308,13 @@ final class CandidateSearch {
         if (count == 0) {
             return new AppliedCandidate(candidate, 0, BudgetUse.EMPTY, SelectionScore.ZERO);
         }
-        if (!withinMaximums(cell.layer(), candidate, count) || !properties.accepts(candidate.properties())) {
+        if (!withinMaximums(cell.layer(), candidate, count) ||
+                !properties.accepts(candidate.observation().properties())) {
             return null;
         }
         long previewPenalty = previewPenalty(cell, candidate, count);
         increment(cell.layer(), candidate, count);
-        properties.add(candidate.properties(), count);
+        properties.add(candidate.observation().properties(), count);
         BudgetUse budgetUse = willPlace(cell, candidate) ? budget.consume(candidate.materialKey(), count) :
                 BudgetUse.EMPTY;
         SelectionScore score = new SelectionScore(
@@ -328,7 +329,7 @@ final class CandidateSearch {
         if (applied.count() == 0) return;
         budget.restore(applied.candidate().materialKey(), applied.budgetUse());
         increment(cell.layer(), applied.candidate(), -applied.count());
-        properties.add(applied.candidate().properties(), -applied.count());
+        properties.add(applied.candidate().observation().properties(), -applied.count());
     }
 
     void undoApplied(UnresolvedCell cell, ObjectList<AppliedCandidate> applied, SearchBudget budget,
@@ -558,7 +559,8 @@ final class CandidateSearch {
 
         private boolean hasConstraints() {
             return representative.candidates().stream()
-                    .anyMatch(candidate -> !candidate.limits().isEmpty() || !candidate.properties().isEmpty());
+                    .anyMatch(candidate -> !candidate.limits().isEmpty() ||
+                            !candidate.observation().properties().isEmpty());
         }
 
         private int constraintCount() {

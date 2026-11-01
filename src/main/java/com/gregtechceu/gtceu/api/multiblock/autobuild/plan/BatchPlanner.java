@@ -165,7 +165,7 @@ public final class BatchPlanner {
                         "gtpm.multiblock.autobuild.unknown_structure", options.structureName()));
             } else {
                 pattern = definition.getPattern(options.structureName());
-                repetitions = validateRepetitions(pattern, options, problems);
+                repetitions = options.repetitions();
                 if (options.flipMode() && !definition.isAllowFlip()) {
                     problems.add(problem(BuildProblem.Type.INVALID_OPTIONS, context.worldPos(),
                             "gtpm.multiblock.autobuild.flip_not_allowed"));
@@ -177,7 +177,7 @@ public final class BatchPlanner {
             ObjectList<UnresolvedCell> cells = ObjectList.of();
             ObjectList<ConstraintLimit> requirements = new ObjectArrayList<>();
             if (pattern != null && problems.isEmpty()) {
-                cells = expandStructure(definition, pattern, options, repetitions, context, constraintIds, requirements,
+                cells = expandStructure(definition, pattern, options, context, constraintIds, requirements,
                         problems);
                 validateTierChoices(definition, options, cells, problems, context.worldPos());
             }
