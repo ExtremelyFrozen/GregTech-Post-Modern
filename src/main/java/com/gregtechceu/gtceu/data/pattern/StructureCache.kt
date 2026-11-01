@@ -11,6 +11,8 @@ import com.gregtechceu.gtceu.utils.dev.ResourceReloadDetector
 import net.minecraft.resources.ResourceLocation
 import net.neoforged.fml.ModList
 
+import it.unimi.dsi.fastutil.objects.Object2ObjectMap
+import it.unimi.dsi.fastutil.objects.Object2ObjectMaps
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap
 import it.unimi.dsi.fastutil.objects.ObjectArrayList
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet
@@ -44,8 +46,8 @@ object StructureCache {
 	private val cacheLoadLock = Any()
 
 	private data class StructureCaches(
-		val binaryDefinitions: Map<StructurePatternKey, PatternDefinition>,
-		val jsonDefinitions: Map<StructurePatternKey, PatternDefinition>,
+		val binaryDefinitions: Object2ObjectMap<StructurePatternKey, PatternDefinition>,
+		val jsonDefinitions: Object2ObjectMap<StructurePatternKey, PatternDefinition>,
 		val binaryPatterns: ConcurrentHashMap<StructurePatternKey, MultiBlockPattern> = ConcurrentHashMap(),
 		val jsonPatterns: ConcurrentHashMap<StructurePatternKey, MultiBlockPattern> = ConcurrentHashMap(),
 	)
@@ -316,7 +318,7 @@ object StructureCache {
 			}
 		}
 
-		error("Structure definition '$key' was not found in ${StructureDefinitionType.JSON.directoryName} or ${StructureDefinitionType.BINARY_ZSTD.directoryName}")
+		return javaPattern
 	}
 
 	@JvmStatic
@@ -403,17 +405,11 @@ object StructureCache {
 		binaryPatterns: ConcurrentHashMap<StructurePatternKey, MultiBlockPattern> = ConcurrentHashMap(),
 		jsonPatterns: ConcurrentHashMap<StructurePatternKey, MultiBlockPattern> = ConcurrentHashMap(),
 	): StructureCaches = StructureCaches(
-		freezeMap(binaryMap),
-		freezeMap(jsonMap),
+		Object2ObjectMaps.unmodifiable(Object2ObjectOpenHashMap(binaryMap)),
+		Object2ObjectMaps.unmodifiable(Object2ObjectOpenHashMap(jsonMap)),
 		binaryPatterns.also { it.keys.retainAll(binaryMap.keys) },
 		jsonPatterns.also { it.keys.retainAll(jsonMap.keys) },
 	)
-
-	@Suppress("UNCHECKED_CAST")
-	private fun <K, V> freezeMap(map: Map<K, V>): Map<K, V> = when (map) {
-		is Object2ObjectOpenHashMap<*, *> -> map
-		else -> map
-	}
 
 	private fun publishCaches(caches: StructureCaches) {
 		synchronized(cacheStateLock) {
