@@ -4,6 +4,7 @@ import com.gregtechceu.gtceu.api.multiblock.MultiblockState;
 import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PatternPredicate;
 import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PredicateRule;
 
+import lombok.Setter;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
@@ -14,11 +15,8 @@ import java.util.List;
 
 public class PatternError {
 
+    @Setter
     protected MultiblockState worldState;
-
-    public void setWorldState(MultiblockState worldState) {
-        this.worldState = worldState;
-    }
 
     public Level getWorld() {
         return worldState.getWorld();

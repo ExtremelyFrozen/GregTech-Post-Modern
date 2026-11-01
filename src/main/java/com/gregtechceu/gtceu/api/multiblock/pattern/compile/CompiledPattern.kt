@@ -9,7 +9,6 @@ import it.unimi.dsi.fastutil.objects.Object2IntMap
 import it.unimi.dsi.fastutil.objects.ObjectList
 import org.jspecify.annotations.NullMarked
 
-@NullMarked
 @JvmRecord
 data class CompiledPattern(val definition: PatternDefinition, val cells: ObjectList<PatternLayoutCell>, val nodeCounts: Object2IntMap<String>, val maximumRecursionDepth: Int, val layout: PatternLayoutResolver) {
 	init {
