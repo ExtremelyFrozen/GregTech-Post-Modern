@@ -69,7 +69,7 @@ public class GTRecipeSerializer implements RecipeSerializer<GTRecipeDefinition> 
     public static final Codec<Map<RecipeCapability<?>, ChanceLogic>> CHANCE_LOGIC_MAP_CODEC = Codec.
             unboundedMap(RecipeCapability.DIRECT_CODEC, GTRegistries.CHANCE_LOGICS.byNameCodec());
 
-    public static final MapCodec<GTRecipeDefinition> CODEC = makeCodec(GTCEu.Mods.isKubeJSLoaded());
+    public static final MapCodec<GTRecipeDefinition> CODEC = makeCodec(GTCEu.MODS.KUBEJS.isLoaded());
     public static final StreamCodec<RegistryFriendlyByteBuf, GTRecipeDefinition> STREAM_CODEC = StreamCodec
             .of(GTRecipeSerializer::toNetwork, GTRecipeSerializer::fromNetwork);
     // spotless:on
@@ -151,7 +151,7 @@ public class GTRecipeSerializer implements RecipeSerializer<GTRecipeDefinition> 
                 readCollection(buf, GTRecipeSerializer::changeLogicEntryReader));
 
         List<?> ingredientActions = new ArrayList<>();
-        if (GTCEu.Mods.isKubeJSLoaded()) {
+        if (GTCEu.MODS.KUBEJS.isLoaded()) {
             ingredientActions = KJSCallWrapper.getIngredientActions(buf);
         }
         DataComponentMap data = SyncFieldData.DATA_COMPONENT_MAP_STREAM_CODEC.decode(buf);
@@ -204,7 +204,7 @@ public class GTRecipeSerializer implements RecipeSerializer<GTRecipeDefinition> 
         writeCollection(recipe.tickOutputChanceLogics.entrySet(), buf,
                 GTRecipeSerializer::changeLogicEntryWriter);
 
-        if (GTCEu.Mods.isKubeJSLoaded()) {
+        if (GTCEu.MODS.KUBEJS.isLoaded()) {
             KJSCallWrapper.writeIngredientActions(recipe.ingredientActions, buf);
         }
         SyncFieldData.DATA_COMPONENT_MAP_STREAM_CODEC.encode(buf, recipe.data);

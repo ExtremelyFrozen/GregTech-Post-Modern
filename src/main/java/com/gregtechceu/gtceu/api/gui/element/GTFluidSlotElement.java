@@ -214,10 +214,10 @@ public class GTFluidSlotElement extends FluidSlot {
     @Override
     public GTFluidSlotElement xeiPhantom() {
         RegistrateDistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> {
-            if (GTCEu.Mods.isJEILoaded()) {
+            if (GTCEu.MODS.isJEILoaded()) {
                 LDLibJEIPlugin.ghostIngredient(this, NeoForgeTypes.FLUID_STACK, ingredient -> true, this::setFluid);
             }
-            if (GTCEu.Mods.isEMILoaded()) {
+            if (GTCEu.MODS.isEMILoaded()) {
                 LDLibEMIPlugin.renderDragHandler(this, dragged -> dragged instanceof FluidEmiStack);
                 LDLibEMIPlugin.dropStackHandler(this,
                         dragged -> dragged instanceof FluidEmiStack,
@@ -474,13 +474,13 @@ public class GTFluidSlotElement extends FluidSlot {
 
     private void addXEIRecipeIngredient(IngredientIO io, Supplier<Stream<FluidStack>> allPossibleFluids) {
         RegistrateDistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> {
-            if (GTCEu.Mods.isJEILoaded()) {
+            if (GTCEu.MODS.isJEILoaded()) {
                 LDLibJEIPlugin.recipeIngredient(this, io, () -> allPossibleFluids.get()
                         .map(this::createJEIFluidIngredient)
                         .flatMap(Optional::stream)
                         .collect(Collectors.toList()));
             }
-            if (GTCEu.Mods.isEMILoaded()) {
+            if (GTCEu.MODS.isEMILoaded()) {
                 LDLibEMIPlugin.recipeIngredient(this, io, () -> allPossibleFluids.get()
                         .map(fluid -> EmiStack.of(fluid.getFluid(), fluid.getComponentsPatch(), fluid.getAmount()))
                         .collect(Collectors.toList()));
@@ -491,7 +491,7 @@ public class GTFluidSlotElement extends FluidSlot {
     private void addXEIRecipeSlot(IngredientIO io, Supplier<Float> chance, IntSupplier amount,
                                   Supplier<Stream<FluidStack>> allPossibleFluids) {
         RegistrateDistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> {
-            if (GTCEu.Mods.isJEILoaded()) {
+            if (GTCEu.MODS.isJEILoaded()) {
                 LDLibJEIPlugin.recipeSlot(this,
                         () -> createJEIFluidIngredient(getFluid()).orElse(null),
                         () -> allPossibleFluids.get()
@@ -499,7 +499,7 @@ public class GTFluidSlotElement extends FluidSlot {
                                 .flatMap(Optional::stream)
                                 .collect(Collectors.toList()));
             }
-            if (GTCEu.Mods.isEMILoaded()) {
+            if (GTCEu.MODS.isEMILoaded()) {
                 LDLibEMIPlugin.recipeSlot(this, () -> new ListEmiIngredient(
                         allPossibleFluids.get()
                                 .map(fluid -> EmiStack.of(fluid.getFluid(),

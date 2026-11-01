@@ -370,7 +370,7 @@ public class GTRecipeTypeUI {
                     recipeType.registryName);
         }
 
-        if (!isXEI && GTCEu.Mods.isAnyRecipeViewerLoaded()) {
+        if (!isXEI && GTCEu.MODS.isAnyRecipeViewerLoaded()) {
             progressElements.forEach(this::addLDLib2RecipeViewerButton);
         }
 
@@ -413,9 +413,9 @@ public class GTRecipeTypeUI {
     }
 
     private void showRecipeViewerCategory() {
-        if (GTCEu.Mods.isEMILoaded()) {
+        if (GTCEu.MODS.isEMILoaded()) {
             EmiApi.displayRecipeCategory(GTRecipeEMICategory.machineCategory(recipeType.getCategory()));
-        } else if (GTCEu.Mods.isJEILoaded()) {
+        } else if (GTCEu.MODS.isJEILoaded()) {
             GTJEIPlugin.jeiRuntime.getRecipesGui().showTypes(
                     recipeType.getCategories().stream()
                             .filter(GTRecipeCategory::isXEIVisible)

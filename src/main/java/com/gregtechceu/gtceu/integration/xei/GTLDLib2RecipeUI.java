@@ -439,7 +439,7 @@ public final class GTLDLib2RecipeUI {
             case GTValues.IV -> 12;
             default -> 14;
         };
-        if (!GTCEu.Mods.isEMILoaded()) {
+        if (!GTCEu.MODS.isEMILoaded()) {
             x -= 3;
         }
         return x;

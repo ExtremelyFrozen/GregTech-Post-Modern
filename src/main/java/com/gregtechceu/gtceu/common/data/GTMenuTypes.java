@@ -33,7 +33,7 @@ public final class GTMenuTypes {
     private GTMenuTypes() {}
 
     public static void init(IEventBus modBus) {
-        if (GTCEu.Mods.isAE2Loaded()) {
+        if (GTCEu.MODS.AE2.isLoaded()) {
             MEPatternBufferProxyUIMenuType.initialize();
         }
         MENUS.register(modBus);

@@ -14,7 +14,7 @@ import org.jetbrains.annotations.Nullable
 class GridNodeHostCodec private constructor() : ContextualFieldCodec<Any> {
 	override fun serializeField(value: Any, context: ContextualFieldCodec.Context<Any>): JsonElement {
 		val currentValue = context.currentValue
-		if (GTCEu.Mods.isAE2Loaded() && currentValue is GridNodeHostTrait) {
+		if (GTCEu.MODS.AE2.isLoaded() && currentValue is GridNodeHostTrait) {
 			return encodeComponents(SerializableManagedGridNode.exportComponents(currentValue.mainNode), context)
 		}
 		return encodeComponents(DataComponentMap.EMPTY, context)
@@ -23,7 +23,7 @@ class GridNodeHostCodec private constructor() : ContextualFieldCodec<Any> {
 	@Nullable
 	override fun deserializeField(value: JsonElement, context: ContextualFieldCodec.Context<Any>): Any? {
 		val currentValue = context.currentValue
-		if (GTCEu.Mods.isAE2Loaded() && currentValue is GridNodeHostTrait) {
+		if (GTCEu.MODS.AE2.isLoaded() && currentValue is GridNodeHostTrait) {
 			SerializableManagedGridNode.importComponents(currentValue.mainNode, decodeComponents(value, context))
 			return currentValue
 		}

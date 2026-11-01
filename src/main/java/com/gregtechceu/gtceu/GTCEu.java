@@ -22,6 +22,7 @@ import net.neoforged.neoforge.server.ServerLifecycleHooks;
 
 import com.mojang.serialization.Codec;
 import dev.emi.emi.config.EmiConfig;
+import lombok.Getter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.ApiStatus;
@@ -170,70 +171,41 @@ public class GTCEu {
         return FMLPaths.GAMEDIR.get();
     }
 
-    public static class Mods {
+    public enum MODS {
+
+        EMI(GTValues.MODID_EMI),
+        JEI(GTValues.MODID_JEI),
+        KUBEJS(GTValues.MODID_KUBEJS),
+        IRIS(GTValues.MODID_IRIS),
+        SODIUM(GTValues.MODID_SODIUM),
+        AE2(GTValues.MODID_APPENG),
+        CURIOS(GTValues.MODID_CURIOS),
+        MODERNFIX(GTValues.MODID_MODERNFIX),
+        FTB_TEAMS(GTValues.MODID_FTB_TEAMS),
+        HERACLES(GTValues.MODID_HERACLES),
+        FTB_QUESTS(GTValues.MODID_FTB_QUEST),
+        ARGONAUTS(GTValues.MODID_ARGONAUTS),
+        GAMESTAGES(GTValues.MODID_GAMESTAGES),
+        CCTWEAKED(GTValues.MODID_CCTWEAKED),
+        CREATE(GTValues.MODID_CREATE);
+
+        @Getter
+        private final boolean loaded;
+
+        MODS(String modId) {
+            this.loaded = GTCEu.isModLoaded(modId);
+        }
 
         public static boolean isAnyRecipeViewerLoaded() {
-            return isModLoaded(GTValues.MODID_EMI) || isModLoaded(GTValues.MODID_JEI);
+            return EMI.isLoaded() || JEI.isLoaded();
         }
 
         public static boolean isJEILoaded() {
-            return !isModLoaded(GTValues.MODID_EMI) && isModLoaded(GTValues.MODID_JEI);
+            return !EMI.isLoaded() && JEI.isLoaded();
         }
 
         public static boolean isEMILoaded() {
-            return isModLoaded(GTValues.MODID_EMI) && (!isClientSide() || EmiConfig.enabled);
-        }
-
-        public static boolean isKubeJSLoaded() {
-            return isModLoaded(GTValues.MODID_KUBEJS);
-        }
-
-        public static boolean isIrisLoaded() {
-            return isModLoaded(GTValues.MODID_IRIS);
-        }
-
-        public static boolean isSodiumLoaded() {
-            return isModLoaded(GTValues.MODID_SODIUM);
-        }
-
-        public static boolean isAE2Loaded() {
-            return isModLoaded(GTValues.MODID_APPENG);
-        }
-
-        public static boolean isCuriosLoaded() {
-            return isModLoaded(GTValues.MODID_CURIOS);
-        }
-
-        public static boolean isModernFixLoaded() {
-            return isModLoaded(GTValues.MODID_MODERNFIX);
-        }
-
-        public static boolean isFTBTeamsLoaded() {
-            return isModLoaded(GTValues.MODID_FTB_TEAMS);
-        }
-
-        public static boolean isHeraclesLoaded() {
-            return isModLoaded(GTValues.MODID_HERACLES);
-        }
-
-        public static boolean isFTBQuestsLoaded() {
-            return isModLoaded(GTValues.MODID_FTB_QUEST);
-        }
-
-        public static boolean isArgonautsLoaded() {
-            return isModLoaded(GTValues.MODID_ARGONAUTS);
-        }
-
-        public static boolean isGameStagesLoaded() {
-            return isModLoaded(GTValues.MODID_GAMESTAGES);
-        }
-
-        public static boolean isCCTweakedLoaded() {
-            return isModLoaded(GTValues.MODID_CCTWEAKED);
-        }
-
-        public static boolean isCreateLoaded() {
-            return isModLoaded(GTValues.MODID_CREATE);
+            return EMI.isLoaded() && (!GTCEu.isClientSide() || EmiConfig.enabled);
         }
     }
 }

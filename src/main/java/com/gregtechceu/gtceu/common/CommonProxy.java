@@ -181,7 +181,7 @@ public class CommonProxy {
 
         GTUIEditorMenu.register();
 
-        if (GTCEu.Mods.isAE2Loaded()) {
+        if (GTCEu.MODS.AE2.isLoaded()) {
             MEAutoBuildSources.init();
         }
 
@@ -417,7 +417,7 @@ public class CommonProxy {
                     List.of(new ItemStackMapIngredient(GTItems.PROGRAMMED_CIRCUIT.asStack(), custom.toVanilla())));
             // spotless:on
 
-            if (GTCEu.Mods.isCCTweakedLoaded()) {
+            if (GTCEu.MODS.CCTWEAKED.isLoaded()) {
                 GTCEu.LOGGER.info("CC: Tweaked found. Enabling integration...");
                 CCTweakedPlugin.init();
             }

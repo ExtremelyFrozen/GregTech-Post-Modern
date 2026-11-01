@@ -110,7 +110,7 @@ public class GTRecipes {
         AddonFinder.getAddonList().forEach(addon -> addon.addRecipes(consumer));
 
         // Must run recycling recipes very last
-        if (!(GTCEu.Mods.isKubeJSLoaded() && KJSCallWrapper.recipeEventHasListeners())) {
+        if (!(GTCEu.MODS.KUBEJS.isLoaded() && KJSCallWrapper.recipeEventHasListeners())) {
             RecyclingRecipes.init(consumer);
             ItemMaterialData.resolveItemMaterialInfos(consumer);
         }

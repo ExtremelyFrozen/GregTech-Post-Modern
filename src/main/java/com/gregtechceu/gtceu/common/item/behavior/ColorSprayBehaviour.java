@@ -207,7 +207,7 @@ public class ColorSprayBehaviour implements IDurabilityBar, IInteractionItem, IA
         if (player == null) {
             return false;
         }
-        if (GTCEu.Mods.isAE2Loaded() && AE2CallWrapper.isColorable(first)) {
+        if (GTCEu.MODS.AE2.isLoaded() && AE2CallWrapper.isColorable(first)) {
             Set<? extends IColorableBlockEntity> collected;
             if (first instanceof CableBusBlockEntity) {
                 collected = AE2CallWrapper.collect(first, limit);
@@ -344,7 +344,7 @@ public class ColorSprayBehaviour implements IDurabilityBar, IInteractionItem, IA
                 return true;
             }
         }
-        if (GTCEu.Mods.isCreateLoaded() && block.defaultBlockState().is(AllTags.AllBlockTags.WINDMILL_SAILS.tag)) {
+        if (GTCEu.MODS.CREATE.isLoaded() && block.defaultBlockState().is(AllTags.AllBlockTags.WINDMILL_SAILS.tag)) {
             return recolorCreateSail(world, pos, color);
         }
         return false;
@@ -408,7 +408,7 @@ public class ColorSprayBehaviour implements IDurabilityBar, IInteractionItem, IA
             recolorBlockNoState(CANDLE_MAP, DyeColor.WHITE, world, pos);
             return true;
         }
-        if (GTCEu.Mods.isCreateLoaded() && block.defaultBlockState().is(AllTags.AllBlockTags.WINDMILL_SAILS.tag)) {
+        if (GTCEu.MODS.CREATE.isLoaded() && block.defaultBlockState().is(AllTags.AllBlockTags.WINDMILL_SAILS.tag)) {
             return recolorCreateSail(world, pos, DyeColor.WHITE);
         }
 

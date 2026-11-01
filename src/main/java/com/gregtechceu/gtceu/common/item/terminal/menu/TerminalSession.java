@@ -287,7 +287,7 @@ public final class TerminalSession {
         }
         ObjectList<AutoBuildMaterialSource> sources = new ObjectArrayList<>();
         if (profile.sharedOptions().useME()) {
-            if (GTCEu.Mods.isAE2Loaded()) {
+            if (GTCEu.MODS.AE2.isLoaded()) {
                 sources.add(AutoBuildMaterialSources.me(player, openedTerminal));
             } else {
                 sources.add(AutoBuildMaterialSources.unavailable(new AutoBuildProblem(

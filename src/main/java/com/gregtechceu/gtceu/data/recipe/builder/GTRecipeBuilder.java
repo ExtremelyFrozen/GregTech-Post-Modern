@@ -1337,7 +1337,7 @@ public class GTRecipeBuilder {
     }
 
     public GTRecipeBuilder heraclesQuest(String questId, boolean isReverse) {
-        if (!GTCEu.Mods.isHeraclesLoaded()) {
+        if (!GTCEu.MODS.HERACLES.isLoaded()) {
             GTCEu.LOGGER.error("Heracles not loaded!");
             return this;
         }
@@ -1365,7 +1365,7 @@ public class GTRecipeBuilder {
     // }
 
     public GTRecipeBuilder ftbQuest(String questId, boolean isReverse) {
-        if (!GTCEu.Mods.isFTBQuestsLoaded()) {
+        if (!GTCEu.MODS.FTB_QUESTS.isLoaded()) {
             GTCEu.LOGGER.error("FTBQuests is not loaded!");
             return this;
         }

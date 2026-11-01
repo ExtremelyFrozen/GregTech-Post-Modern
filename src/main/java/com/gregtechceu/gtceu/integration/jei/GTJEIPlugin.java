@@ -68,7 +68,7 @@ public class GTJEIPlugin implements IModPlugin {
 
     @Override
     public void registerCategories(@NotNull IRecipeCategoryRegistration registry) {
-        if (!GTCEu.Mods.isJEILoaded()) return;
+        if (!GTCEu.MODS.isJEILoaded()) return;
 
         jeiHelpers = registry.getJeiHelpers();
         registry.addRecipeCategories(new MultiblockInfoCategory(jeiHelpers));
@@ -88,7 +88,7 @@ public class GTJEIPlugin implements IModPlugin {
 
     @Override
     public void registerRecipeCatalysts(@NotNull IRecipeCatalystRegistration registration) {
-        if (!GTCEu.Mods.isJEILoaded()) return;
+        if (!GTCEu.MODS.isJEILoaded()) return;
 
         GTLDLib2RecipeJEICategory.registerRecipeCatalysts(registration);
         if (!ConfigHolder.INSTANCE.compat.hideOreProcessingDiagrams)
@@ -104,7 +104,7 @@ public class GTJEIPlugin implements IModPlugin {
 
     @Override
     public void registerRecipes(@NotNull IRecipeRegistration registration) {
-        if (!GTCEu.Mods.isJEILoaded()) return;
+        if (!GTCEu.MODS.isJEILoaded()) return;
 
         MultiblockInfoCategory.registerRecipes(registration);
         GTLDLib2RecipeJEICategory.registerRecipes(registration);
@@ -119,7 +119,7 @@ public class GTJEIPlugin implements IModPlugin {
 
     @Override
     public void registerItemSubtypes(@NotNull ISubtypeRegistration registration) {
-        if (!GTCEu.Mods.isJEILoaded()) return;
+        if (!GTCEu.MODS.isJEILoaded()) return;
 
         registration.registerSubtypeInterpreter(GTItems.PROGRAMMED_CIRCUIT.asItem(),
                 CircuitSubtypeInterpreter.INSTANCE);
@@ -129,7 +129,7 @@ public class GTJEIPlugin implements IModPlugin {
     @Override
     public <T> void registerFluidSubtypes(@NotNull ISubtypeRegistration registration,
                                           @NotNull IPlatformFluidHelper<T> platformFluidHelper) {
-        if (!GTCEu.Mods.isJEILoaded()) return;
+        if (!GTCEu.MODS.isJEILoaded()) return;
 
         PotionFluidSubtypeInterpreter interpreter = PotionFluidSubtypeInterpreter.INSTANCE;
         PotionFluid potionFluid = GTFluids.POTION.get();
@@ -139,7 +139,7 @@ public class GTJEIPlugin implements IModPlugin {
 
     @Override
     public void registerExtraIngredients(@NotNull IExtraIngredientRegistration registration) {
-        if (!GTCEu.Mods.isJEILoaded()) return;
+        if (!GTCEu.MODS.isJEILoaded()) return;
 
         Collection<FluidStack> potionFluids = new ArrayList<>(BuiltInRegistries.POTION.size());
         BuiltInRegistries.POTION.holders().forEach(potion -> {

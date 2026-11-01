@@ -31,7 +31,7 @@ public class GTNetwork {
         registar.playToClient(SPacketDynamicItemSlotManifestToClient.TYPE, SPacketDynamicItemSlotManifestToClient.CODEC, SPacketDynamicItemSlotManifestToClient::execute);
         registar.playToClient(SPacketDynamicItemSlotActivationToClient.TYPE, SPacketDynamicItemSlotActivationToClient.CODEC, SPacketDynamicItemSlotActivationToClient::execute);
         registar.playToClient(SPacketDynamicItemSlotSelectionToClient.TYPE, SPacketDynamicItemSlotSelectionToClient.CODEC, SPacketDynamicItemSlotSelectionToClient::execute);
-        if (GTCEu.Mods.isAE2Loaded()) {
+        if (GTCEu.MODS.AE2.isLoaded()) {
             registar.playToClient(SPacketMEPatternBufferProxyViewToClient.TYPE, SPacketMEPatternBufferProxyViewToClient.CODEC, SPacketMEPatternBufferProxyViewToClient::execute);
             registar.playToClient(SPacketMEOutputWaitingListSessionToClient.TYPE, SPacketMEOutputWaitingListSessionToClient.CODEC, SPacketMEOutputWaitingListSessionToClient::execute);
             registar.playToClient(SPacketMEOutputWaitingListToClient.TYPE, SPacketMEOutputWaitingListToClient.CODEC, SPacketMEOutputWaitingListToClient::execute);

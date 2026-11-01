@@ -103,7 +103,7 @@ public class ClientProxy {
     @SubscribeEvent
     public static void onRegisterMenuScreens(RegisterMenuScreensEvent event) {
         event.register(GTMenuTypes.COVER_UI.get(), ModularUIContainerScreen::new);
-        if (GTCEu.Mods.isAE2Loaded()) {
+        if (GTCEu.MODS.AE2.isLoaded()) {
             event.register(MEPatternBufferProxyUIMenuType.MENU_TYPE.get(), ModularUIContainerScreen::new);
         }
     }

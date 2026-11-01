@@ -42,9 +42,9 @@ public abstract sealed class MachineOwner permits PlayerOwner, FTBOwner, Argonau
 
     public static void init() {
         var event = new RegisterOwnerTypeEvent();
-        if (GTCEu.Mods.isFTBTeamsLoaded()) {
+        if (GTCEu.MODS.FTB_TEAMS.isLoaded()) {
             event.register(0, FTBOwner::new);
-        } else if (GTCEu.Mods.isArgonautsLoaded()) {
+        } else if (GTCEu.MODS.ARGONAUTS.isLoaded()) {
             event.register(0, ArgonautsOwner::new);
         } else {
             event.register(0, PlayerOwner::new);

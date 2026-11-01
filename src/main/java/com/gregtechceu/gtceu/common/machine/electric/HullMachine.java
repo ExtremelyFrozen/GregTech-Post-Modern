@@ -30,7 +30,7 @@ public class HullMachine extends TieredPartMachine implements IMonitorComponent,
 
     public HullMachine(BlockEntityCreationInfo info, int tier) {
         super(info, tier);
-        if (GTCEu.Mods.isAE2Loaded()) {
+        if (GTCEu.MODS.AE2.isLoaded()) {
             this.gridNodeHost = GridNodeHostFactory.attachToMachine(this);
         } else {
             this.gridNodeHost = null;
@@ -45,7 +45,7 @@ public class HullMachine extends TieredPartMachine implements IMonitorComponent,
     @Override
     public void onLoad() {
         super.onLoad();
-        if (GTCEu.Mods.isAE2Loaded() && gridNodeHost instanceof GridNodeHostTrait connectedBlockEntity) {
+        if (GTCEu.MODS.AE2.isLoaded() && gridNodeHost instanceof GridNodeHostTrait connectedBlockEntity) {
             scheduleForNextServerTick(connectedBlockEntity::init);
         }
     }
@@ -53,7 +53,7 @@ public class HullMachine extends TieredPartMachine implements IMonitorComponent,
     @Override
     public void onUnload() {
         super.onUnload();
-        if (GTCEu.Mods.isAE2Loaded() && gridNodeHost instanceof GridNodeHostTrait connectedBlockEntity) {
+        if (GTCEu.MODS.AE2.isLoaded() && gridNodeHost instanceof GridNodeHostTrait connectedBlockEntity) {
             connectedBlockEntity.getMainNode().destroy();
         }
     }
@@ -62,7 +62,7 @@ public class HullMachine extends TieredPartMachine implements IMonitorComponent,
     public void setFrontFacing(Direction facing) {
         super.setFrontFacing(facing);
         if (isFacingValid(facing)) {
-            if (GTCEu.Mods.isAE2Loaded() && gridNodeHost instanceof GridNodeHostTrait connectedBlockEntity) {
+            if (GTCEu.MODS.AE2.isLoaded() && gridNodeHost instanceof GridNodeHostTrait connectedBlockEntity) {
                 connectedBlockEntity.init();
             }
         }
@@ -85,7 +85,7 @@ public class HullMachine extends TieredPartMachine implements IMonitorComponent,
     }
 
     static {
-        if (GTCEu.Mods.isAE2Loaded()) {
+        if (GTCEu.MODS.AE2.isLoaded()) {
             ClassSyncData.getClassData(HullMachine.class).setCustomContextualCodecForField("gridNodeHost",
                     GridNodeHostCodec.INSTANCE);
         }

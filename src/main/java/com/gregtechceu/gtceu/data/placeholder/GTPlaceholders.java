@@ -101,10 +101,10 @@ public class GTPlaceholders {
 
     public static void initPlaceholders() {
         RegistrateDistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> GTPlaceholders::initRenderers);
-        if (GTCEu.Mods.isAE2Loaded()) {
+        if (GTCEu.MODS.AE2.isLoaded()) {
             GTAEPlaceholders.init();
         }
-        if (ConfigHolder.INSTANCE.compat.createCompat && GTCEu.Mods.isCreateLoaded()) {
+        if (ConfigHolder.INSTANCE.compat.createCompat && GTCEu.MODS.CREATE.isLoaded()) {
             GTCreateIntegration.init();
         }
 

@@ -614,7 +614,7 @@ public class MetaMachineBlock extends Block implements ManagedSyncEntityBlock, B
             }
             return null;
         }, this);
-        if (GTCEu.Mods.isAE2Loaded()) {
+        if (GTCEu.MODS.AE2.isLoaded()) {
             event.registerBlock(AECapabilities.IN_WORLD_GRID_NODE_HOST, (level, pos, state, blockEntity, side) -> {
                 if (blockEntity instanceof MetaMachine machine) {
                     if (machine instanceof IInWorldGridNodeHost nodeHost) {

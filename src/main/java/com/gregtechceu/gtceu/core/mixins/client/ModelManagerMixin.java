@@ -35,7 +35,7 @@ public abstract class ModelManagerMixin {
         // turns out these do have to be init in here after all, as they check for asset existence. whoops.
         ModLoader.postEventWrapContainerInModOrder(new RegisterDynamicResourcesEvent());
 
-        if (GTCEu.Mods.isModernFixLoaded()) {
+        if (GTCEu.MODS.MODERNFIX.isLoaded()) {
             GTModernFixIntegration.setAsLast();
         }
         GTCEu.LOGGER.info("GregTech Model loading took {}ms", System.currentTimeMillis() - startTime);

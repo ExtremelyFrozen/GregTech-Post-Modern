@@ -204,10 +204,10 @@ public class GTItemSlotElement extends ItemSlot {
     @Override
     public GTItemSlotElement xeiPhantom() {
         RegistrateDistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> {
-            if (GTCEu.Mods.isJEILoaded()) {
+            if (GTCEu.MODS.isJEILoaded()) {
                 JEISupport.ghostIngredient(this);
             }
-            if (GTCEu.Mods.isEMILoaded()) {
+            if (GTCEu.MODS.isEMILoaded()) {
                 EMISupport.renderDragHandler(this);
                 EMISupport.dropStackHandler(this);
             }
@@ -413,10 +413,10 @@ public class GTItemSlotElement extends ItemSlot {
 
     private void addXEIRecipeIngredient(IngredientIO io, Supplier<Stream<ItemStack>> allPossibleItems) {
         RegistrateDistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> {
-            if (GTCEu.Mods.isJEILoaded()) {
+            if (GTCEu.MODS.isJEILoaded()) {
                 JEISupport.recipeIngredient(this, io, allPossibleItems);
             }
-            if (GTCEu.Mods.isEMILoaded()) {
+            if (GTCEu.MODS.isEMILoaded()) {
                 EMISupport.recipeIngredient(this, io, allPossibleItems);
             }
         });
@@ -425,10 +425,10 @@ public class GTItemSlotElement extends ItemSlot {
     private void addXEIRecipeSlot(IngredientIO io, Supplier<Float> chance, IntSupplier amount,
                                   Supplier<Stream<ItemStack>> allPossibleItems) {
         RegistrateDistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> {
-            if (GTCEu.Mods.isJEILoaded()) {
+            if (GTCEu.MODS.isJEILoaded()) {
                 JEISupport.recipeSlot(this, allPossibleItems);
             }
-            if (GTCEu.Mods.isEMILoaded()) {
+            if (GTCEu.MODS.isEMILoaded()) {
                 EMISupport.recipeSlot(this, chance, amount, allPossibleItems);
             }
         });

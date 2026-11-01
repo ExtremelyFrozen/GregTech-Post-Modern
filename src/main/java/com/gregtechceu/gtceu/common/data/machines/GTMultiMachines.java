@@ -450,7 +450,7 @@ public class GTMultiMachines {
                     tooltip.add(Component.translatable("gtpm.machine.cleanroom.tooltip.6"));
                     tooltip.add(Component.translatable("gtpm.machine.cleanroom.tooltip.7"));
                     // tooltip.add(Component.translatable("gtpm.machine.cleanroom.tooltip.8"));
-                    if (GTCEu.Mods.isAE2Loaded()) {
+                    if (GTCEu.MODS.AE2.isLoaded()) {
                         tooltip.add(
                                 Component.translatable(AEConfig.instance().getChannelMode() == ChannelMode.INFINITE ?
                                         "gtpm.machine.cleanroom.tooltip.ae2.no_channels" :

@@ -101,7 +101,7 @@ public class ElectricStats implements IInteractionItem, ISubItemHandler, IAddInf
                 isInDischargeMode(stack) && electricItem.getCharge() > 0L) {
             long transferLimit = electricItem.getTransferLimit();
 
-            if (GTCEu.Mods.isCuriosLoaded()) {
+            if (GTCEu.MODS.CURIOS.isLoaded()) {
                 IItemHandler curios = CuriosApi.getCuriosInventory(player)
                         .<IItemHandler>map(ICuriosItemHandler::getEquippedCurios)
                         .orElse(EmptyItemHandler.INSTANCE);

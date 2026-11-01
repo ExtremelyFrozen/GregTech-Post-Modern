@@ -1044,7 +1044,7 @@ public interface GTRecipeSchema {
         }
 
         public GTKubeRecipe heraclesQuest(String questId, boolean isReverse) {
-            if (!GTCEu.Mods.isHeraclesLoaded()) {
+            if (!GTCEu.MODS.HERACLES.isLoaded()) {
                 throw new KubeRuntimeException("Heracles not loaded!");
             }
             if (questId.isEmpty()) {
@@ -1069,7 +1069,7 @@ public interface GTRecipeSchema {
         // }
 
         public GTKubeRecipe ftbQuest(String questId, boolean isReverse) {
-            if (!GTCEu.Mods.isFTBQuestsLoaded()) {
+            if (!GTCEu.MODS.FTB_QUESTS.isLoaded()) {
                 throw new KubeRuntimeException("FTBQuests is not loaded!");
             }
             if (questId.isEmpty()) {
