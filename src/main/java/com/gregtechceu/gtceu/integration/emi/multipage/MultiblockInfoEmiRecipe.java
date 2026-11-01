@@ -4,7 +4,6 @@ import com.gregtechceu.gtceu.api.gui.widget.PatternPreviewWidget;
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 
-import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEventDispatcher;
 import com.lowdragmc.lowdraglib2.integration.xei.emi.EMIUIEvents;
@@ -25,13 +24,11 @@ import it.unimi.dsi.fastutil.objects.ObjectList;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.lang.ref.WeakReference;
 import java.util.List;
 
 public class MultiblockInfoEmiRecipe extends ModularUIEMIRecipe {
 
     private final MultiblockMachineDefinition definition;
-    private WeakReference<ModularUI> displayedUI = new WeakReference<>(null);
 
     public MultiblockInfoEmiRecipe(MultiblockMachineDefinition definition) {
         super(ignored -> PatternPreviewWidget.createModularUI(definition));
@@ -70,16 +67,9 @@ public class MultiblockInfoEmiRecipe extends ModularUIEMIRecipe {
     }
 
     @Override
-    public @NotNull ModularUI getModularUI() {
-        var ui = super.getModularUI();
-        displayedUI = new WeakReference<>(ui);
-        return ui;
-    }
-
-    @Override
     public @NotNull List<EmiIngredient> getInputs() {
         // Registration indexes stable outputs; material inputs belong to the currently configured page.
-        var ui = displayedUI.get();
+        var ui = uiCache.getIfPresent(this);
         if (ui == null) return ObjectList.of();
         var ingredients = new EMIRecipeIngredientHandler();
         var event = UIEvent.create(EMIUIEvents.RECIPE_INGREDIENT);
