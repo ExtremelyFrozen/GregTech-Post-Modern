@@ -371,28 +371,15 @@ public class MultiblockControllerMachine extends MetaMachine {
     }
 
     /**
-     * Resolves and executes a batch immediately with the newly generated fingerprint.
-     */
-    public BatchResult autoBuildBatch(ServerPlayer player, BatchRequest request) {
-        return autoBuildBatch(player, request, null);
-    }
-
-    /**
      * Resolves and executes a batch only if it still matches the fingerprint displayed by a bound terminal.
      */
     public BatchResult autoBuildBatch(ServerPlayer player, BatchRequest request,
-                                               long expectedPlanFingerprint) {
-        return autoBuildBatch(player, request, Long.valueOf(expectedPlanFingerprint));
-    }
-
-    private BatchResult autoBuildBatch(ServerPlayer player, BatchRequest request,
-                                                @Nullable Long expectedPlanFingerprint) {
+                                      long expectedPlanFingerprint) {
         BuildProblem targetProblem = BatchExecutor.validateTarget(this, player);
         if (targetProblem != null) return batchFailure(request, targetProblem);
         try {
             BatchPlan plan = new BatchPlanner().resolveWorld(this, player, request);
-            long expected = expectedPlanFingerprint == null ? plan.fingerprint() : expectedPlanFingerprint;
-            return BatchExecutor.execute(this, player, request, plan, expected);
+            return BatchExecutor.execute(this, player, request, plan, expectedPlanFingerprint);
         } catch (RuntimeException exception) {
             GTCEu.LOGGER.error("Failed to execute automatic-build batch for {}", getDefinition().getId(), exception);
             return batchFailure(request, new BuildProblem(BuildProblem.Type.INVALID_OPTIONS, getBlockPos(),
