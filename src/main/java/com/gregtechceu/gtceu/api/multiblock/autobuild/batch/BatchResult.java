@@ -6,7 +6,7 @@ import it.unimi.dsi.fastutil.objects.ObjectList;
  * Aggregate and per-structure result of one best-effort batch.
  */
 public record BatchResult(BatchStatus status, int placed, int removed,
-                                   ObjectList<StructureResult> structures) {
+                          ObjectList<StructureResult> structures) {
 
     public static BatchResult of(ObjectList<StructureResult> results) {
         int succeeded = 0;

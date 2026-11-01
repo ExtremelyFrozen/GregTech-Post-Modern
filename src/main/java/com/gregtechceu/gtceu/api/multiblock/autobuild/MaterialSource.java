@@ -53,7 +53,7 @@ public interface MaterialSource {
     /**
      * Reads exact availability for the requested keys without changing backing storage.
      */
-    default Availability snapshot(ObjectCollection<MaterialKey> keys) {
+    default Availability availability(ObjectCollection<MaterialKey> keys) {
         SourceDescriptor sourceDescriptor = descriptor();
         long sourceBindingFingerprint = bindingFingerprint();
         BuildProblem problem = unavailableProblem();
@@ -92,7 +92,7 @@ public interface MaterialSource {
      * Contributes the selected source identity and exact requested availability to a visible plan fingerprint.
      */
     default long planFingerprint(ObjectCollection<MaterialKey> keys) {
-        Availability snapshot = snapshot(keys);
+        Availability snapshot = availability(keys);
         return planFingerprint(keys, snapshot);
     }
 

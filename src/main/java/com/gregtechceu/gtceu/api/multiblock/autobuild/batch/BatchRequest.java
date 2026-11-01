@@ -12,5 +12,5 @@ import it.unimi.dsi.fastutil.objects.ObjectList;
  * @param materialSources material sources in strict allocation priority order
  */
 public record BatchRequest(ObjectList<StructureRequest> structures,
-                                    BuildPolicy sharedOptions,
-                                    ObjectList<MaterialSource> materialSources) {}
+                           BuildPolicy sharedOptions,
+                           ObjectList<MaterialSource> materialSources) {}

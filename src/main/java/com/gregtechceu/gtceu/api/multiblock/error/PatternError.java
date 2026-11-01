@@ -4,11 +4,12 @@ import com.gregtechceu.gtceu.api.multiblock.MultiblockState;
 import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PatternPredicate;
 import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PredicateRule;
 
-import lombok.Setter;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+
+import lombok.Setter;
 
 import java.util.ArrayList;
 import java.util.List;

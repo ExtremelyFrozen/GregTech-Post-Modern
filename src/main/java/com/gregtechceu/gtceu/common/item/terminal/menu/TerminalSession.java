@@ -268,7 +268,7 @@ public final class TerminalSession {
         ObjectList<MaterialSource> sources = createSources(player);
         MultiblockControllerMachine controller = openedController;
         BatchRequest request = profile.createRequest(definition, sources);
-        BatchResolution resolved = resolver.resolveWorldSnapshot(controller, player, request);
+        BatchResolution resolved = resolver.resolveBatch(controller, player, request);
         StructurePreview preview = StructurePreview.bound(definitionId, resolved);
         TerminalMESourceDisplay meSource = resolved.materialSnapshots().stream()
                 .map(MaterialSource.Availability::descriptor)

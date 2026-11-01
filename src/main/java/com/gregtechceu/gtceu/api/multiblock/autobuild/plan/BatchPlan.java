@@ -13,10 +13,10 @@ import it.unimi.dsi.fastutil.objects.ObjectList;
  * Complete batch plan consumed by every preview and by the executor.
  */
 public record BatchPlan(ObjectList<StructurePlan> demolitionPlans,
-                            ObjectList<StructurePlan> buildPlans,
-                            Object2ObjectMap<BlockPos, MergedPlanCell> mergedCells,
-                            ObjectList<BuildProblem> sharedProblems,
-                            long fingerprint) {
+                        ObjectList<StructurePlan> buildPlans,
+                        Object2ObjectMap<BlockPos, MergedPlanCell> mergedCells,
+                        ObjectList<BuildProblem> sharedProblems,
+                        long fingerprint) {
 
     public ObjectList<StructurePlan> executionOrder() {
         ObjectArrayList<StructurePlan> ordered = new ObjectArrayList<>(

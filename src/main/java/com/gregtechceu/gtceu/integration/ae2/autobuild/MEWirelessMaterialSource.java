@@ -91,7 +91,7 @@ final class MEWirelessMaterialSource implements MaterialSource {
     }
 
     @Override
-    public Availability snapshot(ObjectCollection<MaterialKey> keys) {
+    public Availability availability(ObjectCollection<MaterialKey> keys) {
         InventoryAccess access = validatedInventory();
         SourceDescriptor descriptor = binding == null ? null : binding.descriptor();
         long bindingFingerprint = binding == null ? 0 : binding.fingerprint();

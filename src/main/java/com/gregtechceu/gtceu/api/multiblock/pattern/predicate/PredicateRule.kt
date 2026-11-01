@@ -38,9 +38,17 @@ open class PredicateRule {
 	var previewStates: Supplier<ObjectList<BlockState>>? = null
 
 	/** Extension point for pure candidate semantics; metadata-only rules default to their declared blocks. */
-	open fun observeCandidate(state: BlockState): PatternObservation = candidateObserver?.apply(state) ?: PatternObservation.of(candidates?.get()?.contains(state.block) == true)
+	open fun observeCandidate(state: BlockState): PatternObservation = candidateObserver?.apply(state)
+		?: PatternObservation.of(this === any || (this === air && state.isAir) || candidates?.get()?.contains(state.block) == true || (candidates == null && blockInfo.get()?.blockState == state))
 
-	open fun candidateStates(): ObjectList<BlockState> = previewStates?.get() ?: ObjectArrayList<BlockState>().also { out -> candidates?.get()?.forEach { out.add(it.defaultBlockState()) } }
+	open fun candidateStates(): ObjectList<BlockState> = previewStates?.get() ?: ObjectArrayList<BlockState>().also { out ->
+		val blocks = candidates
+		if (blocks == null) {
+			blockInfo.get()?.let { out.add(it.blockState) }
+		} else {
+			blocks.get().forEach { out.add(it.defaultBlockState()) }
+		}
+	}
 
 	@JvmField
 	var candidates: Supplier<Array<Block>>? = null

@@ -11,9 +11,9 @@ import it.unimi.dsi.fastutil.objects.ObjectList;
  * One authoritative resolver result, including the exact material snapshots and allocations used by its plan.
  */
 public record BatchResolution(
-                                        BatchPlan plan,
-                                        ObjectList<MaterialSource.Availability> materialSnapshots,
-                                        Object2ObjectMap<MaterialKey, MaterialAllocation> materials) {
+                              BatchPlan plan,
+                              ObjectList<MaterialSource.Availability> materialSnapshots,
+                              Object2ObjectMap<MaterialKey, MaterialAllocation> materials) {
 
     /**
      * Exact demand and source assignment for one material key.

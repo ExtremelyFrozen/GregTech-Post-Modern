@@ -15,6 +15,6 @@ import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
  * @param mode          whether this structure is built or demolished
  */
 public record StructureRequest(String structureName, IntList repetitions,
-                                        Object2ObjectMap<String, ResourceLocation> tierChoices,
-                                        boolean flipMode, StructureOperation mode,
-                                        Object2ObjectMap<String, String> choices) {}
+                               Object2ObjectMap<String, ResourceLocation> tierChoices,
+                               boolean flipMode, StructureOperation mode,
+                               Object2ObjectMap<String, String> choices) {}
