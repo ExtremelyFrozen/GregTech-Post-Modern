@@ -23,7 +23,7 @@ import java.nio.file.Path
 
 @NullMarked
 object PatternJsonCodec {
-	private val topLevelFields = setOf("schema", "machine", "axes", "orientation", "origin", "parameters", "fragments", "predicates", "body", "constraints")
+	private val topLevelFields = setOf("machine", "axes", "orientation", "origin", "parameters", "fragments", "predicates", "body", "constraints")
 	private val gson = GsonBuilder().setPrettyPrinting().create()
 
 	@JvmStatic
@@ -38,7 +38,6 @@ object PatternJsonCodec {
 	fun decode(structure: ResourceLocation, input: JsonElement): PatternDefinition {
 		val root = obj(input, "$")
 		rejectUnknown(root, topLevelFields, "$")
-		root["schema"]?.let { require(integer(it, "$.schema") == 2) { "Unsupported pattern schema" } }
 		val machine = if (root.has("machine")) ResourceLocation.parse(str(root["machine"], "$.machine")) else structure
 		return PatternDefinition(
 			machine, structure, axes(root["axes"]), orientation(root["orientation"]), origin(root["origin"]),
@@ -57,7 +56,6 @@ object PatternJsonCodec {
 
 	@JvmStatic
 	fun encode(definition: PatternDefinition): JsonObject = JsonObject().apply {
-		addProperty("schema", 2)
 		addProperty("machine", definition.machine.toString())
 		add("axes", encodeAxes(definition.axes))
 		add("orientation", encodeOrientation(definition.orientation))

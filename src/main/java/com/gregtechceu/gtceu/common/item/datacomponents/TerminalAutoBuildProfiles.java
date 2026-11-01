@@ -8,11 +8,8 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.resources.ResourceLocation;
 
-import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
-import com.mojang.serialization.Decoder;
-import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
@@ -21,14 +18,7 @@ import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectMaps;
 import org.jspecify.annotations.NullMarked;
 
-/**
- * Stores independent automatic-build profiles by multiblock machine definition.
- *
- * <p>
- * The codec recognizes the former single-structure format only to reset it safely; legacy values are not
- * migrated into the new profile model.
- * </p>
- */
+/** Stores independent automatic-build profiles by multiblock machine definition. */
 @NullMarked
 public record TerminalAutoBuildProfiles(Object2ObjectMap<ResourceLocation, TerminalMachineProfile> profiles) {
 
@@ -43,52 +33,30 @@ public record TerminalAutoBuildProfiles(Object2ObjectMap<ResourceLocation, Termi
 
     public static final TerminalAutoBuildProfiles EMPTY = new TerminalAutoBuildProfiles(Object2ObjectMaps.emptyMap());
 
-    private static final Codec<TerminalAutoBuildProfiles> CURRENT_CODEC = RecordCodecBuilder.create(instance -> instance
+    public static final Codec<TerminalAutoBuildProfiles> CODEC = RecordCodecBuilder
+            .<TerminalAutoBuildProfiles>create(instance -> instance
             .group(
                     Codec.unboundedMap(ResourceLocation.CODEC, TerminalMachineProfile.CODEC)
                             .<Object2ObjectMap<ResourceLocation, TerminalMachineProfile>>xmap(
                                     Object2ObjectLinkedOpenHashMap::new, value -> value)
                             .fieldOf("profiles")
                             .forGetter(TerminalAutoBuildProfiles::profiles))
-            .apply(instance, TerminalAutoBuildProfiles::new));
-
-    private static final Decoder<TerminalAutoBuildProfiles> DECODER = new Decoder<>() {
-
-        @Override
-        public <T> DataResult<Pair<TerminalAutoBuildProfiles, T>> decode(DynamicOps<T> ops, T input) {
-            return ops.getMap(input).flatMap(map -> {
-                if (map.get("profiles") != null) return CURRENT_CODEC.decode(ops, input);
-                T structure = map.get("structure_name");
-                T options = map.get("options");
-                if (structure == null && options == null) {
-                    return DataResult
-                            .error(() -> "Terminal data is neither current nor retired single-structure format");
-                }
-                DataResult<String> name = structure == null ? DataResult.success("main") :
-                        Codec.STRING.parse(ops, structure);
-                return name.flatMap(ignored -> options == null ? DataResult.success(Pair.of(EMPTY, ops.empty())) :
-                        ops.getMap(options).map(retired -> Pair.of(EMPTY, ops.empty())));
-            });
-        }
-    };
-
-    public static final Codec<TerminalAutoBuildProfiles> CODEC = Codec.of(CURRENT_CODEC, DECODER);
+            .apply(instance, TerminalAutoBuildProfiles::new))
+            .comapFlatMap(TerminalAutoBuildProfiles::validateDecoded, value -> value);
 
     public static final StreamCodec<RegistryFriendlyByteBuf, TerminalAutoBuildProfiles> STREAM_CODEC = StreamCodec
             .of(TerminalAutoBuildProfiles::encode, TerminalAutoBuildProfiles::decode);
 
-    public TerminalAutoBuildProfiles {
-        if (profiles.size() > MAX_MACHINES) {
-            throw new IllegalArgumentException("Terminal machine profiles exceed " + MAX_MACHINES);
+    private static DataResult<TerminalAutoBuildProfiles> validateDecoded(TerminalAutoBuildProfiles value) {
+        if (value.profiles.size() > MAX_MACHINES) {
+            return DataResult.error(() -> "Terminal machine profiles exceed " + MAX_MACHINES);
         }
-        Object2ObjectMap<ResourceLocation, TerminalMachineProfile> ordered = new Object2ObjectLinkedOpenHashMap<>();
-        profiles.forEach((definitionId, profile) -> {
+        for (ResourceLocation definitionId : value.profiles.keySet()) {
             if (definitionId.toString().length() > MAX_RESOURCE_LOCATION) {
-                throw new IllegalArgumentException("Terminal machine definition ID is unbounded");
+                return DataResult.error(() -> "Terminal machine definition ID is unbounded");
             }
-            ordered.put(definitionId, profile);
-        });
-        profiles = Object2ObjectMaps.unmodifiable(ordered);
+        }
+        return DataResult.success(value);
     }
 
     public TerminalMachineProfile getOrCreate(MultiblockMachineDefinition definition) {
@@ -104,7 +72,7 @@ public record TerminalAutoBuildProfiles(Object2ObjectMap<ResourceLocation, Termi
     }
 
     private static void encode(RegistryFriendlyByteBuf buffer, TerminalAutoBuildProfiles value) {
-        writeBoundedSize(buffer, value.profiles.size(), MAX_MACHINES, "terminal machine profiles");
+        buffer.writeVarInt(value.profiles.size());
         value.profiles.forEach((definitionId, profile) -> {
             writeResourceLocation(buffer, definitionId);
             encodeMachine(buffer, profile);
@@ -128,20 +96,20 @@ public record TerminalAutoBuildProfiles(Object2ObjectMap<ResourceLocation, Termi
         buffer.writeBoolean(shared.replaceMode());
         buffer.writeBoolean(shared.noHatchMode());
         buffer.writeBoolean(shared.useME());
-        writeBoundedSize(buffer, profile.structures().size(), MAX_STRUCTURES, "terminal structures");
+        buffer.writeVarInt(profile.structures().size());
         profile.structures().forEach((name, structure) -> {
             buffer.writeUtf(name, MAX_STRUCTURE_NAME);
             buffer.writeBoolean(structure.selected());
             buffer.writeEnum(structure.mode());
             buffer.writeBoolean(structure.flipMode());
-            writeBoundedSize(buffer, structure.repetitions().size(), MAX_REPETITIONS, "terminal repetitions");
+            buffer.writeVarInt(structure.repetitions().size());
             for (int repetition : structure.repetitions()) buffer.writeVarInt(repetition);
-            writeBoundedSize(buffer, structure.tierChoices().size(), MAX_TIER_CHOICES, "terminal tier choices");
+            buffer.writeVarInt(structure.tierChoices().size());
             structure.tierChoices().forEach((group, choice) -> {
                 buffer.writeUtf(group, MAX_RESOURCE_LOCATION);
                 writeResourceLocation(buffer, choice);
             });
-            writeBoundedSize(buffer, structure.choices().size(), MAX_CHOICES, "terminal branch choices");
+            buffer.writeVarInt(structure.choices().size());
             structure.choices().forEach((path, branch) -> {
                 buffer.writeUtf(path, MAX_CHOICE_PATH);
                 buffer.writeUtf(branch, MAX_RESOURCE_LOCATION);
@@ -156,18 +124,28 @@ public record TerminalAutoBuildProfiles(Object2ObjectMap<ResourceLocation, Termi
         Object2ObjectMap<String, TerminalStructureProfile> structures = new Object2ObjectLinkedOpenHashMap<>();
         for (int structureIndex = 0; structureIndex < structuresSize; structureIndex++) {
             String name = buffer.readUtf(MAX_STRUCTURE_NAME);
+            if (name.isBlank()) {
+                throw new IllegalArgumentException("Terminal structure name must be non-blank");
+            }
             boolean selected = buffer.readBoolean();
             AutoBuildMode mode = buffer.readEnum(AutoBuildMode.class);
             boolean flip = buffer.readBoolean();
             int repetitionsSize = readBoundedSize(buffer, MAX_REPETITIONS, "terminal repetitions");
             IntList repetitions = new IntArrayList(repetitionsSize);
             for (int repetitionIndex = 0; repetitionIndex < repetitionsSize; repetitionIndex++) {
-                repetitions.add(buffer.readVarInt());
+                int repetition = buffer.readVarInt();
+                if (repetition < 0) {
+                    throw new IllegalArgumentException("Terminal repetitions must be non-negative");
+                }
+                repetitions.add(repetition);
             }
             int tiersSize = readBoundedSize(buffer, MAX_TIER_CHOICES, "terminal tier choices");
             Object2ObjectMap<String, ResourceLocation> tiers = new Object2ObjectLinkedOpenHashMap<>();
             for (int tierIndex = 0; tierIndex < tiersSize; tierIndex++) {
                 String group = buffer.readUtf(MAX_RESOURCE_LOCATION);
+                if (group.isBlank()) {
+                    throw new IllegalArgumentException("Terminal tier IDs must be non-blank");
+                }
                 ResourceLocation choice = readResourceLocation(buffer);
                 if (tiers.put(group, choice) != null) {
                     throw new IllegalArgumentException("Duplicate terminal tier choice: " + group);
@@ -177,7 +155,11 @@ public record TerminalAutoBuildProfiles(Object2ObjectMap<ResourceLocation, Termi
             Object2ObjectMap<String, String> choices = new Object2ObjectLinkedOpenHashMap<>();
             for (int choiceIndex = 0; choiceIndex < choiceCount; choiceIndex++) {
                 String path = buffer.readUtf(MAX_CHOICE_PATH);
-                if (choices.put(path, buffer.readUtf(MAX_RESOURCE_LOCATION)) != null) {
+                String branch = buffer.readUtf(MAX_RESOURCE_LOCATION);
+                if (path.isBlank() || branch.isBlank()) {
+                    throw new IllegalArgumentException("Terminal choice paths and branches must be non-blank");
+                }
+                if (choices.put(path, branch) != null) {
                     throw new IllegalArgumentException("Duplicate terminal branch choice: " + path);
                 }
             }
@@ -187,13 +169,6 @@ public record TerminalAutoBuildProfiles(Object2ObjectMap<ResourceLocation, Termi
             }
         }
         return new TerminalMachineProfile(shared, structures);
-    }
-
-    private static void writeBoundedSize(RegistryFriendlyByteBuf buffer, int size, int maximum, String name) {
-        if (size < 0 || size > maximum) {
-            throw new IllegalArgumentException(name + " exceeds wire limit " + maximum);
-        }
-        buffer.writeVarInt(size);
     }
 
     private static int readBoundedSize(RegistryFriendlyByteBuf buffer, int maximum, String name) {

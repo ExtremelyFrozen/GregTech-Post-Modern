@@ -28,9 +28,8 @@ import java.util.zip.CRC32
 @NullMarked
 object PatternBinaryCodec {
 	private const val MAGIC = 0x4754504D
-	private const val FORMAT_VERSION = 1
 	private const val COMPRESSION_ZSTD = 1
-	private const val HEADER_SIZE = Int.SIZE_BYTES * 5
+	private const val HEADER_SIZE = Int.SIZE_BYTES * 4
 	private const val MAX_PAYLOAD_BYTES = 16 * 1024 * 1024
 	private const val MAX_JSON_BYTES = MAX_PAYLOAD_BYTES - Int.SIZE_BYTES
 	private const val ZSTD_LEVEL = 5
@@ -42,12 +41,10 @@ object PatternBinaryCodec {
 		if (encoded.size <= HEADER_SIZE) throw IOException("Compressed pattern definition is shorter than its header: $file")
 		val header = ByteBuffer.wrap(encoded, 0, HEADER_SIZE)
 		val magic = header.int
-		val version = header.int
 		val compression = header.int
 		val uncompressedLength = header.int
 		val checksum = header.int
 		if (magic != MAGIC) throw IOException("Invalid pattern binary magic in $file")
-		if (version != FORMAT_VERSION) throw IOException("Unsupported pattern binary version $version in $file")
 		if (compression != COMPRESSION_ZSTD) throw IOException("Unsupported pattern binary compression $compression in $file")
 		if (uncompressedLength <= 0 || uncompressedLength > MAX_PAYLOAD_BYTES) throw IOException("Invalid pattern binary payload length $uncompressedLength")
 		val compressed = encoded.copyOfRange(HEADER_SIZE, encoded.size)
@@ -62,7 +59,7 @@ object PatternBinaryCodec {
 		val payload = encodePayload(definition)
 		val compressed = compress(payload)
 		val header = ByteBuffer.allocate(HEADER_SIZE)
-			.putInt(MAGIC).putInt(FORMAT_VERSION).putInt(COMPRESSION_ZSTD)
+			.putInt(MAGIC).putInt(COMPRESSION_ZSTD)
 			.putInt(payload.size).putInt(crc32(payload))
 			.flip()
 		val parent = file.toAbsolutePath().normalize().parent

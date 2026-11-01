@@ -9,10 +9,10 @@ import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.AutoBuildStructureOp
 import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.MultiblockPlanResolver;
 
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.DataResult;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
-import it.unimi.dsi.fastutil.objects.Object2ObjectMaps;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectList;
 import org.jspecify.annotations.NullMarked;
@@ -32,27 +32,27 @@ public record TerminalMachineProfile(AutoBuildSharedOptions sharedOptions,
                     Codec.BOOL.fieldOf("use_me").forGetter(AutoBuildSharedOptions::useME))
             .apply(instance, AutoBuildSharedOptions::new));
 
-    public static final Codec<TerminalMachineProfile> CODEC = RecordCodecBuilder.create(instance -> instance.group(
+    public static final Codec<TerminalMachineProfile> CODEC = RecordCodecBuilder
+            .<TerminalMachineProfile>create(instance -> instance.group(
             SHARED_CODEC.fieldOf("shared").forGetter(TerminalMachineProfile::sharedOptions),
             Codec.unboundedMap(Codec.STRING, TerminalStructureProfile.CODEC)
                     .<Object2ObjectMap<String, TerminalStructureProfile>>xmap(Object2ObjectLinkedOpenHashMap::new,
                             value -> value)
                     .fieldOf("structures")
                     .forGetter(TerminalMachineProfile::structures))
-            .apply(instance, TerminalMachineProfile::new));
+            .apply(instance, TerminalMachineProfile::new))
+            .comapFlatMap(TerminalMachineProfile::validateDecoded, value -> value);
 
-    public TerminalMachineProfile {
-        if (structures.size() > MAX_STRUCTURES) {
-            throw new IllegalArgumentException("Terminal structures exceed " + MAX_STRUCTURES);
+    private static DataResult<TerminalMachineProfile> validateDecoded(TerminalMachineProfile value) {
+        if (value.structures.size() > MAX_STRUCTURES) {
+            return DataResult.error(() -> "Terminal structures exceed " + MAX_STRUCTURES);
         }
-        Object2ObjectMap<String, TerminalStructureProfile> ordered = new Object2ObjectLinkedOpenHashMap<>();
-        structures.forEach((name, profile) -> {
+        for (String name : value.structures.keySet()) {
             if (name.isBlank() || name.length() > MAX_STRUCTURE_NAME) {
-                throw new IllegalArgumentException("Terminal structure name must be non-blank and bounded");
+                return DataResult.error(() -> "Terminal structure name must be non-blank and bounded");
             }
-            ordered.put(name, profile);
-        });
-        structures = Object2ObjectMaps.unmodifiable(ordered);
+        }
+        return DataResult.success(value);
     }
 
     /** Creates the first-use profile, selecting main and its explicitly declared dependencies. */

@@ -1,6 +1,5 @@
 package com.gregtechceu.gtceu.common.item.datacomponents;
 
-import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.AutoBuildMode;
 
 import net.minecraft.resources.ResourceLocation;
@@ -10,10 +9,8 @@ import com.mojang.serialization.DataResult;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
-import it.unimi.dsi.fastutil.ints.IntLists;
 import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
-import it.unimi.dsi.fastutil.objects.Object2ObjectMaps;
 import org.jspecify.annotations.NullMarked;
 
 /** Persists all structure-local automatic-build choices for one named pattern. */
@@ -37,50 +34,53 @@ public record TerminalStructureProfile(boolean selected, AutoBuildMode mode, Int
         }
     }, AutoBuildMode::name);
 
-    public static final Codec<TerminalStructureProfile> CODEC = RecordCodecBuilder.create(instance -> instance.group(
+    public static final Codec<TerminalStructureProfile> CODEC = RecordCodecBuilder
+            .<TerminalStructureProfile>create(instance -> instance.group(
             Codec.BOOL.fieldOf("selected").forGetter(TerminalStructureProfile::selected),
             MODE_CODEC.fieldOf("mode").forGetter(TerminalStructureProfile::mode),
             Codec.INT.listOf().<IntList>xmap(IntArrayList::new, value -> value).fieldOf("repetitions")
                     .forGetter(TerminalStructureProfile::repetitions),
             Codec.BOOL.fieldOf("flip").forGetter(TerminalStructureProfile::flipMode),
-            Codec.unboundedMap(Codec.STRING.xmap(
-                    group -> group.startsWith(GTCEu.MOD_ID + ":") ? group.substring(GTCEu.MOD_ID.length() + 1) : group,
-                    group -> group), ResourceLocation.CODEC)
+            Codec.unboundedMap(Codec.STRING, ResourceLocation.CODEC)
                     .<Object2ObjectMap<String, ResourceLocation>>xmap(Object2ObjectLinkedOpenHashMap::new,
                             value -> value)
                     .fieldOf("tiers")
                     .forGetter(TerminalStructureProfile::tierChoices),
             Codec.unboundedMap(Codec.STRING, Codec.STRING)
                     .<Object2ObjectMap<String, String>>xmap(Object2ObjectLinkedOpenHashMap::new, value -> value)
-                    .optionalFieldOf("choices", Object2ObjectMaps.emptyMap())
+                    .fieldOf("choices")
                     .forGetter(TerminalStructureProfile::choices))
-            .apply(instance, TerminalStructureProfile::new));
+            .apply(instance, TerminalStructureProfile::new))
+            .comapFlatMap(TerminalStructureProfile::validateDecoded, value -> value);
 
-    public TerminalStructureProfile {
-        repetitions = IntLists.unmodifiable(new IntArrayList(repetitions));
-        if (repetitions.size() > MAX_REPETITIONS || repetitions.intStream().anyMatch(value -> value < 0)) {
-            throw new IllegalArgumentException("Terminal repetitions must be bounded and non-negative");
+    private static DataResult<TerminalStructureProfile> validateDecoded(TerminalStructureProfile value) {
+        if (value.repetitions.size() > MAX_REPETITIONS ||
+                value.repetitions.intStream().anyMatch(repetition -> repetition < 0)) {
+            return DataResult.error(() -> "Terminal repetitions must be bounded and non-negative");
         }
-        if (tierChoices.size() > MAX_TIER_CHOICES) {
-            throw new IllegalArgumentException("Terminal tier choices exceed " + MAX_TIER_CHOICES);
+        if (value.tierChoices.size() > MAX_TIER_CHOICES) {
+            return DataResult.error(() -> "Terminal tier choices exceed " + MAX_TIER_CHOICES);
         }
-        Object2ObjectMap<String, ResourceLocation> ordered = new Object2ObjectLinkedOpenHashMap<>();
-        tierChoices.forEach((group, choice) -> {
+        for (var entry : value.tierChoices.object2ObjectEntrySet()) {
+            String group = entry.getKey();
+            ResourceLocation choice = entry.getValue();
             if (group.isBlank() || group.length() > MAX_RESOURCE_LOCATION ||
                     choice.toString().length() > MAX_RESOURCE_LOCATION) {
-                throw new IllegalArgumentException("Terminal tier IDs must be bounded");
+                return DataResult.error(() -> "Terminal tier IDs must be bounded");
             }
-            ordered.put(group, choice);
-        });
-        tierChoices = Object2ObjectMaps.unmodifiable(ordered);
-        if (choices.size() > MAX_CHOICES) throw new IllegalArgumentException("Too many terminal branch choices");
-        choices.forEach((path, branch) -> {
+        }
+        if (value.choices.size() > MAX_CHOICES) {
+            return DataResult.error(() -> "Too many terminal branch choices");
+        }
+        for (var entry : value.choices.object2ObjectEntrySet()) {
+            String path = entry.getKey();
+            String branch = entry.getValue();
             if (path.isBlank() || path.length() > MAX_CHOICE_PATH || branch.isBlank() ||
                     branch.length() > MAX_RESOURCE_LOCATION) {
-                throw new IllegalArgumentException("Terminal choice paths and branches must be non-blank and bounded");
+                return DataResult.error(() -> "Terminal choice paths and branches must be non-blank and bounded");
             }
-        });
-        choices = Object2ObjectMaps.unmodifiable(new Object2ObjectLinkedOpenHashMap<>(choices));
+        }
+        return DataResult.success(value);
     }
 
     public TerminalStructureProfile withSelected(boolean value) {
