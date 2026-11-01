@@ -12,16 +12,15 @@ import com.gregtechceu.gtceu.api.multiblock.pattern.constraint.PatternRequiremen
 import com.gregtechceu.gtceu.api.multiblock.pattern.layout.PatternLayout;
 import com.gregtechceu.gtceu.api.multiblock.pattern.layout.PatternLayoutCell;
 import com.gregtechceu.gtceu.api.multiblock.pattern.match.MultiBlockPattern;
-import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PatternObservation;
-import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PatternPredicate;
-import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PredicateRule;
 import com.gregtechceu.gtceu.api.multiblock.structurepredicate.AbilityPredicate;
 import com.gregtechceu.gtceu.api.multiblock.structurepredicate.ConcatenatedPredicate;
+import com.gregtechceu.gtceu.api.multiblock.structurepredicate.PatternObservation;
+import com.gregtechceu.gtceu.api.multiblock.structurepredicate.PatternPredicate;
+import com.gregtechceu.gtceu.api.multiblock.structurepredicate.PredicateRule;
 import com.gregtechceu.gtceu.api.multiblock.structurepredicate.RestrictedPredicate;
 import com.gregtechceu.gtceu.api.multiblock.structurepredicate.StructurePredicate;
 import com.gregtechceu.gtceu.api.multiblock.structurepredicate.StructurePreviewChoice;
 import com.gregtechceu.gtceu.api.multiblock.structurepredicate.StructurePreviewConstraint;
-import com.gregtechceu.gtceu.api.multiblock.structurepredicate.TieredAbilityPredicate;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -45,7 +44,6 @@ import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
 import org.jspecify.annotations.Nullable;
 
 import java.util.Comparator;
-import java.util.Locale;
 import java.util.function.Function;
 
 import static com.gregtechceu.gtceu.api.multiblock.autobuild.plan.BatchPlanner.*;
@@ -75,7 +73,7 @@ final class CandidateExpansion {
         Object2ObjectLinkedOpenHashMap<String, ObjectList<ResourceLocation>> result = new Object2ObjectLinkedOpenHashMap<>();
         encountered.forEach((group, candidateIds) -> {
             ObjectArrayList<ResourceLocation> ordered = new ObjectArrayList<>();
-            Block[] registered = BlockCategories.MAP.get(group);
+            Block[] registered = BlockCategories.getBlocks(group);
             if (registered != null) {
                 for (Block block : registered) {
                     ResourceLocation blockId = BuiltInRegistries.BLOCK.getKey(block);
@@ -198,7 +196,7 @@ final class CandidateExpansion {
             PlannedBlockInfo blockInfo = candidate.blockInfo();
             BlockState state = blockInfo.blockState();
             MaterialKey materialKey = materialKey(blockInfo.itemStack());
-            String category = BlockCategories.BLOCK_CATEGORY_MAP.get(state.getBlock());
+            String category = BlockCategories.getCategory(state.getBlock());
             ObjectList<String> tierGroups = mergeTierGroups(candidate.tierGroups(),
                     category == null ? ObjectList.of() : ObjectList.of(category));
             result.add(new ResolvedCandidate(state, blockInfo, candidate.limits(), candidate.hatch(),
@@ -214,9 +212,9 @@ final class CandidateExpansion {
     static void addSimpleCandidates(Object2ObjectMap<BlockState, CandidateAccumulator> result,
                                     PredicateRule simple, CandidateOrder order, ConstraintIds constraintIds,
                                     @Nullable Direction direction) {
-        if (simple == PredicateRule.any) return;
+        if (simple.isAny()) return;
         ConstraintLimit limit = ConstraintLimit.fromSimple(simple, constraintIds.id(simple));
-        if (simple == PredicateRule.air) {
+        if (simple.isAir()) {
             addCandidate(result, MultiblockBlockInfo.EMPTY, ObjectList.of(limit), false, ObjectList.of(), order.next(),
                     direction, state -> PatternObservation.of(state.isAir()));
             return;
@@ -251,7 +249,7 @@ final class CandidateExpansion {
                     .collect(ObjectImmutableList.toList());
         }
         String abilityGroup = abilityGroup(predicate);
-        boolean hatch = predicate instanceof AbilityPredicate || predicate instanceof TieredAbilityPredicate;
+        boolean hatch = predicate instanceof AbilityPredicate;
         ObjectArrayList<StructureChoice> result = new ObjectArrayList<>();
         for (StructurePreviewChoice choice : predicate.previewChoices(definition)) {
             ObjectList<ConstraintLimit> limits = choice.constraints().stream()
@@ -264,13 +262,8 @@ final class CandidateExpansion {
     }
 
     static @Nullable String abilityGroup(StructurePredicate predicate) {
-        String ability = predicate instanceof AbilityPredicate(ObjectList<PartAbility> abilities1) &&
-                abilities1.size() == 1 ?
-                        abilities1.getFirst().getName() :
-                        predicate instanceof TieredAbilityPredicate tiered ? tiered.ability().getName() : null;
-        if (ability == null) return null;
-        String path = ability.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9/._-]", "_");
-        return "ability/" + path;
+        return predicate instanceof AbilityPredicate abilityPredicate && abilityPredicate.abilities().size() == 1 ?
+                "ability/" + abilityPredicate.abilities().getFirst().getName() : null;
     }
 
     static void addCandidate(Object2ObjectMap<BlockState, CandidateAccumulator> result,

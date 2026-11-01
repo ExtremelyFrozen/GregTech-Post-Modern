@@ -23,8 +23,7 @@ import com.gregtechceu.gtceu.api.multiblock.*;
 import com.gregtechceu.gtceu.api.multiblock.pattern.dsl.PatternBuilder;
 import com.gregtechceu.gtceu.api.multiblock.pattern.match.MultiBlockPattern;
 import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternNode;
-import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PatternPredicate;
-import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PatternPredicates;
+import com.gregtechceu.gtceu.api.multiblock.structurepredicate.PatternPredicate;
 import com.gregtechceu.gtceu.api.multiblock.util.RelativeDirection;
 import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.RerenderOnChanged;
@@ -117,16 +116,16 @@ public class CentralMonitorMachine extends WorkableElectricMultiblockMachine
 
     public static PatternPredicate getMultiPredicate() {
         if (MULTI_PREDICATE == null) {
-            MULTI_PREDICATE = PatternPredicates.abilities(PartAbility.INPUT_ENERGY)
+            MULTI_PREDICATE = PatternPredicate.abilities(PartAbility.INPUT_ENERGY)
                     .setMinGlobalLimited(1).setMaxGlobalLimited(2).setPreviewCount(1)
-                    .or(PatternPredicates.abilities(PartAbility.DATA_ACCESS).setPreviewCount(1)
-                            .or(PatternPredicates.machines(GTMachines.BATTERY_BUFFER_4).setPreviewCount(0))
-                            .or(PatternPredicates.machines(GTMachines.BATTERY_BUFFER_16).setPreviewCount(0))
+                    .or(PatternPredicate.abilities(PartAbility.DATA_ACCESS).setPreviewCount(1)
+                            .or(PatternPredicate.machines(GTMachines.BATTERY_BUFFER_4).setPreviewCount(0))
+                            .or(PatternPredicate.machines(GTMachines.BATTERY_BUFFER_16).setPreviewCount(0))
                             .setMaxGlobalLimited(4))
-                    .or(PatternPredicates.machines(GTMachines.HULL))
-                    .or(PatternPredicates.machines(GTMachines.MONITOR))
-                    .or(PatternPredicates.machines(GTMachines.ADVANCED_MONITOR))
-                    .or(PatternPredicates.blocks(GTBlocks.CASING_ALUMINIUM_FROSTPROOF.get()));
+                    .or(PatternPredicate.machines(GTMachines.HULL))
+                    .or(PatternPredicate.machines(GTMachines.MONITOR))
+                    .or(PatternPredicate.machines(GTMachines.ADVANCED_MONITOR))
+                    .or(PatternPredicate.blocks(GTBlocks.CASING_ALUMINIUM_FROSTPROOF.get()));
         }
         return MULTI_PREDICATE;
     }

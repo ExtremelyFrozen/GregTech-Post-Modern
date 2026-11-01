@@ -7,7 +7,6 @@ import com.gregtechceu.gtceu.api.multiblock.error.PatternStringError
 import com.gregtechceu.gtceu.api.multiblock.pattern.constraint.PatternConstraintEvaluator
 import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternConstraint
 import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternDefinition
-import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.ObservedPatternPredicate
 
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
@@ -69,8 +68,8 @@ internal class PatternRuntime(private val pattern: MultiBlockPattern, private va
 				break
 			}
 			state.io = IO.BOTH
-			var observation = (predicate as? ObservedPatternPredicate)?.observe(state)
-			val accepted = if (observation == null) predicate.test(state) else (predicate as ObservedPatternPredicate).accept(state, observation)
+			val observation = predicate.observePosition(state)
+			val accepted = predicate.acceptPosition(state, observation)
 			if (!accepted || !pattern.matchesDirectionalPredicate(predicate, state, front, up, flipped) || !pattern.checkPartSharing(
 					facts,
 					state,
@@ -81,7 +80,6 @@ internal class PatternRuntime(private val pattern: MultiBlockPattern, private va
 				errors.add(predicate.diagnose(failure))
 				break
 			}
-			if (observation == null) observation = predicate.observeAccepted(state)
 			val positionFacts = ObjectOpenHashSet<String>()
 			positionFacts.add("token:$token")
 			positionFacts.addAll(observation.facts)

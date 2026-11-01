@@ -7,8 +7,8 @@ import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.multiblock.error.PatternError;
 import com.gregtechceu.gtceu.api.multiblock.error.PatternStringError;
 import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternFacts;
-import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PatternPredicate;
-import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PredicateRule;
+import com.gregtechceu.gtceu.api.multiblock.structurepredicate.PatternPredicate;
+import com.gregtechceu.gtceu.api.multiblock.structurepredicate.PredicateRule;
 import com.gregtechceu.gtceu.api.multiblock.structurepredicate.StructurePredicate;
 
 import net.minecraft.core.BlockPos;

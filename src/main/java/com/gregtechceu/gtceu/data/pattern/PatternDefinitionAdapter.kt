@@ -7,8 +7,8 @@ import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternDefinition
 import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternDirection
 import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternNode
 import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternPredicateDefinition
-import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PatternPredicateCompiler
-import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PatternPredicates
+import com.gregtechceu.gtceu.api.multiblock.structurepredicate.PatternPredicate
+import com.gregtechceu.gtceu.api.multiblock.structurepredicate.PatternPredicateCompiler
 
 import it.unimi.dsi.fastutil.chars.Char2ObjectLinkedOpenHashMap
 
@@ -29,7 +29,7 @@ object PatternDefinitionAdapter {
 	fun compile(owner: MultiblockMachineDefinition, key: StructurePatternKey, baseline: MultiBlockPattern, definition: PatternDefinition): MultiBlockPattern {
 		require(definition.machine == owner.id || definition.machine == definition.structure) { "Pattern machine does not match $key" }
 		val predicates = Char2ObjectLinkedOpenHashMap(definition.predicates)
-		predicates['~'] = PatternPredicateDefinition("java", "", mapOf("runtime" to PatternPredicates.controller(owner)), emptyList())
+		predicates['~'] = PatternPredicateDefinition("java", "", mapOf("runtime" to PatternPredicate.controller(owner)), emptyList())
 		predicates['@'] = predicates['~']!!
 		return MultiBlockPattern.fromDefinition(definition.copy(machine = owner.id, predicates = predicates)).also { it.condition = baseline.condition }
 	}

@@ -16,10 +16,9 @@ import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternOrientation
 import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternOrigin
 import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternPredicateDefinition
 import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternRepeatDirection
-import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.ObservedPatternPredicate
-import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PatternPredicate
-import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PatternPredicates
-import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PredicateController
+import com.gregtechceu.gtceu.api.multiblock.structurepredicate.ObservedPatternPredicate
+import com.gregtechceu.gtceu.api.multiblock.structurepredicate.PatternPredicate
+import com.gregtechceu.gtceu.api.multiblock.structurepredicate.PredicateController
 import com.gregtechceu.gtceu.api.multiblock.util.RelativeDirection
 import com.gregtechceu.gtceu.data.pattern.StructurePatternKey
 import com.gregtechceu.gtceu.data.pattern.StructurePatternResolver
@@ -69,8 +68,8 @@ class PatternBuilder private constructor(charDir: RelativeDirection, stringDir: 
 
 	init {
 		structureDir.check()
-		symbolMap[' '] = PatternPredicates.any()
-		symbolMap['~'] = PatternPredicates.controller(PatternPredicates.blocks(definition.block))
+		symbolMap[' '] = PatternPredicate.any()
+		symbolMap['~'] = PatternPredicate.controller(PatternPredicate.blocks(definition.block))
 	}
 
 	/** Adds a single aisle to this pattern. Multiple calls increase the aisleDir by 1. */

@@ -3,10 +3,9 @@ package com.gregtechceu.gtceu.api.multiblock.pattern.layout
 import com.gregtechceu.gtceu.api.multiblock.pattern.compile.PatternCompileException
 import com.gregtechceu.gtceu.api.multiblock.pattern.fragment.FragmentRegistry
 import com.gregtechceu.gtceu.api.multiblock.pattern.model.*
-import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PatternPredicate
-import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PatternPredicates
-import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PatternPredicateCompiler
-import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PredicateController
+import com.gregtechceu.gtceu.api.multiblock.structurepredicate.PatternPredicate
+import com.gregtechceu.gtceu.api.multiblock.structurepredicate.PatternPredicateCompiler
+import com.gregtechceu.gtceu.api.multiblock.structurepredicate.PredicateController
 
 import net.minecraft.resources.ResourceLocation
 
@@ -90,8 +89,8 @@ class PatternLayoutResolver(private val definition: PatternDefinition) {
 
 	private fun localSymbols(target: PatternFragment, reference: PatternNode.Fragment, caller: Char2ObjectMap<PatternPredicate>): Char2ObjectMap<PatternPredicate> {
 		val local = Char2ObjectLinkedOpenHashMap<PatternPredicate>()
-		local[' '] = PatternPredicates.any()
-		local['#'] = PatternPredicates.air()
+		local[' '] = PatternPredicate.any()
+		local['#'] = PatternPredicate.air()
 		fun predicate(name: String): PatternPredicate = when (val binding = reference.bindings[name] ?: error("Unknown parameter $name")) {
 			is PatternBinding.Token -> caller[binding.value.single()] ?: error("Unknown caller token ${binding.value}")
 			is PatternBinding.Predicate -> binding.definition?.let(PatternPredicateCompiler::compile) ?: caller[binding.value.single()] ?: error("Unknown caller predicate ${binding.value}")
@@ -191,8 +190,8 @@ class PatternLayoutResolver(private val definition: PatternDefinition) {
 
 	private fun compileSymbols(source: Char2ObjectMap<PatternPredicateDefinition>): Char2ObjectMap<PatternPredicate> {
 		val result = Char2ObjectLinkedOpenHashMap<PatternPredicate>()
-		result[' '] = PatternPredicates.any()
-		result['#'] = PatternPredicates.air()
+		result[' '] = PatternPredicate.any()
+		result['#'] = PatternPredicate.air()
 		result['@'] = PatternPredicateCompiler.controller(definition.machine)
 		source.forEach { (symbol, value) -> result[symbol] = PatternPredicateCompiler.compile(value) }
 		return result

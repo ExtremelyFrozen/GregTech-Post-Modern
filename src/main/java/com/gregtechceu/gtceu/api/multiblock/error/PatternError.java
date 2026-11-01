@@ -1,8 +1,8 @@
 package com.gregtechceu.gtceu.api.multiblock.error;
 
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState;
-import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PatternPredicate;
-import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PredicateRule;
+import com.gregtechceu.gtceu.api.multiblock.structurepredicate.PatternPredicate;
+import com.gregtechceu.gtceu.api.multiblock.structurepredicate.PredicateRule;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;

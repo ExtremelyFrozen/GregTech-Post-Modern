@@ -1,0 +1,60 @@
+package com.gregtechceu.gtceu.api.multiblock.structurepredicate
+
+import com.gregtechceu.gtceu.GTCEu
+import com.gregtechceu.gtceu.api.GTCEuAPI
+import com.gregtechceu.gtceu.api.multiblock.MultiblockState
+import com.gregtechceu.gtceu.api.multiblock.autobuild.BlockCategories
+import com.gregtechceu.gtceu.api.multiblock.error.PatternStringError
+import com.gregtechceu.gtceu.api.multiblock.structurepredicate.PatternObservation
+
+import net.minecraft.world.level.block.state.BlockState
+
+import com.mojang.serialization.MapCodec
+import it.unimi.dsi.fastutil.objects.Object2ObjectMaps
+import it.unimi.dsi.fastutil.objects.ObjectList
+
+enum class CleanroomFilterPredicate : CategoryPredicate {
+	INSTANCE,
+	;
+
+	override val category: String = BlockCategories.CLEANROOM_FILTERS
+	override fun type(): StructurePredicateType<*> = TYPE
+
+	override fun observeCandidate(state: BlockState): PatternObservation {
+		val stats = GTCEuAPI.CLEANROOM_FILTERS.entries.firstOrNull { it.value.get() == state.block }?.key
+			?: return PatternObservation.of(false)
+		return PatternObservation.of(true, ObjectList.of("filter"), Object2ObjectMaps.singleton("FilterType", stats))
+	}
+
+	override fun observePosition(state: MultiblockState): PatternObservation {
+		val observed = observeCandidate(state.blockState)
+		if (!observed.matched) return observed
+		val current = state.facts.get<Any>("FilterType")
+		return if (current == null || current == observed.properties["FilterType"]) observed else PatternObservation.of(false)
+	}
+	override fun acceptPosition(state: MultiblockState, observation: PatternObservation): Boolean {
+		if (!observation.matched) return false
+		state.facts.getOrPut("FilterType", observation.properties["FilterType"]!!)
+		return true
+	}
+
+	override fun test(multiblockState: MultiblockState, mutateCount: Boolean): Boolean {
+		for ((stats, block) in GTCEuAPI.CLEANROOM_FILTERS.entries) {
+			if (!multiblockState.blockState.`is`(block.get())) continue
+			val currentFilter: Any = multiblockState.facts.getOrPut("FilterType", stats)
+			if (currentFilter != stats) {
+				multiblockState.setError(PatternStringError("gtpm.multiblock.pattern.error.filters"))
+				return false
+			}
+			return true
+		}
+		return false
+	}
+
+	companion object {
+		val TYPE: StructurePredicateType<CleanroomFilterPredicate> by lazy { StructurePredicateType.register(GTCEu.id("filter"), CODEC) }
+
+		@JvmField
+		val CODEC: MapCodec<CleanroomFilterPredicate> = MapCodec.unit(INSTANCE)
+	}
+}

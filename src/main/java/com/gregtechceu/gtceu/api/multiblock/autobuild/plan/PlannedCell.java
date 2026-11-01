@@ -1,7 +1,7 @@
 package com.gregtechceu.gtceu.api.multiblock.autobuild.plan;
 
 import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialKey;
-import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PatternPredicate;
+import com.gregtechceu.gtceu.api.multiblock.structurepredicate.PatternPredicate;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;

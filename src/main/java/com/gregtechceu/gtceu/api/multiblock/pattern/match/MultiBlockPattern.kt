@@ -15,8 +15,8 @@ import com.gregtechceu.gtceu.api.multiblock.pattern.layout.PatternLayout
 import com.gregtechceu.gtceu.api.multiblock.pattern.layout.PatternRepeatDescriptor
 import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternDefinition
 import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternFacts
-import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PatternPredicate
-import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PredicateRule
+import com.gregtechceu.gtceu.api.multiblock.structurepredicate.PatternPredicate
+import com.gregtechceu.gtceu.api.multiblock.structurepredicate.PredicateRule
 import com.gregtechceu.gtceu.api.multiblock.structurepredicate.RestrictedPredicate
 import com.gregtechceu.gtceu.api.multiblock.structurepredicate.StructurePredicate
 import com.gregtechceu.gtceu.api.multiblock.util.RelativeDirection
@@ -181,8 +181,8 @@ open class MultiBlockPattern private constructor(private val sourceDefinition: P
 		}
 		for (entry in structureLayerCount.object2IntEntrySet()) {
 			val predicate = entry.key
-			if (predicate is RestrictedPredicate && predicate.minCountByLayer().isPresent &&
-				entry.intValue < predicate.minCountByLayer().get()
+			if (predicate is RestrictedPredicate && predicate.minCountByLayer.isPresent &&
+				entry.intValue < predicate.minCountByLayer.get()
 			) {
 				worldState.setError(PatternStringError("gtpm.multiblock.pattern.error.limited"))
 				return false
@@ -200,8 +200,8 @@ open class MultiBlockPattern private constructor(private val sourceDefinition: P
 		}
 		for (entry in structureGlobalCount.object2IntEntrySet()) {
 			val predicate = entry.key
-			if (predicate is RestrictedPredicate && predicate.minCount().isPresent &&
-				entry.intValue < predicate.minCount().get()
+			if (predicate is RestrictedPredicate && predicate.minCount.isPresent &&
+				entry.intValue < predicate.minCount.get()
 			) {
 				worldState.setError(PatternStringError("gtpm.multiblock.pattern.error.limited"))
 				return false

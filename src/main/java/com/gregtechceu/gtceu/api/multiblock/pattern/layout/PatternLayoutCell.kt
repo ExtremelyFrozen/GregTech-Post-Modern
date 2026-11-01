@@ -1,6 +1,6 @@
 package com.gregtechceu.gtceu.api.multiblock.pattern.layout
 
-import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PatternPredicate
+import com.gregtechceu.gtceu.api.multiblock.structurepredicate.PatternPredicate
 
 import it.unimi.dsi.fastutil.objects.ObjectList
 
