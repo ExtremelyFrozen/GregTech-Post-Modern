@@ -19,7 +19,7 @@ import com.gregtechceu.gtceu.common.data.GTDataComponents;
 import com.gregtechceu.gtceu.common.item.datacomponents.TerminalControllerBinding;
 import com.gregtechceu.gtceu.common.item.datacomponents.TerminalMachine;
 import com.gregtechceu.gtceu.common.item.datacomponents.TerminalMachines;
-import com.gregtechceu.gtceu.common.item.terminal.profile.TerminalChange;
+import com.gregtechceu.gtceu.common.item.terminal.network.TerminalChange;
 import com.gregtechceu.gtceu.common.machine.owner.MachineOwner;
 import com.gregtechceu.gtceu.data.pattern.StructurePatternRegistry;
 
@@ -58,7 +58,7 @@ public final class TerminalSession {
     private final ResourceLocation definitionId;
     private final UUID sessionId;
     private final BatchPlanner resolver = new BatchPlanner();
-    private TerminalMachine profile;
+    private TerminalMachine machine;
     private TerminalMenuState state;
     @Nullable
     private AbstractContainerMenu serverMenu;
@@ -84,7 +84,7 @@ public final class TerminalSession {
         this.dimension = player.level().dimension();
         this.definitionId = definition.getId();
         this.sessionId = UUID.randomUUID();
-        this.profile = loadProfile(player, terminal, definition);
+        this.machine = loadMachine(player, terminal, definition);
         patternGeneration = StructurePatternRegistry.generation();
         state = buildState(player);
         visibleSignature = visibleSignature(state);
@@ -132,27 +132,27 @@ public final class TerminalSession {
                 MachineOwner.canBreakOwnerMachine(player, openedController);
     }
 
-    /** Applies one sequence- and revision-validated profile patch and persists it immediately. */
+    /** Applies one sequence- and revision-validated machine patch and persists it immediately. */
     public boolean applyUpdate(ServerPlayer player, long sequence, long expectedRevision,
                                TerminalChange update) {
         if (!beginAction(player, sequence, expectedRevision)) {
             return false;
         }
         try {
-            TerminalMachine updated = update.apply(definition, profile);
+            TerminalMachine updated = update.apply(definition, machine);
             ensureSemanticallyValid(updated);
-            persistProfile(openedTerminal, definition, updated);
-            profile = updated;
+            persistMachine(openedTerminal, definition, updated);
+            machine = updated;
             revision = Math.addExact(revision, 1);
             state = buildState(player);
             visibleSignature = visibleSignature(state);
             return true;
         } catch (IllegalArgumentException | IllegalStateException exception) {
-            GTCEu.LOGGER.warn("Rejected terminal profile update for {}: {}", definitionId, exception.getMessage());
+            GTCEu.LOGGER.warn("Rejected terminal machine update for {}: {}", definitionId, exception.getMessage());
             state = stateWithCurrentSequence();
             return false;
         } catch (RuntimeException exception) {
-            GTCEu.LOGGER.error("Failed to apply terminal profile update for {}", definitionId, exception);
+            GTCEu.LOGGER.error("Failed to apply terminal machine update for {}", definitionId, exception);
             closeInvalidSession(player);
             return false;
         }
@@ -166,10 +166,10 @@ public final class TerminalSession {
         }
         String expectedFingerprint = state.preview().fingerprint();
         executing = true;
-        state = new TerminalMenuState(definitionId, acceptedSequence, revision, profile, state.preview(), true,
+        state = new TerminalMenuState(definitionId, acceptedSequence, revision, machine, state.preview(), true,
                 state.meSource(), lastExecution);
         try {
-            BatchRequest request = profile.createRequest(definition,
+            BatchRequest request = machine.createRequest(definition,
                     createSources(player));
             long expectedPlanFingerprint = Long.parseUnsignedLong(expectedFingerprint, 16);
             BatchResult result = openedController.autoBuildBatch(player, request, expectedPlanFingerprint);
@@ -200,12 +200,12 @@ public final class TerminalSession {
         requireValid("during refresh");
         long currentGeneration = StructurePatternRegistry.generation();
         if (currentGeneration != patternGeneration) {
-            if (!isValidProfile(definition, profile)) {
-                TerminalMachines profiles = openedTerminal.getOrDefault(GTDataComponents.TERMINAL_AUTO_BUILD,
+            if (!isValidMachine(definition, machine)) {
+                TerminalMachines machines = openedTerminal.getOrDefault(GTDataComponents.TERMINAL_MACHINES,
                         TerminalMachines.EMPTY);
                 TerminalMachine reset = TerminalMachine.defaults(definition);
-                openedTerminal.set(GTDataComponents.TERMINAL_AUTO_BUILD,
-                        profiles.withProfile(definitionId, reset));
+                openedTerminal.set(GTDataComponents.TERMINAL_MACHINES,
+                        machines.withMachine(definitionId, reset));
                 GTCEu.LOGGER.warn("Closed terminal menu after incompatible pattern reload for {}", definitionId);
                 player.displayClientMessage(Component.translatable(
                         "gtpm.multiblock.autobuild.pattern_reloaded_incompatible"), false);
@@ -255,37 +255,37 @@ public final class TerminalSession {
     }
 
     private TerminalMenuState stateWithCurrentSequence() {
-        return new TerminalMenuState(definitionId, acceptedSequence, revision, profile, state.preview(), executing,
+        return new TerminalMenuState(definitionId, acceptedSequence, revision, machine, state.preview(), executing,
                 state.meSource(), lastExecution);
     }
 
     private static TerminalMenuState withRevision(TerminalMenuState state, long revision) {
-        return new TerminalMenuState(state.definitionId(), state.acknowledgedSequence(), revision, state.profile(),
+        return new TerminalMenuState(state.definitionId(), state.acknowledgedSequence(), revision, state.machine(),
                 state.preview(), state.executing(), state.meSource(), state.lastExecution());
     }
 
     private TerminalMenuState buildState(ServerPlayer player) {
         ObjectList<MaterialSource> sources = createSources(player);
-        BatchRequest request = profile.createRequest(definition, sources);
+        BatchRequest request = machine.createRequest(definition, sources);
         BatchResolution resolved = resolver.resolveBatch(openedController, player, request);
         StructurePreview preview = StructurePreview.bound(definitionId, resolved);
-        TerminalMESourceDisplay meSource = resolved.materialSnapshots().stream()
+        TerminalMESourceDisplay meSource = resolved.availability().stream()
                 .map(MaterialSource.Availability::descriptor)
                 .filter(descriptor -> descriptor != null && descriptor.kind() == MaterialSource.SourceKind.ME)
                 .map(TerminalMESourceDisplay::from)
                 .findFirst().orElse(null);
-        return new TerminalMenuState(definitionId, acceptedSequence, revision, profile, preview, executing, meSource,
+        return new TerminalMenuState(definitionId, acceptedSequence, revision, machine, preview, executing, meSource,
                 lastExecution);
     }
 
     private ObjectList<MaterialSource> createSources(ServerPlayer player) {
-        boolean hasBuild = profile.structures().values().stream()
+        boolean hasBuild = machine.structures().values().stream()
                 .anyMatch(structure -> structure.selected() && structure.mode() == StructureOperation.BUILD);
         if (!hasBuild) {
             return ObjectList.of();
         }
         ObjectList<MaterialSource> sources = new ObjectArrayList<>();
-        boolean useME = profile.sharedOptions().useME();
+        boolean useME = machine.sharedOptions().useME();
         if (useME && !MaterialSources.hasProvider(MaterialSource.SourceKind.ME)) {
             sources.add(MaterialSources.unavailable(new BuildProblem(
                     BuildProblem.Type.AE_NOT_INSTALLED, null,
@@ -299,43 +299,43 @@ public final class TerminalSession {
         return new ObjectImmutableList<>(sources);
     }
 
-    private void ensureSemanticallyValid(TerminalMachine profile) {
-        BatchPlan plan = resolver.resolveCanonical(definition, profile.createRequest(definition, ObjectList.of()));
+    private void ensureSemanticallyValid(TerminalMachine machine) {
+        BatchPlan plan = resolver.resolveCanonical(definition, machine.createRequest(definition, ObjectList.of()));
         boolean invalid = plan.executionOrder().stream().flatMap(structure -> structure.problems().stream())
                 .anyMatch(problem -> switch (problem.type()) {
                     case UNKNOWN_STRUCTURE, INVALID_OPTIONS, INVALID_TIER_SELECTION, PATTERN_UNAVAILABLE -> true;
                     default -> false;
                 });
         if (invalid) {
-            throw new IllegalArgumentException("Profile update does not resolve to a valid structure plan");
+            throw new IllegalArgumentException("Machine update does not resolve to a valid structure plan");
         }
     }
 
-    private static TerminalMachine loadProfile(ServerPlayer player, ItemStack terminal,
+    private static TerminalMachine loadMachine(ServerPlayer player, ItemStack terminal,
                                                MultiblockMachineDefinition definition) {
-        TerminalMachines profiles = terminal.getOrDefault(GTDataComponents.TERMINAL_AUTO_BUILD,
+        TerminalMachines machines = terminal.getOrDefault(GTDataComponents.TERMINAL_MACHINES,
                 TerminalMachines.EMPTY);
-        TerminalMachine profile = profiles.profiles().get(definition.getId());
-        if (profile == null || !isValidProfile(definition, profile)) {
-            if (profile != null) {
-                GTCEu.LOGGER.warn("Resetting stale terminal profile for {} held by {}", definition.getId(),
+        TerminalMachine machine = machines.machines().get(definition.getId());
+        if (machine == null || !isValidMachine(definition, machine)) {
+            if (machine != null) {
+                GTCEu.LOGGER.warn("Resetting stale terminal machine for {} held by {}", definition.getId(),
                         player.getGameProfile().getName());
             }
-            profile = TerminalMachine.defaults(definition);
-            terminal.set(GTDataComponents.TERMINAL_AUTO_BUILD, profiles.withProfile(definition.getId(), profile));
+            machine = TerminalMachine.defaults(definition);
+            terminal.set(GTDataComponents.TERMINAL_MACHINES, machines.withMachine(definition.getId(), machine));
         }
-        return profile;
+        return machine;
     }
 
-    private static boolean isValidProfile(MultiblockMachineDefinition definition,
-                                          TerminalMachine profile) {
-        if (!new ObjectImmutableList<>(profile.structures().keySet()).equals(definition.getStructureOrder())) {
+    private static boolean isValidMachine(MultiblockMachineDefinition definition,
+                                          TerminalMachine machine) {
+        if (!new ObjectImmutableList<>(machine.structures().keySet()).equals(definition.getStructureOrder())) {
             return false;
         }
         BatchPlanner resolver = new BatchPlanner();
         try {
             for (String structureName : definition.getStructureOrder()) {
-                var stored = profile.structures().get(structureName);
+                var stored = machine.structures().get(structureName);
                 var defaults = resolver.defaultStructureOptions(definition, structureName);
                 if (stored.repetitions().size() != defaults.repetitions().size() ||
                         stored.flipMode() && !definition.isAllowFlip()) {
@@ -365,27 +365,27 @@ public final class TerminalSession {
                 }
                 if (stored.selected() && stored.mode() == StructureOperation.BUILD) {
                     for (String dependency : definition.getRequiredStructures(structureName)) {
-                        var dependencyProfile = profile.structures().get(dependency);
-                        if (!dependencyProfile.selected() || dependencyProfile.mode() != StructureOperation.BUILD) {
+                        var requiredStructure = machine.structures().get(dependency);
+                        if (!requiredStructure.selected() || requiredStructure.mode() != StructureOperation.BUILD) {
                             return false;
                         }
                     }
                 }
             }
-            profile.createRequest(definition, ObjectList.of());
+            machine.createRequest(definition, ObjectList.of());
             return true;
         } catch (IllegalArgumentException | IllegalStateException exception) {
-            GTCEu.LOGGER.warn("Terminal profile validation failed for {}: {}", definition.getId(),
+            GTCEu.LOGGER.warn("Terminal machine validation failed for {}: {}", definition.getId(),
                     exception.getMessage());
             return false;
         }
     }
 
-    private static void persistProfile(ItemStack terminal, MultiblockMachineDefinition definition,
-                                       TerminalMachine profile) {
-        TerminalMachines profiles = terminal.getOrDefault(GTDataComponents.TERMINAL_AUTO_BUILD,
+    private static void persistMachine(ItemStack terminal, MultiblockMachineDefinition definition,
+                                       TerminalMachine machine) {
+        TerminalMachines machines = terminal.getOrDefault(GTDataComponents.TERMINAL_MACHINES,
                 TerminalMachines.EMPTY);
-        terminal.set(GTDataComponents.TERMINAL_AUTO_BUILD, profiles.withProfile(definition.getId(), profile));
+        terminal.set(GTDataComponents.TERMINAL_MACHINES, machines.withMachine(definition.getId(), machine));
     }
 
     private static long visibleSignature(TerminalMenuState state) {

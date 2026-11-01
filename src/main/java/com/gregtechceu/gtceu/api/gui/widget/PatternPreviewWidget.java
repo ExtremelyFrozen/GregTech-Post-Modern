@@ -7,7 +7,7 @@ import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.BatchPlanner;
 import com.gregtechceu.gtceu.api.multiblock.preview.PatternGenerationGuard;
 import com.gregtechceu.gtceu.api.multiblock.preview.StructurePreview;
 import com.gregtechceu.gtceu.common.item.datacomponents.TerminalMachine;
-import com.gregtechceu.gtceu.common.item.terminal.profile.TerminalChange;
+import com.gregtechceu.gtceu.common.item.terminal.network.TerminalChange;
 import com.gregtechceu.gtceu.common.item.terminal.ui.MultiblockConfigurationPanel;
 import com.gregtechceu.gtceu.data.pattern.StructurePatternRegistry;
 

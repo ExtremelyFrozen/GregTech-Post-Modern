@@ -18,8 +18,8 @@ import com.gregtechceu.gtceu.common.item.datacomponents.TerminalMachine;
 import com.gregtechceu.gtceu.common.item.terminal.menu.TerminalMenuState;
 import com.gregtechceu.gtceu.common.item.terminal.menu.TerminalSession;
 import com.gregtechceu.gtceu.common.item.terminal.network.TerminalAction;
+import com.gregtechceu.gtceu.common.item.terminal.network.TerminalChange;
 import com.gregtechceu.gtceu.common.item.terminal.network.TerminalStateUpdate;
-import com.gregtechceu.gtceu.common.item.terminal.profile.TerminalChange;
 
 import com.lowdragmc.lowdraglib2.gui.sync.SyncValue;
 import com.lowdragmc.lowdraglib2.gui.sync.rpc.RPCEmitter;
@@ -99,7 +99,7 @@ public final class TerminalScreen extends UIElement {
         preview = new MultiblockPreviewPanel(226, 216, state.preview(), true);
         preview.layout(layout -> layout.left(4).top(20));
         addChild(preview);
-        configuration = new MultiblockConfigurationPanel(234, 28, 122, 190, definition, state.profile(), preview,
+        configuration = new MultiblockConfigurationPanel(234, 28, 122, 190, definition, state.machine(), preview,
                 change -> requestAction(change));
         addChild(configuration);
         addChild(sourceLabel);
@@ -187,7 +187,7 @@ public final class TerminalScreen extends UIElement {
 
     private void updateDisplay() {
         preview.setPreview(state.preview());
-        configuration.setMachine(state.profile());
+        configuration.setMachine(state.machine());
         var source = state.meSource();
         sourceLabel.setValue(source == null ?
                 Component.translatable("gtpm.multiblock.autobuild.terminal.ae_unavailable") :

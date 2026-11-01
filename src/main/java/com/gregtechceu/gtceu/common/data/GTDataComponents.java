@@ -222,8 +222,8 @@ public class GTDataComponents {
             .registerComponentType("lighter_open",
                     builder -> builder.persistent(Codec.BOOL).networkSynchronized(ByteBufCodecs.BOOL));
 
-    public static final DeferredHolder<DataComponentType<?>, DataComponentType<TerminalMachines>> TERMINAL_AUTO_BUILD = DATA_COMPONENTS
-            .registerComponentType("terminal_auto_build",
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<TerminalMachines>> TERMINAL_MACHINES = DATA_COMPONENTS
+            .registerComponentType("terminal_machines",
                     builder -> builder.persistent(TerminalMachines.CODEC)
                             .networkSynchronized(TerminalMachines.STREAM_CODEC));
 

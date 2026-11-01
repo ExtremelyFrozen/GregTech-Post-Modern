@@ -12,7 +12,7 @@ import it.unimi.dsi.fastutil.objects.ObjectList;
  */
 public record BatchResolution(
                               BatchPlan plan,
-                              ObjectList<MaterialSource.Availability> materialSnapshots,
+                              ObjectList<MaterialSource.Availability> availability,
                               Object2ObjectMap<MaterialKey, MaterialAllocation> materials) {
 
     /**

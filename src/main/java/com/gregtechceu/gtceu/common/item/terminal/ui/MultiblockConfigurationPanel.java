@@ -12,7 +12,7 @@ import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.BatchPlanner;
 import com.gregtechceu.gtceu.api.multiblock.preview.StructurePreview.Structure;
 import com.gregtechceu.gtceu.common.item.datacomponents.TerminalMachine;
 import com.gregtechceu.gtceu.common.item.datacomponents.TerminalStructure;
-import com.gregtechceu.gtceu.common.item.terminal.profile.TerminalChange;
+import com.gregtechceu.gtceu.common.item.terminal.network.TerminalChange;
 
 import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
 import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollerMode;
@@ -65,7 +65,8 @@ public final class MultiblockConfigurationPanel extends GTScrollerViewElement {
     }
 
     public void setMachine(TerminalMachine machine) {
-        if (!this.machine.equals(machine) || !displayedStructures.equals(preview.getState().getPreview().structures())) {
+        if (!this.machine.equals(machine) ||
+                !displayedStructures.equals(preview.getState().getPreview().structures())) {
             this.machine = machine;
             rebuild();
         }

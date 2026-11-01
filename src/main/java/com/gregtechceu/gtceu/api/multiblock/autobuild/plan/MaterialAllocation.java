@@ -24,6 +24,7 @@ import it.unimi.dsi.fastutil.objects.ObjectList;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ObjectSet;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
+import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 
 import static com.gregtechceu.gtceu.api.multiblock.autobuild.plan.BatchPlanner.*;
@@ -34,7 +35,8 @@ final class MaterialAllocation {
 
     final ObjectList<Object2LongMap<MaterialKey>> remaining;
     final ObjectList<Object2LongMap<MaterialKey>> allocated;
-    final ObjectList<MaterialSource.Availability> snapshots;
+    @Getter
+    final ObjectList<MaterialSource.Availability> availability;
     final LongList sourceFingerprints;
     final ObjectList<BuildProblem> structureProblems;
     final boolean unlimited;
@@ -42,13 +44,13 @@ final class MaterialAllocation {
 
     MaterialAllocation(ObjectList<Object2LongMap<MaterialKey>> remaining,
                        ObjectList<Object2LongMap<MaterialKey>> allocated,
-                       ObjectList<MaterialSource.Availability> snapshots,
+                       ObjectList<MaterialSource.Availability> availability,
                        LongList sourceFingerprints,
                        ObjectList<BuildProblem> structureProblems,
                        boolean unlimited) {
         this.remaining = remaining;
         this.allocated = allocated;
-        this.snapshots = snapshots;
+        this.availability = availability;
         this.sourceFingerprints = sourceFingerprints;
         this.structureProblems = structureProblems;
         this.unlimited = unlimited;
@@ -67,7 +69,7 @@ final class MaterialAllocation {
         }
         ObjectArrayList<Object2LongMap<MaterialKey>> remaining = new ObjectArrayList<>();
         ObjectArrayList<Object2LongMap<MaterialKey>> allocated = new ObjectArrayList<>();
-        ObjectArrayList<MaterialSource.Availability> snapshots = new ObjectArrayList<>();
+        ObjectArrayList<MaterialSource.Availability> availability = new ObjectArrayList<>();
         LongList sourceFingerprints = new LongArrayList();
         ObjectArrayList<BuildProblem> structureProblems = new ObjectArrayList<>();
         Reference2ObjectOpenHashMap<MaterialSource, ObjectSet<ProblemIdentity>> reportedProblems = new Reference2ObjectOpenHashMap<>();
@@ -76,30 +78,30 @@ final class MaterialAllocation {
                     source.kind() != MaterialSource.SourceKind.UNAVAILABLE) {
                 continue;
             }
-            MaterialSource.Availability snapshot = source.availability(keys);
+            MaterialSource.Availability sourceAvailability = source.availability(keys);
             if (creative && source.kind() == MaterialSource.SourceKind.UNAVAILABLE &&
-                    (snapshot.problem() == null || !isStrictAEProblem(snapshot.problem().type()))) {
+                    (sourceAvailability.problem() == null || !isStrictAEProblem(sourceAvailability.problem().type()))) {
                 continue;
             }
-            snapshots.add(snapshot);
-            sourceFingerprints.add(source.planFingerprint(keys, snapshot));
-            BuildProblem snapshotProblem = snapshot.problem();
-            if (snapshotProblem != null) {
-                ProblemIdentity identity = new ProblemIdentity(snapshotProblem.type(), snapshotProblem.pos());
+            availability.add(sourceAvailability);
+            sourceFingerprints.add(source.planFingerprint(keys, sourceAvailability));
+            BuildProblem sourceProblem = sourceAvailability.problem();
+            if (sourceProblem != null) {
+                ProblemIdentity identity = new ProblemIdentity(sourceProblem.type(), sourceProblem.pos());
                 if (reportedProblems.computeIfAbsent(source, ignored -> new ObjectOpenHashSet<>()).add(identity)) {
-                    if (requireME && isStrictAEProblem(snapshotProblem.type()) &&
+                    if (requireME && isStrictAEProblem(sourceProblem.type()) &&
                             (source.kind() == MaterialSource.SourceKind.ME ||
                                     source.kind() == MaterialSource.SourceKind.UNAVAILABLE)) {
-                        problems.add(snapshotProblem);
+                        problems.add(sourceProblem);
                     } else {
-                        structureProblems.add(snapshotProblem);
+                        structureProblems.add(sourceProblem);
                     }
                 }
             }
-            remaining.add(new Object2LongLinkedOpenHashMap<>(snapshot.available()));
+            remaining.add(new Object2LongLinkedOpenHashMap<>(sourceAvailability.available()));
             allocated.add(new Object2LongLinkedOpenHashMap<>());
         }
-        return new MaterialAllocation(remaining, allocated, new ObjectImmutableList<>(snapshots),
+        return new MaterialAllocation(remaining, allocated, new ObjectImmutableList<>(availability),
                 new LongImmutableList(sourceFingerprints), new ObjectImmutableList<>(structureProblems), creative);
     }
 
@@ -141,10 +143,6 @@ final class MaterialAllocation {
 
     ObjectList<BuildProblem> structureProblems() {
         return structureProblems;
-    }
-
-    ObjectList<MaterialSource.Availability> snapshots() {
-        return snapshots;
     }
 
     LongList sourceFingerprints() {

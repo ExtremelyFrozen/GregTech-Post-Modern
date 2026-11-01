@@ -1,7 +1,5 @@
 package com.gregtechceu.gtceu.common.item.terminal.network;
 
-import com.gregtechceu.gtceu.common.item.terminal.profile.TerminalChange;
-
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 

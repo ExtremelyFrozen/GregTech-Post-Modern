@@ -81,7 +81,7 @@ public interface MaterialSource {
     }
 
     /**
-     * Returns a server-local identity token for the exact storage binding represented by the next snapshot.
+     * Returns a server-local identity token for the exact storage binding represented by the next availability.
      * Implementations backed by a selected container should include its object identity here, never in display text.
      */
     default long bindingFingerprint() {
@@ -92,29 +92,29 @@ public interface MaterialSource {
      * Contributes the selected source identity and exact requested availability to a visible plan fingerprint.
      */
     default long planFingerprint(ObjectCollection<MaterialKey> keys) {
-        Availability snapshot = availability(keys);
-        return planFingerprint(keys, snapshot);
+        Availability availability = availability(keys);
+        return planFingerprint(keys, availability);
     }
 
     /**
-     * Computes the source contribution from the exact snapshot already used by material allocation.
+     * Computes the source contribution from the exact availability already used by material allocation.
      */
-    default long planFingerprint(ObjectCollection<MaterialKey> keys, Availability snapshot) {
+    default long planFingerprint(ObjectCollection<MaterialKey> keys, Availability availability) {
         long result = 0xcbf29ce484222325L;
-        result = fingerprint(result, snapshot.kind().ordinal());
-        SourceDescriptor descriptor = snapshot.descriptor();
+        result = fingerprint(result, availability.kind().ordinal());
+        SourceDescriptor descriptor = availability.descriptor();
         if (descriptor != null) {
             result = fingerprint(result, descriptor.displayName().hashCode());
             result = fingerprint(result, descriptor.selectionIdentity().hashCode());
             result = fingerprint(result, descriptor.linkTarget() == null ? 0 : descriptor.linkTarget().hashCode());
         }
-        result = fingerprint(result, snapshot.bindingFingerprint());
-        if (snapshot.problem() != null) {
-            result = fingerprint(result, snapshot.problem().type().ordinal());
+        result = fingerprint(result, availability.bindingFingerprint());
+        if (availability.problem() != null) {
+            result = fingerprint(result, availability.problem().type().ordinal());
         }
         for (MaterialKey key : keys) {
             result = fingerprint(result, key.hashCode());
-            result = fingerprint(result, snapshot.available(key));
+            result = fingerprint(result, availability.available(key));
         }
         return result;
     }

@@ -37,7 +37,6 @@ import org.jspecify.annotations.Nullable;
 import java.util.Comparator;
 import java.util.Objects;
 
-import static com.gregtechceu.gtceu.api.multiblock.autobuild.plan.BatchPlanner.*;
 import static com.gregtechceu.gtceu.api.multiblock.autobuild.plan.CandidateExpansion.*;
 import static com.gregtechceu.gtceu.api.multiblock.autobuild.plan.PlanAssembly.*;
 import static com.gregtechceu.gtceu.api.multiblock.autobuild.plan.StructurePlanner.*;
@@ -106,7 +105,7 @@ public final class BatchPlanner {
     }
 
     /**
-     * Resolves a server-authoritative plan against the controller's current world and material snapshots.
+     * Resolves a server-authoritative plan against the controller's current world and material availability.
      */
     public BatchPlan resolveWorld(MultiblockControllerMachine controller, ServerPlayer player,
                                   BatchRequest request) {
@@ -114,7 +113,7 @@ public final class BatchPlanner {
     }
 
     /**
-     * Resolves a server-authoritative plan and exposes the exact material snapshots and assignments it consumed.
+     * Resolves a server-authoritative plan and exposes the exact material availability and assignments it consumed.
      */
     public BatchResolution resolveBatch(MultiblockControllerMachine controller,
                                         ServerPlayer player,
@@ -122,7 +121,7 @@ public final class BatchPlanner {
         if (controller.getLevel() != player.level()) {
             BuildProblem problem = problem(BuildProblem.Type.INVALID_OPTIONS, controller.getBlockPos(),
                     "gtpm.multiblock.autobuild.invalid_target_level");
-            return sharedFailureSnapshot(request, problem);
+            return sharedFailure(request, problem);
         }
         return resolve(controller.getDefinition(), request,
                 new ResolutionContext(controller, player, player.level(), controller.getBlockPos(),
@@ -136,7 +135,7 @@ public final class BatchPlanner {
             return resolveChecked(definition, request, context);
         } catch (ArithmeticException exception) {
             GTCEu.LOGGER.error("Automatic-build material count overflow for {}", definition.getId(), exception);
-            return sharedFailureSnapshot(request, problem(BuildProblem.Type.COUNT_OVERFLOW,
+            return sharedFailure(request, problem(BuildProblem.Type.COUNT_OVERFLOW,
                     context.worldPos(), "gtpm.multiblock.autobuild.count_overflow"));
         }
     }
@@ -218,11 +217,11 @@ public final class BatchPlanner {
         long fingerprint = fingerprint(demolitionPlans, buildPlans, merged, materials.sourceFingerprints(),
                 allocations);
         BatchPlan plan = new BatchPlan(demolitionPlans, buildPlans, merged, sharedProblems, fingerprint);
-        return new BatchResolution(plan, materials.snapshots(), allocations);
+        return new BatchResolution(plan, materials.getAvailability(), allocations);
     }
 
-    private static BatchResolution sharedFailureSnapshot(BatchRequest request,
-                                                         BuildProblem problem) {
+    private static BatchResolution sharedFailure(BatchRequest request,
+                                                 BuildProblem problem) {
         ObjectArrayList<StructurePlan> demolitions = new ObjectArrayList<>();
         ObjectArrayList<StructurePlan> builds = new ObjectArrayList<>();
         for (StructureRequest options : request.structures()) {

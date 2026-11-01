@@ -164,9 +164,9 @@ public record StructurePreview(ResourceLocation definitionId, String fingerprint
             ObjectList<MaterialKey> candidates = entry.getKey();
             MaterialRequirement requirement = entry.getValue();
             long meAvailable = resolved == null ? 0 :
-                    availability(candidates, resolved.materialSnapshots(), MaterialSource.SourceKind.ME);
+                    availability(candidates, resolved.availability(), MaterialSource.SourceKind.ME);
             long playerAvailable = resolved == null ? 0 : availability(
-                    candidates, resolved.materialSnapshots(), MaterialSource.SourceKind.PLAYER);
+                    candidates, resolved.availability(), MaterialSource.SourceKind.PLAYER);
             long meAllocated = 0;
             long playerAllocated = 0;
             long missing = 0;
@@ -178,7 +178,7 @@ public record StructurePreview(ResourceLocation definitionId, String fingerprint
                     if (cursor == null) {
                         throw new IllegalStateException("Resolver omitted a required material allocation");
                     }
-                    AllocationPart part = cursor.take(keyRequirement.getLongValue(), resolved.materialSnapshots());
+                    AllocationPart part = cursor.take(keyRequirement.getLongValue(), resolved.availability());
                     meAllocated = checkedAdd(meAllocated, part.meAllocated, "ME allocation");
                     playerAllocated = checkedAdd(playerAllocated, part.playerAllocated, "player allocation");
                     missing = checkedAdd(missing, part.missing, "missing material count");
