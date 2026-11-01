@@ -392,7 +392,8 @@ public final class MEWirelessMaterialSource implements MaterialSource {
                 return null;
             }
             long simulated = simulatedAvailability.computeLongIfAbsent(aeKey,
-                    material -> access.inventory().extract(material, Long.MAX_VALUE, Actionable.SIMULATE, actionSource));
+                    material -> access.inventory().extract(material, Long.MAX_VALUE, Actionable.SIMULATE,
+                            actionSource));
             long reserved = Math.clamp(simulated - alreadyReserved, 0, amount);
             if (reserved == 0) {
                 return null;

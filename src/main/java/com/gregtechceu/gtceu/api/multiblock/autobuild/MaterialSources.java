@@ -64,5 +64,4 @@ public final class MaterialSources {
     }
 
     private record Registration(int priority, SourceKind kind, MaterialRequestProvider provider) {}
-
 }

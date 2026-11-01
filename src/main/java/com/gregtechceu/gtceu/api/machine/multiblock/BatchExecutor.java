@@ -51,8 +51,6 @@ import lombok.Getter;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
-import java.util.Objects;
-
 /**
  * Executes an already resolved batch without performing any candidate selection.
  */
