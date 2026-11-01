@@ -51,7 +51,7 @@ public class CTMMeshBuilder {
                     TextureAtlasSprite ctmSprite = defaultTexture ? originalSprite : connectionSprite;
 
                     emitter.fromVanilla(originalQuad, cullFace);
-                    emitter.spriteUnbake(originalSprite, BAKE_NORMALIZED | BAKE_DEROTATE_UV);
+                    emitter.spriteBake(null, BAKE_LOCK_UV);
 
                     // slice quad into the current quadrant
                     subsect(emitter, Submap.X2[xQuadrant][yQuadrant]);
