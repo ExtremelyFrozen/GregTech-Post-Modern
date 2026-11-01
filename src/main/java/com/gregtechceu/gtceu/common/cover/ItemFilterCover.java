@@ -11,7 +11,7 @@ import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTEnumSelectorElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.factory.CoverUIHelper;
-import com.gregtechceu.gtceu.api.gui.factory.LDLib2CoverUIProvider;
+import com.gregtechceu.gtceu.api.gui.factory.CoverUIProvider;
 import com.gregtechceu.gtceu.api.gui.factory.UICoverHolder;
 import com.gregtechceu.gtceu.api.machine.MachineCoverContainer;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
@@ -40,7 +40,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class ItemFilterCover extends CoverBehavior
-                             implements LDLib2CoverUIProvider, ItemFilterCoverConfigActionTarget {
+                             implements CoverUIProvider, ItemFilterCoverConfigActionTarget {
 
     static {
         ItemFilterCoverConfigActions.initialize();
@@ -104,12 +104,12 @@ public class ItemFilterCover extends CoverBehavior
     }
 
     @Override
-    public boolean canCreateLDLib2UI(Player player, UICoverHolder holder) {
+    public boolean canCreateUI(Player player, UICoverHolder holder) {
         return holder.getCover() == this;
     }
 
     @Override
-    public UI createLDLib2UI(Player player, UICoverHolder holder) {
+    public UI createUI(Player player, UICoverHolder holder) {
         UIElement root = new UIElement();
         UITemplate.setLDLib2Bounds(root, 0, 0, 176, 167);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));

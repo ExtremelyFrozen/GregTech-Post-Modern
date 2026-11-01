@@ -1,8 +1,8 @@
 package com.gregtechceu.gtceu.api.machine.fancyconfigurator;
 
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2ConfiguratorPanelElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyConfiguratorButton;
+import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyConfiguratorButton;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.BatchModeMachine;
 
 import net.minecraft.network.chat.Component;
@@ -22,7 +22,7 @@ public final class LDLib2BatchModeFancyConfigurator {
     /**
      * Attaches the batch mode toggle when the machine definition uses the batch recipe modifier.
      */
-    public static void attachConfigurators(LDLib2ConfiguratorPanelElement configuratorPanel,
+    public static void attachConfigurators(ConfiguratorPanel configuratorPanel,
                                            BatchModeMachine machine) {
         if (!machine.supportsBatchMode()) {
             return;
@@ -31,10 +31,10 @@ public final class LDLib2BatchModeFancyConfigurator {
         configuratorPanel.attachConfigurators(createBatchModeConfigurator(configuratorPanel, machine));
     }
 
-    static LDLib2FancyConfiguratorButton.Toggle createBatchModeConfigurator(
-                                                                            LDLib2ConfiguratorPanelElement configuratorPanel,
-                                                                            BatchModeMachine machine) {
-        return new LDLib2FancyConfiguratorButton.Toggle(
+    static FancyConfiguratorButton.Toggle createBatchModeConfigurator(
+                                                                      ConfiguratorPanel configuratorPanel,
+                                                                      BatchModeMachine machine) {
+        return new FancyConfiguratorButton.Toggle(
                 GuiTextures.BUTTON_BATCH.getSubTexture(0, 0, 1, 0.5),
                 GuiTextures.BUTTON_BATCH.getSubTexture(0, 0.5, 1, 0.5),
                 machine::isBatchEnabled,

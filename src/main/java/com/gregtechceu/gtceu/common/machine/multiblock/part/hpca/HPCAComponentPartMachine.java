@@ -2,8 +2,8 @@ package com.gregtechceu.gtceu.common.machine.multiblock.part.hpca;
 
 import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyPreviewPage;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyPreviewPage;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.LDLib2FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
@@ -40,8 +40,8 @@ public abstract class HPCAComponentPartMachine extends MultiblockPartMachine imp
 
     /** Creates the holder-scoped default preview used by the HPCA controller. */
     @Override
-    public LDLib2FancyUIProvider createLDLib2FancyPage(Player player, MachineUIHolder holder) {
-        return new LDLib2FancyPreviewPage(this, player, holder, null);
+    public FancyUIProvider createLDLib2FancyPage(Player player, MachineUIHolder holder) {
+        return new FancyPreviewPage(this, player, holder, null);
     }
 
     @Override

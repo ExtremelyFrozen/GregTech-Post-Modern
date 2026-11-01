@@ -20,14 +20,7 @@ public final class MachineUIHelper {
      * @return {@code true} when the machine provider accepted and opened the menu.
      */
     public static boolean open(MetaMachine machine, ServerPlayer player) {
-        if (!(machine instanceof LDLib2MachineUIProvider uiProvider)) {
-            return false;
-        }
-        MachineUIHolderContext holder = new MachineUIHolderContext(player, machine);
-        if (!uiProvider.canCreateLDLib2UI(player, holder)) {
-            return false;
-        }
-        return uiProvider.openLDLib2UI(machine, player);
+        return machine instanceof MachineUIProvider provider && provider.openUI(machine, player);
     }
 
     /**

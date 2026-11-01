@@ -173,7 +173,7 @@ class LDLib2DirectionalCoverActions private constructor() {
 
 			override fun canExecute(player: ServerPlayer, coverable: ICoverable, side: Direction): Boolean {
 				val cover = coverable.getCoverAtSide(side) ?: return false
-				return CoverUIHelper.canOpenLDLib2(cover, player)
+				return CoverUIHelper.canOpen(cover, player)
 			}
 
 			override fun executeValidated(player: ServerPlayer, coverable: ICoverable, side: Direction) {

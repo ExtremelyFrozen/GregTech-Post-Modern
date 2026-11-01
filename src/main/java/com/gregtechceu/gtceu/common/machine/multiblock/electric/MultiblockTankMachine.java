@@ -8,9 +8,9 @@ import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTFluidSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTImageElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
-import com.gregtechceu.gtceu.api.gui.factory.LDLib2MachineUIProvider;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
+import com.gregtechceu.gtceu.api.gui.factory.MachineUIProvider;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableFluidTank;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
@@ -43,7 +43,7 @@ import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
 
 public class MultiblockTankMachine extends MultiblockControllerMachine
-                                   implements LDLib2MachineUIProvider, MultiblockTankFluidSlotActionTarget {
+                                   implements MachineUIProvider, MultiblockTankFluidSlotActionTarget {
 
     static {
         MultiblockTankMachineActions.initialize();
@@ -84,12 +84,12 @@ public class MultiblockTankMachine extends MultiblockControllerMachine
     /////////////////////////////////////
 
     @Override
-    public boolean canCreateLDLib2UI(Player player, MachineUIHolder holder) {
+    public boolean canCreateUI(Player player, MachineUIHolder holder) {
         return holder.getMachine() == this;
     }
 
     @Override
-    public UI createLDLib2UI(Player player, MachineUIHolder holder) {
+    public UI createUI(Player player, MachineUIHolder holder) {
         UIElement root = new UIElement();
         UITemplate.setLDLib2Bounds(root, 0, 0, 176, 166);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));

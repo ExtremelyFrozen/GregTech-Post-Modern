@@ -6,16 +6,16 @@ import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTFluidSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
-import com.gregtechceu.gtceu.api.gui.factory.LDLib2MachineUIProvider;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
+import com.gregtechceu.gtceu.api.gui.factory.MachineUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUI;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyPreviewPage;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyTabs;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyTooltipsPanel;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyTooltip;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2ConfiguratorPanelElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyMachineUIElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyPreviewPage;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyTabsElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyTooltipsPanelElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyUIProvider;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.MachineDefinition;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2CircuitFancyConfigurator;
@@ -61,7 +61,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Predicate;
 
 public class DualHatchPartMachine extends ItemBusPartMachine
-                                  implements LDLib2MachineUIProvider, LDLib2FancyPartUIProvider,
+                                  implements MachineUIProvider, LDLib2FancyPartUIProvider,
                                   DualHatchFluidSlotActionTarget {
 
     public static final int INITIAL_TANK_CAPACITY = 16 * FluidType.BUCKET_VOLUME;
@@ -193,21 +193,21 @@ public class DualHatchPartMachine extends ItemBusPartMachine
     ///////////////////////////////
 
     @Override
-    public boolean canCreateLDLib2UI(Player player, MachineUIHolder holder) {
+    public boolean canCreateUI(Player player, MachineUIHolder holder) {
         return holder.getMachine() == this;
     }
 
     @Override
-    public UI createLDLib2UI(Player player, MachineUIHolder holder) {
+    public UI createUI(Player player, MachineUIHolder holder) {
         int pageWidth = getLDLib2PageWidth();
         int pageHeight = getLDLib2PageHeight();
-        return UI.of(new LDLib2FancyMachineUIElement(new DualHatchLDLib2Page(player, holder),
+        return UI.of(new FancyMachineUI(new DualHatchLDLib2Page(player, holder),
                 player.getInventory(), holder, pageWidth, pageHeight));
     }
 
     /** Creates the preview-style page used when a multiblock controller exposes this hatch. */
     @Override
-    public LDLib2FancyUIProvider createLDLib2FancyPage(Player player, MachineUIHolder holder) {
+    public FancyUIProvider createLDLib2FancyPage(Player player, MachineUIHolder holder) {
         return new DualHatchContextualPreviewPage(player, holder);
     }
 
@@ -409,7 +409,7 @@ public class DualHatchPartMachine extends ItemBusPartMachine
         return remainingStack.copy();
     }
 
-    private void attachLDLib2Configurators(LDLib2ConfiguratorPanelElement configuratorPanel,
+    private void attachLDLib2Configurators(ConfiguratorPanel configuratorPanel,
                                            MachineUIHolder holder) {
         configuratorPanel.attachConfigurators(new LDLib2WorkingEnabledFancyConfigurator(
                 this, holder));
@@ -423,7 +423,7 @@ public class DualHatchPartMachine extends ItemBusPartMachine
         }
     }
 
-    private void attachLDLib2Tooltips(LDLib2FancyTooltipsPanelElement tooltipsPanel) {
+    private void attachLDLib2Tooltips(FancyTooltipsPanel tooltipsPanel) {
         tooltipsPanel.attachTooltips(this);
         getTraitHolder().getAllTraits().stream()
                 .filter(IFancyTooltip.class::isInstance)
@@ -432,33 +432,33 @@ public class DualHatchPartMachine extends ItemBusPartMachine
     }
 
     @Nullable
-    private LDLib2FancyUIProvider.PageGroupingData createLDLib2PageGroupingData() {
+    private FancyUIProvider.PageGroupingData createLDLib2PageGroupingData() {
         return switch (io) {
-            case IN -> new LDLib2FancyUIProvider.PageGroupingData(
+            case IN -> new FancyUIProvider.PageGroupingData(
                     "gtpm.multiblock.page_switcher.io.import", 1);
-            case OUT -> new LDLib2FancyUIProvider.PageGroupingData(
+            case OUT -> new FancyUIProvider.PageGroupingData(
                     "gtpm.multiblock.page_switcher.io.export", 2);
-            case BOTH -> new LDLib2FancyUIProvider.PageGroupingData(
+            case BOTH -> new FancyUIProvider.PageGroupingData(
                     "gtpm.multiblock.page_switcher.io.both", 3);
             case NONE -> null;
         };
     }
 
     /** Keeps the legacy controller page as a preview while retaining Dual Hatch controls and grouping. */
-    private final class DualHatchContextualPreviewPage implements LDLib2FancyUIProvider {
+    private final class DualHatchContextualPreviewPage implements FancyUIProvider {
 
         private final MachineUIHolder holder;
-        private final LDLib2FancyPreviewPage previewPage;
+        private final FancyPreviewPage previewPage;
 
         private DualHatchContextualPreviewPage(Player player, MachineUIHolder holder) {
             this.holder = holder;
-            this.previewPage = new LDLib2FancyPreviewPage(DualHatchPartMachine.this, player, holder,
+            this.previewPage = new FancyPreviewPage(DualHatchPartMachine.this, player, holder,
                     createLDLib2PageGroupingData());
         }
 
         @Override
-        public UIElement createLDLib2MainPage(LDLib2FancyMachineUIElement shell) {
-            return previewPage.createLDLib2MainPage(shell);
+        public UIElement createMainPage(FancyMachineUI shell) {
+            return previewPage.createMainPage(shell);
         }
 
         @Override
@@ -472,27 +472,27 @@ public class DualHatchPartMachine extends ItemBusPartMachine
         }
 
         @Override
-        public int getLDLib2PageWidth() {
-            return previewPage.getLDLib2PageWidth();
+        public int getPageWidth() {
+            return previewPage.getPageWidth();
         }
 
         @Override
-        public int getLDLib2PageHeight() {
-            return previewPage.getLDLib2PageHeight();
+        public int getPageHeight() {
+            return previewPage.getPageHeight();
         }
 
         @Override
-        public void attachSideTabs(LDLib2FancyTabsElement tabs) {
+        public void attachSideTabs(FancyTabs tabs) {
             previewPage.attachSideTabs(tabs);
         }
 
         @Override
-        public void attachConfigurators(LDLib2ConfiguratorPanelElement configuratorPanel) {
+        public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
             attachLDLib2Configurators(configuratorPanel, holder);
         }
 
         @Override
-        public void attachTooltips(LDLib2FancyTooltipsPanelElement tooltipsPanel) {
+        public void attachTooltips(FancyTooltipsPanel tooltipsPanel) {
             attachLDLib2Tooltips(tooltipsPanel);
         }
 
@@ -503,7 +503,7 @@ public class DualHatchPartMachine extends ItemBusPartMachine
 
         @Override
         @Nullable
-        public LDLib2FancyUIProvider.PageGroupingData getPageGroupingData() {
+        public FancyUIProvider.PageGroupingData getPageGroupingData() {
             return previewPage.getPageGroupingData();
         }
     }
@@ -512,7 +512,7 @@ public class DualHatchPartMachine extends ItemBusPartMachine
      * Adapts the inherited legacy Fancy machine metadata to an LDLib2 page without making the machine implement two
      * incompatible Fancy provider contracts.
      */
-    private final class DualHatchLDLib2Page implements LDLib2FancyUIProvider {
+    private final class DualHatchLDLib2Page implements FancyUIProvider {
 
         private final Player player;
         private final MachineUIHolder holder;
@@ -529,7 +529,7 @@ public class DualHatchPartMachine extends ItemBusPartMachine
         }
 
         @Override
-        public UIElement createLDLib2MainPage(LDLib2FancyMachineUIElement shell) {
+        public UIElement createMainPage(FancyMachineUI shell) {
             return createLDLib2MainElement(player, holder);
         }
 
@@ -544,27 +544,27 @@ public class DualHatchPartMachine extends ItemBusPartMachine
         }
 
         @Override
-        public int getLDLib2PageWidth() {
+        public int getPageWidth() {
             return DualHatchPartMachine.this.getLDLib2PageWidth();
         }
 
         @Override
-        public int getLDLib2PageHeight() {
+        public int getPageHeight() {
             return DualHatchPartMachine.this.getLDLib2PageHeight();
         }
 
         @Override
-        public void attachSideTabs(LDLib2FancyTabsElement tabs) {
+        public void attachSideTabs(FancyTabs tabs) {
             tabs.attachSubTab(directionalPage);
         }
 
         @Override
-        public void attachConfigurators(LDLib2ConfiguratorPanelElement configuratorPanel) {
+        public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
             attachLDLib2Configurators(configuratorPanel, holder);
         }
 
         @Override
-        public void attachTooltips(LDLib2FancyTooltipsPanelElement tooltipsPanel) {
+        public void attachTooltips(FancyTooltipsPanel tooltipsPanel) {
             attachLDLib2Tooltips(tooltipsPanel);
         }
 
@@ -575,7 +575,7 @@ public class DualHatchPartMachine extends ItemBusPartMachine
 
         @Override
         @Nullable
-        public LDLib2FancyUIProvider.PageGroupingData getPageGroupingData() {
+        public FancyUIProvider.PageGroupingData getPageGroupingData() {
             return createLDLib2PageGroupingData();
         }
     }

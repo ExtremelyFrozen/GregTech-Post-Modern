@@ -8,10 +8,10 @@ import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
-import com.gregtechceu.gtceu.api.gui.factory.LDLib2MachineUIProvider;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyPreviewPage;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyUIProvider;
+import com.gregtechceu.gtceu.api.gui.factory.MachineUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyPreviewPage;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
 import com.gregtechceu.gtceu.api.machine.TickableSubscription;
 import com.gregtechceu.gtceu.api.machine.feature.IWorkLogicMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IWorkableMultiController;
@@ -50,7 +50,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 public class MufflerPartMachine extends TieredPartMachine
-                                implements LDLib2MachineUIProvider, LDLib2FancyPartUIProvider {
+                                implements MachineUIProvider, LDLib2FancyPartUIProvider {
 
     @Getter
     private final int recoveryChance;
@@ -182,12 +182,12 @@ public class MufflerPartMachine extends TieredPartMachine
     // ********** GUI ***********//
     //////////////////////////////////////
     @Override
-    public boolean canCreateLDLib2UI(Player player, MachineUIHolder holder) {
+    public boolean canCreateUI(Player player, MachineUIHolder holder) {
         return holder.getMachine() == this;
     }
 
     @Override
-    public UI createLDLib2UI(Player player, MachineUIHolder holder) {
+    public UI createUI(Player player, MachineUIHolder holder) {
         int rowSize = (int) Math.sqrt(inventory.getSlots());
         int xOffset = rowSize == 10 ? 9 : 0;
         int rootWidth = 176 + xOffset * 2;
@@ -212,8 +212,8 @@ public class MufflerPartMachine extends TieredPartMachine
 
     /** Creates the holder-scoped default preview used by a surrounding multiblock controller. */
     @Override
-    public LDLib2FancyUIProvider createLDLib2FancyPage(Player player, MachineUIHolder holder) {
-        return new LDLib2FancyPreviewPage(this, player, holder, null);
+    public FancyUIProvider createLDLib2FancyPage(Player player, MachineUIHolder holder) {
+        return new FancyPreviewPage(this, player, holder, null);
     }
 
     private GTLabelElement createLDLib2TitleLabel(int rootWidth) {

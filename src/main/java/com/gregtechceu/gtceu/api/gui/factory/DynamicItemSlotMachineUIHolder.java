@@ -1,9 +1,10 @@
 package com.gregtechceu.gtceu.api.gui.factory;
 
+import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
-import com.gregtechceu.gtceu.common.data.GTMenuTypes;
 
 import com.lowdragmc.lowdraglib2.gui.factory.IContainerUIHolder;
+import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerMenu;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
 
@@ -67,6 +68,41 @@ public final class DynamicItemSlotMachineUIHolder implements MachineUIHolder, Me
         this.menuSessionId = menuSessionId;
     }
 
+    /** Opens this exact machine session and publishes its manifest only after Vanilla installs the menu. */
+    static boolean open(MetaMachine machine, ServerPlayer player) {
+        if (!(machine instanceof DynamicItemSlotMachineUIProvider provider)) {
+            return false;
+        }
+        DynamicItemSlotMachineUIHolder holder = new DynamicItemSlotMachineUIHolder(player, machine);
+        if (!provider.canCreateUI(player, holder)) {
+            return false;
+        }
+        try {
+            if (!UIRegistry.open(player, UIRegistry.MACHINE, holder)) {
+                holder.abortOpening(player);
+                return false;
+            }
+            holder.publishInitialManifest(player);
+            return true;
+        } catch (RuntimeException exception) {
+            try {
+                holder.abortOpening(player);
+            } catch (RuntimeException closeException) {
+                exception.addSuppressed(closeException);
+            }
+            GTCEu.LOGGER.error("Failed to open dynamic item-slot machine menu at {} for {}",
+                    machine.getBlockPos(), player.getGameProfile().getName(), exception);
+            return false;
+        }
+    }
+
+    static ModularUIContainerMenu read(int windowId, Inventory inventory, BlockPos pos, RegistryFriendlyByteBuf data) {
+        ResourceLocation machineDefinitionId = data.readResourceLocation();
+        UUID menuSessionId = data.readUUID();
+        DynamicItemSlotMachineUIHolder holder = client(inventory.player, pos, machineDefinitionId, menuSessionId);
+        return new GTDynamicItemSlotContainerMenu(UIRegistry.MENU.get(), windowId, inventory, holder);
+    }
+
     /**
      * Reconstructs the client holder from server-owned opening identity.
      */
@@ -106,8 +142,8 @@ public final class DynamicItemSlotMachineUIHolder implements MachineUIHolder, Me
     public boolean isStillValid(Player player) {
         MetaMachine machine = getMachine();
         return !closed && this.player == player &&
-                machine instanceof LDLib2DynamicItemSlotMachineUIProvider provider &&
-                provider.canCreateLDLib2UI(player, this);
+                machine instanceof DynamicItemSlotMachineUIProvider provider &&
+                provider.canCreateUI(player, this);
     }
 
     @Override
@@ -126,7 +162,7 @@ public final class DynamicItemSlotMachineUIHolder implements MachineUIHolder, Me
         }
         requireValid("before menu creation");
         GTDynamicItemSlotContainerMenu menu = new GTDynamicItemSlotContainerMenu(
-                GTMenuTypes.DYNAMIC_ITEM_SLOT_MACHINE_UI.get(), containerId, playerInventory, this);
+                UIRegistry.MENU.get(), containerId, playerInventory, this);
         serverMenu = menu;
         requireValid("after menu creation");
         return menu;
@@ -141,6 +177,7 @@ public final class DynamicItemSlotMachineUIHolder implements MachineUIHolder, Me
             throw new IllegalStateException("Dynamic item-slot opening data belongs to another menu.");
         }
         buffer.writeBlockPos(pos);
+        MachineUIProvider.BLOCK_STATE_CODEC.encode(buffer, openedMachine.getBlockState());
         buffer.writeResourceLocation(machineDefinitionId);
         buffer.writeUUID(menuSessionId);
     }
@@ -154,15 +191,15 @@ public final class DynamicItemSlotMachineUIHolder implements MachineUIHolder, Me
             throw new IllegalStateException("Dynamic item-slot holder can create exactly one ModularUI.");
         }
         MetaMachine machine = getMachine();
-        if (this.player != player || !(machine instanceof LDLib2DynamicItemSlotMachineUIProvider provider) ||
-                !provider.canCreateLDLib2UI(player, this)) {
+        if (this.player != player || !(machine instanceof DynamicItemSlotMachineUIProvider provider) ||
+                !provider.canCreateUI(player, this)) {
             throw new IllegalStateException("Dynamic item-slot machine rejected its opened menu holder.");
         }
-        UI ui = provider.createLDLib2UI(player, this);
+        UI ui = provider.createUI(player, this);
         if (ui == null) {
             throw new IllegalStateException("Dynamic item-slot machine UI provider returned null.");
         }
-        openedUI = ModularUI.of(ui, player);
+        openedUI = UIRegistry.createUI(ui, player);
         return openedUI;
     }
 

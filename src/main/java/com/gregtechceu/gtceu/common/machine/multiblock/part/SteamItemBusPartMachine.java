@@ -7,9 +7,9 @@ import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTToggleButtonElement;
-import com.gregtechceu.gtceu.api.gui.factory.LDLib2MachineUIProvider;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyUIProvider;
+import com.gregtechceu.gtceu.api.gui.factory.MachineUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
 import com.gregtechceu.gtceu.api.machine.MachineDefinition;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.LDLib2FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.SteamItemBus;
@@ -26,7 +26,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.state.BlockState;
 
 public class SteamItemBusPartMachine extends ItemBusPartMachine
-                                     implements LDLib2MachineUIProvider, LDLib2FancyPartUIProvider, SteamItemBus {
+                                     implements MachineUIProvider, LDLib2FancyPartUIProvider, SteamItemBus {
 
     private final String autoTooltipKey;
 
@@ -36,12 +36,12 @@ public class SteamItemBusPartMachine extends ItemBusPartMachine
     }
 
     @Override
-    public boolean canCreateLDLib2UI(Player player, MachineUIHolder holder) {
+    public boolean canCreateUI(Player player, MachineUIHolder holder) {
         return holder.getMachine() == this;
     }
 
     @Override
-    public UI createLDLib2UI(Player player, MachineUIHolder holder) {
+    public UI createUI(Player player, MachineUIHolder holder) {
         int rowSize = (int) Math.sqrt(getInventorySize());
         int xOffset = rowSize == 10 ? 9 : 0;
         int rootWidth = 176 + xOffset * 2;
@@ -81,7 +81,7 @@ public class SteamItemBusPartMachine extends ItemBusPartMachine
      * Creates a holder-scoped Item Bus page for one surrounding steam multiblock UI opening.
      */
     @Override
-    public LDLib2FancyUIProvider createLDLib2FancyPage(Player player, MachineUIHolder holder) {
+    public FancyUIProvider createLDLib2FancyPage(Player player, MachineUIHolder holder) {
         return createLDLib2Page(player, holder);
     }
 

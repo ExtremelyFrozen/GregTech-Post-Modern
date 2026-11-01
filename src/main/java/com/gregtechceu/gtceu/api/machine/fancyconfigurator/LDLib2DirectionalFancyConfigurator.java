@@ -11,14 +11,14 @@ import com.gregtechceu.gtceu.api.gui.element.GTToggleButtonElement;
 import com.gregtechceu.gtceu.api.gui.factory.CoverUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyMachineUIElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUI;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.MachineCoverContainer;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.api.machine.feature.DirectionalAutoOutputMachine;
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData;
-import com.gregtechceu.gtceu.client.gui.fancy.LDLib2DirectionalSceneElement;
+import com.gregtechceu.gtceu.client.gui.fancy.DirectionalSceneFactory;
 import com.gregtechceu.gtceu.common.machine.trait.AutoOutputTrait;
 import com.gregtechceu.gtceu.data.lang.LangHandler;
 
@@ -48,7 +48,7 @@ import java.util.function.BooleanSupplier;
  * The provider owns its page-specific machine holder so direct machine pages and future nested part pages cannot
  * accidentally send actions through the Fancy shell's root holder.
  */
-public final class LDLib2DirectionalFancyConfigurator implements LDLib2FancyUIProvider {
+public final class LDLib2DirectionalFancyConfigurator implements FancyUIProvider {
 
     public static final int PAGE_WIDTH = 168;
     public static final int PAGE_HEIGHT = 80;
@@ -188,7 +188,7 @@ public final class LDLib2DirectionalFancyConfigurator implements LDLib2FancyUIPr
     }
 
     @Override
-    public UIElement createLDLib2MainPage(LDLib2FancyMachineUIElement shell) {
+    public UIElement createMainPage(FancyMachineUI shell) {
         if (!openingValid.getAsBoolean()) {
             throw new IllegalStateException("Directional page no longer resolves its opened machine context.");
         }
@@ -217,7 +217,7 @@ public final class LDLib2DirectionalFancyConfigurator implements LDLib2FancyUIPr
 
         if (machine.isRemote()) {
             RegistrateDistExecutor.unsafeRunWhenOn(Dist.CLIENT,
-                    () -> () -> LDLib2DirectionalSceneElement.attachScene(sceneContainer, machine, output,
+                    () -> () -> DirectionalSceneFactory.attachScene(sceneContainer, machine, output,
                             SCENE_WIDTH, SCENE_HEIGHT, this::handleSceneFaceClick));
         }
         return root;
@@ -239,12 +239,12 @@ public final class LDLib2DirectionalFancyConfigurator implements LDLib2FancyUIPr
     }
 
     @Override
-    public int getLDLib2PageWidth() {
+    public int getPageWidth() {
         return PAGE_WIDTH;
     }
 
     @Override
-    public int getLDLib2PageHeight() {
+    public int getPageHeight() {
         return PAGE_HEIGHT;
     }
 
@@ -557,7 +557,7 @@ public final class LDLib2DirectionalFancyConfigurator implements LDLib2FancyUIPr
         private void refreshState() {
             CoverBehavior cover = getSelectedCover();
             boolean configurable = openingValid.getAsBoolean() && cover != null &&
-                    CoverUIHelper.canOpenLDLib2(cover, player);
+                    CoverUIHelper.canOpen(cover, player);
             setVisible(configurable);
             setActive(configurable);
         }
@@ -620,7 +620,7 @@ public final class LDLib2DirectionalFancyConfigurator implements LDLib2FancyUIPr
     private void onCoverConfigClick(UIEvent event) {
         Direction side = selectedSide;
         CoverBehavior cover = getSelectedCover();
-        if (side == null || cover == null || !CoverUIHelper.canOpenLDLib2(cover, player)) {
+        if (side == null || cover == null || !CoverUIHelper.canOpen(cover, player)) {
             return;
         }
         sendAction(coverActionRequests.createOpenCoverAction(side));

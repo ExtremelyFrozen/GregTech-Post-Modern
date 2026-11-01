@@ -12,14 +12,14 @@ import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTComponentPanelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
-import com.gregtechceu.gtceu.api.gui.factory.LDLib2MachineUIProvider;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolderContext;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2ConfiguratorPanelElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyMachineUIElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyTabsElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyTooltipsPanelElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyUIProvider;
+import com.gregtechceu.gtceu.api.gui.factory.MachineUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUI;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyTabs;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyTooltipsPanel;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.ConditionalSubscriptionHandler;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2BatchModeFancyConfigurator;
@@ -69,7 +69,7 @@ import java.util.Map;
 
 public class WorkableElectricMultiblockMachine extends WorkableMultiblockMachine implements BatchModeMachine,
                                                IDisplayUIMachine, ITieredMachine,
-                                               IOverclockMachine, LDLib2MachineUIProvider,
+                                               IOverclockMachine, MachineUIProvider,
                                                LDLib2FancyActionMachine {
 
     // runtime
@@ -202,7 +202,7 @@ public class WorkableElectricMultiblockMachine extends WorkableMultiblockMachine
     //////////////////////////////////////
 
     @Override
-    public boolean canCreateLDLib2UI(Player player, MachineUIHolder holder) {
+    public boolean canCreateUI(Player player, MachineUIHolder holder) {
         if (holder.getMachine() != this) return false;
         for (IMultiPart part : getParts()) {
             if (!(part instanceof LDLib2FancyPartUIProvider)) return false;
@@ -211,11 +211,11 @@ public class WorkableElectricMultiblockMachine extends WorkableMultiblockMachine
     }
 
     @Override
-    public UI createLDLib2UI(Player player, MachineUIHolder holder) {
+    public UI createUI(Player player, MachineUIHolder holder) {
         requireMatchingLDLib2Holder(holder);
         WorkableElectricMultiblockFancyPage page = new WorkableElectricMultiblockFancyPage(player, holder);
-        LDLib2FancyMachineUIElement shell = new LDLib2FancyMachineUIElement(page, player.getInventory(), holder,
-                page.getLDLib2PageWidth(), page.getLDLib2PageHeight());
+        FancyMachineUI shell = new FancyMachineUI(page, player.getInventory(), holder,
+                page.getPageWidth(), page.getPageHeight());
         shell.addEventListener(UIEvents.MUI_CHANGED, event -> {
             var modularUI = shell.getModularUI();
             if (modularUI != null) {
@@ -250,21 +250,21 @@ public class WorkableElectricMultiblockMachine extends WorkableMultiblockMachine
 
     private record LDLib2DisplayOpening(Player player, AbstractContainerMenu menu) {}
 
-    private final class WorkableElectricMultiblockFancyPage implements LDLib2FancyUIProvider {
+    private final class WorkableElectricMultiblockFancyPage implements FancyUIProvider {
 
         private static final int PAGE_WIDTH = 190;
         private static final int PAGE_HEIGHT = 125;
 
         private final MachineUIHolder holder;
         private final List<IMultiPart> openingParts;
-        private final List<LDLib2FancyUIProvider> sidePages;
-        private final List<LDLib2FancyUIProvider> partPages;
+        private final List<FancyUIProvider> sidePages;
+        private final List<FancyUIProvider> partPages;
 
         private WorkableElectricMultiblockFancyPage(Player player, MachineUIHolder holder) {
             this.holder = holder;
             openingParts = List.copyOf(getParts());
 
-            List<LDLib2FancyUIProvider> openingSidePages = new ArrayList<>();
+            List<FancyUIProvider> openingSidePages = new ArrayList<>();
             if (getRecipeTypes().length > 1) {
                 openingSidePages.add(new LDLib2MachineModeFancyConfigurator(
                         WorkableElectricMultiblockMachine.this));
@@ -273,7 +273,7 @@ public class WorkableElectricMultiblockMachine extends WorkableMultiblockMachine
                     WorkableElectricMultiblockMachine.this, player, holder));
             sidePages = List.copyOf(openingSidePages);
 
-            List<LDLib2FancyUIProvider> openingPartPages = new ArrayList<>();
+            List<FancyUIProvider> openingPartPages = new ArrayList<>();
             for (IMultiPart part : openingParts) {
                 if (!(part instanceof LDLib2FancyPartUIProvider pageProvider)) {
                     GTCEu.LOGGER.error("Workable multiblock part {} has no LDLib2 Fancy page",
@@ -288,7 +288,7 @@ public class WorkableElectricMultiblockMachine extends WorkableMultiblockMachine
         }
 
         @Override
-        public UIElement createLDLib2MainPage(LDLib2FancyMachineUIElement shell) {
+        public UIElement createMainPage(FancyMachineUI shell) {
             if (holder.getMachine() != WorkableElectricMultiblockMachine.this) {
                 GTCEu.LOGGER.error("Workable multiblock page holder changed after opening at {}", getBlockPos());
                 throw new IllegalStateException("Workable multiblock page holder no longer resolves its controller.");
@@ -334,22 +334,22 @@ public class WorkableElectricMultiblockMachine extends WorkableMultiblockMachine
         }
 
         @Override
-        public int getLDLib2PageWidth() {
+        public int getPageWidth() {
             return PAGE_WIDTH;
         }
 
         @Override
-        public int getLDLib2PageHeight() {
+        public int getPageHeight() {
             return PAGE_HEIGHT;
         }
 
         @Override
-        public void attachSideTabs(LDLib2FancyTabsElement tabs) {
+        public void attachSideTabs(FancyTabs tabs) {
             sidePages.forEach(tabs::attachSubTab);
         }
 
         @Override
-        public void attachConfigurators(LDLib2ConfiguratorPanelElement configuratorPanel) {
+        public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
             LDLib2VoidingModeFancyConfigurator.attachConfigurators(
                     configuratorPanel, WorkableElectricMultiblockMachine.this);
             LDLib2BatchModeFancyConfigurator.attachConfigurators(
@@ -359,7 +359,7 @@ public class WorkableElectricMultiblockMachine extends WorkableMultiblockMachine
         }
 
         @Override
-        public void attachTooltips(LDLib2FancyTooltipsPanelElement tooltipsPanel) {
+        public void attachTooltips(FancyTooltipsPanel tooltipsPanel) {
             for (IMultiPart part : openingParts) {
                 part.attachLDLib2FancyTooltipsToController(
                         WorkableElectricMultiblockMachine.this, tooltipsPanel);
@@ -367,7 +367,7 @@ public class WorkableElectricMultiblockMachine extends WorkableMultiblockMachine
         }
 
         @Override
-        public List<LDLib2FancyUIProvider> getSubTabs() {
+        public List<FancyUIProvider> getSubTabs() {
             return partPages;
         }
 

@@ -10,12 +10,12 @@ import net.minecraft.world.entity.player.Player;
  * <p>
  * This provider lets cover business code depend on {@link UICoverHolder} instead of an LDLib2 menu holder.
  */
-public interface LDLib2CoverUIProvider {
+public interface CoverUIProvider {
 
     /**
      * Returns whether this cover should use LDLib2 for the provided holder context.
      */
-    boolean canCreateLDLib2UI(Player player, UICoverHolder holder);
+    boolean canCreateUI(Player player, UICoverHolder holder);
 
     /**
      * Builds the LDLib2 cover UI tree for the provided player and opened cover identity.
@@ -24,7 +24,7 @@ public interface LDLib2CoverUIProvider {
      * @param holder GTM holder that exposes the opened cover position, side, definition id, and current cover lookup.
      * @return non-null LDLib2 UI tree.
      */
-    UI createLDLib2UI(Player player, UICoverHolder holder);
+    UI createUI(Player player, UICoverHolder holder);
 
     /**
      * Notifies this cover after its server-side LDLib2 menu has closed.

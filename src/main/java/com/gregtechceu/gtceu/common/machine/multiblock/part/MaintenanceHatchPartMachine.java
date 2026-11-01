@@ -9,11 +9,11 @@ import com.gregtechceu.gtceu.api.gui.element.GTButtonElement;
 import com.gregtechceu.gtceu.api.gui.element.GTComponentPanelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTImageElement;
 import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
-import com.gregtechceu.gtceu.api.gui.factory.LDLib2MachineUIProvider;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyPreviewPage;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyUIProvider;
+import com.gregtechceu.gtceu.api.gui.factory.MachineUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyPreviewPage;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
 import com.gregtechceu.gtceu.api.item.tool.GTToolType;
 import com.gregtechceu.gtceu.api.item.tool.ToolHelper;
 import com.gregtechceu.gtceu.api.machine.TickableSubscription;
@@ -57,7 +57,7 @@ import java.util.List;
 import java.util.function.DoubleSupplier;
 
 public class MaintenanceHatchPartMachine extends TieredPartMachine
-                                         implements IMaintenanceMachine, LDLib2MachineUIProvider,
+                                         implements IMaintenanceMachine, MachineUIProvider,
                                          LDLib2FancyPartUIProvider, MaintenanceHatchActionTarget {
 
     private static final float MAX_DURATION_MULTIPLIER = 1.1f;
@@ -338,12 +338,12 @@ public class MaintenanceHatchPartMachine extends TieredPartMachine
     // ******** GUI *********//
     //////////////////////////////////////
     @Override
-    public boolean canCreateLDLib2UI(Player player, MachineUIHolder holder) {
+    public boolean canCreateUI(Player player, MachineUIHolder holder) {
         return holder.getMachine() == this;
     }
 
     @Override
-    public UI createLDLib2UI(Player player, MachineUIHolder holder) {
+    public UI createUI(Player player, MachineUIHolder holder) {
         if (holder.getMachine() != this) {
             throw new IllegalArgumentException("Maintenance Hatch UI holder must resolve the opened part.");
         }
@@ -362,8 +362,8 @@ public class MaintenanceHatchPartMachine extends TieredPartMachine
     }
 
     @Override
-    public LDLib2FancyUIProvider createLDLib2FancyPage(Player player, MachineUIHolder holder) {
-        return new LDLib2FancyPreviewPage(this, player, holder, null,
+    public FancyUIProvider createLDLib2FancyPage(Player player, MachineUIHolder holder) {
+        return new FancyPreviewPage(this, player, holder, null,
                 this::attachLDLib2MaintenanceTooltips);
     }
 

@@ -20,7 +20,7 @@ import java.util.function.Function;
  * Implementations that need to mutate server state must flush a GTM field update or dispatch a GTM action packet from
  * the click handler.
  */
-public interface LDLib2FancyConfiguratorButton extends LDLib2FancyConfigurator {
+public interface FancyConfiguratorButton extends FancyConfigurator {
 
     /**
      * Handles the local click event for this configurator button.
@@ -39,7 +39,7 @@ public interface LDLib2FancyConfiguratorButton extends LDLib2FancyConfigurator {
      * Button configurators execute click handlers directly instead of creating a nested configurator element.
      */
     @Override
-    default UIElement createLDLib2Configurator() {
+    default UIElement createConfigurator() {
         throw new UnsupportedOperationException("Button configurators do not create a nested configurator element.");
     }
 
@@ -50,7 +50,7 @@ public interface LDLib2FancyConfiguratorButton extends LDLib2FancyConfigurator {
      * The toggle does not own synchronization. Callers that mutate business state must send a GTM field update or
      * action packet from the click handler.
      */
-    class Toggle implements LDLib2FancyConfiguratorButton {
+    class Toggle implements FancyConfiguratorButton {
 
         private final IGuiTexture base;
         private final IGuiTexture pressed;

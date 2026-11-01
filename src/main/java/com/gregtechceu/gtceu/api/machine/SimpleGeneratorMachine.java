@@ -7,7 +7,7 @@ import com.gregtechceu.gtceu.api.capability.recipe.RecipeCapability;
 import com.gregtechceu.gtceu.api.gui.editor.EditableMachineUI;
 import com.gregtechceu.gtceu.api.gui.editor.MachineUIXmlTemplates;
 import com.gregtechceu.gtceu.api.gui.element.GTProgressBarElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2ConfiguratorPanelElement;
+import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2WorkingEnabledFancyConfigurator;
 import com.gregtechceu.gtceu.api.machine.feature.LDLib2RecipeFancyUIMachine;
 import com.gregtechceu.gtceu.api.recipe.GTRecipe;
@@ -128,7 +128,7 @@ public class SimpleGeneratorMachine extends WorkableTieredMachine
     }
 
     @Override
-    public void attachConfigurators(LDLib2ConfiguratorPanelElement configuratorPanel) {
+    public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
         configuratorPanel.attachConfigurators(new LDLib2WorkingEnabledFancyConfigurator(
                 this, configuratorPanel.getHolder()));
     }

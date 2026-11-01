@@ -10,13 +10,13 @@ import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTComponentPanelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
-import com.gregtechceu.gtceu.api.gui.factory.LDLib2MachineUIProvider;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolderContext;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2ConfiguratorPanelElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyMachineUIElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyTabsElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyUIProvider;
+import com.gregtechceu.gtceu.api.gui.factory.MachineUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUI;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyTabs;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.ConditionalSubscriptionHandler;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
@@ -64,7 +64,7 @@ import static com.gregtechceu.gtceu.api.multiblock.structurepredicate.PatternPre
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 public class ActiveTransformerMachine extends WorkableElectricMultiblockMachine
-                                      implements IControllable, IDisplayUIMachine, LDLib2MachineUIProvider,
+                                      implements IControllable, IDisplayUIMachine, MachineUIProvider,
                                       LDLib2FancyActionMachine {
 
     private EnergyContainerList powerOutput;
@@ -276,16 +276,16 @@ public class ActiveTransformerMachine extends WorkableElectricMultiblockMachine
                         boolean dangerEnabled) {}
 
     @Override
-    public boolean canCreateLDLib2UI(Player player, MachineUIHolder holder) {
+    public boolean canCreateUI(Player player, MachineUIHolder holder) {
         return holder.getMachine() == this;
     }
 
     @Override
-    public UI createLDLib2UI(Player player, MachineUIHolder holder) {
+    public UI createUI(Player player, MachineUIHolder holder) {
         requireMatchingHolder(holder);
         ActiveTransformerFancyPage page = new ActiveTransformerFancyPage(player, holder);
-        return UI.of(new LDLib2FancyMachineUIElement(page, player.getInventory(), holder,
-                page.getLDLib2PageWidth(), page.getLDLib2PageHeight()));
+        return UI.of(new FancyMachineUI(page, player.getInventory(), holder,
+                page.getPageWidth(), page.getPageHeight()));
     }
 
     private void requireMatchingHolder(MachineUIHolder holder) {
@@ -294,14 +294,14 @@ public class ActiveTransformerMachine extends WorkableElectricMultiblockMachine
         }
     }
 
-    private final class ActiveTransformerFancyPage implements LDLib2FancyUIProvider {
+    private final class ActiveTransformerFancyPage implements FancyUIProvider {
 
         private static final int PAGE_WIDTH = 190;
         private static final int PAGE_HEIGHT = 125;
 
         private final MachineUIHolder holder;
         private final LDLib2DirectionalFancyConfigurator directionalPage;
-        private final List<LDLib2FancyUIProvider> partPages;
+        private final List<FancyUIProvider> partPages;
 
         private ActiveTransformerFancyPage(Player player, MachineUIHolder holder) {
             requireMatchingHolder(holder);
@@ -309,7 +309,7 @@ public class ActiveTransformerMachine extends WorkableElectricMultiblockMachine
             this.directionalPage = new LDLib2DirectionalFancyConfigurator(ActiveTransformerMachine.this,
                     player, holder);
 
-            List<LDLib2FancyUIProvider> pages = new ArrayList<>();
+            List<FancyUIProvider> pages = new ArrayList<>();
             for (IMultiPart part : getParts()) {
                 if (!(part instanceof LDLib2FancyPartUIProvider pageProvider)) {
                     throw new IllegalStateException("Active Transformer part has no LDLib2 Fancy page: " +
@@ -322,7 +322,7 @@ public class ActiveTransformerMachine extends WorkableElectricMultiblockMachine
         }
 
         @Override
-        public UIElement createLDLib2MainPage(LDLib2FancyMachineUIElement shell) {
+        public UIElement createMainPage(FancyMachineUI shell) {
             if (holder.getMachine() != ActiveTransformerMachine.this) {
                 throw new IllegalStateException("Active Transformer page holder no longer resolves its controller.");
             }
@@ -367,22 +367,22 @@ public class ActiveTransformerMachine extends WorkableElectricMultiblockMachine
         }
 
         @Override
-        public int getLDLib2PageWidth() {
+        public int getPageWidth() {
             return PAGE_WIDTH;
         }
 
         @Override
-        public int getLDLib2PageHeight() {
+        public int getPageHeight() {
             return PAGE_HEIGHT;
         }
 
         @Override
-        public void attachSideTabs(LDLib2FancyTabsElement tabs) {
+        public void attachSideTabs(FancyTabs tabs) {
             tabs.attachSubTab(directionalPage);
         }
 
         @Override
-        public void attachConfigurators(LDLib2ConfiguratorPanelElement configuratorPanel) {
+        public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
             LDLib2VoidingModeFancyConfigurator.attachConfigurators(
                     configuratorPanel, ActiveTransformerMachine.this);
             LDLib2BatchModeFancyConfigurator.attachConfigurators(
@@ -392,7 +392,7 @@ public class ActiveTransformerMachine extends WorkableElectricMultiblockMachine
         }
 
         @Override
-        public List<LDLib2FancyUIProvider> getSubTabs() {
+        public List<FancyUIProvider> getSubTabs() {
             return partPages;
         }
 

@@ -3,7 +3,7 @@ package com.gregtechceu.gtceu.api.machine.fancyconfigurator;
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTFluidSlotElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyConfigurator;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyConfigurator;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.transfer.fluid.CustomFluidTank;
 
@@ -30,7 +30,7 @@ import java.util.function.BiPredicate;
  * behavior.
  */
 @Accessors(chain = true)
-public class LDLib2FancyTankConfigurator implements LDLib2FancyConfigurator {
+public class LDLib2FancyTankConfigurator implements FancyConfigurator {
 
     private final CustomFluidTank[] tanks;
     private final Component title;
@@ -65,19 +65,19 @@ public class LDLib2FancyTankConfigurator implements LDLib2FancyConfigurator {
     }
 
     @Override
-    public int getLDLib2ConfiguratorWidth() {
+    public int getConfiguratorWidth() {
         return 18 * getRowSize() + 16;
     }
 
     @Override
-    public int getLDLib2ConfiguratorHeight() {
+    public int getConfiguratorHeight() {
         return 18 * getColSize() + 16;
     }
 
     @Override
-    public UIElement createLDLib2Configurator() {
+    public UIElement createConfigurator() {
         UIElement group = new UIElement();
-        UITemplate.setLDLib2Bounds(group, 0, 0, getLDLib2ConfiguratorWidth(), getLDLib2ConfiguratorHeight());
+        UITemplate.setLDLib2Bounds(group, 0, 0, getConfiguratorWidth(), getConfiguratorHeight());
 
         int rowSize = getRowSize();
         int colSize = getColSize();

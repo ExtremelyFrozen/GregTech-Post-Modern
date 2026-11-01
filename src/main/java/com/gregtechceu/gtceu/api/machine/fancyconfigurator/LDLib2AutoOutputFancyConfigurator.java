@@ -1,8 +1,8 @@
 package com.gregtechceu.gtceu.api.machine.fancyconfigurator;
 
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2ConfiguratorPanelElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyConfiguratorButton;
+import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyConfiguratorButton;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.feature.AutoOutputMachine;
 
@@ -27,7 +27,7 @@ public final class LDLib2AutoOutputFancyConfigurator {
     /**
      * Attaches supported auto-output toggles to a migrated LDLib2 Fancy configurator panel.
      */
-    public static void attachConfigurators(LDLib2ConfiguratorPanelElement configuratorPanel,
+    public static void attachConfigurators(ConfiguratorPanel configuratorPanel,
                                            AutoOutputMachine autoOutputMachine) {
         if (autoOutputMachine.supportsAutoOutputFluids()) {
             configuratorPanel.attachConfigurators(createAutoOutputFluidConfigurator(configuratorPanel,
@@ -39,9 +39,9 @@ public final class LDLib2AutoOutputFancyConfigurator {
         }
     }
 
-    static LDLib2FancyConfiguratorButton.Toggle createAutoOutputFluidConfigurator(
-                                                                                  LDLib2ConfiguratorPanelElement panel,
-                                                                                  AutoOutputMachine autoOutputMachine) {
+    static FancyConfiguratorButton.Toggle createAutoOutputFluidConfigurator(
+                                                                            ConfiguratorPanel panel,
+                                                                            AutoOutputMachine autoOutputMachine) {
         return createAutoOutputConfigurator(
                 GuiTextures.group(
                         GuiTextures.TOGGLE_BUTTON_BACK.getSubTexture(0, 0, 1, 0.5),
@@ -62,9 +62,9 @@ public final class LDLib2AutoOutputFancyConfigurator {
                 });
     }
 
-    static LDLib2FancyConfiguratorButton.Toggle createAutoOutputItemConfigurator(
-                                                                                 LDLib2ConfiguratorPanelElement panel,
-                                                                                 AutoOutputMachine autoOutputMachine) {
+    static FancyConfiguratorButton.Toggle createAutoOutputItemConfigurator(
+                                                                           ConfiguratorPanel panel,
+                                                                           AutoOutputMachine autoOutputMachine) {
         return createAutoOutputConfigurator(
                 GuiTextures.group(
                         GuiTextures.TOGGLE_BUTTON_BACK.getSubTexture(0, 0, 1, 0.5),
@@ -85,13 +85,13 @@ public final class LDLib2AutoOutputFancyConfigurator {
                 });
     }
 
-    private static LDLib2FancyConfiguratorButton.Toggle createAutoOutputConfigurator(
-                                                                                     IGuiTexture disabledIcon,
-                                                                                     IGuiTexture enabledIcon,
-                                                                                     BooleanSupplier stateSupplier,
-                                                                                     String tooltipBaseLangKey,
-                                                                                     BiConsumer<UIEvent, Boolean> clickHandler) {
-        return new LDLib2FancyConfiguratorButton.Toggle(disabledIcon, enabledIcon, stateSupplier, clickHandler)
+    private static FancyConfiguratorButton.Toggle createAutoOutputConfigurator(
+                                                                               IGuiTexture disabledIcon,
+                                                                               IGuiTexture enabledIcon,
+                                                                               BooleanSupplier stateSupplier,
+                                                                               String tooltipBaseLangKey,
+                                                                               BiConsumer<UIEvent, Boolean> clickHandler) {
+        return new FancyConfiguratorButton.Toggle(disabledIcon, enabledIcon, stateSupplier, clickHandler)
                 .setTooltipsSupplier(enabled -> List.of(Component.translatable(
                         tooltipBaseLangKey + "." + (enabled ? "enabled" : "disabled"))));
     }

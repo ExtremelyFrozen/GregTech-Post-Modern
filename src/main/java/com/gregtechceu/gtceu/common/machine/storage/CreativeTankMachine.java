@@ -10,15 +10,15 @@ import com.gregtechceu.gtceu.api.gui.element.GTImageElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTPhantomFluidSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTTextFieldElement;
-import com.gregtechceu.gtceu.api.gui.factory.LDLib2MachineUIProvider;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
+import com.gregtechceu.gtceu.api.gui.factory.MachineUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyConfiguratorButton;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUI;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyTooltipsPanel;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyTooltip;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2ConfiguratorPanelElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyConfiguratorButton;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyMachineUIElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyTooltipsPanelElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyUIProvider;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.item.datacomponents.CreativeMachineInfo;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
@@ -51,7 +51,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.List;
 
 public class CreativeTankMachine extends QuantumTankMachine
-                                 implements LDLib2MachineUIProvider, CreativeTankFluidActionTarget {
+                                 implements MachineUIProvider, CreativeTankFluidActionTarget {
 
     private static final int PAGE_WIDTH = 176;
     private static final int PAGE_HEIGHT = 131;
@@ -182,13 +182,13 @@ public class CreativeTankMachine extends QuantumTankMachine
     }
 
     @Override
-    public boolean canCreateLDLib2UI(Player player, MachineUIHolder holder) {
+    public boolean canCreateUI(Player player, MachineUIHolder holder) {
         return holder.getMachine() == this;
     }
 
     @Override
-    public UI createLDLib2UI(Player player, MachineUIHolder holder) {
-        return UI.of(new LDLib2FancyMachineUIElement(new CreativeTankLDLib2Page(player, holder),
+    public UI createUI(Player player, MachineUIHolder holder) {
+        return UI.of(new FancyMachineUI(new CreativeTankLDLib2Page(player, holder),
                 player.getInventory(), holder, PAGE_WIDTH, PAGE_HEIGHT));
     }
 
@@ -303,8 +303,8 @@ public class CreativeTankMachine extends QuantumTankMachine
                 GuiTextures.text(isWorkingEnabled() ? "gtpm.creative.activity.on" : "gtpm.creative.activity.off"));
     }
 
-    LDLib2FancyConfiguratorButton.Toggle createLDLib2WorkingEnabledConfigurator() {
-        return new LDLib2FancyConfiguratorButton.Toggle(
+    FancyConfiguratorButton.Toggle createLDLib2WorkingEnabledConfigurator() {
+        return new FancyConfiguratorButton.Toggle(
                 GuiTextures.BUTTON_POWER.getSubTexture(0, 0, 1, 0.5),
                 GuiTextures.BUTTON_POWER.getSubTexture(0, 0.5, 1, 0.5),
                 this::isWorkingEnabled,
@@ -382,7 +382,7 @@ public class CreativeTankMachine extends QuantumTankMachine
         components.set(GTDataComponents.CREATIVE_MACHINE_INFO, new CreativeMachineInfo(mBPerCycle, ticksPerCycle));
     }
 
-    private final class CreativeTankLDLib2Page implements LDLib2FancyUIProvider {
+    private final class CreativeTankLDLib2Page implements FancyUIProvider {
 
         private final Player player;
         private final MachineUIHolder holder;
@@ -393,7 +393,7 @@ public class CreativeTankMachine extends QuantumTankMachine
         }
 
         @Override
-        public UIElement createLDLib2MainPage(LDLib2FancyMachineUIElement shell) {
+        public UIElement createMainPage(FancyMachineUI shell) {
             return CreativeTankMachine.this.createLDLib2MainPage(player, holder);
         }
 
@@ -408,22 +408,22 @@ public class CreativeTankMachine extends QuantumTankMachine
         }
 
         @Override
-        public int getLDLib2PageWidth() {
+        public int getPageWidth() {
             return PAGE_WIDTH;
         }
 
         @Override
-        public int getLDLib2PageHeight() {
+        public int getPageHeight() {
             return PAGE_HEIGHT;
         }
 
         @Override
-        public void attachConfigurators(LDLib2ConfiguratorPanelElement configuratorPanel) {
+        public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
             configuratorPanel.attachConfigurators(createLDLib2WorkingEnabledConfigurator());
         }
 
         @Override
-        public void attachTooltips(LDLib2FancyTooltipsPanelElement tooltipsPanel) {
+        public void attachTooltips(FancyTooltipsPanel tooltipsPanel) {
             tooltipsPanel.attachTooltips(CreativeTankMachine.this);
             getTraitHolder().getAllTraits().stream()
                     .filter(IFancyTooltip.class::isInstance)

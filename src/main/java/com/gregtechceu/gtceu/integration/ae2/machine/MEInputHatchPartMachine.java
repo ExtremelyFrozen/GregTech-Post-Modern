@@ -6,12 +6,12 @@ import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
+import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUI;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyTabs;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyTooltipsPanel;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyTooltip;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2ConfiguratorPanelElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyMachineUIElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyTabsElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyTooltipsPanelElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyUIProvider;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2AutoStockingFancyConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2CircuitFancyConfigurator;
@@ -204,19 +204,19 @@ public class MEInputHatchPartMachine extends MEHatchPartMachine
     }
 
     @Override
-    public boolean canCreateLDLib2UI(Player player, MachineUIHolder holder) {
+    public boolean canCreateUI(Player player, MachineUIHolder holder) {
         return holder.getMachine() == this && supportsMEFluidConfigActions();
     }
 
     @Override
-    public UI createLDLib2UI(Player player, MachineUIHolder holder) {
-        LDLib2FancyUIProvider page = createLDLib2Page(player, holder);
-        return UI.of(new LDLib2FancyMachineUIElement(page, player.getInventory(), holder,
-                page.getLDLib2PageWidth(), page.getLDLib2PageHeight()));
+    public UI createUI(Player player, MachineUIHolder holder) {
+        FancyUIProvider page = createLDLib2Page(player, holder);
+        return UI.of(new FancyMachineUI(page, player.getInventory(), holder,
+                page.getPageWidth(), page.getPageHeight()));
     }
 
     /** Creates one standalone opening-scoped page after validating the exact holder and definition. */
-    LDLib2FancyUIProvider createLDLib2Page(Player player, MachineUIHolder holder) {
+    FancyUIProvider createLDLib2Page(Player player, MachineUIHolder holder) {
         requireMatchingHolder(holder);
         if (!supportsMEFluidConfigActions()) {
             throw new IllegalStateException("ME fluid configuration page requires an exact input hatch definition.");
@@ -225,7 +225,7 @@ public class MEInputHatchPartMachine extends MEHatchPartMachine
     }
 
     @Override
-    public LDLib2FancyUIProvider createLDLib2FancyPage(Player player, MachineUIHolder holder) {
+    public FancyUIProvider createLDLib2FancyPage(Player player, MachineUIHolder holder) {
         return createLDLib2Page(player, holder);
     }
 
@@ -427,7 +427,7 @@ public class MEInputHatchPartMachine extends MEHatchPartMachine
     }
 
     /** One opening-scoped Fancy home page shared by standalone and contextual part navigation. */
-    private final class MEFluidHatchFancyPage implements LDLib2FancyUIProvider {
+    private final class MEFluidHatchFancyPage implements FancyUIProvider {
 
         private final Player player;
         private final MachineUIHolder holder;
@@ -443,7 +443,7 @@ public class MEInputHatchPartMachine extends MEHatchPartMachine
         }
 
         @Override
-        public UIElement createLDLib2MainPage(LDLib2FancyMachineUIElement shell) {
+        public UIElement createMainPage(FancyMachineUI shell) {
             if (holder.getMachine() != MEInputHatchPartMachine.this) {
                 throw new IllegalStateException("ME fluid configuration page holder no longer resolves its hatch.");
             }
@@ -461,24 +461,24 @@ public class MEInputHatchPartMachine extends MEHatchPartMachine
         }
 
         @Override
-        public int getLDLib2PageWidth() {
+        public int getPageWidth() {
             return 150;
         }
 
         @Override
-        public int getLDLib2PageHeight() {
+        public int getPageHeight() {
             return 88;
         }
 
         @Override
-        public void attachSideTabs(LDLib2FancyTabsElement tabs) {
+        public void attachSideTabs(FancyTabs tabs) {
             if (directionalPage != null) {
                 tabs.attachSubTab(directionalPage);
             }
         }
 
         @Override
-        public void attachConfigurators(LDLib2ConfiguratorPanelElement configuratorPanel) {
+        public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
             configuratorPanel.attachConfigurators(new LDLib2WorkingEnabledFancyConfigurator(
                     MEInputHatchPartMachine.this, holder));
             if (isCircuitSlotEnabled()) {
@@ -493,7 +493,7 @@ public class MEInputHatchPartMachine extends MEHatchPartMachine
         }
 
         @Override
-        public void attachTooltips(LDLib2FancyTooltipsPanelElement tooltipsPanel) {
+        public void attachTooltips(FancyTooltipsPanel tooltipsPanel) {
             tooltipsPanel.attachTooltips(MEInputHatchPartMachine.this);
             for (var trait : getTraitHolder().getAllTraits()) {
                 if (trait instanceof IFancyTooltip tooltip) {

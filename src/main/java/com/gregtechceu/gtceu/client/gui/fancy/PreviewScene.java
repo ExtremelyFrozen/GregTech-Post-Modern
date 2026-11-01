@@ -18,12 +18,12 @@ import java.util.List;
  * Client-only LDLib2 scene that preserves the rotating single-machine preview used by legacy Fancy pages.
  */
 @OnlyIn(Dist.CLIENT)
-public final class LDLib2PreviewSceneElement extends GTSceneElement {
+public final class PreviewScene extends GTSceneElement {
 
     private static final float PREVIEW_FOV = 30;
     private static final float ROTATION_DEGREES_PER_TICK = 2;
 
-    private LDLib2PreviewSceneElement() {}
+    private PreviewScene() {}
 
     /**
      * Creates a fixed, non-interactive preview scene for the supplied machine block state.
@@ -32,7 +32,7 @@ public final class LDLib2PreviewSceneElement extends GTSceneElement {
         TrackedDummyWorld level = new TrackedDummyWorld();
         level.addBlock(BlockPos.ZERO, MultiblockBlockInfo.fromBlockState(machine.getBlockState()));
 
-        LDLib2PreviewSceneElement scene = new LDLib2PreviewSceneElement();
+        PreviewScene scene = new PreviewScene();
         scene.createScene(level)
                 .useOrtho(true)
                 .setOrthoRange(0.5f)

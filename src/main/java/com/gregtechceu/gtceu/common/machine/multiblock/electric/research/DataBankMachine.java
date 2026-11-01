@@ -12,14 +12,14 @@ import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTComponentPanelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
-import com.gregtechceu.gtceu.api.gui.factory.LDLib2MachineUIProvider;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolderContext;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2ConfiguratorPanelElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyMachineUIElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyTabsElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyTooltipsPanelElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyUIProvider;
+import com.gregtechceu.gtceu.api.gui.factory.MachineUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUI;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyTabs;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyTooltipsPanel;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.ConditionalSubscriptionHandler;
 import com.gregtechceu.gtceu.api.machine.TickableSubscription;
@@ -63,7 +63,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class DataBankMachine extends WorkableElectricMultiblockMachine
-                             implements IControllable, IDataAccessMachine, LDLib2MachineUIProvider,
+                             implements IControllable, IDataAccessMachine, MachineUIProvider,
                              LDLib2FancyActionMachine {
 
     public static final int EUT_PER_HATCH = GTValues.VA[GTValues.EV];
@@ -340,18 +340,18 @@ public class DataBankMachine extends WorkableElectricMultiblockMachine
     record DisplayState(boolean formed, boolean workingEnabled, boolean active, int energyUsage) {}
 
     @Override
-    public boolean canCreateLDLib2UI(Player player, MachineUIHolder holder) {
+    public boolean canCreateUI(Player player, MachineUIHolder holder) {
         return holder.getMachine() == this;
     }
 
     @Override
-    public UI createLDLib2UI(Player player, MachineUIHolder holder) {
-        LDLib2FancyUIProvider page = createLDLib2Page(player, holder);
-        return UI.of(new LDLib2FancyMachineUIElement(page, player.getInventory(), holder,
-                page.getLDLib2PageWidth(), page.getLDLib2PageHeight()));
+    public UI createUI(Player player, MachineUIHolder holder) {
+        FancyUIProvider page = createLDLib2Page(player, holder);
+        return UI.of(new FancyMachineUI(page, player.getInventory(), holder,
+                page.getPageWidth(), page.getPageHeight()));
     }
 
-    LDLib2FancyUIProvider createLDLib2Page(Player player, MachineUIHolder holder) {
+    FancyUIProvider createLDLib2Page(Player player, MachineUIHolder holder) {
         requireMatchingHolder(holder);
         return new DataBankFancyPage(player, holder);
     }
@@ -362,21 +362,21 @@ public class DataBankMachine extends WorkableElectricMultiblockMachine
         }
     }
 
-    private final class DataBankFancyPage implements LDLib2FancyUIProvider {
+    private final class DataBankFancyPage implements FancyUIProvider {
 
         private static final int PAGE_WIDTH = 190;
         private static final int PAGE_HEIGHT = 125;
 
         private final MachineUIHolder holder;
         private final LDLib2DirectionalFancyConfigurator directionalPage;
-        private final List<LDLib2FancyUIProvider> partPages;
+        private final List<FancyUIProvider> partPages;
 
         private DataBankFancyPage(Player player, MachineUIHolder holder) {
             requireMatchingHolder(holder);
             this.holder = holder;
             this.directionalPage = new LDLib2DirectionalFancyConfigurator(DataBankMachine.this, player, holder);
 
-            List<LDLib2FancyUIProvider> pages = new ArrayList<>();
+            List<FancyUIProvider> pages = new ArrayList<>();
             for (IMultiPart part : getParts()) {
                 if (part instanceof DataAccessHatchMachine hatch && hatch.isCreative()) {
                     continue;
@@ -399,7 +399,7 @@ public class DataBankMachine extends WorkableElectricMultiblockMachine
         }
 
         @Override
-        public UIElement createLDLib2MainPage(LDLib2FancyMachineUIElement shell) {
+        public UIElement createMainPage(FancyMachineUI shell) {
             if (holder.getMachine() != DataBankMachine.this) {
                 throw new IllegalStateException("Data Bank page holder no longer resolves its controller.");
             }
@@ -442,22 +442,22 @@ public class DataBankMachine extends WorkableElectricMultiblockMachine
         }
 
         @Override
-        public int getLDLib2PageWidth() {
+        public int getPageWidth() {
             return PAGE_WIDTH;
         }
 
         @Override
-        public int getLDLib2PageHeight() {
+        public int getPageHeight() {
             return PAGE_HEIGHT;
         }
 
         @Override
-        public void attachSideTabs(LDLib2FancyTabsElement tabs) {
+        public void attachSideTabs(FancyTabs tabs) {
             tabs.attachSubTab(directionalPage);
         }
 
         @Override
-        public void attachConfigurators(LDLib2ConfiguratorPanelElement configuratorPanel) {
+        public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
             LDLib2VoidingModeFancyConfigurator.attachConfigurators(configuratorPanel, DataBankMachine.this);
             LDLib2BatchModeFancyConfigurator.attachConfigurators(configuratorPanel, DataBankMachine.this);
             configuratorPanel.attachConfigurators(new LDLib2WorkingEnabledFancyConfigurator(
@@ -465,7 +465,7 @@ public class DataBankMachine extends WorkableElectricMultiblockMachine
         }
 
         @Override
-        public void attachTooltips(LDLib2FancyTooltipsPanelElement tooltipsPanel) {
+        public void attachTooltips(FancyTooltipsPanel tooltipsPanel) {
             for (IMultiPart part : getParts()) {
                 if (part instanceof IMaintenanceMachine maintenanceMachine) {
                     maintenanceMachine.attachLDLib2MaintenanceTooltips(tooltipsPanel);
@@ -474,7 +474,7 @@ public class DataBankMachine extends WorkableElectricMultiblockMachine
         }
 
         @Override
-        public List<LDLib2FancyUIProvider> getSubTabs() {
+        public List<FancyUIProvider> getSubTabs() {
             return partPages;
         }
 

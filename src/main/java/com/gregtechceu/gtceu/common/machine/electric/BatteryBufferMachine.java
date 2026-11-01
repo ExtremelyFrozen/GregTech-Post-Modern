@@ -10,7 +10,7 @@ import com.gregtechceu.gtceu.api.capability.compat.FeCompat;
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyMachineUIElement;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUI;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.TieredEnergyMachine;
 import com.gregtechceu.gtceu.api.machine.feature.LDLib2FancyUIMachine;
@@ -128,13 +128,13 @@ public class BatteryBufferMachine extends TieredEnergyMachine
     //////////////////////////////////////
 
     @Override
-    public UIElement createLDLib2MainPage(LDLib2FancyMachineUIElement shell) {
+    public UIElement createMainPage(FancyMachineUI shell) {
         UIElement root = UITemplate.setLDLib2Bounds(new UIElement(), 0, 0,
-                getLDLib2PageWidth(), getLDLib2PageHeight());
+                getPageWidth(), getPageHeight());
 
         UIElement energyBar = createLDLib2EnergyBar();
         UITemplate.setLDLib2Bounds(energyBar, ENERGY_BAR_X,
-                (getLDLib2PageHeight() - ENERGY_BAR_HEIGHT) / 2, ENERGY_BAR_WIDTH, ENERGY_BAR_HEIGHT);
+                (getPageHeight() - ENERGY_BAR_HEIGHT) / 2, ENERGY_BAR_WIDTH, ENERGY_BAR_HEIGHT);
         root.addChild(energyBar);
 
         UIElement template = UITemplate.setLDLib2Bounds(new UIElement(),
@@ -154,13 +154,13 @@ public class BatteryBufferMachine extends TieredEnergyMachine
     }
 
     @Override
-    public int getLDLib2PageWidth() {
+    public int getPageWidth() {
         return Math.max(ENERGY_BAR_WIDTH + getLDLib2BatteryTemplateWidth() + PAGE_ENERGY_TEMPLATE_GAP +
                 TEMPLATE_PADDING, PAGE_MIN_WIDTH);
     }
 
     @Override
-    public int getLDLib2PageHeight() {
+    public int getPageHeight() {
         return Math.max(getLDLib2BatteryTemplateHeight() + TEMPLATE_PADDING, ENERGY_BAR_HEIGHT + TEMPLATE_PADDING);
     }
 
@@ -174,12 +174,12 @@ public class BatteryBufferMachine extends TieredEnergyMachine
     }
 
     private int getLDLib2BatteryTemplateX() {
-        return (getLDLib2PageWidth() - ENERGY_BAR_WIDTH - PAGE_ENERGY_TEMPLATE_GAP -
+        return (getPageWidth() - ENERGY_BAR_WIDTH - PAGE_ENERGY_TEMPLATE_GAP -
                 getLDLib2BatteryTemplateWidth()) / 2 + 2 + ENERGY_BAR_WIDTH + 2;
     }
 
     private int getLDLib2BatteryTemplateY() {
-        return (getLDLib2PageHeight() - getLDLib2BatteryTemplateHeight()) / 2;
+        return (getPageHeight() - getLDLib2BatteryTemplateHeight()) / 2;
     }
 
     private int getLDLib2BatteryTemplateWidth() {

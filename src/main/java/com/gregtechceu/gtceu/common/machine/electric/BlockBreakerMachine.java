@@ -8,7 +8,7 @@ import com.gregtechceu.gtceu.api.capability.recipe.IO;
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyMachineUIElement;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUI;
 import com.gregtechceu.gtceu.api.machine.TickableSubscription;
 import com.gregtechceu.gtceu.api.machine.TieredEnergyMachine;
 import com.gregtechceu.gtceu.api.machine.feature.LDLib2FancyUIMachine;
@@ -275,9 +275,9 @@ public class BlockBreakerMachine extends TieredEnergyMachine
     // ********** GUI ***********//
     //////////////////////////////////////
     @Override
-    public UIElement createLDLib2MainPage(LDLib2FancyMachineUIElement shell) {
+    public UIElement createMainPage(FancyMachineUI shell) {
         UIElement root = UITemplate.setLDLib2Bounds(new UIElement(), 0, 0,
-                getLDLib2PageWidth(), getLDLib2PageHeight());
+                getPageWidth(), getPageHeight());
 
         UIElement energyGroup = UITemplate.setLDLib2Bounds(new UIElement(), ENERGY_GROUP_X, getLDLib2EnergyGroupY(),
                 getLDLib2EnergyGroupWidth(), getLDLib2EnergyGroupHeight());
@@ -302,13 +302,13 @@ public class BlockBreakerMachine extends TieredEnergyMachine
     }
 
     @Override
-    public int getLDLib2PageWidth() {
+    public int getPageWidth() {
         return Math.max(getLDLib2EnergyGroupWidth() + getLDLib2CacheTemplateWidth() +
                 PAGE_ENERGY_TEMPLATE_GAP + TEMPLATE_PADDING, PAGE_MIN_WIDTH);
     }
 
     @Override
-    public int getLDLib2PageHeight() {
+    public int getPageHeight() {
         return Math.max(getLDLib2CacheTemplateHeight() + TEMPLATE_PADDING,
                 getLDLib2EnergyGroupHeight() + TEMPLATE_PADDING);
     }
@@ -341,7 +341,7 @@ public class BlockBreakerMachine extends TieredEnergyMachine
     }
 
     private int getLDLib2EnergyGroupY() {
-        return (getLDLib2PageHeight() - getLDLib2EnergyGroupHeight()) / 2;
+        return (getPageHeight() - getLDLib2EnergyGroupHeight()) / 2;
     }
 
     private int getLDLib2ChargerSlotX() {
@@ -349,12 +349,12 @@ public class BlockBreakerMachine extends TieredEnergyMachine
     }
 
     private int getLDLib2CacheTemplateX() {
-        return (getLDLib2PageWidth() - PAGE_ENERGY_TEMPLATE_GAP - getLDLib2CacheTemplateWidth()) / 2 +
+        return (getPageWidth() - PAGE_ENERGY_TEMPLATE_GAP - getLDLib2CacheTemplateWidth()) / 2 +
                 PAGE_ENERGY_TEMPLATE_GAP;
     }
 
     private int getLDLib2CacheTemplateY() {
-        return (getLDLib2PageHeight() - getLDLib2CacheTemplateHeight()) / 2;
+        return (getPageHeight() - getLDLib2CacheTemplateHeight()) / 2;
     }
 
     private int getLDLib2CacheTemplateWidth() {

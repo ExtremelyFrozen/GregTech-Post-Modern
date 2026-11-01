@@ -1,9 +1,12 @@
 package com.gregtechceu.gtceu.integration.ae2.machine;
 
+import com.gregtechceu.gtceu.api.gui.factory.MachineUIProvider;
+import com.gregtechceu.gtceu.api.gui.factory.UIRegistry;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.common.data.machines.GTAEMachines;
 
 import com.lowdragmc.lowdraglib2.gui.factory.IContainerUIHolder;
+import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerMenu;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
 
@@ -104,6 +107,27 @@ public final class MEPatternBufferProxyUIHolder
         }
     }
 
+    /** Decodes the Proxy session after the common machine factory has resolved its owner. */
+    static ModularUIContainerMenu read(int windowId, Inventory inventory, BlockPos proxyPos,
+                                       RegistryFriendlyByteBuf data) {
+        ResourceLocation proxyDefinitionId = data.readResourceLocation();
+        MEPatternBufferProxyOpeningIdentity opening = MEPatternBufferProxyOpeningIdentity.STREAM_CODEC.decode(data);
+        UUID menuSessionId = data.readUUID();
+        MEPatternBufferProxyViewSnapshot snapshot = MEPatternBufferProxyViewSnapshot.STREAM_CODEC.decode(data);
+        MEPatternBufferProxyUIHolder holder = client(
+                inventory.player, proxyPos, proxyDefinitionId, opening, menuSessionId, snapshot);
+        try {
+            return new MEPatternBufferProxyUIContainerMenu(UIRegistry.MENU.get(), windowId, inventory, holder);
+        } catch (RuntimeException | Error exception) {
+            try {
+                holder.close(inventory.player);
+            } catch (RuntimeException closeException) {
+                exception.addSuppressed(closeException);
+            }
+            throw exception;
+        }
+    }
+
     @Nullable
     @Override
     public MetaMachine getMachine() {
@@ -150,7 +174,7 @@ public final class MEPatternBufferProxyUIHolder
         }
         requireOpeningValid("before menu creation");
         MEPatternBufferProxyUIContainerMenu menu = new MEPatternBufferProxyUIContainerMenu(
-                MEPatternBufferProxyUIMenuType.MENU_TYPE.get(), containerId, playerInventory, this);
+                UIRegistry.MENU.get(), containerId, playerInventory, this);
         requireOpeningValid("after menu creation");
         patternBufferView.addProxyUIMenu(menu);
         serverMenu = menu;
@@ -163,6 +187,7 @@ public final class MEPatternBufferProxyUIHolder
             throw new IllegalStateException("Pattern Buffer Proxy opening data does not belong to its server menu.");
         }
         buffer.writeBlockPos(pos);
+        MachineUIProvider.BLOCK_STATE_CODEC.encode(buffer, player.level().getBlockState(pos));
         buffer.writeResourceLocation(machineDefinitionId);
         MEPatternBufferProxyOpeningIdentity.STREAM_CODEC.encode(buffer, openingIdentity);
         buffer.writeUUID(menuSessionId);
@@ -172,11 +197,11 @@ public final class MEPatternBufferProxyUIHolder
     @Override
     public ModularUI createUI(Player player) {
         if (this.player != player || !(getMachine() instanceof MEPatternBufferProxyPartMachine proxy) ||
-                !proxy.canCreateLDLib2UI(player, this)) {
+                !proxy.canCreateUI(player, this)) {
             throw new IllegalStateException("Pattern Buffer Proxy rejected its opened menu holder.");
         }
-        UI ui = proxy.createLDLib2UI(player, this);
-        return ModularUI.of(ui, player);
+        UI ui = proxy.createUI(player, this);
+        return UIRegistry.createUI(ui, player);
     }
 
     /** Applies one session-validated server update to the client projection. */

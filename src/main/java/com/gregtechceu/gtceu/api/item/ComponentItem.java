@@ -3,7 +3,7 @@ package com.gregtechceu.gtceu.api.item;
 import com.gregtechceu.gtceu.api.capability.GTCapabilityHelper;
 import com.gregtechceu.gtceu.api.capability.IElectricItem;
 import com.gregtechceu.gtceu.api.gui.factory.HeldItemUIHolder;
-import com.gregtechceu.gtceu.api.gui.factory.LDLib2HeldItemUIProvider;
+import com.gregtechceu.gtceu.api.gui.factory.HeldItemUIProvider;
 import com.gregtechceu.gtceu.api.item.capability.ElectricItem;
 import com.gregtechceu.gtceu.api.item.component.*;
 
@@ -43,7 +43,7 @@ import java.util.Arrays;
 import java.util.List;
 
 public class ComponentItem extends Item
-                           implements LDLib2HeldItemUIProvider, IItemRendererProvider,
+                           implements HeldItemUIProvider, IItemRendererProvider,
                            IComponentItem {
 
     @Getter
@@ -295,7 +295,7 @@ public class ComponentItem extends Item
     }
 
     @Override
-    public boolean canCreateLDLib2UI(Player entityPlayer, HeldItemUIHolder holder) {
+    public boolean canCreateUI(Player entityPlayer, HeldItemUIHolder holder) {
         for (IItemComponent component : components) {
             if (component instanceof IItemUIFactory uiFactory) {
                 return uiFactory.canCreateLDLib2UI(holder, entityPlayer);
@@ -305,7 +305,7 @@ public class ComponentItem extends Item
     }
 
     @Override
-    public UI createLDLib2UI(Player entityPlayer, HeldItemUIHolder holder) {
+    public UI createUI(Player entityPlayer, HeldItemUIHolder holder) {
         for (IItemComponent component : components) {
             if (component instanceof IItemUIFactory uiFactory) {
                 if (!uiFactory.canCreateLDLib2UI(holder, entityPlayer)) {
@@ -318,13 +318,13 @@ public class ComponentItem extends Item
     }
 
     @Override
-    public boolean isLDLib2UIStillValid(Player entityPlayer, HeldItemUIHolder holder) {
+    public boolean isUIStillValid(Player entityPlayer, HeldItemUIHolder holder) {
         for (IItemComponent component : components) {
             if (component instanceof IItemUIFactory uiFactory) {
                 return uiFactory.isLDLib2UIStillValid(holder, entityPlayer);
             }
         }
-        return LDLib2HeldItemUIProvider.super.isLDLib2UIStillValid(entityPlayer, holder);
+        return HeldItemUIProvider.super.isUIStillValid(entityPlayer, holder);
     }
 
     @Nullable

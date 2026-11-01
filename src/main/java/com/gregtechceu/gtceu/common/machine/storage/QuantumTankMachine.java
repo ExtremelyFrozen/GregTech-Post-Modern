@@ -11,15 +11,15 @@ import com.gregtechceu.gtceu.api.gui.element.GTImageElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTPhantomFluidSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTToggleButtonElement;
-import com.gregtechceu.gtceu.api.gui.factory.LDLib2MachineUIProvider;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
+import com.gregtechceu.gtceu.api.gui.factory.MachineUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyConfiguratorButton;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUI;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyTooltipsPanel;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyTooltip;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2ConfiguratorPanelElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyConfiguratorButton;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyMachineUIElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyTooltipsPanelElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyUIProvider;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.MachineDefinition;
 import com.gregtechceu.gtceu.api.machine.TieredMachine;
@@ -70,7 +70,7 @@ import java.util.List;
 import java.util.function.Predicate;
 
 public class QuantumTankMachine extends TieredMachine implements IControllable,
-                                LDLib2MachineUIProvider, QuantumTankActionTarget {
+                                MachineUIProvider, QuantumTankActionTarget {
 
     public static Object2LongMap<MachineDefinition> TANK_CAPACITY = Util.make(new Object2LongArrayMap<>(),
             map -> map.defaultReturnValue(-1L));
@@ -221,13 +221,13 @@ public class QuantumTankMachine extends TieredMachine implements IControllable,
     // *********** GUI ***********//
     //////////////////////////////////////
     @Override
-    public boolean canCreateLDLib2UI(Player player, MachineUIHolder holder) {
+    public boolean canCreateUI(Player player, MachineUIHolder holder) {
         return holder.getMachine() == this;
     }
 
     @Override
-    public UI createLDLib2UI(Player player, MachineUIHolder holder) {
-        return UI.of(new LDLib2FancyMachineUIElement(new QuantumTankLDLib2Page(player, holder),
+    public UI createUI(Player player, MachineUIHolder holder) {
+        return UI.of(new FancyMachineUI(new QuantumTankLDLib2Page(player, holder),
                 player.getInventory(), holder, PAGE_WIDTH, PAGE_HEIGHT));
     }
 
@@ -330,9 +330,9 @@ public class QuantumTankMachine extends TieredMachine implements IControllable,
         return slot;
     }
 
-    private LDLib2FancyConfiguratorButton.Toggle createLDLib2WorkingEnabledConfigurator(Player player,
-                                                                                        MachineUIHolder holder) {
-        return new LDLib2FancyConfiguratorButton.Toggle(
+    private FancyConfiguratorButton.Toggle createLDLib2WorkingEnabledConfigurator(Player player,
+                                                                                  MachineUIHolder holder) {
+        return new FancyConfiguratorButton.Toggle(
                 GuiTextures.BUTTON_POWER.getSubTexture(0, 0, 1, 0.5),
                 GuiTextures.BUTTON_POWER.getSubTexture(0, 0.5, 1, 0.5),
                 this::isWorkingEnabled,
@@ -386,7 +386,7 @@ public class QuantumTankMachine extends TieredMachine implements IControllable,
         new LDLib2FluidClickTarget(cache, true, true).click(player, shiftDown);
     }
 
-    private final class QuantumTankLDLib2Page implements LDLib2FancyUIProvider {
+    private final class QuantumTankLDLib2Page implements FancyUIProvider {
 
         private final Player player;
         private final MachineUIHolder holder;
@@ -397,7 +397,7 @@ public class QuantumTankMachine extends TieredMachine implements IControllable,
         }
 
         @Override
-        public UIElement createLDLib2MainPage(LDLib2FancyMachineUIElement shell) {
+        public UIElement createMainPage(FancyMachineUI shell) {
             return QuantumTankMachine.this.createLDLib2MainPage(player, holder);
         }
 
@@ -412,22 +412,22 @@ public class QuantumTankMachine extends TieredMachine implements IControllable,
         }
 
         @Override
-        public int getLDLib2PageWidth() {
+        public int getPageWidth() {
             return PAGE_WIDTH;
         }
 
         @Override
-        public int getLDLib2PageHeight() {
+        public int getPageHeight() {
             return PAGE_HEIGHT;
         }
 
         @Override
-        public void attachConfigurators(LDLib2ConfiguratorPanelElement configuratorPanel) {
+        public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
             configuratorPanel.attachConfigurators(createLDLib2WorkingEnabledConfigurator(player, holder));
         }
 
         @Override
-        public void attachTooltips(LDLib2FancyTooltipsPanelElement tooltipsPanel) {
+        public void attachTooltips(FancyTooltipsPanel tooltipsPanel) {
             tooltipsPanel.attachTooltips(QuantumTankMachine.this);
             getTraitHolder().getAllTraits().stream()
                     .filter(IFancyTooltip.class::isInstance)

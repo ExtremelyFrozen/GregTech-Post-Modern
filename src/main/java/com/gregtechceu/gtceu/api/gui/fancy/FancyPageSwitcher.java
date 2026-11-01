@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 /**
  * LDLib2 page switcher page for the Fancy shell.
  */
-public class LDLib2FancyPageSwitcher implements LDLib2FancyUIProvider {
+public class FancyPageSwitcher implements FancyUIProvider {
 
     private static final int WIDTH = 176;
     private static final int HEIGHT = 166;
@@ -33,28 +33,28 @@ public class LDLib2FancyPageSwitcher implements LDLib2FancyUIProvider {
     private static final int MAX_COLUMNS = 5;
     private static final int TEXT_COLOR = 0x404040;
 
-    private final Consumer<LDLib2FancyUIProvider> onPageSwitched;
+    private final Consumer<FancyUIProvider> onPageSwitched;
     private final UIElement container;
     private final GTScrollerViewElement scrollableGroup;
 
-    private List<LDLib2FancyUIProvider> pages = List.of();
-    private LDLib2FancyUIProvider currentPage;
+    private List<FancyUIProvider> pages = List.of();
+    private FancyUIProvider currentPage;
 
-    public LDLib2FancyPageSwitcher(Consumer<LDLib2FancyUIProvider> onPageSwitched) {
+    public FancyPageSwitcher(Consumer<FancyUIProvider> onPageSwitched) {
         this.onPageSwitched = onPageSwitched;
         this.container = UITemplate.setLDLib2Bounds(new UIElement(), 0, 0, WIDTH, HEIGHT);
         this.scrollableGroup = new GTScrollerViewElement(10, 10, 156, 146);
         container.addChild(scrollableGroup);
     }
 
-    public void setPageList(List<LDLib2FancyUIProvider> allPages, LDLib2FancyUIProvider currentPage) {
+    public void setPageList(List<FancyUIProvider> allPages, FancyUIProvider currentPage) {
         this.pages = allPages;
         this.currentPage = currentPage;
         rebuildPageButtons();
     }
 
     @Override
-    public UIElement createLDLib2MainPage(LDLib2FancyMachineUIElement shell) {
+    public UIElement createMainPage(FancyMachineUI shell) {
         return container;
     }
 
@@ -80,9 +80,9 @@ public class LDLib2FancyPageSwitcher implements LDLib2FancyUIProvider {
                 currentY += 12;
             }
 
-            List<LDLib2FancyUIProvider> groupPages = groupedPages.get(group);
+            List<FancyUIProvider> groupPages = groupedPages.get(group);
             for (int index = 0; index < groupPages.size(); index++) {
-                LDLib2FancyUIProvider page = groupPages.get(index);
+                FancyUIProvider page = groupPages.get(index);
                 int x = index % MAX_COLUMNS * COLUMN_WIDTH;
                 int y = currentY + index / MAX_COLUMNS * ROW_HEIGHT;
                 scrollableGroup.addChild(createPageButton(page, x, y));
@@ -104,12 +104,12 @@ public class LDLib2FancyPageSwitcher implements LDLib2FancyUIProvider {
     }
 
     @Override
-    public int getLDLib2PageWidth() {
+    public int getPageWidth() {
         return WIDTH;
     }
 
     @Override
-    public int getLDLib2PageHeight() {
+    public int getPageHeight() {
         return HEIGHT;
     }
 
@@ -118,7 +118,7 @@ public class LDLib2FancyPageSwitcher implements LDLib2FancyUIProvider {
         return false;
     }
 
-    private UIElement createPageButton(LDLib2FancyUIProvider page, int x, int y) {
+    private UIElement createPageButton(FancyUIProvider page, int x, int y) {
         UIElement pageElement = UITemplate.setLDLib2Bounds(new UIElement(), x, y, BUTTON_SIZE, BUTTON_SIZE);
         GTButtonElement button = new GTButtonElement(0, 0, BUTTON_SIZE, BUTTON_SIZE);
         button.noText();

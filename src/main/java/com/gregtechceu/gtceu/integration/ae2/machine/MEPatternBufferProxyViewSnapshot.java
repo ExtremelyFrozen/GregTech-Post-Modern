@@ -1,10 +1,10 @@
 package com.gregtechceu.gtceu.integration.ae2.machine;
 
+import com.gregtechceu.gtceu.api.gui.factory.MachineUIProvider;
 import com.gregtechceu.gtceu.api.sync_system.SyncDataHolder;
 import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
 import com.gregtechceu.gtceu.common.data.machines.GTAEMachines;
 
-import com.lowdragmc.lowdraglib2.gui.factory.BlockUIMenuType;
 import com.lowdragmc.lowdraglib2.utils.virtuallevel.DummyWorld;
 
 import net.minecraft.core.BlockPos;
@@ -39,7 +39,7 @@ public record MEPatternBufferProxyViewSnapshot(BlockState blockState, DataCompon
 
         @Override
         public MEPatternBufferProxyViewSnapshot decode(RegistryFriendlyByteBuf buffer) {
-            BlockState blockState = BlockUIMenuType.BLOCK_STATE_STREAM_CODEC.decode(buffer);
+            BlockState blockState = MachineUIProvider.BLOCK_STATE_CODEC.decode(buffer);
             DataComponentMap data = SyncFieldData.DATA_COMPONENT_MAP_STREAM_CODEC.decode(buffer);
             int fluidCount = buffer.readVarInt();
             if (fluidCount != 0 && fluidCount != SHARED_TANK_COUNT) {
@@ -55,7 +55,7 @@ public record MEPatternBufferProxyViewSnapshot(BlockState blockState, DataCompon
 
         @Override
         public void encode(RegistryFriendlyByteBuf buffer, MEPatternBufferProxyViewSnapshot value) {
-            BlockUIMenuType.BLOCK_STATE_STREAM_CODEC.encode(buffer, value.blockState);
+            MachineUIProvider.BLOCK_STATE_CODEC.encode(buffer, value.blockState);
             SyncFieldData.DATA_COMPONENT_MAP_STREAM_CODEC.encode(buffer, value.data);
             buffer.writeVarInt(value.sharedFluids.size());
             for (FluidStack fluid : value.sharedFluids) {

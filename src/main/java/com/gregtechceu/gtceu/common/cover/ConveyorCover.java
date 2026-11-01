@@ -17,7 +17,7 @@ import com.gregtechceu.gtceu.api.gui.element.GTEnumSelectorElement;
 import com.gregtechceu.gtceu.api.gui.element.GTIntInputElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.factory.CoverUIHelper;
-import com.gregtechceu.gtceu.api.gui.factory.LDLib2CoverUIProvider;
+import com.gregtechceu.gtceu.api.gui.factory.CoverUIProvider;
 import com.gregtechceu.gtceu.api.gui.factory.UICoverHolder;
 import com.gregtechceu.gtceu.api.machine.ConditionalSubscriptionHandler;
 import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
@@ -62,7 +62,7 @@ import java.util.List;
 import java.util.Map;
 
 public class ConveyorCover extends CoverBehavior
-                           implements IIOCover, LDLib2CoverUIProvider, IControllable,
+                           implements IIOCover, CoverUIProvider, IControllable,
                            ConveyorCoverConfigActionTarget {
 
     // 8 32 128 512 1024
@@ -155,7 +155,7 @@ public class ConveyorCover extends CoverBehavior
 
     @Override
     public void setTransferRate(int transferRate) {
-        int clamped = Math.min(Math.max(transferRate, 1), maxItemTransferRate);
+        int clamped = Math.clamp(transferRate, 1, maxItemTransferRate);
         if (this.transferRate != clamped) {
             this.transferRate = clamped;
             syncDataHolder.markClientSyncFieldDirty("transferRate");
@@ -444,12 +444,12 @@ public class ConveyorCover extends CoverBehavior
     // *********** GUI ***********//
     //////////////////////////////////////
     @Override
-    public boolean canCreateLDLib2UI(Player player, UICoverHolder holder) {
+    public boolean canCreateUI(Player player, UICoverHolder holder) {
         return holder.getCover() == this;
     }
 
     @Override
-    public UI createLDLib2UI(Player player, UICoverHolder holder) {
+    public UI createUI(Player player, UICoverHolder holder) {
         UIElement root = new UIElement();
         UITemplate.setLDLib2Bounds(root, 0, 0, 176, 219);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));

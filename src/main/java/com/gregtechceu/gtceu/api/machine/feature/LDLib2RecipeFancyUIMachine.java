@@ -8,7 +8,7 @@ import com.gregtechceu.gtceu.api.capability.recipe.ItemRecipeCapability;
 import com.gregtechceu.gtceu.api.capability.recipe.RecipeCapability;
 import com.gregtechceu.gtceu.api.gui.editor.EditableMachineUI;
 import com.gregtechceu.gtceu.api.gui.editor.EditableMachineUI.MachineUISize;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyMachineUIElement;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUI;
 import com.gregtechceu.gtceu.api.machine.WorkableTieredMachine;
 import com.gregtechceu.gtceu.api.recipe.ui.GTRecipeTypeUI.RecipeHolder;
 
@@ -37,7 +37,7 @@ public interface LDLib2RecipeFancyUIMachine extends LDLib2FancyUIMachine {
      * @return parsed and bound machine XML root.
      */
     @Override
-    default UIElement createLDLib2MainPage(LDLib2FancyMachineUIElement shell) {
+    default UIElement createMainPage(FancyMachineUI shell) {
         WorkableTieredMachine machine = getLDLib2RecipeMachine();
         return getLDLib2MachineUITemplate(machine)
                 .createUI(getLDLib2MachineUIResourceManager(machine), machine).rootElement;
@@ -49,7 +49,7 @@ public interface LDLib2RecipeFancyUIMachine extends LDLib2FancyUIMachine {
      * @return fixed machine page width in pixels.
      */
     @Override
-    default int getLDLib2PageWidth() {
+    default int getPageWidth() {
         return getLDLib2MachineUISize(getLDLib2RecipeMachine()).width();
     }
 
@@ -59,7 +59,7 @@ public interface LDLib2RecipeFancyUIMachine extends LDLib2FancyUIMachine {
      * @return fixed machine page height in pixels.
      */
     @Override
-    default int getLDLib2PageHeight() {
+    default int getPageHeight() {
         return getLDLib2MachineUISize(getLDLib2RecipeMachine()).height();
     }
 

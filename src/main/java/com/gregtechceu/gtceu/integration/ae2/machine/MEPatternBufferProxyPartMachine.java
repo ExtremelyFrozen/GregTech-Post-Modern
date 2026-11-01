@@ -1,16 +1,18 @@
 package com.gregtechceu.gtceu.integration.ae2.machine;
 
+import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.GTValues;
 import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo;
 import com.gregtechceu.gtceu.api.capability.recipe.IO;
 import com.gregtechceu.gtceu.api.gui.factory.CoverUIHelper;
-import com.gregtechceu.gtceu.api.gui.factory.LDLib2MachineUIProvider;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolderContext;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyMachineUIElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyPreviewPage;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyUIProvider;
+import com.gregtechceu.gtceu.api.gui.factory.MachineUIProvider;
+import com.gregtechceu.gtceu.api.gui.factory.UIRegistry;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUI;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyPreviewPage;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2CircuitFancyConfiguratorActions;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2DirectionalCoverActions;
@@ -28,15 +30,19 @@ import com.gregtechceu.gtceu.common.data.machines.GTAEMachines;
 import com.gregtechceu.gtceu.common.machine.owner.MachineOwner;
 import com.gregtechceu.gtceu.integration.ae2.machine.trait.ProxySlotRecipeHandler;
 
+import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerMenu;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.state.BlockState;
 
 import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
@@ -48,7 +54,7 @@ import java.util.function.BooleanSupplier;
 import java.util.function.Predicate;
 
 public class MEPatternBufferProxyPartMachine extends TieredIOPartMachine
-                                             implements IDataStickInteractable, LDLib2MachineUIProvider,
+                                             implements IDataStickInteractable, MachineUIProvider,
                                              LDLib2FancyPartUIProvider, MEPatternBufferProxyActionTarget {
 
     static {
@@ -148,15 +154,41 @@ public class MEPatternBufferProxyPartMachine extends TieredIOPartMachine
     }
 
     @Override
-    public boolean openLDLib2UI(MetaMachine machine, ServerPlayer player) {
+    public boolean openUI(MetaMachine machine, ServerPlayer player) {
         if (machine != this) {
             throw new IllegalArgumentException("Pattern Buffer Proxy cannot open a menu for another machine.");
         }
-        return MEPatternBufferProxyUIMenuType.openUI(this, player);
+        MEPatternBufferProxyUIHolder holder = createUIHolder(player);
+        if (!holder.isOpeningValid(player)) {
+            return false;
+        }
+        try {
+            if (!UIRegistry.open(player, UIRegistry.MACHINE, holder)) {
+                holder.abortOpening(player);
+                return false;
+            }
+            holder.sendOpeningSnapshot(player);
+            return true;
+        } catch (RuntimeException exception) {
+            try {
+                holder.abortOpening(player);
+            } catch (RuntimeException closeException) {
+                exception.addSuppressed(closeException);
+            }
+            GTCEu.LOGGER.error("Failed to open Pattern Buffer Proxy menu at {} for {}",
+                    getBlockPos(), player.getGameProfile().getName(), exception);
+            return false;
+        }
     }
 
     @Override
-    public boolean canCreateLDLib2UI(Player player, MachineUIHolder holder) {
+    public ModularUIContainerMenu createClientMenu(int windowId, Inventory inventory, BlockPos pos,
+                                                   BlockState blockState, RegistryFriendlyByteBuf data) {
+        return MEPatternBufferProxyUIHolder.read(windowId, inventory, pos, data);
+    }
+
+    @Override
+    public boolean canCreateUI(Player player, MachineUIHolder holder) {
         if (holder instanceof MEPatternBufferProxyUIContext context) {
             return context.getMachine() == this &&
                     context.getMachineDefinitionId().equals(GTAEMachines.ME_PATTERN_BUFFER_PROXY.getId()) &&
@@ -170,27 +202,27 @@ public class MEPatternBufferProxyPartMachine extends TieredIOPartMachine
     }
 
     @Override
-    public UI createLDLib2UI(Player player, MachineUIHolder holder) {
-        LDLib2FancyUIProvider page;
+    public UI createUI(Player player, MachineUIHolder holder) {
+        FancyUIProvider page;
         if (holder instanceof MEPatternBufferProxyUIContext context) {
             page = createLDLib2Page(player, context);
         } else {
             page = createLDLib2Page(player, holder, MachineUIHelper::sendAction,
                     () -> player.level().isClientSide(), UIEvent::isShiftDown);
         }
-        return UI.of(new LDLib2FancyMachineUIElement(page, player.getInventory(), holder,
-                page.getLDLib2PageWidth(), page.getLDLib2PageHeight()));
+        return UI.of(new FancyMachineUI(page, player.getInventory(), holder,
+                page.getPageWidth(), page.getPageHeight()));
     }
 
     /** Creates the proxy-local preview used by a surrounding multiblock without opening its linked buffer. */
     @Override
-    public LDLib2FancyUIProvider createLDLib2FancyPage(Player player, MachineUIHolder holder) {
-        return new LDLib2FancyPreviewPage(this, player, holder,
-                new LDLib2FancyUIProvider.PageGroupingData(
+    public FancyUIProvider createLDLib2FancyPage(Player player, MachineUIHolder holder) {
+        return new FancyPreviewPage(this, player, holder,
+                new FancyUIProvider.PageGroupingData(
                         "gtpm.multiblock.page_switcher.io.import", 1));
     }
 
-    MEPatternBufferProxyUIHolder createLDLib2UIHolder(ServerPlayer player) {
+    MEPatternBufferProxyUIHolder createUIHolder(ServerPlayer player) {
         MachineUIHolder preflight = new MachineUIHolderContext(player, this);
         PatternBufferProxyOpening opening = requireOpening(player, preflight);
         MEPatternBufferProxyViewSnapshot snapshot = MEPatternBufferProxyViewSnapshot.capture(
@@ -198,7 +230,7 @@ public class MEPatternBufferProxyPartMachine extends TieredIOPartMachine
         return new MEPatternBufferProxyUIHolder(player, this, opening.buffer(), opening.identity(), snapshot);
     }
 
-    private LDLib2FancyUIProvider createLDLib2Page(Player player, MEPatternBufferProxyUIContext context) {
+    private FancyUIProvider createLDLib2Page(Player player, MEPatternBufferProxyUIContext context) {
         BooleanSupplier openingValid = () -> context.isOpeningValid(player);
         return createLDLib2Page(player, context, context.getPatternBufferView(), context.getOpeningIdentity(),
                 MachineUIHelper::sendAction, openingValid,
@@ -208,23 +240,23 @@ public class MEPatternBufferProxyPartMachine extends TieredIOPartMachine
     /**
      * Builds an opening-scoped Proxy page with injectable action transport for direct interaction tests.
      */
-    LDLib2FancyUIProvider createLDLib2Page(Player player, MachineUIHolder holder,
-                                           BiConsumer<MachineUIHolder, SyncActionData> actionSender,
-                                           BooleanSupplier canSendAction, Predicate<UIEvent> shiftDown) {
+    FancyUIProvider createLDLib2Page(Player player, MachineUIHolder holder,
+                                     BiConsumer<MachineUIHolder, SyncActionData> actionSender,
+                                     BooleanSupplier canSendAction, Predicate<UIEvent> shiftDown) {
         PatternBufferProxyOpening opening = requireOpening(player, holder);
         BooleanSupplier openingValid = () -> matchesOpening(player, holder, opening);
         return createLDLib2Page(player, holder, opening.buffer(), opening.identity(), actionSender, openingValid,
                 canSendAction, shiftDown);
     }
 
-    private LDLib2FancyUIProvider createLDLib2Page(
-                                                   Player player, MachineUIHolder holder,
-                                                   MEPatternBufferPartMachine linkedBuffer,
-                                                   MEPatternBufferProxyOpeningIdentity opening,
-                                                   BiConsumer<MachineUIHolder, SyncActionData> actionSender,
-                                                   BooleanSupplier openingValid,
-                                                   BooleanSupplier canSendAction,
-                                                   Predicate<UIEvent> shiftDown) {
+    private FancyUIProvider createLDLib2Page(
+                                             Player player, MachineUIHolder holder,
+                                             MEPatternBufferPartMachine linkedBuffer,
+                                             MEPatternBufferProxyOpeningIdentity opening,
+                                             BiConsumer<MachineUIHolder, SyncActionData> actionSender,
+                                             BooleanSupplier openingValid,
+                                             BooleanSupplier canSendAction,
+                                             Predicate<UIEvent> shiftDown) {
         if (!openingValid.getAsBoolean()) {
             throw new IllegalStateException("Pattern Buffer Proxy page requires its exact opening context.");
         }
@@ -347,7 +379,7 @@ public class MEPatternBufferProxyPartMachine extends TieredIOPartMachine
         if (operation == MEPatternBufferProxyCoverOperation.OPEN) {
             MEPatternBufferPartMachine linked = requireLinkedBuffer(opening);
             var cover = linked.getCoverContainer().getCoverAtSide(side);
-            if (cover == null || !CoverUIHelper.canOpenLDLib2(cover, player)) {
+            if (cover == null || !CoverUIHelper.canOpen(cover, player)) {
                 throw new IllegalStateException("Pattern Buffer Proxy cover-open request is no longer valid.");
             }
             BooleanSupplier anchorValid = () -> canExecuteMEPatternBufferProxyAction(player, opening);

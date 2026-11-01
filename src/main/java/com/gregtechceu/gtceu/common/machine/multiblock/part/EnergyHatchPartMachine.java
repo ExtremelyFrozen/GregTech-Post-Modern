@@ -4,8 +4,8 @@ import com.gregtechceu.gtceu.api.GTValues;
 import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo;
 import com.gregtechceu.gtceu.api.capability.recipe.IO;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyPreviewPage;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyPreviewPage;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.LDLib2FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.multiblock.part.TieredIOPartMachine;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableEnergyContainer;
@@ -56,13 +56,13 @@ public class EnergyHatchPartMachine extends TieredIOPartMachine implements LDLib
     }
 
     @Override
-    public LDLib2FancyUIProvider createLDLib2FancyPage(Player player, MachineUIHolder holder) {
-        return new LDLib2FancyPreviewPage(this, player, holder, switch (io) {
-            case IN -> new LDLib2FancyUIProvider.PageGroupingData(
+    public FancyUIProvider createLDLib2FancyPage(Player player, MachineUIHolder holder) {
+        return new FancyPreviewPage(this, player, holder, switch (io) {
+            case IN -> new FancyUIProvider.PageGroupingData(
                     "gtpm.multiblock.page_switcher.io.import", 1);
-            case OUT -> new LDLib2FancyUIProvider.PageGroupingData(
+            case OUT -> new FancyUIProvider.PageGroupingData(
                     "gtpm.multiblock.page_switcher.io.export", 2);
-            case BOTH -> new LDLib2FancyUIProvider.PageGroupingData(
+            case BOTH -> new FancyUIProvider.PageGroupingData(
                     "gtpm.multiblock.page_switcher.io.both", 3);
             case NONE -> null;
         });

@@ -3,7 +3,7 @@ package com.gregtechceu.gtceu.integration.ae2.gui.fancy;
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyConfiguratorButton;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyConfiguratorButton;
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData;
 import com.gregtechceu.gtceu.integration.ae2.machine.MEItemConfigActions;
 import com.gregtechceu.gtceu.integration.ae2.machine.MEStockingBusPartMachine;
@@ -24,7 +24,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
 /** Holder-scoped LDLib2 toggle for the stocking bus's automatic item configuration mode. */
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-public final class LDLib2MEItemAutoPullFancyConfigurator extends LDLib2FancyConfiguratorButton.Toggle {
+public final class LDLib2MEItemAutoPullFancyConfigurator extends FancyConfiguratorButton.Toggle {
 
     /** Creates a toggle that sends the dedicated ME action only from the matching remote opening. */
     public LDLib2MEItemAutoPullFancyConfigurator(MEStockingBusPartMachine machine, MachineUIHolder holder) {

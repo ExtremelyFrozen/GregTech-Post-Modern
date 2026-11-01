@@ -10,7 +10,7 @@ import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2DirectionalFancyConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2WorkingEnabledFancyConfigurator;
 import com.gregtechceu.gtceu.api.machine.feature.LDLib2FancyActionMachine;
-import com.gregtechceu.gtceu.client.gui.fancy.LDLib2PreviewSceneElement;
+import com.gregtechceu.gtceu.client.gui.fancy.PreviewScene;
 
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 
@@ -31,7 +31,7 @@ import java.util.function.Consumer;
  * The page captures its own validated holder so contextual multiblock part actions cannot accidentally use the
  * controller holder owned by the surrounding Fancy shell.
  */
-public final class LDLib2FancyPreviewPage implements LDLib2FancyUIProvider {
+public final class FancyPreviewPage implements FancyUIProvider {
 
     public static final int PREVIEW_PAGE_WIDTH = 100;
     public static final int PREVIEW_PAGE_HEIGHT = 100;
@@ -39,7 +39,7 @@ public final class LDLib2FancyPreviewPage implements LDLib2FancyUIProvider {
     private final MetaMachine machine;
     private final MachineUIHolder holder;
     private final LDLib2DirectionalFancyConfigurator directionalPage;
-    private final Consumer<LDLib2FancyTooltipsPanelElement> tooltipAttacher;
+    private final Consumer<FancyTooltipsPanel> tooltipAttacher;
     @Nullable
     private final PageGroupingData groupingData;
 
@@ -51,8 +51,8 @@ public final class LDLib2FancyPreviewPage implements LDLib2FancyUIProvider {
      * @param holder       holder dedicated to the contextual machine rather than its controller
      * @param groupingData optional page-switcher group for multipart navigation
      */
-    public LDLib2FancyPreviewPage(MetaMachine machine, Player player, MachineUIHolder holder,
-                                  @Nullable PageGroupingData groupingData) {
+    public FancyPreviewPage(MetaMachine machine, Player player, MachineUIHolder holder,
+                            @Nullable PageGroupingData groupingData) {
         this(machine, player, holder, groupingData, createDefaultTooltipAttacher(machine));
     }
 
@@ -70,9 +70,9 @@ public final class LDLib2FancyPreviewPage implements LDLib2FancyUIProvider {
      * @param groupingData    optional page-switcher group for multipart navigation
      * @param tooltipAttacher strategy that registers exactly the tooltips exposed by this preview surface
      */
-    public LDLib2FancyPreviewPage(MetaMachine machine, Player player, MachineUIHolder holder,
-                                  @Nullable PageGroupingData groupingData,
-                                  Consumer<LDLib2FancyTooltipsPanelElement> tooltipAttacher) {
+    public FancyPreviewPage(MetaMachine machine, Player player, MachineUIHolder holder,
+                            @Nullable PageGroupingData groupingData,
+                            Consumer<FancyTooltipsPanel> tooltipAttacher) {
         requireMatchingHolder(machine, holder);
         if (!(machine instanceof LDLib2FancyActionMachine)) {
             throw new IllegalArgumentException("Preview Fancy page machine must opt into LDLib2 Fancy actions.");
@@ -85,7 +85,7 @@ public final class LDLib2FancyPreviewPage implements LDLib2FancyUIProvider {
     }
 
     @Override
-    public UIElement createLDLib2MainPage(LDLib2FancyMachineUIElement shell) {
+    public UIElement createMainPage(FancyMachineUI shell) {
         if (holder.getMachine() != machine) {
             throw new IllegalStateException("Preview Fancy page holder no longer resolves its opened machine.");
         }
@@ -101,7 +101,7 @@ public final class LDLib2FancyPreviewPage implements LDLib2FancyUIProvider {
         if (machine.isRemote()) {
             root.addChild(new GTImageElement(26, 60, 48, 16, GuiTextures.SCENE));
             RegistrateDistExecutor.unsafeRunWhenOn(Dist.CLIENT,
-                    () -> () -> root.addChild(LDLib2PreviewSceneElement.createScene(
+                    () -> () -> root.addChild(PreviewScene.createScene(
                             machine, PREVIEW_PAGE_WIDTH, PREVIEW_PAGE_HEIGHT)));
         }
         return root;
@@ -118,29 +118,29 @@ public final class LDLib2FancyPreviewPage implements LDLib2FancyUIProvider {
     }
 
     @Override
-    public int getLDLib2PageWidth() {
+    public int getPageWidth() {
         return PREVIEW_PAGE_WIDTH;
     }
 
     @Override
-    public int getLDLib2PageHeight() {
+    public int getPageHeight() {
         return PREVIEW_PAGE_HEIGHT;
     }
 
     @Override
-    public void attachSideTabs(LDLib2FancyTabsElement tabs) {
+    public void attachSideTabs(FancyTabs tabs) {
         tabs.attachSubTab(directionalPage);
     }
 
     @Override
-    public void attachConfigurators(LDLib2ConfiguratorPanelElement configuratorPanel) {
+    public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
         if (machine instanceof IControllable controllable) {
             configuratorPanel.attachConfigurators(new LDLib2WorkingEnabledFancyConfigurator(controllable, holder));
         }
     }
 
     @Override
-    public void attachTooltips(LDLib2FancyTooltipsPanelElement tooltipsPanel) {
+    public void attachTooltips(FancyTooltipsPanel tooltipsPanel) {
         tooltipAttacher.accept(tooltipsPanel);
     }
 
@@ -161,7 +161,7 @@ public final class LDLib2FancyPreviewPage implements LDLib2FancyUIProvider {
         }
     }
 
-    private static Consumer<LDLib2FancyTooltipsPanelElement> createDefaultTooltipAttacher(MetaMachine machine) {
+    private static Consumer<FancyTooltipsPanel> createDefaultTooltipAttacher(MetaMachine machine) {
         return tooltipsPanel -> {
             tooltipsPanel.attachTooltips(machine);
             machine.getTraitHolder().getAllTraits().stream()

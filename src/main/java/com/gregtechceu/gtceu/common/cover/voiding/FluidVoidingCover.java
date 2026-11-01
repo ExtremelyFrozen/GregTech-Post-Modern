@@ -94,12 +94,12 @@ public class FluidVoidingCover extends PumpCover implements FluidVoidingWorkingE
     //////////////////////////////////////
 
     @Override
-    public boolean canCreateLDLib2UI(Player player, UICoverHolder holder) {
+    public boolean canCreateUI(Player player, UICoverHolder holder) {
         return holder.getCover() == this;
     }
 
     @Override
-    public UI createLDLib2UI(Player player, UICoverHolder holder) {
+    public UI createUI(Player player, UICoverHolder holder) {
         UIElement root = new UIElement();
         UITemplate.setLDLib2Bounds(root, 0, 0, 176, 202);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));

@@ -20,10 +20,10 @@ import java.util.UUID;
  */
 public final class GTCoverUIContainerMenu extends ModularUIContainerMenu {
 
-    private final LDLib2CoverUIHolderContext holder;
+    private final CoverUIHolder holder;
 
     public GTCoverUIContainerMenu(MenuType<ModularUIContainerMenu> menuType, int containerId,
-                                  Inventory inventory, LDLib2CoverUIHolderContext holder) {
+                                  Inventory inventory, CoverUIHolder holder) {
         super(menuType, containerId, inventory, holder);
         this.holder = holder;
     }

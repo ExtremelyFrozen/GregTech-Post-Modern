@@ -5,13 +5,13 @@ import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo;
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTIntInputElement;
-import com.gregtechceu.gtceu.api.gui.factory.LDLib2MachineUIProvider;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
+import com.gregtechceu.gtceu.api.gui.factory.MachineUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUI;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyTabs;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyTooltipsPanel;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyTooltip;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyMachineUIElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyTabsElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyTooltipsPanelElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyUIProvider;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2DirectionalFancyConfigurator;
 import com.gregtechceu.gtceu.api.machine.feature.IRecipeLogicMachine;
@@ -35,7 +35,7 @@ import lombok.Getter;
 import java.util.List;
 
 public class ParallelHatchPartMachine extends TieredPartMachine
-                                      implements LDLib2MachineUIProvider, LDLib2FancyPartUIProvider {
+                                      implements MachineUIProvider, LDLib2FancyPartUIProvider {
 
     private static final int MIN_PARALLEL = 1;
     private static final int PAGE_WIDTH = 100;
@@ -82,19 +82,19 @@ public class ParallelHatchPartMachine extends TieredPartMachine
     }
 
     @Override
-    public boolean canCreateLDLib2UI(Player player, MachineUIHolder holder) {
+    public boolean canCreateUI(Player player, MachineUIHolder holder) {
         return holder.getMachine() == this;
     }
 
     @Override
-    public UI createLDLib2UI(Player player, MachineUIHolder holder) {
+    public UI createUI(Player player, MachineUIHolder holder) {
         requireMatchingLDLib2Holder(holder);
         return UI.of(createLDLib2ParallelInput());
     }
 
     /** Creates a new holder-scoped page for one surrounding multiblock UI opening. */
     @Override
-    public LDLib2FancyUIProvider createLDLib2FancyPage(Player player, MachineUIHolder holder) {
+    public FancyUIProvider createLDLib2FancyPage(Player player, MachineUIHolder holder) {
         requireMatchingLDLib2Holder(holder);
         return new ParallelHatchLDLib2Page(player, holder);
     }
@@ -120,7 +120,7 @@ public class ParallelHatchPartMachine extends TieredPartMachine
     }
 
     /** Owns the contextual Parallel Hatch page state for exactly one menu opening. */
-    private final class ParallelHatchLDLib2Page implements LDLib2FancyUIProvider {
+    private final class ParallelHatchLDLib2Page implements FancyUIProvider {
 
         private final MachineUIHolder holder;
         private final LDLib2DirectionalFancyConfigurator directionalPage;
@@ -132,7 +132,7 @@ public class ParallelHatchPartMachine extends TieredPartMachine
         }
 
         @Override
-        public UIElement createLDLib2MainPage(LDLib2FancyMachineUIElement shell) {
+        public UIElement createMainPage(FancyMachineUI shell) {
             if (holder.getMachine() != ParallelHatchPartMachine.this) {
                 throw new IllegalStateException("Parallel Hatch page holder no longer resolves its opened machine.");
             }
@@ -150,22 +150,22 @@ public class ParallelHatchPartMachine extends TieredPartMachine
         }
 
         @Override
-        public int getLDLib2PageWidth() {
+        public int getPageWidth() {
             return PAGE_WIDTH;
         }
 
         @Override
-        public int getLDLib2PageHeight() {
+        public int getPageHeight() {
             return PAGE_HEIGHT;
         }
 
         @Override
-        public void attachSideTabs(LDLib2FancyTabsElement tabs) {
+        public void attachSideTabs(FancyTabs tabs) {
             tabs.attachSubTab(directionalPage);
         }
 
         @Override
-        public void attachTooltips(LDLib2FancyTooltipsPanelElement tooltipsPanel) {
+        public void attachTooltips(FancyTooltipsPanel tooltipsPanel) {
             tooltipsPanel.attachTooltips(ParallelHatchPartMachine.this);
             getTraitHolder().getAllTraits().stream()
                     .filter(IFancyTooltip.class::isInstance)

@@ -237,7 +237,7 @@ public class AdvancedDetectorCoverTest {
         cover.setUsePercent(false);
         ServerPlayer player = FakePlayerFactory.getMinecraft(helper.getLevel());
         UICoverHolder holder = new TestCoverUIHolder(cover);
-        var inputs = cover.createLDLib2UI(player, holder).getRootElement().getChildren().stream()
+        var inputs = cover.createUI(player, holder).getRootElement().getChildren().stream()
                 .filter(element -> element instanceof GTLongInputElement)
                 .map(element -> (GTLongInputElement) element)
                 .toList();

@@ -5,7 +5,7 @@ import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTIntInputElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyConfigurator;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyConfigurator;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.common.data.GTItems;
 import com.gregtechceu.gtceu.config.ConfigHolder;
@@ -26,7 +26,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
  */
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-public final class LDLib2AutoStockingFancyConfigurator implements LDLib2FancyConfigurator {
+public final class LDLib2AutoStockingFancyConfigurator implements FancyConfigurator {
 
     private static final int CONFIGURATOR_WIDTH = 90;
     private static final int CONFIGURATOR_HEIGHT = 70;
@@ -53,7 +53,7 @@ public final class LDLib2AutoStockingFancyConfigurator implements LDLib2FancyCon
     }
 
     @Override
-    public UIElement createLDLib2Configurator() {
+    public UIElement createConfigurator() {
         UIElement root = new UIElement();
         UITemplate.setLDLib2Bounds(root, 0, 0, CONFIGURATOR_WIDTH, CONFIGURATOR_HEIGHT);
 
@@ -85,12 +85,12 @@ public final class LDLib2AutoStockingFancyConfigurator implements LDLib2FancyCon
     }
 
     @Override
-    public int getLDLib2ConfiguratorWidth() {
+    public int getConfiguratorWidth() {
         return CONFIGURATOR_WIDTH;
     }
 
     @Override
-    public int getLDLib2ConfiguratorHeight() {
+    public int getConfiguratorHeight() {
         return CONFIGURATOR_HEIGHT;
     }
 

@@ -2,14 +2,14 @@ package com.gregtechceu.gtceu.api.machine.feature;
 
 import com.gregtechceu.gtceu.api.capability.IControllable;
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
-import com.gregtechceu.gtceu.api.gui.factory.LDLib2MachineUIProvider;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
+import com.gregtechceu.gtceu.api.gui.factory.MachineUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUI;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyTabs;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyTooltipsPanel;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyTooltip;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2ConfiguratorPanelElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyMachineUIElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyTabsElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyTooltipsPanelElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyUIProvider;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2AutoOutputFancyConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2BatchModeFancyConfigurator;
@@ -37,8 +37,8 @@ import java.util.List;
  * <p>
  * This interface defines the machine-owned page contract used by the LDLib2 Fancy shell.
  */
-public interface LDLib2FancyUIMachine extends IMachineFeature, LDLib2FancyActionMachine, LDLib2MachineUIProvider,
-                                      LDLib2FancyUIProvider {
+public interface LDLib2FancyUIMachine extends IMachineFeature, LDLib2FancyActionMachine, MachineUIProvider,
+                                      FancyUIProvider {
 
     /**
      * Builds the machine's concrete LDLib2 Fancy page body.
@@ -48,13 +48,13 @@ public interface LDLib2FancyUIMachine extends IMachineFeature, LDLib2FancyAction
      * silently preserve the old {@code SceneWidget} preview path.
      */
     @Override
-    UIElement createLDLib2MainPage(LDLib2FancyMachineUIElement shell);
+    UIElement createMainPage(FancyMachineUI shell);
 
     /**
      * Accepts the opened machine holder only while it still resolves to this machine instance.
      */
     @Override
-    default boolean canCreateLDLib2UI(Player player, MachineUIHolder holder) {
+    default boolean canCreateUI(Player player, MachineUIHolder holder) {
         return holder.getMachine() == self();
     }
 
@@ -62,15 +62,15 @@ public interface LDLib2FancyUIMachine extends IMachineFeature, LDLib2FancyAction
      * Wraps this machine page provider in the shared LDLib2 Fancy shell.
      */
     @Override
-    default UI createLDLib2UI(Player player, MachineUIHolder holder) {
-        return UI.of(new LDLib2FancyMachineUIElement(this, player.getInventory(), holder, getLDLib2PageWidth(),
-                getLDLib2PageHeight(), createLDLib2ContextualSubTabs(player, holder)));
+    default UI createUI(Player player, MachineUIHolder holder) {
+        return UI.of(new FancyMachineUI(this, player.getInventory(), holder, getPageWidth(),
+                getPageHeight(), createLDLib2ContextualSubTabs(player, holder)));
     }
 
     /**
      * Creates side pages that must capture the player and validated holder for this particular menu opening.
      */
-    default List<LDLib2FancyUIProvider> createLDLib2ContextualSubTabs(Player player, MachineUIHolder holder) {
+    default List<FancyUIProvider> createLDLib2ContextualSubTabs(Player player, MachineUIHolder holder) {
         return List.of(new LDLib2DirectionalFancyConfigurator(self(), player, holder));
     }
 
@@ -86,7 +86,7 @@ public interface LDLib2FancyUIMachine extends IMachineFeature, LDLib2FancyAction
      * Registers local LDLib2 side tabs for machine metadata pages.
      */
     @Override
-    default void attachSideTabs(LDLib2FancyTabsElement tabs) {
+    default void attachSideTabs(FancyTabs tabs) {
         if (this instanceof IRecipeLogicMachine recipeLogicMachine &&
                 recipeLogicMachine.getRecipeTypes().length > 1) {
             tabs.attachSubTab(new LDLib2MachineModeFancyConfigurator(recipeLogicMachine));
@@ -97,7 +97,7 @@ public interface LDLib2FancyUIMachine extends IMachineFeature, LDLib2FancyAction
      * Registers common LDLib2 machine configurator buttons.
      */
     @Override
-    default void attachConfigurators(LDLib2ConfiguratorPanelElement configuratorPanel) {
+    default void attachConfigurators(ConfiguratorPanel configuratorPanel) {
         if (this instanceof IVoidable voidable) {
             LDLib2VoidingModeFancyConfigurator.attachConfigurators(configuratorPanel, voidable);
         }
@@ -125,7 +125,7 @@ public interface LDLib2FancyUIMachine extends IMachineFeature, LDLib2FancyAction
      * Registers the machine tooltip and all trait-provided Fancy tooltips with the LDLib2 tooltip panel.
      */
     @Override
-    default void attachTooltips(LDLib2FancyTooltipsPanelElement tooltipsPanel) {
+    default void attachTooltips(FancyTooltipsPanel tooltipsPanel) {
         tooltipsPanel.attachTooltips(self());
         self().getTraitHolder().getAllTraits().stream()
                 .filter(IFancyTooltip.class::isInstance)

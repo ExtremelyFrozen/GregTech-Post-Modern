@@ -9,7 +9,7 @@ import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.editor.EditableMachineUI;
 import com.gregtechceu.gtceu.api.gui.editor.MachineUIXmlTemplates;
 import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2ConfiguratorPanelElement;
+import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2AutoOutputFancyConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2CircuitFancyConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2WorkingEnabledFancyConfigurator;
@@ -143,7 +143,7 @@ public class SimpleTieredMachine extends WorkableTieredMachine
     }
 
     @Override
-    public void attachConfigurators(LDLib2ConfiguratorPanelElement configuratorPanel) {
+    public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
         configuratorPanel.attachConfigurators(new LDLib2WorkingEnabledFancyConfigurator(
                 this, configuratorPanel.getHolder()));
         LDLib2AutoOutputFancyConfigurator.attachConfigurators(configuratorPanel, autoOutput);

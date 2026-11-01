@@ -10,7 +10,7 @@ import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTComponentPanelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyMachineUIElement;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUI;
 import com.gregtechceu.gtceu.api.machine.TickableSubscription;
 import com.gregtechceu.gtceu.api.machine.WorkableTieredMachine;
 import com.gregtechceu.gtceu.api.machine.feature.IDataInfoProvider;
@@ -151,9 +151,9 @@ public class MinerMachine extends WorkableTieredMachine
     //////////////////////////////////////
 
     @Override
-    public UIElement createLDLib2MainPage(LDLib2FancyMachineUIElement shell) {
+    public UIElement createMainPage(FancyMachineUI shell) {
         UIElement root = UITemplate.setLDLib2Bounds(new UIElement(), 0, 0,
-                getLDLib2PageWidth(), getLDLib2PageHeight());
+                getPageWidth(), getPageHeight());
 
         UIElement template = UITemplate.setLDLib2Bounds(new UIElement(), getLDLib2TemplateX(), getLDLib2TemplateY(),
                 getLDLib2TemplateWidth(), getLDLib2TemplateHeight());
@@ -174,12 +174,12 @@ public class MinerMachine extends WorkableTieredMachine
     }
 
     @Override
-    public int getLDLib2PageWidth() {
+    public int getPageWidth() {
         return Math.max(getLDLib2TemplateWidth() + PAGE_TEMPLATE_EXTRA_WIDTH, PAGE_MIN_WIDTH);
     }
 
     @Override
-    public int getLDLib2PageHeight() {
+    public int getPageHeight() {
         return getLDLib2TemplateHeight() + PAGE_TEMPLATE_EXTRA_HEIGHT;
     }
 
@@ -229,12 +229,12 @@ public class MinerMachine extends WorkableTieredMachine
     }
 
     private int getLDLib2TemplateX() {
-        return (getLDLib2PageWidth() - PAGE_TEMPLATE_X_BIAS - getLDLib2TemplateWidth()) / 2 +
+        return (getPageWidth() - PAGE_TEMPLATE_X_BIAS - getLDLib2TemplateWidth()) / 2 +
                 PAGE_TEMPLATE_X_BIAS;
     }
 
     private int getLDLib2TemplateY() {
-        return (getLDLib2PageHeight() - getLDLib2TemplateHeight()) / 2;
+        return (getPageHeight() - getLDLib2TemplateHeight()) / 2;
     }
 
     private int getLDLib2TemplateWidth() {

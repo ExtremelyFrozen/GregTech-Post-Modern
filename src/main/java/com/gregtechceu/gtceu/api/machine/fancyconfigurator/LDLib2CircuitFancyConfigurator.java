@@ -7,9 +7,9 @@ import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyConfigurator;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyCustomMiddleClickAction;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyCustomMouseWheelAction;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyConfigurator;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMiddleClickAction;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMouseWheelAction;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.feature.IHasCircuitSlot;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler;
@@ -40,8 +40,8 @@ import java.util.function.IntFunction;
  * The configurator keeps the client-visible circuit slot responsive locally, then sends GTM machine actions for the
  * authoritative server write when the opened holder currently resolves to a remote machine.
  */
-public class LDLib2CircuitFancyConfigurator implements LDLib2FancyConfigurator, LDLib2FancyCustomMouseWheelAction,
-                                            LDLib2FancyCustomMiddleClickAction {
+public class LDLib2CircuitFancyConfigurator implements FancyConfigurator, FancyMouseWheelAction,
+                                            FancyMiddleClickAction {
 
     private static final int WIDTH = 174;
     private static final int HEIGHT = 132;
@@ -103,17 +103,17 @@ public class LDLib2CircuitFancyConfigurator implements LDLib2FancyConfigurator, 
     }
 
     @Override
-    public int getLDLib2ConfiguratorWidth() {
+    public int getConfiguratorWidth() {
         return WIDTH;
     }
 
     @Override
-    public int getLDLib2ConfiguratorHeight() {
+    public int getConfiguratorHeight() {
         return HEIGHT;
     }
 
     @Override
-    public UIElement createLDLib2Configurator() {
+    public UIElement createConfigurator() {
         UIElement root = UITemplate.setLDLib2Bounds(new UIElement(), 0, 0, WIDTH, HEIGHT);
 
         GTLabelElement label = new GTLabelElement(9, 8, 166, 10,
@@ -157,7 +157,7 @@ public class LDLib2CircuitFancyConfigurator implements LDLib2FancyConfigurator, 
 
     @Override
     public List<Component> getTooltips() {
-        List<Component> tooltips = new ArrayList<>(LDLib2FancyConfigurator.super.getTooltips());
+        List<Component> tooltips = new ArrayList<>(FancyConfigurator.super.getTooltips());
         tooltips.addAll(LangHandler.getMultiLang("gtpm.gui.configurator_slot.tooltip"));
         return tooltips;
     }

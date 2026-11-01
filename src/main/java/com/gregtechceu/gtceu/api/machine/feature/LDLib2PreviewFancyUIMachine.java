@@ -1,7 +1,7 @@
 package com.gregtechceu.gtceu.api.machine.feature;
 
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyMachineUIElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyPreviewPage;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUI;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyPreviewPage;
 
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 
@@ -17,12 +17,12 @@ public interface LDLib2PreviewFancyUIMachine extends LDLib2FancyUIMachine {
     /**
      * Width of the legacy fallback preview content.
      */
-    int PREVIEW_PAGE_WIDTH = LDLib2FancyPreviewPage.PREVIEW_PAGE_WIDTH;
+    int PREVIEW_PAGE_WIDTH = FancyPreviewPage.PREVIEW_PAGE_WIDTH;
 
     /**
      * Height of the legacy fallback preview content.
      */
-    int PREVIEW_PAGE_HEIGHT = LDLib2FancyPreviewPage.PREVIEW_PAGE_HEIGHT;
+    int PREVIEW_PAGE_HEIGHT = FancyPreviewPage.PREVIEW_PAGE_HEIGHT;
 
     /**
      * Builds a fixed-size LDLib2 preview page for this machine.
@@ -31,8 +31,8 @@ public interface LDLib2PreviewFancyUIMachine extends LDLib2FancyUIMachine {
      * @return page root containing a client-side LDLib2 scene when the machine is remote.
      */
     @Override
-    default UIElement createLDLib2MainPage(LDLib2FancyMachineUIElement shell) {
-        return LDLib2FancyPreviewPage.createPreviewElement(self());
+    default UIElement createMainPage(FancyMachineUI shell) {
+        return FancyPreviewPage.createPreviewElement(self());
     }
 
     /**
@@ -41,7 +41,7 @@ public interface LDLib2PreviewFancyUIMachine extends LDLib2FancyUIMachine {
      * @return preview page width in pixels.
      */
     @Override
-    default int getLDLib2PageWidth() {
+    default int getPageWidth() {
         return PREVIEW_PAGE_WIDTH;
     }
 
@@ -51,7 +51,7 @@ public interface LDLib2PreviewFancyUIMachine extends LDLib2FancyUIMachine {
      * @return preview page height in pixels.
      */
     @Override
-    default int getLDLib2PageHeight() {
+    default int getPageHeight() {
         return PREVIEW_PAGE_HEIGHT;
     }
 }

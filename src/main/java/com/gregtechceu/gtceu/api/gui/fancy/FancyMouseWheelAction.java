@@ -9,7 +9,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
  * Implementations use this when the collapsed tab itself is the shortcut target and the action should be handled
  * before the event reaches surrounding UI elements.
  */
-public interface LDLib2FancyCustomMouseWheelAction {
+public interface FancyMouseWheelAction {
 
     /**
      * Handles a mouse-wheel event for the owning Fancy tab.

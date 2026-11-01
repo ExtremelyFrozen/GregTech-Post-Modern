@@ -11,13 +11,13 @@ import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
-import com.gregtechceu.gtceu.api.gui.factory.LDLib2MachineUIProvider;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
+import com.gregtechceu.gtceu.api.gui.factory.MachineUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUI;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyTabs;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyTooltipsPanel;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyTooltip;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyMachineUIElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyTabsElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyTooltipsPanelElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyUIProvider;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2DirectionalFancyConfigurator;
 import com.gregtechceu.gtceu.api.machine.feature.IDataInfoProvider;
@@ -58,7 +58,7 @@ import java.util.List;
 import java.util.Set;
 
 public class DataAccessHatchMachine extends TieredPartMachine
-                                    implements LDLib2MachineUIProvider, LDLib2FancyPartUIProvider,
+                                    implements MachineUIProvider, LDLib2FancyPartUIProvider,
                                     IDataAccessMachine, IDataInfoProvider, IMonitorComponent {
 
     private final Set<GTRecipeDefinition> recipeDefinitions;
@@ -109,12 +109,12 @@ public class DataAccessHatchMachine extends TieredPartMachine
     }
 
     @Override
-    public boolean canCreateLDLib2UI(Player player, MachineUIHolder holder) {
+    public boolean canCreateUI(Player player, MachineUIHolder holder) {
         return holder.getMachine() == this && !isCreative;
     }
 
     @Override
-    public UI createLDLib2UI(Player player, MachineUIHolder holder) {
+    public UI createUI(Player player, MachineUIHolder holder) {
         int rowSize = (int) Math.sqrt(getInventorySize());
         int rootWidth = 176;
         int rootHeight = 18 + 18 * rowSize + 94;
@@ -137,7 +137,7 @@ public class DataAccessHatchMachine extends TieredPartMachine
 
     /** Creates one holder-scoped inventory page for a surrounding multiblock controller. */
     @Override
-    public LDLib2FancyUIProvider createLDLib2FancyPage(Player player, MachineUIHolder holder) {
+    public FancyUIProvider createLDLib2FancyPage(Player player, MachineUIHolder holder) {
         if (isCreative) {
             throw new IllegalStateException(
                     "Creative Data Access Hatch is excluded from controller contextual pages.");
@@ -187,7 +187,7 @@ public class DataAccessHatchMachine extends TieredPartMachine
     }
 
     /** Keeps contextual inventory state and actions scoped to one validated menu opening. */
-    private final class DataAccessHatchLDLib2Page implements LDLib2FancyUIProvider {
+    private final class DataAccessHatchLDLib2Page implements FancyUIProvider {
 
         private final MachineUIHolder holder;
         private final LDLib2DirectionalFancyConfigurator directionalPage;
@@ -200,7 +200,7 @@ public class DataAccessHatchMachine extends TieredPartMachine
         }
 
         @Override
-        public UIElement createLDLib2MainPage(LDLib2FancyMachineUIElement shell) {
+        public UIElement createMainPage(FancyMachineUI shell) {
             if (holder.getMachine() != DataAccessHatchMachine.this) {
                 throw new IllegalStateException(
                         "Data Access Hatch contextual page holder no longer resolves its opened hatch.");
@@ -219,22 +219,22 @@ public class DataAccessHatchMachine extends TieredPartMachine
         }
 
         @Override
-        public int getLDLib2PageWidth() {
+        public int getPageWidth() {
             return (int) Math.sqrt(getInventorySize()) * 18;
         }
 
         @Override
-        public int getLDLib2PageHeight() {
-            return getLDLib2PageWidth();
+        public int getPageHeight() {
+            return getPageWidth();
         }
 
         @Override
-        public void attachSideTabs(LDLib2FancyTabsElement tabs) {
+        public void attachSideTabs(FancyTabs tabs) {
             tabs.attachSubTab(directionalPage);
         }
 
         @Override
-        public void attachTooltips(LDLib2FancyTooltipsPanelElement tooltipsPanel) {
+        public void attachTooltips(FancyTooltipsPanel tooltipsPanel) {
             tooltipsPanel.attachTooltips(DataAccessHatchMachine.this);
             getTraitHolder().getAllTraits().stream()
                     .filter(IFancyTooltip.class::isInstance)

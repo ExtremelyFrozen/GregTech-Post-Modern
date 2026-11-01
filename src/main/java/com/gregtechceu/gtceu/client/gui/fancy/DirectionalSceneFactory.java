@@ -2,7 +2,7 @@ package com.gregtechceu.gtceu.client.gui.fancy;
 
 import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTSceneElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2DirectionalFaceClickTracker;
+import com.gregtechceu.gtceu.api.gui.fancy.DirectionalFaceClickTracker;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.api.machine.feature.DirectionalAutoOutputMachine;
 
@@ -33,14 +33,14 @@ import java.util.function.BiPredicate;
  * Client-only construction and interaction adapter for LDLib2 directional scenes.
  */
 @OnlyIn(Dist.CLIENT)
-public final class LDLib2DirectionalSceneElement {
+public final class DirectionalSceneFactory {
 
     private static final int ITEM_AUTO_OUTPUT_COLOR = 0xffff6e0f;
     private static final int ITEM_OUTPUT_COLOR = 0x8fff6e0f;
     private static final int FLUID_AUTO_OUTPUT_COLOR = 0xff00b4ff;
     private static final int FLUID_OUTPUT_COLOR = 0x8f00b4ff;
 
-    private LDLib2DirectionalSceneElement() {}
+    private DirectionalSceneFactory() {}
 
     /**
      * Attaches a directional machine scene with optional auto-output overlays to a common-side placeholder element.
@@ -120,7 +120,7 @@ public final class LDLib2DirectionalSceneElement {
 
         private final BlockPos machinePos;
         private final BiPredicate<Direction, Integer> faceClickHandler;
-        private final LDLib2DirectionalFaceClickTracker clickTracker = new LDLib2DirectionalFaceClickTracker();
+        private final DirectionalFaceClickTracker clickTracker = new DirectionalFaceClickTracker();
 
         private DirectionalScene(BlockPos machinePos, BiPredicate<Direction, Integer> faceClickHandler) {
             this.machinePos = machinePos;
@@ -143,7 +143,7 @@ public final class LDLib2DirectionalSceneElement {
             dragging = false;
             var modularUI = getModularUI();
             boolean samePressTarget = modularUI != null && modularUI.getLastMouseDownElement() == this;
-            LDLib2DirectionalFaceClickTracker.FaceClick click = clickTracker.release(event.button,
+            DirectionalFaceClickTracker.FaceClick click = clickTracker.release(event.button,
                     lastHoverPosFace, samePressTarget);
             lastClickPosFace = null;
             if (click == null || !click.face().pos().equals(machinePos)) {

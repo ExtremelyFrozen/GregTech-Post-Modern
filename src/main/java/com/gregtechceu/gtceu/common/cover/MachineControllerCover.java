@@ -14,7 +14,7 @@ import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTToggleButtonElement;
 import com.gregtechceu.gtceu.api.gui.factory.CoverUIHelper;
-import com.gregtechceu.gtceu.api.gui.factory.LDLib2CoverUIProvider;
+import com.gregtechceu.gtceu.api.gui.factory.CoverUIProvider;
 import com.gregtechceu.gtceu.api.gui.factory.UICoverHolder;
 import com.gregtechceu.gtceu.api.machine.MachineCoverContainer;
 import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
@@ -48,7 +48,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class MachineControllerCover extends CoverBehavior
-                                    implements LDLib2CoverUIProvider, MachineControllerCoverConfigActionTarget {
+                                    implements CoverUIProvider, MachineControllerCoverConfigActionTarget {
 
     static {
         MachineControllerCoverConfigActions.initialize();
@@ -226,12 +226,12 @@ public class MachineControllerCover extends CoverBehavior
     // GUI
 
     @Override
-    public boolean canCreateLDLib2UI(Player player, UICoverHolder holder) {
+    public boolean canCreateUI(Player player, UICoverHolder holder) {
         return holder.getCover() == this;
     }
 
     @Override
-    public UI createLDLib2UI(Player player, UICoverHolder holder) {
+    public UI createUI(Player player, UICoverHolder holder) {
         if (controllerMode != null && getControllable(controllerMode.side) == null) {
             setControllerMode(null);
         }

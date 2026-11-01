@@ -3,9 +3,9 @@ package com.gregtechceu.gtceu.api.gui.factory;
 import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.capability.GTCapabilityHelper;
 import com.gregtechceu.gtceu.api.cover.CoverBehavior;
-import com.gregtechceu.gtceu.common.data.GTMenuTypes;
 
 import com.lowdragmc.lowdraglib2.gui.factory.IContainerUIHolder;
+import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerMenu;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
 
@@ -35,7 +35,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
  */
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-public final class LDLib2CoverUIHolderContext implements UICoverHolder, MenuProvider, IContainerUIHolder {
+public final class CoverUIHolder implements UICoverHolder, MenuProvider, IContainerUIHolder {
 
     private final Player player;
     private final BlockPos pos;
@@ -49,7 +49,7 @@ public final class LDLib2CoverUIHolderContext implements UICoverHolder, MenuProv
     private UUID actionSessionId;
     private boolean serverCloseNotified;
 
-    public LDLib2CoverUIHolderContext(Player player, CoverBehavior cover) {
+    public CoverUIHolder(Player player, CoverBehavior cover) {
         this(player, cover.coverHolder.getBlockPos(), cover.attachedSide, cover.coverDefinition.getId(),
                 requireProvider(cover), null, cover.coverHolder.getBlockPos(), () -> true);
     }
@@ -57,31 +57,31 @@ public final class LDLib2CoverUIHolderContext implements UICoverHolder, MenuProv
     /**
      * Creates a server holder whose action distance and continued validity belong to a validated interaction anchor.
      */
-    LDLib2CoverUIHolderContext(ServerPlayer player, CoverBehavior cover, BlockPos interactionAnchor,
-                               BooleanSupplier interactionAnchorValid) {
+    CoverUIHolder(ServerPlayer player, CoverBehavior cover, BlockPos interactionAnchor,
+                  BooleanSupplier interactionAnchorValid) {
         this(player, cover.coverHolder.getBlockPos(), cover.attachedSide, cover.coverDefinition.getId(),
                 requireProvider(cover), null, interactionAnchor, interactionAnchorValid);
     }
 
-    public LDLib2CoverUIHolderContext(Player player, BlockPos pos, Direction side,
-                                      ResourceLocation coverDefinitionId, UUID actionSessionId) {
+    public CoverUIHolder(Player player, BlockPos pos, Direction side,
+                         ResourceLocation coverDefinitionId, UUID actionSessionId) {
         this(player, pos, side, coverDefinitionId, null, actionSessionId, pos, () -> true);
     }
 
     /**
      * Reconstructs the client holder with the server-displayed interaction anchor but no authoritative validity.
      */
-    public LDLib2CoverUIHolderContext(Player player, BlockPos pos, BlockPos interactionAnchor, Direction side,
-                                      ResourceLocation coverDefinitionId, UUID actionSessionId) {
+    public CoverUIHolder(Player player, BlockPos pos, BlockPos interactionAnchor, Direction side,
+                         ResourceLocation coverDefinitionId, UUID actionSessionId) {
         this(player, pos, side, coverDefinitionId, null, actionSessionId, interactionAnchor, () -> true);
     }
 
-    private LDLib2CoverUIHolderContext(Player player, BlockPos pos, Direction side,
-                                       ResourceLocation coverDefinitionId,
-                                       @Nullable CoverBehavior openedCover,
-                                       @Nullable UUID actionSessionId,
-                                       BlockPos interactionAnchor,
-                                       BooleanSupplier interactionAnchorValid) {
+    private CoverUIHolder(Player player, BlockPos pos, Direction side,
+                          ResourceLocation coverDefinitionId,
+                          @Nullable CoverBehavior openedCover,
+                          @Nullable UUID actionSessionId,
+                          BlockPos interactionAnchor,
+                          BooleanSupplier interactionAnchorValid) {
         this.player = player;
         this.pos = pos;
         this.interactionAnchor = interactionAnchor;
@@ -90,6 +90,13 @@ public final class LDLib2CoverUIHolderContext implements UICoverHolder, MenuProv
         this.coverDefinitionId = coverDefinitionId;
         this.openedCover = openedCover;
         this.actionSessionId = actionSessionId;
+    }
+
+    static ModularUIContainerMenu read(int windowId, Inventory inventory, RegistryFriendlyByteBuf data) {
+        CoverUIHolder holder = new CoverUIHolder(inventory.player,
+                data.readBlockPos(), data.readBlockPos(), data.readEnum(Direction.class), data.readResourceLocation(),
+                data.readUUID());
+        return new GTCoverUIContainerMenu(UIRegistry.MENU.get(), windowId, inventory, holder);
     }
 
     @Override
@@ -156,8 +163,8 @@ public final class LDLib2CoverUIHolderContext implements UICoverHolder, MenuProv
         if (this.player != player || !isInteractionAnchorValid()) {
             return false;
         }
-        boolean providerValid = getCover() instanceof LDLib2CoverUIProvider uiProvider &&
-                uiProvider.canCreateLDLib2UI(player, this);
+        boolean providerValid = getCover() instanceof CoverUIProvider uiProvider &&
+                uiProvider.canCreateUI(player, this);
         return providerValid && isInteractionAnchorValid();
     }
 
@@ -181,7 +188,7 @@ public final class LDLib2CoverUIHolderContext implements UICoverHolder, MenuProv
         }
         actionSessionId = UUID.randomUUID();
         GTCoverUIContainerMenu menu = new GTCoverUIContainerMenu(
-                GTMenuTypes.COVER_UI.get(), containerId, playerInventory, this);
+                UIRegistry.MENU.get(), containerId, playerInventory, this);
         requireInteractionAnchorValid("after menu creation");
         return menu;
     }
@@ -198,17 +205,17 @@ public final class LDLib2CoverUIHolderContext implements UICoverHolder, MenuProv
     @Override
     public ModularUI createUI(Player player) {
         requireInteractionAnchorValid("before UI creation");
-        if (!(getCover() instanceof LDLib2CoverUIProvider uiProvider)) {
+        if (!(getCover() instanceof CoverUIProvider uiProvider)) {
             throw new IllegalStateException("Cover does not expose an LDLib2 UI for the opened holder.");
         }
-        if (!uiProvider.canCreateLDLib2UI(player, this)) {
+        if (!uiProvider.canCreateUI(player, this)) {
             throw new IllegalStateException("Cover rejected the opened LDLib2 UI holder.");
         }
-        UI ui = uiProvider.createLDLib2UI(player, this);
+        UI ui = uiProvider.createUI(player, this);
         if (ui == null) {
             throw new IllegalStateException("Cover LDLib2 UI provider returned null.");
         }
-        ModularUI modularUI = ModularUI.of(ui, player);
+        ModularUI modularUI = UIRegistry.createUI(ui, player);
         requireInteractionAnchorValid("after UI creation");
         return modularUI;
     }
@@ -218,7 +225,7 @@ public final class LDLib2CoverUIHolderContext implements UICoverHolder, MenuProv
             return;
         }
         serverCloseNotified = true;
-        if (!(openedCover instanceof LDLib2CoverUIProvider openedProvider)) {
+        if (!(openedCover instanceof CoverUIProvider openedProvider)) {
             return;
         }
         try {
@@ -265,7 +272,7 @@ public final class LDLib2CoverUIHolderContext implements UICoverHolder, MenuProv
     }
 
     private static CoverBehavior requireProvider(CoverBehavior cover) {
-        if (cover instanceof LDLib2CoverUIProvider) {
+        if (cover instanceof CoverUIProvider) {
             return cover;
         }
         throw new IllegalArgumentException("Cover does not expose an LDLib2 UI.");

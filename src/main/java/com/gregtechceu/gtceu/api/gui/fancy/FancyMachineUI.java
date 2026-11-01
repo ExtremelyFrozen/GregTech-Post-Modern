@@ -4,6 +4,8 @@ import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 
+import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerScreen;
+import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 
 import net.minecraft.world.entity.player.Inventory;
@@ -22,7 +24,7 @@ import java.util.stream.Stream;
 /**
  * LDLib2 Fancy shell that owns local navigation, title bar, side tabs, configurator panel, and tooltip panel.
  */
-public class LDLib2FancyMachineUIElement extends UIElement {
+public class FancyMachineUI extends UIElement {
 
     private static final int MIN_PAGE_WIDTH = 172;
     private static final int MIN_PAGE_HEIGHT = 86;
@@ -31,7 +33,7 @@ public class LDLib2FancyMachineUIElement extends UIElement {
     private static final int PLAYER_INVENTORY_FRAME_HEIGHT = 82;
     private static final int DEFAULT_BORDER = 4;
 
-    private final LDLib2FancyUIProvider mainPage;
+    private final FancyUIProvider mainPage;
     /**
      * Player whose inventory was captured when this Fancy screen opened.
      */
@@ -39,39 +41,39 @@ public class LDLib2FancyMachineUIElement extends UIElement {
     private final Player openingPlayer;
     private final MachineUIHolder holder;
     private final UIElement pageContainer;
-    private final LDLib2FancyTitleBarElement titleBar;
-    private final LDLib2FancyTabsElement sideTabsElement;
-    private final LDLib2ConfiguratorPanelElement configuratorPanel;
-    private final LDLib2FancyTooltipsPanelElement tooltipsPanel;
-    private final LDLib2FancyPageSwitcher pageSwitcher;
+    private final FancyTitleBar titleBar;
+    private final FancyTabs sideTabsElement;
+    private final ConfiguratorPanel configuratorPanel;
+    private final FancyTooltipsPanel tooltipsPanel;
+    private final FancyPageSwitcher pageSwitcher;
     /**
      * Holds side pages that belong to this opened UI context, such as pages that capture its validated holder.
      */
-    private final List<LDLib2FancyUIProvider> contextualSubTabs;
-    private final Map<LDLib2FancyUIProvider, UIElement> pageCache = new IdentityHashMap<>();
+    private final List<FancyUIProvider> contextualSubTabs;
+    private final Map<FancyUIProvider, UIElement> pageCache = new IdentityHashMap<>();
     private final Deque<NavigationEntry> previousPages = new ArrayDeque<>();
 
     @Nullable
     private final UIElement playerInventory;
     private int border = DEFAULT_BORDER;
-    private LDLib2FancyUIProvider currentPage;
-    private LDLib2FancyUIProvider currentHomePage;
-    private List<LDLib2FancyUIProvider> allPages = List.of();
+    private FancyUIProvider currentPage;
+    private FancyUIProvider currentHomePage;
+    private List<FancyUIProvider> allPages = List.of();
 
-    private record NavigationEntry(LDLib2FancyUIProvider page, LDLib2FancyUIProvider homePage,
+    private record NavigationEntry(FancyUIProvider page, FancyUIProvider homePage,
                                    Runnable onNavigation) {}
 
-    public LDLib2FancyMachineUIElement(LDLib2FancyUIProvider mainPage, Inventory inventory, MachineUIHolder holder,
-                                       int width, int height) {
+    public FancyMachineUI(FancyUIProvider mainPage, Inventory inventory, MachineUIHolder holder,
+                          int width, int height) {
         this(mainPage, inventory, holder, width, height, List.of());
     }
 
     /**
      * Creates a Fancy shell with side pages scoped to this opened holder rather than shared machine state.
      */
-    public LDLib2FancyMachineUIElement(LDLib2FancyUIProvider mainPage, Inventory inventory, MachineUIHolder holder,
-                                       int width, int height,
-                                       List<? extends LDLib2FancyUIProvider> contextualSubTabs) {
+    public FancyMachineUI(FancyUIProvider mainPage, Inventory inventory, MachineUIHolder holder,
+                          int width, int height,
+                          List<? extends FancyUIProvider> contextualSubTabs) {
         this.mainPage = mainPage;
         this.openingPlayer = inventory.player;
         this.holder = holder;
@@ -90,11 +92,11 @@ public class LDLib2FancyMachineUIElement extends UIElement {
             this.playerInventory = null;
         }
 
-        this.titleBar = new LDLib2FancyTitleBarElement(width, event -> navigateBack(), event -> openPageSwitcher());
-        this.sideTabsElement = new LDLib2FancyTabsElement(this::navigate, -20, 0, 24, height, true);
-        this.tooltipsPanel = new LDLib2FancyTooltipsPanelElement(width + 2, 2);
-        this.configuratorPanel = new LDLib2ConfiguratorPanelElement(holder, -26, height);
-        this.pageSwitcher = new LDLib2FancyPageSwitcher(this::switchPage);
+        this.titleBar = new FancyTitleBar(width, event -> navigateBack(), event -> openPageSwitcher());
+        this.sideTabsElement = new FancyTabs(this::navigate, -20, 0, 24, height, true);
+        this.tooltipsPanel = new FancyTooltipsPanel(width + 2, 2);
+        this.configuratorPanel = new ConfiguratorPanel(holder, -26, height);
+        this.pageSwitcher = new FancyPageSwitcher(this::switchPage);
         addChildren(titleBar, sideTabsElement, tooltipsPanel, configuratorPanel);
 
         initializePages();
@@ -107,19 +109,19 @@ public class LDLib2FancyMachineUIElement extends UIElement {
         return holder;
     }
 
-    public LDLib2ConfiguratorPanelElement getConfiguratorPanel() {
+    public ConfiguratorPanel getConfiguratorPanel() {
         return configuratorPanel;
     }
 
-    public LDLib2FancyTooltipsPanelElement getTooltipsPanel() {
+    public FancyTooltipsPanel getTooltipsPanel() {
         return tooltipsPanel;
     }
 
-    public LDLib2FancyTabsElement getSideTabsElement() {
+    public FancyTabs getSideTabsElement() {
         return sideTabsElement;
     }
 
-    public LDLib2FancyMachineUIElement setBorder(int border) {
+    public FancyMachineUI setBorder(int border) {
         if (border < 0) {
             throw new IllegalArgumentException("border must be non-negative");
         }
@@ -128,11 +130,11 @@ public class LDLib2FancyMachineUIElement extends UIElement {
         return this;
     }
 
-    protected void navigate(LDLib2FancyUIProvider newPage) {
+    protected void navigate(FancyUIProvider newPage) {
         navigate(newPage, currentHomePage);
     }
 
-    protected void navigate(LDLib2FancyUIProvider nextPage, LDLib2FancyUIProvider nextHomePage) {
+    protected void navigate(FancyUIProvider nextPage, FancyUIProvider nextHomePage) {
         if (nextPage != mainPage) {
             if (!previousPages.isEmpty() && previousPages.peek().page == nextPage) {
                 previousPages.pop();
@@ -151,7 +153,7 @@ public class LDLib2FancyMachineUIElement extends UIElement {
         navigationEntry.onNavigation.run();
     }
 
-    protected void performNavigation(LDLib2FancyUIProvider nextPage, LDLib2FancyUIProvider nextHomePage) {
+    protected void performNavigation(FancyUIProvider nextPage, FancyUIProvider nextHomePage) {
         if (currentHomePage != nextHomePage) {
             setupSideTabs(nextHomePage);
         }
@@ -184,7 +186,7 @@ public class LDLib2FancyMachineUIElement extends UIElement {
         setupFancyUI(pageSwitcher);
     }
 
-    protected void switchPage(LDLib2FancyUIProvider nextHomePage) {
+    protected void switchPage(FancyUIProvider nextHomePage) {
         currentHomePage = mainPage;
         currentPage = mainPage;
         previousPages.clear();
@@ -194,19 +196,19 @@ public class LDLib2FancyMachineUIElement extends UIElement {
         navigate(nextHomePage, nextHomePage);
     }
 
-    protected void setupFancyUI(LDLib2FancyUIProvider fancyUI) {
+    protected void setupFancyUI(FancyUIProvider fancyUI) {
         setupFancyUI(fancyUI, fancyUI.hasPlayerInventory());
     }
 
-    protected void setupFancyUI(LDLib2FancyUIProvider fancyUI, boolean showInventory) {
+    protected void setupFancyUI(FancyUIProvider fancyUI, boolean showInventory) {
         clearUI();
         sideTabsElement.selectTab(fancyUI);
         titleBar.updateState(fancyUI, !previousPages.isEmpty(),
                 allPages.size() > 1 && currentPage != pageSwitcher);
 
         UIElement page = getOrCreatePage(fancyUI);
-        int pageWidth = fancyUI.getLDLib2PageWidth();
-        int pageHeight = fancyUI.getLDLib2PageHeight();
+        int pageWidth = fancyUI.getPageWidth();
+        int pageHeight = fancyUI.getPageHeight();
         int contentWidth = Math.max(MIN_PAGE_WIDTH, pageWidth + border * 2);
         int contentHeight = Math.max(MIN_PAGE_HEIGHT, pageHeight + border * 2);
         int rootHeight = contentHeight + (showInventory && playerInventory != null ? PLAYER_INVENTORY_FRAME_HEIGHT : 0);
@@ -231,6 +233,14 @@ public class LDLib2FancyMachineUIElement extends UIElement {
         fancyUI.attachConfigurators(configuratorPanel);
         configuratorPanel.moveTo(-26, rootHeight - configuratorPanel.getPanelContentHeight() - border);
         fancyUI.attachTooltips(tooltipsPanel);
+
+        if (openingPlayer.level().isClientSide) {
+            ModularUI modularUI = getModularUI();
+            if (modularUI != null && modularUI.getScreen() instanceof ModularUIContainerScreen screen) {
+                modularUI.init(screen.width, screen.height);
+                screen.init();
+            }
+        }
     }
 
     protected void clearUI() {
@@ -244,7 +254,7 @@ public class LDLib2FancyMachineUIElement extends UIElement {
 
     protected void initializePages() {
         allPages = Stream.concat(Stream.of(mainPage), mainPage.getSubTabs().stream()).toList();
-        for (LDLib2FancyUIProvider page : allPages) {
+        for (FancyUIProvider page : allPages) {
             UIElement createdPage = getOrCreatePage(page);
             createdPage.setVisible(false);
             createdPage.setActive(false);
@@ -252,15 +262,15 @@ public class LDLib2FancyMachineUIElement extends UIElement {
         performNavigation(mainPage, mainPage);
     }
 
-    protected UIElement getOrCreatePage(LDLib2FancyUIProvider fancyUI) {
+    protected UIElement getOrCreatePage(FancyUIProvider fancyUI) {
         return pageCache.computeIfAbsent(fancyUI, key -> {
-            UIElement createdPage = key.createLDLib2MainPage(this);
+            UIElement createdPage = key.createMainPage(this);
             pageContainer.addChild(createdPage);
             return createdPage;
         });
     }
 
-    protected void setupSideTabs(LDLib2FancyUIProvider homePage) {
+    protected void setupSideTabs(FancyUIProvider homePage) {
         sideTabsElement.setMainTab(homePage);
         sideTabsElement.clearSubTabs();
         homePage.attachSideTabs(sideTabsElement);

@@ -2,7 +2,7 @@ package com.gregtechceu.gtceu.api.machine.fancyconfigurator;
 
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.SelectableEnum;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyConfiguratorButton;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyConfiguratorButton;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
@@ -23,7 +23,7 @@ import java.util.function.Supplier;
  * packet or update a GTM sync field from the change callback.
  */
 public class LDLib2FancySelectorConfigurator<T extends Enum<T> & SelectableEnum>
-                                            implements LDLib2FancyConfiguratorButton {
+                                            implements FancyConfiguratorButton {
 
     private final List<T> values;
     private final Supplier<T> valueSupplier;

@@ -7,13 +7,13 @@ import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTImageElement;
 import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
-import com.gregtechceu.gtceu.api.gui.factory.LDLib2MachineUIProvider;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
+import com.gregtechceu.gtceu.api.gui.factory.MachineUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUI;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyTabs;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyTooltipsPanel;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyTooltip;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyMachineUIElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyTabsElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyTooltipsPanelElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyUIProvider;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2DirectionalFancyConfigurator;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.LDLib2FancyPartUIProvider;
@@ -44,7 +44,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 public class ObjectHolderMachine extends MultiblockPartMachine
-                                 implements LDLib2MachineUIProvider, LDLib2FancyPartUIProvider {
+                                 implements MachineUIProvider, LDLib2FancyPartUIProvider {
 
     private static final int SLOT_LOCKED_OVERLAY_COLOR = 0x80404040;
     private static final int UI_WIDTH = 176;
@@ -98,12 +98,12 @@ public class ObjectHolderMachine extends MultiblockPartMachine
     }
 
     @Override
-    public boolean canCreateLDLib2UI(Player player, MachineUIHolder holder) {
+    public boolean canCreateUI(Player player, MachineUIHolder holder) {
         return holder.getMachine() == this;
     }
 
     @Override
-    public UI createLDLib2UI(Player player, MachineUIHolder holder) {
+    public UI createUI(Player player, MachineUIHolder holder) {
         requireMatchingLDLib2Holder(holder);
         UIElement root = new UIElement();
         UITemplate.setLDLib2Bounds(root, 0, 0, UI_WIDTH, STANDALONE_UI_HEIGHT);
@@ -116,7 +116,7 @@ public class ObjectHolderMachine extends MultiblockPartMachine
 
     /** Creates a new holder-scoped page for one surrounding multiblock UI opening. */
     @Override
-    public LDLib2FancyUIProvider createLDLib2FancyPage(Player player, MachineUIHolder holder) {
+    public FancyUIProvider createLDLib2FancyPage(Player player, MachineUIHolder holder) {
         requireMatchingLDLib2Holder(holder);
         return new ObjectHolderLDLib2Page(player, holder);
     }
@@ -169,7 +169,7 @@ public class ObjectHolderMachine extends MultiblockPartMachine
     }
 
     /** Owns the contextual Object Holder page state for exactly one menu opening. */
-    private final class ObjectHolderLDLib2Page implements LDLib2FancyUIProvider {
+    private final class ObjectHolderLDLib2Page implements FancyUIProvider {
 
         private final MachineUIHolder holder;
         private final LDLib2DirectionalFancyConfigurator directionalPage;
@@ -181,7 +181,7 @@ public class ObjectHolderMachine extends MultiblockPartMachine
         }
 
         @Override
-        public UIElement createLDLib2MainPage(LDLib2FancyMachineUIElement shell) {
+        public UIElement createMainPage(FancyMachineUI shell) {
             if (holder.getMachine() != ObjectHolderMachine.this) {
                 throw new IllegalStateException("Object Holder page holder no longer resolves its opened machine.");
             }
@@ -199,22 +199,22 @@ public class ObjectHolderMachine extends MultiblockPartMachine
         }
 
         @Override
-        public int getLDLib2PageWidth() {
+        public int getPageWidth() {
             return UI_WIDTH;
         }
 
         @Override
-        public int getLDLib2PageHeight() {
+        public int getPageHeight() {
             return CONTEXTUAL_PAGE_HEIGHT;
         }
 
         @Override
-        public void attachSideTabs(LDLib2FancyTabsElement tabs) {
+        public void attachSideTabs(FancyTabs tabs) {
             tabs.attachSubTab(directionalPage);
         }
 
         @Override
-        public void attachTooltips(LDLib2FancyTooltipsPanelElement tooltipsPanel) {
+        public void attachTooltips(FancyTooltipsPanel tooltipsPanel) {
             tooltipsPanel.attachTooltips(ObjectHolderMachine.this);
             getTraitHolder().getAllTraits().stream()
                     .filter(IFancyTooltip.class::isInstance)

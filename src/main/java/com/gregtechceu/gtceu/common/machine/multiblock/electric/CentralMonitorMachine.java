@@ -7,9 +7,9 @@ import com.gregtechceu.gtceu.api.capability.IMonitorComponent;
 import com.gregtechceu.gtceu.api.capability.recipe.IO;
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.factory.DynamicItemSlotMachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.factory.LDLib2DynamicItemSlotMachineUIProvider;
+import com.gregtechceu.gtceu.api.gui.factory.DynamicItemSlotMachineUIProvider;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyMachineUIElement;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUI;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.item.IComponentItem;
 import com.gregtechceu.gtceu.api.item.component.IItemComponent;
@@ -76,7 +76,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
 @MethodsReturnNonnullByDefault
 public class CentralMonitorMachine extends WorkableElectricMultiblockMachine
                                    implements IMonitorComponent, IDataInfoProvider,
-                                   LDLib2DynamicItemSlotMachineUIProvider,
+                                   DynamicItemSlotMachineUIProvider,
                                    CentralMonitorMembershipActionTarget, CentralMonitorGroupTargetActionHost,
                                    CentralMonitorImageModuleActionHost, CentralMonitorTextModuleActionHost {
 
@@ -806,22 +806,22 @@ public class CentralMonitorMachine extends WorkableElectricMultiblockMachine
     }
 
     @Override
-    public boolean canCreateLDLib2UI(Player player, MachineUIHolder holder) {
+    public boolean canCreateUI(Player player, MachineUIHolder holder) {
         return holder instanceof DynamicItemSlotMachineUIHolder && holder.getMachine() == this &&
                 holder.getMachineDefinitionId().equals(getDefinition().getId()) && isFormed();
     }
 
     @Override
-    public UI createLDLib2UI(Player player, MachineUIHolder holder) {
+    public UI createUI(Player player, MachineUIHolder holder) {
         CentralMonitorElement page = createCentralMonitorElement(player, holder);
-        LDLib2FancyMachineUIElement root = new LDLib2FancyMachineUIElement(
-                page, player.getInventory(), holder, page.getLDLib2PageWidth(), page.getLDLib2PageHeight());
+        FancyMachineUI root = new FancyMachineUI(
+                page, player.getInventory(), holder, page.getPageWidth(), page.getPageHeight());
         root.addChild(page.sessionElement());
         return UI.of(root);
     }
 
     CentralMonitorElement createCentralMonitorElement(Player player, MachineUIHolder holder) {
-        if (!canCreateLDLib2UI(player, holder)) {
+        if (!this.canCreateUI(player, holder)) {
             GTCEu.LOGGER.error("Central Monitor at {} rejected an invalid or unformed LDLib2 opening",
                     getBlockPos());
             throw new IllegalArgumentException("Central Monitor UI requires its formed opening machine.");

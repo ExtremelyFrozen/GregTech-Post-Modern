@@ -1,6 +1,6 @@
 package com.gregtechceu.gtceu.api.machine.fancyconfigurator;
 
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2ConfiguratorPanelElement;
+import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
 import com.gregtechceu.gtceu.api.machine.feature.IVoidable;
 
 import net.minecraft.network.chat.Component;
@@ -20,7 +20,7 @@ public final class LDLib2VoidingModeFancyConfigurator {
     /**
      * Attaches a voiding mode selector to a migrated LDLib2 Fancy configurator panel.
      */
-    public static void attachConfigurators(LDLib2ConfiguratorPanelElement configuratorPanel, IVoidable controller) {
+    public static void attachConfigurators(ConfiguratorPanel configuratorPanel, IVoidable controller) {
         configuratorPanel.attachConfigurators(new LDLib2FancySelectorConfigurator<>(
                 IVoidable.VoidingMode.VALUES,
                 controller::getVoidingMode,

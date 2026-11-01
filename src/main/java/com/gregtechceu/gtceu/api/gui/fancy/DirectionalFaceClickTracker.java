@@ -13,7 +13,7 @@ import org.lwjgl.glfw.GLFW;
  * directional pages need the legacy behavior where both buttons may select a face, while a release on another face
  * or with another button must not execute an action.
  */
-public final class LDLib2DirectionalFaceClickTracker {
+public final class DirectionalFaceClickTracker {
 
     private int pressedButton = -1;
     @Nullable

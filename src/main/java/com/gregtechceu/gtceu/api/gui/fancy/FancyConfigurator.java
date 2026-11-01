@@ -15,7 +15,7 @@ import java.util.List;
  * The configurator owns only UI construction and metadata. Field persistence and business actions must be wired
  * through GTM sync fields or GTM action packets by concrete callers.
  */
-public interface LDLib2FancyConfigurator {
+public interface FancyConfigurator {
 
     /**
      * Returns the title shown in the expanded configurator header.
@@ -30,21 +30,21 @@ public interface LDLib2FancyConfigurator {
     /**
      * Returns the fixed content width for the expanded configurator body.
      */
-    default int getLDLib2ConfiguratorWidth() {
+    default int getConfiguratorWidth() {
         return 120;
     }
 
     /**
      * Returns the fixed content height for the expanded configurator body.
      */
-    default int getLDLib2ConfiguratorHeight() {
+    default int getConfiguratorHeight() {
         return 80;
     }
 
     /**
      * Builds the LDLib2 element tree for the expanded configurator body.
      */
-    UIElement createLDLib2Configurator();
+    UIElement createConfigurator();
 
     /**
      * Returns tooltip text for the collapsed configurator tab.

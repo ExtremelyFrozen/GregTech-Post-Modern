@@ -24,7 +24,7 @@ import java.util.List;
 /**
  * LDLib2 left-side Fancy configurator panel.
  */
-public class LDLib2ConfiguratorPanelElement extends UIElement {
+public class ConfiguratorPanel extends UIElement {
 
     private static final int TAB_SIZE = 24;
     private static final int TAB_GAP = 2;
@@ -41,7 +41,7 @@ public class LDLib2ConfiguratorPanelElement extends UIElement {
     @Nullable
     private Tab expanded;
 
-    public LDLib2ConfiguratorPanelElement(MachineUIHolder holder, int x, int y) {
+    public ConfiguratorPanel(MachineUIHolder holder, int x, int y) {
         this.holder = holder;
         this.x = x;
         this.y = y;
@@ -71,7 +71,7 @@ public class LDLib2ConfiguratorPanelElement extends UIElement {
         return Math.max(0, tabs.size() * (TAB_SIZE + TAB_GAP) - TAB_GAP);
     }
 
-    public LDLib2ConfiguratorPanelElement setBorder(int border) {
+    public ConfiguratorPanel setBorder(int border) {
         if (border < 0) {
             throw new IllegalArgumentException("border must be non-negative");
         }
@@ -80,7 +80,7 @@ public class LDLib2ConfiguratorPanelElement extends UIElement {
         return this;
     }
 
-    public LDLib2ConfiguratorPanelElement setTexture(IGuiTexture texture) {
+    public ConfiguratorPanel setTexture(IGuiTexture texture) {
         this.texture = texture;
         rebuildTabs();
         return this;
@@ -92,8 +92,8 @@ public class LDLib2ConfiguratorPanelElement extends UIElement {
         updatePanelBounds();
     }
 
-    public void attachConfigurators(LDLib2FancyConfigurator... configurators) {
-        for (LDLib2FancyConfigurator configurator : configurators) {
+    public void attachConfigurators(FancyConfigurator... configurators) {
+        for (FancyConfigurator configurator : configurators) {
             Tab tab = new Tab(configurator, tabs.size());
             tabs.add(tab);
             addChild(tab);
@@ -122,9 +122,9 @@ public class LDLib2ConfiguratorPanelElement extends UIElement {
     }
 
     private void rebuildTabs() {
-        List<LDLib2FancyConfigurator> configurators = tabs.stream().map(tab -> tab.configurator).toList();
+        List<FancyConfigurator> configurators = tabs.stream().map(tab -> tab.configurator).toList();
         clear();
-        attachConfigurators(configurators.toArray(LDLib2FancyConfigurator[]::new));
+        attachConfigurators(configurators.toArray(FancyConfigurator[]::new));
     }
 
     private void updatePanelBounds() {
@@ -136,14 +136,14 @@ public class LDLib2ConfiguratorPanelElement extends UIElement {
      */
     public class Tab extends UIElement {
 
-        private final LDLib2FancyConfigurator configurator;
+        private final FancyConfigurator configurator;
         private final GTButtonElement button;
         private final GTImageElement icon;
 
         @Nullable
         private final UIElement view;
 
-        private Tab(LDLib2FancyConfigurator configurator, int index) {
+        private Tab(FancyConfigurator configurator, int index) {
             this.configurator = configurator;
             UITemplate.setLDLib2Bounds(this, 0, index * (TAB_SIZE + TAB_GAP), TAB_SIZE, TAB_SIZE);
             UITemplate.setLDLib2BackgroundTexture(this, texture);
@@ -162,7 +162,7 @@ public class LDLib2ConfiguratorPanelElement extends UIElement {
             button.addChild(icon);
             addChild(button);
 
-            if (configurator instanceof LDLib2FancyConfiguratorButton) {
+            if (configurator instanceof FancyConfiguratorButton) {
                 this.view = null;
             } else {
                 this.view = createView(configurator);
@@ -178,29 +178,29 @@ public class LDLib2ConfiguratorPanelElement extends UIElement {
             super.screenTick();
         }
 
-        private UIElement createView(LDLib2FancyConfigurator configurator) {
-            int width = configurator.getLDLib2ConfiguratorWidth() + border * 2;
-            int height = configurator.getLDLib2ConfiguratorHeight() + TAB_SIZE + border;
+        private UIElement createView(FancyConfigurator configurator) {
+            int width = configurator.getConfiguratorWidth() + border * 2;
+            int height = configurator.getConfiguratorHeight() + TAB_SIZE + border;
             UIElement createdView = UITemplate.setLDLib2Bounds(new UIElement(), 0, 0, width, height);
             UITemplate.setLDLib2BackgroundTexture(createdView, texture);
             createdView.style(style -> style.overflowVisible(true));
 
-            UIElement configuratorBody = configurator.createLDLib2Configurator();
+            UIElement configuratorBody = configurator.createConfigurator();
             UITemplate.setLDLib2Bounds(configuratorBody, border, TAB_SIZE,
-                    configurator.getLDLib2ConfiguratorWidth(),
-                    configurator.getLDLib2ConfiguratorHeight());
+                    configurator.getConfiguratorWidth(),
+                    configurator.getConfiguratorHeight());
             createdView.addChild(configuratorBody);
             createdView.addChild(new GTImageElement(border + ICON_SIZE + 1, border,
-                    configurator.getLDLib2ConfiguratorWidth() - TAB_SIZE - 1,
+                    configurator.getConfiguratorWidth() - TAB_SIZE - 1,
                     TAB_SIZE - border,
                     GuiTextures.text(configurator.getTitle().getString())
                             .setType(TextTexture.TextType.LEFT_HIDE)
-                            .setWidth(configurator.getLDLib2ConfiguratorWidth() - TAB_SIZE)));
+                            .setWidth(configurator.getConfiguratorWidth() - TAB_SIZE)));
             return createdView;
         }
 
         private void onMouseWheel(UIEvent event) {
-            if (configurator instanceof LDLib2FancyCustomMouseWheelAction mouseWheelAction &&
+            if (configurator instanceof FancyMouseWheelAction mouseWheelAction &&
                     mouseWheelAction.mouseWheelMove(event)) {
                 event.stopImmediatePropagation();
                 event.hasHandler = true;
@@ -209,13 +209,13 @@ public class LDLib2ConfiguratorPanelElement extends UIElement {
 
         private void onClick(UIEvent event) {
             if (event.button == GLFW.GLFW_MOUSE_BUTTON_MIDDLE &&
-                    configurator instanceof LDLib2FancyCustomMiddleClickAction middleClickAction) {
+                    configurator instanceof FancyMiddleClickAction middleClickAction) {
                 middleClickAction.onMiddleClick(event);
                 event.stopImmediatePropagation();
                 event.hasHandler = true;
                 return;
             }
-            if (configurator instanceof LDLib2FancyConfiguratorButton configuratorButton) {
+            if (configurator instanceof FancyConfiguratorButton configuratorButton) {
                 configuratorButton.onClick(event);
                 return;
             }
@@ -230,8 +230,8 @@ public class LDLib2ConfiguratorPanelElement extends UIElement {
             if (view == null) {
                 return;
             }
-            int viewWidth = configurator.getLDLib2ConfiguratorWidth() + border * 2;
-            int viewHeight = configurator.getLDLib2ConfiguratorHeight() + TAB_SIZE + border;
+            int viewWidth = configurator.getConfiguratorWidth() + border * 2;
+            int viewHeight = configurator.getConfiguratorHeight() + TAB_SIZE + border;
             int expandedX = -viewWidth + (tabs.size() > 1 ? -EXPANDED_GAP : TAB_SIZE);
             UITemplate.setLDLib2Bounds(this, expandedX, 0, viewWidth, viewHeight);
             positionButton(viewWidth - TAB_SIZE);

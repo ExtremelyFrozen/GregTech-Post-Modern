@@ -3,7 +3,7 @@ package com.gregtechceu.gtceu.integration.ae2.gui.fancy;
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyConfiguratorButton;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyConfiguratorButton;
 import com.gregtechceu.gtceu.integration.ae2.machine.MEFluidConfigActions;
 import com.gregtechceu.gtceu.integration.ae2.machine.MEStockingHatchPartMachine;
 
@@ -22,7 +22,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
  */
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-public final class LDLib2MEFluidAutoPullFancyConfigurator extends LDLib2FancyConfiguratorButton.Toggle {
+public final class LDLib2MEFluidAutoPullFancyConfigurator extends FancyConfiguratorButton.Toggle {
 
     /**
      * Creates a toggle that sends the dedicated ME action only from the matching remote opening.

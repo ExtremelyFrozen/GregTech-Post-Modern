@@ -8,13 +8,13 @@ import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTImageElement;
 import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
-import com.gregtechceu.gtceu.api.gui.factory.LDLib2MachineUIProvider;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
+import com.gregtechceu.gtceu.api.gui.factory.MachineUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUI;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyTabs;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyTooltipsPanel;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyTooltip;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyMachineUIElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyTabsElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyTooltipsPanelElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyUIProvider;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.TickableSubscription;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2DirectionalFancyConfigurator;
@@ -57,7 +57,7 @@ import static com.gregtechceu.gtceu.api.machine.property.GTMachineModelPropertie
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 public class RotorHolderPartMachine extends TieredPartMachine
-                                    implements LDLib2MachineUIProvider, LDLib2FancyPartUIProvider {
+                                    implements MachineUIProvider, LDLib2FancyPartUIProvider {
 
     public static final int SPEED_INCREMENT = 1;
     public static final int SPEED_DECREMENT = 3;
@@ -246,12 +246,12 @@ public class RotorHolderPartMachine extends TieredPartMachine
     // ********** GUI ***********//
     //////////////////////////////////////
     @Override
-    public boolean canCreateLDLib2UI(Player player, MachineUIHolder holder) {
+    public boolean canCreateUI(Player player, MachineUIHolder holder) {
         return holder.getMachine() == this;
     }
 
     @Override
-    public UI createLDLib2UI(Player player, MachineUIHolder holder) {
+    public UI createUI(Player player, MachineUIHolder holder) {
         requireMatchingLDLib2Holder(holder);
         return UI.of(createLDLib2RotorPage());
     }
@@ -260,7 +260,7 @@ public class RotorHolderPartMachine extends TieredPartMachine
      * Creates a new holder-scoped Rotor Holder page for one surrounding multiblock UI opening.
      */
     @Override
-    public LDLib2FancyUIProvider createLDLib2FancyPage(Player player, MachineUIHolder holder) {
+    public FancyUIProvider createLDLib2FancyPage(Player player, MachineUIHolder holder) {
         return new RotorHolderLDLib2Page(player, holder);
     }
 
@@ -304,7 +304,7 @@ public class RotorHolderPartMachine extends TieredPartMachine
     /**
      * Owns the contextual Rotor Holder page state for exactly one menu opening.
      */
-    private final class RotorHolderLDLib2Page implements LDLib2FancyUIProvider {
+    private final class RotorHolderLDLib2Page implements FancyUIProvider {
 
         private final MachineUIHolder holder;
         private final LDLib2DirectionalFancyConfigurator directionalPage;
@@ -317,7 +317,7 @@ public class RotorHolderPartMachine extends TieredPartMachine
         }
 
         @Override
-        public UIElement createLDLib2MainPage(LDLib2FancyMachineUIElement shell) {
+        public UIElement createMainPage(FancyMachineUI shell) {
             if (holder.getMachine() != RotorHolderPartMachine.this) {
                 throw new IllegalStateException("Rotor Holder page holder no longer resolves its opened machine.");
             }
@@ -335,22 +335,22 @@ public class RotorHolderPartMachine extends TieredPartMachine
         }
 
         @Override
-        public int getLDLib2PageWidth() {
+        public int getPageWidth() {
             return PAGE_WIDTH;
         }
 
         @Override
-        public int getLDLib2PageHeight() {
+        public int getPageHeight() {
             return PAGE_HEIGHT;
         }
 
         @Override
-        public void attachSideTabs(LDLib2FancyTabsElement tabs) {
+        public void attachSideTabs(FancyTabs tabs) {
             tabs.attachSubTab(directionalPage);
         }
 
         @Override
-        public void attachTooltips(LDLib2FancyTooltipsPanelElement tooltipsPanel) {
+        public void attachTooltips(FancyTooltipsPanel tooltipsPanel) {
             tooltipsPanel.attachTooltips(createRotorObstructionTooltip());
         }
 
@@ -376,7 +376,7 @@ public class RotorHolderPartMachine extends TieredPartMachine
     //////////////////////////////////////
     @Override
     public void attachLDLib2FancyTooltipsToController(MultiblockControllerMachine controller,
-                                                      LDLib2FancyTooltipsPanelElement tooltipsPanel) {
+                                                      FancyTooltipsPanel tooltipsPanel) {
         tooltipsPanel.attachTooltips(createRotorObstructionTooltip());
     }
 

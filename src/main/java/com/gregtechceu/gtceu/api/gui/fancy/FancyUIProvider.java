@@ -19,15 +19,15 @@ import java.util.List;
  * local side-tab registration, configurator registration, and tooltip registration outside concrete machine UI
  * implementations so machine pages can migrate one page at a time.
  */
-public interface LDLib2FancyUIProvider {
+public interface FancyUIProvider {
 
     /**
      * Builds the LDLib2 element tree for the page content area.
      *
      * @param shell shell element that owns navigation, side tabs, configurators, and tooltips.
-     * @return page root element sized by {@link #getLDLib2PageWidth()} and {@link #getLDLib2PageHeight()}.
+     * @return page root element sized by {@link #getPageWidth()} and {@link #getPageHeight()}.
      */
-    UIElement createLDLib2MainPage(LDLib2FancyMachineUIElement shell);
+    UIElement createMainPage(FancyMachineUI shell);
 
     /**
      * Returns the icon rendered in the title bar and tab buttons.
@@ -42,31 +42,31 @@ public interface LDLib2FancyUIProvider {
     /**
      * Returns the page content width used by the fixed-pixel Fancy shell.
      */
-    default int getLDLib2PageWidth() {
+    default int getPageWidth() {
         return 176;
     }
 
     /**
      * Returns the page content height used by the fixed-pixel Fancy shell.
      */
-    default int getLDLib2PageHeight() {
+    default int getPageHeight() {
         return 166;
     }
 
     /**
      * Registers local side tabs for this page's home page.
      */
-    default void attachSideTabs(LDLib2FancyTabsElement tabs) {}
+    default void attachSideTabs(FancyTabs tabs) {}
 
     /**
      * Registers LDLib2 configurators for this page.
      */
-    default void attachConfigurators(LDLib2ConfiguratorPanelElement configuratorPanel) {}
+    default void attachConfigurators(ConfiguratorPanel configuratorPanel) {}
 
     /**
      * Registers right-side tooltip indicators for this page.
      */
-    default void attachTooltips(LDLib2FancyTooltipsPanelElement tooltipsPanel) {}
+    default void attachTooltips(FancyTooltipsPanel tooltipsPanel) {}
 
     /**
      * Returns whether the shell should show the player inventory under this page.
@@ -78,7 +78,7 @@ public interface LDLib2FancyUIProvider {
     /**
      * Returns pages shown in the page switcher and home side-tab list.
      */
-    default List<LDLib2FancyUIProvider> getSubTabs() {
+    default List<FancyUIProvider> getSubTabs() {
         return List.of();
     }
 
