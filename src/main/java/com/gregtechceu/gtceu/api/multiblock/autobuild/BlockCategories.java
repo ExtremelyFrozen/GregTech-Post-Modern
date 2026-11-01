@@ -17,7 +17,6 @@ import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectMap;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
-import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 import java.util.Arrays;
@@ -28,7 +27,6 @@ import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 /** Setup-time category arrays preserve tier or declaration order and support identity-based block lookup. */
-@NullMarked
 public final class BlockCategories {
 
     public static final String HEATING_COILS = "heating_coils";
