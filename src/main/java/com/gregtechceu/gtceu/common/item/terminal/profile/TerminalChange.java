@@ -1,13 +1,13 @@
 package com.gregtechceu.gtceu.common.item.terminal.profile;
 
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.AutoBuildMode;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.AutoBuildSharedOptions;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.AutoBuildStructureOptions;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.MultiblockPlanResolver;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.StructureOperation;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.BuildPolicy;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.StructureRequest;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.BatchPlanner;
 import com.gregtechceu.gtceu.api.multiblock.pattern.match.MultiBlockPattern;
-import com.gregtechceu.gtceu.common.item.datacomponents.TerminalMachineProfile;
-import com.gregtechceu.gtceu.common.item.datacomponents.TerminalStructureProfile;
+import com.gregtechceu.gtceu.common.item.datacomponents.TerminalMachine;
+import com.gregtechceu.gtceu.common.item.datacomponents.TerminalStructure;
 
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
@@ -21,8 +21,8 @@ import org.jspecify.annotations.Nullable;
 /**
  * One bounded, typed terminal profile mutation sent to the authoritative server menu.
  */
-public record TerminalProfileUpdate(Type type, @Nullable String structureName, int repetitionIndex,
-                                    int repetitionValue, boolean booleanValue, @Nullable AutoBuildMode mode,
+public record TerminalChange(Type type, @Nullable String structureName, int repetitionIndex,
+                                    int repetitionValue, boolean booleanValue, @Nullable StructureOperation mode,
                                     @Nullable String tierGroup, @Nullable ResourceLocation tierChoice,
                                     @Nullable String choicePath, @Nullable String choiceBranch) {
 
@@ -30,17 +30,17 @@ public record TerminalProfileUpdate(Type type, @Nullable String structureName, i
     private static final int MAX_RESOURCE_LOCATION = 256;
     private static final int MAX_CHOICE_PATH = 2048;
 
-    public static final StreamCodec<RegistryFriendlyByteBuf, TerminalProfileUpdate> STREAM_CODEC = StreamCodec
-            .of(TerminalProfileUpdate::encode, TerminalProfileUpdate::decode);
+    public static final StreamCodec<RegistryFriendlyByteBuf, TerminalChange> STREAM_CODEC = StreamCodec
+            .of(TerminalChange::encode, TerminalChange::decode);
 
-    public TerminalProfileUpdate(Type type, @Nullable String structureName, int repetitionIndex,
-                                 int repetitionValue, boolean booleanValue, @Nullable AutoBuildMode mode,
+    public TerminalChange(Type type, @Nullable String structureName, int repetitionIndex,
+                                 int repetitionValue, boolean booleanValue, @Nullable StructureOperation mode,
                                  @Nullable String tierGroup, @Nullable ResourceLocation tierChoice) {
         this(type, structureName, repetitionIndex, repetitionValue, booleanValue, mode, tierGroup, tierChoice, null,
                 null);
     }
 
-    public TerminalProfileUpdate {
+    public TerminalChange {
         boolean structureAction = switch (type) {
             case STRUCTURE_SELECTED, STRUCTURE_MODE, STRUCTURE_FLIP, REPETITION, TIER, CHOICE -> true;
             default -> false;
@@ -70,50 +70,50 @@ public record TerminalProfileUpdate(Type type, @Nullable String structureName, i
         }
     }
 
-    public static TerminalProfileUpdate sharedReplace(boolean value) {
+    public static TerminalChange sharedReplace(boolean value) {
         return booleanUpdate(Type.SHARED_REPLACE, null, value);
     }
 
-    public static TerminalProfileUpdate sharedNoHatch(boolean value) {
+    public static TerminalChange sharedNoHatch(boolean value) {
         return booleanUpdate(Type.SHARED_NO_HATCH, null, value);
     }
 
-    public static TerminalProfileUpdate sharedME(boolean value) {
+    public static TerminalChange sharedME(boolean value) {
         return booleanUpdate(Type.SHARED_USE_ME, null, value);
     }
 
-    public static TerminalProfileUpdate structureSelected(String name, boolean value) {
+    public static TerminalChange structureSelected(String name, boolean value) {
         return booleanUpdate(Type.STRUCTURE_SELECTED, name, value);
     }
 
-    public static TerminalProfileUpdate structureMode(String name, AutoBuildMode mode) {
-        return new TerminalProfileUpdate(Type.STRUCTURE_MODE, name, 0, 0, false, mode, null, null);
+    public static TerminalChange structureMode(String name, StructureOperation mode) {
+        return new TerminalChange(Type.STRUCTURE_MODE, name, 0, 0, false, mode, null, null);
     }
 
-    public static TerminalProfileUpdate structureFlip(String name, boolean value) {
+    public static TerminalChange structureFlip(String name, boolean value) {
         return booleanUpdate(Type.STRUCTURE_FLIP, name, value);
     }
 
-    public static TerminalProfileUpdate repetition(String name, int index, int value) {
-        return new TerminalProfileUpdate(Type.REPETITION, name, index, value, false, null, null, null);
+    public static TerminalChange repetition(String name, int index, int value) {
+        return new TerminalChange(Type.REPETITION, name, index, value, false, null, null, null);
     }
 
-    public static TerminalProfileUpdate tier(String name, String group, ResourceLocation choice) {
-        return new TerminalProfileUpdate(Type.TIER, name, 0, 0, false, null, group, choice);
+    public static TerminalChange tier(String name, String group, ResourceLocation choice) {
+        return new TerminalChange(Type.TIER, name, 0, 0, false, null, group, choice);
     }
 
-    public static TerminalProfileUpdate choice(String name, String path, String branch) {
-        return new TerminalProfileUpdate(Type.CHOICE, name, 0, 0, false, null, null, null, path, branch);
+    public static TerminalChange choice(String name, String path, String branch) {
+        return new TerminalChange(Type.CHOICE, name, 0, 0, false, null, null, null, path, branch);
     }
 
     /** Applies this change only after validating structure identity, dependency rules and repetition bounds. */
-    public TerminalMachineProfile apply(MultiblockMachineDefinition definition, TerminalMachineProfile profile) {
+    public TerminalMachine apply(MultiblockMachineDefinition definition, TerminalMachine profile) {
         return switch (type) {
-            case SHARED_REPLACE -> profile.withSharedOptions(new AutoBuildSharedOptions(booleanValue,
+            case SHARED_REPLACE -> profile.withSharedOptions(new BuildPolicy(booleanValue,
                     profile.sharedOptions().noHatchMode(), profile.sharedOptions().useME()));
-            case SHARED_NO_HATCH -> profile.withSharedOptions(new AutoBuildSharedOptions(
+            case SHARED_NO_HATCH -> profile.withSharedOptions(new BuildPolicy(
                     profile.sharedOptions().replaceMode(), booleanValue, profile.sharedOptions().useME()));
-            case SHARED_USE_ME -> profile.withSharedOptions(new AutoBuildSharedOptions(
+            case SHARED_USE_ME -> profile.withSharedOptions(new BuildPolicy(
                     profile.sharedOptions().replaceMode(), profile.sharedOptions().noHatchMode(), booleanValue));
             case STRUCTURE_SELECTED -> selectStructure(definition, profile);
             case STRUCTURE_MODE -> changeMode(definition, profile);
@@ -124,12 +124,12 @@ public record TerminalProfileUpdate(Type type, @Nullable String structureName, i
         };
     }
 
-    private TerminalMachineProfile selectStructure(MultiblockMachineDefinition definition,
-                                                   TerminalMachineProfile profile) {
-        TerminalStructureProfile structure = requireStructure(profile);
+    private TerminalMachine selectStructure(MultiblockMachineDefinition definition,
+                                                   TerminalMachine profile) {
+        TerminalStructure structure = requireStructure(profile);
         if (!booleanValue) {
             for (var entry : profile.structures().entrySet()) {
-                if (entry.getValue().selected() && entry.getValue().mode() == AutoBuildMode.BUILD &&
+                if (entry.getValue().selected() && entry.getValue().mode() == StructureOperation.BUILD &&
                         definition.getRequiredStructures(entry.getKey()).contains(structureName)) {
                     throw new IllegalArgumentException("Selected build structure '" + entry.getKey() +
                             "' requires '" + structureName + "'");
@@ -142,43 +142,43 @@ public record TerminalProfileUpdate(Type type, @Nullable String structureName, i
             }
             return updateStructure(definition, profile, structure.withSelected(false));
         }
-        TerminalMachineProfile updated = updateStructure(definition, profile, structure.withSelected(true));
-        return structure.mode() == AutoBuildMode.BUILD ? selectDependencies(definition, updated) : updated;
+        TerminalMachine updated = updateStructure(definition, profile, structure.withSelected(true));
+        return structure.mode() == StructureOperation.BUILD ? selectDependencies(definition, updated) : updated;
     }
 
-    private TerminalMachineProfile changeMode(MultiblockMachineDefinition definition,
-                                              TerminalMachineProfile profile) {
-        TerminalStructureProfile structure = requireStructure(profile);
-        if (mode == AutoBuildMode.DEMOLISH) {
+    private TerminalMachine changeMode(MultiblockMachineDefinition definition,
+                                              TerminalMachine profile) {
+        TerminalStructure structure = requireStructure(profile);
+        if (mode == StructureOperation.DEMOLISH) {
             for (var entry : profile.structures().entrySet()) {
-                if (entry.getValue().selected() && entry.getValue().mode() == AutoBuildMode.BUILD &&
+                if (entry.getValue().selected() && entry.getValue().mode() == StructureOperation.BUILD &&
                         definition.getRequiredStructures(entry.getKey()).contains(structureName)) {
                     throw new IllegalArgumentException("Cannot demolish required structure '" + structureName +
                             "' while building '" + entry.getKey() + "'");
                 }
             }
         }
-        TerminalMachineProfile updated = updateStructure(definition, profile, structure.withMode(mode));
-        return mode == AutoBuildMode.BUILD && structure.selected() ? selectDependencies(definition, updated) : updated;
+        TerminalMachine updated = updateStructure(definition, profile, structure.withMode(mode));
+        return mode == StructureOperation.BUILD && structure.selected() ? selectDependencies(definition, updated) : updated;
     }
 
-    private TerminalMachineProfile selectDependencies(MultiblockMachineDefinition definition,
-                                                      TerminalMachineProfile profile) {
-        TerminalMachineProfile updated = profile;
+    private TerminalMachine selectDependencies(MultiblockMachineDefinition definition,
+                                                      TerminalMachine profile) {
+        TerminalMachine updated = profile;
         for (String dependency : definition.getRequiredStructures(structureName)) {
-            TerminalStructureProfile dependencyProfile = updated.structures().get(dependency);
+            TerminalStructure dependencyProfile = updated.structures().get(dependency);
             if (dependencyProfile == null) {
                 throw new IllegalArgumentException("Missing required terminal structure profile: " + dependency);
             }
             updated = updated.withStructure(dependency,
-                    dependencyProfile.withMode(AutoBuildMode.BUILD).withSelected(true));
+                    dependencyProfile.withMode(StructureOperation.BUILD).withSelected(true));
         }
         return updated;
     }
 
-    private TerminalMachineProfile changeRepetition(MultiblockMachineDefinition definition,
-                                                    TerminalMachineProfile profile) {
-        TerminalStructureProfile structure = requireStructure(profile);
+    private TerminalMachine changeRepetition(MultiblockMachineDefinition definition,
+                                                    TerminalMachine profile) {
+        TerminalStructure structure = requireStructure(profile);
         MultiBlockPattern pattern = definition.getPattern(structureName);
         var descriptors = pattern.getRepeatDescriptors();
         if (repetitionIndex >= descriptors.size()) {
@@ -198,17 +198,17 @@ public record TerminalProfileUpdate(Type type, @Nullable String structureName, i
                 normalizeLayoutTiers(definition, structure.withRepetitions(repetitions)));
     }
 
-    private TerminalMachineProfile changeFlip(MultiblockMachineDefinition definition,
-                                              TerminalMachineProfile profile) {
+    private TerminalMachine changeFlip(MultiblockMachineDefinition definition,
+                                              TerminalMachine profile) {
         if (booleanValue && !definition.isAllowFlip()) {
             throw new IllegalArgumentException("This multiblock definition does not allow flipped structures");
         }
         return updateStructure(definition, profile, requireStructure(profile).withFlipMode(booleanValue));
     }
 
-    private TerminalMachineProfile changeTier(MultiblockMachineDefinition definition,
-                                              TerminalMachineProfile profile) {
-        ObjectList<ResourceLocation> choices = new MultiblockPlanResolver().tierChoiceOptions(definition, structureName)
+    private TerminalMachine changeTier(MultiblockMachineDefinition definition,
+                                              TerminalMachine profile) {
+        ObjectList<ResourceLocation> choices = new BatchPlanner().tierChoiceOptions(definition, structureName)
                 .get(tierGroup);
         if (choices == null || !choices.contains(tierChoice)) {
             throw new IllegalArgumentException("Tier choice does not belong to this structure predicate");
@@ -217,8 +217,8 @@ public record TerminalProfileUpdate(Type type, @Nullable String structureName, i
                 requireStructure(profile).withTierChoice(tierGroup, tierChoice));
     }
 
-    private TerminalMachineProfile changeChoice(MultiblockMachineDefinition definition,
-                                                TerminalMachineProfile profile) {
+    private TerminalMachine changeChoice(MultiblockMachineDefinition definition,
+                                                TerminalMachine profile) {
         boolean valid = definition.getPattern(structureName).getChoiceDescriptors().stream()
                 .anyMatch(choice -> choice.path().equals(choicePath) && choice.alternatives().contains(choiceBranch));
         if (!valid) throw new IllegalArgumentException("Choice branch does not belong to this structure node");
@@ -226,12 +226,12 @@ public record TerminalProfileUpdate(Type type, @Nullable String structureName, i
                 normalizeLayoutTiers(definition, requireStructure(profile).withChoice(choicePath, choiceBranch)));
     }
 
-    private TerminalStructureProfile normalizeLayoutTiers(MultiblockMachineDefinition definition,
-                                                          TerminalStructureProfile structure) {
-        var options = new AutoBuildStructureOptions(structureName, structure.repetitions(), structure.tierChoices(),
+    private TerminalStructure normalizeLayoutTiers(MultiblockMachineDefinition definition,
+                                                          TerminalStructure structure) {
+        var options = new StructureRequest(structureName, structure.repetitions(), structure.tierChoices(),
                 structure.flipMode(), structure.mode(), structure.choices());
-        var domains = new MultiblockPlanResolver().activeTierChoiceOptions(definition, options);
-        TerminalStructureProfile normalized = structure;
+        var domains = new BatchPlanner().activeTierChoiceOptions(definition, options);
+        TerminalStructure normalized = structure;
         for (var entry : domains.entrySet()) {
             if (!entry.getValue().contains(structure.tierChoices().get(entry.getKey()))) {
                 normalized = normalized.withTierChoice(entry.getKey(), entry.getValue().getFirst());
@@ -240,28 +240,28 @@ public record TerminalProfileUpdate(Type type, @Nullable String structureName, i
         return normalized;
     }
 
-    private TerminalMachineProfile updateStructure(MultiblockMachineDefinition definition,
-                                                   TerminalMachineProfile profile,
-                                                   TerminalStructureProfile structure) {
+    private TerminalMachine updateStructure(MultiblockMachineDefinition definition,
+                                                   TerminalMachine profile,
+                                                   TerminalStructure structure) {
         if (!definition.getStructureNames().contains(structureName)) {
             throw new IllegalArgumentException("Unknown terminal structure: " + structureName);
         }
         return profile.withStructure(structureName, structure);
     }
 
-    private TerminalStructureProfile requireStructure(TerminalMachineProfile profile) {
-        TerminalStructureProfile structure = profile.structures().get(structureName);
+    private TerminalStructure requireStructure(TerminalMachine profile) {
+        TerminalStructure structure = profile.structures().get(structureName);
         if (structure == null) {
             throw new IllegalArgumentException("Unknown terminal structure profile: " + structureName);
         }
         return structure;
     }
 
-    private static TerminalProfileUpdate booleanUpdate(Type type, @Nullable String structureName, boolean value) {
-        return new TerminalProfileUpdate(type, structureName, 0, 0, value, null, null, null);
+    private static TerminalChange booleanUpdate(Type type, @Nullable String structureName, boolean value) {
+        return new TerminalChange(type, structureName, 0, 0, value, null, null, null);
     }
 
-    private static void encode(RegistryFriendlyByteBuf buffer, TerminalProfileUpdate update) {
+    private static void encode(RegistryFriendlyByteBuf buffer, TerminalChange update) {
         buffer.writeEnum(update.type);
         switch (update.type) {
             case SHARED_REPLACE, SHARED_NO_HATCH, SHARED_USE_ME -> buffer.writeBoolean(update.booleanValue);
@@ -291,14 +291,14 @@ public record TerminalProfileUpdate(Type type, @Nullable String structureName, i
         }
     }
 
-    private static TerminalProfileUpdate decode(RegistryFriendlyByteBuf buffer) {
+    private static TerminalChange decode(RegistryFriendlyByteBuf buffer) {
         Type type = buffer.readEnum(Type.class);
         return switch (type) {
             case SHARED_REPLACE, SHARED_NO_HATCH, SHARED_USE_ME -> booleanUpdate(type, null, buffer.readBoolean());
             case STRUCTURE_SELECTED, STRUCTURE_FLIP -> booleanUpdate(type, buffer.readUtf(MAX_STRUCTURE_NAME),
                     buffer.readBoolean());
             case STRUCTURE_MODE -> structureMode(buffer.readUtf(MAX_STRUCTURE_NAME),
-                    buffer.readEnum(AutoBuildMode.class));
+                    buffer.readEnum(StructureOperation.class));
             case REPETITION -> repetition(buffer.readUtf(MAX_STRUCTURE_NAME), buffer.readVarInt(),
                     buffer.readVarInt());
             case TIER -> tier(buffer.readUtf(MAX_STRUCTURE_NAME), buffer.readUtf(MAX_RESOURCE_LOCATION),

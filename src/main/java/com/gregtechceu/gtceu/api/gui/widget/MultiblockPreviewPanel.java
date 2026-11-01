@@ -1,7 +1,7 @@
 package com.gregtechceu.gtceu.api.gui.widget;
 
-import com.gregtechceu.gtceu.api.multiblock.preview.MultiblockPreviewSnapshot;
-import com.gregtechceu.gtceu.api.multiblock.preview.MultiblockPreviewState;
+import com.gregtechceu.gtceu.api.multiblock.preview.StructurePreview;
+import com.gregtechceu.gtceu.api.multiblock.preview.PreviewVisibility;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
@@ -27,8 +27,8 @@ public final class MultiblockPreviewPanel extends UIElement {
 
     @Nullable
     private static Function<ClientContext, UIElement> clientFactory;
-    private final MultiblockPreviewState state;
-    private Consumer<MultiblockPreviewSnapshot> clientUpdater = ignored -> {};
+    private final PreviewVisibility state;
+    private Consumer<StructurePreview> clientUpdater = ignored -> {};
 
     /**
      * Creates a preview container that is safe to construct on both menu sides.
@@ -38,12 +38,12 @@ public final class MultiblockPreviewPanel extends UIElement {
      * @param snapshot         immutable resolved view
      * @param showAvailability whether the panel includes terminal-only persistent material allocation details
      */
-    public MultiblockPreviewPanel(int width, int height, MultiblockPreviewSnapshot snapshot,
+    public MultiblockPreviewPanel(int width, int height, StructurePreview snapshot,
                                   boolean showAvailability) {
         if (width < 72 || height < 72) {
             throw new IllegalArgumentException("Multiblock preview panel is too small");
         }
-        state = new MultiblockPreviewState(snapshot);
+        state = new PreviewVisibility(snapshot);
         layout(layout -> {
             layout.positionType(TaffyPosition.ABSOLUTE);
             layout.width(width);
@@ -61,14 +61,14 @@ public final class MultiblockPreviewPanel extends UIElement {
         }
     }
 
-    public MultiblockPreviewState state() {
+    public PreviewVisibility state() {
         return state;
     }
 
     /**
      * Replaces terminal-authoritative or locally re-resolved content without recreating the panel.
      */
-    public void updateSnapshot(MultiblockPreviewSnapshot snapshot) {
+    public void updateSnapshot(StructurePreview snapshot) {
         if (!state.snapshot().definitionId().equals(snapshot.definitionId())) {
             throw new IllegalArgumentException("A preview panel cannot switch machine definitions");
         }
@@ -89,6 +89,6 @@ public final class MultiblockPreviewPanel extends UIElement {
     /**
      * Client construction values passed through a common JDK function instead of a custom single-use interface.
      */
-    public record ClientContext(int width, int height, MultiblockPreviewState state, boolean showAvailability,
-                                Consumer<Consumer<MultiblockPreviewSnapshot>> installUpdater) {}
+    public record ClientContext(int width, int height, PreviewVisibility state, boolean showAvailability,
+                                Consumer<Consumer<StructurePreview>> installUpdater) {}
 }

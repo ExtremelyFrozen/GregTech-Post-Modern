@@ -10,16 +10,16 @@ import com.gregtechceu.gtceu.api.gui.widget.MultiblockPreviewPanel;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
-import com.gregtechceu.gtceu.api.multiblock.preview.MultiblockPreviewSnapshot;
+import com.gregtechceu.gtceu.api.multiblock.preview.StructurePreview;
 import com.gregtechceu.gtceu.api.registry.GTRegistries;
 import com.gregtechceu.gtceu.common.data.GTDataComponents;
 import com.gregtechceu.gtceu.common.item.datacomponents.TerminalControllerBinding;
-import com.gregtechceu.gtceu.common.item.datacomponents.TerminalMachineProfile;
+import com.gregtechceu.gtceu.common.item.datacomponents.TerminalMachine;
 import com.gregtechceu.gtceu.common.item.terminal.menu.TerminalMenuState;
 import com.gregtechceu.gtceu.common.item.terminal.menu.TerminalSession;
 import com.gregtechceu.gtceu.common.item.terminal.network.TerminalAction;
 import com.gregtechceu.gtceu.common.item.terminal.network.TerminalStateUpdate;
-import com.gregtechceu.gtceu.common.item.terminal.profile.TerminalProfileUpdate;
+import com.gregtechceu.gtceu.common.item.terminal.profile.TerminalChange;
 
 import com.lowdragmc.lowdraglib2.gui.sync.SyncValue;
 import com.lowdragmc.lowdraglib2.gui.sync.rpc.RPCEmitter;
@@ -78,9 +78,9 @@ public final class TerminalScreen extends UIElement {
             state = serverSession.state();
         } else {
             serverSession = null;
-            var emptyPreview = new MultiblockPreviewSnapshot(definition.getId(), "awaiting-server", false,
+            var emptyPreview = new StructurePreview(definition.getId(), "awaiting-server", false,
                     ObjectList.of(), ObjectList.of(), ObjectList.of(), ObjectList.of());
-            state = new TerminalMenuState(definition.getId(), 0, 0, TerminalMachineProfile.defaults(definition),
+            state = new TerminalMenuState(definition.getId(), 0, 0, TerminalMachine.defaults(definition),
                     emptyPreview, false, null, null);
         }
 
@@ -121,7 +121,7 @@ public final class TerminalScreen extends UIElement {
         return ui != null && ui.getMenu() == player.containerMenu;
     }
 
-    private void requestAction(@Nullable TerminalProfileUpdate update) {
+    private void requestAction(@Nullable TerminalChange update) {
         if (!player.level().isClientSide || sessionId == null || pendingSequence >= 0 || state.executing() ||
                 !installed()) {
             return;

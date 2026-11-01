@@ -11,12 +11,12 @@ import com.gregtechceu.gtceu.api.machine.property.GTMachineModelProperties;
 import com.gregtechceu.gtceu.api.machine.trait.multiblock.MultiblockMachineTrait;
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState;
 import com.gregtechceu.gtceu.api.multiblock.MultiblockWorldSavedData;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.AutoBuildProblem;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.AutoBuildBatchRequest;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.AutoBuildBatchResult;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.AutoBuildStructureResult;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.AutoBuildPlan;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.MultiblockPlanResolver;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.BuildProblem;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.BatchRequest;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.BatchResult;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.StructureResult;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.BatchPlan;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.BatchPlanner;
 import com.gregtechceu.gtceu.api.multiblock.pattern.match.MultiBlockPattern;
 import com.gregtechceu.gtceu.api.sync_system.annotations.ClientFieldChangeListener;
 import com.gregtechceu.gtceu.api.sync_system.annotations.RerenderOnChanged;
@@ -373,36 +373,36 @@ public class MultiblockControllerMachine extends MetaMachine {
     /**
      * Resolves and executes a batch immediately with the newly generated fingerprint.
      */
-    public AutoBuildBatchResult autoBuildBatch(ServerPlayer player, AutoBuildBatchRequest request) {
+    public BatchResult autoBuildBatch(ServerPlayer player, BatchRequest request) {
         return autoBuildBatch(player, request, null);
     }
 
     /**
      * Resolves and executes a batch only if it still matches the fingerprint displayed by a bound terminal.
      */
-    public AutoBuildBatchResult autoBuildBatch(ServerPlayer player, AutoBuildBatchRequest request,
+    public BatchResult autoBuildBatch(ServerPlayer player, BatchRequest request,
                                                long expectedPlanFingerprint) {
         return autoBuildBatch(player, request, Long.valueOf(expectedPlanFingerprint));
     }
 
-    private AutoBuildBatchResult autoBuildBatch(ServerPlayer player, AutoBuildBatchRequest request,
+    private BatchResult autoBuildBatch(ServerPlayer player, BatchRequest request,
                                                 @Nullable Long expectedPlanFingerprint) {
-        AutoBuildProblem targetProblem = MultiblockBatchExecutor.validateTarget(this, player);
+        BuildProblem targetProblem = BatchExecutor.validateTarget(this, player);
         if (targetProblem != null) return batchFailure(request, targetProblem);
         try {
-            AutoBuildPlan plan = new MultiblockPlanResolver().resolveWorld(this, player, request);
+            BatchPlan plan = new BatchPlanner().resolveWorld(this, player, request);
             long expected = expectedPlanFingerprint == null ? plan.fingerprint() : expectedPlanFingerprint;
-            return MultiblockBatchExecutor.execute(this, player, request, plan, expected);
+            return BatchExecutor.execute(this, player, request, plan, expected);
         } catch (RuntimeException exception) {
             GTCEu.LOGGER.error("Failed to execute automatic-build batch for {}", getDefinition().getId(), exception);
-            return batchFailure(request, new AutoBuildProblem(AutoBuildProblem.Type.INVALID_OPTIONS, getBlockPos(),
+            return batchFailure(request, new BuildProblem(BuildProblem.Type.INVALID_OPTIONS, getBlockPos(),
                     Component.translatable("gtpm.multiblock.autobuild.planning_failed")));
         }
     }
 
-    private AutoBuildBatchResult batchFailure(AutoBuildBatchRequest request, AutoBuildProblem problem) {
-        return AutoBuildBatchResult.of(request.structures().stream()
-                .map(options -> new AutoBuildStructureResult(options.structureName(), options.mode(), false, 0, 0,
+    private BatchResult batchFailure(BatchRequest request, BuildProblem problem) {
+        return BatchResult.of(request.structures().stream()
+                .map(options -> new StructureResult(options.structureName(), options.mode(), false, 0, 0,
                         ObjectList.of(problem)))
                 .collect(ObjectImmutableList.toList()));
     }

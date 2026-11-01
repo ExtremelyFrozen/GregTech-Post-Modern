@@ -5,14 +5,14 @@ import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.machine.multiblock.PartAbility;
 import com.gregtechceu.gtceu.api.multiblock.MultiblockBlockInfo;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.AutoBuildBlockMap;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.AutoBuildItemKey;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.AutoBuildMaterialSource;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.AutoBuildProblem;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.AutoBuildBatchRequest;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.AutoBuildMode;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.AutoBuildSharedOptions;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.AutoBuildStructureOptions;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.BlockCategories;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialKey;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialSource;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.BuildProblem;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.BatchRequest;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.StructureOperation;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.BuildPolicy;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.StructureRequest;
 import com.gregtechceu.gtceu.api.multiblock.pattern.layout.PatternLayout;
 import com.gregtechceu.gtceu.api.multiblock.pattern.match.MultiBlockPattern;
 import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PatternPredicate;
@@ -80,7 +80,7 @@ import java.util.Objects;
  * This class is intentionally concrete: it has one algorithm and no interchangeable implementation.
  * </p>
  */
-public final class MultiblockPlanResolver {
+public final class BatchPlanner {
 
     private static final Direction CANONICAL_FRONT = Direction.NORTH;
     private static final Direction CANONICAL_UP = Direction.NORTH;
@@ -90,7 +90,7 @@ public final class MultiblockPlanResolver {
     /**
      * Resolves an XEI-style plan against an empty world and unlimited representative materials.
      */
-    public AutoBuildPlan resolveCanonical(MultiblockMachineDefinition definition, AutoBuildBatchRequest request) {
+    public BatchPlan resolveCanonical(MultiblockMachineDefinition definition, BatchRequest request) {
         return resolve(definition, request, new ResolutionContext(null, null, null, BlockPos.ZERO, CANONICAL_FRONT,
                 CANONICAL_UP, true, true)).plan();
     }
@@ -98,7 +98,7 @@ public final class MultiblockPlanResolver {
     /**
      * Creates the persisted first-use defaults for one structure from its current pattern definition.
      */
-    public AutoBuildStructureOptions defaultStructureOptions(MultiblockMachineDefinition definition,
+    public StructureRequest defaultStructureOptions(MultiblockMachineDefinition definition,
                                                              String structureName) {
         MultiBlockPattern pattern = definition.getPattern(structureName);
         IntList repetitions = new IntArrayList(pattern.getRepeatDescriptors().size());
@@ -109,7 +109,7 @@ public final class MultiblockPlanResolver {
         availableTiers.forEach((group, candidates) -> tiers.put(group, candidates.getFirst()));
         Object2ObjectMap<String, String> choices = new Object2ObjectLinkedOpenHashMap<>();
         for (var choice : pattern.getChoiceDescriptors()) choices.put(choice.path(), choice.alternatives().getFirst());
-        return new AutoBuildStructureOptions(structureName, repetitions, tiers, false, AutoBuildMode.BUILD, choices);
+        return new StructureRequest(structureName, repetitions, tiers, false, StructureOperation.BUILD, choices);
     }
 
     /**
@@ -122,7 +122,7 @@ public final class MultiblockPlanResolver {
 
     /** Returns tier domains of the current layout, including the chosen branch and repetition counts. */
     public Object2ObjectMap<String, ObjectList<ResourceLocation>> activeTierChoiceOptions(MultiblockMachineDefinition definition,
-                                                                                          AutoBuildStructureOptions options) {
+                                                                                          StructureRequest options) {
         var layout = definition.getPattern(options.structureName()).expandLayout(options.repetitions().toIntArray(),
                 options.choices());
         return tierChoicesForPredicates(definition, layout.cells().stream().map(cell -> cell.predicate()).distinct()
@@ -132,7 +132,7 @@ public final class MultiblockPlanResolver {
     private static Object2ObjectMap<String, ObjectList<ResourceLocation>> tierChoicesForPredicates(
                                                                                                    MultiblockMachineDefinition definition,
                                                                                                    ObjectList<PatternPredicate> predicates) {
-        ObjectList<AutoBuildProblem> problems = new ObjectArrayList<>();
+        ObjectList<BuildProblem> problems = new ObjectArrayList<>();
         ObjectList<ResolvedCandidate> candidates = new ObjectArrayList<>();
         ConstraintIds ids = new ConstraintIds();
         for (PatternPredicate predicate : predicates) {
@@ -152,7 +152,7 @@ public final class MultiblockPlanResolver {
         Object2ObjectLinkedOpenHashMap<String, ObjectList<ResourceLocation>> result = new Object2ObjectLinkedOpenHashMap<>();
         encountered.forEach((group, candidateIds) -> {
             ObjectArrayList<ResourceLocation> ordered = new ObjectArrayList<>();
-            Block[] registered = AutoBuildBlockMap.MAP.get(group);
+            Block[] registered = BlockCategories.MAP.get(group);
             if (registered != null) {
                 for (Block block : registered) {
                     ResourceLocation blockId = BuiltInRegistries.BLOCK.getKey(block);
@@ -168,8 +168,8 @@ public final class MultiblockPlanResolver {
     /**
      * Resolves a controller-oriented preview without requiring a player or reading material storage.
      */
-    public AutoBuildPlan resolveControllerPreview(MultiblockControllerMachine controller,
-                                                  AutoBuildBatchRequest request) {
+    public BatchPlan resolveControllerPreview(MultiblockControllerMachine controller,
+                                                  BatchRequest request) {
         return resolve(controller.getDefinition(), request,
                 new ResolutionContext(controller, null, controller.getLevel(), controller.getBlockPos(),
                         controller.getFrontFacing(), controller.getUpwardsFacing(), false, true))
@@ -179,19 +179,19 @@ public final class MultiblockPlanResolver {
     /**
      * Resolves a server-authoritative plan against the controller's current world and material snapshots.
      */
-    public AutoBuildPlan resolveWorld(MultiblockControllerMachine controller, ServerPlayer player,
-                                      AutoBuildBatchRequest request) {
+    public BatchPlan resolveWorld(MultiblockControllerMachine controller, ServerPlayer player,
+                                      BatchRequest request) {
         return resolveWorldSnapshot(controller, player, request).plan();
     }
 
     /**
      * Resolves a server-authoritative plan and exposes the exact material snapshots and assignments it consumed.
      */
-    public ResolvedAutoBuildSnapshot resolveWorldSnapshot(MultiblockControllerMachine controller,
+    public BatchResolution resolveWorldSnapshot(MultiblockControllerMachine controller,
                                                           ServerPlayer player,
-                                                          AutoBuildBatchRequest request) {
+                                                          BatchRequest request) {
         if (controller.getLevel() != player.level()) {
-            AutoBuildProblem problem = problem(AutoBuildProblem.Type.INVALID_OPTIONS, controller.getBlockPos(),
+            BuildProblem problem = problem(BuildProblem.Type.INVALID_OPTIONS, controller.getBlockPos(),
                     "gtpm.multiblock.autobuild.invalid_target_level");
             return sharedFailureSnapshot(request, problem);
         }
@@ -200,46 +200,46 @@ public final class MultiblockPlanResolver {
                         controller.getFrontFacing(), controller.getUpwardsFacing(), false, false));
     }
 
-    private ResolvedAutoBuildSnapshot resolve(MultiblockMachineDefinition definition,
-                                              AutoBuildBatchRequest request,
+    private BatchResolution resolve(MultiblockMachineDefinition definition,
+                                              BatchRequest request,
                                               ResolutionContext context) {
         try {
             return resolveChecked(definition, request, context);
         } catch (ArithmeticException exception) {
             GTCEu.LOGGER.error("Automatic-build material count overflow for {}", definition.getId(), exception);
-            return sharedFailureSnapshot(request, problem(AutoBuildProblem.Type.COUNT_OVERFLOW,
+            return sharedFailureSnapshot(request, problem(BuildProblem.Type.COUNT_OVERFLOW,
                     context.worldPos(), "gtpm.multiblock.autobuild.count_overflow"));
         }
     }
 
-    private ResolvedAutoBuildSnapshot resolveChecked(MultiblockMachineDefinition definition,
-                                                     AutoBuildBatchRequest request,
+    private BatchResolution resolveChecked(MultiblockMachineDefinition definition,
+                                                     BatchRequest request,
                                                      ResolutionContext context) {
         Object2IntMap<String> order = structureOrder(definition);
         ObjectArrayList<PendingStructure> pending = new ObjectArrayList<>(request.structures().size());
-        ObjectArrayList<AutoBuildProblem> sharedProblems = new ObjectArrayList<>();
+        ObjectArrayList<BuildProblem> sharedProblems = new ObjectArrayList<>();
         validateSharedSources(request, context, sharedProblems);
 
         ObjectSet<String> requestedBuilds = new ObjectOpenHashSet<>();
         ObjectSet<String> requestedDemolitions = new ObjectOpenHashSet<>();
-        for (AutoBuildStructureOptions options : request.structures()) {
-            (options.mode() == AutoBuildMode.BUILD ? requestedBuilds : requestedDemolitions)
+        for (StructureRequest options : request.structures()) {
+            (options.mode() == StructureOperation.BUILD ? requestedBuilds : requestedDemolitions)
                     .add(options.structureName());
         }
 
         ConstraintIds constraintIds = new ConstraintIds();
-        for (AutoBuildStructureOptions options : request.structures()) {
-            ObjectArrayList<AutoBuildProblem> problems = new ObjectArrayList<>();
+        for (StructureRequest options : request.structures()) {
+            ObjectArrayList<BuildProblem> problems = new ObjectArrayList<>();
             MultiBlockPattern pattern = null;
             IntList repetitions = IntList.of();
             if (!order.containsKey(options.structureName())) {
-                problems.add(problem(AutoBuildProblem.Type.UNKNOWN_STRUCTURE, context.worldPos(),
+                problems.add(problem(BuildProblem.Type.UNKNOWN_STRUCTURE, context.worldPos(),
                         "gtpm.multiblock.autobuild.unknown_structure", options.structureName()));
             } else {
                 pattern = definition.getPattern(options.structureName());
                 repetitions = validateRepetitions(pattern, options, problems);
                 if (options.flipMode() && !definition.isAllowFlip()) {
-                    problems.add(problem(AutoBuildProblem.Type.INVALID_OPTIONS, context.worldPos(),
+                    problems.add(problem(BuildProblem.Type.INVALID_OPTIONS, context.worldPos(),
                             "gtpm.multiblock.autobuild.flip_not_allowed"));
                 }
                 validateDependencies(definition, options, requestedBuilds, requestedDemolitions, problems,
@@ -255,9 +255,9 @@ public final class MultiblockPlanResolver {
         }
 
         pending.sort(executionComparator(order));
-        ObjectLinkedOpenHashSet<AutoBuildItemKey> materialKeys = new ObjectLinkedOpenHashSet<>();
+        ObjectLinkedOpenHashSet<MaterialKey> materialKeys = new ObjectLinkedOpenHashSet<>();
         for (PendingStructure structure : pending) {
-            if (structure.options().mode() == AutoBuildMode.BUILD) {
+            if (structure.options().mode() == StructureOperation.BUILD) {
                 structure.cells().stream().flatMap(cell -> cell.candidates().stream())
                         .map(ResolvedCandidate::materialKey)
                         .filter(Objects::nonNull)
@@ -265,16 +265,16 @@ public final class MultiblockPlanResolver {
             }
         }
         boolean hasBuild = pending.stream().anyMatch(
-                structure -> structure.options().mode() == AutoBuildMode.BUILD);
+                structure -> structure.options().mode() == StructureOperation.BUILD);
         MaterialAllocation materials = MaterialAllocation.create(request.materialSources(), materialKeys, context,
                 sharedProblems, hasBuild, request.sharedOptions().useME());
 
-        ObjectArrayList<ResolvedStructurePlan> demolitionPlans = new ObjectArrayList<>();
-        ObjectArrayList<ResolvedStructurePlan> buildPlans = new ObjectArrayList<>();
+        ObjectArrayList<StructurePlan> demolitionPlans = new ObjectArrayList<>();
+        ObjectArrayList<StructurePlan> buildPlans = new ObjectArrayList<>();
         for (PendingStructure structure : pending) {
-            ResolvedStructurePlan plan = resolveStructure(definition, structure, request.sharedOptions(), context,
+            StructurePlan plan = resolveStructure(definition, structure, request.sharedOptions(), context,
                     materials);
-            if (structure.options().mode() == AutoBuildMode.DEMOLISH) {
+            if (structure.options().mode() == StructureOperation.DEMOLISH) {
                 demolitionPlans.add(plan);
             } else {
                 buildPlans.add(plan);
@@ -282,27 +282,27 @@ public final class MultiblockPlanResolver {
         }
 
         Object2ObjectLinkedOpenHashMap<BlockPos, MergedPlanCell> merged = mergeCells(demolitionPlans, buildPlans);
-        Object2ObjectMap<AutoBuildItemKey, ResolvedAutoBuildSnapshot.MaterialAllocation> allocations = materials
+        Object2ObjectMap<MaterialKey, BatchResolution.MaterialAllocation> allocations = materials
                 .resolveAllocations(demolitionPlans, buildPlans);
         long fingerprint = fingerprint(demolitionPlans, buildPlans, merged, materials.sourceFingerprints(),
                 allocations);
-        AutoBuildPlan plan = new AutoBuildPlan(demolitionPlans, buildPlans, merged, sharedProblems, fingerprint);
-        return new ResolvedAutoBuildSnapshot(plan, materials.snapshots(), allocations);
+        BatchPlan plan = new BatchPlan(demolitionPlans, buildPlans, merged, sharedProblems, fingerprint);
+        return new BatchResolution(plan, materials.snapshots(), allocations);
     }
 
-    private static ResolvedAutoBuildSnapshot sharedFailureSnapshot(AutoBuildBatchRequest request,
-                                                                   AutoBuildProblem problem) {
-        ObjectArrayList<ResolvedStructurePlan> demolitions = new ObjectArrayList<>();
-        ObjectArrayList<ResolvedStructurePlan> builds = new ObjectArrayList<>();
-        for (AutoBuildStructureOptions options : request.structures()) {
-            ResolvedStructurePlan plan = new ResolvedStructurePlan(options.structureName(), options.mode(),
+    private static BatchResolution sharedFailureSnapshot(BatchRequest request,
+                                                                   BuildProblem problem) {
+        ObjectArrayList<StructurePlan> demolitions = new ObjectArrayList<>();
+        ObjectArrayList<StructurePlan> builds = new ObjectArrayList<>();
+        for (StructureRequest options : request.structures()) {
+            StructurePlan plan = new StructurePlan(options.structureName(), options.mode(),
                     options.repetitions(), options.flipMode(), ObjectList.of(), Object2LongMaps.emptyMap(),
                     ObjectList.of(problem));
-            (options.mode() == AutoBuildMode.DEMOLISH ? demolitions : builds).add(plan);
+            (options.mode() == StructureOperation.DEMOLISH ? demolitions : builds).add(plan);
         }
-        AutoBuildPlan plan = new AutoBuildPlan(demolitions, builds, Object2ObjectMaps.emptyMap(),
+        BatchPlan plan = new BatchPlan(demolitions, builds, Object2ObjectMaps.emptyMap(),
                 ObjectList.of(problem), FINGERPRINT_OFFSET);
-        return new ResolvedAutoBuildSnapshot(plan, ObjectList.of(), Object2ObjectMaps.emptyMap());
+        return new BatchResolution(plan, ObjectList.of(), Object2ObjectMaps.emptyMap());
     }
 
     private static Object2IntMap<String> structureOrder(MultiblockMachineDefinition definition) {
@@ -315,38 +315,38 @@ public final class MultiblockPlanResolver {
     }
 
     private static Comparator<PendingStructure> executionComparator(Object2IntMap<String> order) {
-        return Comparator.<PendingStructure, AutoBuildMode>comparing(pending -> pending.options().mode(),
-                Comparator.comparingInt(mode -> mode == AutoBuildMode.DEMOLISH ? 0 : 1))
+        return Comparator.<PendingStructure, StructureOperation>comparing(pending -> pending.options().mode(),
+                Comparator.comparingInt(mode -> mode == StructureOperation.DEMOLISH ? 0 : 1))
                 .thenComparingInt(pending -> {
                     int index = order.getOrDefault(pending.options().structureName(), Integer.MAX_VALUE);
-                    return pending.options().mode() == AutoBuildMode.DEMOLISH ? -index : index;
+                    return pending.options().mode() == StructureOperation.DEMOLISH ? -index : index;
                 });
     }
 
-    private static void validateSharedSources(AutoBuildBatchRequest request, ResolutionContext context,
-                                              ObjectList<AutoBuildProblem> problems) {
+    private static void validateSharedSources(BatchRequest request, ResolutionContext context,
+                                              ObjectList<BuildProblem> problems) {
         if (context.canonical() || request.structures().stream()
-                .noneMatch(options -> options.mode() == AutoBuildMode.BUILD)) {
+                .noneMatch(options -> options.mode() == StructureOperation.BUILD)) {
             return;
         }
         boolean hasME = false;
-        for (AutoBuildMaterialSource source : request.materialSources()) {
-            if (source.kind() == AutoBuildMaterialSource.SourceKind.ME) {
+        for (MaterialSource source : request.materialSources()) {
+            if (source.kind() == MaterialSource.SourceKind.ME) {
                 hasME = true;
                 continue;
             }
-            if (source.kind() == AutoBuildMaterialSource.SourceKind.UNAVAILABLE) {
-                AutoBuildProblem unavailable = source.unavailableProblem();
+            if (source.kind() == MaterialSource.SourceKind.UNAVAILABLE) {
+                BuildProblem unavailable = source.unavailableProblem();
                 hasME |= unavailable != null && isStrictAEProblem(unavailable.type());
             }
         }
         if (request.sharedOptions().useME() && !hasME) {
-            problems.add(problem(AutoBuildProblem.Type.ME_UNAVAILABLE, context.worldPos(),
+            problems.add(problem(BuildProblem.Type.ME_UNAVAILABLE, context.worldPos(),
                     "gtpm.multiblock.autobuild.me_unavailable"));
         }
     }
 
-    private static boolean isStrictAEProblem(AutoBuildProblem.Type type) {
+    private static boolean isStrictAEProblem(BuildProblem.Type type) {
         return switch (type) {
             case ME_UNAVAILABLE, AE_NOT_INSTALLED, AE_NOT_LINKED, AE_LINKED_DIMENSION_MISSING, AE_WRONG_DIMENSION, AE_ACCESS_POINT_MISSING, AE_ACCESS_POINT_INACTIVE, AE_OUT_OF_RANGE, AE_GRID_UNAVAILABLE -> true;
             default -> false;
@@ -354,29 +354,29 @@ public final class MultiblockPlanResolver {
     }
 
     private static void validateDependencies(MultiblockMachineDefinition definition,
-                                             AutoBuildStructureOptions options,
+                                             StructureRequest options,
                                              ObjectSet<String> requestedBuilds,
                                              ObjectSet<String> requestedDemolitions,
-                                             ObjectList<AutoBuildProblem> problems,
+                                             ObjectList<BuildProblem> problems,
                                              @Nullable BlockPos pos) {
-        if (options.mode() != AutoBuildMode.BUILD) return;
+        if (options.mode() != StructureOperation.BUILD) return;
         for (String dependency : definition.getRequiredStructures(options.structureName())) {
             if (!requestedBuilds.contains(dependency)) {
-                problems.add(problem(AutoBuildProblem.Type.INVALID_OPTIONS, pos,
+                problems.add(problem(BuildProblem.Type.INVALID_OPTIONS, pos,
                         "gtpm.multiblock.autobuild.missing_dependency", options.structureName(), dependency));
             }
             if (requestedDemolitions.contains(dependency)) {
-                problems.add(problem(AutoBuildProblem.Type.INVALID_OPTIONS, pos,
+                problems.add(problem(BuildProblem.Type.INVALID_OPTIONS, pos,
                         "gtpm.multiblock.autobuild.dependency_mode_conflict", dependency));
             }
         }
     }
 
-    private static IntList validateRepetitions(MultiBlockPattern pattern, AutoBuildStructureOptions options,
-                                               ObjectList<AutoBuildProblem> problems) {
+    private static IntList validateRepetitions(MultiBlockPattern pattern, StructureRequest options,
+                                               ObjectList<BuildProblem> problems) {
         var descriptors = pattern.getRepeatDescriptors();
         if (options.repetitions().size() != descriptors.size()) {
-            problems.add(problem(AutoBuildProblem.Type.INVALID_OPTIONS, null,
+            problems.add(problem(BuildProblem.Type.INVALID_OPTIONS, null,
                     "gtpm.multiblock.autobuild.repetition_count_mismatch", options.structureName(),
                     descriptors.size(), options.repetitions().size()));
             return IntList.of();
@@ -387,7 +387,7 @@ public final class MultiblockPlanResolver {
             int min = descriptor.minimum();
             int max = descriptor.maximum();
             if (value < min || value > max) {
-                problems.add(problem(AutoBuildProblem.Type.INVALID_OPTIONS, null,
+                problems.add(problem(BuildProblem.Type.INVALID_OPTIONS, null,
                         "gtpm.multiblock.autobuild.repetition_out_of_range", index, value, min, max));
             }
         }
@@ -396,17 +396,17 @@ public final class MultiblockPlanResolver {
 
     private static ObjectList<UnresolvedCell> expandStructure(MultiblockMachineDefinition definition,
                                                               MultiBlockPattern pattern,
-                                                              AutoBuildStructureOptions options,
+                                                              StructureRequest options,
                                                               IntList repetitions,
                                                               ResolutionContext context,
                                                               ConstraintIds constraintIds,
-                                                              ObjectList<AutoBuildProblem> problems) {
+                                                              ObjectList<BuildProblem> problems) {
         ObjectList<UnresolvedCell> cells = new ObjectArrayList<>();
         PatternLayout layout;
         try {
             layout = pattern.expandLayout(options.repetitions().toIntArray(), options.choices());
         } catch (IllegalArgumentException exception) {
-            problems.add(problem(AutoBuildProblem.Type.INVALID_OPTIONS, context.worldPos(),
+            problems.add(problem(BuildProblem.Type.INVALID_OPTIONS, context.worldPos(),
                     "gtpm.multiblock.autobuild.invalid_layout", options.structureName(), exception.getMessage()));
             return cells;
         }
@@ -422,7 +422,7 @@ public final class MultiblockPlanResolver {
             if (!context.canonical()) {
                 Level level = context.level();
                 if (level == null || worldPos == null || !level.isLoaded(worldPos)) {
-                    problems.add(problem(AutoBuildProblem.Type.UNLOADED, worldPos,
+                    problems.add(problem(BuildProblem.Type.UNLOADED, worldPos,
                             "gtpm.multiblock.autobuild.unloaded", position(worldPos)));
                     return ObjectList.of();
                 }
@@ -445,7 +445,7 @@ public final class MultiblockPlanResolver {
                                                                    Direction upwardsFacing,
                                                                    boolean flipped,
                                                                    ConstraintIds constraintIds,
-                                                                   ObjectList<AutoBuildProblem> problems,
+                                                                   ObjectList<BuildProblem> problems,
                                                                    @Nullable BlockPos pos) {
         if (predicate.isAny()) {
             return ObjectList.of(ResolvedCandidate.wildcard());
@@ -488,8 +488,8 @@ public final class MultiblockPlanResolver {
                 if (!MultiBlockPattern.matchesDirectionalState(state, direction)) continue;
             }
             PlannedBlockInfo blockInfo = candidate.blockInfo().withState(state);
-            AutoBuildItemKey materialKey = materialKey(blockInfo.itemStack());
-            String category = AutoBuildBlockMap.BLOCK_CATEGORY_MAP.get(state.getBlock());
+            MaterialKey materialKey = materialKey(blockInfo.itemStack());
+            String category = BlockCategories.BLOCK_CATEGORY_MAP.get(state.getBlock());
             ObjectList<String> tierGroups = mergeTierGroups(candidate.tierGroups(),
                     category == null ? ObjectList.of() : ObjectList.of(category));
             result.add(new ResolvedCandidate(state, blockInfo, new ObjectImmutableList<>(candidate.limits()),
@@ -497,7 +497,7 @@ public final class MultiblockPlanResolver {
                     tierGroups, candidate.order(), materialKey, false));
         }
         if (result.isEmpty()) {
-            problems.add(problem(AutoBuildProblem.Type.UNSUPPORTED, pos,
+            problems.add(problem(BuildProblem.Type.UNSUPPORTED, pos,
                     "gtpm.multiblock.autobuild.no_candidate", position(pos)));
         }
         return new ObjectImmutableList<>(result);
@@ -625,17 +625,17 @@ public final class MultiblockPlanResolver {
         return predicate.fixedDirection;
     }
 
-    private static @Nullable AutoBuildItemKey materialKey(ItemStack stack) {
-        return stack.isEmpty() || stack.is(Items.AIR) ? null : AutoBuildItemKey.of(stack);
+    private static @Nullable MaterialKey materialKey(ItemStack stack) {
+        return stack.isEmpty() || stack.is(Items.AIR) ? null : MaterialKey.of(stack);
     }
 
     private static boolean isHatch(Block block) {
         return PartAbility.values().stream().anyMatch(ability -> ability.isApplicable(block));
     }
 
-    private static void validateTierChoices(MultiblockMachineDefinition definition, AutoBuildStructureOptions options,
+    private static void validateTierChoices(MultiblockMachineDefinition definition, StructureRequest options,
                                             ObjectList<UnresolvedCell> cells,
-                                            ObjectList<AutoBuildProblem> problems, @Nullable BlockPos pos) {
+                                            ObjectList<BuildProblem> problems, @Nullable BlockPos pos) {
         Object2ObjectMap<String, ResourceLocation> selections = new Object2ObjectLinkedOpenHashMap<>(
                 options.tierChoices());
 
@@ -654,7 +654,7 @@ public final class MultiblockPlanResolver {
         for (var entry : selections.entrySet()) {
             var candidates = declared.get(entry.getKey());
             if (candidates == null || !candidates.contains(entry.getValue())) {
-                problems.add(problem(AutoBuildProblem.Type.INVALID_TIER_SELECTION, pos,
+                problems.add(problem(BuildProblem.Type.INVALID_TIER_SELECTION, pos,
                         "gtpm.multiblock.autobuild.tier_candidate_invalid", entry.getValue().toString(),
                         entry.getKey().toString(), options.structureName()));
             }
@@ -672,7 +672,7 @@ public final class MultiblockPlanResolver {
                 return true;
             }).collect(ObjectImmutableList.toList());
             if (filtered.isEmpty() && !cell.predicate().isAny()) {
-                problems.add(problem(AutoBuildProblem.Type.INVALID_TIER_SELECTION, cell.worldPos(),
+                problems.add(problem(BuildProblem.Type.INVALID_TIER_SELECTION, cell.worldPos(),
                         "gtpm.multiblock.autobuild.tier_domain_empty", cell.cellKey().toString()));
             } else {
                 cells.set(index, cell.withCandidates(filtered));
@@ -680,30 +680,30 @@ public final class MultiblockPlanResolver {
         }
     }
 
-    private static ResolvedStructurePlan resolveStructure(MultiblockMachineDefinition definition,
+    private static StructurePlan resolveStructure(MultiblockMachineDefinition definition,
                                                           PendingStructure pending,
-                                                          AutoBuildSharedOptions sharedOptions,
+                                                          BuildPolicy sharedOptions,
                                                           ResolutionContext context,
                                                           MaterialAllocation materials) {
-        ObjectArrayList<AutoBuildProblem> problems = new ObjectArrayList<>(pending.problems());
+        ObjectArrayList<BuildProblem> problems = new ObjectArrayList<>(pending.problems());
         if (!problems.isEmpty()) {
-            return new ResolvedStructurePlan(pending.options().structureName(), pending.options().mode(),
+            return new StructurePlan(pending.options().structureName(), pending.options().mode(),
                     pending.repetitions(), pending.options().flipMode(), ObjectList.of(), Object2LongMaps.emptyMap(),
                     problems);
         }
-        boolean buildMode = pending.options().mode() == AutoBuildMode.BUILD;
+        boolean buildMode = pending.options().mode() == StructureOperation.BUILD;
         ConstraintCandidateSolver solver = new ConstraintCandidateSolver(
                 sharedOptions.noHatchMode() && buildMode, materials, buildMode, context.canonical());
         ObjectList<UnresolvedCell> observedCells = materials.applyVirtualWorld(pending.cells());
         ObjectList<SelectedCell> selected = solver.solve(observedCells, problems);
         if (!problems.isEmpty()) {
-            return new ResolvedStructurePlan(pending.options().structureName(), pending.options().mode(),
+            return new StructurePlan(pending.options().structureName(), pending.options().mode(),
                     pending.repetitions(), pending.options().flipMode(), ObjectList.of(), Object2LongMaps.emptyMap(),
                     problems);
         }
 
         ObjectArrayList<PlannedCell> planned = new ObjectArrayList<>(selected.size());
-        Object2LongMap<AutoBuildItemKey> materialCounts = new Object2LongLinkedOpenHashMap<>();
+        Object2LongMap<MaterialKey> materialCounts = new Object2LongLinkedOpenHashMap<>();
         for (SelectedCell selectedCell : selected) {
             UnresolvedCell cell = selectedCell.cell();
             ResolvedCandidate candidate = selectedCell.candidate();
@@ -711,19 +711,19 @@ public final class MultiblockPlanResolver {
             CellAction action = resolveAction(definition, pending.options().mode(), cell, candidate,
                     observed, context);
             BlockState targetState = candidate.state();
-            if (pending.options().mode() == AutoBuildMode.BUILD && observed != null) {
+            if (pending.options().mode() == StructureOperation.BUILD && observed != null) {
                 if (action == CellAction.KEEP) {
                     targetState = observed;
                 } else if (action == CellAction.UPDATE_DIRECTION && cell.requiredDirection() != null) {
                     targetState = MultiBlockPattern.applyDirectionalState(observed, cell.requiredDirection());
                 }
             }
-            ObjectList<AutoBuildItemKey> candidateKeys = cell.candidates().stream().map(ResolvedCandidate::materialKey)
+            ObjectList<MaterialKey> candidateKeys = cell.candidates().stream().map(ResolvedCandidate::materialKey)
                     .filter(Objects::nonNull).distinct().collect(ObjectImmutableList.toList());
             ObjectList<BlockState> stateCandidates = cell.candidates().stream()
                     .filter(candidateState -> !candidateState.any())
                     .map(ResolvedCandidate::state).distinct().collect(ObjectImmutableList.toList());
-            AutoBuildItemKey materialKey = candidate.materialKey();
+            MaterialKey materialKey = candidate.materialKey();
             if (action == CellAction.PLACE && materialKey != null) {
                 materialCounts.mergeLong(materialKey, 1L, Math::addExact);
             }
@@ -736,24 +736,24 @@ public final class MultiblockPlanResolver {
         PlannedCell missingCell = buildMode ? materials.commitStructure(planned) : null;
         if (missingCell != null) {
             problems.addAll(materials.structureProblems());
-            problems.add(problem(AutoBuildProblem.Type.MISSING_MATERIAL, missingCell.worldPos(),
+            problems.add(problem(BuildProblem.Type.MISSING_MATERIAL, missingCell.worldPos(),
                     "gtpm.multiblock.autobuild.missing_material", position(missingCell.worldPos())));
         }
-        ResolvedStructurePlan result = new ResolvedStructurePlan(pending.options().structureName(),
+        StructurePlan result = new StructurePlan(pending.options().structureName(),
                 pending.options().mode(),
                 pending.repetitions(), pending.options().flipMode(), planned, materialCounts, problems);
         materials.applyPlan(result);
         return result;
     }
 
-    private static CellAction resolveAction(MultiblockMachineDefinition definition, AutoBuildMode mode,
+    private static CellAction resolveAction(MultiblockMachineDefinition definition, StructureOperation mode,
                                             UnresolvedCell cell, ResolvedCandidate candidate,
                                             @Nullable BlockState observed, ResolutionContext context) {
         if (candidate.any()) return CellAction.IGNORE_ANY;
         boolean controllerCell = cell.relativePos().equals(BlockPos.ZERO) &&
                 candidate.state().is(definition.getBlock());
         if (controllerCell) return CellAction.CONTROLLER;
-        if (mode == AutoBuildMode.DEMOLISH) {
+        if (mode == StructureOperation.DEMOLISH) {
             if (context.canonical()) {
                 return candidate.state().isAir() ? CellAction.KEEP :
                         CellAction.DEMOLISH_CANDIDATE;
@@ -801,10 +801,10 @@ public final class MultiblockPlanResolver {
         return !observed.equals(corrected) && corrected.equals(candidate.state());
     }
 
-    private static Object2ObjectLinkedOpenHashMap<BlockPos, MergedPlanCell> mergeCells(ObjectList<ResolvedStructurePlan> demolitions,
-                                                                                       ObjectList<ResolvedStructurePlan> builds) {
+    private static Object2ObjectLinkedOpenHashMap<BlockPos, MergedPlanCell> mergeCells(ObjectList<StructurePlan> demolitions,
+                                                                                       ObjectList<StructurePlan> builds) {
         Object2ObjectLinkedOpenHashMap<BlockPos, ObjectArrayList<PlannedCell>> grouped = new Object2ObjectLinkedOpenHashMap<>();
-        for (ResolvedStructurePlan plan : concat(demolitions, builds)) {
+        for (StructurePlan plan : concat(demolitions, builds)) {
             for (PlannedCell cell : plan.cells()) {
                 grouped.computeIfAbsent(cell.relativePos(), ignored -> new ObjectArrayList<>()).add(cell);
             }
@@ -821,9 +821,9 @@ public final class MultiblockPlanResolver {
         return result;
     }
 
-    private static ObjectList<ResolvedStructurePlan> concat(ObjectList<ResolvedStructurePlan> first,
-                                                            ObjectList<ResolvedStructurePlan> second) {
-        ObjectArrayList<ResolvedStructurePlan> result = new ObjectArrayList<>(first.size() + second.size());
+    private static ObjectList<StructurePlan> concat(ObjectList<StructurePlan> first,
+                                                            ObjectList<StructurePlan> second) {
+        ObjectArrayList<StructurePlan> result = new ObjectArrayList<>(first.size() + second.size());
         result.addAll(first);
         result.addAll(second);
         return result;
@@ -847,13 +847,13 @@ public final class MultiblockPlanResolver {
     }
 
     private static long fingerprint(
-                                    ObjectList<ResolvedStructurePlan> demolitions,
-                                    ObjectList<ResolvedStructurePlan> builds,
+                                    ObjectList<StructurePlan> demolitions,
+                                    ObjectList<StructurePlan> builds,
                                     Object2ObjectMap<BlockPos, MergedPlanCell> merged,
                                     LongList sourceFingerprints,
-                                    Object2ObjectMap<AutoBuildItemKey, ResolvedAutoBuildSnapshot.MaterialAllocation> allocations) {
+                                    Object2ObjectMap<MaterialKey, BatchResolution.MaterialAllocation> allocations) {
         long value = FINGERPRINT_OFFSET;
-        for (ResolvedStructurePlan structure : concat(demolitions, builds)) {
+        for (StructurePlan structure : concat(demolitions, builds)) {
             value = hash(value, structure.structureName().hashCode());
             value = hash(value, structure.mode().ordinal());
             value = hash(value, structure.repetitions().hashCode());
@@ -877,7 +877,7 @@ public final class MultiblockPlanResolver {
         }
         for (var entry : allocations.object2ObjectEntrySet()) {
             value = hash(value, entry.getKey().hashCode());
-            ResolvedAutoBuildSnapshot.MaterialAllocation allocation = entry.getValue();
+            BatchResolution.MaterialAllocation allocation = entry.getValue();
             value = hash(value, allocation.required());
             for (long allocated : allocation.allocatedBySource()) {
                 value = hash(value, allocated);
@@ -892,9 +892,9 @@ public final class MultiblockPlanResolver {
         return (current ^ value) * FINGERPRINT_PRIME;
     }
 
-    private static AutoBuildProblem problem(AutoBuildProblem.Type type, @Nullable BlockPos pos,
+    private static BuildProblem problem(BuildProblem.Type type, @Nullable BlockPos pos,
                                             String translationKey, Object... args) {
-        return new AutoBuildProblem(type, pos, Component.translatable(translationKey, args));
+        return new BuildProblem(type, pos, Component.translatable(translationKey, args));
     }
 
     private static String position(@Nullable BlockPos pos) {
@@ -911,8 +911,8 @@ public final class MultiblockPlanResolver {
         }
     }
 
-    private record PendingStructure(AutoBuildStructureOptions options, IntList repetitions,
-                                    ObjectList<UnresolvedCell> cells, ObjectList<AutoBuildProblem> problems) {}
+    private record PendingStructure(StructureRequest options, IntList repetitions,
+                                    ObjectList<UnresolvedCell> cells, ObjectList<BuildProblem> problems) {}
 
     private record UnresolvedCell(String structureName, PatternCellKey cellKey, BlockPos relativePos,
                                   @Nullable BlockPos worldPos, @Nullable BlockState observedState, int layer,
@@ -932,7 +932,7 @@ public final class MultiblockPlanResolver {
 
     private record ResolvedCandidate(BlockState state, PlannedBlockInfo blockInfo, ObjectList<ConstraintLimit> limits,
                                      boolean hatch, ObjectList<String> tierGroups, int order,
-                                     @Nullable AutoBuildItemKey materialKey, boolean any) {
+                                     @Nullable MaterialKey materialKey, boolean any) {
 
         private static ResolvedCandidate wildcard() {
             return new ResolvedCandidate(Blocks.AIR.defaultBlockState(),
@@ -1006,7 +1006,7 @@ public final class MultiblockPlanResolver {
         private final Object2ObjectMap<SearchState, SelectionScore> visitedStates = new Object2ObjectOpenHashMap<>();
         private ObjectList<ConstraintLimit> orderedLimits = ObjectList.of();
         private ObjectList<LayerLimit> orderedLayerLimits = ObjectList.of();
-        private ObjectList<AutoBuildItemKey> budgetKeys = ObjectList.of();
+        private ObjectList<MaterialKey> budgetKeys = ObjectList.of();
         private @Nullable SelectionScore bestScore;
         private @Nullable int[][] bestGroupCounts;
 
@@ -1019,7 +1019,7 @@ public final class MultiblockPlanResolver {
         }
 
         private ObjectList<SelectedCell> solve(ObjectList<UnresolvedCell> cells,
-                                               ObjectList<AutoBuildProblem> problems) {
+                                               ObjectList<BuildProblem> problems) {
             registerLimits(cells);
             ObjectList<VariableGroup> groups = groupCells(cells);
             int[][] groupCounts = new int[groups.size()][];
@@ -1030,7 +1030,7 @@ public final class MultiblockPlanResolver {
             search(groups, 0, budget, SelectionScore.ZERO, groupCounts);
             int[][] selectedCounts = bestGroupCounts;
             if (selectedCounts == null) {
-                problems.add(problem(AutoBuildProblem.Type.INVALID_OPTIONS, null,
+                problems.add(problem(BuildProblem.Type.INVALID_OPTIONS, null,
                         "gtpm.multiblock.autobuild.constraint_unsatisfied"));
                 return ObjectList.of();
             }
@@ -1098,7 +1098,7 @@ public final class MultiblockPlanResolver {
         }
 
         private void registerLimits(ObjectList<UnresolvedCell> cells) {
-            ObjectLinkedOpenHashSet<AutoBuildItemKey> encounteredKeys = new ObjectLinkedOpenHashSet<>();
+            ObjectLinkedOpenHashSet<MaterialKey> encounteredKeys = new ObjectLinkedOpenHashSet<>();
             for (UnresolvedCell cell : cells) {
                 for (ResolvedCandidate candidate : cell.candidates()) {
                     if (candidate.materialKey() != null) encounteredKeys.add(candidate.materialKey());
@@ -1491,7 +1491,7 @@ public final class MultiblockPlanResolver {
             return copy;
         }
 
-        private record CandidateKey(BlockState state, @Nullable AutoBuildItemKey materialKey,
+        private record CandidateKey(BlockState state, @Nullable MaterialKey materialKey,
                                     boolean hasBlockEntity, boolean hatch, boolean any, int order,
                                     ObjectList<String> tierGroups, ObjectList<String> constraintIds) {}
 
@@ -1568,15 +1568,15 @@ public final class MultiblockPlanResolver {
 
         private static final class SearchBudget {
 
-            private final ObjectList<Object2LongMap<AutoBuildItemKey>> remaining;
+            private final ObjectList<Object2LongMap<MaterialKey>> remaining;
             private final boolean unlimited;
 
-            private SearchBudget(ObjectList<Object2LongMap<AutoBuildItemKey>> remaining, boolean unlimited) {
+            private SearchBudget(ObjectList<Object2LongMap<MaterialKey>> remaining, boolean unlimited) {
                 this.remaining = remaining;
                 this.unlimited = unlimited;
             }
 
-            private int rank(@Nullable AutoBuildItemKey key) {
+            private int rank(@Nullable MaterialKey key) {
                 if (key == null || unlimited) return 0;
                 for (int index = 0; index < remaining.size(); index++) {
                     if (remaining.get(index).getLong(key) > 0) return index;
@@ -1588,13 +1588,13 @@ public final class MultiblockPlanResolver {
                 return remaining.size() + 1;
             }
 
-            private BudgetUse consume(@Nullable AutoBuildItemKey key, int count) {
+            private BudgetUse consume(@Nullable MaterialKey key, int count) {
                 if (key == null || unlimited || count == 0) return BudgetUse.EMPTY;
                 long remainingCount = count;
                 long sourceCost = 0;
                 LongList consumed = new LongArrayList(remaining.size());
                 for (int index = 0; index < remaining.size(); index++) {
-                    Object2LongMap<AutoBuildItemKey> source = remaining.get(index);
+                    Object2LongMap<MaterialKey> source = remaining.get(index);
                     long available = source.getLong(key);
                     long taken = Math.min(available, remainingCount);
                     consumed.add(taken);
@@ -1609,7 +1609,7 @@ public final class MultiblockPlanResolver {
                 return new BudgetUse(new LongImmutableList(consumed), sourceCost);
             }
 
-            private void restore(@Nullable AutoBuildItemKey key, BudgetUse use) {
+            private void restore(@Nullable MaterialKey key, BudgetUse use) {
                 if (key == null || unlimited) return;
                 for (int index = 0; index < use.consumedBySource().size(); index++) {
                     long amount = use.consumedBySource().getLong(index);
@@ -1617,10 +1617,10 @@ public final class MultiblockPlanResolver {
                 }
             }
 
-            private LongList values(ObjectList<AutoBuildItemKey> keys) {
+            private LongList values(ObjectList<MaterialKey> keys) {
                 LongList values = new LongArrayList(remaining.size() * keys.size());
-                for (Object2LongMap<AutoBuildItemKey> source : remaining) {
-                    for (AutoBuildItemKey key : keys) {
+                for (Object2LongMap<MaterialKey> source : remaining) {
+                    for (MaterialKey key : keys) {
                         values.add(source.getLong(key));
                     }
                 }
@@ -1631,19 +1631,19 @@ public final class MultiblockPlanResolver {
 
     private static final class MaterialAllocation {
 
-        private final ObjectList<Object2LongMap<AutoBuildItemKey>> remaining;
-        private final ObjectList<Object2LongMap<AutoBuildItemKey>> allocated;
-        private final ObjectList<AutoBuildMaterialSource.Snapshot> snapshots;
+        private final ObjectList<Object2LongMap<MaterialKey>> remaining;
+        private final ObjectList<Object2LongMap<MaterialKey>> allocated;
+        private final ObjectList<MaterialSource.Availability> snapshots;
         private final LongList sourceFingerprints;
-        private final ObjectList<AutoBuildProblem> structureProblems;
+        private final ObjectList<BuildProblem> structureProblems;
         private final boolean unlimited;
         private final Object2ObjectMap<BlockPos, BlockState> virtualWorld = new Object2ObjectOpenHashMap<>();
 
-        private MaterialAllocation(ObjectList<Object2LongMap<AutoBuildItemKey>> remaining,
-                                   ObjectList<Object2LongMap<AutoBuildItemKey>> allocated,
-                                   ObjectList<AutoBuildMaterialSource.Snapshot> snapshots,
+        private MaterialAllocation(ObjectList<Object2LongMap<MaterialKey>> remaining,
+                                   ObjectList<Object2LongMap<MaterialKey>> allocated,
+                                   ObjectList<MaterialSource.Availability> snapshots,
                                    LongList sourceFingerprints,
-                                   ObjectList<AutoBuildProblem> structureProblems,
+                                   ObjectList<BuildProblem> structureProblems,
                                    boolean unlimited) {
             this.remaining = remaining;
             this.allocated = allocated;
@@ -1653,10 +1653,10 @@ public final class MultiblockPlanResolver {
             this.unlimited = unlimited;
         }
 
-        private static MaterialAllocation create(ObjectList<AutoBuildMaterialSource> sources,
-                                                 ObjectCollection<AutoBuildItemKey> keys,
+        private static MaterialAllocation create(ObjectList<MaterialSource> sources,
+                                                 ObjectCollection<MaterialKey> keys,
                                                  ResolutionContext context,
-                                                 ObjectList<AutoBuildProblem> problems,
+                                                 ObjectList<BuildProblem> problems,
                                                  boolean hasBuild,
                                                  boolean requireME) {
             boolean creative = context.player() != null && context.player().isCreative();
@@ -1664,31 +1664,31 @@ public final class MultiblockPlanResolver {
                 return new MaterialAllocation(ObjectList.of(), ObjectList.of(), ObjectList.of(), LongList.of(),
                         ObjectList.of(), true);
             }
-            ObjectArrayList<Object2LongMap<AutoBuildItemKey>> remaining = new ObjectArrayList<>();
-            ObjectArrayList<Object2LongMap<AutoBuildItemKey>> allocated = new ObjectArrayList<>();
-            ObjectArrayList<AutoBuildMaterialSource.Snapshot> snapshots = new ObjectArrayList<>();
+            ObjectArrayList<Object2LongMap<MaterialKey>> remaining = new ObjectArrayList<>();
+            ObjectArrayList<Object2LongMap<MaterialKey>> allocated = new ObjectArrayList<>();
+            ObjectArrayList<MaterialSource.Availability> snapshots = new ObjectArrayList<>();
             LongList sourceFingerprints = new LongArrayList();
-            ObjectArrayList<AutoBuildProblem> structureProblems = new ObjectArrayList<>();
-            Reference2ObjectOpenHashMap<AutoBuildMaterialSource, ObjectSet<ProblemIdentity>> reportedProblems = new Reference2ObjectOpenHashMap<>();
-            for (AutoBuildMaterialSource source : sources) {
-                if (creative && source.kind() != AutoBuildMaterialSource.SourceKind.ME &&
-                        source.kind() != AutoBuildMaterialSource.SourceKind.UNAVAILABLE) {
+            ObjectArrayList<BuildProblem> structureProblems = new ObjectArrayList<>();
+            Reference2ObjectOpenHashMap<MaterialSource, ObjectSet<ProblemIdentity>> reportedProblems = new Reference2ObjectOpenHashMap<>();
+            for (MaterialSource source : sources) {
+                if (creative && source.kind() != MaterialSource.SourceKind.ME &&
+                        source.kind() != MaterialSource.SourceKind.UNAVAILABLE) {
                     continue;
                 }
-                AutoBuildMaterialSource.Snapshot snapshot = source.snapshot(keys);
-                if (creative && source.kind() == AutoBuildMaterialSource.SourceKind.UNAVAILABLE &&
+                MaterialSource.Availability snapshot = source.snapshot(keys);
+                if (creative && source.kind() == MaterialSource.SourceKind.UNAVAILABLE &&
                         (snapshot.problem() == null || !isStrictAEProblem(snapshot.problem().type()))) {
                     continue;
                 }
                 snapshots.add(snapshot);
                 sourceFingerprints.add(source.planFingerprint(keys, snapshot));
-                AutoBuildProblem snapshotProblem = snapshot.problem();
+                BuildProblem snapshotProblem = snapshot.problem();
                 if (snapshotProblem != null) {
                     ProblemIdentity identity = new ProblemIdentity(snapshotProblem.type(), snapshotProblem.pos());
                     if (reportedProblems.computeIfAbsent(source, ignored -> new ObjectOpenHashSet<>()).add(identity)) {
                         if (requireME && isStrictAEProblem(snapshotProblem.type()) &&
-                                (source.kind() == AutoBuildMaterialSource.SourceKind.ME ||
-                                        source.kind() == AutoBuildMaterialSource.SourceKind.UNAVAILABLE)) {
+                                (source.kind() == MaterialSource.SourceKind.ME ||
+                                        source.kind() == MaterialSource.SourceKind.UNAVAILABLE)) {
                             problems.add(snapshotProblem);
                         } else {
                             structureProblems.add(snapshotProblem);
@@ -1702,22 +1702,22 @@ public final class MultiblockPlanResolver {
                     new LongImmutableList(sourceFingerprints), new ObjectImmutableList<>(structureProblems), creative);
         }
 
-        private record ProblemIdentity(AutoBuildProblem.Type type, @Nullable BlockPos pos) {}
+        private record ProblemIdentity(BuildProblem.Type type, @Nullable BlockPos pos) {}
 
         private @Nullable PlannedCell commitStructure(ObjectList<PlannedCell> cells) {
             if (unlimited) return null;
-            ObjectList<Object2LongMap<AutoBuildItemKey>> working = copyRemaining();
-            ObjectArrayList<Object2LongMap<AutoBuildItemKey>> stagedAllocations = new ObjectArrayList<>(
+            ObjectList<Object2LongMap<MaterialKey>> working = copyRemaining();
+            ObjectArrayList<Object2LongMap<MaterialKey>> stagedAllocations = new ObjectArrayList<>(
                     allocated.size());
             for (int index = 0; index < allocated.size(); index++) {
                 stagedAllocations.add(new Object2LongLinkedOpenHashMap<>());
             }
             for (PlannedCell cell : cells) {
                 if (cell.action() != CellAction.PLACE || cell.materialKey() == null) continue;
-                AutoBuildItemKey key = cell.materialKey();
+                MaterialKey key = cell.materialKey();
                 boolean found = false;
                 for (int index = 0; index < working.size(); index++) {
-                    Object2LongMap<AutoBuildItemKey> source = working.get(index);
+                    Object2LongMap<MaterialKey> source = working.get(index);
                     long available = source.getLong(key);
                     if (available <= 0) continue;
                     source.put(key, available - 1);
@@ -1730,18 +1730,18 @@ public final class MultiblockPlanResolver {
             for (int index = 0; index < remaining.size(); index++) {
                 remaining.get(index).clear();
                 remaining.get(index).putAll(working.get(index));
-                Object2LongMap<AutoBuildItemKey> target = allocated.get(index);
+                Object2LongMap<MaterialKey> target = allocated.get(index);
                 stagedAllocations.get(index).object2LongEntrySet()
                         .forEach(entry -> target.mergeLong(entry.getKey(), entry.getLongValue(), Math::addExact));
             }
             return null;
         }
 
-        private ObjectList<AutoBuildProblem> structureProblems() {
+        private ObjectList<BuildProblem> structureProblems() {
             return structureProblems;
         }
 
-        private ObjectList<AutoBuildMaterialSource.Snapshot> snapshots() {
+        private ObjectList<MaterialSource.Availability> snapshots() {
             return snapshots;
         }
 
@@ -1749,35 +1749,35 @@ public final class MultiblockPlanResolver {
             return sourceFingerprints;
         }
 
-        private Object2ObjectMap<AutoBuildItemKey, ResolvedAutoBuildSnapshot.MaterialAllocation> resolveAllocations(
-                                                                                                                    ObjectList<ResolvedStructurePlan> demolitions,
-                                                                                                                    ObjectList<ResolvedStructurePlan> builds) {
-            Object2LongMap<AutoBuildItemKey> required = new Object2LongLinkedOpenHashMap<>();
-            for (ResolvedStructurePlan plan : concat(demolitions, builds)) {
+        private Object2ObjectMap<MaterialKey, BatchResolution.MaterialAllocation> resolveAllocations(
+                                                                                                                    ObjectList<StructurePlan> demolitions,
+                                                                                                                    ObjectList<StructurePlan> builds) {
+            Object2LongMap<MaterialKey> required = new Object2LongLinkedOpenHashMap<>();
+            for (StructurePlan plan : concat(demolitions, builds)) {
                 plan.materials().object2LongEntrySet()
                         .forEach(entry -> required.mergeLong(entry.getKey(), entry.getLongValue(), Math::addExact));
             }
-            Object2ObjectLinkedOpenHashMap<AutoBuildItemKey, ResolvedAutoBuildSnapshot.MaterialAllocation> result = new Object2ObjectLinkedOpenHashMap<>();
+            Object2ObjectLinkedOpenHashMap<MaterialKey, BatchResolution.MaterialAllocation> result = new Object2ObjectLinkedOpenHashMap<>();
             required.object2LongEntrySet().forEach(entry -> {
-                AutoBuildItemKey key = entry.getKey();
+                MaterialKey key = entry.getKey();
                 long count = entry.getLongValue();
                 LongList bySource = new LongArrayList(allocated.size());
                 long assigned = 0;
-                for (Object2LongMap<AutoBuildItemKey> source : allocated) {
+                for (Object2LongMap<MaterialKey> source : allocated) {
                     long value = source.getLong(key);
                     bySource.add(value);
                     assigned = Math.addExact(assigned, value);
                 }
                 long missing = unlimited ? 0 : count - assigned;
-                result.put(key, new ResolvedAutoBuildSnapshot.MaterialAllocation(count, bySource, missing,
+                result.put(key, new BatchResolution.MaterialAllocation(count, bySource, missing,
                         unlimited));
             });
             return Object2ObjectMaps.unmodifiable(result);
         }
 
-        private ObjectList<Object2LongMap<AutoBuildItemKey>> copyRemaining() {
-            ObjectArrayList<Object2LongMap<AutoBuildItemKey>> copy = new ObjectArrayList<>(remaining.size());
-            for (Object2LongMap<AutoBuildItemKey> source : remaining) {
+        private ObjectList<Object2LongMap<MaterialKey>> copyRemaining() {
+            ObjectArrayList<Object2LongMap<MaterialKey>> copy = new ObjectArrayList<>(remaining.size());
+            for (Object2LongMap<MaterialKey> source : remaining) {
                 copy.add(new Object2LongLinkedOpenHashMap<>(source));
             }
             return copy;
@@ -1790,7 +1790,7 @@ public final class MultiblockPlanResolver {
                     .collect(ObjectImmutableList.toList());
         }
 
-        private void applyPlan(ResolvedStructurePlan plan) {
+        private void applyPlan(StructurePlan plan) {
             if (!plan.valid()) return;
             for (PlannedCell cell : plan.cells()) {
                 switch (cell.action()) {

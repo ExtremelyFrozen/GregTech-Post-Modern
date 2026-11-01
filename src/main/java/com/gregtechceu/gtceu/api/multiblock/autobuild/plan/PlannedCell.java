@@ -1,6 +1,6 @@
 package com.gregtechceu.gtceu.api.multiblock.autobuild.plan;
 
-import com.gregtechceu.gtceu.api.multiblock.autobuild.AutoBuildItemKey;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialKey;
 import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PatternPredicate;
 
 import net.minecraft.core.BlockPos;
@@ -23,5 +23,5 @@ public record PlannedCell(String structureName, PatternCellKey cellKey, BlockPos
                           PlannedBlockInfo blockInfo,
                           CellAction action, PatternPredicate predicate,
                           ObjectList<BlockState> stateCandidates, @Nullable Direction requiredDirection,
-                          ObjectList<AutoBuildItemKey> materialCandidates, @Nullable AutoBuildItemKey materialKey,
+                          ObjectList<MaterialKey> materialCandidates, @Nullable MaterialKey materialKey,
                           ObjectList<String> tierGroups, ObjectList<String> constraintIds) {}

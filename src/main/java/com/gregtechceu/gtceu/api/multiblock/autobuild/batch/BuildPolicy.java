@@ -7,7 +7,7 @@ package com.gregtechceu.gtceu.api.multiblock.autobuild.batch;
  * @param noHatchMode whether the resolver should minimize optional hatches
  * @param useME       whether a requested ME source is mandatory for build entries
  */
-public record AutoBuildSharedOptions(boolean replaceMode, boolean noHatchMode, boolean useME) {
+public record BuildPolicy(boolean replaceMode, boolean noHatchMode, boolean useME) {
 
-    public static final AutoBuildSharedOptions DEFAULT = new AutoBuildSharedOptions(false, true, false);
+    public static final BuildPolicy DEFAULT = new BuildPolicy(false, true, false);
 }

@@ -20,7 +20,7 @@ import org.jspecify.annotations.Nullable;
  * {@link Reservation#commit()}, {@link Reservation#commitExact()}, {@link Reservation#rollback()} or
  * {@link Session#insert(ItemStack, boolean)} with {@code simulate == false}.
  */
-public interface AutoBuildMaterialSource {
+public interface MaterialSource {
 
     /**
      * Describes how this source should be presented and ordered in material diagnostics.
@@ -46,38 +46,38 @@ public interface AutoBuildMaterialSource {
      * @return null when the source is available
      */
     @Nullable
-    default AutoBuildProblem unavailableProblem() {
+    default BuildProblem unavailableProblem() {
         return null;
     }
 
     /**
      * Reads exact availability for the requested keys without changing backing storage.
      */
-    default Snapshot snapshot(ObjectCollection<AutoBuildItemKey> keys) {
+    default Availability snapshot(ObjectCollection<MaterialKey> keys) {
         SourceDescriptor sourceDescriptor = descriptor();
         long sourceBindingFingerprint = bindingFingerprint();
-        AutoBuildProblem problem = unavailableProblem();
+        BuildProblem problem = unavailableProblem();
         if (problem != null) {
-            return new Snapshot(kind(), Object2LongMaps.emptyMap(), problem, sourceDescriptor,
+            return new Availability(kind(), Object2LongMaps.emptyMap(), problem, sourceDescriptor,
                     sourceBindingFingerprint);
         }
         Session session = openSession();
-        AutoBuildProblem sessionProblem = session.problem();
+        BuildProblem sessionProblem = session.problem();
         if (sessionProblem != null) {
-            return new Snapshot(kind(), Object2LongMaps.emptyMap(), sessionProblem, sourceDescriptor,
+            return new Availability(kind(), Object2LongMaps.emptyMap(), sessionProblem, sourceDescriptor,
                     sourceBindingFingerprint);
         }
-        Object2LongMap<AutoBuildItemKey> availability = new Object2LongLinkedOpenHashMap<>();
+        Object2LongMap<MaterialKey> availability = new Object2LongLinkedOpenHashMap<>();
         try {
-            for (AutoBuildItemKey key : keys) {
+            for (MaterialKey key : keys) {
                 availability.put(key, session.available(key));
             }
         } catch (ArithmeticException exception) {
             GTCEu.LOGGER.error("Automatic-build material availability overflow", exception);
-            return new Snapshot(kind(), availability, countOverflow(), sourceDescriptor, sourceBindingFingerprint);
+            return new Availability(kind(), availability, countOverflow(), sourceDescriptor, sourceBindingFingerprint);
         }
         sessionProblem = session.problem();
-        return new Snapshot(kind(), availability, sessionProblem, sourceDescriptor, sourceBindingFingerprint);
+        return new Availability(kind(), availability, sessionProblem, sourceDescriptor, sourceBindingFingerprint);
     }
 
     /**
@@ -91,15 +91,15 @@ public interface AutoBuildMaterialSource {
     /**
      * Contributes the selected source identity and exact requested availability to a visible plan fingerprint.
      */
-    default long planFingerprint(ObjectCollection<AutoBuildItemKey> keys) {
-        Snapshot snapshot = snapshot(keys);
+    default long planFingerprint(ObjectCollection<MaterialKey> keys) {
+        Availability snapshot = snapshot(keys);
         return planFingerprint(keys, snapshot);
     }
 
     /**
      * Computes the source contribution from the exact snapshot already used by material allocation.
      */
-    default long planFingerprint(ObjectCollection<AutoBuildItemKey> keys, Snapshot snapshot) {
+    default long planFingerprint(ObjectCollection<MaterialKey> keys, Availability snapshot) {
         long result = 0xcbf29ce484222325L;
         result = fingerprint(result, snapshot.kind().ordinal());
         SourceDescriptor descriptor = snapshot.descriptor();
@@ -112,7 +112,7 @@ public interface AutoBuildMaterialSource {
         if (snapshot.problem() != null) {
             result = fingerprint(result, snapshot.problem().type().ordinal());
         }
-        for (AutoBuildItemKey key : keys) {
+        for (MaterialKey key : keys) {
             result = fingerprint(result, key.hashCode());
             result = fingerprint(result, snapshot.available(key));
         }
@@ -123,8 +123,8 @@ public interface AutoBuildMaterialSource {
         return (current ^ value) * 0x100000001b3L;
     }
 
-    private static AutoBuildProblem countOverflow() {
-        return new AutoBuildProblem(AutoBuildProblem.Type.COUNT_OVERFLOW, null,
+    private static BuildProblem countOverflow() {
+        return new BuildProblem(BuildProblem.Type.COUNT_OVERFLOW, null,
                 Component.translatable("gtpm.multiblock.autobuild.count_overflow"));
     }
 
@@ -134,7 +134,7 @@ public interface AutoBuildMaterialSource {
          * Reports a problem discovered while opening or traversing this source.
          */
         @Nullable
-        default AutoBuildProblem problem() {
+        default BuildProblem problem() {
             return null;
         }
 
@@ -146,7 +146,7 @@ public interface AutoBuildMaterialSource {
          * availability displays until they implement this method.
          * </p>
          */
-        default long available(AutoBuildItemKey key) {
+        default long available(MaterialKey key) {
             return 0;
         }
 
@@ -160,7 +160,7 @@ public interface AutoBuildMaterialSource {
          * Reserves up to {@code amount} items for an exact key without mutating backing storage.
          */
         @Nullable
-        default Reservation reserve(AutoBuildItemKey key, long amount) {
+        default Reservation reserve(MaterialKey key, long amount) {
             if (amount <= 0) {
                 throw new IllegalArgumentException("Reserved material amount must be positive");
             }
@@ -185,8 +185,8 @@ public interface AutoBuildMaterialSource {
         /**
          * Returns the exact material represented by this reservation.
          */
-        default AutoBuildItemKey key() {
-            return AutoBuildItemKey.of(stack());
+        default MaterialKey key() {
+            return MaterialKey.of(stack());
         }
 
         /**
@@ -247,20 +247,20 @@ public interface AutoBuildMaterialSource {
     /**
      * Immutable availability values for one material source.
      */
-    record Snapshot(SourceKind kind, Object2LongMap<AutoBuildItemKey> available,
-                    @Nullable AutoBuildProblem problem, @Nullable SourceDescriptor descriptor,
+    record Availability(SourceKind kind, Object2LongMap<MaterialKey> available,
+                    @Nullable BuildProblem problem, @Nullable SourceDescriptor descriptor,
                     long bindingFingerprint) {
 
-        public Snapshot(SourceKind kind, Object2LongMap<AutoBuildItemKey> available,
-                        @Nullable AutoBuildProblem problem) {
+        public Availability(SourceKind kind, Object2LongMap<MaterialKey> available,
+                        @Nullable BuildProblem problem) {
             this(kind, available, problem, null, 0);
         }
 
-        public Snapshot {
+        public Availability {
             if (descriptor != null && descriptor.kind() != kind) {
                 throw new IllegalArgumentException("Material snapshot descriptor kind does not match its source");
             }
-            Object2LongLinkedOpenHashMap<AutoBuildItemKey> ordered = new Object2LongLinkedOpenHashMap<>();
+            Object2LongLinkedOpenHashMap<MaterialKey> ordered = new Object2LongLinkedOpenHashMap<>();
             for (var entry : available.object2LongEntrySet()) {
                 long value = entry.getLongValue();
                 if (value < 0) {
@@ -271,7 +271,7 @@ public interface AutoBuildMaterialSource {
             available = Object2LongMaps.unmodifiable(ordered);
         }
 
-        public long available(AutoBuildItemKey key) {
+        public long available(MaterialKey key) {
             return available.getLong(key);
         }
     }
@@ -279,7 +279,7 @@ public interface AutoBuildMaterialSource {
     /**
      * Exact outcome of a storage commit.
      */
-    record CommitResult(long requested, long committed, @Nullable AutoBuildProblem problem) {
+    record CommitResult(long requested, long committed, @Nullable BuildProblem problem) {
 
         public CommitResult {
             if (requested < 0 || committed < 0 || committed > requested) {
@@ -295,7 +295,7 @@ public interface AutoBuildMaterialSource {
     /**
      * Exact outcome of restoring a committed reservation.
      */
-    record RollbackResult(long requested, long restored, @Nullable AutoBuildProblem problem) {
+    record RollbackResult(long requested, long restored, @Nullable BuildProblem problem) {
 
         public RollbackResult {
             if (requested < 0 || restored < 0 || restored > requested) {

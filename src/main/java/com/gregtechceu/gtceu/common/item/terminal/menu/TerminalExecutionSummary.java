@@ -1,8 +1,8 @@
 package com.gregtechceu.gtceu.common.item.terminal.menu;
 
-import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.AutoBuildBatchResult;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.AutoBuildBatchStatus;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.AutoBuildMode;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.BatchResult;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.BatchStatus;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.StructureOperation;
 
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
@@ -12,7 +12,7 @@ import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
 import it.unimi.dsi.fastutil.objects.ObjectList;
 
 /** Bounded, client-safe projection of the last batch result shown by a terminal menu. */
-public record TerminalExecutionSummary(AutoBuildBatchStatus status, int placed, int removed,
+public record TerminalExecutionSummary(BatchStatus status, int placed, int removed,
                                        ObjectList<Structure> structures) {
 
     private static final int MAX_STRUCTURES = 128;
@@ -29,7 +29,7 @@ public record TerminalExecutionSummary(AutoBuildBatchStatus status, int placed, 
         structures = new ObjectImmutableList<>(structures);
     }
 
-    public static TerminalExecutionSummary from(AutoBuildBatchResult result) {
+    public static TerminalExecutionSummary from(BatchResult result) {
         return new TerminalExecutionSummary(result.status(), result.placed(), result.removed(),
                 result.structures().stream().map(structure -> new Structure(
                         structure.structureName(), structure.mode(), structure.success(), structure.placed(),
@@ -49,7 +49,7 @@ public record TerminalExecutionSummary(AutoBuildBatchStatus status, int placed, 
     }
 
     private static TerminalExecutionSummary decode(RegistryFriendlyByteBuf buffer) {
-        AutoBuildBatchStatus status = buffer.readEnum(AutoBuildBatchStatus.class);
+        BatchStatus status = buffer.readEnum(BatchStatus.class);
         int placed = readNonNegative(buffer, "placed");
         int removed = readNonNegative(buffer, "removed");
         int size = readSize(buffer, MAX_STRUCTURES, "execution structures");
@@ -61,7 +61,7 @@ public record TerminalExecutionSummary(AutoBuildBatchStatus status, int placed, 
     }
 
     /** One structure's compact result and stable problem codes. */
-    public record Structure(String name, AutoBuildMode mode, boolean success, int placed, int removed,
+    public record Structure(String name, StructureOperation mode, boolean success, int placed, int removed,
                             ObjectList<String> problems) {
 
         public Structure {
@@ -85,7 +85,7 @@ public record TerminalExecutionSummary(AutoBuildBatchStatus status, int placed, 
 
         private static Structure decode(RegistryFriendlyByteBuf buffer) {
             String name = buffer.readUtf(MAX_TEXT);
-            AutoBuildMode mode = buffer.readEnum(AutoBuildMode.class);
+            StructureOperation mode = buffer.readEnum(StructureOperation.class);
             boolean success = buffer.readBoolean();
             int placed = readNonNegative(buffer, "placed");
             int removed = readNonNegative(buffer, "removed");

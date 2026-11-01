@@ -12,7 +12,7 @@ import org.jspecify.annotations.Nullable;
  * @param pos     optional world position related to the problem
  * @param message user-facing diagnostic text
  */
-public record AutoBuildProblem(Type type, @Nullable BlockPos pos, Component message) {
+public record BuildProblem(Type type, @Nullable BlockPos pos, Component message) {
 
     public enum Type {
         UNKNOWN_STRUCTURE,

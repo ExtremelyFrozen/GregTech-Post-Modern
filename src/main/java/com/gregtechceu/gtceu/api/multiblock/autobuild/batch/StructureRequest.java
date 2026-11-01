@@ -14,7 +14,7 @@ import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
  * @param flipMode      whether the pattern transform is flipped
  * @param mode          whether this structure is built or demolished
  */
-public record AutoBuildStructureOptions(String structureName, IntList repetitions,
+public record StructureRequest(String structureName, IntList repetitions,
                                         Object2ObjectMap<String, ResourceLocation> tierChoices,
-                                        boolean flipMode, AutoBuildMode mode,
+                                        boolean flipMode, StructureOperation mode,
                                         Object2ObjectMap<String, String> choices) {}

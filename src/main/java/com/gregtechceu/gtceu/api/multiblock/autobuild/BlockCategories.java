@@ -26,12 +26,12 @@ import java.util.stream.Stream;
 
 /** Tier-ordered groups, populated during common setup and read by previews and automatic construction. */
 @NullMarked
-public final class AutoBuildBlockMap {
+public final class BlockCategories {
 
     public static final Object2ObjectMap<String, Block[]> MAP = new Object2ObjectLinkedOpenHashMap<>();
     public static final Reference2ObjectMap<Block, String> BLOCK_CATEGORY_MAP = new Reference2ObjectOpenHashMap<>();
 
-    private AutoBuildBlockMap() {}
+    private BlockCategories() {}
 
     public static void initialize() {
         registerCategory("heating_coils", sortedBlocks(GTCEuAPI.HEATING_COILS.entrySet().stream(),

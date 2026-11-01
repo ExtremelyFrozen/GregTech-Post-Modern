@@ -1,6 +1,6 @@
 package com.gregtechceu.gtceu.common.item.terminal.menu;
 
-import com.gregtechceu.gtceu.api.multiblock.autobuild.AutoBuildMaterialSource;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialSource;
 
 import net.minecraft.core.GlobalPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -21,8 +21,8 @@ public record TerminalMESourceDisplay(String terminalName, String selectionIdent
         }
     }
 
-    public static TerminalMESourceDisplay from(AutoBuildMaterialSource.SourceDescriptor descriptor) {
-        if (descriptor.kind() != AutoBuildMaterialSource.SourceKind.ME || descriptor.linkTarget() == null) {
+    public static TerminalMESourceDisplay from(MaterialSource.SourceDescriptor descriptor) {
+        if (descriptor.kind() != MaterialSource.SourceKind.ME || descriptor.linkTarget() == null) {
             throw new IllegalArgumentException("Only a linked ME source can be displayed as a wireless terminal");
         }
         return new TerminalMESourceDisplay(descriptor.displayName(), descriptor.selectionIdentity(),

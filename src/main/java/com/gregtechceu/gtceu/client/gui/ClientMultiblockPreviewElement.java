@@ -10,9 +10,9 @@ import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.multiblock.MultiblockBlockInfo;
 import com.gregtechceu.gtceu.api.multiblock.MultiblockPreviewLevel;
-import com.gregtechceu.gtceu.api.multiblock.preview.MultiblockPreviewSnapshot;
-import com.gregtechceu.gtceu.api.multiblock.preview.MultiblockPreviewSnapshot.Cell;
-import com.gregtechceu.gtceu.api.multiblock.preview.MultiblockPreviewState;
+import com.gregtechceu.gtceu.api.multiblock.preview.StructurePreview;
+import com.gregtechceu.gtceu.api.multiblock.preview.StructurePreview.Cell;
+import com.gregtechceu.gtceu.api.multiblock.preview.PreviewVisibility;
 import com.gregtechceu.gtceu.integration.xei.GTXEIHelper;
 import com.gregtechceu.gtceu.integration.xei.handlers.item.CycleItemEntryHandler;
 
@@ -67,7 +67,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
     private static final int MATERIAL_BAR_HEIGHT = 24;
     private static final int MATERIAL_DETAIL_HEIGHT = 64;
 
-    private final MultiblockPreviewState state;
+    private final PreviewVisibility state;
     private MultiblockPreviewLevel previewLevel;
     @Nullable
     private Level sourceLevel;
@@ -82,14 +82,14 @@ public final class ClientMultiblockPreviewElement extends UIElement {
     private final boolean showAvailability;
     private final int materialViewportWidth;
     private final int materialDetailViewportWidth;
-    private final Object2ObjectMap<BlockPos, MultiblockPreviewSnapshot.Cell> sceneCells = new Object2ObjectLinkedOpenHashMap<>();
+    private final Object2ObjectMap<BlockPos, StructurePreview.Cell> sceneCells = new Object2ObjectLinkedOpenHashMap<>();
     private final Object2IntMap<String> structureColors = new Object2IntOpenHashMap<>();
     private final ObjectList<BlockPos> loadedPositions = new ObjectArrayList<>();
     private int selectedMaterialIndex;
     private long renderedViewRevision;
     private boolean removed;
 
-    public ClientMultiblockPreviewElement(int width, int height, MultiblockPreviewState state,
+    public ClientMultiblockPreviewElement(int width, int height, PreviewVisibility state,
                                           boolean showAvailability) {
         this.state = state;
         this.showAvailability = showAvailability;
@@ -200,7 +200,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
     /**
      * Called by the side-safe parent after its shared state accepted a new snapshot.
      */
-    public void snapshotChanged(MultiblockPreviewSnapshot snapshot) {
+    public void snapshotChanged(StructurePreview snapshot) {
         if (state.snapshot() != snapshot) {
             throw new IllegalStateException("Client preview state was not updated before rebuilding its scene");
         }
@@ -221,12 +221,12 @@ public final class ClientMultiblockPreviewElement extends UIElement {
                 return;
             }
             structureColors.clear();
-            for (MultiblockPreviewSnapshot.Structure structure : state.snapshot().structures()) {
+            for (StructurePreview.Structure structure : state.snapshot().structures()) {
                 structureColors.put(structure.name(), stableStructureColor(
                         state.snapshot().definitionId(), structure.name()));
             }
             sceneCells.clear();
-            for (MultiblockPreviewSnapshot.Cell cell : state.snapshot().cells()) {
+            for (StructurePreview.Cell cell : state.snapshot().cells()) {
                 if (cell.renderState().isAir()) continue;
                 BlockPos scenePos = SCENE_ORIGIN.offset(cell.relativePos());
                 MultiblockBlockInfo blockInfo = cell.renderInfo().createBlockInfo();
@@ -307,17 +307,17 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         GTScrollerViewElement details = materialDetails;
         if (details == null) return;
         details.clearAllScrollViewChildren();
-        ObjectList<MultiblockPreviewSnapshot.Material> materials = state.snapshot().materials();
+        ObjectList<StructurePreview.Material> materials = state.snapshot().materials();
         ObjectList<Component> lines = new ObjectArrayList<>();
         if (materials.isEmpty()) {
             lines.add(Component.translatable("gtpm.multiblock.preview.material.none"));
         } else {
             selectedMaterialIndex = Math.min(selectedMaterialIndex, materials.size() - 1);
-            MultiblockPreviewSnapshot.Material material = materials.get(selectedMaterialIndex);
+            StructurePreview.Material material = materials.get(selectedMaterialIndex);
             lines.add(Component.translatable("gtpm.multiblock.preview.material.selected",
                     material.candidates().getFirst().getHoverName()));
             lines.add(Component.translatable("gtpm.multiblock.preview.material.required", material.required()));
-            for (MultiblockPreviewSnapshot.StructureAmount structure : material.structures()) {
+            for (StructurePreview.StructureAmount structure : material.structures()) {
                 lines.add(Component.translatable("gtpm.multiblock.preview.material.structure",
                         structure.structureName(), structure.required()));
             }
@@ -346,9 +346,9 @@ public final class ClientMultiblockPreviewElement extends UIElement {
                 .height(Math.max(MATERIAL_DETAIL_HEIGHT, lines.size() * 10)));
     }
 
-    private void addMaterialTooltips(MultiblockPreviewSnapshot.Material material, List<Component> tooltips) {
+    private void addMaterialTooltips(StructurePreview.Material material, List<Component> tooltips) {
         tooltips.add(Component.translatable("gtpm.multiblock.preview.material.required", material.required()));
-        for (MultiblockPreviewSnapshot.StructureAmount structure : material.structures()) {
+        for (StructurePreview.StructureAmount structure : material.structures()) {
             tooltips.add(Component.translatable("gtpm.multiblock.preview.material.structure",
                     structure.structureName(), structure.required()));
         }
@@ -377,8 +377,8 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         tooltips.add(cell.renderState().getBlock().getName());
         tooltips.add(Component.translatable("gtpm.multiblock.preview.cell.position",
                 cell.relativePos().getX(), cell.relativePos().getY(), cell.relativePos().getZ()));
-        for (MultiblockPreviewSnapshot.Contribution contribution : cell.contributions()) {
-            MultiblockPreviewSnapshot.CellKey key = contribution.cellKey();
+        for (StructurePreview.Contribution contribution : cell.contributions()) {
+            StructurePreview.CellKey key = contribution.cellKey();
             tooltips.add(Component.translatable("gtpm.multiblock.preview.cell.contribution",
                     contribution.structureName(), contribution.targetState().getBlock().getName(),
                     Component.translatable("gtpm.multiblock.preview.cell.action." +
@@ -423,7 +423,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
     }
 
     private void updateDiagnosticText() {
-        ObjectList<MultiblockPreviewSnapshot.Diagnostic> diagnostics = state.snapshot().diagnostics();
+        ObjectList<StructurePreview.Diagnostic> diagnostics = state.snapshot().diagnostics();
         diagnosticLabel.setText(diagnostics.isEmpty() ? Component.empty() :
                 Component.translatable("gtpm.multiblock.preview.diagnostic",
                         diagnosticDescription(diagnostics.getFirst())));
@@ -431,7 +431,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
 
     private void updateDemolitionText() {
         long count = state.snapshot().cells().stream()
-                .filter(MultiblockPreviewSnapshot.Cell::demolitionTarget)
+                .filter(StructurePreview.Cell::demolitionTarget)
                 .count();
         demolitionLabel.setText(Component.translatable(
                 "gtpm.multiblock.preview.demolition_count", count));
@@ -439,7 +439,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
                 "gtpm.multiblock.preview.tooltip.demolition_count", count)));
     }
 
-    private static Component diagnosticDescription(MultiblockPreviewSnapshot.Diagnostic diagnostic) {
+    private static Component diagnosticDescription(StructurePreview.Diagnostic diagnostic) {
         return Component.translatable("gtpm.multiblock.preview.diagnostic." +
                 diagnostic.code().toLowerCase(Locale.ROOT));
     }

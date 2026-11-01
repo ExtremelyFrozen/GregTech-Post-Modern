@@ -4,21 +4,21 @@ import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.AutoBuildMaterialSource;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.AutoBuildMaterialSources;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.AutoBuildProblem;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.AutoBuildBatchRequest;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.AutoBuildBatchResult;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.AutoBuildMode;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.AutoBuildPlan;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.MultiblockPlanResolver;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.ResolvedAutoBuildSnapshot;
-import com.gregtechceu.gtceu.api.multiblock.preview.MultiblockPreviewSnapshot;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialSource;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialSources;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.BuildProblem;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.BatchRequest;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.BatchResult;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.StructureOperation;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.BatchPlan;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.BatchPlanner;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.BatchResolution;
+import com.gregtechceu.gtceu.api.multiblock.preview.StructurePreview;
 import com.gregtechceu.gtceu.common.data.GTDataComponents;
-import com.gregtechceu.gtceu.common.item.datacomponents.TerminalAutoBuildProfiles;
+import com.gregtechceu.gtceu.common.item.datacomponents.TerminalMachines;
 import com.gregtechceu.gtceu.common.item.datacomponents.TerminalControllerBinding;
-import com.gregtechceu.gtceu.common.item.datacomponents.TerminalMachineProfile;
-import com.gregtechceu.gtceu.common.item.terminal.profile.TerminalProfileUpdate;
+import com.gregtechceu.gtceu.common.item.datacomponents.TerminalMachine;
+import com.gregtechceu.gtceu.common.item.terminal.profile.TerminalChange;
 import com.gregtechceu.gtceu.common.machine.owner.MachineOwner;
 import com.gregtechceu.gtceu.data.pattern.StructurePatternRegistry;
 
@@ -56,8 +56,8 @@ public final class TerminalSession {
     private final ResourceKey<Level> dimension;
     private final ResourceLocation definitionId;
     private final UUID sessionId;
-    private final MultiblockPlanResolver resolver = new MultiblockPlanResolver();
-    private TerminalMachineProfile profile;
+    private final BatchPlanner resolver = new BatchPlanner();
+    private TerminalMachine profile;
     private TerminalMenuState state;
     @Nullable
     private AbstractContainerMenu serverMenu;
@@ -133,12 +133,12 @@ public final class TerminalSession {
 
     /** Applies one sequence- and revision-validated profile patch and persists it immediately. */
     public boolean applyUpdate(ServerPlayer player, long sequence, long expectedRevision,
-                               TerminalProfileUpdate update) {
+                               TerminalChange update) {
         if (!beginAction(player, sequence, expectedRevision)) {
             return false;
         }
         try {
-            TerminalMachineProfile updated = update.apply(definition, profile);
+            TerminalMachine updated = update.apply(definition, profile);
             ensureSemanticallyValid(updated);
             persistProfile(openedTerminal, definition, updated);
             profile = updated;
@@ -159,7 +159,7 @@ public final class TerminalSession {
 
     /** Executes only the server plan whose fingerprint is still visible to this exact menu session. */
     @Nullable
-    public AutoBuildBatchResult execute(ServerPlayer player, long sequence, long expectedRevision) {
+    public BatchResult execute(ServerPlayer player, long sequence, long expectedRevision) {
         if (!beginAction(player, sequence, expectedRevision)) {
             return null;
         }
@@ -169,10 +169,10 @@ public final class TerminalSession {
                 state.meSource(), lastExecution);
         try {
             MultiblockControllerMachine controller = openedController;
-            AutoBuildBatchRequest request = profile.createRequest(definition,
+            BatchRequest request = profile.createRequest(definition,
                     createSources(player));
             long expectedPlanFingerprint = Long.parseUnsignedLong(expectedFingerprint, 16);
-            AutoBuildBatchResult result = controller.autoBuildBatch(player, request, expectedPlanFingerprint);
+            BatchResult result = controller.autoBuildBatch(player, request, expectedPlanFingerprint);
             lastExecution = TerminalExecutionSummary.from(result);
             player.displayClientMessage(Component.translatable("gtpm.multiblock.autobuild.execution_result",
                     Component.translatable("gtpm.multiblock.autobuild.status." +
@@ -201,9 +201,9 @@ public final class TerminalSession {
         long currentGeneration = StructurePatternRegistry.generation();
         if (currentGeneration != patternGeneration) {
             if (!isValidProfile(definition, profile)) {
-                TerminalAutoBuildProfiles profiles = openedTerminal.getOrDefault(GTDataComponents.TERMINAL_AUTO_BUILD,
-                        TerminalAutoBuildProfiles.EMPTY);
-                TerminalMachineProfile reset = TerminalMachineProfile.defaults(definition);
+                TerminalMachines profiles = openedTerminal.getOrDefault(GTDataComponents.TERMINAL_AUTO_BUILD,
+                        TerminalMachines.EMPTY);
+                TerminalMachine reset = TerminalMachine.defaults(definition);
                 openedTerminal.set(GTDataComponents.TERMINAL_AUTO_BUILD,
                         profiles.withProfile(definitionId, reset));
                 GTCEu.LOGGER.warn("Closed terminal menu after incompatible pattern reload for {}", definitionId);
@@ -265,42 +265,42 @@ public final class TerminalSession {
     }
 
     private TerminalMenuState buildState(ServerPlayer player) {
-        ObjectList<AutoBuildMaterialSource> sources = createSources(player);
+        ObjectList<MaterialSource> sources = createSources(player);
         MultiblockControllerMachine controller = openedController;
-        AutoBuildBatchRequest request = profile.createRequest(definition, sources);
-        ResolvedAutoBuildSnapshot resolved = resolver.resolveWorldSnapshot(controller, player, request);
-        MultiblockPreviewSnapshot preview = MultiblockPreviewSnapshot.bound(definitionId, resolved);
+        BatchRequest request = profile.createRequest(definition, sources);
+        BatchResolution resolved = resolver.resolveWorldSnapshot(controller, player, request);
+        StructurePreview preview = StructurePreview.bound(definitionId, resolved);
         TerminalMESourceDisplay meSource = resolved.materialSnapshots().stream()
-                .map(AutoBuildMaterialSource.Snapshot::descriptor)
-                .filter(descriptor -> descriptor != null && descriptor.kind() == AutoBuildMaterialSource.SourceKind.ME)
+                .map(MaterialSource.Availability::descriptor)
+                .filter(descriptor -> descriptor != null && descriptor.kind() == MaterialSource.SourceKind.ME)
                 .map(TerminalMESourceDisplay::from)
                 .findFirst().orElse(null);
         return new TerminalMenuState(definitionId, acceptedSequence, revision, profile, preview, executing, meSource,
                 lastExecution);
     }
 
-    private ObjectList<AutoBuildMaterialSource> createSources(ServerPlayer player) {
+    private ObjectList<MaterialSource> createSources(ServerPlayer player) {
         boolean hasBuild = profile.structures().values().stream()
-                .anyMatch(structure -> structure.selected() && structure.mode() == AutoBuildMode.BUILD);
+                .anyMatch(structure -> structure.selected() && structure.mode() == StructureOperation.BUILD);
         if (!hasBuild) {
             return ObjectList.of();
         }
-        ObjectList<AutoBuildMaterialSource> sources = new ObjectArrayList<>();
+        ObjectList<MaterialSource> sources = new ObjectArrayList<>();
         if (profile.sharedOptions().useME()) {
             if (GTCEu.MODS.AE2.isLoaded()) {
-                sources.add(AutoBuildMaterialSources.me(player, openedTerminal));
+                sources.add(MaterialSources.me(player, openedTerminal));
             } else {
-                sources.add(AutoBuildMaterialSources.unavailable(new AutoBuildProblem(
-                        AutoBuildProblem.Type.AE_NOT_INSTALLED, null,
+                sources.add(MaterialSources.unavailable(new BuildProblem(
+                        BuildProblem.Type.AE_NOT_INSTALLED, null,
                         Component.translatable("gtpm.multiblock.autobuild.me_unavailable"))));
             }
         }
-        sources.add(AutoBuildMaterialSources.playerInventory(player, openedTerminal));
+        sources.add(MaterialSources.playerInventory(player, openedTerminal));
         return new ObjectImmutableList<>(sources);
     }
 
-    private void ensureSemanticallyValid(TerminalMachineProfile profile) {
-        AutoBuildPlan plan = resolver.resolveCanonical(definition, profile.createRequest(definition, ObjectList.of()));
+    private void ensureSemanticallyValid(TerminalMachine profile) {
+        BatchPlan plan = resolver.resolveCanonical(definition, profile.createRequest(definition, ObjectList.of()));
         boolean invalid = plan.executionOrder().stream().flatMap(structure -> structure.problems().stream())
                 .anyMatch(problem -> switch (problem.type()) {
                     case UNKNOWN_STRUCTURE, INVALID_OPTIONS, INVALID_TIER_SELECTION, PATTERN_UNAVAILABLE -> true;
@@ -311,28 +311,28 @@ public final class TerminalSession {
         }
     }
 
-    private static TerminalMachineProfile loadProfile(ServerPlayer player, ItemStack terminal,
+    private static TerminalMachine loadProfile(ServerPlayer player, ItemStack terminal,
                                                       MultiblockMachineDefinition definition) {
-        TerminalAutoBuildProfiles profiles = terminal.getOrDefault(GTDataComponents.TERMINAL_AUTO_BUILD,
-                TerminalAutoBuildProfiles.EMPTY);
-        TerminalMachineProfile profile = profiles.profiles().get(definition.getId());
+        TerminalMachines profiles = terminal.getOrDefault(GTDataComponents.TERMINAL_AUTO_BUILD,
+                TerminalMachines.EMPTY);
+        TerminalMachine profile = profiles.profiles().get(definition.getId());
         if (profile == null || !isValidProfile(definition, profile)) {
             if (profile != null) {
                 GTCEu.LOGGER.warn("Resetting stale terminal profile for {} held by {}", definition.getId(),
                         player.getGameProfile().getName());
             }
-            profile = TerminalMachineProfile.defaults(definition);
+            profile = TerminalMachine.defaults(definition);
             terminal.set(GTDataComponents.TERMINAL_AUTO_BUILD, profiles.withProfile(definition.getId(), profile));
         }
         return profile;
     }
 
     private static boolean isValidProfile(MultiblockMachineDefinition definition,
-                                          TerminalMachineProfile profile) {
+                                          TerminalMachine profile) {
         if (!new ObjectImmutableList<>(profile.structures().keySet()).equals(definition.getStructureOrder())) {
             return false;
         }
-        MultiblockPlanResolver resolver = new MultiblockPlanResolver();
+        BatchPlanner resolver = new BatchPlanner();
         try {
             for (String structureName : definition.getStructureOrder()) {
                 var stored = profile.structures().get(structureName);
@@ -363,10 +363,10 @@ public final class TerminalSession {
                             choice.alternatives().contains(selected.getValue())))
                         return false;
                 }
-                if (stored.selected() && stored.mode() == AutoBuildMode.BUILD) {
+                if (stored.selected() && stored.mode() == StructureOperation.BUILD) {
                     for (String dependency : definition.getRequiredStructures(structureName)) {
                         var dependencyProfile = profile.structures().get(dependency);
-                        if (!dependencyProfile.selected() || dependencyProfile.mode() != AutoBuildMode.BUILD) {
+                        if (!dependencyProfile.selected() || dependencyProfile.mode() != StructureOperation.BUILD) {
                             return false;
                         }
                     }
@@ -382,16 +382,16 @@ public final class TerminalSession {
     }
 
     private static void persistProfile(ItemStack terminal, MultiblockMachineDefinition definition,
-                                       TerminalMachineProfile profile) {
-        TerminalAutoBuildProfiles profiles = terminal.getOrDefault(GTDataComponents.TERMINAL_AUTO_BUILD,
-                TerminalAutoBuildProfiles.EMPTY);
+                                       TerminalMachine profile) {
+        TerminalMachines profiles = terminal.getOrDefault(GTDataComponents.TERMINAL_AUTO_BUILD,
+                TerminalMachines.EMPTY);
         terminal.set(GTDataComponents.TERMINAL_AUTO_BUILD, profiles.withProfile(definition.getId(), profile));
     }
 
     private static long visibleSignature(TerminalMenuState state) {
-        MultiblockPreviewSnapshot preview = state.preview();
+        StructurePreview preview = state.preview();
         long result = preview.fingerprint().hashCode();
-        for (MultiblockPreviewSnapshot.Material material : preview.materials()) {
+        for (StructurePreview.Material material : preview.materials()) {
             result = 31 * result + Long.hashCode(material.required());
             result = 31 * result + Long.hashCode(material.meAvailable());
             result = 31 * result + Long.hashCode(material.meAllocated());

@@ -12,13 +12,13 @@ import org.jspecify.annotations.Nullable;
  * Window-local navigation state for a multiblock preview.
  *
  * <p>
- * Focus and layer filters are intentionally kept outside {@link MultiblockPreviewSnapshot}; changing either must
+ * Focus and layer filters are intentionally kept outside {@link StructurePreview}; changing either must
  * never alter persisted terminal configuration or the material summary.
  * </p>
  */
-public final class MultiblockPreviewState {
+public final class PreviewVisibility {
 
-    private MultiblockPreviewSnapshot snapshot;
+    private StructurePreview snapshot;
     private final ObjectSet<String> hiddenStructures = new ObjectOpenHashSet<>();
     private final IntArrayList layers = new IntArrayList();
     private long viewRevision;
@@ -27,19 +27,19 @@ public final class MultiblockPreviewState {
     @Nullable
     private Integer visibleLayer;
 
-    public MultiblockPreviewState(MultiblockPreviewSnapshot snapshot) {
+    public PreviewVisibility(StructurePreview snapshot) {
         this.snapshot = snapshot;
         updateLayers();
     }
 
-    public MultiblockPreviewSnapshot snapshot() {
+    public StructurePreview snapshot() {
         return snapshot;
     }
 
     /**
      * Replaces server-authoritative content while retaining navigation only when it is still valid.
      */
-    public void replaceSnapshot(MultiblockPreviewSnapshot snapshot) {
+    public void replaceSnapshot(StructurePreview snapshot) {
         this.snapshot = snapshot;
         hiddenStructures.removeIf(name -> snapshot.structures().stream()
                 .noneMatch(structure -> structure.name().equals(name)));
@@ -81,7 +81,7 @@ public final class MultiblockPreviewState {
         if (visibleLayer != null && !layers.contains(visibleLayer.intValue())) visibleLayer = null;
     }
 
-    private boolean hasVisibleContributor(MultiblockPreviewSnapshot.Cell cell) {
+    private boolean hasVisibleContributor(StructurePreview.Cell cell) {
         return cell.contributions().stream().anyMatch(contribution -> isStructureVisible(contribution.structureName()));
     }
 
@@ -135,7 +135,7 @@ public final class MultiblockPreviewState {
      * Returns cells with at least one visible contributor in the active layer. Shared cells remain visible when
      * another visible structure needs them; focus only changes emphasis.
      */
-    public ObjectList<MultiblockPreviewSnapshot.Cell> visibleCells() {
+    public ObjectList<StructurePreview.Cell> visibleCells() {
         if (visibleLayer == null && hiddenStructures.isEmpty()) {
             return snapshot.cells();
         }
@@ -148,7 +148,7 @@ public final class MultiblockPreviewState {
     /**
      * Whether a cell belongs to the focused structure and should be rendered at full emphasis.
      */
-    public boolean isFocused(MultiblockPreviewSnapshot.Cell cell) {
+    public boolean isFocused(StructurePreview.Cell cell) {
         return focusedStructure == null || cell.contributorNames().contains(focusedStructure);
     }
 }

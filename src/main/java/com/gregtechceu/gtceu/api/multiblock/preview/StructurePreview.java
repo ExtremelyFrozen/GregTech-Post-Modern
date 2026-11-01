@@ -1,17 +1,17 @@
 package com.gregtechceu.gtceu.api.multiblock.preview;
 
 import com.gregtechceu.gtceu.api.multiblock.MultiblockBlockInfo;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.AutoBuildItemKey;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.AutoBuildMaterialSource;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.AutoBuildProblem;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.AutoBuildPlan;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialKey;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialSource;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.BuildProblem;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.BatchPlan;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.CellAction;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.MergedPlanCell;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.PatternCellKey;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.PlannedBlockInfo;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.PlannedCell;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.ResolvedAutoBuildSnapshot;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.ResolvedStructurePlan;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.BatchResolution;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.StructurePlan;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -49,7 +49,7 @@ import java.util.Comparator;
  * descriptor from the exact state, block-entity flag and item form.
  * </p>
  */
-public record MultiblockPreviewSnapshot(ResourceLocation definitionId, String fingerprint,
+public record StructurePreview(ResourceLocation definitionId, String fingerprint,
                                         boolean availabilityKnown, ObjectList<Structure> structures,
                                         ObjectList<Cell> cells,
                                         ObjectList<Material> materials, ObjectList<Diagnostic> diagnostics) {
@@ -70,10 +70,10 @@ public record MultiblockPreviewSnapshot(ResourceLocation definitionId, String fi
     /**
      * Registry-aware and explicitly bounded terminal snapshot codec.
      */
-    public static final StreamCodec<RegistryFriendlyByteBuf, MultiblockPreviewSnapshot> STREAM_CODEC = new StreamCodec<>() {
+    public static final StreamCodec<RegistryFriendlyByteBuf, StructurePreview> STREAM_CODEC = new StreamCodec<>() {
 
         @Override
-        public MultiblockPreviewSnapshot decode(RegistryFriendlyByteBuf buffer) {
+        public StructurePreview decode(RegistryFriendlyByteBuf buffer) {
             ResourceLocation definitionId = buffer.readResourceLocation();
             String fingerprint = buffer.readUtf(MAX_FINGERPRINT_LENGTH);
             boolean availabilityKnown = buffer.readBoolean();
@@ -81,12 +81,12 @@ public record MultiblockPreviewSnapshot(ResourceLocation definitionId, String fi
             ObjectList<Cell> cells = readList(buffer, MAX_CELLS, Cell.STREAM_CODEC);
             ObjectList<Material> materials = readList(buffer, MAX_MATERIALS, Material.STREAM_CODEC);
             ObjectList<Diagnostic> diagnostics = readList(buffer, MAX_DIAGNOSTICS, Diagnostic.STREAM_CODEC);
-            return new MultiblockPreviewSnapshot(definitionId, fingerprint, availabilityKnown,
+            return new StructurePreview(definitionId, fingerprint, availabilityKnown,
                     structures, cells, materials, diagnostics);
         }
 
         @Override
-        public void encode(RegistryFriendlyByteBuf buffer, MultiblockPreviewSnapshot value) {
+        public void encode(RegistryFriendlyByteBuf buffer, StructurePreview value) {
             buffer.writeResourceLocation(value.definitionId);
             buffer.writeUtf(value.fingerprint, MAX_FINGERPRINT_LENGTH);
             buffer.writeBoolean(value.availabilityKnown);
@@ -97,7 +97,7 @@ public record MultiblockPreviewSnapshot(ResourceLocation definitionId, String fi
         }
     };
 
-    public MultiblockPreviewSnapshot {
+    public StructurePreview {
         requireStringLength(fingerprint, MAX_FINGERPRINT_LENGTH, "fingerprint");
         structures = boundedCopy(structures, MAX_STRUCTURES, "structures");
         cells = boundedCopy(cells, MAX_CELLS, "cells");
@@ -147,38 +147,38 @@ public record MultiblockPreviewSnapshot(ResourceLocation definitionId, String fi
     /**
      * Projects a canonical XEI plan whose material availability is intentionally unknown.
      */
-    public static MultiblockPreviewSnapshot canonical(ResourceLocation definitionId, AutoBuildPlan plan) {
+    public static StructurePreview canonical(ResourceLocation definitionId, BatchPlan plan) {
         return fromPlan(definitionId, plan, null, true);
     }
 
     /**
      * Projects the exact plan, source snapshots and allocations produced by one server-side resolution.
      */
-    public static MultiblockPreviewSnapshot bound(ResourceLocation definitionId,
-                                                  ResolvedAutoBuildSnapshot resolved) {
+    public static StructurePreview bound(ResourceLocation definitionId,
+                                                  BatchResolution resolved) {
         return fromPlan(definitionId, resolved.plan(), resolved, false);
     }
 
-    private static MultiblockPreviewSnapshot fromPlan(ResourceLocation definitionId, AutoBuildPlan plan,
-                                                      @Nullable ResolvedAutoBuildSnapshot resolved,
+    private static StructurePreview fromPlan(ResourceLocation definitionId, BatchPlan plan,
+                                                      @Nullable BatchResolution resolved,
                                                       boolean retainCandidateGroups) {
-        ObjectList<ResolvedStructurePlan> executionOrder = plan.executionOrder();
+        ObjectList<StructurePlan> executionOrder = plan.executionOrder();
         ObjectList<Structure> structures = structureSnapshots(plan);
         ObjectList<Cell> cells = cellSnapshots(plan, executionOrder);
         ObjectList<Material> materials = materialSnapshots(plan, resolved, retainCandidateGroups);
         ObjectList<Diagnostic> diagnostics = diagnosticSnapshots(plan);
-        return new MultiblockPreviewSnapshot(definitionId, Long.toUnsignedString(plan.fingerprint(), 16),
+        return new StructurePreview(definitionId, Long.toUnsignedString(plan.fingerprint(), 16),
                 resolved != null, structures, cells, materials, diagnostics);
     }
 
-    private static ObjectList<Structure> structureSnapshots(AutoBuildPlan plan) {
+    private static ObjectList<Structure> structureSnapshots(BatchPlan plan) {
         Object2ObjectLinkedOpenHashMap<String, Mode> structures = new Object2ObjectLinkedOpenHashMap<>();
-        ObjectList<ResolvedStructurePlan> demolitionInDefinitionOrder = new ObjectArrayList<>(plan.demolitionPlans());
+        ObjectList<StructurePlan> demolitionInDefinitionOrder = new ObjectArrayList<>(plan.demolitionPlans());
         Collections.reverse(demolitionInDefinitionOrder);
-        for (ResolvedStructurePlan structure : demolitionInDefinitionOrder) {
+        for (StructurePlan structure : demolitionInDefinitionOrder) {
             structures.put(structure.structureName(), Mode.DEMOLISH);
         }
-        for (ResolvedStructurePlan structure : plan.buildPlans()) {
+        for (StructurePlan structure : plan.buildPlans()) {
             structures.put(structure.structureName(), Mode.BUILD);
         }
         return structures.entrySet().stream()
@@ -186,8 +186,8 @@ public record MultiblockPreviewSnapshot(ResourceLocation definitionId, String fi
                 .collect(ObjectImmutableList.toList());
     }
 
-    private static ObjectList<Cell> cellSnapshots(AutoBuildPlan plan,
-                                                  ObjectList<ResolvedStructurePlan> executionOrder) {
+    private static ObjectList<Cell> cellSnapshots(BatchPlan plan,
+                                                  ObjectList<StructurePlan> executionOrder) {
         Object2IntMap<String> executionIndex = new Object2IntLinkedOpenHashMap<>();
         for (int index = 0; index < executionOrder.size(); index++) {
             executionIndex.put(executionOrder.get(index).structureName(), index);
@@ -207,23 +207,23 @@ public record MultiblockPreviewSnapshot(ResourceLocation definitionId, String fi
                 .collect(ObjectImmutableList.toList());
     }
 
-    private static ObjectList<Material> materialSnapshots(AutoBuildPlan plan,
-                                                          @Nullable ResolvedAutoBuildSnapshot resolved,
+    private static ObjectList<Material> materialSnapshots(BatchPlan plan,
+                                                          @Nullable BatchResolution resolved,
                                                           boolean retainCandidateGroups) {
-        Object2ObjectLinkedOpenHashMap<ObjectList<AutoBuildItemKey>, MaterialRequirement> requirements = collectMaterialRequirements(
+        Object2ObjectLinkedOpenHashMap<ObjectList<MaterialKey>, MaterialRequirement> requirements = collectMaterialRequirements(
                 plan,
                 retainCandidateGroups);
-        Object2ObjectMap<AutoBuildItemKey, AllocationCursor> allocations = resolved == null ?
+        Object2ObjectMap<MaterialKey, AllocationCursor> allocations = resolved == null ?
                 Object2ObjectMaps.emptyMap() :
                 allocationCursors(resolved);
         ObjectList<Material> materials = new ObjectArrayList<>(requirements.size());
         for (var entry : requirements.object2ObjectEntrySet()) {
-            ObjectList<AutoBuildItemKey> candidates = entry.getKey();
+            ObjectList<MaterialKey> candidates = entry.getKey();
             MaterialRequirement requirement = entry.getValue();
             long meAvailable = resolved == null ? 0 :
-                    availability(candidates, resolved.materialSnapshots(), AutoBuildMaterialSource.SourceKind.ME);
+                    availability(candidates, resolved.materialSnapshots(), MaterialSource.SourceKind.ME);
             long playerAvailable = resolved == null ? 0 : availability(
-                    candidates, resolved.materialSnapshots(), AutoBuildMaterialSource.SourceKind.PLAYER);
+                    candidates, resolved.materialSnapshots(), MaterialSource.SourceKind.PLAYER);
             long meAllocated = 0;
             long playerAllocated = 0;
             long missing = 0;
@@ -243,7 +243,7 @@ public record MultiblockPreviewSnapshot(ResourceLocation definitionId, String fi
                 }
             }
             materials.add(new Material(
-                    candidates.stream().map(AutoBuildItemKey::prototype).collect(ObjectImmutableList.toList()),
+                    candidates.stream().map(MaterialKey::prototype).collect(ObjectImmutableList.toList()),
                     requirement.total, meAvailable, meAllocated, playerAvailable, playerAllocated, missing,
                     unlimited, requirement.structureAmounts()));
         }
@@ -251,22 +251,22 @@ public record MultiblockPreviewSnapshot(ResourceLocation definitionId, String fi
         return new ObjectImmutableList<>(materials);
     }
 
-    private static Object2ObjectLinkedOpenHashMap<ObjectList<AutoBuildItemKey>, MaterialRequirement> collectMaterialRequirements(
-                                                                                                                                 AutoBuildPlan plan,
+    private static Object2ObjectLinkedOpenHashMap<ObjectList<MaterialKey>, MaterialRequirement> collectMaterialRequirements(
+                                                                                                                                 BatchPlan plan,
                                                                                                                                  boolean retainCandidateGroups) {
-        Object2ObjectLinkedOpenHashMap<ObjectList<AutoBuildItemKey>, MaterialRequirement> requirements = new Object2ObjectLinkedOpenHashMap<>();
-        for (ResolvedStructurePlan structure : plan.executionOrder()) {
-            Object2LongMap<AutoBuildItemKey> remaining = new Object2LongLinkedOpenHashMap<>(structure.materials());
+        Object2ObjectLinkedOpenHashMap<ObjectList<MaterialKey>, MaterialRequirement> requirements = new Object2ObjectLinkedOpenHashMap<>();
+        for (StructurePlan structure : plan.executionOrder()) {
+            Object2LongMap<MaterialKey> remaining = new Object2LongLinkedOpenHashMap<>(structure.materials());
             for (PlannedCell cell : structure.cells()) {
                 @Nullable
-                AutoBuildItemKey selected = cell.materialKey();
+                MaterialKey selected = cell.materialKey();
                 if (cell.action() != CellAction.PLACE || selected == null) continue;
                 long count = remaining.getLong(selected);
                 if (count <= 0) {
                     throw new IllegalStateException("Resolved structure material totals do not match PLACE cells");
                 }
                 remaining.put(selected, count - 1);
-                ObjectList<AutoBuildItemKey> group = materialGroup(cell, selected, retainCandidateGroups);
+                ObjectList<MaterialKey> group = materialGroup(cell, selected, retainCandidateGroups);
                 requirements.computeIfAbsent(group, ignored -> new MaterialRequirement())
                         .increment(structure.structureName(), selected);
             }
@@ -277,7 +277,7 @@ public record MultiblockPreviewSnapshot(ResourceLocation definitionId, String fi
         return requirements;
     }
 
-    private static ObjectList<AutoBuildItemKey> materialGroup(PlannedCell cell, AutoBuildItemKey selected,
+    private static ObjectList<MaterialKey> materialGroup(PlannedCell cell, MaterialKey selected,
                                                               boolean retainCandidateGroups) {
         if (retainCandidateGroups && cell.tierGroups().isEmpty() && !cell.materialCandidates().isEmpty()) {
             return cell.materialCandidates();
@@ -285,32 +285,32 @@ public record MultiblockPreviewSnapshot(ResourceLocation definitionId, String fi
         return ObjectList.of(selected);
     }
 
-    private static Object2ObjectMap<AutoBuildItemKey, AllocationCursor> allocationCursors(ResolvedAutoBuildSnapshot resolved) {
-        Object2ObjectLinkedOpenHashMap<AutoBuildItemKey, AllocationCursor> cursors = new Object2ObjectLinkedOpenHashMap<>();
+    private static Object2ObjectMap<MaterialKey, AllocationCursor> allocationCursors(BatchResolution resolved) {
+        Object2ObjectLinkedOpenHashMap<MaterialKey, AllocationCursor> cursors = new Object2ObjectLinkedOpenHashMap<>();
         resolved.materials().forEach((key, allocation) -> cursors.put(key, new AllocationCursor(allocation)));
         return cursors;
     }
 
-    private static long availability(ObjectList<AutoBuildItemKey> keys,
-                                     ObjectList<AutoBuildMaterialSource.Snapshot> snapshots,
-                                     AutoBuildMaterialSource.SourceKind kind) {
+    private static long availability(ObjectList<MaterialKey> keys,
+                                     ObjectList<MaterialSource.Availability> snapshots,
+                                     MaterialSource.SourceKind kind) {
         long total = 0;
-        for (AutoBuildMaterialSource.Snapshot snapshot : snapshots) {
+        for (MaterialSource.Availability snapshot : snapshots) {
             if (snapshot.kind() != kind || snapshot.problem() != null) continue;
-            for (AutoBuildItemKey key : keys) {
+            for (MaterialKey key : keys) {
                 total = checkedAdd(total, snapshot.available(key), kind + " availability");
             }
         }
         return total;
     }
 
-    private static ObjectList<Diagnostic> diagnosticSnapshots(AutoBuildPlan plan) {
+    private static ObjectList<Diagnostic> diagnosticSnapshots(BatchPlan plan) {
         ObjectList<Diagnostic> diagnostics = new ObjectArrayList<>();
-        for (AutoBuildProblem problem : plan.sharedProblems()) {
+        for (BuildProblem problem : plan.sharedProblems()) {
             diagnostics.add(new Diagnostic(problem.type().name(), null, relativeProblemPos(problem, plan)));
         }
-        for (ResolvedStructurePlan structure : plan.executionOrder()) {
-            for (AutoBuildProblem problem : structure.problems()) {
+        for (StructurePlan structure : plan.executionOrder()) {
+            for (BuildProblem problem : structure.problems()) {
                 diagnostics.add(new Diagnostic(problem.type().name(), structure.structureName(),
                         relativeProblemPos(problem, plan)));
             }
@@ -319,7 +319,7 @@ public record MultiblockPreviewSnapshot(ResourceLocation definitionId, String fi
     }
 
     @Nullable
-    private static BlockPos relativeProblemPos(AutoBuildProblem problem, AutoBuildPlan plan) {
+    private static BlockPos relativeProblemPos(BuildProblem problem, BatchPlan plan) {
         if (problem.pos() == null) return null;
         for (MergedPlanCell cell : plan.mergedCells().values()) {
             if (problem.pos().equals(cell.worldPos()) || problem.pos().equals(cell.relativePos())) {
@@ -855,9 +855,9 @@ public record MultiblockPreviewSnapshot(ResourceLocation definitionId, String fi
 
         private long total;
         private final Object2LongMap<String> structures = new Object2LongLinkedOpenHashMap<>();
-        private final Object2LongMap<AutoBuildItemKey> keyCounts = new Object2LongLinkedOpenHashMap<>();
+        private final Object2LongMap<MaterialKey> keyCounts = new Object2LongLinkedOpenHashMap<>();
 
-        private void increment(String structureName, AutoBuildItemKey key) {
+        private void increment(String structureName, MaterialKey key) {
             total = checkedAdd(total, 1, "material demand");
             structures.put(structureName, checkedAdd(structures.getLong(structureName), 1,
                     "structure material demand"));
@@ -878,14 +878,14 @@ public record MultiblockPreviewSnapshot(ResourceLocation definitionId, String fi
         private long remainingMissing;
         private final boolean unlimited;
 
-        private AllocationCursor(ResolvedAutoBuildSnapshot.MaterialAllocation allocation) {
+        private AllocationCursor(BatchResolution.MaterialAllocation allocation) {
             remainingRequired = allocation.required();
             remainingBySource = allocation.allocatedBySource().toLongArray();
             remainingMissing = allocation.missing();
             unlimited = allocation.unlimited();
         }
 
-        private AllocationPart take(long requested, ObjectList<AutoBuildMaterialSource.Snapshot> snapshots) {
+        private AllocationPart take(long requested, ObjectList<MaterialSource.Availability> snapshots) {
             if (requested < 0 || requested > remainingRequired) {
                 throw new IllegalStateException("Preview requested more material allocation than the resolver made");
             }
@@ -898,10 +898,10 @@ public record MultiblockPreviewSnapshot(ResourceLocation definitionId, String fi
                 long allocated = Math.min(remaining, remainingBySource[index]);
                 remainingBySource[index] -= allocated;
                 remaining -= allocated;
-                AutoBuildMaterialSource.SourceKind kind = snapshots.get(index).kind();
-                if (kind == AutoBuildMaterialSource.SourceKind.ME) {
+                MaterialSource.SourceKind kind = snapshots.get(index).kind();
+                if (kind == MaterialSource.SourceKind.ME) {
                     me = checkedAdd(me, allocated, "ME allocation");
-                } else if (kind == AutoBuildMaterialSource.SourceKind.PLAYER) {
+                } else if (kind == MaterialSource.SourceKind.PLAYER) {
                     player = checkedAdd(player, allocated, "player allocation");
                 }
             }

@@ -1,8 +1,8 @@
 package com.gregtechceu.gtceu.common.item.datacomponents;
 
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.AutoBuildMode;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.AutoBuildSharedOptions;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.StructureOperation;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.BuildPolicy;
 
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
@@ -19,36 +19,36 @@ import org.jspecify.annotations.NullMarked;
 
 /** Stores independent automatic-build profiles by multiblock machine definition. */
 @NullMarked
-public record TerminalAutoBuildProfiles(Object2ObjectMap<ResourceLocation, TerminalMachineProfile> profiles) {
+public record TerminalMachines(Object2ObjectMap<ResourceLocation, TerminalMachine> profiles) {
 
-    public static final TerminalAutoBuildProfiles EMPTY = new TerminalAutoBuildProfiles(Object2ObjectMaps.emptyMap());
+    public static final TerminalMachines EMPTY = new TerminalMachines(Object2ObjectMaps.emptyMap());
 
-    public static final Codec<TerminalAutoBuildProfiles> CODEC = RecordCodecBuilder
-            .<TerminalAutoBuildProfiles>create(instance -> instance
+    public static final Codec<TerminalMachines> CODEC = RecordCodecBuilder
+            .<TerminalMachines>create(instance -> instance
                     .group(
-                            Codec.unboundedMap(ResourceLocation.CODEC, TerminalMachineProfile.CODEC)
-                                    .<Object2ObjectMap<ResourceLocation, TerminalMachineProfile>>xmap(
+                            Codec.unboundedMap(ResourceLocation.CODEC, TerminalMachine.CODEC)
+                                    .<Object2ObjectMap<ResourceLocation, TerminalMachine>>xmap(
                                             Object2ObjectLinkedOpenHashMap::new, value -> value)
                                     .fieldOf("profiles")
-                                    .forGetter(TerminalAutoBuildProfiles::profiles))
-                    .apply(instance, TerminalAutoBuildProfiles::new));
+                                    .forGetter(TerminalMachines::profiles))
+                    .apply(instance, TerminalMachines::new));
 
-    public static final StreamCodec<RegistryFriendlyByteBuf, TerminalAutoBuildProfiles> STREAM_CODEC = StreamCodec
-            .of(TerminalAutoBuildProfiles::encode, TerminalAutoBuildProfiles::decode);
+    public static final StreamCodec<RegistryFriendlyByteBuf, TerminalMachines> STREAM_CODEC = StreamCodec
+            .of(TerminalMachines::encode, TerminalMachines::decode);
 
-    public TerminalMachineProfile getOrCreate(MultiblockMachineDefinition definition) {
-        TerminalMachineProfile profile = profiles.get(definition.getId());
-        return profile == null ? TerminalMachineProfile.defaults(definition) : profile;
+    public TerminalMachine getOrCreate(MultiblockMachineDefinition definition) {
+        TerminalMachine profile = profiles.get(definition.getId());
+        return profile == null ? TerminalMachine.defaults(definition) : profile;
     }
 
-    public TerminalAutoBuildProfiles withProfile(ResourceLocation definitionId, TerminalMachineProfile profile) {
-        Object2ObjectMap<ResourceLocation, TerminalMachineProfile> updated = new Object2ObjectLinkedOpenHashMap<>(
+    public TerminalMachines withProfile(ResourceLocation definitionId, TerminalMachine profile) {
+        Object2ObjectMap<ResourceLocation, TerminalMachine> updated = new Object2ObjectLinkedOpenHashMap<>(
                 profiles);
         updated.put(definitionId, profile);
-        return new TerminalAutoBuildProfiles(updated);
+        return new TerminalMachines(updated);
     }
 
-    private static void encode(RegistryFriendlyByteBuf buffer, TerminalAutoBuildProfiles value) {
+    private static void encode(RegistryFriendlyByteBuf buffer, TerminalMachines value) {
         buffer.writeVarInt(value.profiles.size());
         value.profiles.forEach((definitionId, profile) -> {
             buffer.writeResourceLocation(definitionId);
@@ -56,18 +56,18 @@ public record TerminalAutoBuildProfiles(Object2ObjectMap<ResourceLocation, Termi
         });
     }
 
-    private static TerminalAutoBuildProfiles decode(RegistryFriendlyByteBuf buffer) {
+    private static TerminalMachines decode(RegistryFriendlyByteBuf buffer) {
         int size = buffer.readVarInt();
-        Object2ObjectMap<ResourceLocation, TerminalMachineProfile> profiles = new Object2ObjectLinkedOpenHashMap<>();
+        Object2ObjectMap<ResourceLocation, TerminalMachine> profiles = new Object2ObjectLinkedOpenHashMap<>();
         for (int index = 0; index < size; index++) {
             ResourceLocation id = buffer.readResourceLocation();
             profiles.put(id, decodeMachine(buffer));
         }
-        return new TerminalAutoBuildProfiles(profiles);
+        return new TerminalMachines(profiles);
     }
 
-    private static void encodeMachine(RegistryFriendlyByteBuf buffer, TerminalMachineProfile profile) {
-        AutoBuildSharedOptions shared = profile.sharedOptions();
+    private static void encodeMachine(RegistryFriendlyByteBuf buffer, TerminalMachine profile) {
+        BuildPolicy shared = profile.sharedOptions();
         buffer.writeBoolean(shared.replaceMode());
         buffer.writeBoolean(shared.noHatchMode());
         buffer.writeBoolean(shared.useME());
@@ -92,15 +92,15 @@ public record TerminalAutoBuildProfiles(Object2ObjectMap<ResourceLocation, Termi
         });
     }
 
-    private static TerminalMachineProfile decodeMachine(RegistryFriendlyByteBuf buffer) {
-        AutoBuildSharedOptions shared = new AutoBuildSharedOptions(buffer.readBoolean(), buffer.readBoolean(),
+    private static TerminalMachine decodeMachine(RegistryFriendlyByteBuf buffer) {
+        BuildPolicy shared = new BuildPolicy(buffer.readBoolean(), buffer.readBoolean(),
                 buffer.readBoolean());
         int structuresSize = buffer.readVarInt();
-        Object2ObjectMap<String, TerminalStructureProfile> structures = new Object2ObjectLinkedOpenHashMap<>();
+        Object2ObjectMap<String, TerminalStructure> structures = new Object2ObjectLinkedOpenHashMap<>();
         for (int structureIndex = 0; structureIndex < structuresSize; structureIndex++) {
             String name = buffer.readUtf();
             boolean selected = buffer.readBoolean();
-            AutoBuildMode mode = buffer.readEnum(AutoBuildMode.class);
+            StructureOperation mode = buffer.readEnum(StructureOperation.class);
             boolean flip = buffer.readBoolean();
             int repetitionsSize = buffer.readVarInt();
             IntList repetitions = new IntArrayList(repetitionsSize);
@@ -118,8 +118,8 @@ public record TerminalAutoBuildProfiles(Object2ObjectMap<ResourceLocation, Termi
             for (int choiceIndex = 0; choiceIndex < choiceCount; choiceIndex++) {
                 choices.put(buffer.readUtf(), buffer.readUtf());
             }
-            structures.put(name, new TerminalStructureProfile(selected, mode, repetitions, flip, tiers, choices));
+            structures.put(name, new TerminalStructure(selected, mode, repetitions, flip, tiers, choices));
         }
-        return new TerminalMachineProfile(shared, structures);
+        return new TerminalMachine(shared, structures);
     }
 }

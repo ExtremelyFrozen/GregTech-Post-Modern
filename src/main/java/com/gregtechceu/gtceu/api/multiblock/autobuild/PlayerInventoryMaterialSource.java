@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * Supplies automatic-build materials from the player's ordered inventory and supported nested item handlers.
  */
-final class PlayerInventoryMaterialSource implements AutoBuildMaterialSource {
+final class PlayerInventoryMaterialSource implements MaterialSource {
 
     private static final int MAX_CONTAINER_DEPTH = 4;
     private static final AtomicBoolean DEPTH_LIMIT_LOGGED = new AtomicBoolean();
@@ -53,8 +53,8 @@ final class PlayerInventoryMaterialSource implements AutoBuildMaterialSource {
     }
 
     @Override
-    public @Nullable AutoBuildProblem unavailableProblem() {
-        return root == null ? new AutoBuildProblem(AutoBuildProblem.Type.PLAYER_INVENTORY_UNAVAILABLE, null,
+    public @Nullable BuildProblem unavailableProblem() {
+        return root == null ? new BuildProblem(BuildProblem.Type.PLAYER_INVENTORY_UNAVAILABLE, null,
                 Component.translatable("gtpm.multiblock.autobuild.player_inventory_unavailable")) : null;
     }
 
@@ -69,7 +69,7 @@ final class PlayerInventoryMaterialSource implements AutoBuildMaterialSource {
         private final ReferenceSet<IItemHandler> visitedHandlers = new ReferenceOpenHashSet<>();
         private final Reference2LongMap<SlotRef> reservations = new Reference2LongOpenHashMap<>();
         @Nullable
-        private AutoBuildProblem problem;
+        private BuildProblem problem;
 
         private PlayerInventorySession(@Nullable IItemHandler root, ItemStack excludedContainer,
                                        @Nullable Player refundOwner) {
@@ -77,7 +77,7 @@ final class PlayerInventoryMaterialSource implements AutoBuildMaterialSource {
             this.excludedContainer = excludedContainer;
             this.refundOwner = refundOwner;
             if (root == null) {
-                problem = new AutoBuildProblem(AutoBuildProblem.Type.PLAYER_INVENTORY_UNAVAILABLE, null,
+                problem = new BuildProblem(BuildProblem.Type.PLAYER_INVENTORY_UNAVAILABLE, null,
                         Component.translatable("gtpm.multiblock.autobuild.player_inventory_unavailable"));
             } else {
                 collectSlots(root, 0);
@@ -85,12 +85,12 @@ final class PlayerInventoryMaterialSource implements AutoBuildMaterialSource {
         }
 
         @Override
-        public @Nullable AutoBuildProblem problem() {
+        public @Nullable BuildProblem problem() {
             return problem;
         }
 
         @Override
-        public long available(AutoBuildItemKey key) {
+        public long available(MaterialKey key) {
             long available = 0;
             for (SlotRef slot : slots) {
                 ItemStack stack = slot.stack();
@@ -105,7 +105,7 @@ final class PlayerInventoryMaterialSource implements AutoBuildMaterialSource {
                 try {
                     available = Math.addExact(available, slotAvailable);
                 } catch (ArithmeticException exception) {
-                    problem = new AutoBuildProblem(AutoBuildProblem.Type.COUNT_OVERFLOW, null,
+                    problem = new BuildProblem(BuildProblem.Type.COUNT_OVERFLOW, null,
                             Component.translatable("gtpm.multiblock.autobuild.count_overflow"));
                     GTCEu.LOGGER.error("Player automatic-build material availability overflow", exception);
                     return 0;
@@ -120,7 +120,7 @@ final class PlayerInventoryMaterialSource implements AutoBuildMaterialSource {
                 if (candidate.isEmpty()) {
                     continue;
                 }
-                Reservation reservation = reserve(AutoBuildItemKey.of(candidate), 1);
+                Reservation reservation = reserve(MaterialKey.of(candidate), 1);
                 if (reservation != null) {
                     return reservation;
                 }
@@ -129,7 +129,7 @@ final class PlayerInventoryMaterialSource implements AutoBuildMaterialSource {
         }
 
         @Override
-        public @Nullable Reservation reserve(AutoBuildItemKey key, long amount) {
+        public @Nullable Reservation reserve(MaterialKey key, long amount) {
             if (amount <= 0) {
                 throw new IllegalArgumentException("Reserved material amount must be positive");
             }
@@ -178,7 +178,7 @@ final class PlayerInventoryMaterialSource implements AutoBuildMaterialSource {
             return remainder;
         }
 
-        private long insert(AutoBuildItemKey key, long amount) {
+        private long insert(MaterialKey key, long amount) {
             long remaining = amount;
             while (remaining > 0) {
                 int count = (int) Math.min(remaining, key.prototype().getMaxStackSize());
@@ -270,7 +270,7 @@ final class PlayerInventoryMaterialSource implements AutoBuildMaterialSource {
     private static final class PlayerInventoryReservation implements Reservation {
 
         private final PlayerInventorySession session;
-        private final AutoBuildItemKey key;
+        private final MaterialKey key;
         private final long reservedAmount;
         private final ObjectList<SlotAllocation> allocations;
         private boolean attempted;
@@ -278,9 +278,9 @@ final class PlayerInventoryMaterialSource implements AutoBuildMaterialSource {
         private long restored;
         private final ObjectList<ItemStack> rejectedStacks = new ObjectArrayList<>();
         @Nullable
-        private AutoBuildProblem commitProblem;
+        private BuildProblem commitProblem;
 
-        private PlayerInventoryReservation(PlayerInventorySession session, AutoBuildItemKey key, long reservedAmount,
+        private PlayerInventoryReservation(PlayerInventorySession session, MaterialKey key, long reservedAmount,
                                            ObjectList<SlotAllocation> allocations) {
             this.session = session;
             this.key = key;
@@ -294,7 +294,7 @@ final class PlayerInventoryMaterialSource implements AutoBuildMaterialSource {
         }
 
         @Override
-        public AutoBuildItemKey key() {
+        public MaterialKey key() {
             return key;
         }
 
@@ -317,7 +317,7 @@ final class PlayerInventoryMaterialSource implements AutoBuildMaterialSource {
             for (SlotAllocation allocation : allocations) {
                 ItemStack current = allocation.slot().stack();
                 if (!key.matches(current) || current.getCount() < allocation.amount()) {
-                    commitProblem = problem(AutoBuildProblem.Type.SOURCE_CHANGED,
+                    commitProblem = problem(BuildProblem.Type.SOURCE_CHANGED,
                             "gtpm.multiblock.autobuild.material_changed");
                     session.release(allocations);
                     return commitResult();
@@ -333,7 +333,7 @@ final class PlayerInventoryMaterialSource implements AutoBuildMaterialSource {
                 for (long index = 0; index < allocation.amount(); index++) {
                     ItemStack current = allocation.slot().stack();
                     if (!key.matches(current)) {
-                        commitProblem = problem(AutoBuildProblem.Type.SOURCE_CHANGED,
+                        commitProblem = problem(BuildProblem.Type.SOURCE_CHANGED,
                                 "gtpm.multiblock.autobuild.material_changed");
                         break extraction;
                     }
@@ -344,10 +344,10 @@ final class PlayerInventoryMaterialSource implements AutoBuildMaterialSource {
                             ItemStack rejected = session.returnUnexpected(extracted);
                             if (!rejected.isEmpty()) {
                                 rejectedStacks.add(rejected.copy());
-                                commitProblem = problem(AutoBuildProblem.Type.REFUND_FAILED,
+                                commitProblem = problem(BuildProblem.Type.REFUND_FAILED,
                                         "gtpm.multiblock.autobuild.refund_failed");
                             } else {
-                                commitProblem = problem(AutoBuildProblem.Type.SOURCE_CHANGED,
+                                commitProblem = problem(BuildProblem.Type.SOURCE_CHANGED,
                                         "gtpm.multiblock.autobuild.material_changed");
                             }
                         }
@@ -366,7 +366,7 @@ final class PlayerInventoryMaterialSource implements AutoBuildMaterialSource {
                 return new RollbackResult(committed, restored, null);
             }
             restored = Math.addExact(restored, session.insert(key, committed - restored));
-            AutoBuildProblem problem = restored == committed ? null : problem(AutoBuildProblem.Type.REFUND_FAILED,
+            BuildProblem problem = restored == committed ? null : problem(BuildProblem.Type.REFUND_FAILED,
                     "gtpm.multiblock.autobuild.refund_failed");
             return new RollbackResult(committed, restored, problem);
         }
@@ -377,16 +377,16 @@ final class PlayerInventoryMaterialSource implements AutoBuildMaterialSource {
         }
 
         private CommitResult commitResult() {
-            AutoBuildProblem problem = commitProblem;
+            BuildProblem problem = commitProblem;
             if (problem == null && committed != reservedAmount) {
-                problem = problem(AutoBuildProblem.Type.EXTRACTION_FAILED,
+                problem = problem(BuildProblem.Type.EXTRACTION_FAILED,
                         "gtpm.multiblock.autobuild.material_changed");
             }
             return new CommitResult(reservedAmount, committed, problem);
         }
 
-        private static AutoBuildProblem problem(AutoBuildProblem.Type type, String key) {
-            return new AutoBuildProblem(type, null, Component.translatable(key));
+        private static BuildProblem problem(BuildProblem.Type type, String key) {
+            return new BuildProblem(type, null, Component.translatable(key));
         }
     }
 }

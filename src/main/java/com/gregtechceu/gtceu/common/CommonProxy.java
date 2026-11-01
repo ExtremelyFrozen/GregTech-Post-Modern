@@ -26,7 +26,7 @@ import com.gregtechceu.gtceu.api.item.IGTTool;
 import com.gregtechceu.gtceu.api.item.MetaMachineItem;
 import com.gregtechceu.gtceu.api.machine.MachineDefinition;
 import com.gregtechceu.gtceu.api.misc.forge.QuantumFluidHandlerItemStack;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.AutoBuildBlockMap;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.BlockCategories;
 import com.gregtechceu.gtceu.api.multiblock.structurepredicate.StructurePredicateType;
 import com.gregtechceu.gtceu.api.recipe.chance.logic.ChanceLogic;
 import com.gregtechceu.gtceu.api.recipe.ingredient.IntCircuitIngredient;
@@ -106,7 +106,7 @@ import com.gregtechceu.gtceu.data.pattern.StructureCache;
 import com.gregtechceu.gtceu.data.pattern.StructurePatternRegistry;
 import com.gregtechceu.gtceu.data.placeholder.GTPlaceholders;
 import com.gregtechceu.gtceu.data.recipe.GTIngredientTypes;
-import com.gregtechceu.gtceu.integration.ae2.autobuild.MEAutoBuildSources;
+import com.gregtechceu.gtceu.integration.ae2.autobuild.MEMaterialSources;
 import com.gregtechceu.gtceu.integration.cctweaked.CCTweakedPlugin;
 import com.gregtechceu.gtceu.integration.map.WaypointManager;
 import com.gregtechceu.gtceu.utils.input.SyncedKeyMappings;
@@ -182,7 +182,7 @@ public class CommonProxy {
         GTUIEditorMenu.register();
 
         if (GTCEu.MODS.AE2.isLoaded()) {
-            MEAutoBuildSources.init();
+            MEMaterialSources.init();
         }
 
         // Initialize the model generator before any content is loaded so machine models can use the generated data
@@ -356,7 +356,7 @@ public class CommonProxy {
     @SubscribeEvent
     public static void commonSetup(FMLCommonSetupEvent event) {
         event.enqueueWork(() -> {
-            AutoBuildBlockMap.initialize();
+            BlockCategories.initialize();
             // register the map ingredient converters for all of our ingredients
             // spotless:off
             MapIngredientTypeManager.registerMapIngredient(SizedFluidIngredient.class, (ingredient) -> {

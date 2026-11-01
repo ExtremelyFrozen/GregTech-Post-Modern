@@ -1,6 +1,6 @@
 package com.gregtechceu.gtceu.api.multiblock.autobuild.plan;
 
-import com.gregtechceu.gtceu.api.multiblock.autobuild.AutoBuildProblem;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.BuildProblem;
 
 import net.minecraft.core.BlockPos;
 
@@ -12,14 +12,14 @@ import it.unimi.dsi.fastutil.objects.ObjectList;
 /**
  * Complete batch plan consumed by every preview and by the executor.
  */
-public record AutoBuildPlan(ObjectList<ResolvedStructurePlan> demolitionPlans,
-                            ObjectList<ResolvedStructurePlan> buildPlans,
+public record BatchPlan(ObjectList<StructurePlan> demolitionPlans,
+                            ObjectList<StructurePlan> buildPlans,
                             Object2ObjectMap<BlockPos, MergedPlanCell> mergedCells,
-                            ObjectList<AutoBuildProblem> sharedProblems,
+                            ObjectList<BuildProblem> sharedProblems,
                             long fingerprint) {
 
-    public ObjectList<ResolvedStructurePlan> executionOrder() {
-        ObjectArrayList<ResolvedStructurePlan> ordered = new ObjectArrayList<>(
+    public ObjectList<StructurePlan> executionOrder() {
+        ObjectArrayList<StructurePlan> ordered = new ObjectArrayList<>(
                 demolitionPlans.size() + buildPlans.size());
         ordered.addAll(demolitionPlans);
         ordered.addAll(buildPlans);

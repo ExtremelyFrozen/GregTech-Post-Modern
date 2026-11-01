@@ -1,9 +1,9 @@
 package com.gregtechceu.gtceu.integration.ae2.autobuild;
 
 import com.gregtechceu.gtceu.GTCEu;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.AutoBuildItemKey;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.AutoBuildMaterialSource;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.AutoBuildProblem;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialKey;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialSource;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.BuildProblem;
 
 import net.minecraft.core.GlobalPos;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -50,7 +50,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * and may select a different first valid binding.
  * </p>
  */
-final class MEWirelessMaterialSource implements AutoBuildMaterialSource {
+final class MEWirelessMaterialSource implements MaterialSource {
 
     private static final int MAX_CONTAINER_DEPTH = 4;
     private static final int MAX_DISPLAY_TEXT = 256;
@@ -58,7 +58,7 @@ final class MEWirelessMaterialSource implements AutoBuildMaterialSource {
 
     private final ServerPlayer player;
     private final @Nullable WirelessBinding binding;
-    private final @Nullable AutoBuildProblem selectionProblem;
+    private final @Nullable BuildProblem selectionProblem;
 
     private MEWirelessMaterialSource(ServerPlayer player, Selection selection) {
         this.player = player;
@@ -66,7 +66,7 @@ final class MEWirelessMaterialSource implements AutoBuildMaterialSource {
         this.selectionProblem = selection.problem();
     }
 
-    static AutoBuildMaterialSource create(ServerPlayer player, ItemStack excludedTerminal) {
+    static MaterialSource create(ServerPlayer player, ItemStack excludedTerminal) {
         return new MEWirelessMaterialSource(player, selectBinding(player, excludedTerminal));
     }
 
@@ -86,26 +86,26 @@ final class MEWirelessMaterialSource implements AutoBuildMaterialSource {
     }
 
     @Override
-    public @Nullable AutoBuildProblem unavailableProblem() {
+    public @Nullable BuildProblem unavailableProblem() {
         return validatedInventory().problem();
     }
 
     @Override
-    public Snapshot snapshot(ObjectCollection<AutoBuildItemKey> keys) {
+    public Availability snapshot(ObjectCollection<MaterialKey> keys) {
         InventoryAccess access = validatedInventory();
         SourceDescriptor descriptor = binding == null ? null : binding.descriptor();
         long bindingFingerprint = binding == null ? 0 : binding.fingerprint();
         if (access.problem() != null) {
-            return new Snapshot(kind(), Object2LongMaps.emptyMap(), access.problem(), descriptor, bindingFingerprint);
+            return new Availability(kind(), Object2LongMaps.emptyMap(), access.problem(), descriptor, bindingFingerprint);
         }
-        Object2LongMap<AutoBuildItemKey> availability = new Object2LongLinkedOpenHashMap<>();
-        for (AutoBuildItemKey key : keys) {
+        Object2LongMap<MaterialKey> availability = new Object2LongLinkedOpenHashMap<>();
+        for (MaterialKey key : keys) {
             AEItemKey aeKey = AEItemKey.of(key.prototype());
             long amount = aeKey == null ? 0 : access.inventory().extract(aeKey, Long.MAX_VALUE,
                     Actionable.SIMULATE, IActionSource.ofPlayer(player));
             availability.put(key, Math.max(0, amount));
         }
-        return new Snapshot(kind(), availability, null, descriptor, bindingFingerprint);
+        return new Availability(kind(), availability, null, descriptor, bindingFingerprint);
     }
 
     @Override
@@ -115,7 +115,7 @@ final class MEWirelessMaterialSource implements AutoBuildMaterialSource {
 
     private InventoryAccess validatedInventory() {
         if (binding == null) {
-            AutoBuildProblem problem = selectionProblem == null ? problem(AutoBuildProblem.Type.AE_NOT_LINKED,
+            BuildProblem problem = selectionProblem == null ? problem(BuildProblem.Type.AE_NOT_LINKED,
                     "gtpm.multiblock.autobuild.me_no_linked_terminal") : selectionProblem;
             return new InventoryAccess(null, problem);
         }
@@ -125,14 +125,14 @@ final class MEWirelessMaterialSource implements AutoBuildMaterialSource {
     private static Selection selectBinding(ServerPlayer player, ItemStack excludedTerminal) {
         IItemHandler inventory = player.getCapability(Capabilities.ItemHandler.ENTITY);
         if (inventory == null) {
-            return Selection.failed(problem(AutoBuildProblem.Type.ME_UNAVAILABLE,
+            return Selection.failed(problem(BuildProblem.Type.ME_UNAVAILABLE,
                     "gtpm.multiblock.autobuild.me_no_player_inventory"));
         }
         Selection selected = selectBinding(player, excludedTerminal, inventory, new WirelessSearch(), 0, IntList.of());
         if (selected.binding() != null || selected.problem() != null) {
             return selected;
         }
-        return Selection.failed(problem(AutoBuildProblem.Type.AE_NOT_LINKED,
+        return Selection.failed(problem(BuildProblem.Type.AE_NOT_LINKED,
                 "gtpm.multiblock.autobuild.me_no_linked_terminal"));
     }
 
@@ -154,7 +154,7 @@ final class MEWirelessMaterialSource implements AutoBuildMaterialSource {
                 GlobalPos linkedPos = stack.get(AEComponents.WIRELESS_LINK_TARGET);
                 if (linkedPos == null) {
                     if (firstFailure.problem() == null) {
-                        firstFailure = Selection.failed(problem(AutoBuildProblem.Type.AE_NOT_LINKED,
+                        firstFailure = Selection.failed(problem(BuildProblem.Type.AE_NOT_LINKED,
                                 "gtpm.multiblock.autobuild.me_no_linked_terminal"));
                     }
                 } else {
@@ -209,7 +209,7 @@ final class MEWirelessMaterialSource implements AutoBuildMaterialSource {
     private static InventoryAccess validateBinding(ServerPlayer player, WirelessBinding binding) {
         IItemHandler handler = player.getCapability(Capabilities.ItemHandler.ENTITY);
         if (handler == null) {
-            return InventoryAccess.failed(problem(AutoBuildProblem.Type.ME_UNAVAILABLE,
+            return InventoryAccess.failed(problem(BuildProblem.Type.ME_UNAVAILABLE,
                     "gtpm.multiblock.autobuild.me_no_player_inventory"));
         }
         ItemStack terminal = ItemStack.EMPTY;
@@ -242,34 +242,34 @@ final class MEWirelessMaterialSource implements AutoBuildMaterialSource {
         ServerLevel playerLevel = player.serverLevel();
         ServerLevel linkedLevel = player.getServer().getLevel(linkedPos.dimension());
         if (linkedLevel == null) {
-            return InventoryAccess.failed(problem(AutoBuildProblem.Type.AE_LINKED_DIMENSION_MISSING,
+            return InventoryAccess.failed(problem(BuildProblem.Type.AE_LINKED_DIMENSION_MISSING,
                     "gtpm.multiblock.autobuild.me_linked_level_missing"));
         }
         if (!linkedLevel.dimension().equals(playerLevel.dimension())) {
-            return InventoryAccess.failed(problem(AutoBuildProblem.Type.AE_WRONG_DIMENSION,
+            return InventoryAccess.failed(problem(BuildProblem.Type.AE_WRONG_DIMENSION,
                     "gtpm.multiblock.autobuild.me_wrong_dimension"));
         }
         if (!linkedLevel.hasChunkAt(linkedPos.pos())) {
-            return InventoryAccess.failed(problem(AutoBuildProblem.Type.AE_ACCESS_POINT_MISSING,
+            return InventoryAccess.failed(problem(BuildProblem.Type.AE_ACCESS_POINT_MISSING,
                     "gtpm.multiblock.autobuild.me_access_point_unloaded"));
         }
         BlockEntity blockEntity = linkedLevel.getBlockEntity(linkedPos.pos());
         if (!(blockEntity instanceof IWirelessAccessPoint accessPoint)) {
-            return InventoryAccess.failed(problem(AutoBuildProblem.Type.AE_ACCESS_POINT_MISSING,
+            return InventoryAccess.failed(problem(BuildProblem.Type.AE_ACCESS_POINT_MISSING,
                     "gtpm.multiblock.autobuild.me_access_point_missing"));
         }
         if (!accessPoint.isActive()) {
-            return InventoryAccess.failed(problem(AutoBuildProblem.Type.AE_ACCESS_POINT_INACTIVE,
+            return InventoryAccess.failed(problem(BuildProblem.Type.AE_ACCESS_POINT_INACTIVE,
                     "gtpm.multiblock.autobuild.me_access_point_inactive"));
         }
         double range = accessPoint.getRange();
         if (player.distanceToSqr(Vec3.atCenterOf(linkedPos.pos())) >= range * range) {
-            return InventoryAccess.failed(problem(AutoBuildProblem.Type.AE_OUT_OF_RANGE,
+            return InventoryAccess.failed(problem(BuildProblem.Type.AE_OUT_OF_RANGE,
                     "gtpm.multiblock.autobuild.me_out_of_range"));
         }
         IGrid grid = accessPoint.getGrid();
         if (grid == null) {
-            return InventoryAccess.failed(problem(AutoBuildProblem.Type.AE_GRID_UNAVAILABLE,
+            return InventoryAccess.failed(problem(BuildProblem.Type.AE_GRID_UNAVAILABLE,
                     "gtpm.multiblock.autobuild.me_grid_missing"));
         }
         return new InventoryAccess(grid.getStorageService().getInventory(), null);
@@ -282,26 +282,26 @@ final class MEWirelessMaterialSource implements AutoBuildMaterialSource {
         return new IntImmutableList(nested);
     }
 
-    private static AutoBuildProblem sourceChanged() {
-        return problem(AutoBuildProblem.Type.SOURCE_CHANGED, "gtpm.multiblock.autobuild.me_source_changed");
+    private static BuildProblem sourceChanged() {
+        return problem(BuildProblem.Type.SOURCE_CHANGED, "gtpm.multiblock.autobuild.me_source_changed");
     }
 
-    private static AutoBuildProblem problem(AutoBuildProblem.Type type, String key) {
-        return new AutoBuildProblem(type, null, Component.translatable(key));
+    private static BuildProblem problem(BuildProblem.Type type, String key) {
+        return new BuildProblem(type, null, Component.translatable(key));
     }
 
-    private record Selection(@Nullable WirelessBinding binding, @Nullable AutoBuildProblem problem) {
+    private record Selection(@Nullable WirelessBinding binding, @Nullable BuildProblem problem) {
 
         private static Selection empty() {
             return new Selection(null, null);
         }
 
-        private static Selection failed(AutoBuildProblem problem) {
+        private static Selection failed(BuildProblem problem) {
             return new Selection(null, problem);
         }
     }
 
-    private record WirelessBinding(ResourceLocation itemId, AutoBuildItemKey terminalKey, GlobalPos linkTarget,
+    private record WirelessBinding(ResourceLocation itemId, MaterialKey terminalKey, GlobalPos linkTarget,
                                    IntList slotPath, String terminalName, String selectionIdentity,
                                    long fingerprint) {
 
@@ -314,7 +314,7 @@ final class MEWirelessMaterialSource implements AutoBuildMaterialSource {
 
         private static WirelessBinding create(ItemStack terminal, GlobalPos linkTarget, IntList slotPath) {
             ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(terminal.getItem());
-            AutoBuildItemKey terminalKey = AutoBuildItemKey.of(terminal);
+            MaterialKey terminalKey = MaterialKey.of(terminal);
             String path = "inventory/" + String.join("/",
                     slotPath.intStream().mapToObj(Integer::toString).collect(ObjectImmutableList.toList()));
             String componentHash = Integer.toUnsignedString(terminalKey.hashCode(), 16);
@@ -347,9 +347,9 @@ final class MEWirelessMaterialSource implements AutoBuildMaterialSource {
         }
     }
 
-    private record InventoryAccess(@Nullable MEStorage inventory, @Nullable AutoBuildProblem problem) {
+    private record InventoryAccess(@Nullable MEStorage inventory, @Nullable BuildProblem problem) {
 
-        private static InventoryAccess failed(AutoBuildProblem problem) {
+        private static InventoryAccess failed(BuildProblem problem) {
             return new InventoryAccess(null, problem);
         }
     }
@@ -358,13 +358,13 @@ final class MEWirelessMaterialSource implements AutoBuildMaterialSource {
 
         private final ServerPlayer player;
         private final @Nullable WirelessBinding binding;
-        private final @Nullable AutoBuildProblem selectionProblem;
+        private final @Nullable BuildProblem selectionProblem;
         private final IActionSource actionSource;
         private final Object2LongOpenHashMap<AEItemKey> reservations = new Object2LongOpenHashMap<>();
-        private @Nullable AutoBuildProblem reservationProblem;
+        private @Nullable BuildProblem reservationProblem;
 
         private MEWirelessSession(ServerPlayer player, @Nullable WirelessBinding binding,
-                                  @Nullable AutoBuildProblem selectionProblem) {
+                                  @Nullable BuildProblem selectionProblem) {
             this.player = player;
             this.binding = binding;
             this.selectionProblem = selectionProblem;
@@ -372,12 +372,12 @@ final class MEWirelessMaterialSource implements AutoBuildMaterialSource {
         }
 
         @Override
-        public @Nullable AutoBuildProblem problem() {
+        public @Nullable BuildProblem problem() {
             return reservationProblem != null ? reservationProblem : validatedInventory().problem();
         }
 
         @Override
-        public long available(AutoBuildItemKey key) {
+        public long available(MaterialKey key) {
             InventoryAccess access = validatedInventory();
             if (access.problem() != null) {
                 return 0;
@@ -394,7 +394,7 @@ final class MEWirelessMaterialSource implements AutoBuildMaterialSource {
         public @Nullable Reservation reserve(ObjectList<ItemStack> candidates) {
             for (ItemStack candidate : candidates) {
                 if (!candidate.isEmpty()) {
-                    Reservation reservation = reserve(AutoBuildItemKey.of(candidate), 1);
+                    Reservation reservation = reserve(MaterialKey.of(candidate), 1);
                     if (reservation != null) {
                         return reservation;
                     }
@@ -404,7 +404,7 @@ final class MEWirelessMaterialSource implements AutoBuildMaterialSource {
         }
 
         @Override
-        public @Nullable Reservation reserve(AutoBuildItemKey key, long amount) {
+        public @Nullable Reservation reserve(MaterialKey key, long amount) {
             if (amount <= 0) {
                 throw new IllegalArgumentException("Reserved material amount must be positive");
             }
@@ -421,7 +421,7 @@ final class MEWirelessMaterialSource implements AutoBuildMaterialSource {
             try {
                 requested = Math.addExact(alreadyReserved, amount);
             } catch (ArithmeticException exception) {
-                reservationProblem = MEWirelessMaterialSource.problem(AutoBuildProblem.Type.COUNT_OVERFLOW,
+                reservationProblem = MEWirelessMaterialSource.problem(BuildProblem.Type.COUNT_OVERFLOW,
                         "gtpm.multiblock.autobuild.count_overflow");
                 GTCEu.LOGGER.error("ME automatic-build reservation count overflow", exception);
                 return null;
@@ -458,8 +458,8 @@ final class MEWirelessMaterialSource implements AutoBuildMaterialSource {
 
         private InventoryAccess validatedInventory() {
             if (binding == null) {
-                AutoBuildProblem problem = selectionProblem == null ? MEWirelessMaterialSource.problem(
-                        AutoBuildProblem.Type.AE_NOT_LINKED,
+                BuildProblem problem = selectionProblem == null ? MEWirelessMaterialSource.problem(
+                        BuildProblem.Type.AE_NOT_LINKED,
                         "gtpm.multiblock.autobuild.me_no_linked_terminal") : selectionProblem;
                 return InventoryAccess.failed(problem);
             }
@@ -482,15 +482,15 @@ final class MEWirelessMaterialSource implements AutoBuildMaterialSource {
     private static final class MEWirelessReservation implements Reservation {
 
         private final MEWirelessSession session;
-        private final AutoBuildItemKey key;
+        private final MaterialKey key;
         private final AEItemKey aeKey;
         private final long reservedAmount;
         private boolean attempted;
         private long committed;
         private long restored;
-        private @Nullable AutoBuildProblem commitProblem;
+        private @Nullable BuildProblem commitProblem;
 
-        private MEWirelessReservation(MEWirelessSession session, AutoBuildItemKey key, AEItemKey aeKey,
+        private MEWirelessReservation(MEWirelessSession session, MaterialKey key, AEItemKey aeKey,
                                       long reservedAmount) {
             this.session = session;
             this.key = key;
@@ -504,7 +504,7 @@ final class MEWirelessMaterialSource implements AutoBuildMaterialSource {
         }
 
         @Override
-        public AutoBuildItemKey key() {
+        public MaterialKey key() {
             return key;
         }
 
@@ -543,7 +543,7 @@ final class MEWirelessMaterialSource implements AutoBuildMaterialSource {
             }
             InventoryAccess access = session.validatedInventory();
             if (access.problem() != null) {
-                AutoBuildProblem refundProblem = new AutoBuildProblem(AutoBuildProblem.Type.REFUND_FAILED, null,
+                BuildProblem refundProblem = new BuildProblem(BuildProblem.Type.REFUND_FAILED, null,
                         Component.translatable("gtpm.multiblock.autobuild.refund_failed")
                                 .append(": ").append(access.problem().message()));
                 return new RollbackResult(committed, restored, refundProblem);
@@ -551,8 +551,8 @@ final class MEWirelessMaterialSource implements AutoBuildMaterialSource {
             long inserted = access.inventory().insert(aeKey, committed - restored, Actionable.MODULATE,
                     session.actionSource);
             restored += Math.min(committed - restored, Math.max(0, inserted));
-            AutoBuildProblem refundProblem = restored == committed ? null : problem(
-                    AutoBuildProblem.Type.REFUND_FAILED, "gtpm.multiblock.autobuild.refund_failed");
+            BuildProblem refundProblem = restored == committed ? null : problem(
+                    BuildProblem.Type.REFUND_FAILED, "gtpm.multiblock.autobuild.refund_failed");
             return new RollbackResult(committed, restored, refundProblem);
         }
     }

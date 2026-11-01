@@ -3,11 +3,11 @@ package com.gregtechceu.gtceu.api.gui.widget;
 import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.MultiblockPlanResolver;
-import com.gregtechceu.gtceu.api.multiblock.preview.MultiblockPreviewSnapshot;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.BatchPlanner;
+import com.gregtechceu.gtceu.api.multiblock.preview.StructurePreview;
 import com.gregtechceu.gtceu.api.multiblock.preview.PatternGenerationGuard;
-import com.gregtechceu.gtceu.common.item.datacomponents.TerminalMachineProfile;
-import com.gregtechceu.gtceu.common.item.terminal.profile.TerminalProfileUpdate;
+import com.gregtechceu.gtceu.common.item.datacomponents.TerminalMachine;
+import com.gregtechceu.gtceu.common.item.terminal.profile.TerminalChange;
 import com.gregtechceu.gtceu.common.item.terminal.ui.MultiblockConfigurationPanel;
 import com.gregtechceu.gtceu.data.pattern.StructurePatternRegistry;
 
@@ -36,15 +36,15 @@ public final class PatternPreviewWidget extends UIElement {
     public static final int HEIGHT = 240;
 
     private final MultiblockMachineDefinition definition;
-    private final MultiblockPlanResolver resolver = new MultiblockPlanResolver();
+    private final BatchPlanner resolver = new BatchPlanner();
     private final MultiblockPreviewPanel preview;
     private final MultiblockConfigurationPanel configuration;
-    private TerminalMachineProfile profile;
+    private TerminalMachine profile;
     private long observedGeneration;
 
     private PatternPreviewWidget(MultiblockMachineDefinition definition) {
         this.definition = definition;
-        profile = TerminalMachineProfile.defaults(definition);
+        profile = TerminalMachine.defaults(definition);
         layout(layout -> layout.positionType(TaffyPosition.ABSOLUTE).width(WIDTH).height(HEIGHT));
         setOverflowVisible(false);
         var initial = resolveSnapshot(false);
@@ -63,7 +63,7 @@ public final class PatternPreviewWidget extends UIElement {
         return ModularUI.of(UI.of(new PatternPreviewWidget(definition)));
     }
 
-    private void applyChange(TerminalProfileUpdate update) {
+    private void applyChange(TerminalChange update) {
         try {
             profile = update.apply(definition, profile);
             publishSnapshot(false);
@@ -72,11 +72,11 @@ public final class PatternPreviewWidget extends UIElement {
         }
     }
 
-    private PatternGenerationGuard.Resolution<MultiblockPreviewSnapshot> resolveSnapshot(boolean reset) {
+    private PatternGenerationGuard.Resolution<StructurePreview> resolveSnapshot(boolean reset) {
         return PatternGenerationGuard.resolve(StructurePatternRegistry::generation, attempt -> {
-            if (reset || attempt > 0) profile = TerminalMachineProfile.defaults(definition);
+            if (reset || attempt > 0) profile = TerminalMachine.defaults(definition);
             var plan = resolver.resolveCanonical(definition, profile.createRequest(definition, ObjectList.of()));
-            return MultiblockPreviewSnapshot.canonical(definition.getId(), plan);
+            return StructurePreview.canonical(definition.getId(), plan);
         });
     }
 
@@ -91,9 +91,9 @@ public final class PatternPreviewWidget extends UIElement {
     private void showFailure(RuntimeException exception) {
         observedGeneration = StructurePatternRegistry.generation();
         GTCEu.LOGGER.error("Failed to resolve multiblock preview for {}", definition.getId(), exception);
-        preview.updateSnapshot(new MultiblockPreviewSnapshot(definition.getId(),
+        preview.updateSnapshot(new StructurePreview(definition.getId(),
                 "reload-" + observedGeneration, false, ObjectList.of(), ObjectList.of(), ObjectList.of(),
-                ObjectList.of(new MultiblockPreviewSnapshot.Diagnostic("PATTERN_RELOAD_INCOMPATIBLE", null, null))));
+                ObjectList.of(new StructurePreview.Diagnostic("PATTERN_RELOAD_INCOMPATIBLE", null, null))));
         configuration.setInteractive(false);
     }
 

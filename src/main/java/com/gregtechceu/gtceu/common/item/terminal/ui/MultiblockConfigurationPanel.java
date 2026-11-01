@@ -6,13 +6,13 @@ import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
 import com.gregtechceu.gtceu.api.gui.widget.MultiblockPreviewPanel;
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.AutoBuildMode;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.AutoBuildStructureOptions;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.MultiblockPlanResolver;
-import com.gregtechceu.gtceu.api.multiblock.preview.MultiblockPreviewSnapshot.Structure;
-import com.gregtechceu.gtceu.common.item.datacomponents.TerminalMachineProfile;
-import com.gregtechceu.gtceu.common.item.datacomponents.TerminalStructureProfile;
-import com.gregtechceu.gtceu.common.item.terminal.profile.TerminalProfileUpdate;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.StructureOperation;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.StructureRequest;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.BatchPlanner;
+import com.gregtechceu.gtceu.api.multiblock.preview.StructurePreview.Structure;
+import com.gregtechceu.gtceu.common.item.datacomponents.TerminalMachine;
+import com.gregtechceu.gtceu.common.item.datacomponents.TerminalStructure;
+import com.gregtechceu.gtceu.common.item.terminal.profile.TerminalChange;
 
 import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
 import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollerMode;
@@ -39,17 +39,17 @@ public final class MultiblockConfigurationPanel extends GTScrollerViewElement {
 
     private final MultiblockMachineDefinition definition;
     private final MultiblockPreviewPanel preview;
-    private final Consumer<TerminalProfileUpdate> update;
+    private final Consumer<TerminalChange> update;
     private final ObjectList<Control> controls = new ObjectArrayList<>();
     private final int contentWidth;
     private final int viewportHeight;
-    private TerminalMachineProfile profile;
+    private TerminalMachine profile;
     private ObjectList<Structure> displayedStructures = ObjectList.of();
     private boolean interactive = true;
 
     public MultiblockConfigurationPanel(int x, int y, int width, int height,
-                                        MultiblockMachineDefinition definition, TerminalMachineProfile profile,
-                                        MultiblockPreviewPanel preview, Consumer<TerminalProfileUpdate> update) {
+                                        MultiblockMachineDefinition definition, TerminalMachine profile,
+                                        MultiblockPreviewPanel preview, Consumer<TerminalChange> update) {
         super(x, y, width, height);
         this.definition = definition;
         this.profile = profile;
@@ -64,7 +64,7 @@ public final class MultiblockConfigurationPanel extends GTScrollerViewElement {
         rebuild();
     }
 
-    public void updateProfile(TerminalMachineProfile profile) {
+    public void updateProfile(TerminalMachine profile) {
         if (!this.profile.equals(profile) || !displayedStructures.equals(preview.state().snapshot().structures())) {
             this.profile = profile;
             rebuild();
@@ -83,21 +83,21 @@ public final class MultiblockConfigurationPanel extends GTScrollerViewElement {
         var shared = profile.sharedOptions();
         int y = 0;
         action(0, y, contentWidth, text("replace", onOff(shared.replaceMode())),
-                TerminalProfileUpdate.sharedReplace(!shared.replaceMode()), true);
+                TerminalChange.sharedReplace(!shared.replaceMode()), true);
         y += 18;
         action(0, y, contentWidth, text("no_hatch", onOff(shared.noHatchMode())),
-                TerminalProfileUpdate.sharedNoHatch(!shared.noHatchMode()), true);
+                TerminalChange.sharedNoHatch(!shared.noHatchMode()), true);
         y += 18;
         action(0, y, contentWidth, text("ae", onOff(shared.useME())),
-                TerminalProfileUpdate.sharedME(!shared.useME()), true);
+                TerminalChange.sharedME(!shared.useME()), true);
         y += 22;
 
-        long selectedCount = profile.structures().values().stream().filter(TerminalStructureProfile::selected).count();
-        MultiblockPlanResolver resolver = new MultiblockPlanResolver();
+        long selectedCount = profile.structures().values().stream().filter(TerminalStructure::selected).count();
+        BatchPlanner resolver = new BatchPlanner();
         for (String name : definition.getStructureOrder()) {
-            TerminalStructureProfile structure = profile.structures().get(name);
+            TerminalStructure structure = profile.structures().get(name);
             boolean required = profile.structures().entrySet().stream()
-                    .anyMatch(entry -> entry.getValue().selected() && entry.getValue().mode() == AutoBuildMode.BUILD &&
+                    .anyMatch(entry -> entry.getValue().selected() && entry.getValue().mode() == StructureOperation.BUILD &&
                             definition.getRequiredStructures(entry.getKey()).contains(name));
             boolean selectionLocked = required || structure.selected() && selectedCount == 1;
             GTLabelElement title = new GTLabelElement(0, y, contentWidth, 11, Component.literal(name));
@@ -106,7 +106,7 @@ public final class MultiblockConfigurationPanel extends GTScrollerViewElement {
             y += 13;
             action(0, y, contentWidth - 44, text(selectionLocked ? "structure_locked" :
                     structure.selected() ? "structure_selected" : "structure_unselected", ""),
-                    TerminalProfileUpdate.structureSelected(name, !structure.selected()), !selectionLocked);
+                    TerminalChange.structureSelected(name, !structure.selected()), !selectionLocked);
             GTButtonElement visibility = button(contentWidth - 42, y, 42,
                     Component.translatable("gtpm.multiblock.configuration.visible." +
                             preview.state().isStructureVisible(name)));
@@ -123,11 +123,11 @@ public final class MultiblockConfigurationPanel extends GTScrollerViewElement {
             addScrollViewChild(visibility);
             y += 18;
             action(0, y, contentWidth / 2 - 1, text("mode." + structure.mode().name().toLowerCase(Locale.ROOT)),
-                    TerminalProfileUpdate.structureMode(name,
-                            structure.mode() == AutoBuildMode.BUILD ? AutoBuildMode.DEMOLISH : AutoBuildMode.BUILD),
+                    TerminalChange.structureMode(name,
+                            structure.mode() == StructureOperation.BUILD ? StructureOperation.DEMOLISH : StructureOperation.BUILD),
                     !required);
             action(contentWidth / 2 + 1, y, contentWidth / 2 - 1, text("flip", onOff(structure.flipMode())),
-                    TerminalProfileUpdate.structureFlip(name, !structure.flipMode()), definition.isAllowFlip());
+                    TerminalChange.structureFlip(name, !structure.flipMode()), definition.isAllowFlip());
             y += 20;
 
             for (var repetition : definition.getPattern(name).getRepeatDescriptors()) {
@@ -143,11 +143,11 @@ public final class MultiblockConfigurationPanel extends GTScrollerViewElement {
                 addScrollViewChild(label);
                 y += 12;
                 action(0, y, 20, Component.literal("-"),
-                        TerminalProfileUpdate.repetition(name, index, value - 1), value > repetition.minimum());
+                        TerminalChange.repetition(name, index, value - 1), value > repetition.minimum());
                 addScrollViewChild(new GTLabelElement(22, y + 3, contentWidth - 44, 10,
                         Component.literal(value + " / " + repetition.maximum())));
                 action(contentWidth - 20, y, 20, Component.literal("+"),
-                        TerminalProfileUpdate.repetition(name, index, value + 1), value < repetition.maximum());
+                        TerminalChange.repetition(name, index, value + 1), value < repetition.maximum());
                 y += 19;
             }
 
@@ -157,12 +157,12 @@ public final class MultiblockConfigurationPanel extends GTScrollerViewElement {
                 String next = choice.alternatives().get((index + 1) % choice.alternatives().size());
                 action(0, y, contentWidth,
                         Component.translatable("gtpm.multiblock.configuration.choice", choice.id(), current),
-                        TerminalProfileUpdate.choice(name, choice.path(), next), choice.alternatives().size() > 1);
+                        TerminalChange.choice(name, choice.path(), next), choice.alternatives().size() > 1);
                 y += 19;
             }
 
             Object2ObjectMap<String, ObjectList<ResourceLocation>> tierOptions = new Object2ObjectLinkedOpenHashMap<>();
-            resolver.activeTierChoiceOptions(definition, new AutoBuildStructureOptions(name, structure.repetitions(),
+            resolver.activeTierChoiceOptions(definition, new StructureRequest(name, structure.repetitions(),
                     structure.tierChoices(), structure.flipMode(), structure.mode(), structure.choices()))
                     .forEach((group, candidates) -> tierOptions.put(group, new ObjectArrayList<>(candidates)));
             for (var entry : tierOptions.object2ObjectEntrySet()) {
@@ -180,7 +180,7 @@ public final class MultiblockConfigurationPanel extends GTScrollerViewElement {
                 y += 12;
                 ResourceLocation next = choices.get((selectedIndex + 1) % choices.size());
                 action(0, y, contentWidth, BuiltInRegistries.BLOCK.get(selected).getName(),
-                        TerminalProfileUpdate.tier(name, group, next), choices.size() > 1)
+                        TerminalChange.tier(name, group, next), choices.size() > 1)
                         .style(style -> style.tooltips(Component.translatable(
                                 "gtpm.multiblock.configuration.tier", group,
                                 BuiltInRegistries.BLOCK.get(selected).getName(), selected.toString())));
@@ -193,7 +193,7 @@ public final class MultiblockConfigurationPanel extends GTScrollerViewElement {
         setInteractive(interactive);
     }
 
-    private GTButtonElement action(int x, int y, int width, Component label, TerminalProfileUpdate change,
+    private GTButtonElement action(int x, int y, int width, Component label, TerminalChange change,
                                    boolean enabled) {
         GTButtonElement button = button(x, y, width, label);
         controls.add(new Control(button, enabled));

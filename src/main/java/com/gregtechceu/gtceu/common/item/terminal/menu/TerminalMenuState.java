@@ -1,8 +1,8 @@
 package com.gregtechceu.gtceu.common.item.terminal.menu;
 
-import com.gregtechceu.gtceu.api.multiblock.preview.MultiblockPreviewSnapshot;
-import com.gregtechceu.gtceu.common.item.datacomponents.TerminalAutoBuildProfiles;
-import com.gregtechceu.gtceu.common.item.datacomponents.TerminalMachineProfile;
+import com.gregtechceu.gtceu.api.multiblock.preview.StructurePreview;
+import com.gregtechceu.gtceu.common.item.datacomponents.TerminalMachines;
+import com.gregtechceu.gtceu.common.item.datacomponents.TerminalMachine;
 
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
@@ -13,8 +13,8 @@ import org.jspecify.annotations.Nullable;
 
 /** Server-authoritative profile and preview state for one terminal menu revision. */
 public record TerminalMenuState(ResourceLocation definitionId, long acknowledgedSequence, long revision,
-                                TerminalMachineProfile profile,
-                                MultiblockPreviewSnapshot preview, boolean executing,
+                                TerminalMachine profile,
+                                StructurePreview preview, boolean executing,
                                 @Nullable TerminalMESourceDisplay meSource,
                                 @Nullable TerminalExecutionSummary lastExecution) {
 
@@ -34,9 +34,9 @@ public record TerminalMenuState(ResourceLocation definitionId, long acknowledged
         buffer.writeResourceLocation(value.definitionId);
         buffer.writeVarLong(value.acknowledgedSequence);
         buffer.writeVarLong(value.revision);
-        TerminalAutoBuildProfiles.STREAM_CODEC.encode(buffer,
-                new TerminalAutoBuildProfiles(Object2ObjectMaps.singleton(value.definitionId, value.profile)));
-        MultiblockPreviewSnapshot.STREAM_CODEC.encode(buffer, value.preview);
+        TerminalMachines.STREAM_CODEC.encode(buffer,
+                new TerminalMachines(Object2ObjectMaps.singleton(value.definitionId, value.profile)));
+        StructurePreview.STREAM_CODEC.encode(buffer, value.preview);
         buffer.writeBoolean(value.executing);
         buffer.writeBoolean(value.meSource != null);
         if (value.meSource != null) {
@@ -52,12 +52,12 @@ public record TerminalMenuState(ResourceLocation definitionId, long acknowledged
         ResourceLocation definitionId = buffer.readResourceLocation();
         long acknowledgedSequence = buffer.readVarLong();
         long revision = buffer.readVarLong();
-        TerminalAutoBuildProfiles profiles = TerminalAutoBuildProfiles.STREAM_CODEC.decode(buffer);
-        TerminalMachineProfile profile = profiles.profiles().get(definitionId);
+        TerminalMachines profiles = TerminalMachines.STREAM_CODEC.decode(buffer);
+        TerminalMachine profile = profiles.profiles().get(definitionId);
         if (profile == null || profiles.profiles().size() != 1) {
             throw new IllegalArgumentException("Terminal menu state must contain exactly its opened machine profile");
         }
-        MultiblockPreviewSnapshot preview = MultiblockPreviewSnapshot.STREAM_CODEC.decode(buffer);
+        StructurePreview preview = StructurePreview.STREAM_CODEC.decode(buffer);
         boolean executing = buffer.readBoolean();
         TerminalMESourceDisplay meSource = buffer.readBoolean() ? TerminalMESourceDisplay.STREAM_CODEC.decode(buffer) :
                 null;

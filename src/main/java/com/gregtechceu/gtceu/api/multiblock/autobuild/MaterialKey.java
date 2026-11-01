@@ -9,12 +9,12 @@ import net.minecraft.world.item.ItemStack;
  * The stored prototype is never exposed directly so callers cannot mutate a key after it has entered a map.
  * </p>
  */
-public final class AutoBuildItemKey {
+public final class MaterialKey {
 
     private final ItemStack prototype;
     private final int hashCode;
 
-    private AutoBuildItemKey(ItemStack prototype) {
+    private MaterialKey(ItemStack prototype) {
         this.prototype = prototype.copyWithCount(1);
         this.hashCode = ItemStack.hashItemAndComponents(this.prototype);
     }
@@ -22,11 +22,11 @@ public final class AutoBuildItemKey {
     /**
      * Creates a key from a non-empty stack.
      */
-    public static AutoBuildItemKey of(ItemStack stack) {
+    public static MaterialKey of(ItemStack stack) {
         if (stack.isEmpty()) {
             throw new IllegalArgumentException("An automatic-build material key cannot be empty");
         }
-        return new AutoBuildItemKey(stack);
+        return new MaterialKey(stack);
     }
 
     /**
@@ -45,7 +45,7 @@ public final class AutoBuildItemKey {
 
     @Override
     public boolean equals(Object object) {
-        return this == object || object instanceof AutoBuildItemKey other &&
+        return this == object || object instanceof MaterialKey other &&
                 ItemStack.isSameItemSameComponents(prototype, other.prototype);
     }
 

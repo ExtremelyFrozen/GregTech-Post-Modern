@@ -222,10 +222,10 @@ public class GTDataComponents {
             .registerComponentType("lighter_open",
                     builder -> builder.persistent(Codec.BOOL).networkSynchronized(ByteBufCodecs.BOOL));
 
-    public static final DeferredHolder<DataComponentType<?>, DataComponentType<TerminalAutoBuildProfiles>> TERMINAL_AUTO_BUILD = DATA_COMPONENTS
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<TerminalMachines>> TERMINAL_AUTO_BUILD = DATA_COMPONENTS
             .registerComponentType("terminal_auto_build",
-                    builder -> builder.persistent(TerminalAutoBuildProfiles.CODEC)
-                            .networkSynchronized(TerminalAutoBuildProfiles.STREAM_CODEC));
+                    builder -> builder.persistent(TerminalMachines.CODEC)
+                            .networkSynchronized(TerminalMachines.STREAM_CODEC));
 
     public static final DeferredHolder<DataComponentType<?>, DataComponentType<TerminalControllerBinding>> TERMINAL_CONTROLLER = DATA_COMPONENTS
             .registerComponentType("terminal_controller",

@@ -4,13 +4,13 @@ import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.GTValues;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.multiblock.MultiblockPreviewLevel;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.AutoBuildBatchRequest;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.AutoBuildSharedOptions;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.AutoBuildStructureOptions;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.AutoBuildPlan;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.BatchRequest;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.BuildPolicy;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.StructureRequest;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.BatchPlan;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.CellAction;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.MergedPlanCell;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.MultiblockPlanResolver;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.BatchPlanner;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.PlannedBlockInfo;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.PlannedCell;
 import com.gregtechceu.gtceu.api.multiblock.preview.PatternGenerationGuard;
@@ -142,11 +142,11 @@ public final class MultiblockInWorldPreviewRenderer {
         BlockPos previousPos = LAST_POS;
         int previousLayer = LAST_LAYER;
         for (int publicationAttempt = 0; publicationAttempt < MAX_PATTERN_PUBLICATION_ATTEMPTS; publicationAttempt++) {
-            MultiblockPlanResolver resolver = new MultiblockPlanResolver();
-            PatternGenerationGuard.Resolution<AutoBuildPlan> resolution;
+            BatchPlanner resolver = new BatchPlanner();
+            PatternGenerationGuard.Resolution<BatchPlan> resolution;
             try {
                 resolution = PatternGenerationGuard.resolve(StructurePatternRegistry::generation, attempt -> {
-                    AutoBuildBatchRequest request = defaultPreviewRequest(controller, resolver);
+                    BatchRequest request = defaultPreviewRequest(controller, resolver);
                     return resolver.resolveControllerPreview(controller, request);
                 });
             } catch (RuntimeException exception) {
@@ -155,7 +155,7 @@ public final class MultiblockInWorldPreviewRenderer {
                         controller.getDefinition().getId(), exception);
                 return;
             }
-            AutoBuildPlan plan = resolution.value();
+            BatchPlan plan = resolution.value();
             if (!plan.sharedProblems().isEmpty() || plan.mergedCells().isEmpty()) {
                 cleanPreview();
                 return;
@@ -208,7 +208,7 @@ public final class MultiblockInWorldPreviewRenderer {
         return nextLayer >= layerCount ? -1 : nextLayer;
     }
 
-    private static Map<BlockPos, PlannedBlockInfo> previewBlocks(AutoBuildPlan plan, List<Integer> layers,
+    private static Map<BlockPos, PlannedBlockInfo> previewBlocks(BatchPlan plan, List<Integer> layers,
                                                                  int selectedLayer,
                                                                  MultiblockPreviewLevel previewLevel) {
         Map<BlockPos, PlannedBlockInfo> blockMap = new LinkedHashMap<>();
@@ -254,8 +254,8 @@ public final class MultiblockInWorldPreviewRenderer {
         return executionRepresentative;
     }
 
-    private static AutoBuildBatchRequest defaultPreviewRequest(MultiblockControllerMachine controller,
-                                                               MultiblockPlanResolver resolver) {
+    private static BatchRequest defaultPreviewRequest(MultiblockControllerMachine controller,
+                                                               BatchPlanner resolver) {
         var definition = controller.getDefinition();
         var order = definition.getStructureOrder();
         if (order.isEmpty()) {
@@ -266,11 +266,11 @@ public final class MultiblockInWorldPreviewRenderer {
         ObjectSet<String> selected = new ObjectLinkedOpenHashSet<>();
         selected.add(main);
         selected.addAll(definition.getRequiredStructures(main));
-        ObjectList<AutoBuildStructureOptions> structures = order.stream()
+        ObjectList<StructureRequest> structures = order.stream()
                 .filter(selected::contains)
                 .map(name -> resolver.defaultStructureOptions(definition, name))
                 .collect(ObjectImmutableList.toList());
-        return new AutoBuildBatchRequest(structures, AutoBuildSharedOptions.DEFAULT, ObjectList.of());
+        return new BatchRequest(structures, BuildPolicy.DEFAULT, ObjectList.of());
     }
 
     public static void onClientTick() {

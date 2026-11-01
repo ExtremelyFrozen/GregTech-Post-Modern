@@ -1,6 +1,6 @@
 package com.gregtechceu.gtceu.api.multiblock.autobuild.batch;
 
-import com.gregtechceu.gtceu.api.multiblock.autobuild.AutoBuildMaterialSource;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialSource;
 
 import it.unimi.dsi.fastutil.objects.ObjectList;
 
@@ -11,6 +11,6 @@ import it.unimi.dsi.fastutil.objects.ObjectList;
  * @param sharedOptions   behavior shared by the whole batch
  * @param materialSources material sources in strict allocation priority order
  */
-public record AutoBuildBatchRequest(ObjectList<AutoBuildStructureOptions> structures,
-                                    AutoBuildSharedOptions sharedOptions,
-                                    ObjectList<AutoBuildMaterialSource> materialSources) {}
+public record BatchRequest(ObjectList<StructureRequest> structures,
+                                    BuildPolicy sharedOptions,
+                                    ObjectList<MaterialSource> materialSources) {}
