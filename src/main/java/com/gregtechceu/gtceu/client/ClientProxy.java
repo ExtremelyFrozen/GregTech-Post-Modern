@@ -92,9 +92,7 @@ public class ClientProxy {
             CommonEventListener.registerCapes(new RegisterGTCapesEvent());
         }
         initializeDynamicRenders();
-        StructurePatternRegistry.addReloadListener(() -> {
-            MultiblockInWorldPreviewRenderer.cleanPreview();
-        });
+        StructurePatternRegistry.addReloadListener(MultiblockInWorldPreviewRenderer::cleanPreview);
         ModelEventHelper.initInternalAssetReloadListeners();
 
         NeoForge.EVENT_BUS.register(GTParticleManager.INSTANCE);
