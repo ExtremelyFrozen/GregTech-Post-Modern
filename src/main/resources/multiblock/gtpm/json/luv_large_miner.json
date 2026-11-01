@@ -19,13 +19,13 @@
 			"type": "gtpm:concatenated",
 			"predicates": [
 				{
-					"type": "gtpm:blocks",
-					"blocks": "gtpm:robust_machine_casing"
+					"type": "gtpm:block",
+					"ids": "gtpm:robust_machine_casing"
 				},
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:abilities",
+						"type": "gtpm:part",
 						"abilities": "export_items"
 					},
 					"minCount": 1,
@@ -35,7 +35,7 @@
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:abilities",
+						"type": "gtpm:part",
 						"abilities": "import_fluids"
 					},
 					"minCount": 1,
@@ -45,7 +45,7 @@
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:abilities",
+						"type": "gtpm:part",
 						"abilities": "input_energy"
 					},
 					"minCount": 1,
@@ -55,12 +55,12 @@
 			]
 		},
 		"C": {
-			"type": "gtpm:blocks",
-			"blocks": "gtpm:robust_machine_casing"
+			"type": "gtpm:block",
+			"ids": "gtpm:robust_machine_casing"
 		},
 		"F": {
-			"type": "gtpm:blocks",
-			"blocks": "gtpm:tungsten_steel_frame"
+			"type": "gtpm:block",
+			"ids": "gtpm:tungsten_steel_frame"
 		},
 		"#": {
 			"type": "gtpm:any"

@@ -21,8 +21,8 @@
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:blocks",
-						"blocks": "gtpm:inert_machine_casing"
+						"type": "gtpm:block",
+						"ids": "gtpm:inert_machine_casing"
 					},
 					"minCount": 10
 				},
@@ -38,8 +38,8 @@
 			]
 		},
 		"P": {
-			"type": "gtpm:blocks",
-			"blocks": "gtpm:ptfe_pipe_casing"
+			"type": "gtpm:block",
+			"ids": "gtpm:ptfe_pipe_casing"
 		},
 		"C": {
 			"type": "gtpm:concatenated",
@@ -47,7 +47,7 @@
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:heating_coils"
+						"type": "gtpm:coil"
 					},
 					"minCount": 1,
 					"maxCount": 1
@@ -64,8 +64,8 @@
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:blocks",
-						"blocks": "gtpm:inert_machine_casing"
+						"type": "gtpm:block",
+						"ids": "gtpm:inert_machine_casing"
 					},
 					"minCount": 10
 				}

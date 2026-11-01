@@ -21,23 +21,23 @@
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:blocks",
-						"blocks": "gtpm:watertight_casing"
+						"type": "gtpm:block",
+						"ids": "gtpm:watertight_casing"
 					},
 					"minCount": 55
 				},
 				{
-					"type": "gtpm:abilities",
+					"type": "gtpm:part",
 					"abilities": "import_items"
 				},
 				{
-					"type": "gtpm:abilities",
+					"type": "gtpm:part",
 					"abilities": "export_items"
 				},
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:abilities",
+						"type": "gtpm:part",
 						"abilities": "input_energy"
 					},
 					"minCount": 1,
@@ -45,11 +45,11 @@
 					"previewCount": 1
 				},
 				{
-					"type": "gtpm:abilities",
+					"type": "gtpm:part",
 					"abilities": "import_fluids"
 				},
 				{
-					"type": "gtpm:abilities",
+					"type": "gtpm:part",
 					"abilities": "export_fluids"
 				},
 				{
@@ -61,8 +61,8 @@
 			]
 		},
 		"T": {
-			"type": "gtpm:blocks",
-			"blocks": "gtpm:titanium_pipe_casing"
+			"type": "gtpm:block",
+			"ids": "gtpm:titanium_pipe_casing"
 		},
 		"A": {
 			"type": "gtpm:air"

@@ -21,8 +21,8 @@
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:blocks",
-						"blocks": "gtpm:frostproof_machine_casing"
+						"type": "gtpm:block",
+						"ids": "gtpm:frostproof_machine_casing"
 					},
 					"minCount": 14
 				},

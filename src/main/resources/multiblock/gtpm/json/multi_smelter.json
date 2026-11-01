@@ -21,8 +21,8 @@
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:blocks",
-						"blocks": "gtpm:heatproof_machine_casing"
+						"type": "gtpm:block",
+						"ids": "gtpm:heatproof_machine_casing"
 					},
 					"minCount": 9
 				},
@@ -38,11 +38,11 @@
 			]
 		},
 		"M": {
-			"type": "gtpm:abilities",
+			"type": "gtpm:part",
 			"abilities": "muffler"
 		},
 		"C": {
-			"type": "gtpm:heating_coils"
+			"type": "gtpm:coil"
 		},
 		"#": {
 			"type": "gtpm:air"

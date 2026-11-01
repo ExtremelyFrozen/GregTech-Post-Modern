@@ -19,13 +19,13 @@
 			"type": "gtpm:concatenated",
 			"predicates": [
 				{
-					"type": "gtpm:blocks",
-					"blocks": "gtpm:clean_machine_casing"
+					"type": "gtpm:block",
+					"ids": "gtpm:clean_machine_casing"
 				},
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:abilities",
+						"type": "gtpm:part",
 						"abilities": "export_items"
 					},
 					"maxCount": 1
@@ -33,7 +33,7 @@
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:abilities",
+						"type": "gtpm:part",
 						"abilities": "input_energy"
 					},
 					"minCount": 1,
@@ -42,7 +42,7 @@
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:abilities",
+						"type": "gtpm:part",
 						"abilities": "import_fluids"
 					},
 					"minCount": 1,
@@ -51,7 +51,7 @@
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:abilities",
+						"type": "gtpm:part",
 						"abilities": "maintenance"
 					},
 					"maxCount": 1
@@ -62,13 +62,13 @@
 			"type": "gtpm:concatenated",
 			"predicates": [
 				{
-					"type": "gtpm:blocks",
-					"blocks": "gtpm:clean_machine_casing"
+					"type": "gtpm:block",
+					"ids": "gtpm:clean_machine_casing"
 				},
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:abilities",
+						"type": "gtpm:part",
 						"abilities": "export_fluids_1x"
 					},
 					"maxCountByLayer": 1,
@@ -77,7 +77,7 @@
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:abilities",
+						"type": "gtpm:part",
 						"abilities": "maintenance"
 					},
 					"maxCount": 1
@@ -88,13 +88,13 @@
 			"type": "gtpm:concatenated",
 			"predicates": [
 				{
-					"type": "gtpm:blocks",
-					"blocks": "gtpm:clean_machine_casing"
+					"type": "gtpm:block",
+					"ids": "gtpm:clean_machine_casing"
 				},
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:abilities",
+						"type": "gtpm:part",
 						"abilities": "export_fluids_1x"
 					},
 					"maxCountByLayer": 1

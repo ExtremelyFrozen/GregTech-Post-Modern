@@ -21,8 +21,8 @@
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:blocks",
-						"blocks": "gtpm:laser_safe_engraving_casing"
+						"type": "gtpm:block",
+						"ids": "gtpm:laser_safe_engraving_casing"
 					},
 					"minCount": 50
 				},
@@ -38,16 +38,16 @@
 			]
 		},
 		"C": {
-			"type": "gtpm:blocks",
-			"blocks": "gtpm:tungstensteel_pipe_casing"
+			"type": "gtpm:block",
+			"ids": "gtpm:tungstensteel_pipe_casing"
 		},
 		"G": {
-			"type": "gtpm:blocks",
-			"blocks": "gtpm:tempered_glass"
+			"type": "gtpm:block",
+			"ids": "gtpm:tempered_glass"
 		},
 		"K": {
-			"type": "gtpm:blocks",
-			"blocks": "gtpm:assembly_line_grating"
+			"type": "gtpm:block",
+			"ids": "gtpm:assembly_line_grating"
 		},
 		"A": {
 			"type": "gtpm:air"

@@ -21,15 +21,15 @@
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:blocks",
-						"blocks": "gtpm:bronze_firebox_casing"
+						"type": "gtpm:block",
+						"ids": "gtpm:bronze_firebox_casing"
 					},
 					"minCount": 3
 				},
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:abilities",
+						"type": "gtpm:part",
 						"abilities": "import_fluids"
 					},
 					"minCount": 1,
@@ -38,7 +38,7 @@
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:abilities",
+						"type": "gtpm:part",
 						"abilities": "import_items"
 					},
 					"maxCount": 1,
@@ -47,7 +47,7 @@
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:abilities",
+						"type": "gtpm:part",
 						"abilities": "muffler"
 					},
 					"minCount": 1,
@@ -56,7 +56,7 @@
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:abilities",
+						"type": "gtpm:part",
 						"abilities": "maintenance"
 					},
 					"minCount": 1,
@@ -70,15 +70,15 @@
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:blocks",
-						"blocks": "gtpm:steam_machine_casing"
+						"type": "gtpm:block",
+						"ids": "gtpm:steam_machine_casing"
 					},
 					"minCount": 20
 				},
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:abilities",
+						"type": "gtpm:part",
 						"abilities": "export_fluids"
 					},
 					"minCount": 1,
@@ -87,8 +87,8 @@
 			]
 		},
 		"P": {
-			"type": "gtpm:blocks",
-			"blocks": "gtpm:bronze_pipe_casing"
+			"type": "gtpm:block",
+			"ids": "gtpm:bronze_pipe_casing"
 		}
 	},
 	"body": {

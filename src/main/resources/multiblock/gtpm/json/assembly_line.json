@@ -19,13 +19,13 @@
 			"type": "gtpm:concatenated",
 			"predicates": [
 				{
-					"type": "gtpm:blocks",
-					"blocks": "gtpm:solid_machine_casing"
+					"type": "gtpm:block",
+					"ids": "gtpm:solid_machine_casing"
 				},
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:abilities",
+						"type": "gtpm:part",
 						"abilities": [
 							"import_fluids_1x",
 							"import_fluids_4x",
@@ -37,20 +37,20 @@
 			]
 		},
 		"O": {
-			"type": "gtpm:abilities",
+			"type": "gtpm:part",
 			"abilities": "export_items"
 		},
 		"Y": {
 			"type": "gtpm:concatenated",
 			"predicates": [
 				{
-					"type": "gtpm:blocks",
-					"blocks": "gtpm:solid_machine_casing"
+					"type": "gtpm:block",
+					"ids": "gtpm:solid_machine_casing"
 				},
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:abilities",
+						"type": "gtpm:part",
 						"abilities": "input_energy"
 					},
 					"minCount": 1,
@@ -59,30 +59,30 @@
 			]
 		},
 		"I": {
-			"type": "gtpm:blocks",
-			"blocks": "gtpm:ulv_input_bus"
+			"type": "gtpm:block",
+			"ids": "gtpm:ulv_input_bus"
 		},
 		"G": {
-			"type": "gtpm:blocks",
-			"blocks": "gtpm:assembly_line_grating"
+			"type": "gtpm:block",
+			"ids": "gtpm:assembly_line_grating"
 		},
 		"A": {
-			"type": "gtpm:blocks",
-			"blocks": "gtpm:assembly_line_casing"
+			"type": "gtpm:block",
+			"ids": "gtpm:assembly_line_casing"
 		},
 		"R": {
-			"type": "gtpm:blocks",
-			"blocks": "gtpm:laminated_glass"
+			"type": "gtpm:block",
+			"ids": "gtpm:laminated_glass"
 		},
 		"T": {
-			"type": "gtpm:blocks",
-			"blocks": "gtpm:assembly_line_unit"
+			"type": "gtpm:block",
+			"ids": "gtpm:assembly_line_unit"
 		},
 		"D": {
 			"type": "gtpm:data_hatch_or",
 			"alternative": {
-				"type": "gtpm:blocks",
-				"blocks": "gtpm:assembly_line_grating"
+				"type": "gtpm:block",
+				"ids": "gtpm:assembly_line_grating"
 			}
 		},
 		"#": {

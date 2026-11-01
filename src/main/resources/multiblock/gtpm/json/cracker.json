@@ -21,25 +21,25 @@
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:blocks",
-						"blocks": "gtpm:clean_machine_casing"
+						"type": "gtpm:block",
+						"ids": "gtpm:clean_machine_casing"
 					},
 					"minCount": 12
 				},
 				{
-					"type": "gtpm:abilities",
+					"type": "gtpm:part",
 					"abilities": "import_items"
 				},
 				{
-					"type": "gtpm:abilities",
+					"type": "gtpm:part",
 					"abilities": "export_items"
 				},
 				{
-					"type": "gtpm:abilities",
+					"type": "gtpm:part",
 					"abilities": "import_fluids"
 				},
 				{
-					"type": "gtpm:abilities",
+					"type": "gtpm:part",
 					"abilities": "export_fluids"
 				},
 				{
@@ -56,25 +56,25 @@
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:blocks",
-						"blocks": "gtpm:clean_machine_casing"
+						"type": "gtpm:block",
+						"ids": "gtpm:clean_machine_casing"
 					},
 					"minCount": 12
 				},
 				{
-					"type": "gtpm:abilities",
+					"type": "gtpm:part",
 					"abilities": "import_items"
 				},
 				{
-					"type": "gtpm:abilities",
+					"type": "gtpm:part",
 					"abilities": "export_items"
 				},
 				{
-					"type": "gtpm:abilities",
+					"type": "gtpm:part",
 					"abilities": "import_fluids"
 				},
 				{
-					"type": "gtpm:abilities",
+					"type": "gtpm:part",
 					"abilities": "export_fluids"
 				},
 				{
@@ -86,7 +86,7 @@
 			]
 		},
 		"C": {
-			"type": "gtpm:heating_coils"
+			"type": "gtpm:coil"
 		},
 		"#": {
 			"type": "gtpm:air"

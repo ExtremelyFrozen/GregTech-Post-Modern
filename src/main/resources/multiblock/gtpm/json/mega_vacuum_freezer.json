@@ -21,8 +21,8 @@
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:blocks",
-						"blocks": "gtpm:frostproof_machine_casing"
+						"type": "gtpm:block",
+						"ids": "gtpm:frostproof_machine_casing"
 					},
 					"minCount": 140
 				},
@@ -38,20 +38,20 @@
 			]
 		},
 		"G": {
-			"type": "gtpm:blocks",
-			"blocks": "gtpm:tempered_glass"
+			"type": "gtpm:block",
+			"ids": "gtpm:tempered_glass"
 		},
 		"K": {
-			"type": "gtpm:blocks",
-			"blocks": "gtpm:clean_machine_casing"
+			"type": "gtpm:block",
+			"ids": "gtpm:clean_machine_casing"
 		},
 		"P": {
-			"type": "gtpm:blocks",
-			"blocks": "gtpm:tungstensteel_pipe_casing"
+			"type": "gtpm:block",
+			"ids": "gtpm:tungstensteel_pipe_casing"
 		},
 		"V": {
-			"type": "gtpm:blocks",
-			"blocks": "gtpm:heat_vent"
+			"type": "gtpm:block",
+			"ids": "gtpm:heat_vent"
 		},
 		"A": {
 			"type": "gtpm:air"

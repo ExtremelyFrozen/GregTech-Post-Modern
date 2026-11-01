@@ -16,31 +16,31 @@
 	"fragments": {},
 	"predicates": {
 		"X": {
-			"type": "gtpm:blocks",
-			"blocks": "gtpm:computer_casing"
+			"type": "gtpm:block",
+			"ids": "gtpm:computer_casing"
 		},
 		"-": {
 			"type": "gtpm:air"
 		},
 		"V": {
-			"type": "gtpm:blocks",
-			"blocks": "gtpm:computer_heat_vent"
+			"type": "gtpm:block",
+			"ids": "gtpm:computer_heat_vent"
 		},
 		"A": {
-			"type": "gtpm:blocks",
-			"blocks": "gtpm:advanced_computer_casing"
+			"type": "gtpm:block",
+			"ids": "gtpm:advanced_computer_casing"
 		},
 		"P": {
 			"type": "gtpm:concatenated",
 			"predicates": [
 				{
-					"type": "gtpm:blocks",
-					"blocks": "gtpm:computer_casing"
+					"type": "gtpm:block",
+					"ids": "gtpm:computer_casing"
 				},
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:abilities",
+						"type": "gtpm:part",
 						"abilities": "input_energy"
 					},
 					"minCount": 1,
@@ -50,7 +50,7 @@
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:abilities",
+						"type": "gtpm:part",
 						"abilities": "computation_data_reception"
 					},
 					"minCount": 1,
@@ -65,7 +65,7 @@
 			]
 		},
 		"H": {
-			"type": "gtpm:abilities",
+			"type": "gtpm:part",
 			"abilities": "object_holder"
 		}
 	},

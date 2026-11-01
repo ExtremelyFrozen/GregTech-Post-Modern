@@ -21,15 +21,15 @@
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:blocks",
-						"blocks": "gtpm:stable_machine_casing"
+						"type": "gtpm:block",
+						"ids": "gtpm:stable_machine_casing"
 					},
 					"minCount": 3
 				},
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:abilities",
+						"type": "gtpm:part",
 						"abilities": "input_energy"
 					},
 					"minCount": 1,
@@ -39,7 +39,7 @@
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:abilities",
+						"type": "gtpm:part",
 						"abilities": "export_fluids"
 					},
 					"maxCount": 1,
@@ -48,12 +48,12 @@
 			]
 		},
 		"C": {
-			"type": "gtpm:blocks",
-			"blocks": "gtpm:stable_machine_casing"
+			"type": "gtpm:block",
+			"ids": "gtpm:stable_machine_casing"
 		},
 		"F": {
-			"type": "gtpm:blocks",
-			"blocks": "gtpm:titanium_frame"
+			"type": "gtpm:block",
+			"ids": "gtpm:titanium_frame"
 		},
 		"#": {
 			"type": "gtpm:any"

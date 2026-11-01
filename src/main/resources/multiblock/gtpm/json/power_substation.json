@@ -16,8 +16,8 @@
 	"fragments": {},
 	"predicates": {
 		"C": {
-			"type": "gtpm:blocks",
-			"blocks": "gtpm:palladium_substation_casing"
+			"type": "gtpm:block",
+			"ids": "gtpm:palladium_substation_casing"
 		},
 		"X": {
 			"type": "gtpm:concatenated",
@@ -25,8 +25,8 @@
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:blocks",
-						"blocks": "gtpm:palladium_substation_casing"
+						"type": "gtpm:block",
+						"ids": "gtpm:palladium_substation_casing"
 					},
 					"minCount": 14
 				},
@@ -39,7 +39,7 @@
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:abilities",
+						"type": "gtpm:part",
 						"abilities": [
 							"input_energy",
 							"substation_input_energy",
@@ -51,7 +51,7 @@
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:abilities",
+						"type": "gtpm:part",
 						"abilities": [
 							"output_energy",
 							"substation_output_energy",
@@ -63,8 +63,8 @@
 			]
 		},
 		"G": {
-			"type": "gtpm:blocks",
-			"blocks": "gtpm:laminated_glass"
+			"type": "gtpm:block",
+			"ids": "gtpm:laminated_glass"
 		},
 		"B": {
 			"type": "gtpm:power_substation_batteries"

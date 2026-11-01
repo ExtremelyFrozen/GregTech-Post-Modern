@@ -21,23 +21,23 @@
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:blocks",
-						"blocks": "gtpm:corrosion_proof_casing"
+						"type": "gtpm:block",
+						"ids": "gtpm:corrosion_proof_casing"
 					},
 					"minCount": 50
 				},
 				{
-					"type": "gtpm:abilities",
+					"type": "gtpm:part",
 					"abilities": "import_items"
 				},
 				{
-					"type": "gtpm:abilities",
+					"type": "gtpm:part",
 					"abilities": "export_items"
 				},
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:abilities",
+						"type": "gtpm:part",
 						"abilities": "input_energy"
 					},
 					"minCount": 1,
@@ -45,11 +45,11 @@
 					"previewCount": 1
 				},
 				{
-					"type": "gtpm:abilities",
+					"type": "gtpm:part",
 					"abilities": "import_fluids"
 				},
 				{
-					"type": "gtpm:abilities",
+					"type": "gtpm:part",
 					"abilities": "export_fluids"
 				},
 				{
@@ -61,12 +61,12 @@
 			]
 		},
 		"P": {
-			"type": "gtpm:blocks",
-			"blocks": "gtpm:steel_pipe_casing"
+			"type": "gtpm:block",
+			"ids": "gtpm:steel_pipe_casing"
 		},
 		"C": {
-			"type": "gtpm:blocks",
-			"blocks": "gtpm:molybdenum_disilicide_coil_block"
+			"type": "gtpm:block",
+			"ids": "gtpm:molybdenum_disilicide_coil_block"
 		},
 		"A": {
 			"type": "gtpm:air"

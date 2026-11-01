@@ -16,12 +16,12 @@
 	"fragments": {},
 	"predicates": {
 		"C": {
-			"type": "gtpm:blocks",
-			"blocks": "gtpm:stainless_steel_turbine_casing"
+			"type": "gtpm:block",
+			"ids": "gtpm:stainless_steel_turbine_casing"
 		},
 		"G": {
-			"type": "gtpm:blocks",
-			"blocks": "gtpm:stainless_steel_gearbox"
+			"type": "gtpm:block",
+			"ids": "gtpm:stainless_steel_gearbox"
 		},
 		"R": {
 			"type": "gtpm:concatenated",
@@ -38,7 +38,7 @@
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:abilities",
+						"type": "gtpm:part",
 						"abilities": "output_energy"
 					},
 					"minCount": 1,
@@ -50,23 +50,23 @@
 			"type": "gtpm:concatenated",
 			"predicates": [
 				{
-					"type": "gtpm:blocks",
-					"blocks": "gtpm:stainless_steel_turbine_casing"
+					"type": "gtpm:block",
+					"ids": "gtpm:stainless_steel_turbine_casing"
 				},
 				{
-					"type": "gtpm:abilities",
+					"type": "gtpm:part",
 					"abilities": "import_items"
 				},
 				{
-					"type": "gtpm:abilities",
+					"type": "gtpm:part",
 					"abilities": "export_items"
 				},
 				{
-					"type": "gtpm:abilities",
+					"type": "gtpm:part",
 					"abilities": "import_fluids"
 				},
 				{
-					"type": "gtpm:abilities",
+					"type": "gtpm:part",
 					"abilities": "export_fluids"
 				},
 				{

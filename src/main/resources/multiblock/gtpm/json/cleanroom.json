@@ -31,11 +31,11 @@
 			"allowDoors": false
 		},
 		"D": {
-			"type": "gtpm:blocks",
-			"blocks": "gtpm:plascrete"
+			"type": "gtpm:block",
+			"ids": "gtpm:plascrete"
 		},
 		"F": {
-			"type": "gtpm:cleanroom_filters"
+			"type": "gtpm:filter"
 		},
 		"I": {
 			"type": "gtpm:cleanroom_inner"
@@ -44,12 +44,12 @@
 			"type": "gtpm:concatenated",
 			"predicates": [
 				{
-					"type": "gtpm:blocks",
-					"blocks": ["gtpm:plascrete", "gtpm:cleanroom_glass"]
+					"type": "gtpm:block",
+					"ids": ["gtpm:plascrete", "gtpm:cleanroom_glass"]
 				},
 				{
-					"type": "gtpm:block_tags",
-					"blockTagKeys": "gtpm:cleanroom_floors"
+					"type": "gtpm:block_tag",
+					"tag": "gtpm:cleanroom_floors"
 				}
 			]
 		}

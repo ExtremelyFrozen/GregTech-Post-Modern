@@ -16,12 +16,12 @@
 	"fragments": {},
 	"predicates": {
 		"X": {
-			"type": "gtpm:blocks",
-			"blocks": "gtpm:stable_machine_casing"
+			"type": "gtpm:block",
+			"ids": "gtpm:stable_machine_casing"
 		},
 		"G": {
-			"type": "gtpm:blocks",
-			"blocks": "gtpm:titanium_gearbox"
+			"type": "gtpm:block",
+			"ids": "gtpm:titanium_gearbox"
 		},
 		"C": {
 			"type": "gtpm:concatenated",
@@ -29,8 +29,8 @@
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:blocks",
-						"blocks": "gtpm:stable_machine_casing"
+						"type": "gtpm:block",
+						"ids": "gtpm:stable_machine_casing"
 					},
 					"minCount": 3
 				},
@@ -52,13 +52,13 @@
 			]
 		},
 		"D": {
-			"type": "gtpm:tiered_ability",
-			"ability": "output_energy",
-			"tiers": [4, 5, 6, 7, 8, 9]
+			"type": "gtpm:part",
+			"abilities": "output_energy",
+			"allowedTiers": [4, 5, 6, 7, 8, 9]
 		},
 		"A": {
-			"type": "gtpm:blocks",
-			"blocks": "gtpm:engine_intake_casing"
+			"type": "gtpm:block",
+			"ids": "gtpm:engine_intake_casing"
 		}
 	},
 	"body": {

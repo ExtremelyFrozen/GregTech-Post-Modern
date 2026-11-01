@@ -21,8 +21,8 @@
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:blocks",
-						"blocks": "gtpm:watertight_casing"
+						"type": "gtpm:block",
+						"ids": "gtpm:watertight_casing"
 					},
 					"minCount": 45
 				},
@@ -38,8 +38,8 @@
 			]
 		},
 		"C": {
-			"type": "gtpm:blocks",
-			"blocks": "gtpm:steel_pipe_casing"
+			"type": "gtpm:block",
+			"ids": "gtpm:steel_pipe_casing"
 		},
 		"A": {
 			"type": "gtpm:air"

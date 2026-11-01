@@ -16,8 +16,8 @@
 	"fragments": {},
 	"predicates": {
 		"X": {
-			"type": "gtpm:blocks",
-			"blocks": "gtpm:firebricks"
+			"type": "gtpm:block",
+			"ids": "gtpm:firebricks"
 		},
 		"#": {
 			"type": "gtpm:air"

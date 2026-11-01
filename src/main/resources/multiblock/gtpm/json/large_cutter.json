@@ -21,8 +21,8 @@
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:blocks",
-						"blocks": "gtpm:shock_proof_cutting_casing"
+						"type": "gtpm:block",
+						"ids": "gtpm:shock_proof_cutting_casing"
 					},
 					"minCount": 65
 				},
@@ -38,12 +38,12 @@
 			]
 		},
 		"G": {
-			"type": "gtpm:blocks",
-			"blocks": "gtpm:tempered_glass"
+			"type": "gtpm:block",
+			"ids": "gtpm:tempered_glass"
 		},
 		"C": {
-			"type": "gtpm:blocks",
-			"blocks": "gtpm:slicing_blades"
+			"type": "gtpm:block",
+			"ids": "gtpm:slicing_blades"
 		},
 		"A": {
 			"type": "gtpm:air"

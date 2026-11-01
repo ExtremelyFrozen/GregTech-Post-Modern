@@ -19,14 +19,14 @@
 			"type": "gtpm:concatenated",
 			"predicates": [
 				{
-					"type": "gtpm:blocks",
-					"blocks": "gtpm:wood_wall"
+					"type": "gtpm:block",
+					"ids": "gtpm:wood_wall"
 				},
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:blocks",
-						"blocks": "gtpm:wooden_tank_valve"
+						"type": "gtpm:block",
+						"ids": "gtpm:wooden_tank_valve"
 					},
 					"maxCount": 2,
 					"previewCount": 0

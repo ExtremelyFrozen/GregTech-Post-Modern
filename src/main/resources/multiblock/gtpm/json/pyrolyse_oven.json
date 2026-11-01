@@ -21,8 +21,8 @@
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:blocks",
-						"blocks": "gtpm:ulv_machine_casing"
+						"type": "gtpm:block",
+						"ids": "gtpm:ulv_machine_casing"
 					},
 					"minCount": 6
 				},
@@ -38,7 +38,7 @@
 			]
 		},
 		"C": {
-			"type": "gtpm:heating_coils"
+			"type": "gtpm:coil"
 		},
 		"#": {
 			"type": "gtpm:air"

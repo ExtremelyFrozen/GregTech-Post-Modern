@@ -21,8 +21,8 @@
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:blocks",
-						"blocks": "gtpm:stress_proof_casing"
+						"type": "gtpm:block",
+						"ids": "gtpm:stress_proof_casing"
 					},
 					"minCount": 25
 				},
@@ -38,8 +38,8 @@
 			]
 		},
 		"C": {
-			"type": "gtpm:blocks",
-			"blocks": "gtpm:titanium_gearbox"
+			"type": "gtpm:block",
+			"ids": "gtpm:titanium_gearbox"
 		},
 		"#": {
 			"type": "gtpm:any"

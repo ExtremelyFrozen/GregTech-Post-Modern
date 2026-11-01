@@ -16,23 +16,23 @@
 	"fragments": {},
 	"predicates": {
 		"X": {
-			"type": "gtpm:blocks",
-			"blocks": "gtpm:pump_deck"
+			"type": "gtpm:block",
+			"ids": "gtpm:pump_deck"
 		},
 		"F": {
-			"type": "gtpm:frames",
+			"type": "gtpm:frame",
 			"materials": "gtpm:treated_wood"
 		},
 		"H": {
 			"type": "gtpm:concatenated",
 			"predicates": [
 				{
-					"type": "gtpm:abilities",
+					"type": "gtpm:part",
 					"abilities": "pump_fluid_hatch"
 				},
 				{
-					"type": "gtpm:blocks",
-					"blocks": ["gtpm:ulv_output_hatch", "gtpm:lv_output_hatch"]
+					"type": "gtpm:block",
+					"ids": ["gtpm:ulv_output_hatch", "gtpm:lv_output_hatch"]
 				}
 			]
 		},

@@ -16,15 +16,15 @@
 	"fragments": {},
 	"predicates": {
 		"A": {
-			"type": "gtpm:blocks",
-			"blocks": "gtpm:advanced_computer_casing"
+			"type": "gtpm:block",
+			"ids": "gtpm:advanced_computer_casing"
 		},
 		"V": {
-			"type": "gtpm:blocks",
-			"blocks": "gtpm:computer_heat_vent"
+			"type": "gtpm:block",
+			"ids": "gtpm:computer_heat_vent"
 		},
 		"X": {
-			"type": "gtpm:abilities",
+			"type": "gtpm:part",
 			"abilities": "hpca_component"
 		},
 		"C": {
@@ -33,15 +33,15 @@
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:blocks",
-						"blocks": "gtpm:computer_casing"
+						"type": "gtpm:block",
+						"ids": "gtpm:computer_casing"
 					},
 					"minCount": 5
 				},
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:abilities",
+						"type": "gtpm:part",
 						"abilities": "input_energy"
 					},
 					"minCount": 1,
@@ -51,7 +51,7 @@
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:abilities",
+						"type": "gtpm:part",
 						"abilities": "import_fluids"
 					},
 					"maxCount": 1
@@ -59,14 +59,14 @@
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:abilities",
+						"type": "gtpm:part",
 						"abilities": "computation_data_transmission"
 					},
 					"minCount": 1,
 					"maxCount": 1
 				},
 				{
-					"type": "gtpm:abilities",
+					"type": "gtpm:part",
 					"abilities": "maintenance"
 				}
 			]

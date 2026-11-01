@@ -21,8 +21,8 @@
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:blocks",
-						"blocks": "gtpm:high_temperature_smelting_casing"
+						"type": "gtpm:block",
+						"ids": "gtpm:high_temperature_smelting_casing"
 					},
 					"minCount": 45
 				},
@@ -38,11 +38,11 @@
 			]
 		},
 		"C": {
-			"type": "gtpm:blocks",
-			"blocks": "gtpm:molybdenum_disilicide_coil_block"
+			"type": "gtpm:block",
+			"ids": "gtpm:molybdenum_disilicide_coil_block"
 		},
 		"M": {
-			"type": "gtpm:abilities",
+			"type": "gtpm:part",
 			"abilities": "muffler"
 		},
 		"A": {

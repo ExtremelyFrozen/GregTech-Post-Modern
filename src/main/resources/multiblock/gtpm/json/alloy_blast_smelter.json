@@ -21,25 +21,25 @@
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:blocks",
-						"blocks": "gtpm:high_temperature_smelting_casing"
+						"type": "gtpm:block",
+						"ids": "gtpm:high_temperature_smelting_casing"
 					},
 					"minCount": 30
 				},
 				{
-					"type": "gtpm:abilities",
+					"type": "gtpm:part",
 					"abilities": "import_items"
 				},
 				{
-					"type": "gtpm:abilities",
+					"type": "gtpm:part",
 					"abilities": "export_items"
 				},
 				{
-					"type": "gtpm:abilities",
+					"type": "gtpm:part",
 					"abilities": "import_fluids"
 				},
 				{
-					"type": "gtpm:abilities",
+					"type": "gtpm:part",
 					"abilities": "export_fluids"
 				},
 				{
@@ -51,15 +51,15 @@
 			]
 		},
 		"C": {
-			"type": "gtpm:heating_coils"
+			"type": "gtpm:coil"
 		},
 		"M": {
-			"type": "gtpm:abilities",
+			"type": "gtpm:part",
 			"abilities": "muffler"
 		},
 		"G": {
-			"type": "gtpm:blocks",
-			"blocks": "gtpm:heat_vent"
+			"type": "gtpm:block",
+			"ids": "gtpm:heat_vent"
 		},
 		"A": {
 			"type": "gtpm:air"

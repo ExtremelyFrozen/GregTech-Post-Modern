@@ -21,31 +21,31 @@
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:blocks",
-						"blocks": "gtpm:large_scale_assembler_casing"
+						"type": "gtpm:block",
+						"ids": "gtpm:large_scale_assembler_casing"
 					},
 					"minCount": 40
 				},
 				{
-					"type": "gtpm:abilities",
+					"type": "gtpm:part",
 					"abilities": "import_items"
 				},
 				{
-					"type": "gtpm:abilities",
+					"type": "gtpm:part",
 					"abilities": "export_items"
 				},
 				{
-					"type": "gtpm:abilities",
+					"type": "gtpm:part",
 					"abilities": "import_fluids"
 				},
 				{
-					"type": "gtpm:abilities",
+					"type": "gtpm:part",
 					"abilities": "export_fluids"
 				},
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:abilities",
+						"type": "gtpm:part",
 						"abilities": "input_energy"
 					},
 					"minCount": 1,
@@ -60,8 +60,8 @@
 			]
 		},
 		"G": {
-			"type": "gtpm:blocks",
-			"blocks": "gtpm:tempered_glass"
+			"type": "gtpm:block",
+			"ids": "gtpm:tempered_glass"
 		},
 		"A": {
 			"type": "gtpm:air"

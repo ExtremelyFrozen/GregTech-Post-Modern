@@ -21,8 +21,8 @@
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:blocks",
-						"blocks": "gtpm:nonconducting_casing"
+						"type": "gtpm:block",
+						"ids": "gtpm:nonconducting_casing"
 					},
 					"minCount": 35
 				},
@@ -38,8 +38,8 @@
 			]
 		},
 		"C": {
-			"type": "gtpm:blocks",
-			"blocks": "gtpm:electrolytic_cell"
+			"type": "gtpm:block",
+			"ids": "gtpm:electrolytic_cell"
 		}
 	},
 	"body": {

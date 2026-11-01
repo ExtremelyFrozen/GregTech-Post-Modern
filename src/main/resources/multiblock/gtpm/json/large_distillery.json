@@ -22,14 +22,14 @@
 			"type": "gtpm:air"
 		},
 		"P": {
-			"type": "gtpm:blocks",
-			"blocks": "gtpm:steel_pipe_casing"
+			"type": "gtpm:block",
+			"ids": "gtpm:steel_pipe_casing"
 		},
 		"Z": {
 			"type": "gtpm:restricted",
 			"predicate": {
-				"type": "gtpm:blocks",
-				"blocks": "gtpm:watertight_casing"
+				"type": "gtpm:block",
+				"ids": "gtpm:watertight_casing"
 			},
 			"minCount": 40
 		},
@@ -39,15 +39,15 @@
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:blocks",
-						"blocks": "gtpm:watertight_casing"
+						"type": "gtpm:block",
+						"ids": "gtpm:watertight_casing"
 					},
 					"minCount": 40
 				},
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:abilities",
+						"type": "gtpm:part",
 						"abilities": ["export_fluids_1x", "export_fluids"]
 					},
 					"maxCountByLayer": 1,
@@ -61,19 +61,19 @@
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:blocks",
-						"blocks": "gtpm:watertight_casing"
+						"type": "gtpm:block",
+						"ids": "gtpm:watertight_casing"
 					},
 					"minCount": 40
 				},
 				{
-					"type": "gtpm:abilities",
+					"type": "gtpm:part",
 					"abilities": "import_items"
 				},
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:abilities",
+						"type": "gtpm:part",
 						"abilities": "input_energy"
 					},
 					"minCount": 1,
@@ -82,19 +82,19 @@
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:abilities",
+						"type": "gtpm:part",
 						"abilities": "import_fluids"
 					},
 					"minCount": 1
 				},
 				{
-					"type": "gtpm:abilities",
+					"type": "gtpm:part",
 					"abilities": "export_items"
 				},
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:abilities",
+						"type": "gtpm:part",
 						"abilities": "maintenance"
 					},
 					"minCount": 1,
@@ -103,7 +103,7 @@
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:abilities",
+						"type": "gtpm:part",
 						"abilities": "parallel_hatch"
 					},
 					"maxCount": 1,

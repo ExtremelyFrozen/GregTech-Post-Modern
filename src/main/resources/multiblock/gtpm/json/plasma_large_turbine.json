@@ -16,12 +16,12 @@
 	"fragments": {},
 	"predicates": {
 		"G": {
-			"type": "gtpm:blocks",
-			"blocks": "gtpm:tungstensteel_gearbox"
+			"type": "gtpm:block",
+			"ids": "gtpm:tungstensteel_gearbox"
 		},
 		"C": {
-			"type": "gtpm:blocks",
-			"blocks": "gtpm:tungstensteel_turbine_casing"
+			"type": "gtpm:block",
+			"ids": "gtpm:tungstensteel_turbine_casing"
 		},
 		"R": {
 			"type": "gtpm:concatenated",
@@ -38,7 +38,7 @@
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:abilities",
+						"type": "gtpm:part",
 						"abilities": "output_energy"
 					},
 					"minCount": 1,
@@ -50,8 +50,8 @@
 			"type": "gtpm:concatenated",
 			"predicates": [
 				{
-					"type": "gtpm:blocks",
-					"blocks": "gtpm:tungstensteel_turbine_casing"
+					"type": "gtpm:block",
+					"ids": "gtpm:tungstensteel_turbine_casing"
 				},
 				{
 					"type": "gtpm:auto_recipe_abilities",

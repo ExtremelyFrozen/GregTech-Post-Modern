@@ -21,15 +21,15 @@
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:blocks",
-						"blocks": "gtpm:steam_machine_casing"
+						"type": "gtpm:block",
+						"ids": "gtpm:steam_machine_casing"
 					},
 					"minCount": 6
 				},
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:abilities",
+						"type": "gtpm:part",
 						"abilities": "steam_import_items"
 					},
 					"previewCount": 1
@@ -37,7 +37,7 @@
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:abilities",
+						"type": "gtpm:part",
 						"abilities": "steam_export_items"
 					},
 					"previewCount": 1
@@ -48,13 +48,13 @@
 			"type": "gtpm:concatenated",
 			"predicates": [
 				{
-					"type": "gtpm:blocks",
-					"blocks": "gtpm:bronze_firebox_casing"
+					"type": "gtpm:block",
+					"ids": "gtpm:bronze_firebox_casing"
 				},
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:abilities",
+						"type": "gtpm:part",
 						"abilities": "steam"
 					},
 					"minCount": 1,

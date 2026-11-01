@@ -21,23 +21,23 @@
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:blocks",
-						"blocks": "gtpm:heatproof_machine_casing"
+						"type": "gtpm:block",
+						"ids": "gtpm:heatproof_machine_casing"
 					},
 					"minCount": 9
 				},
 				{
-					"type": "gtpm:abilities",
+					"type": "gtpm:part",
 					"abilities": "import_items"
 				},
 				{
-					"type": "gtpm:abilities",
+					"type": "gtpm:part",
 					"abilities": "export_items"
 				},
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:abilities",
+						"type": "gtpm:part",
 						"abilities": "input_energy"
 					},
 					"minCount": 1,
@@ -45,11 +45,11 @@
 					"previewCount": 1
 				},
 				{
-					"type": "gtpm:abilities",
+					"type": "gtpm:part",
 					"abilities": "import_fluids"
 				},
 				{
-					"type": "gtpm:abilities",
+					"type": "gtpm:part",
 					"abilities": "export_fluids"
 				},
 				{
@@ -61,11 +61,11 @@
 			]
 		},
 		"M": {
-			"type": "gtpm:abilities",
+			"type": "gtpm:part",
 			"abilities": "muffler"
 		},
 		"C": {
-			"type": "gtpm:heating_coils"
+			"type": "gtpm:coil"
 		},
 		"#": {
 			"type": "gtpm:air"

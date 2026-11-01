@@ -19,12 +19,12 @@
 			"type": "gtpm:concatenated",
 			"predicates": [
 				{
-					"type": "gtpm:blocks",
-					"blocks": "gtpm:fusion_glass"
+					"type": "gtpm:block",
+					"ids": "gtpm:fusion_glass"
 				},
 				{
-					"type": "gtpm:blocks",
-					"blocks": "gtpm:fusion_casing"
+					"type": "gtpm:block",
+					"ids": "gtpm:fusion_casing"
 				}
 			]
 		},
@@ -32,15 +32,15 @@
 			"type": "gtpm:concatenated",
 			"predicates": [
 				{
-					"type": "gtpm:blocks",
-					"blocks": "gtpm:fusion_casing"
+					"type": "gtpm:block",
+					"ids": "gtpm:fusion_casing"
 				},
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:tiered_ability",
-						"ability": "input_energy",
-						"tiers": [6, 7, 8]
+						"type": "gtpm:part",
+						"abilities": "input_energy",
+						"allowedTiers": [6, 7, 8]
 					},
 					"minCount": 1,
 					"previewCount": 16
@@ -48,22 +48,22 @@
 			]
 		},
 		"C": {
-			"type": "gtpm:blocks",
-			"blocks": "gtpm:fusion_casing"
+			"type": "gtpm:block",
+			"ids": "gtpm:fusion_casing"
 		},
 		"K": {
-			"type": "gtpm:blocks",
-			"blocks": "gtpm:superconducting_coil"
+			"type": "gtpm:block",
+			"ids": "gtpm:superconducting_coil"
 		},
 		"O": {
 			"type": "gtpm:concatenated",
 			"predicates": [
 				{
-					"type": "gtpm:blocks",
-					"blocks": "gtpm:fusion_casing"
+					"type": "gtpm:block",
+					"ids": "gtpm:fusion_casing"
 				},
 				{
-					"type": "gtpm:abilities",
+					"type": "gtpm:part",
 					"abilities": "export_fluids"
 				}
 			]
@@ -75,13 +75,13 @@
 			"type": "gtpm:concatenated",
 			"predicates": [
 				{
-					"type": "gtpm:blocks",
-					"blocks": "gtpm:fusion_casing"
+					"type": "gtpm:block",
+					"ids": "gtpm:fusion_casing"
 				},
 				{
 					"type": "gtpm:restricted",
 					"predicate": {
-						"type": "gtpm:abilities",
+						"type": "gtpm:part",
 						"abilities": "import_fluids"
 					},
 					"minCount": 2
