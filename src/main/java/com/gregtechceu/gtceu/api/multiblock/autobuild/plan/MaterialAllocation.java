@@ -2,6 +2,7 @@ package com.gregtechceu.gtceu.api.multiblock.autobuild.plan;
 
 import com.gregtechceu.gtceu.api.multiblock.autobuild.BuildProblem;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialKey;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialRequest;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialSource;
 
 import net.minecraft.core.BlockPos;
@@ -56,7 +57,7 @@ final class MaterialAllocation {
         this.unlimited = unlimited;
     }
 
-    static MaterialAllocation create(ObjectList<MaterialSource> sources,
+    static MaterialAllocation create(ObjectList<MaterialRequest.Result> sources,
                                      ObjectCollection<MaterialKey> keys,
                                      ResolutionContext context,
                                      ObjectList<BuildProblem> problems,
@@ -73,7 +74,8 @@ final class MaterialAllocation {
         LongList sourceFingerprints = new LongArrayList();
         ObjectArrayList<BuildProblem> structureProblems = new ObjectArrayList<>();
         Reference2ObjectOpenHashMap<MaterialSource, ObjectSet<ProblemIdentity>> reportedProblems = new Reference2ObjectOpenHashMap<>();
-        for (MaterialSource source : sources) {
+        for (MaterialRequest.Result binding : sources) {
+            MaterialSource source = binding.source();
             if (creative && source.kind() != MaterialSource.SourceKind.ME &&
                     source.kind() != MaterialSource.SourceKind.UNAVAILABLE) {
                 continue;

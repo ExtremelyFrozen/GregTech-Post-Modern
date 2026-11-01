@@ -2,7 +2,7 @@ package com.gregtechceu.gtceu.common.item.datacomponents;
 
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialSource;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialRequest;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.BatchRequest;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.BuildPolicy;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.StructureOperation;
@@ -75,7 +75,7 @@ public record TerminalMachine(BuildPolicy sharedOptions,
 
     /** Creates an ordered batch request containing only structures selected in this machine. */
     public BatchRequest createRequest(MultiblockMachineDefinition definition,
-                                      ObjectList<MaterialSource> materialSources) {
+                                      ObjectList<MaterialRequest.Result> materialSources) {
         ObjectList<StructureRequest> selected = new ObjectArrayList<>();
         for (String name : definition.getStructureOrder()) {
             TerminalStructure structure = structures.get(name);

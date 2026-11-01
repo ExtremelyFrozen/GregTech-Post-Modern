@@ -40,7 +40,6 @@ import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ReferenceSet;
 import org.jspecify.annotations.Nullable;
 
-
 /**
  * Supplies automatic-build materials through one deterministic AE wireless-terminal binding.
  *
@@ -63,7 +62,7 @@ public final class MEWirelessMaterialSource implements MaterialSource {
     }
 
     public static MaterialRequest.Result request(ServerPlayer player, MaterialRequest request) {
-        return request.fulfill(new MEWirelessMaterialSource(player,
+        return request.fulfill(() -> new MEWirelessMaterialSource(player,
                 selectBinding(player, request.getExcludedContainer())));
     }
 
@@ -126,7 +125,8 @@ public final class MEWirelessMaterialSource implements MaterialSource {
             return Selection.failed(problem(BuildProblem.Type.ME_UNAVAILABLE,
                     "gtpm.multiblock.autobuild.me_no_player_inventory"));
         }
-        Selection selected = selectBinding(player, excludedTerminal, inventory, new ReferenceOpenHashSet<>(), IntList.of());
+        Selection selected = selectBinding(player, excludedTerminal, inventory, new ReferenceOpenHashSet<>(),
+                IntList.of());
         if (selected.binding() != null || selected.problem() != null) {
             return selected;
         }
@@ -329,6 +329,7 @@ public final class MEWirelessMaterialSource implements MaterialSource {
         private final IActionSource actionSource;
         private final Object2LongOpenHashMap<AEItemKey> reservations = new Object2LongOpenHashMap<>();
         private @Nullable BuildProblem reservationProblem;
+        private final Object2LongMap<AEItemKey> simulatedAvailability = new Object2LongOpenHashMap<>();
 
         private MEWirelessSession(ServerPlayer player, @Nullable WirelessBinding binding,
                                   @Nullable BuildProblem selectionProblem) {
@@ -390,7 +391,8 @@ public final class MEWirelessMaterialSource implements MaterialSource {
                 GTCEu.LOGGER.error("ME automatic-build reservation count overflow", exception);
                 return null;
             }
-            long simulated = access.inventory().extract(aeKey, requested, Actionable.SIMULATE, actionSource);
+            long simulated = simulatedAvailability.computeLongIfAbsent(aeKey,
+                    material -> access.inventory().extract(material, Long.MAX_VALUE, Actionable.SIMULATE, actionSource));
             long reserved = Math.clamp(simulated - alreadyReserved, 0, amount);
             if (reserved == 0) {
                 return null;
@@ -431,6 +433,7 @@ public final class MEWirelessMaterialSource implements MaterialSource {
         }
 
         private void release(AEItemKey key, long amount) {
+            simulatedAvailability.removeLong(key);
             long reserved = reservations.getLong(key);
             if (reserved < amount) {
                 throw new IllegalStateException("ME material reservation accounting is inconsistent");

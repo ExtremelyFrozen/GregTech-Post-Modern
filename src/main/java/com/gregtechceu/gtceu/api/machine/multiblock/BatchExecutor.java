@@ -9,7 +9,9 @@ import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialKey;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialRequest;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialSource;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialSource.Reservation;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialSource.Session;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialSource.SourceKind;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialSources;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.BatchRequest;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.BatchResult;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.StructureOperation;
@@ -45,8 +47,11 @@ import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
 import it.unimi.dsi.fastutil.objects.ObjectList;
+import lombok.Getter;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
+
+import java.util.Objects;
 
 /**
  * Executes an already resolved batch without performing any candidate selection.
@@ -71,10 +76,10 @@ public final class BatchExecutor {
             return failAll(plan, plan.sharedProblems());
         }
         if (!plan.buildPlans().isEmpty()) {
-            for (MaterialSource source : request.materialSources()) {
+            for (MaterialRequest.Result binding : request.materialSources()) {
+                MaterialSource source = binding.source();
                 if (!request.sharedOptions().useME() || !isSharedRequiredSource(source)) continue;
-                MaterialSource.Session session = source.openSession();
-                BuildProblem sessionProblem = session.problem();
+                BuildProblem sessionProblem = source.unavailableProblem();
                 if (sessionProblem != null) {
                     return failAll(plan, sessionProblem);
                 }
@@ -151,8 +156,10 @@ public final class BatchExecutor {
         }
 
         ObjectArrayList<MaterialSource.Session> sessions = new ObjectArrayList<>();
+        ObjectList<MaterialRequest.Result> bindings = new ObjectArrayList<>();
         if (structure.mode() == StructureOperation.BUILD && !player.isCreative()) {
-            for (MaterialSource source : request.materialSources()) {
+            for (MaterialRequest.Result binding : request.materialSources()) {
+                MaterialSource source = binding.source();
                 MaterialSource.Session session = source.openSession();
                 BuildProblem sessionProblem = session.problem();
                 if (sessionProblem != null) {
@@ -162,49 +169,72 @@ public final class BatchExecutor {
                     continue;
                 }
                 sessions.add(session);
+                bindings.add(new MaterialRequest.Result(binding.providerId(), source, session,
+                        binding.excludedContainer(), binding.materials()));
             }
         }
         StructureWork work = assess(controller, player, level, request, structure, sessions);
         if (!work.problems().isEmpty()) {
             return failed(structure, work.problems());
         }
-        if (!player.isCreative() && !reserveMaterials(work)) {
+        if (!player.isCreative() && !reserveMaterials(player, bindings, work)) {
             return failed(structure, work.problems());
         }
         if (!approveClears(player, level, work)) {
             return failed(structure, work.problems());
         }
-        if (!commitMaterials(level, controller.getBlockPos(), work)) {
-            refundCommitted(level, controller.getBlockPos(), work, 0);
-            return failed(structure, work.problems());
-        }
+        try {
+            if (!commitMaterials(level, controller.getBlockPos(), work)) {
+                refundCommitted(level, controller.getBlockPos(), work, 0);
+                return failed(structure, work.problems());
+            }
 
-        int removed = clearBlocks(player, level, work);
-        if (!work.problems().isEmpty()) {
-            refundCommitted(level, controller.getBlockPos(), work, 0);
-            return new StructureResult(structure.structureName(), structure.mode(), false, 0, removed,
-                    work.problems());
-        }
-        if (!applyStateCorrections(level, work)) {
-            refundCommitted(level, controller.getBlockPos(), work, 0);
-            return new StructureResult(structure.structureName(), structure.mode(), false, 0, removed,
-                    work.problems());
-        }
-        int placed = placeBlocks(player, level, work);
-        if (!work.problems().isEmpty()) {
-            refundCommitted(level, controller.getBlockPos(), work, work.consumedPlacements());
-            controller.invalidateStructure(structure.structureName());
-            return new StructureResult(structure.structureName(), structure.mode(), false, placed, removed,
-                    work.problems());
-        }
+            int removed = clearBlocks(player, level, work);
+            if (!work.problems().isEmpty()) {
+                refundCommitted(level, controller.getBlockPos(), work, 0);
+                return new StructureResult(structure.structureName(), structure.mode(), false, 0, removed,
+                        work.problems());
+            }
+            if (!applyStateCorrections(level, work)) {
+                refundCommitted(level, controller.getBlockPos(), work, 0);
+                return new StructureResult(structure.structureName(), structure.mode(), false, 0, removed,
+                        work.problems());
+            }
+            int placed = placeBlocks(player, level, work);
+            if (!work.problems().isEmpty()) {
+                refundCommitted(level, controller.getBlockPos(), work, work.consumedPlacements());
+                controller.invalidateStructure(structure.structureName());
+                return new StructureResult(structure.structureName(), structure.mode(), false, placed, removed,
+                        work.problems());
+            }
 
-        if (structure.mode() == StructureOperation.DEMOLISH) {
-            if (removed > 0) controller.invalidateStructure(structure.structureName());
-            return new StructureResult(structure.structureName(), structure.mode(), true, 0, removed,
+            if (structure.mode() == StructureOperation.DEMOLISH) {
+                if (removed > 0) controller.invalidateStructure(structure.structureName());
+                return new StructureResult(structure.structureName(), structure.mode(), true, 0, removed,
+                        ObjectList.of());
+            }
+            return new StructureResult(structure.structureName(), structure.mode(), true, placed, removed,
                     ObjectList.of());
+        } catch (RuntimeException exception) {
+            GTCEu.LOGGER.error("Automatic-build transaction failed for {} at {}", structure.structureName(),
+                    controller.getBlockPos(), exception);
+            Placement active = work.activePlacement;
+            if (active != null) {
+                BlockState actual = level.getBlockState(active.cell().worldPos());
+                if (!actual.equals(work.stateBeforePlacement) && actual.is(active.cell().blockState().getBlock())) {
+                    work.consumePlacement();
+                }
+            }
+            try {
+                refundCommitted(level, controller.getBlockPos(), work, work.consumedPlacements());
+            } catch (RuntimeException refundException) {
+                exception.addSuppressed(refundException);
+                GTCEu.LOGGER.error("Automatic-build compensation failed for {} at {}", structure.structureName(),
+                        controller.getBlockPos(), refundException);
+            }
+            controller.invalidateStructure(structure.structureName());
+            throw exception;
         }
-        return new StructureResult(structure.structureName(), structure.mode(), true, placed, removed,
-                ObjectList.of());
     }
 
     private static StructureWork assess(MultiblockControllerMachine controller, ServerPlayer player,
@@ -292,21 +322,23 @@ public final class BatchExecutor {
         return work;
     }
 
-    private static boolean reserveMaterials(StructureWork work) {
+    private static boolean reserveMaterials(ServerPlayer player, ObjectList<MaterialRequest.Result> bindings,
+                                            StructureWork work) {
         ObjectList<MaterialRequest.Demand> demands = new ObjectArrayList<>(work.placements().size());
         for (Placement placement : work.placements()) {
             demands.add(new MaterialRequest.Demand(placement.cell().materialKey(), 1));
         }
-        MaterialRequest request = new MaterialRequest(demands, ItemStack.EMPTY, kind -> true);
-        for (int index = 0; index < work.sessions().size(); index++) {
-            MaterialRequest.Reservations result = work.sessions().get(index).request(request);
-            if (result.problem() != null) {
-                work.problems().add(result.problem());
+        ItemStack excluded = bindings.isEmpty() ? ItemStack.EMPTY : bindings.getFirst().excludedContainer();
+        MaterialRequest request = new MaterialRequest(demands, excluded, kind -> true, bindings);
+        for (MaterialRequest.Result result : MaterialSources.request(player, request)) {
+            if (result.materials().problem() != null) {
+                work.problems().add(result.materials().problem());
                 return false;
             }
-            for (MaterialRequest.Allocation allocation : result.allocations()) {
+            MaterialSource.Session session = result.session();
+            for (MaterialRequest.Allocation allocation : result.materials().allocations()) {
                 work.placements().get(allocation.demandIndex()).reservations()
-                        .add(new SourcedReservation(index, allocation.reservation()));
+                        .add(new SourcedReservation(session, allocation.reservation()));
             }
         }
         int missing = request.firstUnfulfilled();
@@ -335,8 +367,8 @@ public final class BatchExecutor {
     private static boolean commitMaterials(ServerLevel level, BlockPos fallbackPos, StructureWork work) {
         for (Placement placement : work.placements()) {
             for (SourcedReservation sourced : placement.reservations()) {
+                sourced.commitAttempted = true;
                 MaterialSource.CommitResult result = sourced.reservation().commitExact();
-                sourced.committed = Math.addExact(sourced.committed, result.committed());
                 drainRejectedStacks(level, fallbackPos, work, sourced);
                 if (result.problem() != null) {
                     work.problems().add(result.problem());
@@ -397,13 +429,17 @@ public final class BatchExecutor {
                 return placed;
             }
             BlockPlaceContext context = new ExactPlaceContext(level, player, stack, cell.worldPos());
+            work.activePlacement = placement;
+            work.stateBeforePlacement = level.getBlockState(cell.worldPos());
             InteractionResult result = blockItem.place(context);
             if (result == InteractionResult.FAIL) {
+                work.activePlacement = null;
                 work.problems().add(problem(BuildProblem.Type.PLACE_FAILED, cell.worldPos(),
                         "gtpm.multiblock.autobuild.place_failed", position(cell.worldPos())));
                 return placed;
             }
             work.consumePlacement();
+            work.activePlacement = null;
             BlockState actual = level.getBlockState(cell.worldPos());
             if (!actual.is(cell.blockState().getBlock())) {
                 work.problems().add(problem(BuildProblem.Type.PLACE_FAILED, cell.worldPos(),
@@ -452,22 +488,24 @@ public final class BatchExecutor {
 
     private static void refundCommitted(ServerLevel level, BlockPos fallbackPos, StructureWork work,
                                         int consumedPlacements) {
+        if (work.refundStarted) return;
+        work.refundStarted = true;
         for (int index = consumedPlacements; index < work.placements().size(); index++) {
             Placement placement = work.placements().get(index);
             for (SourcedReservation sourced : placement.reservations()) {
-                if (sourced.committed == 0) {
+                if (!sourced.commitAttempted) {
                     drainRejectedStacks(level, fallbackPos, work, sourced);
                     continue;
                 }
                 MaterialSource.RollbackResult rollback = sourced.reservation().rollback();
-                long restored = Math.min(sourced.committed, rollback.restored());
-                long remainder = sourced.committed - restored;
+                long restored = rollback.restored();
+                long remainder = rollback.requested() - restored;
                 while (remainder-- > 0) {
                     insertOrDrop(level, fallbackPos, work.sessions(), sourced.reservation().key().prototype(),
-                            sourced.sourceIndex());
+                            sourced.getSourceSession());
                 }
                 drainRejectedStacks(level, fallbackPos, work, sourced);
-                if (rollback.problem() != null || restored < sourced.committed) {
+                if (rollback.problem() != null || restored < rollback.requested()) {
                     BuildProblem rollbackProblem = rollback.problem() == null ?
                             problem(BuildProblem.Type.REFUND_FAILED, fallbackPos,
                                     "gtpm.multiblock.autobuild.refund_failed") :
@@ -487,7 +525,7 @@ public final class BatchExecutor {
         for (int index = sourced.rejectedStacksDrained; index < rejected.size(); index++) {
             ItemStack stack = rejected.get(index);
             if (stack.isEmpty()) continue;
-            insertOrDrop(level, fallbackPos, work.sessions(), stack, sourced.sourceIndex());
+            insertOrDrop(level, fallbackPos, work.sessions(), stack, sourced.getSourceSession());
         }
         int newlyRejected = rejected.size() - sourced.rejectedStacksDrained;
         sourced.rejectedStacksDrained = rejected.size();
@@ -500,17 +538,17 @@ public final class BatchExecutor {
 
     private static void insertOrDrop(ServerLevel level, BlockPos pos,
                                      ObjectList<MaterialSource.Session> sessions, ItemStack stack) {
-        insertOrDrop(level, pos, sessions, stack, -1);
+        insertOrDrop(level, pos, sessions, stack, null);
     }
 
     private static void insertOrDrop(ServerLevel level, BlockPos pos,
                                      ObjectList<MaterialSource.Session> sessions, ItemStack stack,
-                                     int excludedSource) {
+                                     @Nullable Session excludedSource) {
         ItemStack remainder = stack.copy();
-        for (int index = 0; index < sessions.size(); index++) {
-            if (index == excludedSource) continue;
+        for (MaterialSource.Session session : sessions) {
+            if (session == excludedSource) continue;
             if (remainder.isEmpty()) return;
-            remainder = sessions.get(index).insert(remainder, false);
+            remainder = session.insert(remainder, false);
         }
         if (!remainder.isEmpty()) Block.popResource(level, pos, remainder);
     }
@@ -686,6 +724,9 @@ public final class BatchExecutor {
         private final ObjectList<Placement> placements = new ObjectArrayList<>();
         private final ObjectList<BuildProblem> problems = new ObjectArrayList<>();
         private int consumedPlacements;
+        private boolean refundStarted;
+        private @Nullable Placement activePlacement;
+        private @Nullable BlockState stateBeforePlacement;
 
         private StructureWork(ObjectList<MaterialSource.Session> sessions) {
             this.sessions = new ObjectImmutableList<>(sessions);
@@ -742,18 +783,15 @@ public final class BatchExecutor {
 
     private static final class SourcedReservation {
 
-        private final int sourceIndex;
+        @Getter
+        private final MaterialSource.Session sourceSession;
         private final Reservation reservation;
-        private long committed;
+        private boolean commitAttempted;
         private int rejectedStacksDrained;
 
-        private SourcedReservation(int sourceIndex, Reservation reservation) {
-            this.sourceIndex = sourceIndex;
+        private SourcedReservation(MaterialSource.Session sourceSession, Reservation reservation) {
+            this.sourceSession = sourceSession;
             this.reservation = reservation;
-        }
-
-        private int sourceIndex() {
-            return sourceIndex;
         }
 
         private Reservation reservation() {

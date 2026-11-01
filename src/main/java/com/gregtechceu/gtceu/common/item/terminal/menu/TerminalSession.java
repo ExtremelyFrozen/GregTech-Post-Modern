@@ -4,7 +4,6 @@ import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.BuildProblem;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialRequest;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialSource;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialSources;
@@ -35,7 +34,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 
-import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
 import it.unimi.dsi.fastutil.objects.ObjectList;
 import org.jspecify.annotations.Nullable;
@@ -59,6 +57,7 @@ public final class TerminalSession {
     private final UUID sessionId;
     private final BatchPlanner resolver = new BatchPlanner();
     private TerminalMachine machine;
+    private ObjectList<MaterialRequest.Result> boundSources = ObjectList.of();
     private TerminalMenuState state;
     @Nullable
     private AbstractContainerMenu serverMenu;
@@ -170,7 +169,7 @@ public final class TerminalSession {
                 state.meSource(), lastExecution);
         try {
             BatchRequest request = machine.createRequest(definition,
-                    createSources(player));
+                    boundSources);
             long expectedPlanFingerprint = Long.parseUnsignedLong(expectedFingerprint, 16);
             BatchResult result = openedController.autoBuildBatch(player, request, expectedPlanFingerprint);
             lastExecution = TerminalExecutionSummary.from(result);
@@ -265,9 +264,10 @@ public final class TerminalSession {
     }
 
     private TerminalMenuState buildState(ServerPlayer player) {
-        ObjectList<MaterialSource> sources = createSources(player);
+        ObjectList<MaterialRequest.Result> sources = createSources(player);
         BatchRequest request = machine.createRequest(definition, sources);
         BatchResolution resolved = resolver.resolveBatch(openedController, player, request);
+        boundSources = sources;
         StructurePreview preview = StructurePreview.bound(definitionId, resolved);
         TerminalMESourceDisplay meSource = resolved.availability().stream()
                 .map(MaterialSource.Availability::descriptor)
@@ -278,25 +278,16 @@ public final class TerminalSession {
                 lastExecution);
     }
 
-    private ObjectList<MaterialSource> createSources(ServerPlayer player) {
+    private ObjectList<MaterialRequest.Result> createSources(ServerPlayer player) {
         boolean hasBuild = machine.structures().values().stream()
                 .anyMatch(structure -> structure.selected() && structure.mode() == StructureOperation.BUILD);
         if (!hasBuild) {
             return ObjectList.of();
         }
-        ObjectList<MaterialSource> sources = new ObjectArrayList<>();
         boolean useME = machine.sharedOptions().useME();
-        if (useME && !MaterialSources.hasProvider(MaterialSource.SourceKind.ME)) {
-            sources.add(MaterialSources.unavailable(new BuildProblem(
-                    BuildProblem.Type.AE_NOT_INSTALLED, null,
-                    Component.translatable("gtpm.multiblock.autobuild.me_unavailable"))));
-        }
         MaterialRequest request = new MaterialRequest(ObjectList.of(), openedTerminal,
-                kind -> useME || kind != MaterialSource.SourceKind.ME);
-        for (MaterialRequest.Result result : MaterialSources.request(player, request)) {
-            sources.add(result.source());
-        }
-        return new ObjectImmutableList<>(sources);
+                kind -> useME || kind != MaterialSource.SourceKind.ME, null);
+        return MaterialSources.request(player, request);
     }
 
     private void ensureSemanticallyValid(TerminalMachine machine) {

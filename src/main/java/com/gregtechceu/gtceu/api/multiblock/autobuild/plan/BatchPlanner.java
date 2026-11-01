@@ -259,8 +259,17 @@ public final class BatchPlanner {
                 .noneMatch(options -> options.mode() == StructureOperation.BUILD)) {
             return;
         }
+        boolean hasME = isHasME(request);
+        if (request.sharedOptions().useME() && !hasME) {
+            problems.add(problem(BuildProblem.Type.ME_UNAVAILABLE, context.worldPos(),
+                    "gtpm.multiblock.autobuild.me_unavailable"));
+        }
+    }
+
+    private static boolean isHasME(BatchRequest request) {
         boolean hasME = false;
-        for (MaterialSource source : request.materialSources()) {
+        for (var binding : request.materialSources()) {
+            MaterialSource source = binding.source();
             if (source.kind() == MaterialSource.SourceKind.ME) {
                 hasME = true;
                 continue;
@@ -270,10 +279,7 @@ public final class BatchPlanner {
                 hasME |= unavailable != null && isStrictAEProblem(unavailable.type());
             }
         }
-        if (request.sharedOptions().useME() && !hasME) {
-            problems.add(problem(BuildProblem.Type.ME_UNAVAILABLE, context.worldPos(),
-                    "gtpm.multiblock.autobuild.me_unavailable"));
-        }
+        return hasME;
     }
 
     static boolean isStrictAEProblem(BuildProblem.Type type) {

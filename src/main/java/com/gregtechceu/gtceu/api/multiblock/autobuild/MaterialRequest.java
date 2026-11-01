@@ -4,6 +4,7 @@ import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialSource.Reservation
 import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialSource.Session;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialSource.SourceKind;
 
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 
 import it.unimi.dsi.fastutil.longs.LongArrayList;
@@ -14,13 +15,16 @@ import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 /**
  * Ordered exact demands shared by material providers during one server-thread allocation.
  *
- * <p>Only reservation changes the remaining counts. Storage is unchanged until a caller commits the returned
+ * <p>
+ * Only reservation changes the remaining counts. Storage is unchanged until a caller commits the returned
  * reservations, and each reservation retains its original source for rollback. The excluded container is kept by
- * reference so neither its contents nor the terminal that opened the menu can become a material source.</p>
+ * reference so neither its contents nor the terminal that opened the menu can become a material source.
+ * </p>
  */
 public final class MaterialRequest {
 
@@ -30,9 +34,13 @@ public final class MaterialRequest {
     @Getter
     private final ItemStack excludedContainer;
     private final Predicate<SourceKind> includedSources;
+    @Getter
+    private final @Nullable ObjectList<Result> bindings;
+    private ResourceLocation currentProviderId;
+    private @Nullable Result currentBinding;
 
     public MaterialRequest(ObjectList<Demand> demands, ItemStack excludedContainer,
-                           Predicate<SourceKind> includedSources) {
+                           Predicate<SourceKind> includedSources, @Nullable ObjectList<Result> bindings) {
         this.demands = demands;
         this.remaining = new LongArrayList(demands.size());
         for (Demand demand : demands) {
@@ -40,6 +48,7 @@ public final class MaterialRequest {
         }
         this.excludedContainer = excludedContainer;
         this.includedSources = includedSources;
+        this.bindings = bindings;
     }
 
     public boolean includes(SourceKind kind) {
@@ -58,12 +67,22 @@ public final class MaterialRequest {
         return -1;
     }
 
-    /** Binds one concrete source, then reserves only its contribution without extracting backing items. */
-    public Result fulfill(MaterialSource source) {
+    void select(ResourceLocation providerId, @Nullable Result binding) {
+        currentProviderId = providerId;
+        currentBinding = binding;
+    }
+
+    /** Reuses the preview binding and its execution session before considering a new storage selection. */
+    public Result fulfill(Supplier<MaterialSource> selectSource) {
+        MaterialSource source = currentBinding == null ? selectSource.get() : currentBinding.source();
         if (demands.isEmpty()) {
-            return new Result(source, new Reservations(ObjectList.of(), null));
+            return new Result(currentProviderId, source, currentBinding == null ? null : currentBinding.session(),
+                    excludedContainer,
+                    new Reservations(ObjectList.of(), null));
         }
-        return new Result(source, source.openSession().request(this));
+        Session session = currentBinding == null || currentBinding.session() == null ?
+                source.openSession() : currentBinding.session();
+        return new Result(currentProviderId, source, session, excludedContainer, session.request(this));
     }
 
     /** Called by a bound source session; allocation is performed once in the original demand order. */
@@ -94,6 +113,7 @@ public final class MaterialRequest {
 
     public record Reservations(ObjectList<Allocation> allocations, @Nullable BuildProblem problem) {}
 
-    /** The selected raw source is reused by preview and execution; no provider dispatch wrapper is involved. */
-    public record Result(MaterialSource source, Reservations materials) {}
+    /** Keeps registration identity, raw storage and the exact reservation session together across stages. */
+    public record Result(ResourceLocation providerId, MaterialSource source, @Nullable Session session,
+                         ItemStack excludedContainer, Reservations materials) {}
 }

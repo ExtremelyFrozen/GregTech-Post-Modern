@@ -11,6 +11,10 @@ import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.items.IItemHandler;
 
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
 import it.unimi.dsi.fastutil.objects.ObjectList;
 import it.unimi.dsi.fastutil.objects.Reference2LongMap;
@@ -18,7 +22,6 @@ import it.unimi.dsi.fastutil.objects.Reference2LongOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ReferenceSet;
 import org.jspecify.annotations.Nullable;
-
 
 /**
  * Supplies automatic-build materials from the player's ordered inventory and supported nested item handlers.
@@ -40,7 +43,7 @@ final class PlayerInventoryMaterialSource implements MaterialSource {
     }
 
     static MaterialRequest.Result request(ServerPlayer player, MaterialRequest request) {
-        return request.fulfill(new PlayerInventoryMaterialSource(
+        return request.fulfill(() -> new PlayerInventoryMaterialSource(
                 player.getCapability(Capabilities.ItemHandler.ENTITY), request.getExcludedContainer(),
                 SourceKind.PLAYER, player));
     }
@@ -65,6 +68,8 @@ final class PlayerInventoryMaterialSource implements MaterialSource {
 
         private final @Nullable IItemHandler root;
         private final ObjectList<SlotRef> slots = new ObjectArrayList<>();
+        private final Object2ObjectMap<MaterialKey, ObjectList<SlotRef>> slotsByMaterial = new Object2ObjectOpenHashMap<>();
+        private final Object2IntMap<MaterialKey> nextMaterialSlot = new Object2IntOpenHashMap<>();
         private final ObjectList<InsertionHandler> insertionHandlers = new ObjectArrayList<>();
         private final ItemStack excludedContainer;
         @Nullable
@@ -95,7 +100,7 @@ final class PlayerInventoryMaterialSource implements MaterialSource {
         @Override
         public long available(MaterialKey key) {
             long available = 0;
-            for (SlotRef slot : slots) {
+            for (SlotRef slot : matchingSlots(key)) {
                 ItemStack stack = slot.stack();
                 if (!key.matches(stack)) {
                     continue;
@@ -138,21 +143,26 @@ final class PlayerInventoryMaterialSource implements MaterialSource {
             }
             long remaining = amount;
             ObjectList<SlotAllocation> allocations = new ObjectArrayList<>();
-            for (SlotRef slot : slots) {
+            ObjectList<SlotRef> matching = matchingSlots(key);
+            for (int slotIndex = nextMaterialSlot.getInt(key); slotIndex < matching.size(); slotIndex++) {
+                SlotRef slot = matching.get(slotIndex);
                 ItemStack stack = slot.stack();
                 if (!key.matches(stack)) {
+                    nextMaterialSlot.put(key, slotIndex + 1);
                     continue;
                 }
                 long alreadyReserved = reservations.getLong(slot);
                 long available = Math.max(0, stack.getCount() - alreadyReserved);
                 ItemStack simulated = slot.handler().extractItem(slot.slot(), 1, true);
                 if (available == 0 || !key.matches(simulated) || simulated.getCount() != 1) {
+                    nextMaterialSlot.put(key, slotIndex + 1);
                     continue;
                 }
                 long allocated = Math.min(remaining, available);
                 reservations.put(slot, Math.addExact(alreadyReserved, allocated));
                 allocations.add(new SlotAllocation(slot, allocated));
                 remaining -= allocated;
+                if (allocated == available) nextMaterialSlot.put(key, slotIndex + 1);
                 if (remaining == 0) {
                     break;
                 }
@@ -161,10 +171,26 @@ final class PlayerInventoryMaterialSource implements MaterialSource {
             return reserved == 0 ? null : new PlayerInventoryReservation(this, key, reserved, allocations);
         }
 
+        private ObjectList<SlotRef> matchingSlots(MaterialKey key) {
+            ObjectList<SlotRef> matching = slotsByMaterial.get(key);
+            if (matching == null) {
+                matching = new ObjectArrayList<>();
+                for (SlotRef slot : slots) {
+                    if (key.matches(slot.stack())) matching.add(slot);
+                }
+                slotsByMaterial.put(key, matching);
+            }
+            return matching;
+        }
+
         @Override
         public ItemStack insert(ItemStack stack, boolean simulate) {
             if (root == null || stack.isEmpty()) {
                 return stack;
+            }
+            if (!simulate) {
+                slotsByMaterial.clear();
+                nextMaterialSlot.clear();
             }
             ItemStack remainder = stack.copy();
             for (InsertionHandler insertion : insertionHandlers) {
