@@ -13,8 +13,11 @@ import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 
+import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
 import mezz.jei.api.gui.drawable.IDrawable;
 import mezz.jei.api.helpers.IJeiHelpers;
+import mezz.jei.api.recipe.IFocusGroup;
+import mezz.jei.api.recipe.RecipeIngredientRole;
 import mezz.jei.api.recipe.RecipeType;
 import mezz.jei.api.registration.IRecipeRegistration;
 import org.jetbrains.annotations.NotNull;
@@ -79,6 +82,13 @@ public class MultiblockInfoCategory extends ModularUIRecipeCategory<MultiblockIn
     @Override
     public Component getTitle() {
         return Component.translatable("gtpm.jei.multiblock_info");
+    }
+
+    @Override
+    public void setRecipe(IRecipeLayoutBuilder builder, MultiblockInfoWrapper recipe, IFocusGroup focuses) {
+        builder.addSlot(RecipeIngredientRole.OUTPUT)
+                .addItemStacks(PatternPreviewWidget.getOutputs(recipe.definition))
+                .setPosition(PatternPreviewWidget.WIDTH - 22, 4);
     }
 
     private static ModularUI createModularUI(MultiblockInfoWrapper wrapper) {

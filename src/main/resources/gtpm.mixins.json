@@ -36,7 +36,6 @@
 		"client.bloom.normal.sodium.DefaultTerrainRenderPassesMixin",
 		"client.bloom.normal.sodium.SodiumWorldRendererMixin",
 		"dev.client.KeyboardHandlerMixin",
-		"emi.EmiRecipesMixin",
 		"ftbchunks.FTBChunksClientMixin",
 		"ftbchunks.LargeMapScreenMixin",
 		"ftbchunks.RegionMapPanelMixin",

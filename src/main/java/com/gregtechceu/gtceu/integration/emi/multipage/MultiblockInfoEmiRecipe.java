@@ -2,7 +2,6 @@ package com.gregtechceu.gtceu.integration.emi.multipage;
 
 import com.gregtechceu.gtceu.api.gui.widget.PatternPreviewWidget;
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
-import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEventDispatcher;
@@ -10,8 +9,6 @@ import com.lowdragmc.lowdraglib2.integration.xei.emi.EMIUIEvents;
 import com.lowdragmc.lowdraglib2.integration.xei.emi.ModularUIEMIRecipe;
 import com.lowdragmc.lowdraglib2.integration.xei.emi.handler.EMIRecipeIngredientHandler;
 
-import net.minecraft.core.component.DataComponents;
-import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 
 import dev.emi.emi.api.recipe.EmiRecipeCategory;
@@ -56,14 +53,8 @@ public class MultiblockInfoEmiRecipe extends ModularUIEMIRecipe {
 
     @Override
     public @NotNull ObjectList<EmiStack> getOutputs() {
-        return definition.getStructureOrder().stream().map(name -> {
-            var stack = definition.asStack();
-            if (!MultiblockControllerMachine.DEFAULT_STRUCTURE.equals(name)) {
-                stack.set(DataComponents.CUSTOM_NAME,
-                        stack.getHoverName().copy().append(" - ").append(Component.translatable(name)));
-            }
-            return EmiStack.of(stack);
-        }).collect(ObjectImmutableList.toList());
+        return PatternPreviewWidget.getOutputs(definition).stream().map(EmiStack::of)
+                .collect(ObjectImmutableList.toList());
     }
 
     @Override

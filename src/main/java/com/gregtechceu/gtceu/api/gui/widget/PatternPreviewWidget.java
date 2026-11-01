@@ -3,6 +3,7 @@ package com.gregtechceu.gtceu.api.gui.widget;
 import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
+import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.BatchPlanner;
 import com.gregtechceu.gtceu.api.multiblock.preview.PatternGenerationGuard;
 import com.gregtechceu.gtceu.api.multiblock.preview.StructurePreview;
@@ -16,11 +17,15 @@ import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ItemStack;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import dev.vfyjxf.taffy.style.TaffyPosition;
+import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
 import it.unimi.dsi.fastutil.objects.ObjectList;
 import org.jspecify.annotations.NullMarked;
 
@@ -61,6 +66,17 @@ public final class PatternPreviewWidget extends UIElement {
 
     public static ModularUI createModularUI(MultiblockMachineDefinition definition) {
         return ModularUI.of(UI.of(new PatternPreviewWidget(definition)));
+    }
+
+    public static ObjectList<ItemStack> getOutputs(MultiblockMachineDefinition definition) {
+        return definition.getStructureOrder().stream().map(name -> {
+            var stack = definition.asStack();
+            if (!MultiblockControllerMachine.DEFAULT_STRUCTURE.equals(name)) {
+                stack.set(DataComponents.CUSTOM_NAME,
+                        stack.getHoverName().copy().append(" - ").append(Component.translatable(name)));
+            }
+            return stack;
+        }).collect(ObjectImmutableList.toList());
     }
 
     private void applyChange(TerminalChange update) {
