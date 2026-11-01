@@ -4,8 +4,8 @@ import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.BatchPlanner;
-import com.gregtechceu.gtceu.api.multiblock.preview.StructurePreview;
 import com.gregtechceu.gtceu.api.multiblock.preview.PatternGenerationGuard;
+import com.gregtechceu.gtceu.api.multiblock.preview.StructurePreview;
 import com.gregtechceu.gtceu.common.item.datacomponents.TerminalMachine;
 import com.gregtechceu.gtceu.common.item.terminal.profile.TerminalChange;
 import com.gregtechceu.gtceu.common.item.terminal.ui.MultiblockConfigurationPanel;
@@ -83,15 +83,15 @@ public final class PatternPreviewWidget extends UIElement {
     private void publishSnapshot(boolean reset) {
         var resolved = resolveSnapshot(reset);
         observedGeneration = resolved.generation();
-        preview.updateSnapshot(resolved.value());
-        configuration.updateProfile(profile);
+        preview.setPreview(resolved.value());
+        configuration.setMachine(profile);
         configuration.setInteractive(true);
     }
 
     private void showFailure(RuntimeException exception) {
         observedGeneration = StructurePatternRegistry.generation();
         GTCEu.LOGGER.error("Failed to resolve multiblock preview for {}", definition.getId(), exception);
-        preview.updateSnapshot(new StructurePreview(definition.getId(),
+        preview.setPreview(new StructurePreview(definition.getId(),
                 "reload-" + observedGeneration, false, ObjectList.of(), ObjectList.of(), ObjectList.of(),
                 ObjectList.of(new StructurePreview.Diagnostic("PATTERN_RELOAD_INCOMPATIBLE", null, null))));
         configuration.setInteractive(false);

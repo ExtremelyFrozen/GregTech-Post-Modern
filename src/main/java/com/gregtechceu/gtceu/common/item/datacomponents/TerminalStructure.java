@@ -16,9 +16,9 @@ import org.jspecify.annotations.NullMarked;
 /** Persists all structure-local automatic-build choices for one named pattern. */
 @NullMarked
 public record TerminalStructure(boolean selected, StructureOperation mode, IntList repetitions,
-                                       boolean flipMode,
-                                       Object2ObjectMap<String, ResourceLocation> tierChoices,
-                                       Object2ObjectMap<String, String> choices) {
+                                boolean flipMode,
+                                Object2ObjectMap<String, ResourceLocation> tierChoices,
+                                Object2ObjectMap<String, String> choices) {
 
     private static final Codec<StructureOperation> MODE_CODEC = Codec.STRING.comapFlatMap(name -> {
         try {

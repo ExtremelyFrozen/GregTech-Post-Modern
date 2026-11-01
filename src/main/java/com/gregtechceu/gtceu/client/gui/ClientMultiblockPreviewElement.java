@@ -10,9 +10,9 @@ import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.multiblock.MultiblockBlockInfo;
 import com.gregtechceu.gtceu.api.multiblock.MultiblockPreviewLevel;
+import com.gregtechceu.gtceu.api.multiblock.preview.PreviewVisibility;
 import com.gregtechceu.gtceu.api.multiblock.preview.StructurePreview;
 import com.gregtechceu.gtceu.api.multiblock.preview.StructurePreview.Cell;
-import com.gregtechceu.gtceu.api.multiblock.preview.PreviewVisibility;
 import com.gregtechceu.gtceu.integration.xei.GTXEIHelper;
 import com.gregtechceu.gtceu.integration.xei.handlers.item.CycleItemEntryHandler;
 
@@ -194,20 +194,20 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         diagnosticLabel.setTextWrap(TextWrap.WRAP);
         addChild(diagnosticLabel);
 
-        rebuildSnapshot(true);
+        rebuildPreview(true);
     }
 
     /**
-     * Called by the side-safe parent after its shared state accepted a new snapshot.
+     * Called by the side-safe parent after its shared state accepted a new preview.
      */
-    public void snapshotChanged(StructurePreview snapshot) {
-        if (state.snapshot() != snapshot) {
+    public void previewChanged(StructurePreview preview) {
+        if (state.getPreview() != preview) {
             throw new IllegalStateException("Client preview state was not updated before rebuilding its scene");
         }
-        rebuildSnapshot(true);
+        rebuildPreview(true);
     }
 
-    private void rebuildSnapshot(boolean resetCamera) {
+    private void rebuildPreview(boolean resetCamera) {
         runOnRenderThread(() -> {
             if (removed) return;
             releaseLoadedBlocks();
@@ -221,12 +221,12 @@ public final class ClientMultiblockPreviewElement extends UIElement {
                 return;
             }
             structureColors.clear();
-            for (StructurePreview.Structure structure : state.snapshot().structures()) {
+            for (StructurePreview.Structure structure : state.getPreview().structures()) {
                 structureColors.put(structure.name(), stableStructureColor(
-                        state.snapshot().definitionId(), structure.name()));
+                        state.getPreview().definitionId(), structure.name()));
             }
             sceneCells.clear();
-            for (StructurePreview.Cell cell : state.snapshot().cells()) {
+            for (StructurePreview.Cell cell : state.getPreview().cells()) {
                 if (cell.renderState().isAir()) continue;
                 BlockPos scenePos = SCENE_ORIGIN.offset(cell.relativePos());
                 MultiblockBlockInfo blockInfo = cell.renderInfo().createBlockInfo();
@@ -252,12 +252,12 @@ public final class ClientMultiblockPreviewElement extends UIElement {
                 .map(cell -> SCENE_ORIGIN.offset(cell.relativePos()))
                 .collect(ObjectImmutableList.toList());
         scene.setRenderedCore(rendered, new PreviewCellRenderHook(), resetCamera);
-        renderedViewRevision = state.viewRevision();
+        renderedViewRevision = state.getViewRevision();
     }
 
     private void rebuildMaterials() {
         materialScroller.clearAllScrollViewChildren();
-        ObjectList<List<ItemStack>> displayStacks = state.snapshot().materials().stream()
+        ObjectList<List<ItemStack>> displayStacks = state.getPreview().materials().stream()
                 .<List<ItemStack>>map(material -> material.candidates().stream()
                         .map(candidate -> candidate
                                 .copyWithCount((int) Math.min(material.required(), Integer.MAX_VALUE)))
@@ -287,7 +287,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
             slot.setBackgroundTexture(ColorPattern.T_GRAY.rectTexture());
             slot.setItemCountDecorationXOffset(ClientMultiblockPreviewElement::countDecorationOffset);
             slot.setOnAddedTooltips((element, tooltips) -> addMaterialTooltips(
-                    state.snapshot().materials().get(slotIndex), tooltips));
+                    state.getPreview().materials().get(slotIndex), tooltips));
             slot.addEventListener(UIEvents.MOUSE_DOWN, event -> {
                 selectedMaterialIndex = slotIndex;
                 rebuildMaterialDetails();
@@ -307,7 +307,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         GTScrollerViewElement details = materialDetails;
         if (details == null) return;
         details.clearAllScrollViewChildren();
-        ObjectList<StructurePreview.Material> materials = state.snapshot().materials();
+        ObjectList<StructurePreview.Material> materials = state.getPreview().materials();
         ObjectList<Component> lines = new ObjectArrayList<>();
         if (materials.isEmpty()) {
             lines.add(Component.translatable("gtpm.multiblock.preview.material.none"));
@@ -321,7 +321,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
                 lines.add(Component.translatable("gtpm.multiblock.preview.material.structure",
                         structure.structureName(), structure.required()));
             }
-            if (state.snapshot().availabilityKnown()) {
+            if (state.getPreview().availabilityKnown()) {
                 lines.add(Component.translatable("gtpm.multiblock.preview.material.me",
                         material.meAvailable(), material.meAllocated()));
                 lines.add(Component.translatable("gtpm.multiblock.preview.material.player",
@@ -352,7 +352,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
             tooltips.add(Component.translatable("gtpm.multiblock.preview.material.structure",
                     structure.structureName(), structure.required()));
         }
-        if (showAvailability && state.snapshot().availabilityKnown()) {
+        if (showAvailability && state.getPreview().availabilityKnown()) {
             tooltips.add(Component.translatable("gtpm.multiblock.preview.material.me",
                     material.meAvailable(), material.meAllocated()));
             tooltips.add(Component.translatable("gtpm.multiblock.preview.material.player",
@@ -361,7 +361,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
             if (material.unlimited()) {
                 tooltips.add(Component.translatable("gtpm.multiblock.preview.material.unlimited"));
             }
-        } else if (!state.snapshot().availabilityKnown()) {
+        } else if (!state.getPreview().availabilityKnown()) {
             tooltips.add(Component.translatable("gtpm.multiblock.preview.material.availability_unknown"));
         }
     }
@@ -404,33 +404,33 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         @Nullable
         Cell cell = sceneCells.get(scenePos);
         if (cell == null || cell.contributions().isEmpty()) return;
-        state.focus(cell.representative().structureName());
+        state.setFocusedStructure(cell.representative().structureName());
         rebuildRenderedCore(false);
         updateNavigationText();
     }
 
     private void updateNavigationText() {
         @Nullable
-        String focus = state.focusedStructure();
+        String focus = state.getFocusedStructure();
         focusButton.setText(focus == null ?
                 Component.translatable("gtpm.multiblock.preview.button.structure_all") :
                 Component.translatable("gtpm.multiblock.preview.button.structure", abbreviate(focus)));
         @Nullable
-        Integer layer = state.visibleLayer();
+        Integer layer = state.getVisibleLayer();
         layerButton.setText(layer == null ?
                 Component.translatable("gtpm.multiblock.preview.button.layer_all") :
                 Component.translatable("gtpm.multiblock.preview.button.layer", layer));
     }
 
     private void updateDiagnosticText() {
-        ObjectList<StructurePreview.Diagnostic> diagnostics = state.snapshot().diagnostics();
+        ObjectList<StructurePreview.Diagnostic> diagnostics = state.getPreview().diagnostics();
         diagnosticLabel.setText(diagnostics.isEmpty() ? Component.empty() :
                 Component.translatable("gtpm.multiblock.preview.diagnostic",
                         diagnosticDescription(diagnostics.getFirst())));
     }
 
     private void updateDemolitionText() {
-        long count = state.snapshot().cells().stream()
+        long count = state.getPreview().cells().stream()
                 .filter(StructurePreview.Cell::demolitionTarget)
                 .count();
         demolitionLabel.setText(Component.translatable(
@@ -461,7 +461,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         Level currentLevel = Minecraft.getInstance().level;
         if (currentLevel != sourceLevel) {
             rebuildForLevel(currentLevel);
-        } else if (renderedViewRevision != state.viewRevision()) {
+        } else if (renderedViewRevision != state.getViewRevision()) {
             rebuildRenderedCore(false);
             updateNavigationText();
         }
@@ -481,7 +481,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
             if (currentLevel == null) {
                 scene.setRenderedCore(ObjectList.of(), new PreviewCellRenderHook(), true);
             } else {
-                rebuildSnapshot(true);
+                rebuildPreview(true);
             }
         });
     }
@@ -559,7 +559,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
                 red = green = blue = 1.0f;
             } else {
                 int color = structureColors.getOrDefault(cell.representative().structureName(),
-                        stableStructureColor(ClientMultiblockPreviewElement.this.state.snapshot().definitionId(),
+                        stableStructureColor(ClientMultiblockPreviewElement.this.state.getPreview().definitionId(),
                                 cell.representative().structureName()));
                 red = ((color >>> 16) & 0xff) / 255.0f;
                 green = ((color >>> 8) & 0xff) / 255.0f;

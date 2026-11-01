@@ -8,9 +8,9 @@ import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.BatchRequest;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.BuildPolicy;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.StructureRequest;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.BatchPlan;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.BatchPlanner;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.CellAction;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.MergedPlanCell;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.BatchPlanner;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.PlannedBlockInfo;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.PlannedCell;
 import com.gregtechceu.gtceu.api.multiblock.preview.PatternGenerationGuard;
@@ -255,7 +255,7 @@ public final class MultiblockInWorldPreviewRenderer {
     }
 
     private static BatchRequest defaultPreviewRequest(MultiblockControllerMachine controller,
-                                                               BatchPlanner resolver) {
+                                                      BatchPlanner resolver) {
         var definition = controller.getDefinition();
         var order = definition.getStructureOrder();
         if (order.isEmpty()) {

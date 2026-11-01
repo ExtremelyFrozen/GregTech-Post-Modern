@@ -81,7 +81,7 @@ public class ClientProxy {
         MultiblockPreviewPanel.registerClientFactory(context -> {
             ClientMultiblockPreviewElement element = new ClientMultiblockPreviewElement(
                     context.width(), context.height(), context.state(), context.showAvailability());
-            context.installUpdater().accept(element::snapshotChanged);
+            context.installUpdater().accept(element::previewChanged);
             return element;
         });
         modBus.register(ClientProxy.class);

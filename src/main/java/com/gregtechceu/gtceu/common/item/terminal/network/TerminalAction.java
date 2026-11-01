@@ -9,7 +9,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.UUID;
 
-/** Bounded action carried by the owning held-item ModularUI RPC; a null update requests execution. */
+/** Action carried by the owning held-item ModularUI RPC; a null update requests execution. */
 public record TerminalAction(UUID sessionId, long sequence, long expectedRevision,
                              @Nullable TerminalChange update) {
 
@@ -22,10 +22,4 @@ public record TerminalAction(UUID sessionId, long sequence, long expectedRevisio
                 if (action.update != null) TerminalChange.STREAM_CODEC.encode(buffer, action.update);
             }, buffer -> new TerminalAction(buffer.readUUID(), buffer.readVarLong(), buffer.readVarLong(),
                     buffer.readBoolean() ? TerminalChange.STREAM_CODEC.decode(buffer) : null));
-
-    public TerminalAction {
-        if (sequence <= 0 || expectedRevision < 0) {
-            throw new IllegalArgumentException("Terminal action sequence and revision are invalid");
-        }
-    }
 }

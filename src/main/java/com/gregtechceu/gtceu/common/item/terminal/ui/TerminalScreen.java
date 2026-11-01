@@ -186,8 +186,8 @@ public final class TerminalScreen extends UIElement {
     }
 
     private void updateDisplay() {
-        preview.updateSnapshot(state.preview());
-        configuration.updateProfile(state.profile());
+        preview.setPreview(state.preview());
+        configuration.setMachine(state.profile());
         var source = state.meSource();
         sourceLabel.setValue(source == null ?
                 Component.translatable("gtpm.multiblock.autobuild.terminal.ae_unavailable") :

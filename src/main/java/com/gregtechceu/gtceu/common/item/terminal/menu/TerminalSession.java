@@ -4,9 +4,9 @@ import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.BuildProblem;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialSource;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialSources;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.BuildProblem;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.BatchRequest;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.BatchResult;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.StructureOperation;
@@ -15,9 +15,9 @@ import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.BatchPlanner;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.BatchResolution;
 import com.gregtechceu.gtceu.api.multiblock.preview.StructurePreview;
 import com.gregtechceu.gtceu.common.data.GTDataComponents;
-import com.gregtechceu.gtceu.common.item.datacomponents.TerminalMachines;
 import com.gregtechceu.gtceu.common.item.datacomponents.TerminalControllerBinding;
 import com.gregtechceu.gtceu.common.item.datacomponents.TerminalMachine;
+import com.gregtechceu.gtceu.common.item.datacomponents.TerminalMachines;
 import com.gregtechceu.gtceu.common.item.terminal.profile.TerminalChange;
 import com.gregtechceu.gtceu.common.machine.owner.MachineOwner;
 import com.gregtechceu.gtceu.data.pattern.StructurePatternRegistry;
@@ -312,7 +312,7 @@ public final class TerminalSession {
     }
 
     private static TerminalMachine loadProfile(ServerPlayer player, ItemStack terminal,
-                                                      MultiblockMachineDefinition definition) {
+                                               MultiblockMachineDefinition definition) {
         TerminalMachines profiles = terminal.getOrDefault(GTDataComponents.TERMINAL_AUTO_BUILD,
                 TerminalMachines.EMPTY);
         TerminalMachine profile = profiles.profiles().get(definition.getId());

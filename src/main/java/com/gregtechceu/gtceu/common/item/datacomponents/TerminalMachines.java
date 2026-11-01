@@ -1,8 +1,8 @@
 package com.gregtechceu.gtceu.common.item.datacomponents;
 
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.StructureOperation;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.BuildPolicy;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.StructureOperation;
 
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;

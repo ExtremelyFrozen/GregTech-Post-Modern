@@ -1,8 +1,8 @@
 package com.gregtechceu.gtceu.common.item.terminal.profile;
 
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.StructureOperation;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.BuildPolicy;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.StructureOperation;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.StructureRequest;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.BatchPlanner;
 import com.gregtechceu.gtceu.api.multiblock.pattern.match.MultiBlockPattern;
@@ -19,56 +19,15 @@ import it.unimi.dsi.fastutil.objects.ObjectList;
 import org.jspecify.annotations.Nullable;
 
 /**
- * One bounded, typed terminal profile mutation sent to the authoritative server menu.
+ * One typed terminal profile mutation sent to the authoritative server menu.
  */
 public record TerminalChange(Type type, @Nullable String structureName, int repetitionIndex,
-                                    int repetitionValue, boolean booleanValue, @Nullable StructureOperation mode,
-                                    @Nullable String tierGroup, @Nullable ResourceLocation tierChoice,
-                                    @Nullable String choicePath, @Nullable String choiceBranch) {
-
-    private static final int MAX_STRUCTURE_NAME = 128;
-    private static final int MAX_RESOURCE_LOCATION = 256;
-    private static final int MAX_CHOICE_PATH = 2048;
+                             int repetitionValue, boolean booleanValue, @Nullable StructureOperation mode,
+                             @Nullable String tierGroup, @Nullable ResourceLocation tierChoice,
+                             @Nullable String choicePath, @Nullable String choiceBranch) {
 
     public static final StreamCodec<RegistryFriendlyByteBuf, TerminalChange> STREAM_CODEC = StreamCodec
             .of(TerminalChange::encode, TerminalChange::decode);
-
-    public TerminalChange(Type type, @Nullable String structureName, int repetitionIndex,
-                                 int repetitionValue, boolean booleanValue, @Nullable StructureOperation mode,
-                                 @Nullable String tierGroup, @Nullable ResourceLocation tierChoice) {
-        this(type, structureName, repetitionIndex, repetitionValue, booleanValue, mode, tierGroup, tierChoice, null,
-                null);
-    }
-
-    public TerminalChange {
-        boolean structureAction = switch (type) {
-            case STRUCTURE_SELECTED, STRUCTURE_MODE, STRUCTURE_FLIP, REPETITION, TIER, CHOICE -> true;
-            default -> false;
-        };
-        if (structureAction && (structureName == null || structureName.isBlank() ||
-                structureName.length() > MAX_STRUCTURE_NAME)) {
-            throw new IllegalArgumentException("A bounded structure name is required for " + type);
-        }
-        if (type == Type.STRUCTURE_MODE && mode == null) {
-            throw new IllegalArgumentException("A structure mode is required");
-        }
-        if (type == Type.REPETITION && repetitionIndex < 0) {
-            throw new IllegalArgumentException("Repetition index cannot be negative");
-        }
-        if (type == Type.TIER && (tierGroup == null || tierChoice == null)) {
-            throw new IllegalArgumentException("Tier group and choice are required");
-        }
-        if (type == Type.CHOICE && (choicePath == null || choicePath.isBlank() ||
-                choicePath.length() > MAX_CHOICE_PATH ||
-                choiceBranch == null || choiceBranch.isBlank() || choiceBranch.length() > MAX_RESOURCE_LOCATION)) {
-            throw new IllegalArgumentException("A bounded choice path and branch are required");
-        }
-        if (tierGroup != null && tierChoice != null &&
-                (tierGroup.isBlank() || tierGroup.length() > MAX_RESOURCE_LOCATION ||
-                        tierChoice.toString().length() > MAX_RESOURCE_LOCATION)) {
-            throw new IllegalArgumentException("Tier group and choice must be bounded");
-        }
-    }
 
     public static TerminalChange sharedReplace(boolean value) {
         return booleanUpdate(Type.SHARED_REPLACE, null, value);
@@ -87,7 +46,7 @@ public record TerminalChange(Type type, @Nullable String structureName, int repe
     }
 
     public static TerminalChange structureMode(String name, StructureOperation mode) {
-        return new TerminalChange(Type.STRUCTURE_MODE, name, 0, 0, false, mode, null, null);
+        return new TerminalChange(Type.STRUCTURE_MODE, name, 0, 0, false, mode, null, null, null, null);
     }
 
     public static TerminalChange structureFlip(String name, boolean value) {
@@ -95,11 +54,11 @@ public record TerminalChange(Type type, @Nullable String structureName, int repe
     }
 
     public static TerminalChange repetition(String name, int index, int value) {
-        return new TerminalChange(Type.REPETITION, name, index, value, false, null, null, null);
+        return new TerminalChange(Type.REPETITION, name, index, value, false, null, null, null, null, null);
     }
 
     public static TerminalChange tier(String name, String group, ResourceLocation choice) {
-        return new TerminalChange(Type.TIER, name, 0, 0, false, null, group, choice);
+        return new TerminalChange(Type.TIER, name, 0, 0, false, null, group, choice, null, null);
     }
 
     public static TerminalChange choice(String name, String path, String branch) {
@@ -125,7 +84,7 @@ public record TerminalChange(Type type, @Nullable String structureName, int repe
     }
 
     private TerminalMachine selectStructure(MultiblockMachineDefinition definition,
-                                                   TerminalMachine profile) {
+                                            TerminalMachine profile) {
         TerminalStructure structure = requireStructure(profile);
         if (!booleanValue) {
             for (var entry : profile.structures().entrySet()) {
@@ -147,7 +106,7 @@ public record TerminalChange(Type type, @Nullable String structureName, int repe
     }
 
     private TerminalMachine changeMode(MultiblockMachineDefinition definition,
-                                              TerminalMachine profile) {
+                                       TerminalMachine profile) {
         TerminalStructure structure = requireStructure(profile);
         if (mode == StructureOperation.DEMOLISH) {
             for (var entry : profile.structures().entrySet()) {
@@ -159,11 +118,12 @@ public record TerminalChange(Type type, @Nullable String structureName, int repe
             }
         }
         TerminalMachine updated = updateStructure(definition, profile, structure.withMode(mode));
-        return mode == StructureOperation.BUILD && structure.selected() ? selectDependencies(definition, updated) : updated;
+        return mode == StructureOperation.BUILD && structure.selected() ? selectDependencies(definition, updated) :
+                updated;
     }
 
     private TerminalMachine selectDependencies(MultiblockMachineDefinition definition,
-                                                      TerminalMachine profile) {
+                                               TerminalMachine profile) {
         TerminalMachine updated = profile;
         for (String dependency : definition.getRequiredStructures(structureName)) {
             TerminalStructure dependencyProfile = updated.structures().get(dependency);
@@ -177,11 +137,11 @@ public record TerminalChange(Type type, @Nullable String structureName, int repe
     }
 
     private TerminalMachine changeRepetition(MultiblockMachineDefinition definition,
-                                                    TerminalMachine profile) {
+                                             TerminalMachine profile) {
         TerminalStructure structure = requireStructure(profile);
         MultiBlockPattern pattern = definition.getPattern(structureName);
         var descriptors = pattern.getRepeatDescriptors();
-        if (repetitionIndex >= descriptors.size()) {
+        if (repetitionIndex < 0 || repetitionIndex >= descriptors.size()) {
             throw new IllegalArgumentException("Unknown repetition unit " + repetitionIndex + " for " +
                     structureName);
         }
@@ -199,7 +159,7 @@ public record TerminalChange(Type type, @Nullable String structureName, int repe
     }
 
     private TerminalMachine changeFlip(MultiblockMachineDefinition definition,
-                                              TerminalMachine profile) {
+                                       TerminalMachine profile) {
         if (booleanValue && !definition.isAllowFlip()) {
             throw new IllegalArgumentException("This multiblock definition does not allow flipped structures");
         }
@@ -207,7 +167,7 @@ public record TerminalChange(Type type, @Nullable String structureName, int repe
     }
 
     private TerminalMachine changeTier(MultiblockMachineDefinition definition,
-                                              TerminalMachine profile) {
+                                       TerminalMachine profile) {
         ObjectList<ResourceLocation> choices = new BatchPlanner().tierChoiceOptions(definition, structureName)
                 .get(tierGroup);
         if (choices == null || !choices.contains(tierChoice)) {
@@ -218,7 +178,7 @@ public record TerminalChange(Type type, @Nullable String structureName, int repe
     }
 
     private TerminalMachine changeChoice(MultiblockMachineDefinition definition,
-                                                TerminalMachine profile) {
+                                         TerminalMachine profile) {
         boolean valid = definition.getPattern(structureName).getChoiceDescriptors().stream()
                 .anyMatch(choice -> choice.path().equals(choicePath) && choice.alternatives().contains(choiceBranch));
         if (!valid) throw new IllegalArgumentException("Choice branch does not belong to this structure node");
@@ -227,7 +187,7 @@ public record TerminalChange(Type type, @Nullable String structureName, int repe
     }
 
     private TerminalStructure normalizeLayoutTiers(MultiblockMachineDefinition definition,
-                                                          TerminalStructure structure) {
+                                                   TerminalStructure structure) {
         var options = new StructureRequest(structureName, structure.repetitions(), structure.tierChoices(),
                 structure.flipMode(), structure.mode(), structure.choices());
         var domains = new BatchPlanner().activeTierChoiceOptions(definition, options);
@@ -241,8 +201,8 @@ public record TerminalChange(Type type, @Nullable String structureName, int repe
     }
 
     private TerminalMachine updateStructure(MultiblockMachineDefinition definition,
-                                                   TerminalMachine profile,
-                                                   TerminalStructure structure) {
+                                            TerminalMachine profile,
+                                            TerminalStructure structure) {
         if (!definition.getStructureNames().contains(structureName)) {
             throw new IllegalArgumentException("Unknown terminal structure: " + structureName);
         }
@@ -258,7 +218,7 @@ public record TerminalChange(Type type, @Nullable String structureName, int repe
     }
 
     private static TerminalChange booleanUpdate(Type type, @Nullable String structureName, boolean value) {
-        return new TerminalChange(type, structureName, 0, 0, value, null, null, null);
+        return new TerminalChange(type, structureName, 0, 0, value, null, null, null, null, null);
     }
 
     private static void encode(RegistryFriendlyByteBuf buffer, TerminalChange update) {
@@ -266,27 +226,27 @@ public record TerminalChange(Type type, @Nullable String structureName, int repe
         switch (update.type) {
             case SHARED_REPLACE, SHARED_NO_HATCH, SHARED_USE_ME -> buffer.writeBoolean(update.booleanValue);
             case STRUCTURE_SELECTED, STRUCTURE_FLIP -> {
-                buffer.writeUtf(update.structureName, MAX_STRUCTURE_NAME);
+                buffer.writeUtf(update.structureName);
                 buffer.writeBoolean(update.booleanValue);
             }
             case STRUCTURE_MODE -> {
-                buffer.writeUtf(update.structureName, MAX_STRUCTURE_NAME);
+                buffer.writeUtf(update.structureName);
                 buffer.writeEnum(update.mode);
             }
             case REPETITION -> {
-                buffer.writeUtf(update.structureName, MAX_STRUCTURE_NAME);
+                buffer.writeUtf(update.structureName);
                 buffer.writeVarInt(update.repetitionIndex);
                 buffer.writeVarInt(update.repetitionValue);
             }
             case TIER -> {
-                buffer.writeUtf(update.structureName, MAX_STRUCTURE_NAME);
-                buffer.writeUtf(update.tierGroup, MAX_RESOURCE_LOCATION);
-                writeResourceLocation(buffer, update.tierChoice);
+                buffer.writeUtf(update.structureName);
+                buffer.writeUtf(update.tierGroup);
+                buffer.writeResourceLocation(update.tierChoice);
             }
             case CHOICE -> {
-                buffer.writeUtf(update.structureName, MAX_STRUCTURE_NAME);
-                buffer.writeUtf(update.choicePath, MAX_CHOICE_PATH);
-                buffer.writeUtf(update.choiceBranch, MAX_RESOURCE_LOCATION);
+                buffer.writeUtf(update.structureName);
+                buffer.writeUtf(update.choicePath);
+                buffer.writeUtf(update.choiceBranch);
             }
         }
     }
@@ -295,25 +255,15 @@ public record TerminalChange(Type type, @Nullable String structureName, int repe
         Type type = buffer.readEnum(Type.class);
         return switch (type) {
             case SHARED_REPLACE, SHARED_NO_HATCH, SHARED_USE_ME -> booleanUpdate(type, null, buffer.readBoolean());
-            case STRUCTURE_SELECTED, STRUCTURE_FLIP -> booleanUpdate(type, buffer.readUtf(MAX_STRUCTURE_NAME),
+            case STRUCTURE_SELECTED, STRUCTURE_FLIP -> booleanUpdate(type, buffer.readUtf(),
                     buffer.readBoolean());
-            case STRUCTURE_MODE -> structureMode(buffer.readUtf(MAX_STRUCTURE_NAME),
+            case STRUCTURE_MODE -> structureMode(buffer.readUtf(),
                     buffer.readEnum(StructureOperation.class));
-            case REPETITION -> repetition(buffer.readUtf(MAX_STRUCTURE_NAME), buffer.readVarInt(),
+            case REPETITION -> repetition(buffer.readUtf(), buffer.readVarInt(),
                     buffer.readVarInt());
-            case TIER -> tier(buffer.readUtf(MAX_STRUCTURE_NAME), buffer.readUtf(MAX_RESOURCE_LOCATION),
-                    readResourceLocation(buffer));
-            case CHOICE -> choice(buffer.readUtf(MAX_STRUCTURE_NAME), buffer.readUtf(MAX_CHOICE_PATH),
-                    buffer.readUtf(MAX_RESOURCE_LOCATION));
+            case TIER -> tier(buffer.readUtf(), buffer.readUtf(), buffer.readResourceLocation());
+            case CHOICE -> choice(buffer.readUtf(), buffer.readUtf(), buffer.readUtf());
         };
-    }
-
-    private static void writeResourceLocation(RegistryFriendlyByteBuf buffer, ResourceLocation value) {
-        buffer.writeUtf(value.toString(), MAX_RESOURCE_LOCATION);
-    }
-
-    private static ResourceLocation readResourceLocation(RegistryFriendlyByteBuf buffer) {
-        return ResourceLocation.parse(buffer.readUtf(MAX_RESOURCE_LOCATION));
     }
 
     public enum Type {

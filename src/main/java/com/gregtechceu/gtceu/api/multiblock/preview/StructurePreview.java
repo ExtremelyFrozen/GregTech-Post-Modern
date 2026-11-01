@@ -1,16 +1,16 @@
 package com.gregtechceu.gtceu.api.multiblock.preview;
 
 import com.gregtechceu.gtceu.api.multiblock.MultiblockBlockInfo;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.BuildProblem;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialKey;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialSource;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.BuildProblem;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.BatchPlan;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.BatchResolution;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.CellAction;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.MergedPlanCell;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.PatternCellKey;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.PlannedBlockInfo;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.PlannedCell;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.BatchResolution;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.StructurePlan;
 
 import net.minecraft.core.BlockPos;
@@ -33,15 +33,14 @@ import it.unimi.dsi.fastutil.objects.Object2ObjectMaps;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
 import it.unimi.dsi.fastutil.objects.ObjectList;
-import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
-import it.unimi.dsi.fastutil.objects.ObjectSet;
+import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 
 import java.util.Collections;
 import java.util.Comparator;
 
 /**
- * Immutable, client-library-neutral projection of one resolved multiblock plan.
+ * Client-library-neutral projection of one resolved multiblock plan.
  *
  * <p>
  * The wire portion contains no controller, level or live block entity. A locally resolved snapshot may retain a
@@ -50,37 +49,28 @@ import java.util.Comparator;
  * </p>
  */
 public record StructurePreview(ResourceLocation definitionId, String fingerprint,
-                                        boolean availabilityKnown, ObjectList<Structure> structures,
-                                        ObjectList<Cell> cells,
-                                        ObjectList<Material> materials, ObjectList<Diagnostic> diagnostics) {
+                               boolean availabilityKnown, ObjectList<Structure> structures,
+                               ObjectList<Cell> cells,
+                               ObjectList<Material> materials, ObjectList<Diagnostic> diagnostics) {
 
-    public static final int MAX_STRUCTURES = 128;
-    public static final int MAX_CELLS = 65_536;
-    public static final int MAX_MATERIALS = 4_096;
-    public static final int MAX_DIAGNOSTICS = 4_096;
-    public static final int MAX_CONTRIBUTORS = 128;
-    public static final int MAX_CANDIDATES = 4_096;
-    private static final int MAX_NAME_LENGTH = 256;
-    private static final int MAX_FINGERPRINT_LENGTH = 128;
-    private static final int MAX_DIAGNOSTIC_CODE_LENGTH = 128;
     private static final BlockState AIR_CONFLICT_MARKER_STATE = Blocks.WHITE_STAINED_GLASS.defaultBlockState();
     private static final RenderInfo AIR_CONFLICT_RENDER_INFO = RenderInfo
             .fromPlan(PlannedBlockInfo.from(AIR_CONFLICT_MARKER_STATE));
 
     /**
-     * Registry-aware and explicitly bounded terminal snapshot codec.
+     * Registry-aware terminal snapshot codec.
      */
     public static final StreamCodec<RegistryFriendlyByteBuf, StructurePreview> STREAM_CODEC = new StreamCodec<>() {
 
         @Override
         public StructurePreview decode(RegistryFriendlyByteBuf buffer) {
             ResourceLocation definitionId = buffer.readResourceLocation();
-            String fingerprint = buffer.readUtf(MAX_FINGERPRINT_LENGTH);
+            String fingerprint = buffer.readUtf();
             boolean availabilityKnown = buffer.readBoolean();
-            ObjectList<Structure> structures = readList(buffer, MAX_STRUCTURES, Structure.STREAM_CODEC);
-            ObjectList<Cell> cells = readList(buffer, MAX_CELLS, Cell.STREAM_CODEC);
-            ObjectList<Material> materials = readList(buffer, MAX_MATERIALS, Material.STREAM_CODEC);
-            ObjectList<Diagnostic> diagnostics = readList(buffer, MAX_DIAGNOSTICS, Diagnostic.STREAM_CODEC);
+            ObjectList<Structure> structures = readList(buffer, Structure.STREAM_CODEC);
+            ObjectList<Cell> cells = readList(buffer, Cell.STREAM_CODEC);
+            ObjectList<Material> materials = readList(buffer, Material.STREAM_CODEC);
+            ObjectList<Diagnostic> diagnostics = readList(buffer, Diagnostic.STREAM_CODEC);
             return new StructurePreview(definitionId, fingerprint, availabilityKnown,
                     structures, cells, materials, diagnostics);
         }
@@ -88,61 +78,14 @@ public record StructurePreview(ResourceLocation definitionId, String fingerprint
         @Override
         public void encode(RegistryFriendlyByteBuf buffer, StructurePreview value) {
             buffer.writeResourceLocation(value.definitionId);
-            buffer.writeUtf(value.fingerprint, MAX_FINGERPRINT_LENGTH);
+            buffer.writeUtf(value.fingerprint);
             buffer.writeBoolean(value.availabilityKnown);
-            writeList(buffer, value.structures, MAX_STRUCTURES, Structure.STREAM_CODEC);
-            writeList(buffer, value.cells, MAX_CELLS, Cell.STREAM_CODEC);
-            writeList(buffer, value.materials, MAX_MATERIALS, Material.STREAM_CODEC);
-            writeList(buffer, value.diagnostics, MAX_DIAGNOSTICS, Diagnostic.STREAM_CODEC);
+            writeList(buffer, value.structures, Structure.STREAM_CODEC);
+            writeList(buffer, value.cells, Cell.STREAM_CODEC);
+            writeList(buffer, value.materials, Material.STREAM_CODEC);
+            writeList(buffer, value.diagnostics, Diagnostic.STREAM_CODEC);
         }
     };
-
-    public StructurePreview {
-        requireStringLength(fingerprint, MAX_FINGERPRINT_LENGTH, "fingerprint");
-        structures = boundedCopy(structures, MAX_STRUCTURES, "structures");
-        cells = boundedCopy(cells, MAX_CELLS, "cells");
-        materials = boundedCopy(materials, MAX_MATERIALS, "materials");
-        diagnostics = boundedCopy(diagnostics, MAX_DIAGNOSTICS, "diagnostics");
-
-        ObjectSet<String> names = new ObjectOpenHashSet<>();
-        for (Structure structure : structures) {
-            if (!names.add(structure.name)) {
-                throw new IllegalArgumentException("Duplicate preview structure: " + structure.name);
-            }
-        }
-        for (Cell cell : cells) {
-            for (Contribution contribution : cell.contributions) {
-                if (!names.contains(contribution.structureName)) {
-                    throw new IllegalArgumentException(
-                            "Preview cell references an unknown structure: " + contribution.structureName);
-                }
-            }
-        }
-        for (Material material : materials) {
-            for (StructureAmount amount : material.structures) {
-                if (!names.contains(amount.structureName)) {
-                    throw new IllegalArgumentException(
-                            "Preview material references an unknown structure: " + amount.structureName);
-                }
-            }
-        }
-        if (availabilityKnown) {
-            for (Material material : materials) {
-                long accounted = checkedAdd(material.meAllocated, material.playerAllocated,
-                        "allocated material count");
-                accounted = checkedAdd(accounted, material.missing, "accounted material count");
-                if (material.unlimited) {
-                    if (accounted != 0) {
-                        throw new IllegalArgumentException(
-                                "Unlimited preview material must not be assigned to a bounded source");
-                    }
-                } else if (accounted != material.required) {
-                    throw new IllegalArgumentException(
-                            "Preview material allocation does not exactly account for its requirement");
-                }
-            }
-        }
-    }
 
     /**
      * Projects a canonical XEI plan whose material availability is intentionally unknown.
@@ -155,23 +98,23 @@ public record StructurePreview(ResourceLocation definitionId, String fingerprint
      * Projects the exact plan, source snapshots and allocations produced by one server-side resolution.
      */
     public static StructurePreview bound(ResourceLocation definitionId,
-                                                  BatchResolution resolved) {
+                                         BatchResolution resolved) {
         return fromPlan(definitionId, resolved.plan(), resolved, false);
     }
 
     private static StructurePreview fromPlan(ResourceLocation definitionId, BatchPlan plan,
-                                                      @Nullable BatchResolution resolved,
-                                                      boolean retainCandidateGroups) {
+                                             @Nullable BatchResolution resolved,
+                                             boolean retainCandidateGroups) {
         ObjectList<StructurePlan> executionOrder = plan.executionOrder();
-        ObjectList<Structure> structures = structureSnapshots(plan);
-        ObjectList<Cell> cells = cellSnapshots(plan, executionOrder);
-        ObjectList<Material> materials = materialSnapshots(plan, resolved, retainCandidateGroups);
-        ObjectList<Diagnostic> diagnostics = diagnosticSnapshots(plan);
+        ObjectList<Structure> structures = projectStructures(plan);
+        ObjectList<Cell> cells = projectCells(plan, executionOrder);
+        ObjectList<Material> materials = projectMaterials(plan, resolved, retainCandidateGroups);
+        ObjectList<Diagnostic> diagnostics = projectDiagnostics(plan);
         return new StructurePreview(definitionId, Long.toUnsignedString(plan.fingerprint(), 16),
                 resolved != null, structures, cells, materials, diagnostics);
     }
 
-    private static ObjectList<Structure> structureSnapshots(BatchPlan plan) {
+    private static ObjectList<Structure> projectStructures(BatchPlan plan) {
         Object2ObjectLinkedOpenHashMap<String, Mode> structures = new Object2ObjectLinkedOpenHashMap<>();
         ObjectList<StructurePlan> demolitionInDefinitionOrder = new ObjectArrayList<>(plan.demolitionPlans());
         Collections.reverse(demolitionInDefinitionOrder);
@@ -186,8 +129,8 @@ public record StructurePreview(ResourceLocation definitionId, String fingerprint
                 .collect(ObjectImmutableList.toList());
     }
 
-    private static ObjectList<Cell> cellSnapshots(BatchPlan plan,
-                                                  ObjectList<StructurePlan> executionOrder) {
+    private static ObjectList<Cell> projectCells(BatchPlan plan,
+                                                 ObjectList<StructurePlan> executionOrder) {
         Object2IntMap<String> executionIndex = new Object2IntLinkedOpenHashMap<>();
         for (int index = 0; index < executionOrder.size(); index++) {
             executionIndex.put(executionOrder.get(index).structureName(), index);
@@ -207,9 +150,9 @@ public record StructurePreview(ResourceLocation definitionId, String fingerprint
                 .collect(ObjectImmutableList.toList());
     }
 
-    private static ObjectList<Material> materialSnapshots(BatchPlan plan,
-                                                          @Nullable BatchResolution resolved,
-                                                          boolean retainCandidateGroups) {
+    private static ObjectList<Material> projectMaterials(BatchPlan plan,
+                                                         @Nullable BatchResolution resolved,
+                                                         boolean retainCandidateGroups) {
         Object2ObjectLinkedOpenHashMap<ObjectList<MaterialKey>, MaterialRequirement> requirements = collectMaterialRequirements(
                 plan,
                 retainCandidateGroups);
@@ -252,8 +195,8 @@ public record StructurePreview(ResourceLocation definitionId, String fingerprint
     }
 
     private static Object2ObjectLinkedOpenHashMap<ObjectList<MaterialKey>, MaterialRequirement> collectMaterialRequirements(
-                                                                                                                                 BatchPlan plan,
-                                                                                                                                 boolean retainCandidateGroups) {
+                                                                                                                            BatchPlan plan,
+                                                                                                                            boolean retainCandidateGroups) {
         Object2ObjectLinkedOpenHashMap<ObjectList<MaterialKey>, MaterialRequirement> requirements = new Object2ObjectLinkedOpenHashMap<>();
         for (StructurePlan structure : plan.executionOrder()) {
             Object2LongMap<MaterialKey> remaining = new Object2LongLinkedOpenHashMap<>(structure.materials());
@@ -278,7 +221,7 @@ public record StructurePreview(ResourceLocation definitionId, String fingerprint
     }
 
     private static ObjectList<MaterialKey> materialGroup(PlannedCell cell, MaterialKey selected,
-                                                              boolean retainCandidateGroups) {
+                                                         boolean retainCandidateGroups) {
         if (retainCandidateGroups && cell.tierGroups().isEmpty() && !cell.materialCandidates().isEmpty()) {
             return cell.materialCandidates();
         }
@@ -304,7 +247,7 @@ public record StructurePreview(ResourceLocation definitionId, String fingerprint
         return total;
     }
 
-    private static ObjectList<Diagnostic> diagnosticSnapshots(BatchPlan plan) {
+    private static ObjectList<Diagnostic> projectDiagnostics(BatchPlan plan) {
         ObjectList<Diagnostic> diagnostics = new ObjectArrayList<>();
         for (BuildProblem problem : plan.sharedProblems()) {
             diagnostics.add(new Diagnostic(problem.type().name(), null, relativeProblemPos(problem, plan)));
@@ -352,20 +295,15 @@ public record StructurePreview(ResourceLocation definitionId, String fingerprint
 
             @Override
             public Structure decode(RegistryFriendlyByteBuf buffer) {
-                return new Structure(buffer.readUtf(MAX_NAME_LENGTH), buffer.readEnum(Mode.class));
+                return new Structure(buffer.readUtf(), buffer.readEnum(Mode.class));
             }
 
             @Override
             public void encode(RegistryFriendlyByteBuf buffer, Structure value) {
-                buffer.writeUtf(value.name, MAX_NAME_LENGTH);
+                buffer.writeUtf(value.name);
                 buffer.writeEnum(value.mode);
             }
         };
-
-        public Structure {
-            if (name.isBlank()) throw new IllegalArgumentException("Preview structure name must not be blank");
-            requireStringLength(name, MAX_NAME_LENGTH, "structure name");
-        }
     }
 
     public enum Mode {
@@ -386,7 +324,7 @@ public record StructurePreview(ResourceLocation definitionId, String fingerprint
                 BlockPos relativePos = buffer.readBlockPos();
                 @Nullable
                 BlockPos worldPos = buffer.readBoolean() ? buffer.readBlockPos() : null;
-                ObjectList<Contribution> contributions = readList(buffer, MAX_CONTRIBUTORS, Contribution.STREAM_CODEC);
+                ObjectList<Contribution> contributions = readList(buffer, Contribution.STREAM_CODEC);
                 return new Cell(relativePos, worldPos, contributions, buffer.readBoolean());
             }
 
@@ -395,24 +333,10 @@ public record StructurePreview(ResourceLocation definitionId, String fingerprint
                 buffer.writeBlockPos(value.relativePos);
                 buffer.writeBoolean(value.worldPos != null);
                 if (value.worldPos != null) buffer.writeBlockPos(value.worldPos);
-                writeList(buffer, value.contributions, MAX_CONTRIBUTORS, Contribution.STREAM_CODEC);
+                writeList(buffer, value.contributions, Contribution.STREAM_CODEC);
                 buffer.writeBoolean(value.conflict);
             }
         };
-
-        public Cell {
-            relativePos = relativePos.immutable();
-            worldPos = worldPos == null ? null : worldPos.immutable();
-            contributions = boundedCopy(contributions, MAX_CONTRIBUTORS, "cell contributions");
-            if (contributions.isEmpty()) {
-                throw new IllegalArgumentException("Preview cell must have at least one contribution");
-            }
-            for (Contribution contribution : contributions) {
-                if (!relativePos.equals(contribution.relativePos)) {
-                    throw new IllegalArgumentException("Preview contribution uses a different relative position");
-                }
-            }
-        }
 
         public BlockState state() {
             return representative().targetState;
@@ -483,7 +407,7 @@ public record StructurePreview(ResourceLocation definitionId, String fingerprint
 
             @Override
             public Contribution decode(RegistryFriendlyByteBuf buffer) {
-                String structureName = buffer.readUtf(MAX_NAME_LENGTH);
+                String structureName = buffer.readUtf();
                 CellKey cellKey = CellKey.STREAM_CODEC.decode(buffer);
                 BlockPos relativePos = buffer.readBlockPos();
                 BlockState targetState = buffer.readById(Block.BLOCK_STATE_REGISTRY::byId);
@@ -498,7 +422,7 @@ public record StructurePreview(ResourceLocation definitionId, String fingerprint
 
             @Override
             public void encode(RegistryFriendlyByteBuf buffer, Contribution value) {
-                buffer.writeUtf(value.structureName, MAX_NAME_LENGTH);
+                buffer.writeUtf(value.structureName);
                 CellKey.STREAM_CODEC.encode(buffer, value.cellKey);
                 buffer.writeBlockPos(value.relativePos);
                 buffer.writeById(Block.BLOCK_STATE_REGISTRY::getId, value.targetState);
@@ -508,17 +432,6 @@ public record StructurePreview(ResourceLocation definitionId, String fingerprint
                 value.renderInfo.encode(buffer);
             }
         };
-
-        public Contribution {
-            if (structureName.isBlank()) {
-                throw new IllegalArgumentException("Preview contribution structure must not be blank");
-            }
-            requireStringLength(structureName, MAX_NAME_LENGTH, "contribution structure");
-            relativePos = relativePos.immutable();
-            if (!targetState.equals(renderInfo.blockState())) {
-                throw new IllegalArgumentException("Preview render state does not match its contribution target");
-            }
-        }
 
         private static Contribution fromPlan(PlannedCell cell) {
             return new Contribution(cell.structureName(), CellKey.fromPlan(cell.cellKey()), cell.relativePos(),
@@ -549,12 +462,6 @@ public record StructurePreview(ResourceLocation definitionId, String fingerprint
             }
         };
 
-        public CellKey {
-            if (unitIndex < 0 || repetition < 0 || innerSlice < 0 || row < 0 || column < 0) {
-                throw new IllegalArgumentException("Preview cell indexes must be non-negative");
-            }
-        }
-
         private static CellKey fromPlan(PatternCellKey key) {
             return new CellKey(key.unitIndex(), key.repetition(), key.innerSlice(), key.row(), key.column());
         }
@@ -566,6 +473,7 @@ public record StructurePreview(ResourceLocation definitionId, String fingerprint
      */
     public static final class RenderInfo {
 
+        @Getter
         private final BlockState blockState;
         private final boolean hasBlockEntity;
         private final ItemStack itemStack;
@@ -576,7 +484,7 @@ public record StructurePreview(ResourceLocation definitionId, String fingerprint
                            @Nullable PlannedBlockInfo localPlanInfo) {
             this.blockState = blockState;
             this.hasBlockEntity = hasBlockEntity;
-            this.itemStack = itemStack.copy();
+            this.itemStack = itemStack;
             this.localPlanInfo = localPlanInfo;
         }
 
@@ -595,10 +503,6 @@ public record StructurePreview(ResourceLocation definitionId, String fingerprint
             buffer.writeById(Block.BLOCK_STATE_REGISTRY::getId, blockState);
             buffer.writeBoolean(hasBlockEntity);
             ItemStack.OPTIONAL_STREAM_CODEC.encode(buffer, itemStack);
-        }
-
-        public BlockState blockState() {
-            return blockState;
         }
 
         public ItemStack itemStack() {
@@ -636,7 +540,7 @@ public record StructurePreview(ResourceLocation definitionId, String fingerprint
 
             @Override
             public Material decode(RegistryFriendlyByteBuf buffer) {
-                int count = readBoundedCount(buffer, MAX_CANDIDATES, "material candidates");
+                int count = buffer.readVarInt();
                 ObjectList<ItemStack> candidates = new ObjectArrayList<>(count);
                 for (int index = 0; index < count; index++) {
                     candidates.add(ItemStack.OPTIONAL_STREAM_CODEC.decode(buffer));
@@ -648,14 +552,14 @@ public record StructurePreview(ResourceLocation definitionId, String fingerprint
                 long playerAllocated = buffer.readVarLong();
                 long missing = buffer.readVarLong();
                 boolean unlimited = buffer.readBoolean();
-                ObjectList<StructureAmount> structures = readList(buffer, MAX_STRUCTURES, StructureAmount.STREAM_CODEC);
+                ObjectList<StructureAmount> structures = readList(buffer, StructureAmount.STREAM_CODEC);
                 return new Material(candidates, required, meAvailable, meAllocated, playerAvailable,
                         playerAllocated, missing, unlimited, structures);
             }
 
             @Override
             public void encode(RegistryFriendlyByteBuf buffer, Material value) {
-                writeCount(buffer, value.candidates.size(), MAX_CANDIDATES, "material candidates");
+                buffer.writeVarInt(value.candidates.size());
                 for (ItemStack candidate : value.candidates) {
                     ItemStack.OPTIONAL_STREAM_CODEC.encode(buffer, candidate);
                 }
@@ -666,54 +570,9 @@ public record StructurePreview(ResourceLocation definitionId, String fingerprint
                 buffer.writeVarLong(value.playerAllocated);
                 buffer.writeVarLong(value.missing);
                 buffer.writeBoolean(value.unlimited);
-                writeList(buffer, value.structures, MAX_STRUCTURES, StructureAmount.STREAM_CODEC);
+                writeList(buffer, value.structures, StructureAmount.STREAM_CODEC);
             }
         };
-
-        public Material {
-            if (candidates.isEmpty()) {
-                throw new IllegalArgumentException("Preview material must have at least one candidate");
-            }
-            if (candidates.size() > MAX_CANDIDATES) {
-                throw new IllegalArgumentException("Too many preview material candidates: " + candidates.size());
-            }
-            ObjectList<ItemStack> copies = new ObjectArrayList<>(candidates.size());
-            for (ItemStack candidate : candidates) {
-                if (candidate.isEmpty()) {
-                    throw new IllegalArgumentException("Preview material candidate must not be empty");
-                }
-                ItemStack copy = candidate.copy();
-                copy.setCount(1);
-                copies.add(copy);
-            }
-            candidates = new ObjectImmutableList<>(copies);
-            requireNonNegative(required, "required");
-            requireNonNegative(meAvailable, "meAvailable");
-            requireNonNegative(meAllocated, "meAllocated");
-            requireNonNegative(playerAvailable, "playerAvailable");
-            requireNonNegative(playerAllocated, "playerAllocated");
-            requireNonNegative(missing, "missing");
-            if (meAllocated > meAvailable || playerAllocated > playerAvailable || missing > required) {
-                throw new IllegalArgumentException("Preview material allocation exceeds availability or demand");
-            }
-            if (unlimited && missing != 0) {
-                throw new IllegalArgumentException("Unlimited material demand cannot be missing");
-            }
-            structures = boundedCopy(structures, MAX_STRUCTURES, "material structure amounts");
-            long structureTotal = 0;
-            ObjectSet<String> structureNames = new ObjectOpenHashSet<>();
-            for (StructureAmount structure : structures) {
-                if (!structureNames.add(structure.structureName)) {
-                    throw new IllegalArgumentException(
-                            "Duplicate material structure amount: " + structure.structureName);
-                }
-                structureTotal = checkedAdd(structureTotal, structure.required, "structure material total");
-            }
-            if (structureTotal != required) {
-                throw new IllegalArgumentException(
-                        "Material structure amounts do not add up to the aggregate requirement");
-            }
-        }
 
         @Override
         public ObjectList<ItemStack> candidates() {
@@ -736,25 +595,15 @@ public record StructurePreview(ResourceLocation definitionId, String fingerprint
 
             @Override
             public StructureAmount decode(RegistryFriendlyByteBuf buffer) {
-                return new StructureAmount(buffer.readUtf(MAX_NAME_LENGTH), buffer.readVarLong());
+                return new StructureAmount(buffer.readUtf(), buffer.readVarLong());
             }
 
             @Override
             public void encode(RegistryFriendlyByteBuf buffer, StructureAmount value) {
-                buffer.writeUtf(value.structureName, MAX_NAME_LENGTH);
+                buffer.writeUtf(value.structureName);
                 buffer.writeVarLong(value.required);
             }
         };
-
-        public StructureAmount {
-            if (structureName.isBlank()) {
-                throw new IllegalArgumentException("Material structure name must not be blank");
-            }
-            requireStringLength(structureName, MAX_NAME_LENGTH, "material structure name");
-            if (required <= 0) {
-                throw new IllegalArgumentException("Material structure requirement must be positive");
-            }
-        }
     }
 
     /**
@@ -766,9 +615,9 @@ public record StructurePreview(ResourceLocation definitionId, String fingerprint
 
             @Override
             public Diagnostic decode(RegistryFriendlyByteBuf buffer) {
-                String code = buffer.readUtf(MAX_DIAGNOSTIC_CODE_LENGTH);
+                String code = buffer.readUtf();
                 @Nullable
-                String structure = buffer.readBoolean() ? buffer.readUtf(MAX_NAME_LENGTH) : null;
+                String structure = buffer.readBoolean() ? buffer.readUtf() : null;
                 @Nullable
                 BlockPos pos = buffer.readBoolean() ? buffer.readBlockPos() : null;
                 return new Diagnostic(code, structure, pos);
@@ -776,71 +625,27 @@ public record StructurePreview(ResourceLocation definitionId, String fingerprint
 
             @Override
             public void encode(RegistryFriendlyByteBuf buffer, Diagnostic value) {
-                buffer.writeUtf(value.code, MAX_DIAGNOSTIC_CODE_LENGTH);
+                buffer.writeUtf(value.code);
                 buffer.writeBoolean(value.structureName != null);
-                if (value.structureName != null) buffer.writeUtf(value.structureName, MAX_NAME_LENGTH);
+                if (value.structureName != null) buffer.writeUtf(value.structureName);
                 buffer.writeBoolean(value.relativePos != null);
                 if (value.relativePos != null) buffer.writeBlockPos(value.relativePos);
             }
         };
-
-        public Diagnostic {
-            if (code.isBlank()) throw new IllegalArgumentException("Preview diagnostic code must not be blank");
-            requireStringLength(code, MAX_DIAGNOSTIC_CODE_LENGTH, "diagnostic code");
-            if (structureName != null) {
-                if (structureName.isBlank()) {
-                    throw new IllegalArgumentException("Diagnostic structure name must not be blank");
-                }
-                requireStringLength(structureName, MAX_NAME_LENGTH, "diagnostic structure name");
-            }
-            relativePos = relativePos == null ? null : relativePos.immutable();
-        }
     }
 
-    private static <T> ObjectList<T> readList(RegistryFriendlyByteBuf buffer, int maximum,
+    private static <T> ObjectList<T> readList(RegistryFriendlyByteBuf buffer,
                                               StreamCodec<RegistryFriendlyByteBuf, T> codec) {
-        int count = readBoundedCount(buffer, maximum, "preview list");
+        int count = buffer.readVarInt();
         ObjectList<T> values = new ObjectArrayList<>(count);
         for (int index = 0; index < count; index++) values.add(codec.decode(buffer));
         return values;
     }
 
-    private static <T> void writeList(RegistryFriendlyByteBuf buffer, ObjectList<T> values, int maximum,
+    private static <T> void writeList(RegistryFriendlyByteBuf buffer, ObjectList<T> values,
                                       StreamCodec<RegistryFriendlyByteBuf, T> codec) {
-        writeCount(buffer, values.size(), maximum, "preview list");
+        buffer.writeVarInt(values.size());
         for (T value : values) codec.encode(buffer, value);
-    }
-
-    private static int readBoundedCount(RegistryFriendlyByteBuf buffer, int maximum, String label) {
-        int count = buffer.readVarInt();
-        if (count < 0 || count > maximum) {
-            throw new IllegalArgumentException(label + " count is outside [0, " + maximum + "]: " + count);
-        }
-        return count;
-    }
-
-    private static void writeCount(RegistryFriendlyByteBuf buffer, int count, int maximum, String label) {
-        if (count < 0 || count > maximum) {
-            throw new IllegalArgumentException(label + " count is outside [0, " + maximum + "]: " + count);
-        }
-        buffer.writeVarInt(count);
-    }
-
-    private static <T> ObjectList<T> boundedCopy(ObjectList<T> values, int maximum, String label) {
-        if (values.size() > maximum) {
-            throw new IllegalArgumentException("Too many " + label + ": " + values.size());
-        }
-        return new ObjectImmutableList<>(values);
-    }
-
-    private static void requireStringLength(String value, int maximum, String label) {
-        if (value.length() > maximum) {
-            throw new IllegalArgumentException(label + " is longer than " + maximum + " characters");
-        }
-    }
-
-    private static void requireNonNegative(long value, String label) {
-        if (value < 0) throw new IllegalArgumentException(label + " must not be negative");
     }
 
     private static long checkedAdd(long left, long right, String label) {

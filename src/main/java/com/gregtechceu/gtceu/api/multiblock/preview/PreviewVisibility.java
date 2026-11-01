@@ -6,6 +6,7 @@ import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
 import it.unimi.dsi.fastutil.objects.ObjectList;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ObjectSet;
+import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -18,32 +19,32 @@ import org.jspecify.annotations.Nullable;
  */
 public final class PreviewVisibility {
 
-    private StructurePreview snapshot;
+    @Getter
+    private StructurePreview preview;
     private final ObjectSet<String> hiddenStructures = new ObjectOpenHashSet<>();
     private final IntArrayList layers = new IntArrayList();
+    @Getter
     private long viewRevision;
+    @Getter
     @Nullable
     private String focusedStructure;
+    @Getter
     @Nullable
     private Integer visibleLayer;
 
-    public PreviewVisibility(StructurePreview snapshot) {
-        this.snapshot = snapshot;
+    public PreviewVisibility(StructurePreview preview) {
+        this.preview = preview;
         updateLayers();
-    }
-
-    public StructurePreview snapshot() {
-        return snapshot;
     }
 
     /**
      * Replaces server-authoritative content while retaining navigation only when it is still valid.
      */
-    public void replaceSnapshot(StructurePreview snapshot) {
-        this.snapshot = snapshot;
-        hiddenStructures.removeIf(name -> snapshot.structures().stream()
+    public void setPreview(StructurePreview preview) {
+        this.preview = preview;
+        hiddenStructures.removeIf(name -> preview.structures().stream()
                 .noneMatch(structure -> structure.name().equals(name)));
-        if (focusedStructure != null && snapshot.structures().stream()
+        if (focusedStructure != null && preview.structures().stream()
                 .noneMatch(structure -> structure.name().equals(focusedStructure))) {
             focusedStructure = null;
         }
@@ -57,7 +58,7 @@ public final class PreviewVisibility {
     }
 
     public void setStructureVisible(String structureName, boolean visible) {
-        if (snapshot.structures().stream().noneMatch(structure -> structure.name().equals(structureName))) {
+        if (preview.structures().stream().noneMatch(structure -> structure.name().equals(structureName))) {
             throw new IllegalArgumentException("Unknown preview structure: " + structureName);
         }
         if (visible) hiddenStructures.remove(structureName);
@@ -67,13 +68,9 @@ public final class PreviewVisibility {
         viewRevision++;
     }
 
-    public long viewRevision() {
-        return viewRevision;
-    }
-
     private void updateLayers() {
         IntAVLTreeSet available = new IntAVLTreeSet();
-        for (var cell : snapshot.cells()) {
+        for (var cell : preview.cells()) {
             if (hasVisibleContributor(cell)) available.add(cell.relativePos().getY());
         }
         layers.clear();
@@ -85,16 +82,11 @@ public final class PreviewVisibility {
         return cell.contributions().stream().anyMatch(contribution -> isStructureVisible(contribution.structureName()));
     }
 
-    @Nullable
-    public String focusedStructure() {
-        return focusedStructure;
-    }
-
     /**
      * Focuses one selected structure; passing {@code null} displays all structures at equal emphasis.
      */
-    public void focus(@Nullable String structureName) {
-        if (structureName != null && snapshot.structures().stream()
+    public void setFocusedStructure(@Nullable String structureName) {
+        if (structureName != null && preview.structures().stream()
                 .noneMatch(structure -> structure.name().equals(structureName))) {
             throw new IllegalArgumentException("Unknown preview structure: " + structureName);
         }
@@ -107,19 +99,14 @@ public final class PreviewVisibility {
      */
     public void focusNext() {
         boolean next = focusedStructure == null;
-        for (var structure : snapshot.structures()) {
+        for (var structure : preview.structures()) {
             if (next && isStructureVisible(structure.name())) {
-                focus(structure.name());
+                setFocusedStructure(structure.name());
                 return;
             }
             if (structure.name().equals(focusedStructure)) next = true;
         }
-        focus(null);
-    }
-
-    @Nullable
-    public Integer visibleLayer() {
-        return visibleLayer;
+        setFocusedStructure(null);
     }
 
     /**
@@ -137,9 +124,9 @@ public final class PreviewVisibility {
      */
     public ObjectList<StructurePreview.Cell> visibleCells() {
         if (visibleLayer == null && hiddenStructures.isEmpty()) {
-            return snapshot.cells();
+            return preview.cells();
         }
-        return snapshot.cells().stream()
+        return preview.cells().stream()
                 .filter(this::hasVisibleContributor)
                 .filter(cell -> visibleLayer == null || cell.relativePos().getY() == visibleLayer)
                 .collect(ObjectImmutableList.toList());

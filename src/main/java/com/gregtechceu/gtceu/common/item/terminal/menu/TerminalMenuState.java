@@ -1,8 +1,8 @@
 package com.gregtechceu.gtceu.common.item.terminal.menu;
 
 import com.gregtechceu.gtceu.api.multiblock.preview.StructurePreview;
-import com.gregtechceu.gtceu.common.item.datacomponents.TerminalMachines;
 import com.gregtechceu.gtceu.common.item.datacomponents.TerminalMachine;
+import com.gregtechceu.gtceu.common.item.datacomponents.TerminalMachines;
 
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;

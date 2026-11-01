@@ -43,16 +43,16 @@ public final class MultiblockConfigurationPanel extends GTScrollerViewElement {
     private final ObjectList<Control> controls = new ObjectArrayList<>();
     private final int contentWidth;
     private final int viewportHeight;
-    private TerminalMachine profile;
+    private TerminalMachine machine;
     private ObjectList<Structure> displayedStructures = ObjectList.of();
     private boolean interactive = true;
 
     public MultiblockConfigurationPanel(int x, int y, int width, int height,
-                                        MultiblockMachineDefinition definition, TerminalMachine profile,
+                                        MultiblockMachineDefinition definition, TerminalMachine machine,
                                         MultiblockPreviewPanel preview, Consumer<TerminalChange> update) {
         super(x, y, width, height);
         this.definition = definition;
-        this.profile = profile;
+        this.machine = machine;
         this.preview = preview;
         this.update = update;
         contentWidth = width - 4;
@@ -64,9 +64,9 @@ public final class MultiblockConfigurationPanel extends GTScrollerViewElement {
         rebuild();
     }
 
-    public void updateProfile(TerminalMachine profile) {
-        if (!this.profile.equals(profile) || !displayedStructures.equals(preview.state().snapshot().structures())) {
-            this.profile = profile;
+    public void setMachine(TerminalMachine machine) {
+        if (!this.machine.equals(machine) || !displayedStructures.equals(preview.getState().getPreview().structures())) {
+            this.machine = machine;
             rebuild();
         }
     }
@@ -77,10 +77,10 @@ public final class MultiblockConfigurationPanel extends GTScrollerViewElement {
     }
 
     private void rebuild() {
-        displayedStructures = new ObjectArrayList<>(preview.state().snapshot().structures());
+        displayedStructures = new ObjectArrayList<>(preview.getState().getPreview().structures());
         clearAllScrollViewChildren();
         controls.clear();
-        var shared = profile.sharedOptions();
+        var shared = machine.sharedOptions();
         int y = 0;
         action(0, y, contentWidth, text("replace", onOff(shared.replaceMode())),
                 TerminalChange.sharedReplace(!shared.replaceMode()), true);
@@ -92,12 +92,13 @@ public final class MultiblockConfigurationPanel extends GTScrollerViewElement {
                 TerminalChange.sharedME(!shared.useME()), true);
         y += 22;
 
-        long selectedCount = profile.structures().values().stream().filter(TerminalStructure::selected).count();
+        long selectedCount = machine.structures().values().stream().filter(TerminalStructure::selected).count();
         BatchPlanner resolver = new BatchPlanner();
         for (String name : definition.getStructureOrder()) {
-            TerminalStructure structure = profile.structures().get(name);
-            boolean required = profile.structures().entrySet().stream()
-                    .anyMatch(entry -> entry.getValue().selected() && entry.getValue().mode() == StructureOperation.BUILD &&
+            TerminalStructure structure = machine.structures().get(name);
+            boolean required = machine.structures().entrySet().stream()
+                    .anyMatch(entry -> entry.getValue().selected() &&
+                            entry.getValue().mode() == StructureOperation.BUILD &&
                             definition.getRequiredStructures(entry.getKey()).contains(name));
             boolean selectionLocked = required || structure.selected() && selectedCount == 1;
             GTLabelElement title = new GTLabelElement(0, y, contentWidth, 11, Component.literal(name));
@@ -109,14 +110,14 @@ public final class MultiblockConfigurationPanel extends GTScrollerViewElement {
                     TerminalChange.structureSelected(name, !structure.selected()), !selectionLocked);
             GTButtonElement visibility = button(contentWidth - 42, y, 42,
                     Component.translatable("gtpm.multiblock.configuration.visible." +
-                            preview.state().isStructureVisible(name)));
-            visibility.setActive(preview.state().snapshot().structures().stream()
+                            preview.getState().isStructureVisible(name)));
+            visibility.setActive(preview.getState().getPreview().structures().stream()
                     .anyMatch(selected -> selected.name().equals(name)));
             visibility
                     .style(style -> style.tooltips(Component.translatable("gtpm.multiblock.configuration.visibility")));
             visibility.setOnClick(event -> {
-                boolean visible = !preview.state().isStructureVisible(name);
-                preview.state().setStructureVisible(name, visible);
+                boolean visible = !preview.getState().isStructureVisible(name);
+                preview.getState().setStructureVisible(name, visible);
                 visibility.setText(Component.translatable("gtpm.multiblock.configuration.visible." + visible));
                 event.stopPropagation();
             });
@@ -124,7 +125,8 @@ public final class MultiblockConfigurationPanel extends GTScrollerViewElement {
             y += 18;
             action(0, y, contentWidth / 2 - 1, text("mode." + structure.mode().name().toLowerCase(Locale.ROOT)),
                     TerminalChange.structureMode(name,
-                            structure.mode() == StructureOperation.BUILD ? StructureOperation.DEMOLISH : StructureOperation.BUILD),
+                            structure.mode() == StructureOperation.BUILD ? StructureOperation.DEMOLISH :
+                                    StructureOperation.BUILD),
                     !required);
             action(contentWidth / 2 + 1, y, contentWidth / 2 - 1, text("flip", onOff(structure.flipMode())),
                     TerminalChange.structureFlip(name, !structure.flipMode()), definition.isAllowFlip());

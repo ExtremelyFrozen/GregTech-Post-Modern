@@ -1,12 +1,13 @@
 package com.gregtechceu.gtceu.api.gui.widget;
 
-import com.gregtechceu.gtceu.api.multiblock.preview.StructurePreview;
 import com.gregtechceu.gtceu.api.multiblock.preview.PreviewVisibility;
+import com.gregtechceu.gtceu.api.multiblock.preview.StructurePreview;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 
 import dev.vfyjxf.taffy.style.TaffyPosition;
+import lombok.Getter;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
@@ -27,6 +28,7 @@ public final class MultiblockPreviewPanel extends UIElement {
 
     @Nullable
     private static Function<ClientContext, UIElement> clientFactory;
+    @Getter
     private final PreviewVisibility state;
     private Consumer<StructurePreview> clientUpdater = ignored -> {};
 
@@ -35,15 +37,15 @@ public final class MultiblockPreviewPanel extends UIElement {
      *
      * @param width            full panel width
      * @param height           full panel height
-     * @param snapshot         immutable resolved view
+     * @param preview          resolved view
      * @param showAvailability whether the panel includes terminal-only persistent material allocation details
      */
-    public MultiblockPreviewPanel(int width, int height, StructurePreview snapshot,
+    public MultiblockPreviewPanel(int width, int height, StructurePreview preview,
                                   boolean showAvailability) {
         if (width < 72 || height < 72) {
             throw new IllegalArgumentException("Multiblock preview panel is too small");
         }
-        state = new PreviewVisibility(snapshot);
+        state = new PreviewVisibility(preview);
         layout(layout -> {
             layout.positionType(TaffyPosition.ABSOLUTE);
             layout.width(width);
@@ -61,19 +63,15 @@ public final class MultiblockPreviewPanel extends UIElement {
         }
     }
 
-    public PreviewVisibility state() {
-        return state;
-    }
-
     /**
      * Replaces terminal-authoritative or locally re-resolved content without recreating the panel.
      */
-    public void updateSnapshot(StructurePreview snapshot) {
-        if (!state.snapshot().definitionId().equals(snapshot.definitionId())) {
+    public void setPreview(StructurePreview preview) {
+        if (!state.getPreview().definitionId().equals(preview.definitionId())) {
             throw new IllegalArgumentException("A preview panel cannot switch machine definitions");
         }
-        state.replaceSnapshot(snapshot);
-        clientUpdater.accept(snapshot);
+        state.setPreview(preview);
+        clientUpdater.accept(preview);
     }
 
     /**

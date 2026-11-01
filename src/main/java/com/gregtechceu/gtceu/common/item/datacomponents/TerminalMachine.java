@@ -19,7 +19,7 @@ import org.jspecify.annotations.NullMarked;
 /** Persists shared and per-structure terminal settings for one multiblock definition. */
 @NullMarked
 public record TerminalMachine(BuildPolicy sharedOptions,
-                                     Object2ObjectMap<String, TerminalStructure> structures) {
+                              Object2ObjectMap<String, TerminalStructure> structures) {
 
     private static final Codec<BuildPolicy> SHARED_CODEC = RecordCodecBuilder.create(instance -> instance
             .group(
@@ -65,7 +65,7 @@ public record TerminalMachine(BuildPolicy sharedOptions,
 
     /** Creates an ordered batch request containing only structures selected in this profile. */
     public BatchRequest createRequest(MultiblockMachineDefinition definition,
-                                               ObjectList<MaterialSource> materialSources) {
+                                      ObjectList<MaterialSource> materialSources) {
         ObjectList<StructureRequest> selected = new ObjectArrayList<>();
         for (String name : definition.getStructureOrder()) {
             TerminalStructure profile = structures.get(name);
