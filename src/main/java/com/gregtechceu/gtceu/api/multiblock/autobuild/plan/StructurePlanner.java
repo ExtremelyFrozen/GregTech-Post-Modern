@@ -50,7 +50,8 @@ final class StructurePlanner {
 
         ObjectArrayList<PlannedCell> planned = new ObjectArrayList<>(selected.size());
         Object2LongMap<MaterialKey> materialCounts = new Object2LongLinkedOpenHashMap<>();
-        for (SelectedCell selectedCell : selected) {
+        for (int index = 0; index < selected.size(); index++) {
+            SelectedCell selectedCell = selected.get(index);
             UnresolvedCell cell = selectedCell.cell();
             ResolvedCandidate candidate = selectedCell.candidate();
             BlockState observed = cell.observedState();
@@ -77,7 +78,8 @@ final class StructurePlanner {
                     targetState, observed, candidate.blockInfo().withState(targetState), action, cell.predicate(),
                     stateCandidates,
                     cell.requiredDirection(), candidateKeys, materialKey, candidate.tierGroups(),
-                    candidate.limits().stream().map(ConstraintLimit::id).collect(ObjectImmutableList.toList())));
+                    candidate.limits().stream().map(ConstraintLimit::id).collect(ObjectImmutableList.toList()),
+                    observedCells.get(index).candidates().stream().anyMatch(ResolvedCandidate::hatch)));
         }
         PlannedCell missingCell = buildMode ? materials.commitStructure(planned) : null;
         if (missingCell != null) {

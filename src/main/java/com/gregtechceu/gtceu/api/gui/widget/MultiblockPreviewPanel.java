@@ -1,5 +1,6 @@
 package com.gregtechceu.gtceu.api.gui.widget;
 
+import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.multiblock.preview.PreviewVisibility;
 import com.gregtechceu.gtceu.api.multiblock.preview.StructurePreview;
 
@@ -11,6 +12,7 @@ import lombok.Getter;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -31,6 +33,7 @@ public final class MultiblockPreviewPanel extends UIElement {
     @Getter
     private final PreviewVisibility state;
     private Consumer<StructurePreview> clientUpdater = ignored -> {};
+    private BiConsumer<Integer, Integer> clientResize = (width, height) -> {};
 
     /**
      * Creates a preview container that is safe to construct on both menu sides.
@@ -42,15 +45,13 @@ public final class MultiblockPreviewPanel extends UIElement {
      */
     public MultiblockPreviewPanel(int width, int height, StructurePreview preview,
                                   boolean showAvailability) {
-        if (width < 72 || height < 72) {
-            throw new IllegalArgumentException("Multiblock preview panel is too small");
-        }
         state = new PreviewVisibility(preview);
         layout(layout -> {
             layout.positionType(TaffyPosition.ABSOLUTE);
             layout.width(width);
             layout.height(height);
         });
+        getStyle().backgroundTexture(GuiTextures.BACKGROUND_INVERSE);
         setOverflowVisible(false);
         if (LDLib2.isRemote()) {
             @Nullable
@@ -59,8 +60,13 @@ public final class MultiblockPreviewPanel extends UIElement {
                 throw new IllegalStateException("The multiblock preview client factory was not registered");
             }
             addChild(factory.apply(new ClientContext(width, height, state, showAvailability,
-                    updater -> clientUpdater = updater)));
+                    updater -> clientUpdater = updater, resize -> clientResize = resize)));
         }
+    }
+
+    public void resize(int width, int height) {
+        getLayout().width(width).height(height);
+        clientResize.accept(width, height);
     }
 
     /**
@@ -88,5 +94,6 @@ public final class MultiblockPreviewPanel extends UIElement {
      * Client construction values passed through a common JDK function instead of a custom single-use interface.
      */
     public record ClientContext(int width, int height, PreviewVisibility state, boolean showAvailability,
-                                Consumer<Consumer<StructurePreview>> installUpdater) {}
+                                Consumer<Consumer<StructurePreview>> installUpdater,
+                                Consumer<BiConsumer<Integer, Integer>> installResize) {}
 }

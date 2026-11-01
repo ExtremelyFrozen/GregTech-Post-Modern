@@ -21,10 +21,14 @@ import com.gregtechceu.gtceu.common.item.terminal.network.TerminalAction;
 import com.gregtechceu.gtceu.common.item.terminal.network.TerminalChange;
 import com.gregtechceu.gtceu.common.item.terminal.network.TerminalStateUpdate;
 
+import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerScreen;
 import com.lowdragmc.lowdraglib2.gui.sync.SyncValue;
 import com.lowdragmc.lowdraglib2.gui.sync.rpc.RPCEmitter;
 import com.lowdragmc.lowdraglib2.gui.sync.rpc.RPCEventBuilder;
+import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
+import com.lowdragmc.lowdraglib2.math.Size;
 
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
@@ -44,18 +48,21 @@ import java.util.UUID;
 @NullMarked
 public final class TerminalScreen extends UIElement {
 
-    private static final int WIDTH = 360;
-    private static final int HEIGHT = 240;
+    private static final int WIDTH = 300;
+    private static final int HEIGHT = 200;
 
     private final Player player;
     private final @Nullable TerminalSession serverSession;
     private final SyncValue<byte[]> stateSync = new SyncValue<>("terminal-state", byte[].class, new byte[0]);
     private final RPCEmitter actions;
     private final MultiblockPreviewPanel preview;
-    private final MultiblockConfigurationPanel configuration;
-    private final GTButtonElement executeButton = new GTButtonElement(234, 220, 122, 16);
-    private final GTLabelElement sourceLabel = new GTLabelElement(234, 4, 122, 10);
-    private final GTLabelElement resultLabel = new GTLabelElement(234, 15, 122, 10);
+    private final StructureControls configuration;
+    private final GTButtonElement executeButton = new GTButtonElement(188, 180, 108, 16);
+    private final GTLabelElement sourceLabel = new GTLabelElement(192, 155, 100, 10);
+    private final GTLabelElement resultLabel = new GTLabelElement(192, 167, 100, 10);
+    private final GTButtonElement fullscreen = new GTButtonElement(278, 4, 16, 14);
+    private final GTLabelElement title;
+    private boolean expanded;
     private TerminalMenuState state;
     private @Nullable UUID sessionId;
     private long nextSequence = 1;
@@ -92,28 +99,71 @@ public final class TerminalScreen extends UIElement {
         stateSync.addListener(this::receiveState);
         addSyncValue(stateSync);
 
-        GTLabelElement title = new GTLabelElement(6, 5, 220, 10, definition.getBlock().getName());
+        title = new GTLabelElement(6, 6, 268, 10, definition.getBlock().getName());
+        title.textStyle(style -> style.adaptiveWidth(false).adaptiveHeight(false).fontSize(9)
+                .textColor(0xff404040).textShadow(false).textWrap(TextWrap.HIDE));
         title.style(style -> style.tooltips(Component.literal(binding.dimension().location() + " @ " +
                 binding.position().toShortString())));
         addChild(title);
-        preview = new MultiblockPreviewPanel(226, 216, state.preview(), true);
+        preview = new MultiblockPreviewPanel(180, 176, state.preview(), true);
         preview.layout(layout -> layout.left(4).top(20));
         addChild(preview);
-        configuration = new MultiblockConfigurationPanel(234, 28, 122, 190, definition, state.machine(), preview,
+        configuration = new StructureControls(188, 20, 108, 132, definition, state.machine(), preview,
+                GTCEu.MODS.AE2.isLoaded(),
                 change -> requestAction(change));
         addChild(configuration);
+        sourceLabel.textStyle(style -> style.adaptiveWidth(false).adaptiveHeight(false).fontSize(8)
+                .textColor(0xff404040).textShadow(false).textWrap(TextWrap.HIDE));
+        resultLabel.textStyle(style -> style.adaptiveWidth(false).adaptiveHeight(false).fontSize(8)
+                .textColor(0xff404040).textShadow(false).textWrap(TextWrap.HIDE));
         addChild(sourceLabel);
+        sourceLabel.setDisplay(GTCEu.MODS.AE2.isLoaded());
         addChild(resultLabel);
         executeButton.setButtonTexture(GuiTextures.BUTTON);
-        executeButton.textStyle(style -> style.textShadow(false));
+        executeButton.getLayout().paddingAll(1);
+        executeButton.text.getLayout().marginAll(0).widthPercent(100).minWidth(0);
+        executeButton.textStyle(style -> style.adaptiveWidth(false).adaptiveHeight(false).fontSize(9)
+                .textColor(0xff404040).textShadow(false).textWrap(TextWrap.HIDE));
         executeButton.setText(Component.translatable("gtpm.multiblock.autobuild.terminal.execute"));
         executeButton.setOnClick(event -> {
             requestAction(null);
             event.stopPropagation();
         });
         addChild(executeButton);
+        fullscreen.setButtonTexture(GuiTextures.BUTTON).setText(Component.literal("↗"));
+        fullscreen.getLayout().paddingAll(0);
+        fullscreen.textStyle(style -> style.fontSize(9).textColor(0xff404040).textShadow(false));
+        fullscreen.getStyle().tooltips(Component.translatable("gtpm.multiblock.configuration.fullscreen"));
+        fullscreen.setOnClick(event -> {
+            expanded = !expanded;
+            fullscreen.setText(Component.literal(expanded ? "↙" : "↗"));
+            fullscreen.getStyle().tooltips(Component.translatable("gtpm.multiblock.configuration." +
+                    (expanded ? "compact" : "fullscreen")));
+            var ui = getModularUI();
+            ui.init(ui.getScreenWidth(), ui.getScreenHeight());
+            ((ModularUIContainerScreen) ui.getScreen()).init();
+            event.stopPropagation();
+        });
+        addChild(fullscreen);
         updateDisplay();
         if (serverSession != null) publishState();
+    }
+
+    public UI createUI() {
+        return UI.of(this, this::resize);
+    }
+
+    private Size resize(Size screen) {
+        int width = expanded ? screen.getWidth() : Math.min(WIDTH, screen.getWidth());
+        int height = expanded ? screen.getHeight() : Math.min(HEIGHT, screen.getHeight());
+        title.getLayout().width(width - 32);
+        fullscreen.getLayout().left(width - 22);
+        preview.resize(width - 120, height - 24);
+        configuration.resize(width - 112, 20, 108, height - (GTCEu.MODS.AE2.isLoaded() ? 68 : 56));
+        sourceLabel.getLayout().left(width - 108).top(height - 45);
+        resultLabel.getLayout().left(width - 108).top(height - 33);
+        executeButton.getLayout().left(width - 112).top(height - 20);
+        return Size.of(width, height);
     }
 
     private boolean installed() {
@@ -138,8 +188,6 @@ public final class TerminalScreen extends UIElement {
     private void receiveAction(byte[] bytes) {
         if (!(player instanceof ServerPlayer serverPlayer) || serverSession == null || !installed()) return;
         try {
-            if (bytes.length > 16_384)
-                throw new IllegalArgumentException("Terminal action exceeds its bounded payload");
             TerminalAction action = decode(TerminalAction.STREAM_CODEC, bytes);
             if (!serverSession.sessionId().equals(action.sessionId())) {
                 throw new IllegalArgumentException("Terminal action belongs to another opening");
@@ -189,13 +237,20 @@ public final class TerminalScreen extends UIElement {
         preview.setPreview(state.preview());
         configuration.setMachine(state.machine());
         var source = state.meSource();
-        sourceLabel.setValue(source == null ?
+        sourceLabel.setValue(Component.translatable(source == null ?
+                "gtpm.multiblock.autobuild.terminal.ae_unavailable" :
+                "gtpm.multiblock.autobuild.terminal.ae_available"));
+        sourceLabel.getStyle().tooltips(source == null ?
                 Component.translatable("gtpm.multiblock.autobuild.terminal.ae_unavailable") :
                 Component.translatable("gtpm.multiblock.autobuild.terminal.ae_source", source.terminalName(),
                         source.selectionIdentity(), source.linkTarget().dimension().location(),
                         source.linkTarget().pos().toShortString()));
         var result = state.lastExecution();
         resultLabel.setValue(result == null ? Component.translatable("gtpm.multiblock.autobuild.terminal.no_result") :
+                Component.translatable("gtpm.multiblock.autobuild.status." +
+                        result.status().name().toLowerCase(Locale.ROOT)));
+        resultLabel.getStyle().tooltips(result == null ?
+                Component.translatable("gtpm.multiblock.autobuild.terminal.no_result") :
                 Component.translatable("gtpm.multiblock.autobuild.terminal.result",
                         Component.translatable("gtpm.multiblock.autobuild.status." +
                                 result.status().name().toLowerCase(Locale.ROOT)),

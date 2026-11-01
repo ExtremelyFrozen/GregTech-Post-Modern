@@ -1,7 +1,6 @@
 package com.gregtechceu.gtceu.client.gui;
 
 import com.gregtechceu.gtceu.GTCEu;
-import com.gregtechceu.gtceu.api.gui.ColorPattern;
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.element.GTButtonElement;
 import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
@@ -14,6 +13,7 @@ import com.gregtechceu.gtceu.api.multiblock.MultiblockPreviewLevel;
 import com.gregtechceu.gtceu.api.multiblock.preview.PreviewVisibility;
 import com.gregtechceu.gtceu.api.multiblock.preview.StructurePreview;
 import com.gregtechceu.gtceu.api.multiblock.preview.StructurePreview.Cell;
+import com.gregtechceu.gtceu.common.item.terminal.ui.StructureControls;
 import com.gregtechceu.gtceu.integration.xei.GTXEIHelper;
 import com.gregtechceu.gtceu.integration.xei.handlers.item.CycleItemEntryHandler;
 
@@ -31,24 +31,23 @@ import com.lowdragmc.lowdraglib2.integration.xei.jei.LDLibJEIPlugin;
 import com.lowdragmc.lowdraglib2.utils.data.BlockPosFace;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.PoseStack;
 import dev.emi.emi.api.stack.EmiStack;
 import dev.vfyjxf.taffy.style.TaffyPosition;
-import it.unimi.dsi.fastutil.objects.Object2IntMap;
-import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
@@ -70,7 +69,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
 
     private static final BlockPos SCENE_ORIGIN = new BlockPos(0, 64, 0);
     private static final int MATERIAL_BAR_HEIGHT = 24;
-    private static final int MATERIAL_DETAIL_HEIGHT = 64;
+    private static final int MATERIAL_DETAIL_HEIGHT = 42;
 
     private final PreviewVisibility state;
     private MultiblockPreviewLevel previewLevel;
@@ -82,14 +81,15 @@ public final class ClientMultiblockPreviewElement extends UIElement {
     private final GTScrollerViewElement materialDetails;
     private final GTButtonElement focusButton;
     private final GTButtonElement layerButton;
+    private final GTButtonElement hatchButton;
     private final GTLabelElement diagnosticLabel;
     private final GTLabelElement demolitionLabel;
     private final boolean showAvailability;
-    private final int materialViewportWidth;
-    private final int materialDetailViewportWidth;
+    private int materialViewportWidth;
+    private int materialDetailViewportWidth;
     private final Object2ObjectMap<BlockPos, StructurePreview.Cell> sceneCells = new Object2ObjectLinkedOpenHashMap<>();
-    private final Object2IntMap<String> structureColors = new Object2IntOpenHashMap<>();
     private final ObjectList<BlockPos> loadedPositions = new ObjectArrayList<>();
+    private final ObjectList<BlockPos> hatchPositions = new ObjectArrayList<>();
     private int selectedMaterialIndex;
     private long renderedViewRevision;
     private boolean removed;
@@ -98,10 +98,6 @@ public final class ClientMultiblockPreviewElement extends UIElement {
                                           boolean showAvailability) {
         this.state = state;
         this.showAvailability = showAvailability;
-        if (showAvailability && height < 160) {
-            throw new IllegalArgumentException(
-                    "A material allocation preview requires at least 160 pixels of height");
-        }
         materialViewportWidth = width - 44;
         materialDetailViewportWidth = width - 6;
         layout(layout -> {
@@ -121,8 +117,10 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         int detailHeight = showAvailability ? MATERIAL_DETAIL_HEIGHT : 0;
         int sceneHeight = height - MATERIAL_BAR_HEIGHT - detailHeight;
         scene = new GTSceneElement(0, 0, width, sceneHeight);
+        scene.setAllowXEILookup(false);
         scene.setRenderFacing(false);
         scene.setRenderSelect(false);
+        scene.setAfterWorldRender(ignored -> renderHatchOutlines());
         scene.setOnSelected((pos, facing) -> selectCell(pos));
         scene.addEventListener(UIEvents.HOVER_TOOLTIPS, this::addCellTooltips);
         addChild(scene);
@@ -137,11 +135,15 @@ public final class ClientMultiblockPreviewElement extends UIElement {
                     .scrollerViewStyle(0));
             details.viewPort(viewPort -> {
                 viewPort.layout(layout -> layout.paddingAll(0));
-                viewPort.style(style -> style.backgroundTexture(ColorPattern.T_GRAY.rectTexture()));
+                viewPort.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
             });
             details.verticalScroller(scroller -> {
                 scroller.layout(layout -> layout.width(2));
-                scroller.getStyle().backgroundTexture(ColorPattern.T_WHITE.rectTexture().setRadius(1));
+                scroller.getStyle().backgroundTexture(GuiTextures.SLIDER_BACKGROUND_VERTICAL);
+                scroller.headButton.setDisplay(false);
+                scroller.tailButton.setDisplay(false);
+                scroller.scrollBar.buttonStyle(style -> style.baseTexture(GuiTextures.BUTTON)
+                        .hoverTexture(GuiTextures.BUTTON).pressedTexture(GuiTextures.BUTTON));
             });
             materialDetails = details;
             addChild(details);
@@ -150,8 +152,8 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         }
 
         demolitionLabel = new GTLabelElement(2, height - MATERIAL_BAR_HEIGHT + 5, 38, 10, Component.empty());
-        demolitionLabel.setTextColor(0xffff6060);
-        demolitionLabel.setTextShadow(true);
+        demolitionLabel.textStyle(style -> style.adaptiveWidth(false).adaptiveHeight(false).fontSize(8)
+                .textColor(0xffa02020).textShadow(false).textWrap(TextWrap.HIDE));
         demolitionLabel.style(style -> style.tooltips(
                 Component.translatable("gtpm.multiblock.preview.tooltip.demolition_count", 0)));
         addChild(demolitionLabel);
@@ -170,6 +172,10 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         materialScroller.horizontalScroller(scroller -> {
             scroller.layout(layout -> layout.height(4));
             scroller.getStyle().backgroundTexture(GuiTextures.SLIDER_BACKGROUND);
+            scroller.headButton.setDisplay(false);
+            scroller.tailButton.setDisplay(false);
+            scroller.scrollBar.buttonStyle(style -> style.baseTexture(GuiTextures.BUTTON)
+                    .hoverTexture(GuiTextures.BUTTON).pressedTexture(GuiTextures.BUTTON));
         });
         // The container survives material changes; per-slot recipe widgets would retain removed slots.
         if (GTCEu.MODS.isEMILoaded()) {
@@ -201,14 +207,40 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         });
         addChild(layerButton);
 
+        hatchButton = navigationButton(width - 20, 42, "gtpm.multiblock.preview.tooltip.hatches");
+        hatchButton.setText(Component.translatable("gtpm.multiblock.preview.button.hatches"));
+        hatchButton.setOnClick(event -> {
+            state.setHighlightHatches(!state.isHighlightHatches());
+            updateNavigationText();
+            event.stopPropagation();
+        });
+        addChild(hatchButton);
+
         diagnosticLabel = new GTLabelElement(8, Math.max(42, sceneHeight / 2 - 10),
                 width - 16, 24, Component.empty());
         diagnosticLabel.setTextColor(0xffff6060);
         diagnosticLabel.setTextShadow(true);
         diagnosticLabel.setTextWrap(TextWrap.WRAP);
+        diagnosticLabel.setAllowHitTest(false);
         addChild(diagnosticLabel);
 
         rebuildPreview(true);
+    }
+
+    public void resize(int width, int height) {
+        getLayout().width(width).height(height);
+        materialViewportWidth = width - 44;
+        materialDetailViewportWidth = width - 6;
+        int sceneHeight = height - MATERIAL_BAR_HEIGHT - (showAvailability ? MATERIAL_DETAIL_HEIGHT : 0);
+        scene.getLayout().width(width).height(sceneHeight);
+        if (materialDetails != null) materialDetails.getLayout().top(sceneHeight).width(width - 4);
+        materialScroller.getLayout().top(height - MATERIAL_BAR_HEIGHT + 1).width(materialViewportWidth);
+        demolitionLabel.getLayout().top(height - MATERIAL_BAR_HEIGHT + 5);
+        focusButton.getLayout().left(width - 20);
+        layerButton.getLayout().left(width - 20);
+        hatchButton.getLayout().left(width - 20);
+        diagnosticLabel.getLayout().top(sceneHeight / 2 - 10).width(width - 16);
+        rebuildMaterials();
     }
 
     /**
@@ -235,11 +267,6 @@ public final class ClientMultiblockPreviewElement extends UIElement {
                 updateDiagnosticText();
                 return;
             }
-            structureColors.clear();
-            for (StructurePreview.Structure structure : state.getPreview().structures()) {
-                structureColors.put(structure.name(), stableStructureColor(
-                        state.getPreview().definitionId(), structure.name()));
-            }
             sceneCells.clear();
             for (StructurePreview.Cell cell : state.getPreview().cells()) {
                 if (cell.renderState().isAir()) continue;
@@ -260,7 +287,16 @@ public final class ClientMultiblockPreviewElement extends UIElement {
     }
 
     private void rebuildRenderedCore(boolean resetCamera) {
-        ObjectList<BlockPos> rendered = state.visibleCells().stream()
+        var visible = state.visibleCells();
+        hatchPositions.clear();
+        for (var cell : visible) {
+            if (!cell.renderState().isAir() && cell.contributions().stream()
+                    .anyMatch(contribution -> state.isStructureVisible(contribution.structureName()) &&
+                            contribution.hatchReplaceable())) {
+                hatchPositions.add(SCENE_ORIGIN.offset(cell.relativePos()));
+            }
+        }
+        ObjectList<BlockPos> rendered = visible.stream()
                 .filter(cell -> !cell.renderState().isAir())
                 .map(cell -> SCENE_ORIGIN.offset(cell.relativePos()))
                 .collect(ObjectImmutableList.toList());
@@ -303,7 +339,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
             slot.setCanTakeItems(false);
             slot.setCanPutItems(false);
             slot.setIngredientIO(GTXEIHelper.input());
-            slot.setBackgroundTexture(ColorPattern.T_GRAY.rectTexture());
+            slot.setBackgroundTexture(GuiTextures.SLOT);
             slot.setItemCountDecorationXOffset(ClientMultiblockPreviewElement::countDecorationOffset);
             slot.setOnAddedTooltips((element, tooltips) -> addMaterialTooltips(
                     state.getPreview().materials().get(slotIndex), tooltips));
@@ -337,11 +373,13 @@ public final class ClientMultiblockPreviewElement extends UIElement {
             lines.add(Component.translatable("gtpm.multiblock.preview.material.required", material.required()));
             for (StructurePreview.StructureAmount structure : material.structures()) {
                 lines.add(Component.translatable("gtpm.multiblock.preview.material.structure",
-                        structure.structureName(), structure.required()));
+                        StructureControls.structureName(structure.structureName()), structure.required()));
             }
             if (state.getPreview().availabilityKnown()) {
-                lines.add(Component.translatable("gtpm.multiblock.preview.material.me",
-                        material.meAvailable(), material.meAllocated()));
+                if (GTCEu.MODS.AE2.isLoaded()) {
+                    lines.add(Component.translatable("gtpm.multiblock.preview.material.me",
+                            material.meAvailable(), material.meAllocated()));
+                }
                 lines.add(Component.translatable("gtpm.multiblock.preview.material.player",
                         material.playerAvailable(), material.playerAllocated()));
                 lines.add(Component.translatable("gtpm.multiblock.preview.material.missing", material.missing()));
@@ -355,8 +393,9 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         for (int index = 0; index < lines.size(); index++) {
             GTLabelElement label = new GTLabelElement(2, index * 10, materialDetailViewportWidth, 10,
                     lines.get(index));
-            label.setTextColor(-1);
-            label.setTextShadow(true);
+            label.textStyle(style -> style.adaptiveWidth(false).adaptiveHeight(false).fontSize(8)
+                    .textColor(0xff404040).textShadow(false).textWrap(TextWrap.HIDE));
+            label.getStyle().tooltips(lines.get(index));
             details.addScrollViewChild(label);
         }
         details.viewContainer.layout(layout -> layout
@@ -368,11 +407,13 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         tooltips.add(Component.translatable("gtpm.multiblock.preview.material.required", material.required()));
         for (StructurePreview.StructureAmount structure : material.structures()) {
             tooltips.add(Component.translatable("gtpm.multiblock.preview.material.structure",
-                    structure.structureName(), structure.required()));
+                    StructureControls.structureName(structure.structureName()), structure.required()));
         }
         if (showAvailability && state.getPreview().availabilityKnown()) {
-            tooltips.add(Component.translatable("gtpm.multiblock.preview.material.me",
-                    material.meAvailable(), material.meAllocated()));
+            if (GTCEu.MODS.AE2.isLoaded()) {
+                tooltips.add(Component.translatable("gtpm.multiblock.preview.material.me",
+                        material.meAvailable(), material.meAllocated()));
+            }
             tooltips.add(Component.translatable("gtpm.multiblock.preview.material.player",
                     material.playerAvailable(), material.playerAllocated()));
             tooltips.add(Component.translatable("gtpm.multiblock.preview.material.missing", material.missing()));
@@ -398,7 +439,8 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         for (StructurePreview.Contribution contribution : cell.contributions()) {
             StructurePreview.CellKey key = contribution.cellKey();
             tooltips.add(Component.translatable("gtpm.multiblock.preview.cell.contribution",
-                    contribution.structureName(), contribution.targetState().getBlock().getName(),
+                    StructureControls.structureName(contribution.structureName()),
+                    contribution.targetState().getBlock().getName(),
                     Component.translatable("gtpm.multiblock.preview.cell.action." +
                             contribution.action().name().toLowerCase(Locale.ROOT)),
                     key.unitIndex(), key.repetition(), key.innerSlice(), key.row(), key.column()));
@@ -406,7 +448,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
             Direction requiredDirection = contribution.requiredDirection();
             if (requiredDirection != null) {
                 tooltips.add(Component.translatable("gtpm.multiblock.preview.cell.direction",
-                        Component.translatable("direction.minecraft." + requiredDirection.getName())));
+                        Component.translatable("gtpm.multiblock.preview.direction." + requiredDirection.getName())));
             }
         }
         if (cell.conflict()) {
@@ -414,6 +456,9 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         }
         if (cell.demolitionTarget()) {
             tooltips.add(Component.translatable("gtpm.multiblock.preview.cell.demolition"));
+        }
+        if (cell.contributions().stream().anyMatch(StructurePreview.Contribution::hatchReplaceable)) {
+            tooltips.add(Component.translatable("gtpm.multiblock.preview.cell.hatch_replaceable"));
         }
         event.hoverTooltips = new HoverTooltips(tooltips, null, null, ItemStack.EMPTY);
     }
@@ -432,12 +477,16 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         String focus = state.getFocusedStructure();
         focusButton.setText(focus == null ?
                 Component.translatable("gtpm.multiblock.preview.button.structure_all") :
-                Component.translatable("gtpm.multiblock.preview.button.structure", abbreviate(focus)));
+                Component.translatable("gtpm.multiblock.preview.button.structure"));
+        focusButton.getStyle().tooltips(focus == null ?
+                Component.translatable("gtpm.multiblock.preview.tooltip.focus") :
+                StructureControls.structureName(focus));
         @Nullable
         Integer layer = state.getVisibleLayer();
         layerButton.setText(layer == null ?
                 Component.translatable("gtpm.multiblock.preview.button.layer_all") :
                 Component.translatable("gtpm.multiblock.preview.button.layer", layer));
+        hatchButton.textStyle(style -> style.textColor(state.isHighlightHatches() ? 0xff167129 : 0xff404040));
     }
 
     private void updateDiagnosticText() {
@@ -472,6 +521,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
             previewLevel.removeBlock(pos, false);
         }
         loadedPositions.clear();
+        hatchPositions.clear();
     }
 
     @Override
@@ -511,19 +561,16 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         sourceLevel = null;
         previewLevel = new MultiblockPreviewLevel();
         sceneCells.clear();
-        structureColors.clear();
         super.onRemoved();
     }
 
     private static GTButtonElement navigationButton(int x, int y, String tooltipKey) {
         GTButtonElement button = new GTButtonElement(x, y, 18, 18);
-        button.textStyle(style -> {
-            style.textColor(-1);
-            style.textShadow(false);
-        });
-        button.setButtonTextures(ColorPattern.T_GRAY.rectTexture(),
-                GuiTextures.group(ColorPattern.T_GRAY.rectTexture(), GuiTextures.colorRect(0x4fffffff)),
-                ColorPattern.T_GRAY.rectTexture());
+        button.getLayout().paddingAll(1);
+        button.text.getLayout().marginAll(0).widthPercent(100).minWidth(0);
+        button.textStyle(style -> style.adaptiveWidth(false).adaptiveHeight(false).fontSize(8)
+                .textColor(0xff404040).textShadow(false).textWrap(TextWrap.HIDE));
+        button.setButtonTexture(GuiTextures.BUTTON);
         button.style(style -> style.tooltips(Component.translatable(tooltipKey)));
         return button;
     }
@@ -536,16 +583,15 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         return 0;
     }
 
-    private static String abbreviate(String value) {
-        return value.length() <= 4 ? value : value.substring(0, 4);
-    }
-
-    private static int stableStructureColor(ResourceLocation definitionId, String structureName) {
-        int hash = 31 * definitionId.hashCode() + structureName.hashCode();
-        float hue = Integer.toUnsignedLong(hash) / (float) (1L << 32);
-        float saturation = 0.58f + ((hash >>> 24) & 0x0f) / 100.0f;
-        float value = 0.9f + ((hash >>> 28) & 0x03) / 100.0f;
-        return Mth.hsvToRgb(hue, saturation, value);
+    private void renderHatchOutlines() {
+        if (!state.isHighlightHatches() || hatchPositions.isEmpty()) return;
+        var buffers = Minecraft.getInstance().renderBuffers().bufferSource();
+        var lines = buffers.getBuffer(RenderType.lines());
+        var pose = new PoseStack();
+        for (BlockPos pos : hatchPositions) {
+            LevelRenderer.renderLineBox(pose, lines, new AABB(pos).inflate(0.002), 0.2f, 0.85f, 1.0f, 1.0f);
+        }
+        buffers.endBatch(RenderType.lines());
     }
 
     private static void runOnRenderThread(Runnable action) {
@@ -573,23 +619,15 @@ public final class ClientMultiblockPreviewElement extends UIElement {
                 red = 1.0f;
                 green = 0.2f;
                 blue = 0.16f;
-            } else if (cell.controller()) {
-                red = green = blue = 1.0f;
             } else {
-                int color = structureColors.getOrDefault(cell.representative().structureName(),
-                        stableStructureColor(ClientMultiblockPreviewElement.this.state.getPreview().definitionId(),
-                                cell.representative().structureName()));
-                red = ((color >>> 16) & 0xff) / 255.0f;
-                green = ((color >>> 8) & 0xff) / 255.0f;
-                blue = (color & 0xff) / 255.0f;
+                red = green = blue = 1.0f;
             }
             if (!ClientMultiblockPreviewElement.this.state.isFocused(cell)) {
                 red *= 0.3f;
                 green *= 0.3f;
                 blue *= 0.3f;
             }
-            wrapper.setColorMultiplier(Mth.clamp(red, 0, 1), Mth.clamp(green, 0, 1),
-                    Mth.clamp(blue, 0, 1), 1);
+            wrapper.setColorMultiplier(red, green, blue, 1);
         }
     }
 }

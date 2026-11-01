@@ -24,4 +24,5 @@ public record PlannedCell(String structureName, PatternCellKey cellKey, BlockPos
                           CellAction action, PatternPredicate predicate,
                           ObjectList<BlockState> stateCandidates, @Nullable Direction requiredDirection,
                           ObjectList<MaterialKey> materialCandidates, @Nullable MaterialKey materialKey,
-                          ObjectList<String> tierGroups, ObjectList<String> constraintIds) {}
+                          ObjectList<String> tierGroups, ObjectList<String> constraintIds,
+                          boolean hatchReplaceable) {}

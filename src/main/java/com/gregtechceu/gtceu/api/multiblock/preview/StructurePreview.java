@@ -378,7 +378,8 @@ public record StructurePreview(ResourceLocation definitionId, String fingerprint
             }
             return new Contribution(executionRepresentative.structureName, executionRepresentative.cellKey,
                     executionRepresentative.relativePos, AIR_CONFLICT_MARKER_STATE, executionRepresentative.action,
-                    executionRepresentative.requiredDirection, AIR_CONFLICT_RENDER_INFO);
+                    executionRepresentative.requiredDirection, AIR_CONFLICT_RENDER_INFO,
+                    executionRepresentative.hatchReplaceable);
         }
 
         public ObjectList<String> contributorNames() {
@@ -401,7 +402,7 @@ public record StructurePreview(ResourceLocation definitionId, String fingerprint
      */
     public record Contribution(String structureName, CellKey cellKey, BlockPos relativePos,
                                BlockState targetState, CellAction action, @Nullable Direction requiredDirection,
-                               RenderInfo renderInfo) {
+                               RenderInfo renderInfo, boolean hatchReplaceable) {
 
         private static final StreamCodec<RegistryFriendlyByteBuf, Contribution> STREAM_CODEC = new StreamCodec<>() {
 
@@ -417,7 +418,7 @@ public record StructurePreview(ResourceLocation definitionId, String fingerprint
                         buffer.readEnum(Direction.class) : null;
                 RenderInfo renderInfo = RenderInfo.decode(buffer);
                 return new Contribution(structureName, cellKey, relativePos, targetState, action,
-                        requiredDirection, renderInfo);
+                        requiredDirection, renderInfo, buffer.readBoolean());
             }
 
             @Override
@@ -430,12 +431,14 @@ public record StructurePreview(ResourceLocation definitionId, String fingerprint
                 buffer.writeBoolean(value.requiredDirection != null);
                 if (value.requiredDirection != null) buffer.writeEnum(value.requiredDirection);
                 value.renderInfo.encode(buffer);
+                buffer.writeBoolean(value.hatchReplaceable);
             }
         };
 
         private static Contribution fromPlan(PlannedCell cell) {
             return new Contribution(cell.structureName(), CellKey.fromPlan(cell.cellKey()), cell.relativePos(),
-                    cell.blockState(), cell.action(), cell.requiredDirection(), RenderInfo.fromPlan(cell.blockInfo()));
+                    cell.blockState(), cell.action(), cell.requiredDirection(), RenderInfo.fromPlan(cell.blockInfo()),
+                    cell.hatchReplaceable());
         }
     }
 

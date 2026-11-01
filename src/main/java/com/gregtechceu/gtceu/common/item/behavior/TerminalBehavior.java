@@ -86,7 +86,7 @@ public class TerminalBehavior implements IItemUIFactory {
 
     @Override
     public UI createLDLib2UI(HeldItemUIHolder holder, Player player) {
-        return UI.of(new TerminalScreen(holder, player));
+        return new TerminalScreen(holder, player).createUI();
     }
 
     private static boolean bind(MultiblockControllerMachine controller, ServerPlayer player, InteractionHand hand,
