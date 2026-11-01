@@ -3,17 +3,38 @@ package com.gregtechceu.gtceu.api.multiblock.structurepredicate;
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
 import com.gregtechceu.gtceu.api.multiblock.MultiblockBlockInfo;
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState;
+import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PatternObservation;
 
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
 
 import com.google.common.collect.ImmutableList;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import it.unimi.dsi.fastutil.objects.ObjectList;
+import it.unimi.dsi.fastutil.objects.ObjectLists;
 import org.jetbrains.annotations.Unmodifiable;
 
 import java.util.*;
 
 public record ConcatenatedPredicate(List<StructurePredicate> predicates) implements StructurePredicate {
+
+    @Override
+    public ObjectList<BlockState> candidateStates() {
+        var states = new ObjectArrayList<BlockState>();
+        for (StructurePredicate predicate : predicates) states.addAll(predicate.candidateStates());
+        return ObjectLists.unmodifiable(states);
+    }
+
+    @Override
+    public PatternObservation observeCandidate(BlockState state) {
+        for (StructurePredicate predicate : predicates) {
+            PatternObservation observation = predicate.observeCandidate(state);
+            if (observation.matched()) return observation;
+        }
+        return PatternObservation.of(false);
+    }
 
     /* using listOf() instead of oneOrMore(), because it makes no sense to allow concat predicate with single element */
     public static final MapCodec<ConcatenatedPredicate> CODEC = RecordCodecBuilder.mapCodec(instance -> instance

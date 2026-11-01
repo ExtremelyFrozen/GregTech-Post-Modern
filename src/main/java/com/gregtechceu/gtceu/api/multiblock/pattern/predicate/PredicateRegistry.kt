@@ -21,6 +21,8 @@ object PredicateRegistry {
 	@JvmStatic
 	fun require(id: ResourceLocation): PredicateType = types[id] ?: error("Unknown predicate type: $id")
 
+	fun find(id: ResourceLocation): PredicateType? = types[id]
+
 	@JvmStatic
 	fun clearForReload() {
 		types.clear()

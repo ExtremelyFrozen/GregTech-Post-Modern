@@ -5,6 +5,7 @@ import com.gregtechceu.gtceu.api.data.chemical.material.Material;
 import com.gregtechceu.gtceu.api.data.tag.TagPrefix;
 import com.gregtechceu.gtceu.api.multiblock.MultiblockBlockInfo;
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState;
+import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PatternObservation;
 import com.gregtechceu.gtceu.api.pipenet.IPipeNode;
 import com.gregtechceu.gtceu.api.registry.GTRegistries;
 import com.gregtechceu.gtceu.common.data.GTMaterialBlocks;
@@ -12,11 +13,13 @@ import com.gregtechceu.gtceu.common.data.GTMaterialBlocks;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.common.util.Lazy;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import it.unimi.dsi.fastutil.objects.ObjectLists;
 import org.jetbrains.annotations.Unmodifiable;
 
 import java.util.List;
@@ -32,6 +35,11 @@ import static com.gregtechceu.gtceu.api.multiblock.structurepredicate.Util.oneOr
  * in the {@code materials} field.
  */
 public final class FramePredicate implements StructurePredicate {
+
+    @Override
+    public PatternObservation observeCandidate(BlockState state) {
+        return PatternObservation.of(frameBlocks().contains(state.getBlock()), ObjectLists.singleton("frame"));
+    }
 
     /**
      * Material id codec used by the {@code materials} JSON field.

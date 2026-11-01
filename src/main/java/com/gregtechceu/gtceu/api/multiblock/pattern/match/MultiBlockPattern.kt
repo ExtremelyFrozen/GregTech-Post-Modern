@@ -11,13 +11,23 @@ import com.gregtechceu.gtceu.api.multiblock.StructureDir
 import com.gregtechceu.gtceu.api.multiblock.error.PatternError
 import com.gregtechceu.gtceu.api.multiblock.error.PatternStringError
 import com.gregtechceu.gtceu.api.multiblock.error.SinglePredicateError
-import com.gregtechceu.gtceu.api.multiblock.pattern.constraint.PatternConstraintEvaluator
+import com.gregtechceu.gtceu.api.multiblock.pattern.compile.CompiledPattern
+import com.gregtechceu.gtceu.api.multiblock.pattern.compile.PatternCompiler
+import com.gregtechceu.gtceu.api.multiblock.pattern.layout.PatternAxis
+import com.gregtechceu.gtceu.api.multiblock.pattern.layout.PatternChoiceDescriptor
+import com.gregtechceu.gtceu.api.multiblock.pattern.layout.PatternLayout
+import com.gregtechceu.gtceu.api.multiblock.pattern.layout.PatternLayoutCell
+import com.gregtechceu.gtceu.api.multiblock.pattern.layout.PatternLayoutResolver
+import com.gregtechceu.gtceu.api.multiblock.pattern.layout.PatternRepeatDescriptor
 import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternDefinition
 import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternFacts
+import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.ObservedPatternPredicate
 import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PatternPredicate
+import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PatternPredicates
 import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PredicateRule
 import com.gregtechceu.gtceu.api.multiblock.structurepredicate.RestrictedPredicate
 import com.gregtechceu.gtceu.api.multiblock.structurepredicate.StructurePredicate
+import com.gregtechceu.gtceu.api.multiblock.util.RelativeDirection
 
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
@@ -33,6 +43,8 @@ import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import it.unimi.dsi.fastutil.objects.Object2IntMap
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap
 import it.unimi.dsi.fastutil.objects.ObjectArrayList
+import it.unimi.dsi.fastutil.objects.ObjectList
+import it.unimi.dsi.fastutil.objects.ObjectLists
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet
 
 import java.util.function.BiPredicate
@@ -80,6 +92,64 @@ open class MultiBlockPattern private constructor(pattern: DecodedPattern) {
 	var condition: PatternCondition? = null
 
 	private var sourceDefinition: PatternDefinition? = null
+	private var layoutResolver: PatternLayoutResolver? = null
+	private var compiledPattern: CompiledPattern? = null
+	private var runtime: PatternRuntime? = null
+
+	fun getRepeatDescriptors(): ObjectList<PatternRepeatDescriptor> = layoutResolver?.repeatDescriptors()
+		?: ObjectArrayList<PatternRepeatDescriptor>().also { out -> aisleRepetitions.forEachIndexed { i, limits -> out.add(PatternRepeatDescriptor(i, "unit-$i", "unit-$i", PatternAxis.DEPTH, limits[0], limits[1])) } }
+
+	fun getChoiceDescriptors(): ObjectList<PatternChoiceDescriptor> = layoutResolver?.choiceDescriptors() ?: ObjectLists.emptyList()
+	fun getLastMatchResult(): PatternMatchResult? = runtime?.lastResult
+
+	/** Returns this attempt's diagnostic snapshot; machine lifecycle decisions remain with the caller. */
+	fun matchPatternAt(worldState: MultiblockState, centerPos: BlockPos, frontFacing: Direction, upwardsFacing: Direction, isFlipped: Boolean, savePredicate: Boolean, expectedRepetitions: IntArray, expectedChoices: Map<String, String>): PatternMatchResult {
+		expandLayout(expectedRepetitions, expectedChoices)
+		runtime?.let { return it.match(worldState, centerPos, frontFacing, upwardsFacing, isFlipped, savePredicate, expectedRepetitions, expectedChoices) }
+		val matched = checkPatternAtExact(worldState, centerPos, frontFacing, upwardsFacing, isFlipped, savePredicate, expectedRepetitions)
+		return PatternMatchResult(matched, worldState.facts.copy(), ObjectLists.emptyList())
+	}
+
+	fun getAllPredicates(): ObjectList<PatternPredicate> = layoutResolver?.allPredicates() ?: ObjectArrayList(predicates)
+
+	fun checkPatternAtExact(worldState: MultiblockState, centerPos: BlockPos, frontFacing: Direction, upwardsFacing: Direction, isFlipped: Boolean, savePredicate: Boolean, expectedRepetitions: IntArray, expectedChoices: Map<String, String>): Boolean {
+		expandLayout(expectedRepetitions, expectedChoices)
+		runtime?.let { return it.match(worldState, centerPos, frontFacing, upwardsFacing, isFlipped, savePredicate, expectedRepetitions, expectedChoices).matched }
+		require(expectedChoices.isEmpty()) { "Legacy patterns do not declare choices" }
+		return checkPatternAtExact(worldState, centerPos, frontFacing, upwardsFacing, isFlipped, savePredicate, expectedRepetitions)
+	}
+
+	fun checkPatternAtExact(worldState: MultiblockState, centerPos: BlockPos, frontFacing: Direction, upwardsFacing: Direction, isFlipped: Boolean, savePredicate: Boolean, expectedRepetitions: IntArray, expectedChoices: Map<String, String>, instanceRepetitions: Object2IntMap<String>): Boolean {
+		expandLayout(expectedRepetitions, expectedChoices, instanceRepetitions)
+		val selections = Object2ObjectOpenHashMap(expectedChoices)
+		instanceRepetitions.object2IntEntrySet().forEach { selections["${it.key}#repeat"] = it.intValue.toString() }
+		runtime?.let { return it.match(worldState, centerPos, frontFacing, upwardsFacing, isFlipped, savePredicate, expectedRepetitions, selections).matched }
+		return checkPatternAtExact(worldState, centerPos, frontFacing, upwardsFacing, isFlipped, savePredicate, expectedRepetitions, expectedChoices)
+	}
+
+	fun expandLayout(repetitions: IntArray, choices: Map<String, String>): PatternLayout {
+		layoutResolver?.let { return it.expand(repetitions, choices) }
+		require(choices.isEmpty()) { "Legacy patterns do not declare choices" }
+		require(repetitions.size == aisleRepetitions.size) { "Expected one repetition per unit" }
+		val cells = ObjectArrayList<PatternLayoutCell>()
+		var depth = getMinZ()
+		for (unit in repetitions.indices) {
+			require(repetitions[unit] in aisleRepetitions[unit][0]..aisleRepetitions[unit][1]) { "Repetition outside bounds" }
+			repeat(repetitions[unit]) { repetition ->
+				for (inner in 0 until unitDepths[unit]) {
+					for (row in 0 until thumbLength) {
+						for (column in 0 until palmLength) {
+							cells.add(
+								PatternLayoutCell("unit:$unit/$repetition/$inner/$row/$column", "$unit/$repetition", depth, row + getMinY(), column + getMinX(), getPredicate(unitStarts[unit] + inner, row, column), "", ObjectLists.emptyList(), unit, repetition, inner, row, column, "unit:$unit"),
+							)
+						}
+					}
+					depth++
+				}
+			}
+		}
+		return PatternLayout(cells)
+	}
 
 	private data class DecodedPattern(
 		val predicates: Array<Array<Array<PatternPredicate>>?>,
@@ -167,9 +237,22 @@ open class MultiBlockPattern private constructor(pattern: DecodedPattern) {
 	/** Attaches the canonical source definition used to produce this compiled matcher. */
 	fun attachDefinition(definition: PatternDefinition) {
 		sourceDefinition = definition
+		compiledPattern = PatternCompiler().compile(definition)
+		layoutResolver = compiledPattern!!.layout
+		runtime = PatternRuntime(this, definition)
 	}
 
 	fun getSourceDefinition(): PatternDefinition? = sourceDefinition
+
+	fun getCompiledPattern(): CompiledPattern? = compiledPattern
+
+	fun expandLayout(repetitions: IntArray, choices: Map<String, String>, instanceRepetitions: Object2IntMap<String>): PatternLayout {
+		layoutResolver?.let { return it.expand(repetitions, choices, instanceRepetitions) }
+		require(instanceRepetitions.isEmpty()) { "Legacy patterns do not declare repeat instances" }
+		return expandLayout(repetitions, choices)
+	}
+
+	internal fun expandLayoutForMatch(repetitions: IntArray, selections: Map<String, String>): PatternLayout = layoutResolver?.expandResolved(repetitions, selections) ?: expandLayout(repetitions, selections)
 
 	fun getFingerLength(): Int = fingerLength
 
@@ -211,6 +294,7 @@ open class MultiBlockPattern private constructor(pattern: DecodedPattern) {
 
 	/** Checks a pattern against explicit repetition counts without mutating the shared formed-count cache. */
 	fun checkPatternAtExact(worldState: MultiblockState, centerPos: BlockPos, frontFacing: Direction, upwardsFacing: Direction, isFlipped: Boolean, savePredicate: Boolean, expectedRepetitions: IntArray): Boolean {
+		runtime?.let { return it.match(worldState, centerPos, frontFacing, upwardsFacing, isFlipped, savePredicate, expectedRepetitions, emptyMap()).matched }
 		require(expectedRepetitions.size == aisleRepetitions.size) {
 			"Expected one repetition count per pattern unit"
 		}
@@ -262,7 +346,7 @@ open class MultiBlockPattern private constructor(pattern: DecodedPattern) {
 								facts.getOrCreate("vaBlocks") { LongOpenHashSet() }
 									.add(worldState.pos.asLong())
 							}
-							if (!predicate.test(worldState) || !canPartShared ||
+							if (!testPredicate(predicate, worldState) || !canPartShared ||
 								!matchesDirectionalPredicate(predicate, worldState, frontFacing, upwardsFacing, isFlipped)
 							) {
 								return false
@@ -277,16 +361,17 @@ open class MultiBlockPattern private constructor(pattern: DecodedPattern) {
 			}
 		}
 		if (!checkGlobalMinimums(worldState, globalCount, structureGlobalCount)) return false
-		if (sourceDefinition != null && !PatternConstraintEvaluator.satisfied(sourceDefinition!!, facts)) {
-			worldState.setError(PatternStringError("gtpm.multiblock.pattern.error.constraint"))
-			return false
-		}
 		worldState.setError(null)
 		worldState.isNeededFlip = isFlipped
 		return true
 	}
 
 	private fun checkPatternAtInternal(worldState: MultiblockState, centerPos: BlockPos, frontFacing: Direction, upwardsFacing: Direction, isFlipped: Boolean, savePredicate: Boolean): Boolean {
+		runtime?.let {
+			val matched = it.search(worldState, centerPos, frontFacing, upwardsFacing, isFlipped, savePredicate)
+			if (matched) formedRepetitionCount = it.lastRepetitions.copyOf()
+			return matched
+		}
 		var findFirstAisle = false
 		var minZ = -centerOffset.maxZ()
 		worldState.clean()
@@ -325,7 +410,7 @@ open class MultiBlockPattern private constructor(pattern: DecodedPattern) {
 								facts.getOrCreate("vaBlocks") { LongOpenHashSet() }
 									.add(worldState.pos.asLong())
 							}
-							if (!predicate.test(worldState) || !canPartShared ||
+							if (!testPredicate(predicate, worldState) || !canPartShared ||
 								!matchesDirectionalPredicate(predicate, worldState, frontFacing, upwardsFacing, isFlipped)
 							) {
 								if (findFirstAisle) {
@@ -371,16 +456,29 @@ open class MultiBlockPattern private constructor(pattern: DecodedPattern) {
 		}
 
 		if (!checkGlobalMinimums(worldState, globalCount, structureGlobalCount)) return false
-		if (sourceDefinition != null && !PatternConstraintEvaluator.satisfied(sourceDefinition!!, facts)) {
-			worldState.setError(PatternStringError("gtpm.multiblock.pattern.error.constraint"))
-			return false
-		}
 		worldState.setError(null)
 		worldState.isNeededFlip = isFlipped
 		return true
 	}
 
-	private fun saveMatch(facts: PatternFacts, worldState: MultiblockState, predicate: PatternPredicate, pos: BlockPos, savePredicate: Boolean) {
+	private fun testPredicate(predicate: PatternPredicate, state: MultiblockState): Boolean {
+		val observed = predicate as? ObservedPatternPredicate
+		var observation = observed?.observe(state)
+		if (!(if (observation == null) predicate.test(state) else observed!!.accept(state, observation))) return false
+		if (observation == null) observation = predicate.observeAccepted(state)
+		for ((key, value) in observation.properties) {
+			val previous: Any? = state.facts.get(key)
+			if (previous != null && previous != value) {
+				state.setError(PatternStringError("gtpm.multiblock.pattern.error.constraint"))
+				return false
+			}
+		}
+		observation.facts.forEach { if (!predicate.facts.contains(it)) state.facts.addFact(it) }
+		observation.properties.forEach(state.facts::set)
+		return true
+	}
+
+	internal fun saveMatch(facts: PatternFacts, worldState: MultiblockState, predicate: PatternPredicate, pos: BlockPos, savePredicate: Boolean) {
 		if (!predicate.addCache()) return
 		worldState.addPosCache(pos)
 		if (savePredicate) {
@@ -388,7 +486,7 @@ open class MultiBlockPattern private constructor(pattern: DecodedPattern) {
 		}
 	}
 
-	private fun checkPartSharing(facts: PatternFacts, worldState: MultiblockState, predicate: PatternPredicate): Boolean {
+	internal fun checkPartSharing(facts: PatternFacts, worldState: MultiblockState, predicate: PatternPredicate): Boolean {
 		val part = worldState.getBlockEntity() as? IMultiPart ?: return true
 		if (predicate.isAny()) return true
 		if (part.isFormed && !part.hasController(worldState.controllerPos, worldState.getStructureName()) &&
@@ -401,7 +499,7 @@ open class MultiBlockPattern private constructor(pattern: DecodedPattern) {
 		return true
 	}
 
-	private fun checkLayerMinimums(worldState: MultiblockState, layerCount: Object2IntMap<PredicateRule>, structureLayerCount: Object2IntMap<StructurePredicate>): Boolean {
+	internal fun checkLayerMinimums(worldState: MultiblockState, layerCount: Object2IntMap<PredicateRule>, structureLayerCount: Object2IntMap<StructurePredicate>): Boolean {
 		for (entry in layerCount.object2IntEntrySet()) {
 			if (entry.intValue < entry.key.minLayerCount) {
 				worldState.setError(SinglePredicateError(entry.key, 3))
@@ -420,7 +518,7 @@ open class MultiBlockPattern private constructor(pattern: DecodedPattern) {
 		return true
 	}
 
-	private fun checkGlobalMinimums(worldState: MultiblockState, globalCount: Object2IntMap<PredicateRule>, structureGlobalCount: Object2IntMap<StructurePredicate>): Boolean {
+	internal fun checkGlobalMinimums(worldState: MultiblockState, globalCount: Object2IntMap<PredicateRule>, structureGlobalCount: Object2IntMap<StructurePredicate>): Boolean {
 		for (entry in globalCount.object2IntEntrySet()) {
 			if (entry.intValue < entry.key.minCount) {
 				worldState.setError(SinglePredicateError(entry.key, 1))
@@ -511,6 +609,34 @@ open class MultiBlockPattern private constructor(pattern: DecodedPattern) {
 	private fun setActualRelativeOffset(x: Int, y: Int, z: Int, facing: Direction, upwardsFacing: Direction, isFlipped: Boolean): BlockPos = RelativeOffset(x, y, z, structureDir, facing, upwardsFacing, isFlipped).toBlockPos()
 
 	companion object {
+		/** Keeps a compatibility grid for legacy accessors; expansion and matching retain the AST. */
+		@JvmStatic
+		fun fromDefinition(definition: PatternDefinition): MultiBlockPattern {
+			val resolver = PatternLayoutResolver(definition)
+			val descriptors = resolver.repeatDescriptors()
+			val layout = resolver.expand(IntArray(descriptors.size) { descriptors[it].minimum }, emptyMap())
+			require(layout.cells.isNotEmpty()) { "Pattern must contain cells" }
+			val minD = layout.cells.minOf { it.depth }
+			val maxD = layout.cells.maxOf { it.depth }
+			val minH = layout.cells.minOf { it.height }
+			val maxH = layout.cells.maxOf { it.height }
+			val minW = layout.cells.minOf { it.width }
+			val maxW = layout.cells.maxOf { it.width }
+			val matches = Array(maxD - minD + 1) { Array(maxH - minH + 1) { Array(maxW - minW + 1) { PatternPredicates.any() } } }
+			layout.cells.forEach { matches[it.depth - minD][it.height - minH][it.width - minW] = it.predicate }
+			val axes = definition.axes
+			val pattern =
+				MultiBlockPattern(
+					matches, StructureDir(RelativeDirection.valueOf(axes.width.name), RelativeDirection.valueOf(axes.height.name), RelativeDirection.valueOf(axes.depth.name)),
+					Array(descriptors.size) {
+						intArrayOf(descriptors[it].minimum, descriptors[it].maximum)
+					},
+					IntArray(descriptors.size), IntArray(descriptors.size) { 1 }, CenterOffset(-minW, -minH, -minD, -minD, -minD), matches.size, matches[0].size, matches[0][0].size,
+				)
+			pattern.attachDefinition(definition)
+			pattern.predicates = ObjectArrayList(layout.cells.map { it.predicate })
+			return pattern
+		}
 		private val FACINGS = arrayOf(
 			Direction.SOUTH,
 			Direction.NORTH,

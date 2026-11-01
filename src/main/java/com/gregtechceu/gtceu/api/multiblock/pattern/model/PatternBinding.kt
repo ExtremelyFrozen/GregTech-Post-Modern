@@ -13,9 +13,10 @@ sealed interface PatternBinding {
 	}
 
 	@JvmRecord
-	data class Predicate(val value: String) : PatternBinding {
+	data class Predicate @JvmOverloads constructor(val value: String, val definition: PatternPredicateDefinition? = null) : PatternBinding {
+		constructor(definition: PatternPredicateDefinition) : this("", definition)
 		init {
-			require(value.isNotBlank()) { "Predicate binding must not be blank" }
+			require(value.isNotBlank() || definition != null) { "Predicate binding must not be blank" }
 		}
 	}
 

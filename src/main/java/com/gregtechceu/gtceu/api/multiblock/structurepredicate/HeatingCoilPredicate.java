@@ -5,9 +5,12 @@ import com.gregtechceu.gtceu.api.block.ICoilType;
 import com.gregtechceu.gtceu.api.multiblock.MultiblockBlockInfo;
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState;
 import com.gregtechceu.gtceu.api.multiblock.error.PatternStringError;
+import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PatternObservation;
+import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PatternPredicates;
 import com.gregtechceu.gtceu.common.block.CoilBlock;
 
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
 
 import com.mojang.serialization.MapCodec;
 import org.jetbrains.annotations.Unmodifiable;
@@ -26,6 +29,11 @@ public enum HeatingCoilPredicate implements StructurePredicate {
     @Override
     public StructurePredicateType<?> type() {
         return StructurePredicateType.HEATING_COILS;
+    }
+
+    @Override
+    public PatternObservation observeCandidate(BlockState state) {
+        return PatternPredicates.heatingCoils().observeCandidate(state);
     }
 
     @Override

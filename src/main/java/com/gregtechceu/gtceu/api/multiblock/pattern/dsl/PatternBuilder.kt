@@ -11,11 +11,13 @@ import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternBinding
 import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternConstraint
 import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternDefinition
 import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternDirection
+import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternFragment
 import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternNode
 import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternOrientation
 import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternOrigin
 import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternPredicateDefinition
 import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternRepeatDirection
+import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.ObservedPatternPredicate
 import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PatternPredicate
 import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PatternPredicates
 import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PredicateController
@@ -25,16 +27,18 @@ import com.gregtechceu.gtceu.data.pattern.StructurePatternResolver
 
 import com.google.common.base.Joiner
 import it.unimi.dsi.fastutil.chars.Char2ObjectArrayMap
+import it.unimi.dsi.fastutil.chars.Char2ObjectLinkedOpenHashMap
 import it.unimi.dsi.fastutil.chars.Char2ObjectMap
 import it.unimi.dsi.fastutil.chars.CharArrayList
 import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap
 import it.unimi.dsi.fastutil.objects.ObjectArrayList
+import it.unimi.dsi.fastutil.objects.ObjectLists
 
 import java.util.function.Predicate
 
 /** Java DSL entry point for defining a multiblock structure. */
-class PatternBuilder private constructor(private val charDir: RelativeDirection, private val stringDir: RelativeDirection, private val aisleDir: RelativeDirection, private val definition: MultiblockMachineDefinition?, private val structureName: String) {
-	private val definitionKey = definition?.let { StructurePatternKey(it.id, structureName) }
+class PatternBuilder private constructor(charDir: RelativeDirection, stringDir: RelativeDirection, aisleDir: RelativeDirection, private var definition: MultiblockMachineDefinition?, private val structureName: String) {
+	private val definitionKey get() = definition?.let { StructurePatternKey(it.id, structureName) }
 	private val units = ObjectArrayList<AisleUnit>()
 	private val symbolMap: Char2ObjectMap<PatternPredicate?> = Char2ObjectArrayMap()
 	private val structureDir = StructureDir(charDir, stringDir, aisleDir)
@@ -44,6 +48,23 @@ class PatternBuilder private constructor(private val charDir: RelativeDirection,
 	private var rowWidth = 0
 	private val extraNodes = ObjectArrayList<PatternNode>()
 	private val constraints = ObjectArrayList<PatternConstraint>()
+	private val fragments = Object2ObjectLinkedOpenHashMap<String, PatternFragment>()
+	private var orientation = PatternOrientation(true, true)
+
+	fun orientation(orientation: PatternOrientation): PatternBuilder {
+		this.orientation = orientation
+		return this
+	}
+
+	fun fragment(id: String, fragment: PatternFragment): PatternBuilder {
+		require(fragments.putIfAbsent(id, fragment) == null) { "Duplicate fragment '$id'" }
+		return this
+	}
+
+	fun node(node: PatternNode): PatternBuilder {
+		extraNodes.add(node)
+		return this
+	}
 
 	private data class AisleUnit(val slices: List<Array<String>>, val minRepeat: Int, val maxRepeat: Int)
 
@@ -58,7 +79,7 @@ class PatternBuilder private constructor(private val charDir: RelativeDirection,
 		validateAisle(aisle)
 		val group = repeatableGroup
 		if (group == null) {
-			units.add(AisleUnit(listOf(copyAisle(aisle)), 1, 1))
+			units.add(AisleUnit(ObjectLists.singleton(copyAisle(aisle)), 1, 1))
 		} else {
 			group.add(copyAisle(aisle))
 		}
@@ -74,9 +95,8 @@ class PatternBuilder private constructor(private val charDir: RelativeDirection,
 		return this
 	}
 
-	@Suppress("UNUSED_PARAMETER")
 	fun place(fragmentId: String, anchor: PatternOrigin.Offset): PatternBuilder {
-		extraNodes.add(PatternNode.Fragment(fragmentId, emptyMap()))
+		extraNodes.add(PatternNode.Placed(PatternNode.Fragment(fragmentId, emptyMap()), anchor))
 		return this
 	}
 
@@ -104,7 +124,7 @@ class PatternBuilder private constructor(private val charDir: RelativeDirection,
 		require(minRepeat <= maxRepeat) {
 			"Lower bound of repeat counting must smaller than upper bound!"
 		}
-		units.add(AisleUnit(group.toList(), minRepeat, maxRepeat))
+		units.add(AisleUnit(ObjectArrayList(group), minRepeat, maxRepeat))
 		repeatableGroup = null
 		return this
 	}
@@ -135,9 +155,11 @@ class PatternBuilder private constructor(private val charDir: RelativeDirection,
 	fun where(symbol: String, blockMatcher: PatternPredicate): PatternBuilder = where(symbol[0], blockMatcher)
 
 	fun where(symbol: Char, blockMatcher: PatternPredicate): PatternBuilder {
+		if (definition == null && blockMatcher is PredicateController) definition = blockMatcher.owner as? MultiblockMachineDefinition
 		symbolMap[symbol] = when {
 			blockMatcher.isAny() || blockMatcher.isAir() -> blockMatcher
 			blockMatcher is PredicateController -> blockMatcher.sort()
+			blockMatcher is ObservedPatternPredicate -> blockMatcher
 			else -> PatternPredicate(blockMatcher).sort()
 		}
 		return this
@@ -161,6 +183,7 @@ class PatternBuilder private constructor(private val charDir: RelativeDirection,
 	}
 
 	fun build(): MultiBlockPattern {
+		if (definition != null && extraNodes.isNotEmpty()) return MultiBlockPattern.fromDefinition(buildDefinition()).also { it.condition = condition }
 		check(repeatableGroup == null) {
 			"Repeatable aisle group must be closed before building the pattern"
 		}
@@ -209,8 +232,7 @@ class PatternBuilder private constructor(private val charDir: RelativeDirection,
 		@Suppress("UNCHECKED_CAST")
 		val blockMatches = predicate as Array<Array<Array<PatternPredicate>>>
 
-		@Suppress("UNCHECKED_CAST")
-		val slices = structureSlices as Array<Array<String>?>
+		val slices = structureSlices
 		val pattern = MultiBlockPattern(
 			blockMatches,
 			structureDir,
@@ -237,10 +259,11 @@ class PatternBuilder private constructor(private val charDir: RelativeDirection,
 	fun buildDefinition(): PatternDefinition {
 		val machine = definition ?: error("A Java pattern definition must be bound to a machine")
 		checkMissingPatternPredicates()
+		check(repeatableGroup == null) { "Repeatable group must be closed before building" }
 		val nodes = ObjectArrayList<PatternNode>(units.size + extraNodes.size)
 		units.forEachIndexed { index, unit ->
 			val layers = ObjectArrayList<List<String>>(unit.slices.size)
-			unit.slices.forEach { slice -> layers.add(slice.toList()) }
+			unit.slices.forEach { slice -> layers.add(ObjectArrayList(slice.asList())) }
 			val fixed = PatternNode.Fixed(layers)
 			nodes.add(
 				if (unit.minRepeat == 1 && unit.maxRepeat == 1) {
@@ -259,9 +282,9 @@ class PatternBuilder private constructor(private val charDir: RelativeDirection,
 		}
 		nodes.addAll(extraNodes)
 		val body = if (nodes.size == 1) nodes.first() else PatternNode.Sequence(PatternDirection.FRONT, nodes)
-		val predicates = Object2ObjectLinkedOpenHashMap<Char, PatternPredicateDefinition>()
+		val predicates = Char2ObjectLinkedOpenHashMap<PatternPredicateDefinition>()
 		symbolMap.char2ObjectEntrySet().forEach { entry ->
-			predicates[entry.charKey] = PatternPredicateDefinition("java", "", emptyMap(), emptyList())
+			predicates[entry.charKey] = PatternPredicateDefinition("java", "", mapOf("runtime" to requireNotNull(entry.value)), emptyList())
 		}
 		return PatternDefinition(
 			machine.id,
@@ -271,10 +294,10 @@ class PatternBuilder private constructor(private val charDir: RelativeDirection,
 				toPatternDirection(structureDir.stringDir()),
 				toPatternDirection(structureDir.charDir()),
 			),
-			PatternOrientation.defaults(),
+			orientation,
 			PatternOrigin.controller(),
 			emptyMap(),
-			emptyMap(),
+			fragments,
 			predicates,
 			body,
 			constraints,

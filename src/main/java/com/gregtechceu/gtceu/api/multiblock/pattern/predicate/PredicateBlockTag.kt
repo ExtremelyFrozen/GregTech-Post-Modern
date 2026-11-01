@@ -6,6 +6,7 @@ import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.tags.TagKey
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.level.block.state.BlockState
 
 import it.unimi.dsi.fastutil.objects.ObjectArrayList
 
@@ -14,6 +15,7 @@ import java.util.function.Supplier
 
 /** Matches blocks contained in a registry tag. */
 open class PredicateBlockTag(@JvmField var tag: TagKey<Block>?) : PredicateRule() {
+	override fun observeCandidate(state: BlockState): PatternObservation = PatternObservation.of(tag?.let(state::`is`) == true)
 	init {
 		buildPredicate()
 	}

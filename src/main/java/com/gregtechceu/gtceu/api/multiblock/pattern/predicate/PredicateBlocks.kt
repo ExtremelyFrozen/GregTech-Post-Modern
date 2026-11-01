@@ -5,6 +5,7 @@ import com.gregtechceu.gtceu.api.multiblock.MultiblockBlockInfo
 
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.level.block.state.BlockState
 
 import it.unimi.dsi.fastutil.objects.ObjectArrayList
 
@@ -13,6 +14,8 @@ import java.util.function.Supplier
 
 /** Matches one of a fixed set of blocks. */
 open class PredicateBlocks(vararg initialBlocks: Block?) : PredicateRule() {
+	override fun observeCandidate(state: BlockState): PatternObservation = PatternObservation.of(blocks.contains(state.block))
+
 	@JvmField
 	var blocks: Array<Block> = initialBlocks.filterNotNull().toTypedArray()
 

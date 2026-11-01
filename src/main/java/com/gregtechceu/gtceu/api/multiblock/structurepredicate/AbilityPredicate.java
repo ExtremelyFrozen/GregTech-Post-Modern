@@ -1,15 +1,19 @@
 package com.gregtechceu.gtceu.api.multiblock.structurepredicate;
 
+import com.gregtechceu.gtceu.api.block.MetaMachineBlock;
 import com.gregtechceu.gtceu.api.machine.multiblock.PartAbility;
 import com.gregtechceu.gtceu.api.multiblock.MultiblockBlockInfo;
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState;
+import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PatternObservation;
 
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import org.jetbrains.annotations.Unmodifiable;
 
 import java.util.Collection;
@@ -18,6 +22,19 @@ import java.util.List;
 import static com.gregtechceu.gtceu.api.multiblock.structurepredicate.Util.oneOrMore;
 
 public record AbilityPredicate(List<PartAbility> abilities) implements StructurePredicate {
+
+    @Override
+    public PatternObservation observeCandidate(BlockState state) {
+        var facts = new ObjectArrayList<String>();
+        if (state.getBlock() instanceof MetaMachineBlock) {
+            for (PartAbility ability : abilities) {
+                if (ability.isApplicable(state.getBlock())) facts.add("part." + ability.getName());
+            }
+        }
+        boolean matched = !facts.isEmpty();
+        if (matched) facts.add("part");
+        return PatternObservation.of(matched, facts);
+    }
 
     private static final Codec<PartAbility> ABILITY_CODEC = Codec.STRING.comapFlatMap(
             name -> PartAbility.byName(name)

@@ -3,21 +3,47 @@ package com.gregtechceu.gtceu.api.multiblock.structurepredicate;
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
 import com.gregtechceu.gtceu.api.multiblock.MultiblockBlockInfo;
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState;
+import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PatternObservation;
 
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
-import com.mojang.serialization.MapCodec;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import it.unimi.dsi.fastutil.objects.ObjectList;
+import it.unimi.dsi.fastutil.objects.ObjectLists;
 import org.jetbrains.annotations.Unmodifiable;
 
 import java.util.*;
 
 public interface StructurePredicate {
 
+    /**
+     * Observes a representative state without a world or block entity. Implementations may add their own standard
+     * facts and properties; a failed observation must carry neither. Candidate facts describe only the successful
+     * branch and must agree with runtime semantics. This method must not change counters, caches, worlds or shared
+     * matching context, and must support concurrent read-only calls after registration. The default accepts the
+     * declared block candidates without adding facts; state-sensitive and semantic predicates override this contract.
+     */
+    default PatternObservation observeCandidate(BlockState candidateState) {
+        return PatternObservation.of(blockCandidates().contains(candidateState.getBlock()));
+    }
+
+    /**
+     * Supplies representative full states without creating preview block entities. State-sensitive predicates
+     * override this method together with observeCandidate; compound predicates delegate to their children.
+     * Returned snapshots must support concurrent read-only access and must not expose mutable registry storage.
+     */
+    default ObjectList<BlockState> candidateStates() {
+        var states = new ObjectArrayList<BlockState>();
+        for (Block block : blockCandidates()) states.add(block.defaultBlockState());
+        return ObjectLists.unmodifiable(states);
+    }
+
     Codec<StructurePredicate> CODEC = typeCodec()
-            .dispatch("type", StructurePredicate::type, StructurePredicate::dispatchCodec);
+            .dispatch("type", StructurePredicate::type, StructurePredicateType::codec);
 
     StructurePredicateType<?> type();
 
@@ -36,10 +62,6 @@ public interface StructurePredicate {
                     }
                     return id;
                 });
-    }
-
-    private static MapCodec<? extends StructurePredicate> dispatchCodec(StructurePredicateType<?> type) {
-        return type.codec();
     }
 
     @Unmodifiable
@@ -61,14 +83,18 @@ public interface StructurePredicate {
      */
     @Unmodifiable
     default List<StructurePreviewChoice> previewChoices(MultiblockMachineDefinition definition) {
-        List<MultiblockBlockInfo> previewCandidates = candidates();
+        var previewCandidates = new ObjectArrayList<MultiblockBlockInfo>();
+        for (BlockState state : candidateStates()) previewCandidates.add(new MultiblockBlockInfo(state));
         if (!previewCandidates.isEmpty()) {
-            return List.of(StructurePreviewChoice.unrestricted(previewCandidates));
+            return ObjectLists.singleton(
+                    StructurePreviewChoice.unrestricted(previewCandidates).withObserver(this::observeCandidate));
         }
         if (isAny() || isAir()) {
-            return List.of(StructurePreviewChoice.unrestricted(List.of(MultiblockBlockInfo.EMPTY)));
+            return ObjectLists
+                    .singleton(StructurePreviewChoice.unrestricted(ObjectLists.singleton(MultiblockBlockInfo.EMPTY))
+                            .withObserver(this::observeCandidate));
         }
-        return List.of();
+        return ObjectLists.emptyList();
     }
 
     boolean test(MultiblockState multiblockState, boolean mutateCount);

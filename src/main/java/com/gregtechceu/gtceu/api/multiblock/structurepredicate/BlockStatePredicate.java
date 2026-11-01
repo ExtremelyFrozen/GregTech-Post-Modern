@@ -2,6 +2,7 @@ package com.gregtechceu.gtceu.api.multiblock.structurepredicate;
 
 import com.gregtechceu.gtceu.api.multiblock.MultiblockBlockInfo;
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState;
+import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PatternObservation;
 
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -9,6 +10,9 @@ import net.minecraft.world.level.block.state.BlockState;
 
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import it.unimi.dsi.fastutil.objects.ObjectList;
+import it.unimi.dsi.fastutil.objects.ObjectLists;
 import org.jetbrains.annotations.Unmodifiable;
 
 import java.util.*;
@@ -16,6 +20,16 @@ import java.util.*;
 import static com.gregtechceu.gtceu.api.multiblock.structurepredicate.Util.oneOrMore;
 
 public record BlockStatePredicate(List<BlockState> blockStates) implements StructurePredicate {
+
+    @Override
+    public ObjectList<BlockState> candidateStates() {
+        return ObjectLists.unmodifiable(new ObjectArrayList<>(blockStates));
+    }
+
+    @Override
+    public PatternObservation observeCandidate(BlockState state) {
+        return PatternObservation.of(blockStates.contains(state));
+    }
 
     public static final MapCodec<BlockStatePredicate> CODEC = RecordCodecBuilder.mapCodec(instance -> instance
             .group(oneOrMore(BlockState.CODEC).fieldOf("blockStates").forGetter(BlockStatePredicate::blockStates))

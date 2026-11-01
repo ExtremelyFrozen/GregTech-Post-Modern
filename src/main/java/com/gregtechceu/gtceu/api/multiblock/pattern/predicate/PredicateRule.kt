@@ -11,7 +11,9 @@ import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.Items
 import net.minecraft.world.level.block.Block
+import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.LiquidBlock
+import net.minecraft.world.level.block.state.BlockState
 import net.neoforged.api.distmarker.Dist
 import net.neoforged.api.distmarker.OnlyIn
 
@@ -19,14 +21,27 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectArrayMap
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import it.unimi.dsi.fastutil.objects.ObjectArrayList
+import it.unimi.dsi.fastutil.objects.ObjectList
 import it.unimi.dsi.fastutil.objects.ObjectLists
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet
+import it.unimi.dsi.fastutil.objects.ObjectSet
 
+import java.util.function.Function
 import java.util.function.Predicate
 import java.util.function.Supplier
 
 /** One block matching rule, including its limits and build metadata. */
 open class PredicateRule {
+	/** Static observation metadata survives legacy OR flattening without inspecting a world. */
+	var candidateObserver: Function<BlockState, PatternObservation>? = null
+	var positionObserver: Function<MultiblockState, PatternObservation>? = null
+	var previewStates: Supplier<ObjectList<BlockState>>? = null
+
+	/** Extension point for pure candidate semantics; metadata-only rules default to their declared blocks. */
+	open fun observeCandidate(state: BlockState): PatternObservation = candidateObserver?.apply(state) ?: PatternObservation.of(candidates?.get()?.contains(state.block) == true)
+
+	open fun candidateStates(): ObjectList<BlockState> = previewStates?.get() ?: ObjectArrayList<BlockState>().also { out -> candidates?.get()?.forEach { out.add(it.defaultBlockState()) } }
+
 	@JvmField
 	var candidates: Supplier<Array<Block>>? = null
 
@@ -37,7 +52,7 @@ open class PredicateRule {
 	var predicate: Predicate<MultiblockState> = Predicate { false }
 
 	@JvmField
-	var toolTips: MutableList<Component>? = null
+	var toolTips: ObjectList<Component>? = null
 
 	@JvmField
 	var minCount: Int = -1
@@ -93,7 +108,7 @@ open class PredicateRule {
 	open fun buildPredicate(): PredicateRule = this
 
 	@OnlyIn(Dist.CLIENT)
-	fun getToolTips(predicates: PatternPredicate?): List<Component> {
+	fun getToolTips(predicates: PatternPredicate?): ObjectList<Component> {
 		val result = ObjectArrayList<Component>()
 		toolTips?.let(result::addAll)
 		when {
@@ -135,7 +150,7 @@ open class PredicateRule {
 			}
 		}
 		slotName?.let { name ->
-			val slots: Long2ObjectMap<MutableSet<String>> = blockWorldState.facts.getOrCreate(
+			val slots: Long2ObjectMap<ObjectSet<String>> = blockWorldState.facts.getOrCreate(
 				"slots",
 			) { Long2ObjectArrayMap() }
 			slots.computeIfAbsent(blockWorldState.pos.asLong()) { ObjectOpenHashSet() }.add(name)
@@ -161,7 +176,7 @@ open class PredicateRule {
 		return false
 	}
 
-	fun getCandidates(): List<ItemStack> {
+	fun getCandidates(): ObjectList<ItemStack> {
 		val source = candidates ?: return ObjectLists.emptyList()
 		val result = ObjectArrayList<ItemStack>()
 		source.get().forEach { block ->
@@ -177,10 +192,16 @@ open class PredicateRule {
 		private val NULL_BLOCK_INFO = Supplier<MultiblockBlockInfo?> { null }
 
 		@JvmField
-		var any: PredicateRule = PredicateRule({ true }, null, null)
+		var any: PredicateRule = PredicateRule({ true }, null, null).also { rule ->
+			rule.candidateObserver = Function { PatternObservation.of(true) }
+			rule.previewStates = Supplier { ObjectLists.singleton(Blocks.AIR.defaultBlockState()) }
+		}
 
 		@JvmField
-		var air: PredicateRule = PredicateRule({ state -> state.blockState.isAir }, null, null)
+		var air: PredicateRule = PredicateRule({ state -> state.blockState.isAir }, null, null).also { rule ->
+			rule.candidateObserver = Function { PatternObservation.of(it.isAir) }
+			rule.previewStates = Supplier { ObjectLists.singleton(Blocks.AIR.defaultBlockState()) }
+		}
 
 		@JvmStatic
 		fun toItem(block: Block): Item = if (block is LiquidBlock) {

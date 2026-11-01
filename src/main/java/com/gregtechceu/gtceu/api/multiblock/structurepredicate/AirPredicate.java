@@ -1,6 +1,9 @@
 package com.gregtechceu.gtceu.api.multiblock.structurepredicate;
 
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState;
+import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PatternObservation;
+
+import net.minecraft.world.level.block.state.BlockState;
 
 import com.mojang.serialization.MapCodec;
 
@@ -13,6 +16,11 @@ public enum AirPredicate implements StructurePredicate {
     @Override
     public StructurePredicateType<?> type() {
         return StructurePredicateType.AIR;
+    }
+
+    @Override
+    public PatternObservation observeCandidate(BlockState state) {
+        return PatternObservation.of(state.isAir());
     }
 
     @Override

@@ -5,8 +5,15 @@ import com.gregtechceu.gtceu.api.multiblock.pattern.model.*
 import net.minecraft.resources.ResourceLocation
 
 import com.google.gson.*
+import it.unimi.dsi.fastutil.chars.Char2ObjectLinkedOpenHashMap
+import it.unimi.dsi.fastutil.chars.Char2ObjectMap
+import it.unimi.dsi.fastutil.chars.Char2ObjectMaps
 import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap
+import it.unimi.dsi.fastutil.objects.Object2ObjectMap
+import it.unimi.dsi.fastutil.objects.Object2ObjectMaps
 import it.unimi.dsi.fastutil.objects.ObjectArrayList
+import it.unimi.dsi.fastutil.objects.ObjectList
+import it.unimi.dsi.fastutil.objects.ObjectLists
 import org.jspecify.annotations.NullMarked
 
 import java.io.IOException
@@ -16,7 +23,7 @@ import java.nio.file.Path
 
 @NullMarked
 object PatternJsonCodec {
-	private val topLevelFields = setOf("machine", "axes", "orientation", "origin", "parameters", "fragments", "predicates", "body", "constraints")
+	private val topLevelFields = setOf("schema", "machine", "axes", "orientation", "origin", "parameters", "fragments", "predicates", "body", "constraints")
 	private val gson = GsonBuilder().setPrettyPrinting().create()
 
 	@JvmStatic
@@ -31,6 +38,7 @@ object PatternJsonCodec {
 	fun decode(structure: ResourceLocation, input: JsonElement): PatternDefinition {
 		val root = obj(input, "$")
 		rejectUnknown(root, topLevelFields, "$")
+		root["schema"]?.let { require(integer(it, "$.schema") == 2) { "Unsupported pattern schema" } }
 		val machine = if (root.has("machine")) ResourceLocation.parse(str(root["machine"], "$.machine")) else structure
 		return PatternDefinition(
 			machine, structure, axes(root["axes"]), orientation(root["orientation"]), origin(root["origin"]),
@@ -49,6 +57,7 @@ object PatternJsonCodec {
 
 	@JvmStatic
 	fun encode(definition: PatternDefinition): JsonObject = JsonObject().apply {
+		addProperty("schema", 2)
 		addProperty("machine", definition.machine.toString())
 		add("axes", encodeAxes(definition.axes))
 		add("orientation", encodeOrientation(definition.orientation))
@@ -82,11 +91,12 @@ object PatternJsonCodec {
 		if (element == null) return PatternOrigin.controller()
 		val value = obj(element, "$.origin")
 		rejectUnknown(value, setOf("token", "offset"), "$.origin")
-		return PatternOrigin(str(required(value, "token", "$.origin.token"), "$.origin.token"), offset(value["offset"], "$.origin.offset"))
+		require(value.has("token") || value.has("offset")) { "Origin requires token or offset" }
+		return PatternOrigin(value["token"]?.let { str(it, "$.origin.token") } ?: "offset", offset(value["offset"], "$.origin.offset"))
 	}
 
-	private fun parameters(element: JsonElement?): Map<String, PatternParameter> {
-		if (element == null) return emptyMap()
+	private fun parameters(element: JsonElement?): Object2ObjectMap<String, PatternParameter> {
+		if (element == null) return Object2ObjectMaps.emptyMap()
 		val result = Object2ObjectLinkedOpenHashMap<String, PatternParameter>()
 		obj(element, "$.parameters").entrySet().forEach { (name, value) -> result[name] = parameter(value, "$.parameters.$name") }
 		return result
@@ -108,13 +118,13 @@ object PatternJsonCodec {
 		else -> fail("Unknown parameter type '$type' at $path")
 	}
 
-	private fun fragments(element: JsonElement?): Map<String, PatternFragment> {
-		if (element == null) return emptyMap()
+	private fun fragments(element: JsonElement?): Object2ObjectMap<String, PatternFragment> {
+		if (element == null) return Object2ObjectMaps.emptyMap()
 		val result = Object2ObjectLinkedOpenHashMap<String, PatternFragment>()
 		obj(element, "$.fragments").entrySet().forEach { (id, value) ->
 			val path = "$.fragments.$id"
 			val fragment = obj(value, path)
-			rejectUnknown(fragment, setOf("parameters", "anchors", "ports", "body"), path)
+			rejectUnknown(fragment, setOf("parameters", "anchors", "ports", "predicates", "body"), path)
 			val anchors = Object2ObjectLinkedOpenHashMap<String, PatternOrigin.Offset>()
 			fragment["anchors"]?.let { obj(it, "$path.anchors").entrySet().forEach { (name, value) -> anchors[name] = offset(value, "$path.anchors.$name") } }
 			val ports = Object2ObjectLinkedOpenHashMap<String, PatternFragment.Port>()
@@ -126,14 +136,14 @@ object PatternJsonCodec {
 					ports[name] = PatternFragment.Port(offset(required(port, "offset", "$portPath.offset"), "$portPath.offset"), direction(required(port, "direction", "$portPath.direction"), "$portPath.direction"))
 				}
 			}
-			result[id] = PatternFragment(parameters(fragment["parameters"]), anchors, ports, node(required(fragment, "body", "$path.body"), "$path.body"))
+			result[id] = PatternFragment(parameters(fragment["parameters"]), anchors, ports, node(required(fragment, "body", "$path.body"), "$path.body"), predicates(fragment["predicates"]))
 		}
 		return result
 	}
 
-	private fun predicates(element: JsonElement?): Map<Char, PatternPredicateDefinition> {
-		if (element == null) return emptyMap()
-		val result = Object2ObjectLinkedOpenHashMap<Char, PatternPredicateDefinition>()
+	private fun predicates(element: JsonElement?): Char2ObjectMap<PatternPredicateDefinition> {
+		if (element == null) return Char2ObjectMaps.emptyMap()
+		val result = Char2ObjectLinkedOpenHashMap<PatternPredicateDefinition>()
 		obj(element, "$.predicates").entrySet().forEach { (symbol, value) ->
 			if (symbol.length != 1) fail("Predicate key must contain one character at $.predicates")
 			val path = "$.predicates.$symbol"
@@ -150,9 +160,12 @@ object PatternJsonCodec {
 	}
 
 	private fun node(element: JsonElement, path: String): PatternNode {
+		if (element.isJsonArray) return PatternNode.Sequence(PatternDirection.FRONT, ObjectArrayList<PatternNode>().also { out -> element.asJsonArray.forEachIndexed { i, child -> out.add(node(child, "$path[$i]")) } })
 		val value = obj(element, path)
 		val type = str(required(value, "type", "$path.type"), "$path.type")
 		return when (type) {
+			"placed" -> PatternNode.Placed(node(required(value, "body", "$path.body"), "$path.body"), offset(required(value, "offset", "$path.offset"), "$path.offset"))
+
 			"fixed" -> {
 				rejectUnknown(value, setOf("type", "layers"), path)
 				PatternNode.Fixed(layers(required(value, "layers", "$path.layers"), "$path.layers"))
@@ -167,16 +180,19 @@ object PatternJsonCodec {
 				rejectUnknown(value, setOf("type", "id", "axis", "direction", "min", "max", "body"), path)
 				PatternNode.Repeat(
 					str(required(value, "id", "$path.id"), "$path.id"),
-					direction(required(value, "axis", "$path.axis"), "$path.axis"),
+					if (str(required(value, "axis", "$path.axis"), "$path.axis").startsWith("$")) PatternDirection.FRONT else direction(required(value, "axis", "$path.axis"), "$path.axis"),
 					PatternRepeatDirection.valueOf(str(required(value, "direction", "$path.direction"), "$path.direction").uppercase()),
-					integer(required(value, "min", "$path.min"), "$path.min"),
-					integer(required(value, "max", "$path.max"), "$path.max"),
+					if (value["min"].asJsonPrimitive.isString) 0 else integer(required(value, "min", "$path.min"), "$path.min"),
+					if (value["max"].asJsonPrimitive.isString) Int.MAX_VALUE - 1 else integer(required(value, "max", "$path.max"), "$path.max"),
 					node(required(value, "body", "$path.body"), "$path.body"),
+					if (value["min"].asJsonPrimitive.isString) value["min"].asString.removePrefix("$") else "",
+					if (value["max"].asJsonPrimitive.isString) value["max"].asString.removePrefix("$") else "",
+					if (value["axis"].asString.startsWith("$")) value["axis"].asString.substring(1) else "",
 				)
 			}
 
 			"choice" -> {
-				rejectUnknown(value, setOf("type", "id", "alternatives"), path)
+				rejectUnknown(value, setOf("type", "id", "alternatives", "priority"), path)
 				PatternNode.Choice(
 					str(required(value, "id", "$path.id"), "$path.id"),
 					array(required(value, "alternatives", "$path.alternatives"), "$path.alternatives").mapIndexed { index, item ->
@@ -185,6 +201,7 @@ object PatternJsonCodec {
 						rejectUnknown(alternative, setOf("id", "node"), alternativePath)
 						PatternNode.Choice.Alternative(str(required(alternative, "id", "$alternativePath.id"), "$alternativePath.id"), node(required(alternative, "node", "$alternativePath.node"), "$alternativePath.node"))
 					},
+					ObjectArrayList<String>().also { out -> value["priority"]?.let { array(it, "$path.priority").forEach { item -> out.add(str(item, "$path.priority")) } } },
 				)
 			}
 
@@ -212,7 +229,7 @@ object PatternJsonCodec {
 		val item = required(value, "value", "$path.value")
 		return when (type) {
 			"token" -> PatternBinding.Token(str(item, "$path.value"))
-			"predicate" -> PatternBinding.Predicate(str(item, "$path.value"))
+			"predicate" -> if (item.isJsonObject) PatternBinding.Predicate(predicates(JsonObject().also { it.add("X", item) }).getValue('X')) else PatternBinding.Predicate(str(item, "$path.value"))
 			"integer" -> PatternBinding.IntegerValue(integer(item, "$path.value"))
 			"direction" -> PatternBinding.Direction(direction(item, "$path.value"))
 			"fragment" -> PatternBinding.Fragment(str(item, "$path.value"))
@@ -220,9 +237,9 @@ object PatternJsonCodec {
 		}
 	}
 
-	private fun constraints(element: JsonElement?): List<PatternConstraint> {
-		if (element == null) return emptyList()
-		return array(element, "$.constraints").mapIndexed { index, item ->
+	private fun constraints(element: JsonElement?): ObjectList<PatternConstraint> {
+		if (element == null) return ObjectLists.emptyList()
+		return array(element, "$.constraints").mapIndexedTo(ObjectArrayList()) { index, item ->
 			val path = "$.constraints[$index]"
 			val value = obj(item, path)
 			rejectUnknown(value, setOf("type", "fact", "scope", "min", "max", "message"), path)
@@ -247,7 +264,7 @@ object PatternJsonCodec {
 		}
 	}
 
-	private fun layers(element: JsonElement, path: String): List<List<String>> = array(element, path).mapIndexed { index, layer -> array(layer, "$path[$index]").map { str(it, "$path[$index]") } }
+	private fun layers(element: JsonElement, path: String): ObjectList<ObjectList<String>> = array(element, path).mapIndexedTo(ObjectArrayList()) { index, layer -> array(layer, "$path[$index]").mapTo(ObjectArrayList()) { str(it, "$path[$index]") } }
 	private fun offset(element: JsonElement?, path: String): PatternOrigin.Offset {
 		if (element ==
 			null
@@ -258,12 +275,24 @@ object PatternJsonCodec {
 		if (values.size() != 3) fail("Offset must contain exactly three integers at $path")
 		return PatternOrigin.Offset(integer(values[0], "$path[0]"), integer(values[1], "$path[1]"), integer(values[2], "$path[2]"))
 	}
-	private fun direction(element: JsonElement, path: String): PatternDirection = runCatching { PatternDirection.valueOf(str(element, path).uppercase()) }.getOrElse { fail("Unknown direction at $path") }
+	private fun direction(element: JsonElement, path: String): PatternDirection = when (val value = str(element, path).uppercase()) {
+		"DEPTH" -> PatternDirection.FRONT
+		"HEIGHT" -> PatternDirection.UP
+		"WIDTH" -> PatternDirection.LEFT
+		else -> PatternDirection.entries.firstOrNull { it.name == value } ?: fail("Unknown direction at $path")
+	}
 	private fun required(obj: JsonObject, name: String, path: String): JsonElement = obj[name] ?: fail("Missing required field at $path")
 	private fun obj(element: JsonElement, path: String): JsonObject = element.takeIf { it.isJsonObject }?.asJsonObject ?: fail("Expected object at $path")
 	private fun array(element: JsonElement, path: String): JsonArray = element.takeIf { it.isJsonArray }?.asJsonArray ?: fail("Expected array at $path")
 	private fun str(element: JsonElement, path: String): String = element.takeIf { it.isJsonPrimitive && it.asJsonPrimitive.isString }?.asString ?: fail("Expected string at $path")
-	private fun integer(element: JsonElement?, path: String): Int = element?.takeIf { it.isJsonPrimitive && it.asJsonPrimitive.isNumber }?.asInt ?: fail("Expected integer at $path")
+	private fun integer(element: JsonElement?, path: String): Int {
+		if (element == null || !element.isJsonPrimitive || !element.asJsonPrimitive.isNumber) fail("Expected integer at $path")
+		return try {
+			element.asBigDecimal.intValueExact()
+		} catch (exception: ArithmeticException) {
+			fail("Expected a 32-bit integer at $path: ${exception.message}")
+		}
+	}
 	private fun booleanValue(element: JsonElement?, path: String): Boolean {
 		if (element == null) return false
 		if (!element.isJsonPrimitive || !element.asJsonPrimitive.isBoolean) fail("Expected boolean at $path")
@@ -338,6 +367,7 @@ object PatternJsonCodec {
 		else -> "integer"
 	}
 	private fun encodeFragment(value: PatternFragment) = JsonObject().apply {
+		add("predicates", JsonObject().also { out -> value.predicates.forEach { (symbol, predicate) -> out.add(symbol.toString(), encodePredicate(predicate)) } })
 		add("parameters", encodeParameters(value.parameters))
 		add(
 			"anchors",
@@ -384,6 +414,19 @@ object PatternJsonCodec {
 		if (value.facts.isNotEmpty()) add("facts", JsonArray().also { out -> value.facts.forEach(out::add) })
 	}
 	private fun encodeNode(node: PatternNode): JsonObject = when (node) {
+		is PatternNode.Placed -> JsonObject().apply {
+			addProperty("type", "placed")
+			add("body", encodeNode(node.body))
+			add(
+				"offset",
+				JsonArray().also {
+					it.add(node.offset.depth)
+					it.add(node.offset.height)
+					it.add(node.offset.width)
+				},
+			)
+		}
+
 		is PatternNode.Fixed -> JsonObject().apply {
 			addProperty("type", "fixed")
 			add("layers", JsonArray().also { out -> node.layers.forEach { layer -> out.add(JsonArray().also { rows -> layer.forEach(rows::add) }) } })
@@ -398,16 +441,17 @@ object PatternJsonCodec {
 		is PatternNode.Repeat -> JsonObject().apply {
 			addProperty("type", "repeat")
 			addProperty("id", node.id)
-			addProperty("axis", node.axis.name.lowercase())
+			addProperty("axis", if (node.axisParameter.isEmpty()) node.axis.name.lowercase() else "$${node.axisParameter}")
 			addProperty("direction", node.direction.name.lowercase())
-			addProperty("min", node.minimum)
-			addProperty("max", node.maximum)
+			if (node.minimumParameter.isEmpty()) addProperty("min", node.minimum) else addProperty("min", "$${node.minimumParameter}")
+			if (node.maximumParameter.isEmpty()) addProperty("max", node.maximum) else addProperty("max", "$${node.maximumParameter}")
 			add("body", encodeNode(node.body))
 		}
 
 		is PatternNode.Choice -> JsonObject().apply {
 			addProperty("type", "choice")
 			addProperty("id", node.id)
+			if (node.priority.isNotEmpty()) add("priority", JsonArray().also { out -> node.priority.forEach(out::add) })
 			add(
 				"alternatives",
 				JsonArray().also { out ->
@@ -439,7 +483,7 @@ object PatternJsonCodec {
 
 			is PatternBinding.Predicate -> {
 				addProperty("type", "predicate")
-				addProperty("value", binding.value)
+				if (binding.definition == null) addProperty("value", binding.value) else add("value", encodePredicate(binding.definition))
 			}
 
 			is PatternBinding.IntegerValue -> {

@@ -4,14 +4,17 @@ import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
 import com.gregtechceu.gtceu.api.multiblock.MultiblockBlockInfo;
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState;
 import com.gregtechceu.gtceu.api.multiblock.error.PatternStringError;
+import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PatternObservation;
 
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.ComponentSerialization;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import it.unimi.dsi.fastutil.objects.ObjectList;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -26,6 +29,16 @@ public record RestrictedPredicate(StructurePredicate predicate, Optional<Integer
                                   Optional<Integer> maxCountByLayer, Optional<Integer> previewCount,
                                   Optional<List<Component>> tooltips)
         implements StructurePredicate {
+
+    @Override
+    public PatternObservation observeCandidate(BlockState state) {
+        return predicate.observeCandidate(state);
+    }
+
+    @Override
+    public ObjectList<BlockState> candidateStates() {
+        return predicate.candidateStates();
+    }
 
     public static final MapCodec<RestrictedPredicate> CODEC = RecordCodecBuilder.mapCodec(instance -> instance
             .group(

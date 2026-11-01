@@ -7,18 +7,15 @@ import com.gregtechceu.gtceu.api.capability.recipe.EURecipeCapability
 import com.gregtechceu.gtceu.api.capability.recipe.FluidRecipeCapability
 import com.gregtechceu.gtceu.api.capability.recipe.ItemRecipeCapability
 import com.gregtechceu.gtceu.api.data.chemical.material.Material
-import com.gregtechceu.gtceu.api.data.tag.TagPrefix
 import com.gregtechceu.gtceu.api.machine.MachineDefinition
 import com.gregtechceu.gtceu.api.machine.multiblock.PartAbility
 import com.gregtechceu.gtceu.api.multiblock.MultiblockBlockInfo
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState
-import com.gregtechceu.gtceu.api.multiblock.error.PatternStringError
-import com.gregtechceu.gtceu.api.pipenet.IPipeNode
+import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternPredicateDefinition
 import com.gregtechceu.gtceu.api.recipe.GTRecipeType
 import com.gregtechceu.gtceu.common.block.LampBlock
 import com.gregtechceu.gtceu.common.data.GTBlocks.BORDERLESS_LAMPS
 import com.gregtechceu.gtceu.common.data.GTBlocks.LAMPS
-import com.gregtechceu.gtceu.common.data.GTMaterialBlocks
 import com.gregtechceu.gtceu.common.machine.multiblock.electric.PowerSubstationMachine
 import com.gregtechceu.gtceu.common.machine.multiblock.electric.PowerSubstationMachine.PMC_BATTERY_HEADER
 import com.gregtechceu.gtceu.config.ConfigHolder
@@ -31,7 +28,9 @@ import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.material.Fluid
 
 import com.tterrag.registrate.util.entry.BlockEntry
+import it.unimi.dsi.fastutil.objects.Object2ObjectMaps
 import it.unimi.dsi.fastutil.objects.ObjectArrayList
+import it.unimi.dsi.fastutil.objects.ObjectLists
 
 import java.util.EnumMap
 import java.util.function.Predicate
@@ -111,15 +110,15 @@ object PatternPredicates {
 
 	@JvmStatic
 	fun abilities(vararg abilities: PartAbility): PatternPredicate {
-		val blocks = ObjectArrayList<Block>()
-		abilities.forEach { blocks.addAll(it.getAllBlocks()) }
-		return blocks(*blocks.toTypedArray())
+		val names = ObjectArrayList<String>(abilities.size)
+		abilities.forEach { names.add(it.name) }
+		return PatternPredicateCompiler.compile(PatternPredicateDefinition("part", "", mapOf("abilities" to names), emptyList()))
 	}
 
 	@JvmStatic
 	fun ability(ability: PartAbility, vararg tiers: Int): PatternPredicate {
-		val blocks = if (tiers.isEmpty()) ability.getAllBlocks() else ability.getBlocks(*tiers)
-		return blocks(*blocks.toTypedArray())
+		if (tiers.isEmpty()) return abilities(ability)
+		return PatternPredicateCompiler.compile(PatternPredicateDefinition("part", "", mapOf("abilities" to ObjectArrayList<String>().also { it.add(ability.name) }, "tiers" to mapOf("min" to tiers.min(), "max" to tiers.max()), "allowedTiers" to tiers), emptyList()))
 	}
 
 	@JvmStatic
@@ -175,45 +174,10 @@ object PatternPredicates {
 	}
 
 	@JvmStatic
-	fun heatingCoils(): PatternPredicate = fromBlockInfos(
-		Predicate { state ->
-			GTCEuAPI.HEATING_COILS.entries.any { entry ->
-				if (!state.blockState.`is`(entry.value.get())) return@any false
-				val stats = entry.key
-				val current = state.facts.getOrPut("CoilType", stats)
-				if (current != stats) {
-					state.setError(PatternStringError("gtpm.multiblock.pattern.error.coils"))
-					return@any false
-				}
-				true
-			}
-		},
-		Supplier {
-			GTCEuAPI.HEATING_COILS.entries.sortedBy { it.key.tier }
-				.map { MultiblockBlockInfo.fromBlockState(it.value.get().defaultBlockState()) }
-				.toTypedArray()
-		},
-	).addTooltips(Component.translatable("gtpm.multiblock.pattern.error.coils"))
+	fun heatingCoils(): PatternPredicate = PatternPredicateCompiler.compile(PatternPredicateDefinition("coil", "", Object2ObjectMaps.emptyMap(), ObjectLists.emptyList())).addTooltips(Component.translatable("gtpm.multiblock.pattern.error.coils"))
 
 	@JvmStatic
-	fun cleanroomFilters(): PatternPredicate = fromBlockInfos(
-		Predicate { state ->
-			GTCEuAPI.CLEANROOM_FILTERS.entries.any { entry ->
-				if (!state.blockState.`is`(entry.value.get())) return@any false
-				val stats = entry.key
-				val current = state.facts.getOrPut("FilterType", stats)
-				if (current != stats) {
-					state.setError(PatternStringError("gtpm.multiblock.pattern.error.filters"))
-					return@any false
-				}
-				true
-			}
-		},
-		Supplier {
-			GTCEuAPI.CLEANROOM_FILTERS.values.map { MultiblockBlockInfo.fromBlockState(it.get().defaultBlockState()) }
-				.toTypedArray()
-		},
-	).addTooltips(Component.translatable("gtpm.multiblock.pattern.error.filters"))
+	fun cleanroomFilters(): PatternPredicate = PatternPredicateCompiler.compile(PatternPredicateDefinition("filter", "", Object2ObjectMaps.emptyMap(), ObjectLists.emptyList())).addTooltips(Component.translatable("gtpm.multiblock.pattern.error.filters"))
 
 	@JvmStatic
 	fun powerSubstationBatteries(): PatternPredicate = fromBlockInfos(
@@ -246,26 +210,9 @@ object PatternPredicates {
 
 	@JvmStatic
 	fun frames(vararg frameMaterials: Material): PatternPredicate {
-		val frameBlocks = ObjectArrayList<Block>()
-		frameMaterials.forEach { material ->
-			val entry = GTMaterialBlocks.MATERIAL_BLOCKS.get(TagPrefix.frameGt, material)
-			if (entry != null && entry.isBound) frameBlocks.add(entry.get())
-		}
-		return blocks(*frameBlocks.toTypedArray()).or(
-			fromBlockInfos(
-				Predicate { state ->
-					val blockEntity = state.blockEntity
-					if (blockEntity !is IPipeNode<*, *>) return@Predicate false
-					frameMaterials.contains(blockEntity.frameMaterial)
-				},
-				Supplier {
-					frameMaterials.mapNotNull { material ->
-						val entry = GTMaterialBlocks.MATERIAL_BLOCKS.get(TagPrefix.frameGt, material)
-						if (entry != null && entry.isBound) MultiblockBlockInfo.fromBlock(entry.get()) else null
-					}.toTypedArray()
-				},
-			),
-		)
+		val materials = ObjectArrayList<String>(frameMaterials.size)
+		frameMaterials.forEach { materials.add(it.resourceLocation.toString()) }
+		return PatternPredicateCompiler.compile(PatternPredicateDefinition("frame", "", Object2ObjectMaps.singleton("materials", materials), ObjectLists.emptyList()))
 	}
 
 	private fun fromBlockInfos(predicate: Predicate<MultiblockState>, candidates: Supplier<Array<MultiblockBlockInfo>>): PatternPredicate = PatternPredicate(

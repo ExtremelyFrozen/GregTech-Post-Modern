@@ -1,15 +1,22 @@
 package com.gregtechceu.gtceu.api.multiblock.structurepredicate;
 
+import com.gregtechceu.gtceu.api.block.MetaMachineBlock;
 import com.gregtechceu.gtceu.api.machine.multiblock.PartAbility;
 import com.gregtechceu.gtceu.api.multiblock.MultiblockBlockInfo;
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState;
+import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PatternObservation;
 
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntList;
+import it.unimi.dsi.fastutil.ints.IntLists;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import org.jetbrains.annotations.Unmodifiable;
 
 import java.util.Arrays;
@@ -24,7 +31,24 @@ import static com.gregtechceu.gtceu.api.multiblock.structurepredicate.Util.oneOr
  * JSON structure predicates need this when an old Java pattern used
  * {@code PatternPredicates.ability(ability, tiers...)} instead of all registered ability blocks.
  */
-public record TieredAbilityPredicate(PartAbility ability, List<Integer> tiers) implements StructurePredicate {
+public record TieredAbilityPredicate(PartAbility ability, IntList tiers) implements StructurePredicate {
+
+    /** Codec collection boundary; runtime storage and access remain primitive. */
+    public TieredAbilityPredicate(PartAbility ability, List<Integer> tiers) {
+        this(ability, new IntArrayList(tiers));
+    }
+
+    @Override
+    public PatternObservation observeCandidate(BlockState state) {
+        boolean matched = state.getBlock() instanceof MetaMachineBlock machine &&
+                tiers.contains(machine.getDefinition().getTier()) && ability.isApplicable(machine);
+        var facts = new ObjectArrayList<String>();
+        if (matched) {
+            facts.add("part");
+            facts.add("part." + ability.getName());
+        }
+        return PatternObservation.of(matched, facts);
+    }
 
     private static final Codec<PartAbility> ABILITY_CODEC = Codec.STRING.comapFlatMap(
             name -> PartAbility.byName(name)
@@ -39,7 +63,7 @@ public record TieredAbilityPredicate(PartAbility ability, List<Integer> tiers) i
             .apply(instance, TieredAbilityPredicate::new));
 
     public TieredAbilityPredicate {
-        tiers = List.copyOf(tiers);
+        tiers = IntLists.unmodifiable(new IntArrayList(tiers));
         if (tiers.isEmpty()) {
             throw new IllegalArgumentException("Tiered ability predicate requires at least one tier");
         }
@@ -57,7 +81,7 @@ public record TieredAbilityPredicate(PartAbility ability, List<Integer> tiers) i
 
     @Override
     public @Unmodifiable List<Block> blockCandidates() {
-        int[] tierArray = tiers.stream().mapToInt(Integer::intValue).toArray();
+        int[] tierArray = tiers.toIntArray();
         return List.copyOf(ability.getBlocks(tierArray));
     }
 
@@ -69,6 +93,6 @@ public record TieredAbilityPredicate(PartAbility ability, List<Integer> tiers) i
     @Override
     public String toString() {
         return "TieredAbilityPredicate[ability=" + ability.getName() + ", tiers=" + Arrays.toString(
-                tiers.stream().mapToInt(Integer::intValue).toArray()) + ']';
+                tiers.toIntArray()) + ']';
     }
 }

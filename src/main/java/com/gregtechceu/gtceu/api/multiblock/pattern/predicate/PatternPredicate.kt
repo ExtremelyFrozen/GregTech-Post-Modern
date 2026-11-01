@@ -1,6 +1,7 @@
 package com.gregtechceu.gtceu.api.multiblock.pattern.predicate
 
 import com.gregtechceu.gtceu.api.capability.recipe.IO
+import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition
 import com.gregtechceu.gtceu.api.multiblock.MultiblockBlockInfo
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState
 import com.gregtechceu.gtceu.api.multiblock.structurepredicate.StructurePredicate
@@ -9,8 +10,13 @@ import com.gregtechceu.gtceu.api.multiblock.util.RelativeDirection
 import net.minecraft.core.Direction
 import net.minecraft.network.chat.Component
 import net.minecraft.world.level.block.Block
+import net.minecraft.world.level.block.Blocks
+import net.minecraft.world.level.block.state.BlockState
 
 import it.unimi.dsi.fastutil.objects.ObjectArrayList
+import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet
+import it.unimi.dsi.fastutil.objects.ObjectList
+import it.unimi.dsi.fastutil.objects.ObjectLists
 
 import java.util.function.Function
 import java.util.function.Predicate
@@ -18,17 +24,90 @@ import java.util.function.Supplier
 
 /** Composite runtime predicate used by the matcher and structure planner. */
 open class PatternPredicate {
-	@JvmField
-	var common: MutableList<PredicateRule> = ObjectArrayList()
+	/** Observes a candidate without constructing block entities, mutating counters or consulting a world. */
+	open fun observeCandidate(state: BlockState): PatternObservation {
+		observeRulesCandidate(state)?.let { return it }
+		for (predicate in structurePatternPredicates) {
+			val observation = predicate.observeCandidate(state)
+			if (observation.matched) return observation.withAliases(facts)
+		}
+		return PatternObservation.of(false)
+	}
+
+	/** Definition-aware choices carry their own observer, including dynamically injected third-party candidates. */
+	open fun observeCandidate(state: BlockState, definition: MultiblockMachineDefinition): PatternObservation {
+		observeRulesCandidate(state)?.let { return it }
+		for (predicate in structurePatternPredicates) {
+			for (choice in predicate.previewChoices(definition)) {
+				val observation = choice.observeCandidate(state)
+				if (observation.matched) return observation.withAliases(facts)
+			}
+		}
+		return PatternObservation.of(false)
+	}
+
+	private fun observeRulesCandidate(state: BlockState): PatternObservation? {
+		for (rule in limited.asSequence() + common.asSequence()) {
+			val observation = rule.observeCandidate(state)
+			if (observation.matched) return observation.withAliases(facts)
+		}
+		return null
+	}
+
+	/** Called after legacy count checks to retain the selected semantic branch's observation. */
+	fun observeAccepted(state: MultiblockState): PatternObservation {
+		for (rule in limited.asSequence() + common.asSequence()) {
+			if ((rule.maxCount >= 0 && state.globalCount.getInt(rule) > rule.maxCount) || (rule.maxLayerCount >= 0 && state.layerCount.getInt(rule) > rule.maxLayerCount)) continue
+			val observation = rule.positionObserver?.apply(state) ?: continue
+			if (observation.matched) return observation.withAliases(facts)
+		}
+		val definition = state.lastController?.definition ?: state.controller?.definition
+		return if (definition == null) observeCandidate(state.blockState) else observeCandidate(state.blockState, definition)
+	}
+
+	open fun getPreviewCandidates(): ObjectList<PatternPreviewCandidate> {
+		val states = ObjectLinkedOpenHashSet<BlockState>()
+		for (rule in limited.asSequence() + common.asSequence()) {
+			states.addAll(rule.candidateStates())
+		}
+		structurePatternPredicates.forEach { states.addAll(it.candidateStates()) }
+		if (isAny() || isAir() || hasAir()) states.add(Blocks.AIR.defaultBlockState())
+		val result = ObjectArrayList<PatternPreviewCandidate>()
+		states.forEach { state ->
+			val observation = observeCandidate(state)
+			if (observation.matched) result.add(PatternPreviewCandidate(MultiblockBlockInfo(state), observation))
+		}
+		return ObjectLists.unmodifiable(result)
+	}
+
+	open fun getPreviewCandidates(definition: MultiblockMachineDefinition): ObjectList<PatternPreviewCandidate> {
+		val result = ObjectArrayList<PatternPreviewCandidate>()
+		for (candidate in getPreviewCandidates()) {
+			val observation = observeCandidate(candidate.blockInfo.blockState, definition)
+			if (observation.matched) result.add(PatternPreviewCandidate(candidate.blockInfo, observation))
+		}
+		for (predicate in structurePatternPredicates) {
+			for (choice in predicate.previewChoices(definition)) {
+				for (info in choice.candidates()) {
+					val observation = observeCandidate(info.blockState, definition)
+					if (observation.matched) result.add(PatternPreviewCandidate(info, observation))
+				}
+			}
+		}
+		return ObjectLists.unmodifiable(result)
+	}
 
 	@JvmField
-	var limited: MutableList<PredicateRule> = ObjectArrayList()
+	var common: ObjectList<PredicateRule> = ObjectArrayList()
 
 	@JvmField
-	var structurePatternPredicates: MutableList<StructurePredicate> = ObjectArrayList()
+	var limited: ObjectList<PredicateRule> = ObjectArrayList()
 
 	@JvmField
-	var facts: MutableList<String> = ObjectArrayList()
+	var structurePatternPredicates: ObjectList<StructurePredicate> = ObjectArrayList()
+
+	@JvmField
+	var facts: ObjectList<String> = ObjectArrayList()
 
 	@JvmField
 	var direction: Function<MultiblockState, Direction?> = Function { null }
@@ -187,7 +266,7 @@ open class PatternPredicate {
 		return this
 	}
 
-	fun test(blockWorldState: MultiblockState): Boolean {
+	open fun test(blockWorldState: MultiblockState): Boolean {
 		blockWorldState.io = IO.BOTH
 		var matched = false
 		limited.forEach { if (it.testLimited(blockWorldState)) matched = true }
@@ -214,7 +293,7 @@ open class PatternPredicate {
 		}
 	}
 
-	fun isAny(): Boolean = (
+	open fun isAny(): Boolean = (
 		common.size == 1 && limited.isEmpty() && structurePatternPredicates.isEmpty() &&
 			common.first() === PredicateRule.any
 		) ||
@@ -223,10 +302,10 @@ open class PatternPredicate {
 				structurePatternPredicates.first().isAny()
 			)
 
-	fun addCache(): Boolean = common.any { it.addCache() } || limited.any { it.addCache() } ||
+	open fun addCache(): Boolean = common.any { it.addCache() } || limited.any { it.addCache() } ||
 		structurePatternPredicates.any { it.addCache() }
 
-	fun isAir(): Boolean = (
+	open fun isAir(): Boolean = (
 		common.size == 1 && limited.isEmpty() && structurePatternPredicates.isEmpty() &&
 			common.first() === PredicateRule.air
 		) ||

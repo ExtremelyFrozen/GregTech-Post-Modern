@@ -5,8 +5,11 @@ import com.gregtechceu.gtceu.api.block.IFilterType;
 import com.gregtechceu.gtceu.api.multiblock.MultiblockBlockInfo;
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState;
 import com.gregtechceu.gtceu.api.multiblock.error.PatternStringError;
+import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PatternObservation;
+import com.gregtechceu.gtceu.api.multiblock.pattern.predicate.PatternPredicates;
 
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
 
 import com.mojang.serialization.MapCodec;
 import org.jetbrains.annotations.Unmodifiable;
@@ -25,6 +28,11 @@ public enum CleanroomFilterPredicate implements StructurePredicate {
     @Override
     public StructurePredicateType<?> type() {
         return StructurePredicateType.CLEANROOM_FILTERS;
+    }
+
+    @Override
+    public PatternObservation observeCandidate(BlockState state) {
+        return PatternPredicates.cleanroomFilters().observeCandidate(state);
     }
 
     @Override
