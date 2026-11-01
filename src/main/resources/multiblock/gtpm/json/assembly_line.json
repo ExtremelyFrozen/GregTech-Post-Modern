@@ -1,9 +1,9 @@
 {
 	"machine": "gtpm:assembly_line",
 	"axes": {
-		"depth": "front",
+		"depth": "right",
 		"height": "up",
-		"width": "left"
+		"width": "back"
 	},
 	"orientation": {
 		"allowMirror": false,
