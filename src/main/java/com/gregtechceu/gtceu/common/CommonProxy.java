@@ -26,6 +26,7 @@ import com.gregtechceu.gtceu.api.item.IGTTool;
 import com.gregtechceu.gtceu.api.item.MetaMachineItem;
 import com.gregtechceu.gtceu.api.machine.MachineDefinition;
 import com.gregtechceu.gtceu.api.misc.forge.QuantumFluidHandlerItemStack;
+import com.gregtechceu.gtceu.api.multiblock.structurepredicate.StructurePredicateType;
 import com.gregtechceu.gtceu.api.recipe.chance.logic.ChanceLogic;
 import com.gregtechceu.gtceu.api.recipe.ingredient.IntCircuitIngredient;
 import com.gregtechceu.gtceu.api.recipe.ingredient.IntProviderFluidIngredient;
@@ -100,6 +101,7 @@ import com.gregtechceu.gtceu.data.loot.ChestGenHooks;
 import com.gregtechceu.gtceu.data.pack.GTDynamicDataPack;
 import com.gregtechceu.gtceu.data.pack.GTDynamicResourcePack;
 import com.gregtechceu.gtceu.data.pack.GTPackSource;
+import com.gregtechceu.gtceu.data.pattern.StructureCache;
 import com.gregtechceu.gtceu.data.pattern.StructurePatternRegistry;
 import com.gregtechceu.gtceu.data.placeholder.GTPlaceholders;
 import com.gregtechceu.gtceu.data.recipe.GTIngredientTypes;
@@ -236,6 +238,8 @@ public class CommonProxy {
         GTArmorMaterials.ARMOR_MATERIALS.register(modBus);
         GTItems.init();
 
+        StructurePredicateType.init();
+        StructureCache.loadAsync();
         GTMachineUtils.init();
         GTCovers.init();
         GTMachines.init();

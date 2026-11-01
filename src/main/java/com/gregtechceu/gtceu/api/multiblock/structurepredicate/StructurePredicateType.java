@@ -1,6 +1,8 @@
 package com.gregtechceu.gtceu.api.multiblock.structurepredicate;
 
 import com.gregtechceu.gtceu.GTCEu;
+import com.gregtechceu.gtceu.api.addon.AddonFinder;
+import com.gregtechceu.gtceu.api.addon.IGTAddon;
 import com.gregtechceu.gtceu.api.registry.GTRegistries;
 
 import net.minecraft.resources.ResourceLocation;
@@ -117,5 +119,8 @@ public record StructurePredicateType<T extends StructurePredicate>(MapCodec<T> c
         return type.codec();
     }
 
-    public static void init() {}
+    /** Runs addon registration while machine definitions can still depend on the registered predicates. */
+    public static void init() {
+        AddonFinder.getAddonList().forEach(IGTAddon::registerStructurePredicateTypes);
+    }
 }

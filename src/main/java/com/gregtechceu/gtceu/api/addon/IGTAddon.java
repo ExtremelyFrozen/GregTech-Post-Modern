@@ -40,6 +40,13 @@ public interface IGTAddon {
      */
     default void registerIndicatorGenerators() {}
 
+    /**
+     * Registers this addon's structure predicate codecs and pattern predicate types.
+     * Called once on the mod registration thread, after built-in blocks and predicate types are available and
+     * before machine patterns are initialized. Use the public predicate registries here; duplicate IDs are errors.
+     */
+    default void registerStructurePredicateTypes() {}
+
     default void addRecipes(RecipeOutput provider) {}
 
     default void removeRecipes(Consumer<ResourceLocation> consumer) {}
