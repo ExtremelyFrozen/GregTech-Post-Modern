@@ -60,34 +60,32 @@ public class MultiblockMachineDefinition extends MachineDefinition {
 
     public void setPatternFactory(String structureName,
                                   Function<MultiblockMachineDefinition, MultiBlockPattern> patternFactory) {
-        structureName = validateStructureName(structureName);
         this.patternFactories.put(structureName, patternFactory);
         StructurePatternRegistry.registerJavaDefinition(this, structureName);
     }
 
     public MultiBlockPattern getPattern(String structureName) {
-        structureName = validateStructureName(structureName);
         requirePatternFactory(structureName);
         synchronized (this.patterns) {
             MultiBlockPattern pattern = this.patterns.get(structureName);
-            if (pattern == null) {
-                pattern = StructurePatternRegistry.resolvePattern(this, structureName);
-                patterns.put(structureName, pattern);
-            }
-            return pattern;
+            if (pattern != null) return pattern;
+        }
+        MultiBlockPattern resolved = StructurePatternRegistry.resolvePattern(this, structureName);
+        synchronized (this.patterns) {
+            MultiBlockPattern existing = this.patterns.putIfAbsent(structureName, resolved);
+            return existing == null ? resolved : existing;
         }
     }
 
     public void reloadPattern(String structureName) {
-        structureName = validateStructureName(structureName);
         requirePatternFactory(structureName);
+        MultiBlockPattern resolved = StructurePatternRegistry.resolvePattern(this, structureName);
         synchronized (this.patterns) {
-            patterns.put(structureName, StructurePatternRegistry.resolvePattern(this, structureName));
+            patterns.put(structureName, resolved);
         }
     }
 
     public MultiBlockPattern createJavaPattern(String structureName) {
-        structureName = validateStructureName(structureName);
         return requirePatternFactory(structureName).apply(this);
     }
 
@@ -146,7 +144,7 @@ public class MultiblockMachineDefinition extends MachineDefinition {
      * Returns direct dependencies in their declaration order.
      */
     public List<String> getStructureDependencies(String structureName) {
-        requirePatternFactory(validateStructureName(structureName));
+        requirePatternFactory(structureName);
         return structureDependencies.getOrDefault(structureName, List.of());
     }
 
@@ -154,7 +152,7 @@ public class MultiblockMachineDefinition extends MachineDefinition {
      * Returns the transitive dependency closure in machine definition order.
      */
     public List<String> getRequiredStructures(String structureName) {
-        requirePatternFactory(validateStructureName(structureName));
+        requirePatternFactory(structureName);
         LinkedHashSet<String> required = new LinkedHashSet<>();
         collectDependencies(structureName, required);
         return getStructureOrder().stream().filter(required::contains).toList();
@@ -166,13 +164,6 @@ public class MultiblockMachineDefinition extends MachineDefinition {
             throw new IllegalArgumentException("Unknown multiblock structure '" + structureName + "' for " + getId());
         }
         return factory;
-    }
-
-    private static String validateStructureName(String structureName) {
-        if (structureName.isBlank()) {
-            throw new IllegalArgumentException("structureName must not be blank");
-        }
-        return structureName;
     }
 
     private void collectDependencies(String structureName, Set<String> required) {

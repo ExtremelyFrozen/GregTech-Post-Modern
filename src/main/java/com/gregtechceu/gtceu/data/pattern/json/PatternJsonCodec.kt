@@ -31,10 +31,6 @@ object PatternJsonCodec {
 	fun read(file: Path, structure: ResourceLocation): PatternDefinition = Files.newBufferedReader(file).use { decode(structure, JsonParser.parseReader(it)) }
 
 	@JvmStatic
-	@Throws(IOException::class)
-	fun read(file: Path): PatternDefinition = read(file, ResourceLocation.parse("gtpm:unknown"))
-
-	@JvmStatic
 	fun decode(structure: ResourceLocation, input: JsonElement): PatternDefinition {
 		val root = obj(input, "$")
 		rejectUnknown(root, topLevelFields, "$")
