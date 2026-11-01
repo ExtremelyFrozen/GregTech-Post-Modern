@@ -66,26 +66,11 @@ public final class BlockCategories {
                 .sorted(Comparator.comparingInt(block -> ((MetaMachineBlock) block).getDefinition().getTier()))
                 .toArray(Block[]::new));
         registerCategory(MACHINE_HULLS, sortedMachineBlocks(GTMachines.HULL));
-        registerCategory(GLASS,
-                new Block[] { GTBlocks.CASING_TEMPERED_GLASS.get(), GTBlocks.CASING_LAMINATED_GLASS.get(),
-                        GTBlocks.FUSION_GLASS.get(), GTBlocks.CLEANROOM_GLASS.get() });
-        registerCategory(MACHINE_CASINGS, new Block[] { GTBlocks.MACHINE_CASING_ULV.get(),
-                GTBlocks.MACHINE_CASING_LV.get(),
-                GTBlocks.MACHINE_CASING_MV.get(), GTBlocks.MACHINE_CASING_HV.get(), GTBlocks.MACHINE_CASING_EV.get(),
-                GTBlocks.MACHINE_CASING_IV.get(), GTBlocks.MACHINE_CASING_LuV.get(), GTBlocks.MACHINE_CASING_ZPM.get(),
-                GTBlocks.MACHINE_CASING_UV.get(), GTBlocks.MACHINE_CASING_UHV.get(), GTBlocks.MACHINE_CASING_UEV.get(),
-                GTBlocks.MACHINE_CASING_UIV.get(), GTBlocks.MACHINE_CASING_UXV.get(), GTBlocks.MACHINE_CASING_OpV.get(),
-                GTBlocks.MACHINE_CASING_MAX.get() });
-        registerCategory(HERMETIC_CASINGS,
-                new Block[] { GTBlocks.HERMETIC_CASING_LV.get(), GTBlocks.HERMETIC_CASING_MV.get(),
-                        GTBlocks.HERMETIC_CASING_HV.get(), GTBlocks.HERMETIC_CASING_EV.get(),
-                        GTBlocks.HERMETIC_CASING_IV.get(),
-                        GTBlocks.HERMETIC_CASING_LuV.get(), GTBlocks.HERMETIC_CASING_ZPM.get(),
-                        GTBlocks.HERMETIC_CASING_UV.get(),
-                        GTBlocks.HERMETIC_CASING_UHV.get() });
-        registerCategory(COMPUTER_CASINGS,
-                new Block[] { GTBlocks.COMPUTER_CASING.get(), GTBlocks.ADVANCED_COMPUTER_CASING.get() });
-        registerCategory(COMPUTER_HEAT_VENTS, new Block[] { GTBlocks.COMPUTER_HEAT_VENT.get() });
+        registerCategory(GLASS, GTBlocks.GLASS.toArray(Block[]::new));
+        registerCategory(MACHINE_CASINGS, GTBlocks.MACHINE_CASINGS.values().toArray(Block[]::new));
+        registerCategory(HERMETIC_CASINGS, GTBlocks.HERMETIC_CASINGS.values().toArray(Block[]::new));
+        registerCategory(COMPUTER_CASINGS, GTBlocks.COMPUTER_CASINGS.values().toArray(Block[]::new));
+        registerCategory(COMPUTER_HEAT_VENTS, GTBlocks.COMPUTER_HEAT_VENTS.values().toArray(Block[]::new));
     }
 
     /** Block arrays are ordered category data and are not copied or mutated after registration. */
