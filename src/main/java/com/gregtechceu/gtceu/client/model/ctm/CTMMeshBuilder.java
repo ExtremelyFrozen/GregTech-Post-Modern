@@ -83,9 +83,6 @@ public class CTMMeshBuilder {
     private static final ThreadLocal<Vector2f[]> xy = ThreadLocal.withInitial(() -> {
         return new Vector2f[] { new Vector2f(), new Vector2f(), new Vector2f(), new Vector2f() };
     });
-    private static final ThreadLocal<Vector2f[]> newXy = ThreadLocal.withInitial(() -> {
-        return new Vector2f[] { new Vector2f(), new Vector2f(), new Vector2f(), new Vector2f() };
-    });
 
     private static void remapUVs(MutableQuadView quad, ISubmap submap) {
         submap = submap.unitScale();
@@ -124,18 +121,17 @@ public class CTMMeshBuilder {
         quad.uv(3, uvs[3].x <= minUV.x ? minU : maxU, uvs[3].y <= minUV.y ? minV : maxV);
     }
 
-    // TODO simplify, this is quite long
     public static MutableQuadView subsect(final MutableQuadView quad, ISubmap submap) {
         Direction normal = quad.nominalFace();
         // nominalFace should never be null here; MutableQuadView.fromVanilla updates it
         assert normal != null;
 
         Vector2f[] xy = CTMMeshBuilder.xy.get();
-        Vector2f[] newXy = CTMMeshBuilder.newXy.get();
+        Vector2f[] uvs = CTMMeshBuilder.uvs.get();
         Vector3f position = CTMMeshBuilder.position.get();
         for (int i = 0; i < 4; i++) {
-            // updates position
             quad.copyPos(i, position);
+            uvs[i] = quad.copyUv(i, uvs[i]);
 
             switch (normal.getAxis()) {
                 case X -> xy[i].set(position.z, position.y);
@@ -153,56 +149,30 @@ public class CTMMeshBuilder {
 
         submap = submap.unitScale();
 
-        if (normal.getAxis() == Direction.Axis.Y || normal == Direction.SOUTH || normal == Direction.WEST) {
-            // Relative X is the same sign for DOWN, UP, SOUTH, and WEST
-            newXy[0].x = Math.max(xy[0].x, submap.getXOffset());                      // DUSW
-            newXy[1].x = Math.max(xy[1].x, submap.getXOffset());                      // DUSW
-            newXy[2].x = Math.min(xy[2].x, submap.getXOffset() + submap.getWidth());  // DUSW
-            newXy[3].x = Math.min(xy[3].x, submap.getXOffset() + submap.getWidth());  // DUSW
-        } else {
-            // Flip relative X for NORTH and EAST
-            newXy[0].x = Math.min(xy[0].x, submap.getXOffset() + submap.getWidth());  // NE
-            newXy[1].x = Math.min(xy[1].x, submap.getXOffset() + submap.getWidth());  // NE
-            newXy[2].x = Math.max(xy[2].x, submap.getXOffset());                      // NE
-            newXy[3].x = Math.max(xy[3].x, submap.getXOffset());                      // NE
-        }
-        if (normal != Direction.UP) {
-            // Relative Y is the same sign for all but UP
-            newXy[0].y = Math.min(xy[0].y, submap.getYOffset() + submap.getHeight()); // DNSWE
-            newXy[1].y = Math.max(xy[1].y, submap.getYOffset());                      // DNSWE
-            newXy[2].y = Math.max(xy[2].y, submap.getYOffset());                      // DNSWE
-            newXy[3].y = Math.min(xy[3].y, submap.getYOffset() + submap.getHeight()); // DNSWE
-        } else {
-            // Flip relative Y for UP
-            newXy[0].y = Math.max(xy[0].y, submap.getYOffset());                      // U
-            newXy[1].y = Math.min(xy[1].y, submap.getYOffset() + submap.getHeight()); // U
-            newXy[2].y = Math.min(xy[2].y, submap.getYOffset() + submap.getHeight()); // U
-            newXy[3].y = Math.max(xy[3].y, submap.getYOffset());                      // U
-        }
-
-        float u0 = normalize(newXy[0].x, xy[0].x, xy[3].x),
-                v0 = normalize(newXy[0].y, xy[0].y, xy[1].y);
-        float u1 = normalize(newXy[1].x, xy[1].x, xy[2].x),
-                v1 = normalize(newXy[1].y, xy[1].y, xy[0].y);
-        float u2 = normalize(newXy[2].x, xy[2].x, xy[1].x),
-                v2 = normalize(newXy[2].y, xy[2].y, xy[3].y);
-        float u3 = normalize(newXy[3].x, xy[3].x, xy[0].x),
-                v3 = normalize(newXy[3].y, xy[3].y, xy[2].y);
-
-        quad.uv(0, Mth.lerp(u0, quad.u(0), quad.u(3)), Mth.lerp(v0, quad.v(0), quad.v(1)));
-        quad.uv(1, Mth.lerp(u1, quad.u(1), quad.u(2)), Mth.lerp(v1, quad.v(1), quad.v(0)));
-        quad.uv(2, Mth.lerp(u2, quad.u(2), quad.u(1)), Mth.lerp(v2, quad.v(2), quad.v(3)));
-        quad.uv(3, Mth.lerp(u3, quad.u(3), quad.u(0)), Mth.lerp(v3, quad.v(3), quad.v(2)));
-
-        // spotless:off
+        // Rotated model quads retain their vertex order; it need not match FaceInfo for the world-facing side.
+        float edge1X = xy[1].x - xy[0].x;
+        float edge1Y = xy[1].y - xy[0].y;
+        float edge3X = xy[3].x - xy[0].x;
+        float edge3Y = xy[3].y - xy[0].y;
+        float determinant = edge1X * edge3Y - edge1Y * edge3X;
         for (int i = 0; i < 4; i++) {
+            float x = Mth.clamp(xy[i].x, submap.getXOffset(), submap.getXOffset() + submap.getWidth());
+            float y = Mth.clamp(xy[i].y, submap.getYOffset(), submap.getYOffset() + submap.getHeight());
+            float dx = x - xy[0].x;
+            float dy = y - xy[0].y;
+            float along1 = (dx * edge3Y - dy * edge3X) / determinant;
+            float along3 = (edge1X * dy - edge1Y * dx) / determinant;
+
+            // Read only the original UVs so one clipped vertex cannot affect a later vertex's interpolation.
+            quad.uv(i,
+                    Mth.lerp(along3, Mth.lerp(along1, uvs[0].x, uvs[1].x), Mth.lerp(along1, uvs[3].x, uvs[2].x)),
+                    Mth.lerp(along3, Mth.lerp(along1, uvs[0].y, uvs[1].y), Mth.lerp(along1, uvs[3].y, uvs[2].y)));
             switch (normal.getAxis()) {
-                case X -> quad.pos(i, quad.x(i),  newXy[i].y, newXy[i].x);
-                case Y -> quad.pos(i, newXy[i].x, quad.y(i),  newXy[i].y);
-                case Z -> quad.pos(i, newXy[i].x, newXy[i].y, quad.z(i));
+                case X -> quad.pos(i, quad.x(i), y, x);
+                case Y -> quad.pos(i, x, quad.y(i), y);
+                case Z -> quad.pos(i, x, y, quad.z(i));
             }
         }
-        // spotless:on
 
         return quad;
     }
