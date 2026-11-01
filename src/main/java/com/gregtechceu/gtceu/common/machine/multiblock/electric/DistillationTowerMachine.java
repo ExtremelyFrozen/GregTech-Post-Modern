@@ -18,15 +18,15 @@ import com.gregtechceu.gtceu.api.gui.fancy.FancyTooltipsPanel;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.ConditionalSubscriptionHandler;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2BatchModeFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2DirectionalFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2MachineModeFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2VoidingModeFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2WorkingEnabledFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.feature.LDLib2FancyActionMachine;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.BatchModeConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.DirectionalConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.MachineModeConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.VoidingModeConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
+import com.gregtechceu.gtceu.api.machine.feature.FancyActionMachine;
+import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMaintenanceMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMultiPart;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.LDLib2FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.multiblock.PartAbility;
 import com.gregtechceu.gtceu.api.machine.multiblock.WorkableElectricMultiblockMachine;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableFluidTank;
@@ -70,7 +70,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
 @MethodsReturnNonnullByDefault
 public class DistillationTowerMachine extends WorkableElectricMultiblockMachine
                                       implements FluidRecipeCapability.ICustomParallel, MachineUIProvider,
-                                      LDLib2FancyActionMachine {
+                                      FancyActionMachine {
 
     @Getter
     private @Nullable List<IFluidHandler> fluidOutputs;
@@ -267,19 +267,19 @@ public class DistillationTowerMachine extends WorkableElectricMultiblockMachine
 
             List<FancyUIProvider> sidePages = new ArrayList<>(2);
             if (getRecipeTypes().length > 1) {
-                sidePages.add(new LDLib2MachineModeFancyConfigurator(DistillationTowerMachine.this));
+                sidePages.add(new MachineModeConfigurator(DistillationTowerMachine.this));
             }
-            sidePages.add(new LDLib2DirectionalFancyConfigurator(DistillationTowerMachine.this, player, holder));
+            sidePages.add(new DirectionalConfigurator(DistillationTowerMachine.this, player, holder));
             this.controllerSubTabs = List.copyOf(sidePages);
 
             List<FancyUIProvider> pages = new ArrayList<>();
             for (IMultiPart part : getParts()) {
-                if (!(part instanceof LDLib2FancyPartUIProvider pageProvider)) {
+                if (!(part instanceof FancyPartUIProvider pageProvider)) {
                     throw new IllegalStateException("Distillation Tower part has no LDLib2 Fancy page: " +
                             part.self().getDefinition().getId());
                 }
                 MachineUIHolder partHolder = new MachineUIHolderContext(player, part.self());
-                pages.add(pageProvider.createLDLib2FancyPage(player, partHolder));
+                pages.add(pageProvider.createFancyPage(player, partHolder));
             }
             this.partPages = List.copyOf(pages);
         }
@@ -346,11 +346,11 @@ public class DistillationTowerMachine extends WorkableElectricMultiblockMachine
 
         @Override
         public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
-            LDLib2VoidingModeFancyConfigurator.attachConfigurators(
+            VoidingModeConfigurator.attachConfigurators(
                     configuratorPanel, DistillationTowerMachine.this);
-            LDLib2BatchModeFancyConfigurator.attachConfigurators(
+            BatchModeConfigurator.attachConfigurators(
                     configuratorPanel, DistillationTowerMachine.this);
-            configuratorPanel.attachConfigurators(new LDLib2WorkingEnabledFancyConfigurator(
+            configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
                     DistillationTowerMachine.this, holder));
         }
 
@@ -358,7 +358,7 @@ public class DistillationTowerMachine extends WorkableElectricMultiblockMachine
         public void attachTooltips(FancyTooltipsPanel tooltipsPanel) {
             for (IMultiPart part : getParts()) {
                 if (part instanceof IMaintenanceMachine maintenanceMachine) {
-                    maintenanceMachine.attachLDLib2MaintenanceTooltips(tooltipsPanel);
+                    maintenanceMachine.attachMaintenanceTooltips(tooltipsPanel);
                 }
             }
         }

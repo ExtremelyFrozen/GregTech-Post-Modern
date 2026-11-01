@@ -24,13 +24,13 @@ import com.gregtechceu.gtceu.api.gui.fancy.FancyTabs;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.ConditionalSubscriptionHandler;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2DirectionalFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2VoidingModeFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2WorkingEnabledFancyConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.DirectionalConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.VoidingModeConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
+import com.gregtechceu.gtceu.api.machine.feature.FancyActionMachine;
 import com.gregtechceu.gtceu.api.machine.feature.IDataInfoProvider;
-import com.gregtechceu.gtceu.api.machine.feature.LDLib2FancyActionMachine;
+import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMultiPart;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.LDLib2FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.multiblock.WorkableElectricMultiblockMachine;
 import com.gregtechceu.gtceu.api.misc.EnergyContainerList;
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData;
@@ -75,7 +75,7 @@ import static com.gregtechceu.gtceu.common.data.GTMaterials.DrillingFluid;
 
 public class LargeMinerMachine extends WorkableElectricMultiblockMachine
                                implements IMiner, IControllable, IDataInfoProvider, MachineUIProvider,
-                               LDLib2FancyActionMachine, LargeMinerModeActionTarget {
+                               FancyActionMachine, LargeMinerModeActionTarget {
 
     public static final int CHUNK_LENGTH = 16;
     static {
@@ -388,22 +388,22 @@ public class LargeMinerMachine extends WorkableElectricMultiblockMachine
         private static final int PAGE_HEIGHT = 125;
 
         private final MachineUIHolder holder;
-        private final LDLib2DirectionalFancyConfigurator directionalPage;
+        private final DirectionalConfigurator directionalPage;
         private final List<FancyUIProvider> partPages;
 
         private LargeMinerFancyPage(Player player, MachineUIHolder holder) {
             requireMatchingHolder(holder);
             this.holder = holder;
-            this.directionalPage = new LDLib2DirectionalFancyConfigurator(LargeMinerMachine.this, player, holder);
+            this.directionalPage = new DirectionalConfigurator(LargeMinerMachine.this, player, holder);
 
             List<FancyUIProvider> pages = new ArrayList<>();
             for (IMultiPart part : getParts()) {
-                if (!(part instanceof LDLib2FancyPartUIProvider pageProvider)) {
+                if (!(part instanceof FancyPartUIProvider pageProvider)) {
                     throw new IllegalStateException("Large Miner part has no LDLib2 Fancy page: " +
                             part.self().getDefinition().getId());
                 }
                 MachineUIHolder partHolder = new MachineUIHolderContext(player, part.self());
-                pages.add(pageProvider.createLDLib2FancyPage(player, partHolder));
+                pages.add(pageProvider.createFancyPage(player, partHolder));
             }
             this.partPages = List.copyOf(pages);
         }
@@ -470,8 +470,8 @@ public class LargeMinerMachine extends WorkableElectricMultiblockMachine
 
         @Override
         public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
-            LDLib2VoidingModeFancyConfigurator.attachConfigurators(configuratorPanel, LargeMinerMachine.this);
-            configuratorPanel.attachConfigurators(new LDLib2WorkingEnabledFancyConfigurator(
+            VoidingModeConfigurator.attachConfigurators(configuratorPanel, LargeMinerMachine.this);
+            configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
                     LargeMinerMachine.this, holder));
         }
 

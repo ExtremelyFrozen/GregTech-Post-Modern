@@ -27,14 +27,14 @@ import com.gregtechceu.gtceu.api.gui.texture.ProgressTexture;
 import com.gregtechceu.gtceu.api.gui.util.TimedProgressSupplier;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.api.machine.TickableSubscription;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2BatchModeFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2DirectionalFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2VoidingModeFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2WorkingEnabledFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.feature.LDLib2FancyActionMachine;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.BatchModeConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.DirectionalConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.VoidingModeConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
+import com.gregtechceu.gtceu.api.machine.feature.FancyActionMachine;
+import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMaintenanceMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMultiPart;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.LDLib2FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockDisplayText;
 import com.gregtechceu.gtceu.api.machine.multiblock.WorkableElectricMultiblockMachine;
 import com.gregtechceu.gtceu.api.machine.trait.WorkLogic;
@@ -102,7 +102,7 @@ import static com.gregtechceu.gtceu.data.recipe.CustomTags.HPCA_COOLANTS;
 @ParametersAreNonnullByDefault
 public class HPCAMachine extends WorkableElectricMultiblockMachine
                          implements IOpticalComputationProvider, IControllable, ComputationProducer,
-                         MachineUIProvider, LDLib2FancyActionMachine {
+                         MachineUIProvider, FancyActionMachine {
 
     private static final double IDLE_TEMPERATURE = 200;
     private static final double DAMAGE_TEMPERATURE = 1000;
@@ -371,22 +371,22 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
         private static final int PAGE_HEIGHT = 125;
 
         private final MachineUIHolder holder;
-        private final LDLib2DirectionalFancyConfigurator directionalPage;
+        private final DirectionalConfigurator directionalPage;
         private final List<FancyUIProvider> partPages;
 
         private HPCAControllerFancyPage(Player player, MachineUIHolder holder) {
             requireMatchingHolder(holder);
             this.holder = holder;
-            this.directionalPage = new LDLib2DirectionalFancyConfigurator(HPCAMachine.this, player, holder);
+            this.directionalPage = new DirectionalConfigurator(HPCAMachine.this, player, holder);
 
             List<FancyUIProvider> pages = new ArrayList<>();
             for (IMultiPart part : getParts()) {
-                if (!(part instanceof LDLib2FancyPartUIProvider pageProvider)) {
+                if (!(part instanceof FancyPartUIProvider pageProvider)) {
                     throw new IllegalStateException("HPCA part has no LDLib2 Fancy page: " +
                             part.self().getDefinition().getId());
                 }
                 MachineUIHolder partHolder = new MachineUIHolderContext(player, part.self());
-                pages.add(pageProvider.createLDLib2FancyPage(player, partHolder));
+                pages.add(pageProvider.createFancyPage(player, partHolder));
             }
             this.partPages = List.copyOf(pages);
         }
@@ -460,9 +460,9 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
 
         @Override
         public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
-            LDLib2VoidingModeFancyConfigurator.attachConfigurators(configuratorPanel, HPCAMachine.this);
-            LDLib2BatchModeFancyConfigurator.attachConfigurators(configuratorPanel, HPCAMachine.this);
-            configuratorPanel.attachConfigurators(new LDLib2WorkingEnabledFancyConfigurator(
+            VoidingModeConfigurator.attachConfigurators(configuratorPanel, HPCAMachine.this);
+            BatchModeConfigurator.attachConfigurators(configuratorPanel, HPCAMachine.this);
+            configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
                     HPCAMachine.this, holder));
         }
 
@@ -470,7 +470,7 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
         public void attachTooltips(FancyTooltipsPanel tooltipsPanel) {
             for (IMultiPart part : getParts()) {
                 if (part instanceof IMaintenanceMachine maintenanceMachine) {
-                    maintenanceMachine.attachLDLib2MaintenanceTooltips(tooltipsPanel);
+                    maintenanceMachine.attachMaintenanceTooltips(tooltipsPanel);
                 }
             }
         }

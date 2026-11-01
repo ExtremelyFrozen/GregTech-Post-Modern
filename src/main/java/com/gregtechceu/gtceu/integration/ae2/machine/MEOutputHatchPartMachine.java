@@ -15,9 +15,9 @@ import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyTooltip;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2DirectionalFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2WorkingEnabledFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.LDLib2FancyPartUIProvider;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.DirectionalConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
+import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableFluidTank;
 import com.gregtechceu.gtceu.api.recipe.GTRecipe;
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData;
@@ -53,7 +53,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
 @MethodsReturnNonnullByDefault
 @ParametersAreNonnullByDefault
 public class MEOutputHatchPartMachine extends MEHatchPartMachine
-                                      implements LDLib2FancyPartUIProvider, MEOutputWaitingListActionTarget {
+                                      implements FancyPartUIProvider, MEOutputWaitingListActionTarget {
 
     static {
         MEOutputWaitingListActions.initialize();
@@ -152,7 +152,7 @@ public class MEOutputHatchPartMachine extends MEHatchPartMachine
     }
 
     @Override
-    public FancyUIProvider createLDLib2FancyPage(Player player, MachineUIHolder holder) {
+    public FancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
         return createLDLib2Page(player, holder);
     }
 
@@ -333,13 +333,13 @@ public class MEOutputHatchPartMachine extends MEHatchPartMachine
 
         private final Player player;
         private final MachineUIHolder holder;
-        private final LDLib2DirectionalFancyConfigurator directionalPage;
+        private final DirectionalConfigurator directionalPage;
 
         private MEFluidOutputHatchFancyPage(Player player, MachineUIHolder holder) {
             requireMatchingHolder(holder);
             this.player = player;
             this.holder = holder;
-            directionalPage = new LDLib2DirectionalFancyConfigurator(
+            directionalPage = new DirectionalConfigurator(
                     MEOutputHatchPartMachine.this, player, holder);
         }
 
@@ -378,7 +378,7 @@ public class MEOutputHatchPartMachine extends MEHatchPartMachine
 
         @Override
         public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
-            configuratorPanel.attachConfigurators(new LDLib2WorkingEnabledFancyConfigurator(
+            configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
                     MEOutputHatchPartMachine.this, holder));
         }
 

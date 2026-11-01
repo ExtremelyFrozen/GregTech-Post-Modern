@@ -22,14 +22,14 @@ import com.gregtechceu.gtceu.api.gui.fancy.IFancyTooltip;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.ConditionalSubscriptionHandler;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2DirectionalFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2VoidingModeFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2WorkingEnabledFancyConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.DirectionalConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.VoidingModeConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
+import com.gregtechceu.gtceu.api.machine.feature.FancyActionMachine;
 import com.gregtechceu.gtceu.api.machine.feature.ITieredMachine;
-import com.gregtechceu.gtceu.api.machine.feature.LDLib2FancyActionMachine;
+import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMaintenanceMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMultiPart;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.LDLib2FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockDisplayText;
 import com.gregtechceu.gtceu.api.machine.multiblock.WorkableElectricMultiblockMachine;
 import com.gregtechceu.gtceu.api.multiblock.util.RelativeDirection;
@@ -69,7 +69,7 @@ import java.util.List;
 
 public class LargeCombustionEngineMachine extends WorkableElectricMultiblockMachine
                                           implements ITieredMachine, MachineUIProvider,
-                                          LDLib2FancyActionMachine {
+                                          FancyActionMachine {
 
     private static final FluidStack OXYGEN_STACK = GTMaterials.Oxygen.getFluid(1);
     private static final FluidStack LIQUID_OXYGEN_STACK = GTMaterials.Oxygen.getFluid(FluidStorageKeys.LIQUID, 4);
@@ -369,24 +369,24 @@ public class LargeCombustionEngineMachine extends WorkableElectricMultiblockMach
         private static final int PAGE_HEIGHT = 125;
 
         private final MachineUIHolder holder;
-        private final LDLib2DirectionalFancyConfigurator directionalPage;
+        private final DirectionalConfigurator directionalPage;
         private final List<FancyUIProvider> partPages;
 
         private LargeCombustionEngineFancyPage(Player player, MachineUIHolder holder) {
             requireMatchingHolder(holder);
             this.holder = holder;
-            directionalPage = new LDLib2DirectionalFancyConfigurator(LargeCombustionEngineMachine.this,
+            directionalPage = new DirectionalConfigurator(LargeCombustionEngineMachine.this,
                     player, holder);
 
             List<FancyUIProvider> pages = new ArrayList<>();
             for (IMultiPart part : getParts()) {
-                if (!(part instanceof LDLib2FancyPartUIProvider pageProvider)) {
+                if (!(part instanceof FancyPartUIProvider pageProvider)) {
                     GTCEu.LOGGER.error("Large Combustion Engine part {} has no LDLib2 Fancy page",
                             part.self().getDefinition().getId());
                     throw new IllegalStateException("Large Combustion Engine part has no LDLib2 Fancy page: " +
                             part.self().getDefinition().getId());
                 }
-                pages.add(pageProvider.createLDLib2FancyPage(
+                pages.add(pageProvider.createFancyPage(
                         player, new MachineUIHolderContext(player, part.self())));
             }
             partPages = List.copyOf(pages);
@@ -457,9 +457,9 @@ public class LargeCombustionEngineMachine extends WorkableElectricMultiblockMach
 
         @Override
         public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
-            LDLib2VoidingModeFancyConfigurator.attachConfigurators(
+            VoidingModeConfigurator.attachConfigurators(
                     configuratorPanel, LargeCombustionEngineMachine.this);
-            configuratorPanel.attachConfigurators(new LDLib2WorkingEnabledFancyConfigurator(
+            configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
                     LargeCombustionEngineMachine.this, holder));
         }
 
@@ -467,7 +467,7 @@ public class LargeCombustionEngineMachine extends WorkableElectricMultiblockMach
         public void attachTooltips(FancyTooltipsPanel tooltipsPanel) {
             for (IMultiPart part : getParts()) {
                 if (part instanceof IMaintenanceMachine maintenanceMachine) {
-                    maintenanceMachine.attachLDLib2MaintenanceTooltips(tooltipsPanel);
+                    maintenanceMachine.attachMaintenanceTooltips(tooltipsPanel);
                 }
             }
             tooltipsPanel.attachTooltips(new IFancyTooltip.Basic(

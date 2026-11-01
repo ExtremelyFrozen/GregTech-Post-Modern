@@ -23,14 +23,14 @@ import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.ConditionalSubscriptionHandler;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.api.machine.TickableSubscription;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2BatchModeFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2DirectionalFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2VoidingModeFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2WorkingEnabledFancyConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.BatchModeConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.DirectionalConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.VoidingModeConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
+import com.gregtechceu.gtceu.api.machine.feature.FancyActionMachine;
 import com.gregtechceu.gtceu.api.machine.feature.ITieredMachine;
-import com.gregtechceu.gtceu.api.machine.feature.LDLib2FancyActionMachine;
+import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMultiPart;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.LDLib2FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.multiblock.WorkableElectricMultiblockMachine;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableEnergyContainer;
 import com.gregtechceu.gtceu.api.misc.EnergyContainerList;
@@ -82,7 +82,7 @@ import static com.gregtechceu.gtceu.api.recipe.OverclockingLogic.PERFECT_HALF_VO
 import static com.gregtechceu.gtceu.common.data.GTBlocks.*;
 
 public class FusionReactorMachine extends WorkableElectricMultiblockMachine
-                                  implements ITieredMachine, MachineUIProvider, LDLib2FancyActionMachine {
+                                  implements ITieredMachine, MachineUIProvider, FancyActionMachine {
 
     // Standard OC used for Fusion
     public static final OverclockingLogic FUSION_OC = OverclockingLogic.create(PERFECT_HALF_DURATION_FACTOR,
@@ -406,22 +406,22 @@ public class FusionReactorMachine extends WorkableElectricMultiblockMachine
         private static final int PAGE_HEIGHT = 125;
 
         private final MachineUIHolder holder;
-        private final LDLib2DirectionalFancyConfigurator directionalPage;
+        private final DirectionalConfigurator directionalPage;
         private final List<FancyUIProvider> partPages;
 
         private FusionReactorFancyPage(Player player, MachineUIHolder holder) {
             requireMatchingHolder(holder);
             this.holder = holder;
-            this.directionalPage = new LDLib2DirectionalFancyConfigurator(FusionReactorMachine.this, player, holder);
+            this.directionalPage = new DirectionalConfigurator(FusionReactorMachine.this, player, holder);
 
             List<FancyUIProvider> pages = new ArrayList<>();
             for (IMultiPart part : getParts()) {
-                if (!(part instanceof LDLib2FancyPartUIProvider pageProvider)) {
+                if (!(part instanceof FancyPartUIProvider pageProvider)) {
                     throw new IllegalStateException("Fusion Reactor part has no LDLib2 Fancy page: " +
                             part.self().getDefinition().getId());
                 }
                 MachineUIHolder partHolder = new MachineUIHolderContext(player, part.self());
-                pages.add(pageProvider.createLDLib2FancyPage(player, partHolder));
+                pages.add(pageProvider.createFancyPage(player, partHolder));
             }
             this.partPages = List.copyOf(pages);
         }
@@ -486,9 +486,9 @@ public class FusionReactorMachine extends WorkableElectricMultiblockMachine
 
         @Override
         public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
-            LDLib2VoidingModeFancyConfigurator.attachConfigurators(configuratorPanel, FusionReactorMachine.this);
-            LDLib2BatchModeFancyConfigurator.attachConfigurators(configuratorPanel, FusionReactorMachine.this);
-            configuratorPanel.attachConfigurators(new LDLib2WorkingEnabledFancyConfigurator(
+            VoidingModeConfigurator.attachConfigurators(configuratorPanel, FusionReactorMachine.this);
+            BatchModeConfigurator.attachConfigurators(configuratorPanel, FusionReactorMachine.this);
+            configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
                     FusionReactorMachine.this, holder));
         }
 

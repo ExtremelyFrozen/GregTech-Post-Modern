@@ -1,7 +1,7 @@
 package com.gregtechceu.gtceu.integration.ae2.machine
 
 import com.gregtechceu.gtceu.GTCEu
-import com.gregtechceu.gtceu.api.machine.feature.LDLib2FancyActionMachine
+import com.gregtechceu.gtceu.api.machine.feature.FancyActionMachine
 import com.gregtechceu.gtceu.api.sync_system.SyncActionContext
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData
 import com.gregtechceu.gtceu.api.sync_system.SyncActionDispatchers
@@ -21,7 +21,7 @@ import org.jetbrains.annotations.ApiStatus
  * Exposes only the authoritative ME item configuration operations used by holder-scoped actions.
  */
 @ApiStatus.Internal
-interface MEItemConfigActionTarget : LDLib2FancyActionMachine {
+interface MEItemConfigActionTarget : FancyActionMachine {
 
 	/** Returns whether the exact machine definition owns the ME item configuration protocol. */
 	fun supportsMEItemConfigActions(): Boolean

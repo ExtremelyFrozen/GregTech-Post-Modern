@@ -11,7 +11,7 @@ import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUI;
 import com.gregtechceu.gtceu.api.machine.TickableSubscription;
 import com.gregtechceu.gtceu.api.machine.TieredEnergyMachine;
-import com.gregtechceu.gtceu.api.machine.feature.LDLib2FancyUIMachine;
+import com.gregtechceu.gtceu.api.machine.feature.FancyUIMachine;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
@@ -41,7 +41,7 @@ import java.util.List;
  * @implNote BlockBreakerMachine
  */
 public class BlockBreakerMachine extends TieredEnergyMachine
-                                 implements LDLib2FancyUIMachine, IControllable {
+                                 implements FancyUIMachine, IControllable {
 
     private static final int SLOT_SIZE = 18;
     private static final int TEMPLATE_PADDING = 8;

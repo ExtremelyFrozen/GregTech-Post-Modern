@@ -48,7 +48,7 @@ import java.util.function.BooleanSupplier;
  * The provider owns its page-specific machine holder so direct machine pages and future nested part pages cannot
  * accidentally send actions through the Fancy shell's root holder.
  */
-public final class LDLib2DirectionalFancyConfigurator implements FancyUIProvider {
+public final class DirectionalConfigurator implements FancyUIProvider {
 
     public static final int PAGE_WIDTH = 168;
     public static final int PAGE_HEIGHT = 80;
@@ -121,17 +121,17 @@ public final class LDLib2DirectionalFancyConfigurator implements FancyUIProvider
 
         @Override
         public SyncActionData createPlaceCoverAction(Direction side) {
-            return LDLib2DirectionalCoverActions.createPlaceCoverAction(side);
+            return DirectionalCoverActions.createPlaceCoverAction(side);
         }
 
         @Override
         public SyncActionData createRemoveCoverAction(Direction side) {
-            return LDLib2DirectionalCoverActions.createRemoveCoverAction(side);
+            return DirectionalCoverActions.createRemoveCoverAction(side);
         }
 
         @Override
         public SyncActionData createOpenCoverAction(Direction side) {
-            return LDLib2DirectionalCoverActions.createOpenCoverAction(side);
+            return DirectionalCoverActions.createOpenCoverAction(side);
         }
     };
 
@@ -142,13 +142,13 @@ public final class LDLib2DirectionalFancyConfigurator implements FancyUIProvider
      * @param player     player whose cursor and cover permissions drive the page controls
      * @param pageHolder stable holder used for every machine action sent by the page
      */
-    public LDLib2DirectionalFancyConfigurator(MetaMachine machine, Player player, MachineUIHolder pageHolder) {
+    public DirectionalConfigurator(MetaMachine machine, Player player, MachineUIHolder pageHolder) {
         this(machine, player, pageHolder, MachineUIHelper::sendAction,
                 () -> pageHolder.getMachine() == machine, DIRECT_COVER_ACTIONS);
     }
 
-    LDLib2DirectionalFancyConfigurator(MetaMachine machine, Player player, MachineUIHolder pageHolder,
-                                       BiConsumer<MachineUIHolder, SyncActionData> actionSender) {
+    DirectionalConfigurator(MetaMachine machine, Player player, MachineUIHolder pageHolder,
+                            BiConsumer<MachineUIHolder, SyncActionData> actionSender) {
         this(machine, player, pageHolder, actionSender,
                 () -> pageHolder.getMachine() == machine, DIRECT_COVER_ACTIONS);
     }
@@ -156,10 +156,10 @@ public final class LDLib2DirectionalFancyConfigurator implements FancyUIProvider
     /**
      * Creates a directional page whose holder validity and cover actions belong to a caller-owned opening.
      */
-    public LDLib2DirectionalFancyConfigurator(MetaMachine machine, Player player, MachineUIHolder pageHolder,
-                                              BiConsumer<MachineUIHolder, SyncActionData> actionSender,
-                                              BooleanSupplier openingValid,
-                                              CoverActionRequests coverActionRequests) {
+    public DirectionalConfigurator(MetaMachine machine, Player player, MachineUIHolder pageHolder,
+                                   BiConsumer<MachineUIHolder, SyncActionData> actionSender,
+                                   BooleanSupplier openingValid,
+                                   CoverActionRequests coverActionRequests) {
         requireValidOpening(openingValid);
         this.machine = machine;
         this.player = player;
@@ -169,7 +169,7 @@ public final class LDLib2DirectionalFancyConfigurator implements FancyUIProvider
         this.actionSender = actionSender;
         this.openingValid = openingValid;
         this.coverActionRequests = coverActionRequests;
-        LDLib2DirectionalCoverActions.initialize();
+        DirectionalCoverActions.initialize();
     }
 
     private static void requireValidOpening(BooleanSupplier openingValid) {
@@ -452,7 +452,7 @@ public final class LDLib2DirectionalFancyConfigurator implements FancyUIProvider
 
         private ItemOutputModeButton() {
             super(0, 0, CONTROL_SIZE, CONTROL_SIZE, ITEM_MODE_OFF,
-                    LDLib2DirectionalFancyConfigurator.this::onItemOutputModeClick);
+                    DirectionalConfigurator.this::onItemOutputModeClick);
             noText();
             refreshState();
         }
@@ -474,7 +474,7 @@ public final class LDLib2DirectionalFancyConfigurator implements FancyUIProvider
 
         private FluidOutputModeButton() {
             super(0, 0, CONTROL_SIZE, CONTROL_SIZE, FLUID_MODE_OFF,
-                    LDLib2DirectionalFancyConfigurator.this::onFluidOutputModeClick);
+                    DirectionalConfigurator.this::onFluidOutputModeClick);
             noText();
             refreshState();
         }
@@ -543,7 +543,7 @@ public final class LDLib2DirectionalFancyConfigurator implements FancyUIProvider
 
         private CoverConfigButton() {
             super(0, 0, CONTROL_SIZE, CONTROL_SIZE, COVER_CONFIG_TEXTURE,
-                    LDLib2DirectionalFancyConfigurator.this::onCoverConfigClick);
+                    DirectionalConfigurator.this::onCoverConfigClick);
             noText();
             refreshState();
         }
@@ -569,7 +569,7 @@ public final class LDLib2DirectionalFancyConfigurator implements FancyUIProvider
             setCanPutItems(false);
             setCanTakeItems(false);
             setBackgroundTexture(GuiTextures.group(GuiTextures.SLOT, GuiTextures.IO_CONFIG_COVER_SLOT_OVERLAY));
-            addEventListener(UIEvents.MOUSE_DOWN, LDLib2DirectionalFancyConfigurator.this::onCoverSlotClick);
+            addEventListener(UIEvents.MOUSE_DOWN, DirectionalConfigurator.this::onCoverSlotClick);
             refreshState();
         }
 

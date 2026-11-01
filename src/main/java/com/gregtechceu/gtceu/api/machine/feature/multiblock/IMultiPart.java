@@ -146,6 +146,6 @@ public interface IMultiPart extends IMachineFeature {
      * @param controller    controller whose page exposes the warning
      * @param tooltipsPanel tooltip panel owned by the current Fancy opening
      */
-    default void attachLDLib2FancyTooltipsToController(MultiblockControllerMachine controller,
-                                                       FancyTooltipsPanel tooltipsPanel) {}
+    default void attachFancyTooltipsToController(MultiblockControllerMachine controller,
+                                                 FancyTooltipsPanel tooltipsPanel) {}
 }

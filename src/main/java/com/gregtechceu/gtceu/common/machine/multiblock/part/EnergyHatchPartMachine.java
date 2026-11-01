@@ -6,7 +6,7 @@ import com.gregtechceu.gtceu.api.capability.recipe.IO;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyPreviewPage;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.LDLib2FancyPartUIProvider;
+import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.multiblock.part.TieredIOPartMachine;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableEnergyContainer;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
@@ -21,7 +21,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-public class EnergyHatchPartMachine extends TieredIOPartMachine implements LDLib2FancyPartUIProvider {
+public class EnergyHatchPartMachine extends TieredIOPartMachine implements FancyPartUIProvider {
 
     @SaveField
     public final NotifiableEnergyContainer energyContainer;
@@ -56,7 +56,7 @@ public class EnergyHatchPartMachine extends TieredIOPartMachine implements LDLib
     }
 
     @Override
-    public FancyUIProvider createLDLib2FancyPage(Player player, MachineUIHolder holder) {
+    public FancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
         return new FancyPreviewPage(this, player, holder, switch (io) {
             case IN -> new FancyUIProvider.PageGroupingData(
                     "gtpm.multiblock.page_switcher.io.import", 1);

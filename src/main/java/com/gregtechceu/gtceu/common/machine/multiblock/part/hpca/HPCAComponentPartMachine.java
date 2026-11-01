@@ -5,7 +5,7 @@ import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyPreviewPage;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.LDLib2FancyPartUIProvider;
+import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.machine.multiblock.part.MultiblockPartMachine;
 import com.gregtechceu.gtceu.common.data.GTBlocks;
@@ -23,7 +23,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
 
 @MethodsReturnNonnullByDefault
 @ParametersAreNonnullByDefault
-public abstract class HPCAComponentPartMachine extends MultiblockPartMachine implements LDLib2FancyPartUIProvider {
+public abstract class HPCAComponentPartMachine extends MultiblockPartMachine implements FancyPartUIProvider {
 
     @Getter
     protected final HPCAComponentTrait hpcaComponentTrait;
@@ -40,7 +40,7 @@ public abstract class HPCAComponentPartMachine extends MultiblockPartMachine imp
 
     /** Creates the holder-scoped default preview used by the HPCA controller. */
     @Override
-    public FancyUIProvider createLDLib2FancyPage(Player player, MachineUIHolder holder) {
+    public FancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
         return new FancyPreviewPage(this, player, holder, null);
     }
 

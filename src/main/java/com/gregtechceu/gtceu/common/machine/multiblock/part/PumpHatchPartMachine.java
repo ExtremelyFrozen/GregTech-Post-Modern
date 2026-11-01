@@ -12,7 +12,7 @@ import com.gregtechceu.gtceu.api.gui.factory.MachineUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIProvider;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.LDLib2FancyPartUIProvider;
+import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.PumpHatch;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableFluidTank;
 import com.gregtechceu.gtceu.common.data.GTMaterials;
@@ -39,7 +39,7 @@ import net.neoforged.neoforge.fluids.FluidUtil;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 
 public class PumpHatchPartMachine extends FluidHatchPartMachine
-                                  implements MachineUIProvider, LDLib2FancyPartUIProvider, PumpHatch,
+                                  implements MachineUIProvider, FancyPartUIProvider, PumpHatch,
                                   PumpHatchFluidSlotActionTarget {
 
     static {
@@ -82,7 +82,7 @@ public class PumpHatchPartMachine extends FluidHatchPartMachine
     }
 
     @Override
-    public FancyUIProvider createLDLib2FancyPage(Player player, MachineUIHolder holder) {
+    public FancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
         return createLDLib2Page(player, holder);
     }
 

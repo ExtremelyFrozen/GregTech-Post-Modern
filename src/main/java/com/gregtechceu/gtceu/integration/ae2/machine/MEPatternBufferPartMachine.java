@@ -17,15 +17,15 @@ import com.gregtechceu.gtceu.api.gui.util.FluidContainerSlotInteraction;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
 import com.gregtechceu.gtceu.api.machine.TickableSubscription;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2ButtonConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2CircuitFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2CircuitFancyConfiguratorActions;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2DirectionalCoverActions;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2DirectionalFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2FancyInvConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2FancyTankConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.ButtonConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CircuitConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CircuitConfiguratorActions;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.DirectionalConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.DirectionalCoverActions;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.InventoryConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.TankConfigurator;
 import com.gregtechceu.gtceu.api.machine.feature.IDataStickInteractable;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.LDLib2FancyPartUIProvider;
+import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableFluidTank;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler;
@@ -98,7 +98,7 @@ import java.util.stream.Collectors;
 @ExtensionMethod(SizedIngredientExtensions.class)
 public class MEPatternBufferPartMachine extends MEBusPartMachine
                                         implements ICraftingProvider, PatternContainer, IDataStickInteractable,
-                                        LDLib2FancyPartUIProvider, MEPatternBufferActionTarget {
+                                        FancyPartUIProvider, MEPatternBufferActionTarget {
 
     static {
         MEPatternBufferActions.initialize();
@@ -109,7 +109,7 @@ public class MEPatternBufferPartMachine extends MEBusPartMachine
     /**
      * Creates every authoritative command exposed by one Pattern Buffer Fancy page.
      */
-    interface PatternBufferPageActions extends LDLib2DirectionalFancyConfigurator.CoverActionRequests {
+    interface PatternBufferPageActions extends DirectionalConfigurator.CoverActionRequests {
 
         /** Creates the exact terminal-name command for this opening. */
         SyncActionData createSetNameAction(String name);
@@ -143,22 +143,22 @@ public class MEPatternBufferPartMachine extends MEBusPartMachine
 
         @Override
         public SyncActionData createSetCircuitConfigurationAction(int configuration) {
-            return LDLib2CircuitFancyConfiguratorActions.createSetMachineCircuitConfigurationAction(configuration);
+            return CircuitConfiguratorActions.createSetMachineCircuitConfigurationAction(configuration);
         }
 
         @Override
         public SyncActionData createPlaceCoverAction(Direction side) {
-            return LDLib2DirectionalCoverActions.createPlaceCoverAction(side);
+            return DirectionalCoverActions.createPlaceCoverAction(side);
         }
 
         @Override
         public SyncActionData createRemoveCoverAction(Direction side) {
-            return LDLib2DirectionalCoverActions.createRemoveCoverAction(side);
+            return DirectionalCoverActions.createRemoveCoverAction(side);
         }
 
         @Override
         public SyncActionData createOpenCoverAction(Direction side) {
-            return LDLib2DirectionalCoverActions.createOpenCoverAction(side);
+            return DirectionalCoverActions.createOpenCoverAction(side);
         }
     };
     private final InternalInventory internalPatternInventory = new InternalInventory() {
@@ -441,7 +441,7 @@ public class MEPatternBufferPartMachine extends MEBusPartMachine
     }
 
     @Override
-    public FancyUIProvider createLDLib2FancyPage(Player player, MachineUIHolder holder) {
+    public FancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
         return createLDLib2Page(player, holder);
     }
 
@@ -547,7 +547,7 @@ public class MEPatternBufferPartMachine extends MEBusPartMachine
         private final BooleanSupplier canSendAction;
         private final Predicate<UIEvent> shiftDown;
         private final PatternBufferPageActions pageActions;
-        private final LDLib2DirectionalFancyConfigurator directionalPage;
+        private final DirectionalConfigurator directionalPage;
 
         private MEPatternBufferFancyPage(Player player, MachineUIHolder holder,
                                          BiConsumer<MachineUIHolder, SyncActionData> actionSender,
@@ -561,7 +561,7 @@ public class MEPatternBufferPartMachine extends MEBusPartMachine
             this.canSendAction = canSendAction;
             this.shiftDown = shiftDown;
             this.pageActions = pageActions;
-            directionalPage = new LDLib2DirectionalFancyConfigurator(MEPatternBufferPartMachine.this, player,
+            directionalPage = new DirectionalConfigurator(MEPatternBufferPartMachine.this, player,
                     holder, actionSender, openingValid, pageActions);
         }
 
@@ -601,23 +601,23 @@ public class MEPatternBufferPartMachine extends MEBusPartMachine
 
         @Override
         public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
-            configuratorPanel.attachConfigurators(new LDLib2ButtonConfigurator(
+            configuratorPanel.attachConfigurators(new ButtonConfigurator(
                     GuiTextures.group(GuiTextures.BUTTON, GuiTextures.REFUND_OVERLAY), event -> {
                         if (canSendAction.getAsBoolean()) {
                             actionSender.accept(holder, pageActions.createRefundAllAction());
                         }
                     }).setTooltips(List.of(Component.translatable("gui.gtpm.refund_all.desc"))));
             if (isHasCircuitSlot() && isCircuitSlotEnabled()) {
-                configuratorPanel.attachConfigurators(new LDLib2CircuitFancyConfigurator(
+                configuratorPanel.attachConfigurators(new CircuitConfigurator(
                         MEPatternBufferPartMachine.this, holder, actionSender, openingValid,
                         pageActions::createSetCircuitConfigurationAction));
             }
-            configuratorPanel.attachConfigurators(new LDLib2FancyInvConfigurator(
+            configuratorPanel.attachConfigurators(new InventoryConfigurator(
                     shareInventory.storage, Component.translatable("gui.gtpm.share_inventory.title"), openingValid)
                     .setTooltips(List.of(
                             Component.translatable("gui.gtpm.share_inventory.desc.0"),
                             Component.translatable("gui.gtpm.share_inventory.desc.1"))));
-            configuratorPanel.attachConfigurators(new LDLib2FancyTankConfigurator(
+            configuratorPanel.attachConfigurators(new TankConfigurator(
                     shareTank.getStorages(), Component.translatable("gui.gtpm.share_tank.title"))
                     .setTankClickHandler((tankIndex, event) -> {
                         if (!canSendAction.getAsBoolean() ||

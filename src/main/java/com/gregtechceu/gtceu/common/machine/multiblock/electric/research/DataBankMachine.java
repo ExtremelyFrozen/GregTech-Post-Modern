@@ -23,14 +23,14 @@ import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.ConditionalSubscriptionHandler;
 import com.gregtechceu.gtceu.api.machine.TickableSubscription;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2BatchModeFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2DirectionalFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2VoidingModeFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2WorkingEnabledFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.feature.LDLib2FancyActionMachine;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.BatchModeConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.DirectionalConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.VoidingModeConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
+import com.gregtechceu.gtceu.api.machine.feature.FancyActionMachine;
+import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMaintenanceMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMultiPart;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.LDLib2FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockDisplayText;
 import com.gregtechceu.gtceu.api.machine.multiblock.PartAbility;
 import com.gregtechceu.gtceu.api.machine.multiblock.WorkableElectricMultiblockMachine;
@@ -64,7 +64,7 @@ import java.util.List;
 
 public class DataBankMachine extends WorkableElectricMultiblockMachine
                              implements IControllable, IDataAccessMachine, MachineUIProvider,
-                             LDLib2FancyActionMachine {
+                             FancyActionMachine {
 
     public static final int EUT_PER_HATCH = GTValues.VA[GTValues.EV];
     public static final int EUT_PER_HATCH_CHAINED = GTValues.VA[GTValues.LuV];
@@ -368,13 +368,13 @@ public class DataBankMachine extends WorkableElectricMultiblockMachine
         private static final int PAGE_HEIGHT = 125;
 
         private final MachineUIHolder holder;
-        private final LDLib2DirectionalFancyConfigurator directionalPage;
+        private final DirectionalConfigurator directionalPage;
         private final List<FancyUIProvider> partPages;
 
         private DataBankFancyPage(Player player, MachineUIHolder holder) {
             requireMatchingHolder(holder);
             this.holder = holder;
-            this.directionalPage = new LDLib2DirectionalFancyConfigurator(DataBankMachine.this, player, holder);
+            this.directionalPage = new DirectionalConfigurator(DataBankMachine.this, player, holder);
 
             List<FancyUIProvider> pages = new ArrayList<>();
             for (IMultiPart part : getParts()) {
@@ -388,12 +388,12 @@ public class DataBankMachine extends WorkableElectricMultiblockMachine
                 if (!isDataPart) {
                     continue;
                 }
-                if (!(part instanceof LDLib2FancyPartUIProvider pageProvider)) {
+                if (!(part instanceof FancyPartUIProvider pageProvider)) {
                     throw new IllegalStateException("Data Bank data part has no LDLib2 Fancy page: " +
                             part.self().getDefinition().getId());
                 }
                 MachineUIHolder partHolder = new MachineUIHolderContext(player, part.self());
-                pages.add(pageProvider.createLDLib2FancyPage(player, partHolder));
+                pages.add(pageProvider.createFancyPage(player, partHolder));
             }
             this.partPages = List.copyOf(pages);
         }
@@ -458,9 +458,9 @@ public class DataBankMachine extends WorkableElectricMultiblockMachine
 
         @Override
         public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
-            LDLib2VoidingModeFancyConfigurator.attachConfigurators(configuratorPanel, DataBankMachine.this);
-            LDLib2BatchModeFancyConfigurator.attachConfigurators(configuratorPanel, DataBankMachine.this);
-            configuratorPanel.attachConfigurators(new LDLib2WorkingEnabledFancyConfigurator(
+            VoidingModeConfigurator.attachConfigurators(configuratorPanel, DataBankMachine.this);
+            BatchModeConfigurator.attachConfigurators(configuratorPanel, DataBankMachine.this);
+            configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
                     DataBankMachine.this, holder));
         }
 
@@ -468,7 +468,7 @@ public class DataBankMachine extends WorkableElectricMultiblockMachine
         public void attachTooltips(FancyTooltipsPanel tooltipsPanel) {
             for (IMultiPart part : getParts()) {
                 if (part instanceof IMaintenanceMachine maintenanceMachine) {
-                    maintenanceMachine.attachLDLib2MaintenanceTooltips(tooltipsPanel);
+                    maintenanceMachine.attachMaintenanceTooltips(tooltipsPanel);
                 }
             }
         }

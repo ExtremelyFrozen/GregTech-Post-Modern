@@ -13,8 +13,8 @@ import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUI;
 import com.gregtechceu.gtceu.api.machine.TickableSubscription;
 import com.gregtechceu.gtceu.api.machine.WorkableTieredMachine;
+import com.gregtechceu.gtceu.api.machine.feature.FancyUIMachine;
 import com.gregtechceu.gtceu.api.machine.feature.IDataInfoProvider;
-import com.gregtechceu.gtceu.api.machine.feature.LDLib2FancyUIMachine;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
 import com.gregtechceu.gtceu.api.transfer.item.CustomItemStackHandler;
@@ -45,7 +45,7 @@ import java.util.Collections;
 import java.util.List;
 
 public class MinerMachine extends WorkableTieredMachine
-                          implements IControllable, LDLib2FancyUIMachine, IDataInfoProvider, IMiner {
+                          implements IControllable, FancyUIMachine, IDataInfoProvider, IMiner {
 
     private static final int SLOT_SIZE = 18;
     private static final int PAGE_MIN_WIDTH = 172;

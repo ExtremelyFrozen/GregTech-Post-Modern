@@ -9,7 +9,7 @@ import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyPreviewPage;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.LDLib2FancyPartUIProvider;
+import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.multiblock.part.TieredPartMachine;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableEnergyContainer;
 import com.gregtechceu.gtceu.api.sync_system.ClassSyncData;
@@ -20,7 +20,7 @@ import com.gregtechceu.gtceu.integration.ae2.machine.trait.GridNodeHostTrait;
 import net.minecraft.core.Direction;
 import net.minecraft.world.entity.player.Player;
 
-public class HullMachine extends TieredPartMachine implements IMonitorComponent, LDLib2FancyPartUIProvider {
+public class HullMachine extends TieredPartMachine implements IMonitorComponent, FancyPartUIProvider {
 
     @SaveField(nbtKey = "grid_node")
     private final Object gridNodeHost;
@@ -69,7 +69,7 @@ public class HullMachine extends TieredPartMachine implements IMonitorComponent,
     }
 
     @Override
-    public FancyUIProvider createLDLib2FancyPage(Player player, MachineUIHolder holder) {
+    public FancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
         return new FancyPreviewPage(this, player, holder, null);
     }
 

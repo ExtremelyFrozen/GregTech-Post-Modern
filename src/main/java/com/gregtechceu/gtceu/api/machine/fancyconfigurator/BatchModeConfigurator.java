@@ -15,9 +15,9 @@ import java.util.List;
  * <p>
  * The button updates the client field and flushes GTM annotation sync.
  */
-public final class LDLib2BatchModeFancyConfigurator {
+public final class BatchModeConfigurator {
 
-    private LDLib2BatchModeFancyConfigurator() {}
+    private BatchModeConfigurator() {}
 
     /**
      * Attaches the batch mode toggle when the machine definition uses the batch recipe modifier.

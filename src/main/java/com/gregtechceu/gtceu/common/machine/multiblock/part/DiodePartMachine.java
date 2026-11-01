@@ -6,7 +6,7 @@ import com.gregtechceu.gtceu.api.capability.recipe.IO;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyPreviewPage;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.LDLib2FancyPartUIProvider;
+import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.multiblock.part.TieredIOPartMachine;
 import com.gregtechceu.gtceu.api.machine.property.GTMachineModelProperties;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableEnergyContainer;
@@ -24,7 +24,7 @@ import net.minecraft.world.level.block.state.properties.EnumProperty;
 
 import lombok.Getter;
 
-public class DiodePartMachine extends TieredIOPartMachine implements LDLib2FancyPartUIProvider {
+public class DiodePartMachine extends TieredIOPartMachine implements FancyPartUIProvider {
 
     // spotless:off
     public enum AmpMode implements StringRepresentable {
@@ -87,7 +87,7 @@ public class DiodePartMachine extends TieredIOPartMachine implements LDLib2Fancy
     }
 
     @Override
-    public FancyUIProvider createLDLib2FancyPage(Player player, MachineUIHolder holder) {
+    public FancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
         return new FancyPreviewPage(this, player, holder,
                 new FancyUIProvider.PageGroupingData(
                         "gtpm.multiblock.page_switcher.io.both", 3));

@@ -14,9 +14,9 @@ import com.gregtechceu.gtceu.api.gui.fancy.FancyTooltipsPanel;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyTooltip;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2DirectionalFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2WorkingEnabledFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.LDLib2FancyPartUIProvider;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.DirectionalConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
+import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler;
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
@@ -49,7 +49,7 @@ import java.util.function.BooleanSupplier;
  * The Output Bus that can directly send its contents to ME storage network.
  */
 public class MEOutputBusPartMachine extends MEBusPartMachine
-                                    implements LDLib2FancyPartUIProvider, MEOutputWaitingListActionTarget {
+                                    implements FancyPartUIProvider, MEOutputWaitingListActionTarget {
 
     static {
         MEOutputWaitingListActions.initialize();
@@ -154,7 +154,7 @@ public class MEOutputBusPartMachine extends MEBusPartMachine
     }
 
     @Override
-    public FancyUIProvider createLDLib2FancyPage(Player player, MachineUIHolder holder) {
+    public FancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
         return createLDLib2Page(player, holder);
     }
 
@@ -297,13 +297,13 @@ public class MEOutputBusPartMachine extends MEBusPartMachine
 
         private final Player player;
         private final MachineUIHolder holder;
-        private final LDLib2DirectionalFancyConfigurator directionalPage;
+        private final DirectionalConfigurator directionalPage;
 
         private MEItemOutputBusFancyPage(Player player, MachineUIHolder holder) {
             requireMatchingHolder(holder);
             this.player = player;
             this.holder = holder;
-            directionalPage = new LDLib2DirectionalFancyConfigurator(MEOutputBusPartMachine.this, player, holder);
+            directionalPage = new DirectionalConfigurator(MEOutputBusPartMachine.this, player, holder);
         }
 
         @Override
@@ -341,7 +341,7 @@ public class MEOutputBusPartMachine extends MEBusPartMachine
 
         @Override
         public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
-            configuratorPanel.attachConfigurators(new LDLib2WorkingEnabledFancyConfigurator(
+            configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
                     MEOutputBusPartMachine.this, holder));
         }
 

@@ -24,20 +24,20 @@ import javax.annotation.ParametersAreNonnullByDefault;
 /** Holder-scoped LDLib2 toggle for the stocking bus's automatic item configuration mode. */
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-public final class LDLib2MEItemAutoPullFancyConfigurator extends FancyConfiguratorButton.Toggle {
+public final class MEItemAutoPullConfigurator extends FancyConfiguratorButton.Toggle {
 
     /** Creates a toggle that sends the dedicated ME action only from the matching remote opening. */
-    public LDLib2MEItemAutoPullFancyConfigurator(MEStockingBusPartMachine machine, MachineUIHolder holder) {
+    public MEItemAutoPullConfigurator(MEStockingBusPartMachine machine, MachineUIHolder holder) {
         this(machine, holder, MachineUIHelper::sendAction, machine::isRemote);
     }
 
     /** Creates the same toggle with an explicit transport boundary for direct UI event verification. */
     @ApiStatus.Internal
-    public LDLib2MEItemAutoPullFancyConfigurator(
-                                                 MEStockingBusPartMachine machine,
-                                                 MachineUIHolder holder,
-                                                 BiConsumer<MachineUIHolder, SyncActionData> actionSender,
-                                                 BooleanSupplier canSendAction) {
+    public MEItemAutoPullConfigurator(
+                                      MEStockingBusPartMachine machine,
+                                      MachineUIHolder holder,
+                                      BiConsumer<MachineUIHolder, SyncActionData> actionSender,
+                                      BooleanSupplier canSendAction) {
         super(GuiTextures.BUTTON_AUTO_PULL.getSubTexture(0, 0, 1, 0.5),
                 GuiTextures.BUTTON_AUTO_PULL.getSubTexture(0, 0.5, 1, 0.5),
                 machine::isAutoPull,

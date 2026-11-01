@@ -7,8 +7,8 @@ import com.gregtechceu.gtceu.api.gui.factory.MachineUIProvider;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUI;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyPreviewPage;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
+import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMaintenanceMachine;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.LDLib2FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.multiblock.part.TieredPartMachine;
 
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
@@ -17,7 +17,7 @@ import net.minecraft.world.entity.player.Player;
 
 public class AutoMaintenanceHatchPartMachine extends TieredPartMachine
                                              implements IMaintenanceMachine, MachineUIProvider,
-                                             LDLib2FancyPartUIProvider {
+                                             FancyPartUIProvider {
 
     public AutoMaintenanceHatchPartMachine(BlockEntityCreationInfo info) {
         super(info, GTValues.HV);
@@ -30,15 +30,15 @@ public class AutoMaintenanceHatchPartMachine extends TieredPartMachine
 
     @Override
     public UI createUI(Player player, MachineUIHolder holder) {
-        FancyUIProvider page = createLDLib2FancyPage(player, holder);
+        FancyUIProvider page = createFancyPage(player, holder);
         return UI.of(new FancyMachineUI(page, player.getInventory(), holder,
                 page.getPageWidth(), page.getPageHeight()));
     }
 
     @Override
-    public FancyUIProvider createLDLib2FancyPage(Player player, MachineUIHolder holder) {
+    public FancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
         return new FancyPreviewPage(this, player, holder, null,
-                this::attachLDLib2MaintenanceTooltips);
+                this::attachMaintenanceTooltips);
     }
 
     @Override

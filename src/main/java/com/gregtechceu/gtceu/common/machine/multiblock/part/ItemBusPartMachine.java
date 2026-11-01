@@ -20,12 +20,12 @@ import com.gregtechceu.gtceu.api.gui.fancy.IFancyTooltip;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.MachineDefinition;
 import com.gregtechceu.gtceu.api.machine.TickableSubscription;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2CircuitFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2DirectionalFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2DistinctPartFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2WorkingEnabledFancyConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CircuitConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.DirectionalConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.DistinctPartConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
+import com.gregtechceu.gtceu.api.machine.feature.FancyActionMachine;
 import com.gregtechceu.gtceu.api.machine.feature.IHasCircuitSlot;
-import com.gregtechceu.gtceu.api.machine.feature.LDLib2FancyActionMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IDistinctPart;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.machine.multiblock.part.TieredIOPartMachine;
@@ -62,7 +62,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 public class ItemBusPartMachine extends TieredIOPartMachine
-                                implements IDistinctPart, IHasCircuitSlot, IPaintable, LDLib2FancyActionMachine,
+                                implements IDistinctPart, IHasCircuitSlot, IPaintable, FancyActionMachine,
                                 MachineUIProvider {
 
     @Getter
@@ -402,12 +402,12 @@ public class ItemBusPartMachine extends TieredIOPartMachine
     private final class ItemBusLDLib2Page implements FancyUIProvider {
 
         private final MachineUIHolder holder;
-        private final LDLib2DirectionalFancyConfigurator directionalPage;
+        private final DirectionalConfigurator directionalPage;
 
         private ItemBusLDLib2Page(Player player, MachineUIHolder holder) {
             requireMatchingLDLib2Holder(holder);
             this.holder = holder;
-            this.directionalPage = new LDLib2DirectionalFancyConfigurator(ItemBusPartMachine.this, player, holder);
+            this.directionalPage = new DirectionalConfigurator(ItemBusPartMachine.this, player, holder);
         }
 
         @Override
@@ -445,14 +445,14 @@ public class ItemBusPartMachine extends TieredIOPartMachine
 
         @Override
         public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
-            configuratorPanel.attachConfigurators(new LDLib2WorkingEnabledFancyConfigurator(
+            configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
                     ItemBusPartMachine.this, holder));
             if (io != IO.IN) {
                 return;
             }
-            LDLib2DistinctPartFancyConfigurator.attachConfigurators(configuratorPanel, ItemBusPartMachine.this);
+            DistinctPartConfigurator.attachConfigurators(configuratorPanel, ItemBusPartMachine.this);
             if (isHasCircuitSlot() && isCircuitSlotEnabled()) {
-                configuratorPanel.attachConfigurators(new LDLib2CircuitFancyConfigurator(
+                configuratorPanel.attachConfigurators(new CircuitConfigurator(
                         ItemBusPartMachine.this, holder));
             }
         }

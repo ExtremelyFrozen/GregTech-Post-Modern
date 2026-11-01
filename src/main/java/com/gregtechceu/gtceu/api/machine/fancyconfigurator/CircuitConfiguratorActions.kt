@@ -1,8 +1,8 @@
 package com.gregtechceu.gtceu.api.machine.fancyconfigurator
 
 import com.gregtechceu.gtceu.GTCEu
+import com.gregtechceu.gtceu.api.machine.feature.FancyActionMachine
 import com.gregtechceu.gtceu.api.machine.feature.IHasCircuitSlot
-import com.gregtechceu.gtceu.api.machine.feature.LDLib2FancyActionMachine
 import com.gregtechceu.gtceu.api.sync_system.SyncActionContext
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData
 import com.gregtechceu.gtceu.api.sync_system.SyncActionDispatchers
@@ -18,7 +18,7 @@ import net.minecraft.server.level.ServerPlayer
 import com.google.gson.JsonPrimitive
 
 /** Owns the GT action protocol for the LDLib2 machine circuit configurator. */
-object LDLib2CircuitFancyConfiguratorActions {
+object CircuitConfiguratorActions {
 
 	private const val SELECTED_SLOT = 0
 	private const val NO_CONFIG = -1
@@ -65,7 +65,7 @@ object LDLib2CircuitFancyConfiguratorActions {
 
 		override fun execute(context: SyncActionContext) {
 			val holder = requireCircuitHolder(context)
-			LDLib2CircuitFancyConfigurator.writeMachineCircuitConfiguration(
+			CircuitConfigurator.writeMachineCircuitConfiguration(
 				holder.circuitInventory,
 				requireCircuitConfiguration(context.payload()),
 			)
@@ -74,7 +74,7 @@ object LDLib2CircuitFancyConfiguratorActions {
 
 	private fun readCircuitHolder(context: SyncActionContext): IHasCircuitSlot? {
 		val holder = context.holder
-		if (holder !is IHasCircuitSlot || holder !is LDLib2FancyActionMachine) {
+		if (holder !is IHasCircuitSlot || holder !is FancyActionMachine) {
 			return null
 		}
 		if (!holder.isCircuitSlotEnabled || holder.circuitInventory.slots <= SELECTED_SLOT) {

@@ -9,10 +9,10 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
  * Supplies the LDLib2 default preview page for Fancy machines without a dedicated page body.
  *
  * <p>
- * This opt-in contract mirrors the legacy fallback preview while keeping {@link LDLib2FancyUIMachine} explicit:
+ * This opt-in contract mirrors the legacy fallback preview while keeping {@link FancyUIMachine} explicit:
  * concrete machines must choose this fallback instead of silently receiving a placeholder page.
  */
-public interface LDLib2PreviewFancyUIMachine extends LDLib2FancyUIMachine {
+public interface PreviewFancyUIMachine extends FancyUIMachine {
 
     /**
      * Width of the legacy fallback preview content.

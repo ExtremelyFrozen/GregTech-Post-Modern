@@ -22,8 +22,8 @@ import java.util.function.Supplier;
  * The selector only computes the requested next value. Callers that mutate business state must send a GTM action
  * packet or update a GTM sync field from the change callback.
  */
-public class LDLib2FancySelectorConfigurator<T extends Enum<T> & SelectableEnum>
-                                            implements FancyConfiguratorButton {
+public class SelectorConfigurator<T extends Enum<T> & SelectableEnum>
+                                 implements FancyConfiguratorButton {
 
     private final List<T> values;
     private final Supplier<T> valueSupplier;
@@ -37,7 +37,7 @@ public class LDLib2FancySelectorConfigurator<T extends Enum<T> & SelectableEnum>
      * @param valueSupplier supplies the current client-visible value.
      * @param onChanged     receives the requested next value when clicked.
      */
-    public LDLib2FancySelectorConfigurator(T[] values, Supplier<T> valueSupplier, BiConsumer<UIEvent, T> onChanged) {
+    public SelectorConfigurator(T[] values, Supplier<T> valueSupplier, BiConsumer<UIEvent, T> onChanged) {
         this.values = List.of(values);
         this.valueSupplier = valueSupplier;
         this.onChanged = onChanged;
@@ -47,7 +47,7 @@ public class LDLib2FancySelectorConfigurator<T extends Enum<T> & SelectableEnum>
     /**
      * Sets tooltip text based on the current selected value.
      */
-    public LDLib2FancySelectorConfigurator<T> setTooltip(Function<T, List<Component>> tooltip) {
+    public SelectorConfigurator<T> setTooltip(Function<T, List<Component>> tooltip) {
         this.tooltip = tooltip;
         return this;
     }

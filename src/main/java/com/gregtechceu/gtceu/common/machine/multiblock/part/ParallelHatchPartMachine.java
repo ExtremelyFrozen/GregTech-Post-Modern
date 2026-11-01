@@ -13,9 +13,9 @@ import com.gregtechceu.gtceu.api.gui.fancy.FancyTooltipsPanel;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyTooltip;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2DirectionalFancyConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.DirectionalConfigurator;
 import com.gregtechceu.gtceu.api.machine.feature.IRecipeLogicMachine;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.LDLib2FancyPartUIProvider;
+import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.machine.multiblock.part.TieredPartMachine;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
@@ -35,7 +35,7 @@ import lombok.Getter;
 import java.util.List;
 
 public class ParallelHatchPartMachine extends TieredPartMachine
-                                      implements MachineUIProvider, LDLib2FancyPartUIProvider {
+                                      implements MachineUIProvider, FancyPartUIProvider {
 
     private static final int MIN_PARALLEL = 1;
     private static final int PAGE_WIDTH = 100;
@@ -94,7 +94,7 @@ public class ParallelHatchPartMachine extends TieredPartMachine
 
     /** Creates a new holder-scoped page for one surrounding multiblock UI opening. */
     @Override
-    public FancyUIProvider createLDLib2FancyPage(Player player, MachineUIHolder holder) {
+    public FancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
         requireMatchingLDLib2Holder(holder);
         return new ParallelHatchLDLib2Page(player, holder);
     }
@@ -123,12 +123,12 @@ public class ParallelHatchPartMachine extends TieredPartMachine
     private final class ParallelHatchLDLib2Page implements FancyUIProvider {
 
         private final MachineUIHolder holder;
-        private final LDLib2DirectionalFancyConfigurator directionalPage;
+        private final DirectionalConfigurator directionalPage;
 
         private ParallelHatchLDLib2Page(Player player, MachineUIHolder holder) {
             requireMatchingLDLib2Holder(holder);
             this.holder = holder;
-            directionalPage = new LDLib2DirectionalFancyConfigurator(ParallelHatchPartMachine.this, player, holder);
+            directionalPage = new DirectionalConfigurator(ParallelHatchPartMachine.this, player, holder);
         }
 
         @Override

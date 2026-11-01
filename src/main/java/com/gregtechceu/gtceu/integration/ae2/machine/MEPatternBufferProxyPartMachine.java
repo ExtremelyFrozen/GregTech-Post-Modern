@@ -14,10 +14,10 @@ import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUI;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyPreviewPage;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2CircuitFancyConfiguratorActions;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2DirectionalCoverActions;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CircuitConfiguratorActions;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.DirectionalCoverActions;
 import com.gregtechceu.gtceu.api.machine.feature.IDataStickInteractable;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.LDLib2FancyPartUIProvider;
+import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.multiblock.part.TieredIOPartMachine;
 import com.gregtechceu.gtceu.api.recipe.handler.RecipeHandlerList;
 import com.gregtechceu.gtceu.api.sync_system.SyncActionContext;
@@ -55,7 +55,7 @@ import java.util.function.Predicate;
 
 public class MEPatternBufferProxyPartMachine extends TieredIOPartMachine
                                              implements IDataStickInteractable, MachineUIProvider,
-                                             LDLib2FancyPartUIProvider, MEPatternBufferProxyActionTarget {
+                                             FancyPartUIProvider, MEPatternBufferProxyActionTarget {
 
     static {
         MEPatternBufferProxyActions.initialize();
@@ -216,7 +216,7 @@ public class MEPatternBufferProxyPartMachine extends TieredIOPartMachine
 
     /** Creates the proxy-local preview used by a surrounding multiblock without opening its linked buffer. */
     @Override
-    public FancyUIProvider createLDLib2FancyPage(Player player, MachineUIHolder holder) {
+    public FancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
         return new FancyPreviewPage(this, player, holder,
                 new FancyUIProvider.PageGroupingData(
                         "gtpm.multiblock.page_switcher.io.import", 1));
@@ -366,7 +366,7 @@ public class MEPatternBufferProxyPartMachine extends TieredIOPartMachine
     public void configureLinkedMEPatternBufferCircuit(ServerPlayer player,
                                                       MEPatternBufferProxyOpeningIdentity opening,
                                                       int configuration) {
-        SyncActionData action = LDLib2CircuitFancyConfiguratorActions
+        SyncActionData action = CircuitConfiguratorActions
                 .createSetMachineCircuitConfigurationAction(configuration);
         dispatchLinkedAction(player, opening, action, "circuit");
     }
@@ -389,8 +389,8 @@ public class MEPatternBufferProxyPartMachine extends TieredIOPartMachine
             return;
         }
         SyncActionData action = switch (operation) {
-            case PLACE -> LDLib2DirectionalCoverActions.createPlaceCoverAction(side);
-            case REMOVE -> LDLib2DirectionalCoverActions.createRemoveCoverAction(side);
+            case PLACE -> DirectionalCoverActions.createPlaceCoverAction(side);
+            case REMOVE -> DirectionalCoverActions.createRemoveCoverAction(side);
             case OPEN -> throw new IllegalStateException("Cover-open action must use the anchored holder path.");
         };
         dispatchLinkedAction(player, opening, action, "cover " + operation);

@@ -20,9 +20,9 @@ import java.util.function.BooleanSupplier;
  * <p>
  * The buttons update the client field and flush GTM annotation sync; they do not use LDLib2-owned business state.
  */
-public final class LDLib2AutoOutputFancyConfigurator {
+public final class AutoOutputConfigurator {
 
-    private LDLib2AutoOutputFancyConfigurator() {}
+    private AutoOutputConfigurator() {}
 
     /**
      * Attaches supported auto-output toggles to a migrated LDLib2 Fancy configurator panel.

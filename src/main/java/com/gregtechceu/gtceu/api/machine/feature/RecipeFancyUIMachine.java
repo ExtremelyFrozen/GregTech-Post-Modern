@@ -28,7 +28,7 @@ import java.util.LinkedHashMap;
 /**
  * Loads and binds editable LDLib2 XML pages for tiered recipe machines.
  */
-public interface LDLib2RecipeFancyUIMachine extends LDLib2FancyUIMachine {
+public interface RecipeFancyUIMachine extends FancyUIMachine {
 
     /**
      * Loads the active machine XML and binds it to the concrete recipe machine.
@@ -38,9 +38,9 @@ public interface LDLib2RecipeFancyUIMachine extends LDLib2FancyUIMachine {
      */
     @Override
     default UIElement createMainPage(FancyMachineUI shell) {
-        WorkableTieredMachine machine = getLDLib2RecipeMachine();
-        return getLDLib2MachineUITemplate(machine)
-                .createUI(getLDLib2MachineUIResourceManager(machine), machine).rootElement;
+        WorkableTieredMachine machine = getRecipeMachine();
+        return getMachineUITemplate(machine)
+                .createUI(getMachineUIResourceManager(machine), machine).rootElement;
     }
 
     /**
@@ -50,7 +50,7 @@ public interface LDLib2RecipeFancyUIMachine extends LDLib2FancyUIMachine {
      */
     @Override
     default int getPageWidth() {
-        return getLDLib2MachineUISize(getLDLib2RecipeMachine()).width();
+        return getMachineUISize(getRecipeMachine()).width();
     }
 
     /**
@@ -60,7 +60,7 @@ public interface LDLib2RecipeFancyUIMachine extends LDLib2FancyUIMachine {
      */
     @Override
     default int getPageHeight() {
-        return getLDLib2MachineUISize(getLDLib2RecipeMachine()).height();
+        return getMachineUISize(getRecipeMachine()).height();
     }
 
     /**
@@ -68,7 +68,7 @@ public interface LDLib2RecipeFancyUIMachine extends LDLib2FancyUIMachine {
      *
      * @return this provider as a tiered recipe machine.
      */
-    WorkableTieredMachine getLDLib2RecipeMachine();
+    WorkableTieredMachine getRecipeMachine();
 
     /**
      * Binds recipe progress and capability elements already present in a parsed machine XML tree.
@@ -76,10 +76,10 @@ public interface LDLib2RecipeFancyUIMachine extends LDLib2FancyUIMachine {
      * @param root    parsed machine XML root.
      * @param machine tiered recipe machine backing the elements.
      */
-    default void bindLDLib2RecipeElements(UIElement root, WorkableTieredMachine machine) {
+    default void bindRecipeElements(UIElement root, WorkableTieredMachine machine) {
         machine.getRecipeType().getRecipeUI().bindLDLib2RecipeUI(root,
                 new RecipeHolder(machine.getRecipeLogic()::getProgressPercent,
-                        createLDLib2RecipeStorages(machine),
+                        createRecipeStorages(machine),
                         DataComponentMap.EMPTY,
                         Collections.emptyList(),
                         false,
@@ -92,7 +92,7 @@ public interface LDLib2RecipeFancyUIMachine extends LDLib2FancyUIMachine {
      * @param machine tiered recipe machine whose handlers back the template slots.
      * @return item, fluid, and computation input/output storages.
      */
-    default Table<IO, RecipeCapability<?>, Object> createLDLib2RecipeStorages(WorkableTieredMachine machine) {
+    default Table<IO, RecipeCapability<?>, Object> createRecipeStorages(WorkableTieredMachine machine) {
         Table<IO, RecipeCapability<?>, Object> storages = Tables.newCustomTable(new EnumMap<>(IO.class),
                 LinkedHashMap::new);
         storages.put(IO.IN, ItemRecipeCapability.CAP, machine.importItems.storage);
@@ -110,8 +110,8 @@ public interface LDLib2RecipeFancyUIMachine extends LDLib2FancyUIMachine {
      * @param machine tiered recipe machine selecting the metadata and resource manager.
      * @return fixed active machine XML dimensions.
      */
-    default MachineUISize getLDLib2MachineUISize(WorkableTieredMachine machine) {
-        return getLDLib2MachineUITemplate(machine).getSize(getLDLib2MachineUIResourceManager(machine));
+    default MachineUISize getMachineUISize(WorkableTieredMachine machine) {
+        return getMachineUITemplate(machine).getSize(getMachineUIResourceManager(machine));
     }
 
     /**
@@ -120,7 +120,7 @@ public interface LDLib2RecipeFancyUIMachine extends LDLib2FancyUIMachine {
      * @param machine tiered recipe machine selecting its registered definition.
      * @return required editable machine XML metadata.
      */
-    default EditableMachineUI getLDLib2MachineUITemplate(WorkableTieredMachine machine) {
+    default EditableMachineUI getMachineUITemplate(WorkableTieredMachine machine) {
         EditableMachineUI template = machine.getDefinition().getEditableUI();
         if (template == null) {
             GTCEu.LOGGER.error("Recipe machine {} has no LDLib2 machine XML template",
@@ -137,7 +137,7 @@ public interface LDLib2RecipeFancyUIMachine extends LDLib2FancyUIMachine {
      * @param machine machine whose level identifies the logical side.
      * @return resource manager for that side.
      */
-    default ResourceManager getLDLib2MachineUIResourceManager(WorkableTieredMachine machine) {
+    default ResourceManager getMachineUIResourceManager(WorkableTieredMachine machine) {
         var level = machine.getLevel();
         if (level == null) {
             GTCEu.LOGGER.error("Cannot load machine UI XML for unloaded machine {}", machine.getDefinition().getId());

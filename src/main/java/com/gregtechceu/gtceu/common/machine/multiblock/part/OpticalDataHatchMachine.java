@@ -8,7 +8,7 @@ import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyPreviewPage;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
 import com.gregtechceu.gtceu.api.machine.feature.IRecipeLogicMachine;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.LDLib2FancyPartUIProvider;
+import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.machine.multiblock.part.MultiblockPartMachine;
 import com.gregtechceu.gtceu.api.recipe.GTRecipeType;
@@ -20,7 +20,7 @@ import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 
 public class OpticalDataHatchMachine extends MultiblockPartMachine
-                                     implements IOpticalDataAccessHatch, LDLib2FancyPartUIProvider {
+                                     implements IOpticalDataAccessHatch, FancyPartUIProvider {
 
     @Getter
     private final boolean isTransmitter;
@@ -68,7 +68,7 @@ public class OpticalDataHatchMachine extends MultiblockPartMachine
 
     /** Creates the holder-scoped default preview used by a surrounding multiblock controller. */
     @Override
-    public FancyUIProvider createLDLib2FancyPage(Player player, MachineUIHolder holder) {
+    public FancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
         return new FancyPreviewPage(this, player, holder, null);
     }
 

@@ -2,46 +2,42 @@ package com.gregtechceu.gtceu.api.machine.fancyconfigurator;
 
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
-import com.gregtechceu.gtceu.api.gui.element.GTFluidSlotElement;
+import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyConfigurator;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
-import com.gregtechceu.gtceu.api.transfer.fluid.CustomFluidTank;
+import com.gregtechceu.gtceu.api.transfer.item.CustomItemStackHandler;
+import com.gregtechceu.gtceu.integration.xei.GTXEIHelper;
 
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
-import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
-import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 
 import net.minecraft.network.chat.Component;
 
-import lombok.Setter;
-import lombok.experimental.Accessors;
-import org.jetbrains.annotations.Nullable;
-import org.lwjgl.glfw.GLFW;
-
 import java.util.Collections;
 import java.util.List;
-import java.util.function.BiPredicate;
+import java.util.function.BooleanSupplier;
 
 /**
- * LDLib2 Fancy configurator for display-only fluid tank grids.
- *
- * <p>
- * Bucket transfer must be wired by the owning machine through a GT action before this replaces legacy TankWidget
- * behavior.
+ * LDLib2 Fancy configurator for displaying a small item inventory grid.
  */
-@Accessors(chain = true)
-public class LDLib2FancyTankConfigurator implements FancyConfigurator {
+public class InventoryConfigurator implements FancyConfigurator {
 
-    private final CustomFluidTank[] tanks;
+    private final CustomItemStackHandler inventory;
     private final Component title;
+    private final BooleanSupplier openingValid;
     private List<Component> tooltips = Collections.emptyList();
-    @Setter
-    @Nullable
-    private BiPredicate<Integer, UIEvent> tankClickHandler;
 
-    public LDLib2FancyTankConfigurator(CustomFluidTank[] tanks, Component title) {
-        this.tanks = tanks;
+    public InventoryConfigurator(CustomItemStackHandler inventory, Component title) {
+        this(inventory, title, () -> true);
+    }
+
+    /**
+     * Creates an inventory configurator whose server slots reject interactions after its opening becomes stale.
+     */
+    public InventoryConfigurator(CustomItemStackHandler inventory, Component title,
+                                 BooleanSupplier openingValid) {
+        this.inventory = inventory;
         this.title = title;
+        this.openingValid = openingValid;
     }
 
     @Override
@@ -51,7 +47,7 @@ public class LDLib2FancyTankConfigurator implements FancyConfigurator {
 
     @Override
     public IGuiTexture getIcon() {
-        return GuiTextures.BUTTON_FLUID_OUTPUT;
+        return GuiTextures.BUTTON_ITEM_OUTPUT;
     }
 
     @Override
@@ -59,7 +55,7 @@ public class LDLib2FancyTankConfigurator implements FancyConfigurator {
         return tooltips;
     }
 
-    public LDLib2FancyTankConfigurator setTooltips(List<Component> tooltips) {
+    public InventoryConfigurator setTooltips(List<Component> tooltips) {
         this.tooltips = tooltips;
         return this;
     }
@@ -88,22 +84,12 @@ public class LDLib2FancyTankConfigurator implements FancyConfigurator {
         int index = 0;
         for (int y = 0; y < colSize; y++) {
             for (int x = 0; x < rowSize; x++) {
-                int tankIndex = index++;
-                GTFluidSlotElement slot = new GTFluidSlotElement()
-                        .setFluidTank(tanks[tankIndex], 0)
-                        .setBackgroundTexture(GuiTextures.FLUID_SLOT)
-                        .setAllowClickFilled(tankClickHandler != null)
-                        .setAllowClickDrained(tankClickHandler != null)
-                        .setShowAmount(true);
-                if (tankClickHandler != null) {
-                    slot.addEventListener(UIEvents.MOUSE_DOWN, event -> {
-                        if (event.button == GLFW.GLFW_MOUSE_BUTTON_LEFT && tankClickHandler.test(tankIndex, event)) {
-                            event.stopImmediatePropagation();
-                            event.hasHandler = true;
-                        }
-                    });
-                }
+                GTItemSlotElement slot = new GTItemSlotElement(inventory, index++);
                 UITemplate.setLDLib2Bounds(slot, 4 + x * 18, 4 + y * 18, 18, 18);
+                slot.setBackgroundTexture(GuiTextures.SLOT)
+                        .setCanPlace(stack -> openingValid.getAsBoolean())
+                        .setCanTake(player -> openingValid.getAsBoolean());
+                slot.setIngredientIO(GTXEIHelper.input());
                 container.addChild(slot);
             }
         }
@@ -113,14 +99,14 @@ public class LDLib2FancyTankConfigurator implements FancyConfigurator {
     }
 
     private int getRowSize() {
-        if (tanks.length == 8) {
+        if (inventory.getSlots() == 8) {
             return 4;
         }
-        return (int) Math.sqrt(tanks.length);
+        return (int) Math.sqrt(inventory.getSlots());
     }
 
     private int getColSize() {
-        if (tanks.length == 8) {
+        if (inventory.getSlots() == 8) {
             return 2;
         }
         return getRowSize();

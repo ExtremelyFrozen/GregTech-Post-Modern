@@ -13,13 +13,13 @@ import com.gregtechceu.gtceu.api.gui.fancy.FancyTooltipsPanel;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyTooltip;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2AutoStockingFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2CircuitFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2DirectionalFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2WorkingEnabledFancyConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.AutoStockingConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CircuitConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.DirectionalConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
 import com.gregtechceu.gtceu.api.machine.feature.IDataStickInteractable;
 import com.gregtechceu.gtceu.api.machine.feature.IHasCircuitSlot;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.LDLib2FancyPartUIProvider;
+import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableFluidTank;
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
@@ -28,7 +28,7 @@ import com.gregtechceu.gtceu.common.data.datacomponents.AEInputConfigCopyData;
 import com.gregtechceu.gtceu.common.data.machines.GTAEMachines;
 import com.gregtechceu.gtceu.common.item.behavior.IntCircuitBehaviour;
 import com.gregtechceu.gtceu.integration.ae2.gui.element.AEFluidConfigElement;
-import com.gregtechceu.gtceu.integration.ae2.gui.fancy.LDLib2MEFluidAutoPullFancyConfigurator;
+import com.gregtechceu.gtceu.integration.ae2.gui.fancy.MEFluidAutoPullConfigurator;
 import com.gregtechceu.gtceu.integration.ae2.slot.ExportOnlyAEFluidList;
 import com.gregtechceu.gtceu.integration.ae2.slot.ExportOnlyAEFluidSlot;
 import com.gregtechceu.gtceu.integration.ae2.slot.ExportOnlyAESlot;
@@ -66,7 +66,7 @@ import java.util.function.Predicate;
  */
 public class MEInputHatchPartMachine extends MEHatchPartMachine
                                      implements IDataStickInteractable, IHasCircuitSlot,
-                                     LDLib2FancyPartUIProvider, MEFluidConfigActionTarget {
+                                     FancyPartUIProvider, MEFluidConfigActionTarget {
 
     static {
         MEFluidConfigActions.initialize();
@@ -225,7 +225,7 @@ public class MEInputHatchPartMachine extends MEHatchPartMachine
     }
 
     @Override
-    public FancyUIProvider createLDLib2FancyPage(Player player, MachineUIHolder holder) {
+    public FancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
         return createLDLib2Page(player, holder);
     }
 
@@ -432,14 +432,14 @@ public class MEInputHatchPartMachine extends MEHatchPartMachine
         private final Player player;
         private final MachineUIHolder holder;
         @Nullable
-        private final LDLib2DirectionalFancyConfigurator directionalPage;
+        private final DirectionalConfigurator directionalPage;
 
         private MEFluidHatchFancyPage(Player player, MachineUIHolder holder) {
             requireMatchingHolder(holder);
             this.player = player;
             this.holder = holder;
             this.directionalPage = isMEFluidStocking() ? null :
-                    new LDLib2DirectionalFancyConfigurator(MEInputHatchPartMachine.this, player, holder);
+                    new DirectionalConfigurator(MEInputHatchPartMachine.this, player, holder);
         }
 
         @Override
@@ -479,16 +479,16 @@ public class MEInputHatchPartMachine extends MEHatchPartMachine
 
         @Override
         public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
-            configuratorPanel.attachConfigurators(new LDLib2WorkingEnabledFancyConfigurator(
+            configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
                     MEInputHatchPartMachine.this, holder));
             if (isCircuitSlotEnabled()) {
-                configuratorPanel.attachConfigurators(new LDLib2CircuitFancyConfigurator(
+                configuratorPanel.attachConfigurators(new CircuitConfigurator(
                         MEInputHatchPartMachine.this, holder));
             }
             if (MEInputHatchPartMachine.this instanceof MEStockingHatchPartMachine stockingHatch) {
                 configuratorPanel.attachConfigurators(
-                        new LDLib2MEFluidAutoPullFancyConfigurator(stockingHatch, holder),
-                        new LDLib2AutoStockingFancyConfigurator(stockingHatch, holder));
+                        new MEFluidAutoPullConfigurator(stockingHatch, holder),
+                        new AutoStockingConfigurator(stockingHatch, holder));
             }
         }
 

@@ -17,8 +17,8 @@ import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
 import com.gregtechceu.gtceu.api.item.tool.GTToolType;
 import com.gregtechceu.gtceu.api.item.tool.ToolHelper;
 import com.gregtechceu.gtceu.api.machine.TickableSubscription;
+import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMaintenanceMachine;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.LDLib2FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.multiblock.part.TieredPartMachine;
 import com.gregtechceu.gtceu.api.machine.property.GTMachineModelProperties;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler;
@@ -58,7 +58,7 @@ import java.util.function.DoubleSupplier;
 
 public class MaintenanceHatchPartMachine extends TieredPartMachine
                                          implements IMaintenanceMachine, MachineUIProvider,
-                                         LDLib2FancyPartUIProvider, MaintenanceHatchActionTarget {
+                                         FancyPartUIProvider, MaintenanceHatchActionTarget {
 
     private static final float MAX_DURATION_MULTIPLIER = 1.1f;
     private static final float MIN_DURATION_MULTIPLIER = 0.9f;
@@ -362,9 +362,9 @@ public class MaintenanceHatchPartMachine extends TieredPartMachine
     }
 
     @Override
-    public FancyUIProvider createLDLib2FancyPage(Player player, MachineUIHolder holder) {
+    public FancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
         return new FancyPreviewPage(this, player, holder, null,
-                this::attachLDLib2MaintenanceTooltips);
+                this::attachMaintenanceTooltips);
     }
 
     private GTComponentPanelElement createLDLib2DurationPanel(Player player, MachineUIHolder holder) {

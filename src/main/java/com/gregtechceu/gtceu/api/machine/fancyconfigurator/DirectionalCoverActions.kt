@@ -7,7 +7,7 @@ import com.gregtechceu.gtceu.api.cover.CoverDefinition
 import com.gregtechceu.gtceu.api.gui.factory.CoverUIHelper
 import com.gregtechceu.gtceu.api.machine.MachineCoverContainer
 import com.gregtechceu.gtceu.api.machine.MetaMachine
-import com.gregtechceu.gtceu.api.machine.feature.LDLib2FancyActionMachine
+import com.gregtechceu.gtceu.api.machine.feature.FancyActionMachine
 import com.gregtechceu.gtceu.api.sync_system.SyncActionContext
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData
 import com.gregtechceu.gtceu.api.sync_system.SyncActionDispatchers
@@ -31,7 +31,7 @@ import com.google.gson.JsonPrimitive
  * The server resolves the cover definition exclusively from the player's current carried stack. Client payloads only
  * identify a machine side and therefore cannot select or synthesize a cover item.
  */
-class LDLib2DirectionalCoverActions private constructor() {
+class DirectionalCoverActions private constructor() {
 
 	companion object {
 		private val PLACE_DIRECTIONAL_COVER_ACTION: ResourceLocation = GTCEu.id("place_directional_cover")
@@ -187,7 +187,7 @@ class LDLib2DirectionalCoverActions private constructor() {
 
 		private fun readMachine(context: SyncActionContext): MetaMachine? {
 			val holder = context.holder
-			if (holder !is MetaMachine || holder !is LDLib2FancyActionMachine) {
+			if (holder !is MetaMachine || holder !is FancyActionMachine) {
 				return null
 			}
 			return holder

@@ -22,18 +22,18 @@ import com.gregtechceu.gtceu.api.gui.fancy.FancyTooltipsPanel;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.ConditionalSubscriptionHandler;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2BatchModeFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2DirectionalFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2MachineModeFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2VoidingModeFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2WorkingEnabledFancyConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.BatchModeConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.DirectionalConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.MachineModeConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.VoidingModeConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
+import com.gregtechceu.gtceu.api.machine.feature.FancyActionMachine;
 import com.gregtechceu.gtceu.api.machine.feature.IOverclockMachine;
 import com.gregtechceu.gtceu.api.machine.feature.ITieredMachine;
-import com.gregtechceu.gtceu.api.machine.feature.LDLib2FancyActionMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.BatchModeMachine;
+import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IDisplayUIMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMultiPart;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.LDLib2FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.trait.RecipeLogic;
 import com.gregtechceu.gtceu.api.misc.EnergyContainerList;
 import com.gregtechceu.gtceu.api.recipe.modifier.RecipeModifierList;
@@ -70,7 +70,7 @@ import java.util.Map;
 public class WorkableElectricMultiblockMachine extends WorkableMultiblockMachine implements BatchModeMachine,
                                                IDisplayUIMachine, ITieredMachine,
                                                IOverclockMachine, MachineUIProvider,
-                                               LDLib2FancyActionMachine {
+                                               FancyActionMachine {
 
     // runtime
     protected @Nullable EnergyContainerList energyContainer;
@@ -205,7 +205,7 @@ public class WorkableElectricMultiblockMachine extends WorkableMultiblockMachine
     public boolean canCreateUI(Player player, MachineUIHolder holder) {
         if (holder.getMachine() != this) return false;
         for (IMultiPart part : getParts()) {
-            if (!(part instanceof LDLib2FancyPartUIProvider)) return false;
+            if (!(part instanceof FancyPartUIProvider)) return false;
         }
         return true;
     }
@@ -266,22 +266,22 @@ public class WorkableElectricMultiblockMachine extends WorkableMultiblockMachine
 
             List<FancyUIProvider> openingSidePages = new ArrayList<>();
             if (getRecipeTypes().length > 1) {
-                openingSidePages.add(new LDLib2MachineModeFancyConfigurator(
+                openingSidePages.add(new MachineModeConfigurator(
                         WorkableElectricMultiblockMachine.this));
             }
-            openingSidePages.add(new LDLib2DirectionalFancyConfigurator(
+            openingSidePages.add(new DirectionalConfigurator(
                     WorkableElectricMultiblockMachine.this, player, holder));
             sidePages = List.copyOf(openingSidePages);
 
             List<FancyUIProvider> openingPartPages = new ArrayList<>();
             for (IMultiPart part : openingParts) {
-                if (!(part instanceof LDLib2FancyPartUIProvider pageProvider)) {
+                if (!(part instanceof FancyPartUIProvider pageProvider)) {
                     GTCEu.LOGGER.error("Workable multiblock part {} has no LDLib2 Fancy page",
                             part.self().getDefinition().getId());
                     throw new IllegalStateException("Workable multiblock part has no LDLib2 Fancy page: " +
                             part.self().getDefinition().getId());
                 }
-                openingPartPages.add(pageProvider.createLDLib2FancyPage(
+                openingPartPages.add(pageProvider.createFancyPage(
                         player, new MachineUIHolderContext(player, part.self())));
             }
             partPages = List.copyOf(openingPartPages);
@@ -350,18 +350,18 @@ public class WorkableElectricMultiblockMachine extends WorkableMultiblockMachine
 
         @Override
         public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
-            LDLib2VoidingModeFancyConfigurator.attachConfigurators(
+            VoidingModeConfigurator.attachConfigurators(
                     configuratorPanel, WorkableElectricMultiblockMachine.this);
-            LDLib2BatchModeFancyConfigurator.attachConfigurators(
+            BatchModeConfigurator.attachConfigurators(
                     configuratorPanel, WorkableElectricMultiblockMachine.this);
-            configuratorPanel.attachConfigurators(new LDLib2WorkingEnabledFancyConfigurator(
+            configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
                     WorkableElectricMultiblockMachine.this, holder));
         }
 
         @Override
         public void attachTooltips(FancyTooltipsPanel tooltipsPanel) {
             for (IMultiPart part : openingParts) {
-                part.attachLDLib2FancyTooltipsToController(
+                part.attachFancyTooltipsToController(
                         WorkableElectricMultiblockMachine.this, tooltipsPanel);
             }
         }

@@ -8,8 +8,8 @@ import com.gregtechceu.gtceu.api.gui.editor.EditableMachineUI;
 import com.gregtechceu.gtceu.api.gui.editor.MachineUIXmlTemplates;
 import com.gregtechceu.gtceu.api.gui.element.GTProgressBarElement;
 import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2WorkingEnabledFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.feature.LDLib2RecipeFancyUIMachine;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
+import com.gregtechceu.gtceu.api.machine.feature.RecipeFancyUIMachine;
 import com.gregtechceu.gtceu.api.recipe.GTRecipe;
 import com.gregtechceu.gtceu.api.recipe.GTRecipeType;
 import com.gregtechceu.gtceu.api.recipe.content.ContentModifier;
@@ -29,7 +29,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.function.BiFunction;
 
 public class SimpleGeneratorMachine extends WorkableTieredMachine
-                                    implements LDLib2RecipeFancyUIMachine {
+                                    implements RecipeFancyUIMachine {
 
     @Getter
     private final EnvironmentalHazardEmitterTrait hazardEmitter;
@@ -123,13 +123,13 @@ public class SimpleGeneratorMachine extends WorkableTieredMachine
     //////////////////////////////////////
 
     @Override
-    public SimpleGeneratorMachine getLDLib2RecipeMachine() {
+    public SimpleGeneratorMachine getRecipeMachine() {
         return this;
     }
 
     @Override
     public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
-        configuratorPanel.attachConfigurators(new LDLib2WorkingEnabledFancyConfigurator(
+        configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
                 this, configuratorPanel.getHolder()));
     }
 
@@ -143,7 +143,7 @@ public class SimpleGeneratorMachine extends WorkableTieredMachine
                             throw new IllegalArgumentException("Generator machine XML cannot bind " +
                                     machine.getClass().getName());
                         }
-                        generatorMachine.bindLDLib2RecipeElements(root, generatorMachine);
+                        generatorMachine.bindRecipeElements(root, generatorMachine);
                         generatorMachine.bindLDLib2EnergyBar(MachineUIXmlTemplates.requireElement(root,
                                 MachineUIXmlTemplates.ENERGY_BAR_ID, GTProgressBarElement.class));
                     }));

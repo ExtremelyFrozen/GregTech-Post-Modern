@@ -2,7 +2,7 @@ package com.gregtechceu.gtceu.integration.ae2.machine
 
 import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.machine.MetaMachine
-import com.gregtechceu.gtceu.api.machine.feature.LDLib2FancyActionMachine
+import com.gregtechceu.gtceu.api.machine.feature.FancyActionMachine
 import com.gregtechceu.gtceu.api.sync_system.SyncActionContext
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData
 import com.gregtechceu.gtceu.api.sync_system.SyncActionDispatchers
@@ -103,7 +103,7 @@ object MEOutputWaitingListActions {
 
 		override fun actionId(): ResourceLocation = REQUEST_FULL_ACTION
 
-		override fun acceptsHolder(context: SyncActionContext): Boolean = context.holder is MetaMachine && context.holder is LDLib2FancyActionMachine
+		override fun acceptsHolder(context: SyncActionContext): Boolean = context.holder is MetaMachine && context.holder is FancyActionMachine
 
 		override fun acceptsPayload(payload: DataComponentMap): Boolean {
 			if (payload.size() != 1) return false

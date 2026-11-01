@@ -13,14 +13,14 @@ import com.gregtechceu.gtceu.api.gui.fancy.FancyTooltipsPanel;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyTooltip;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2AutoStockingFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2CircuitFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2DirectionalFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2DistinctPartFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2WorkingEnabledFancyConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.AutoStockingConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CircuitConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.DirectionalConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.DistinctPartConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
 import com.gregtechceu.gtceu.api.machine.feature.IDataStickInteractable;
 import com.gregtechceu.gtceu.api.machine.feature.IHasCircuitSlot;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.LDLib2FancyPartUIProvider;
+import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler;
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
@@ -29,7 +29,7 @@ import com.gregtechceu.gtceu.common.data.datacomponents.AEInputConfigCopyData;
 import com.gregtechceu.gtceu.common.data.machines.GTAEMachines;
 import com.gregtechceu.gtceu.common.item.behavior.IntCircuitBehaviour;
 import com.gregtechceu.gtceu.integration.ae2.gui.element.AEItemConfigElement;
-import com.gregtechceu.gtceu.integration.ae2.gui.fancy.LDLib2MEItemAutoPullFancyConfigurator;
+import com.gregtechceu.gtceu.integration.ae2.gui.fancy.MEItemAutoPullConfigurator;
 import com.gregtechceu.gtceu.integration.ae2.slot.ExportOnlyAEItemList;
 import com.gregtechceu.gtceu.integration.ae2.slot.ExportOnlyAEItemSlot;
 import com.gregtechceu.gtceu.integration.ae2.slot.ExportOnlyAESlot;
@@ -63,7 +63,7 @@ import java.util.function.Predicate;
 
 public class MEInputBusPartMachine extends MEBusPartMachine
                                    implements IDataStickInteractable, IHasCircuitSlot,
-                                   LDLib2FancyPartUIProvider, MEItemConfigActionTarget {
+                                   FancyPartUIProvider, MEItemConfigActionTarget {
 
     static {
         MEItemConfigActions.initialize();
@@ -222,7 +222,7 @@ public class MEInputBusPartMachine extends MEBusPartMachine
     }
 
     @Override
-    public FancyUIProvider createLDLib2FancyPage(Player player, MachineUIHolder holder) {
+    public FancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
         return createLDLib2Page(player, holder);
     }
 
@@ -444,14 +444,14 @@ public class MEInputBusPartMachine extends MEBusPartMachine
         private final Player player;
         private final MachineUIHolder holder;
         @Nullable
-        private final LDLib2DirectionalFancyConfigurator directionalPage;
+        private final DirectionalConfigurator directionalPage;
 
         private MEItemBusFancyPage(Player player, MachineUIHolder holder) {
             requireMatchingHolder(holder);
             this.player = player;
             this.holder = holder;
             this.directionalPage = isMEItemStocking() ? null :
-                    new LDLib2DirectionalFancyConfigurator(MEInputBusPartMachine.this, player, holder);
+                    new DirectionalConfigurator(MEInputBusPartMachine.this, player, holder);
         }
 
         @Override
@@ -491,17 +491,17 @@ public class MEInputBusPartMachine extends MEBusPartMachine
 
         @Override
         public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
-            configuratorPanel.attachConfigurators(new LDLib2WorkingEnabledFancyConfigurator(
+            configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
                     MEInputBusPartMachine.this, holder));
-            LDLib2DistinctPartFancyConfigurator.attachConfigurators(configuratorPanel, MEInputBusPartMachine.this);
+            DistinctPartConfigurator.attachConfigurators(configuratorPanel, MEInputBusPartMachine.this);
             if (isHasCircuitSlot() && isCircuitSlotEnabled()) {
-                configuratorPanel.attachConfigurators(new LDLib2CircuitFancyConfigurator(
+                configuratorPanel.attachConfigurators(new CircuitConfigurator(
                         MEInputBusPartMachine.this, holder));
             }
             if (MEInputBusPartMachine.this instanceof MEStockingBusPartMachine stockingBus) {
                 configuratorPanel.attachConfigurators(
-                        new LDLib2MEItemAutoPullFancyConfigurator(stockingBus, holder),
-                        new LDLib2AutoStockingFancyConfigurator(stockingBus, holder));
+                        new MEItemAutoPullConfigurator(stockingBus, holder),
+                        new AutoStockingConfigurator(stockingBus, holder));
             }
         }
 

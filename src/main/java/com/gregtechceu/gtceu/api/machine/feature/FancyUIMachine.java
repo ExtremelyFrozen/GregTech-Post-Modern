@@ -11,14 +11,14 @@ import com.gregtechceu.gtceu.api.gui.fancy.FancyTooltipsPanel;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyTooltip;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2AutoOutputFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2BatchModeFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2CircuitFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2DirectionalFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2DistinctPartFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2MachineModeFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2VoidingModeFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2WorkingEnabledFancyConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.AutoOutputConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.BatchModeConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CircuitConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.DirectionalConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.DistinctPartConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.MachineModeConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.VoidingModeConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.BatchModeMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.DistinctPart;
 import com.gregtechceu.gtceu.common.machine.trait.AutoOutputTrait;
@@ -37,8 +37,8 @@ import java.util.List;
  * <p>
  * This interface defines the machine-owned page contract used by the LDLib2 Fancy shell.
  */
-public interface LDLib2FancyUIMachine extends IMachineFeature, LDLib2FancyActionMachine, MachineUIProvider,
-                                      FancyUIProvider {
+public interface FancyUIMachine extends IMachineFeature, FancyActionMachine, MachineUIProvider,
+                                FancyUIProvider {
 
     /**
      * Builds the machine's concrete LDLib2 Fancy page body.
@@ -64,14 +64,14 @@ public interface LDLib2FancyUIMachine extends IMachineFeature, LDLib2FancyAction
     @Override
     default UI createUI(Player player, MachineUIHolder holder) {
         return UI.of(new FancyMachineUI(this, player.getInventory(), holder, getPageWidth(),
-                getPageHeight(), createLDLib2ContextualSubTabs(player, holder)));
+                getPageHeight(), createContextualSubTabs(player, holder)));
     }
 
     /**
      * Creates side pages that must capture the player and validated holder for this particular menu opening.
      */
-    default List<FancyUIProvider> createLDLib2ContextualSubTabs(Player player, MachineUIHolder holder) {
-        return List.of(new LDLib2DirectionalFancyConfigurator(self(), player, holder));
+    default List<FancyUIProvider> createContextualSubTabs(Player player, MachineUIHolder holder) {
+        return List.of(new DirectionalConfigurator(self(), player, holder));
     }
 
     /**
@@ -89,7 +89,7 @@ public interface LDLib2FancyUIMachine extends IMachineFeature, LDLib2FancyAction
     default void attachSideTabs(FancyTabs tabs) {
         if (this instanceof IRecipeLogicMachine recipeLogicMachine &&
                 recipeLogicMachine.getRecipeTypes().length > 1) {
-            tabs.attachSubTab(new LDLib2MachineModeFancyConfigurator(recipeLogicMachine));
+            tabs.attachSubTab(new MachineModeConfigurator(recipeLogicMachine));
         }
     }
 
@@ -99,25 +99,25 @@ public interface LDLib2FancyUIMachine extends IMachineFeature, LDLib2FancyAction
     @Override
     default void attachConfigurators(ConfiguratorPanel configuratorPanel) {
         if (this instanceof IVoidable voidable) {
-            LDLib2VoidingModeFancyConfigurator.attachConfigurators(configuratorPanel, voidable);
+            VoidingModeConfigurator.attachConfigurators(configuratorPanel, voidable);
         }
         if (this instanceof BatchModeMachine batchModeMachine) {
-            LDLib2BatchModeFancyConfigurator.attachConfigurators(configuratorPanel, batchModeMachine);
+            BatchModeConfigurator.attachConfigurators(configuratorPanel, batchModeMachine);
         }
         if (this instanceof IControllable controllable) {
-            configuratorPanel.attachConfigurators(new LDLib2WorkingEnabledFancyConfigurator(controllable,
+            configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(controllable,
                     configuratorPanel.getHolder()));
         }
         AutoOutputTrait autoOutputTrait = self().getTrait(AutoOutputTrait.TYPE);
         if (autoOutputTrait != null) {
-            LDLib2AutoOutputFancyConfigurator.attachConfigurators(configuratorPanel, autoOutputTrait);
+            AutoOutputConfigurator.attachConfigurators(configuratorPanel, autoOutputTrait);
         }
         if (this instanceof IHasCircuitSlot circuitHolder && circuitHolder.isCircuitSlotEnabled()) {
-            configuratorPanel.attachConfigurators(new LDLib2CircuitFancyConfigurator(circuitHolder,
+            configuratorPanel.attachConfigurators(new CircuitConfigurator(circuitHolder,
                     configuratorPanel.getHolder()));
         }
         if (this instanceof DistinctPart distinctPart) {
-            LDLib2DistinctPartFancyConfigurator.attachConfigurators(configuratorPanel, distinctPart);
+            DistinctPartConfigurator.attachConfigurators(configuratorPanel, distinctPart);
         }
     }
 

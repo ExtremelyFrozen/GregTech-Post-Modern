@@ -18,20 +18,20 @@ import java.util.List;
  * The button sends a GTM machine action for server-side mutation and does not use LDLib2-owned business state
  * channels.
  */
-public class LDLib2WorkingEnabledFancyConfigurator extends FancyConfiguratorButton.Toggle {
+public class WorkingEnabledConfigurator extends FancyConfiguratorButton.Toggle {
 
     static {
-        LDLib2WorkingEnabledFancyConfiguratorActions.initialize();
+        WorkingEnabledConfiguratorActions.initialize();
     }
 
     /**
      * Creates a working-enabled toggle bound to the opened machine holder.
      */
-    public LDLib2WorkingEnabledFancyConfigurator(IControllable controllable, MachineUIHolder holder) {
+    public WorkingEnabledConfigurator(IControllable controllable, MachineUIHolder holder) {
         this(Opening.capture(controllable, holder));
     }
 
-    private LDLib2WorkingEnabledFancyConfigurator(Opening opening) {
+    private WorkingEnabledConfigurator(Opening opening) {
         super(GuiTextures.BUTTON_POWER.getSubTexture(0, 0, 1, 0.5),
                 GuiTextures.BUTTON_POWER.getSubTexture(0, 0.5, 1, 0.5),
                 opening.controllable()::isWorkingEnabled,
@@ -42,7 +42,7 @@ public class LDLib2WorkingEnabledFancyConfigurator extends FancyConfiguratorButt
                     }
                     if (opening.machine().isRemote()) {
                         MachineUIHelper.sendAction(opening.holder(),
-                                LDLib2WorkingEnabledFancyConfiguratorActions
+                                WorkingEnabledConfiguratorActions
                                         .createSetWorkingEnabledAction(pressed));
                         event.stopImmediatePropagation();
                         event.hasHandler = true;

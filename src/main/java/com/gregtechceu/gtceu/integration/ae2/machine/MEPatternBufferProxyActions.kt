@@ -1,9 +1,9 @@
 package com.gregtechceu.gtceu.integration.ae2.machine
 
 import com.gregtechceu.gtceu.GTCEu
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2CircuitFancyConfiguratorActions
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2DirectionalCoverActions
-import com.gregtechceu.gtceu.api.machine.feature.LDLib2FancyActionMachine
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CircuitConfiguratorActions
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.DirectionalCoverActions
+import com.gregtechceu.gtceu.api.machine.feature.FancyActionMachine
 import com.gregtechceu.gtceu.api.sync_system.SyncActionContext
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData
 import com.gregtechceu.gtceu.api.sync_system.SyncActionDispatchers
@@ -57,7 +57,7 @@ data class MEPatternBufferProxyOpeningIdentity(val proxyIncarnation: UUID, val b
 
 /** Exposes only Proxy operations that revalidate an immutable opening before touching its linked buffer. */
 @ApiStatus.Internal
-interface MEPatternBufferProxyActionTarget : LDLib2FancyActionMachine {
+interface MEPatternBufferProxyActionTarget : FancyActionMachine {
 
 	/** Returns whether the player may still use the exact Proxy and linked-buffer opening. */
 	fun canExecuteMEPatternBufferProxyAction(player: ServerPlayer, opening: MEPatternBufferProxyOpeningIdentity): Boolean
@@ -107,8 +107,8 @@ object MEPatternBufferProxyActions {
 	private val COVER_OPERATION_FIELD = SyncFieldData.key("cover_operation")
 
 	init {
-		LDLib2CircuitFancyConfiguratorActions.initialize()
-		LDLib2DirectionalCoverActions.initialize()
+		CircuitConfiguratorActions.initialize()
+		DirectionalCoverActions.initialize()
 		SyncActionDispatchers.server().register(SetNameHandler)
 		SyncActionDispatchers.server().register(RefundAllHandler)
 		SyncActionDispatchers.server().register(ClickShareTankHandler)

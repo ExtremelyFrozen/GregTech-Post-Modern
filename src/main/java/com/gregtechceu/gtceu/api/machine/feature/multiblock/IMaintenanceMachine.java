@@ -154,9 +154,9 @@ public interface IMaintenanceMachine extends IMultiPart {
     //////////////////////////////////////
 
     @Override
-    default void attachLDLib2FancyTooltipsToController(MultiblockControllerMachine controller,
-                                                       FancyTooltipsPanel tooltipsPanel) {
-        attachLDLib2MaintenanceTooltips(tooltipsPanel);
+    default void attachFancyTooltipsToController(MultiblockControllerMachine controller,
+                                                 FancyTooltipsPanel tooltipsPanel) {
+        attachMaintenanceTooltips(tooltipsPanel);
     }
 
     /**
@@ -164,7 +164,7 @@ public interface IMaintenanceMachine extends IMultiPart {
      *
      * @param tooltipsPanel tooltip panel owned by the current LDLib2 Fancy shell
      */
-    default void attachLDLib2MaintenanceTooltips(FancyTooltipsPanel tooltipsPanel) {
+    default void attachMaintenanceTooltips(FancyTooltipsPanel tooltipsPanel) {
         if (ConfigHolder.INSTANCE.machines.enableMaintenance) {
             tooltipsPanel.attachTooltips(createMaintenanceFancyTooltip());
         }

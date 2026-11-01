@@ -15,8 +15,8 @@ import com.gregtechceu.gtceu.api.gui.fancy.FancyTooltipsPanel;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyTooltip;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2DirectionalFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.LDLib2FancyPartUIProvider;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.DirectionalConfigurator;
+import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.machine.multiblock.part.MultiblockPartMachine;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler;
@@ -44,7 +44,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 public class ObjectHolderMachine extends MultiblockPartMachine
-                                 implements MachineUIProvider, LDLib2FancyPartUIProvider {
+                                 implements MachineUIProvider, FancyPartUIProvider {
 
     private static final int SLOT_LOCKED_OVERLAY_COLOR = 0x80404040;
     private static final int UI_WIDTH = 176;
@@ -116,7 +116,7 @@ public class ObjectHolderMachine extends MultiblockPartMachine
 
     /** Creates a new holder-scoped page for one surrounding multiblock UI opening. */
     @Override
-    public FancyUIProvider createLDLib2FancyPage(Player player, MachineUIHolder holder) {
+    public FancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
         requireMatchingLDLib2Holder(holder);
         return new ObjectHolderLDLib2Page(player, holder);
     }
@@ -172,12 +172,12 @@ public class ObjectHolderMachine extends MultiblockPartMachine
     private final class ObjectHolderLDLib2Page implements FancyUIProvider {
 
         private final MachineUIHolder holder;
-        private final LDLib2DirectionalFancyConfigurator directionalPage;
+        private final DirectionalConfigurator directionalPage;
 
         private ObjectHolderLDLib2Page(Player player, MachineUIHolder holder) {
             requireMatchingLDLib2Holder(holder);
             this.holder = holder;
-            directionalPage = new LDLib2DirectionalFancyConfigurator(ObjectHolderMachine.this, player, holder);
+            directionalPage = new DirectionalConfigurator(ObjectHolderMachine.this, player, holder);
         }
 
         @Override

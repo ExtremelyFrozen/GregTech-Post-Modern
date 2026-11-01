@@ -1,7 +1,7 @@
 package com.gregtechceu.gtceu.integration.ae2.machine
 
 import com.gregtechceu.gtceu.GTCEu
-import com.gregtechceu.gtceu.api.machine.feature.LDLib2FancyActionMachine
+import com.gregtechceu.gtceu.api.machine.feature.FancyActionMachine
 import com.gregtechceu.gtceu.api.sync_system.SyncActionContext
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData
 import com.gregtechceu.gtceu.api.sync_system.SyncActionDispatchers
@@ -20,7 +20,7 @@ import org.jetbrains.annotations.ApiStatus
  * Exposes only the authoritative Pattern Buffer operations used by its holder-scoped LDLib2 actions.
  */
 @ApiStatus.Internal
-interface MEPatternBufferActionTarget : LDLib2FancyActionMachine {
+interface MEPatternBufferActionTarget : FancyActionMachine {
 
 	/** Returns whether the exact machine definition owns the Pattern Buffer action protocol. */
 	fun supportsMEPatternBufferActions(): Boolean

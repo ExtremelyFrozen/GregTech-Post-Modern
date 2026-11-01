@@ -4,7 +4,7 @@ import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo;
 import com.gregtechceu.gtceu.api.capability.recipe.IO;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.LDLib2FancyPartUIProvider;
+import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 
 import net.minecraft.world.entity.player.Player;
 
@@ -16,7 +16,7 @@ import net.minecraft.world.entity.player.Player;
  * contract that their distinct standalone interfaces do not implement.
  */
 public final class StandardFluidHatchPartMachine extends FluidHatchPartMachine
-                                                 implements LDLib2FancyPartUIProvider {
+                                                 implements FancyPartUIProvider {
 
     /** Creates an ordinary fluid hatch with the configured direction, capacity, and tank count. */
     public StandardFluidHatchPartMachine(BlockEntityCreationInfo info, int tier, IO io, int initialCapacity,
@@ -32,7 +32,7 @@ public final class StandardFluidHatchPartMachine extends FluidHatchPartMachine
 
     /** Reuses the holder-validated ordinary hatch page for one controller UI opening. */
     @Override
-    public FancyUIProvider createLDLib2FancyPage(Player player, MachineUIHolder holder) {
+    public FancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
         return createLDLib2Page(player, holder);
     }
 }

@@ -4,7 +4,7 @@ import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo;
 import com.gregtechceu.gtceu.api.capability.recipe.IO;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.LDLib2FancyPartUIProvider;
+import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 
 import net.minecraft.world.entity.player.Player;
 
@@ -16,7 +16,7 @@ import net.minecraft.world.entity.player.Player;
  * contract that their distinct standalone interfaces do not implement.
  */
 public final class StandardItemBusPartMachine extends ItemBusPartMachine
-                                              implements LDLib2FancyPartUIProvider {
+                                              implements FancyPartUIProvider {
 
     /**
      * Creates an ordinary Item Bus with the configured tier and direction.
@@ -37,7 +37,7 @@ public final class StandardItemBusPartMachine extends ItemBusPartMachine
      * Reuses the holder-validated ordinary Item Bus page for one controller UI opening.
      */
     @Override
-    public FancyUIProvider createLDLib2FancyPage(Player player, MachineUIHolder holder) {
+    public FancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
         return createLDLib2Page(player, holder);
     }
 }

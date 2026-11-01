@@ -19,10 +19,10 @@ import com.gregtechceu.gtceu.api.gui.fancy.FancyTooltipsPanel;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyTooltip;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2DirectionalFancyConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.DirectionalConfigurator;
 import com.gregtechceu.gtceu.api.machine.feature.IDataInfoProvider;
 import com.gregtechceu.gtceu.api.machine.feature.IRecipeLogicMachine;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.LDLib2FancyPartUIProvider;
+import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.machine.multiblock.part.TieredPartMachine;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler;
@@ -58,7 +58,7 @@ import java.util.List;
 import java.util.Set;
 
 public class DataAccessHatchMachine extends TieredPartMachine
-                                    implements MachineUIProvider, LDLib2FancyPartUIProvider,
+                                    implements MachineUIProvider, FancyPartUIProvider,
                                     IDataAccessMachine, IDataInfoProvider, IMonitorComponent {
 
     private final Set<GTRecipeDefinition> recipeDefinitions;
@@ -137,7 +137,7 @@ public class DataAccessHatchMachine extends TieredPartMachine
 
     /** Creates one holder-scoped inventory page for a surrounding multiblock controller. */
     @Override
-    public FancyUIProvider createLDLib2FancyPage(Player player, MachineUIHolder holder) {
+    public FancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
         if (isCreative) {
             throw new IllegalStateException(
                     "Creative Data Access Hatch is excluded from controller contextual pages.");
@@ -190,12 +190,12 @@ public class DataAccessHatchMachine extends TieredPartMachine
     private final class DataAccessHatchLDLib2Page implements FancyUIProvider {
 
         private final MachineUIHolder holder;
-        private final LDLib2DirectionalFancyConfigurator directionalPage;
+        private final DirectionalConfigurator directionalPage;
 
         private DataAccessHatchLDLib2Page(Player player, MachineUIHolder holder) {
             requireMatchingLDLib2Holder(holder);
             this.holder = holder;
-            this.directionalPage = new LDLib2DirectionalFancyConfigurator(
+            this.directionalPage = new DirectionalConfigurator(
                     DataAccessHatchMachine.this, player, holder);
         }
 

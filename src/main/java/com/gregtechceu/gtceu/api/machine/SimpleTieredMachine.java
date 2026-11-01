@@ -10,11 +10,11 @@ import com.gregtechceu.gtceu.api.gui.editor.EditableMachineUI;
 import com.gregtechceu.gtceu.api.gui.editor.MachineUIXmlTemplates;
 import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
 import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2AutoOutputFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2CircuitFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2WorkingEnabledFancyConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.AutoOutputConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CircuitConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
 import com.gregtechceu.gtceu.api.machine.feature.IHasCircuitSlot;
-import com.gregtechceu.gtceu.api.machine.feature.LDLib2RecipeFancyUIMachine;
+import com.gregtechceu.gtceu.api.machine.feature.RecipeFancyUIMachine;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler;
 import com.gregtechceu.gtceu.api.recipe.GTRecipeType;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
@@ -40,7 +40,7 @@ import java.util.function.BiFunction;
  * All simple single machines are implemented here.
  */
 public class SimpleTieredMachine extends WorkableTieredMachine
-                                 implements LDLib2RecipeFancyUIMachine, IHasCircuitSlot {
+                                 implements RecipeFancyUIMachine, IHasCircuitSlot {
 
     @Getter
     @SaveField
@@ -138,17 +138,17 @@ public class SimpleTieredMachine extends WorkableTieredMachine
     //////////////////////////////////////
 
     @Override
-    public SimpleTieredMachine getLDLib2RecipeMachine() {
+    public SimpleTieredMachine getRecipeMachine() {
         return this;
     }
 
     @Override
     public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
-        configuratorPanel.attachConfigurators(new LDLib2WorkingEnabledFancyConfigurator(
+        configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
                 this, configuratorPanel.getHolder()));
-        LDLib2AutoOutputFancyConfigurator.attachConfigurators(configuratorPanel, autoOutput);
+        AutoOutputConfigurator.attachConfigurators(configuratorPanel, autoOutput);
         if (isCircuitSlotEnabled()) {
-            configuratorPanel.attachConfigurators(new LDLib2CircuitFancyConfigurator(
+            configuratorPanel.attachConfigurators(new CircuitConfigurator(
                     this, configuratorPanel.getHolder()));
         }
     }
@@ -163,7 +163,7 @@ public class SimpleTieredMachine extends WorkableTieredMachine
                             throw new IllegalArgumentException("Simple machine XML cannot bind " +
                                     machine.getClass().getName());
                         }
-                        tieredMachine.bindLDLib2RecipeElements(root, tieredMachine);
+                        tieredMachine.bindRecipeElements(root, tieredMachine);
                         tieredMachine.bindLDLib2BatterySlot(MachineUIXmlTemplates.requireElement(root,
                                 MachineUIXmlTemplates.BATTERY_SLOT_ID, GTItemSlotElement.class));
                     }));

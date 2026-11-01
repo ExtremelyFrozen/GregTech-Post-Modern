@@ -17,13 +17,13 @@ import java.util.function.Consumer;
  * <p>
  * Callers that mutate business state must dispatch a GTM action packet from the click handler.
  */
-public class LDLib2ButtonConfigurator implements FancyConfiguratorButton {
+public class ButtonConfigurator implements FancyConfiguratorButton {
 
     private final IGuiTexture icon;
     private final Consumer<UIEvent> onClick;
     private List<Component> tooltips = Collections.emptyList();
 
-    public LDLib2ButtonConfigurator(IGuiTexture icon, Consumer<UIEvent> onClick) {
+    public ButtonConfigurator(IGuiTexture icon, Consumer<UIEvent> onClick) {
         this.icon = icon;
         this.onClick = onClick;
     }
@@ -38,7 +38,7 @@ public class LDLib2ButtonConfigurator implements FancyConfiguratorButton {
         return tooltips;
     }
 
-    public LDLib2ButtonConfigurator setTooltips(List<Component> tooltips) {
+    public ButtonConfigurator setTooltips(List<Component> tooltips) {
         this.tooltips = tooltips;
         return this;
     }

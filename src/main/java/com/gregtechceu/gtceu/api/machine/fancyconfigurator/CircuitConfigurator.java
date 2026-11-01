@@ -40,8 +40,8 @@ import java.util.function.IntFunction;
  * The configurator keeps the client-visible circuit slot responsive locally, then sends GTM machine actions for the
  * authoritative server write when the opened holder currently resolves to a remote machine.
  */
-public class LDLib2CircuitFancyConfigurator implements FancyConfigurator, FancyMouseWheelAction,
-                                            FancyMiddleClickAction {
+public class CircuitConfigurator implements FancyConfigurator, FancyMouseWheelAction,
+                                 FancyMiddleClickAction {
 
     private static final int WIDTH = 174;
     private static final int HEIGHT = 132;
@@ -50,7 +50,7 @@ public class LDLib2CircuitFancyConfigurator implements FancyConfigurator, FancyM
     private static final int NO_CONFIG = -1;
 
     static {
-        LDLib2CircuitFancyConfiguratorActions.initialize();
+        CircuitConfiguratorActions.initialize();
     }
 
     private final IHasCircuitSlot circuitMachine;
@@ -65,18 +65,18 @@ public class LDLib2CircuitFancyConfigurator implements FancyConfigurator, FancyM
      * @param circuitMachine machine feature that owns the configurable circuit slot.
      * @param holder         opened machine UI holder used to send GTM machine actions.
      */
-    public LDLib2CircuitFancyConfigurator(IHasCircuitSlot circuitMachine, MachineUIHolder holder) {
+    public CircuitConfigurator(IHasCircuitSlot circuitMachine, MachineUIHolder holder) {
         this(circuitMachine, holder, MachineUIHelper::sendAction, () -> true,
-                LDLib2CircuitFancyConfiguratorActions::createSetMachineCircuitConfigurationAction);
+                CircuitConfiguratorActions::createSetMachineCircuitConfigurationAction);
     }
 
     /**
      * Creates a circuit configurator whose authoritative action and slot validity belong to its caller's opening.
      */
-    public LDLib2CircuitFancyConfigurator(IHasCircuitSlot circuitMachine, MachineUIHolder holder,
-                                          BiConsumer<MachineUIHolder, SyncActionData> actionSender,
-                                          BooleanSupplier openingValid,
-                                          IntFunction<SyncActionData> actionFactory) {
+    public CircuitConfigurator(IHasCircuitSlot circuitMachine, MachineUIHolder holder,
+                               BiConsumer<MachineUIHolder, SyncActionData> actionSender,
+                               BooleanSupplier openingValid,
+                               IntFunction<SyncActionData> actionFactory) {
         if (!hasUsableCircuitSlot(circuitMachine)) {
             throw new IllegalArgumentException("Circuit Fancy configurator requires an enabled circuit slot.");
         }

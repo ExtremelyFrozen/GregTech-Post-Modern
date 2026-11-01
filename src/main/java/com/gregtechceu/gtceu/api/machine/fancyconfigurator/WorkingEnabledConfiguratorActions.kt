@@ -2,7 +2,7 @@ package com.gregtechceu.gtceu.api.machine.fancyconfigurator
 
 import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.capability.IControllable
-import com.gregtechceu.gtceu.api.machine.feature.LDLib2FancyActionMachine
+import com.gregtechceu.gtceu.api.machine.feature.FancyActionMachine
 import com.gregtechceu.gtceu.api.sync_system.SyncActionContext
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData
 import com.gregtechceu.gtceu.api.sync_system.SyncActionDispatchers
@@ -17,7 +17,7 @@ import net.minecraft.server.level.ServerPlayer
 import com.google.gson.JsonPrimitive
 
 /** Owns the GT action protocol for the LDLib2 working-enabled configurator. */
-object LDLib2WorkingEnabledFancyConfiguratorActions {
+object WorkingEnabledConfiguratorActions {
 
 	private val SET_WORKING_ENABLED_ACTION = GTCEu.id("set_working_enabled")
 	private val WORKING_ENABLED_FIELD = SyncFieldData.key("workingEnabled")
@@ -61,7 +61,7 @@ object LDLib2WorkingEnabledFancyConfiguratorActions {
 
 	private fun readControllable(context: SyncActionContext): IControllable? {
 		val holder = context.holder
-		if (holder !is IControllable || holder !is LDLib2FancyActionMachine) {
+		if (holder !is IControllable || holder !is FancyActionMachine) {
 			return null
 		}
 		return holder

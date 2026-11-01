@@ -1,7 +1,7 @@
 package com.gregtechceu.gtceu.common.machine.multiblock.part
 
 import com.gregtechceu.gtceu.GTCEu
-import com.gregtechceu.gtceu.api.machine.feature.LDLib2FancyActionMachine
+import com.gregtechceu.gtceu.api.machine.feature.FancyActionMachine
 import com.gregtechceu.gtceu.api.sync_system.SyncActionContext
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData
 import com.gregtechceu.gtceu.api.sync_system.SyncActionDispatchers
@@ -18,7 +18,7 @@ import org.jetbrains.annotations.ApiStatus
 
 /** Exposes the pump hatch operation that its Kotlin action handler may invoke. */
 @ApiStatus.Internal
-interface PumpHatchFluidSlotActionTarget : LDLib2FancyActionMachine {
+interface PumpHatchFluidSlotActionTarget : FancyActionMachine {
 
 	/** Executes one validated fluid-container click against the pump hatch's fixed tank. */
 	fun clickPumpHatchFluidSlot(player: ServerPlayer, shiftDown: Boolean)

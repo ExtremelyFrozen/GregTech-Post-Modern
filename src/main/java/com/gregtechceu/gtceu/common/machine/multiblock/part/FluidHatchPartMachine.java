@@ -22,9 +22,9 @@ import com.gregtechceu.gtceu.api.gui.fancy.IFancyTooltip;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.MachineDefinition;
 import com.gregtechceu.gtceu.api.machine.TickableSubscription;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2CircuitFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2DirectionalFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2WorkingEnabledFancyConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CircuitConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.DirectionalConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
 import com.gregtechceu.gtceu.api.machine.feature.IHasCircuitSlot;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.machine.multiblock.part.TieredIOPartMachine;
@@ -746,13 +746,13 @@ public class FluidHatchPartMachine extends TieredIOPartMachine
 
         private final Player player;
         private final MachineUIHolder holder;
-        private final LDLib2DirectionalFancyConfigurator directionalPage;
+        private final DirectionalConfigurator directionalPage;
 
         private FluidHatchLDLib2Page(Player player, MachineUIHolder holder) {
             requireMatchingLDLib2Holder(holder);
             this.player = player;
             this.holder = holder;
-            this.directionalPage = new LDLib2DirectionalFancyConfigurator(
+            this.directionalPage = new DirectionalConfigurator(
                     FluidHatchPartMachine.this, player, holder);
         }
 
@@ -791,10 +791,10 @@ public class FluidHatchPartMachine extends TieredIOPartMachine
 
         @Override
         public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
-            configuratorPanel.attachConfigurators(new LDLib2WorkingEnabledFancyConfigurator(
+            configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
                     FluidHatchPartMachine.this, holder));
             if (isCircuitSlotEnabled() && io.support(IO.IN)) {
-                configuratorPanel.attachConfigurators(new LDLib2CircuitFancyConfigurator(
+                configuratorPanel.attachConfigurators(new CircuitConfigurator(
                         FluidHatchPartMachine.this, holder));
             }
         }

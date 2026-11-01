@@ -18,11 +18,11 @@ import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyTooltip;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.MachineDefinition;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2CircuitFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2DirectionalFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2DistinctPartFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2WorkingEnabledFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.LDLib2FancyPartUIProvider;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CircuitConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.DirectionalConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.DistinctPartConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
+import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableFluidTank;
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
@@ -61,7 +61,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Predicate;
 
 public class DualHatchPartMachine extends ItemBusPartMachine
-                                  implements MachineUIProvider, LDLib2FancyPartUIProvider,
+                                  implements MachineUIProvider, FancyPartUIProvider,
                                   DualHatchFluidSlotActionTarget {
 
     public static final int INITIAL_TANK_CAPACITY = 16 * FluidType.BUCKET_VOLUME;
@@ -207,7 +207,7 @@ public class DualHatchPartMachine extends ItemBusPartMachine
 
     /** Creates the preview-style page used when a multiblock controller exposes this hatch. */
     @Override
-    public FancyUIProvider createLDLib2FancyPage(Player player, MachineUIHolder holder) {
+    public FancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
         return new DualHatchContextualPreviewPage(player, holder);
     }
 
@@ -411,14 +411,14 @@ public class DualHatchPartMachine extends ItemBusPartMachine
 
     private void attachLDLib2Configurators(ConfiguratorPanel configuratorPanel,
                                            MachineUIHolder holder) {
-        configuratorPanel.attachConfigurators(new LDLib2WorkingEnabledFancyConfigurator(
+        configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
                 this, holder));
         if (io != IO.IN) {
             return;
         }
-        LDLib2DistinctPartFancyConfigurator.attachConfigurators(configuratorPanel, this);
+        DistinctPartConfigurator.attachConfigurators(configuratorPanel, this);
         if (isHasCircuitSlot() && isCircuitSlotEnabled()) {
-            configuratorPanel.attachConfigurators(new LDLib2CircuitFancyConfigurator(
+            configuratorPanel.attachConfigurators(new CircuitConfigurator(
                     this, holder));
         }
     }
@@ -516,7 +516,7 @@ public class DualHatchPartMachine extends ItemBusPartMachine
 
         private final Player player;
         private final MachineUIHolder holder;
-        private final LDLib2DirectionalFancyConfigurator directionalPage;
+        private final DirectionalConfigurator directionalPage;
 
         /**
          * Captures the player and validated machine holder used by page-local GT sync actions.
@@ -524,7 +524,7 @@ public class DualHatchPartMachine extends ItemBusPartMachine
         private DualHatchLDLib2Page(Player player, MachineUIHolder holder) {
             this.player = player;
             this.holder = holder;
-            this.directionalPage = new LDLib2DirectionalFancyConfigurator(
+            this.directionalPage = new DirectionalConfigurator(
                     DualHatchPartMachine.this, player, holder);
         }
 

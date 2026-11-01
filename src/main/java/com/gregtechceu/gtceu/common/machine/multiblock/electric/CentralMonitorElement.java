@@ -26,12 +26,12 @@ import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.item.IComponentItem;
 import com.gregtechceu.gtceu.api.item.component.IItemComponent;
 import com.gregtechceu.gtceu.api.item.component.IMonitorModuleItem;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2DirectionalFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2VoidingModeFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2WorkingEnabledFancyConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.DirectionalConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.VoidingModeConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
+import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMaintenanceMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMultiPart;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.LDLib2FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData;
 import com.gregtechceu.gtceu.common.machine.multiblock.electric.monitor.CentralMonitorGroupItemHandler;
 import com.gregtechceu.gtceu.common.machine.multiblock.electric.monitor.MonitorGroup;
@@ -87,7 +87,7 @@ final class CentralMonitorElement extends UIElement implements FancyUIProvider {
     private final Consumer<SyncActionData> actionSender;
     private final Supplier<UUID> groupIdentitySupplier;
     private final GroupPageSelectionRequester pageRequester;
-    private final LDLib2DirectionalFancyConfigurator directionalPage;
+    private final DirectionalConfigurator directionalPage;
     private final List<FancyUIProvider> partPages;
     private final Set<BlockPos> selectedMonitorPositions = new LinkedHashSet<>();
     private final Map<BlockPos, GTButtonElement> componentControls = new LinkedHashMap<>();
@@ -141,16 +141,16 @@ final class CentralMonitorElement extends UIElement implements FancyUIProvider {
         this.actionSender = actionSender;
         this.groupIdentitySupplier = groupIdentitySupplier;
         requireOpeningMachine();
-        directionalPage = new LDLib2DirectionalFancyConfigurator(machine, player, holder);
+        directionalPage = new DirectionalConfigurator(machine, player, holder);
         List<FancyUIProvider> pages = new ArrayList<>();
         for (IMultiPart part : machine.getParts()) {
-            if (!(part instanceof LDLib2FancyPartUIProvider pageProvider)) {
+            if (!(part instanceof FancyPartUIProvider pageProvider)) {
                 GTCEu.LOGGER.error("Central Monitor part {} has no LDLib2 Fancy page",
                         part.self().getDefinition().getId());
                 throw new IllegalStateException("Central Monitor part has no LDLib2 Fancy page: " +
                         part.self().getDefinition().getId());
             }
-            pages.add(pageProvider.createLDLib2FancyPage(player, new MachineUIHolderContext(player, part.self())));
+            pages.add(pageProvider.createFancyPage(player, new MachineUIHolderContext(player, part.self())));
         }
         partPages = List.copyOf(pages);
 
@@ -285,15 +285,15 @@ final class CentralMonitorElement extends UIElement implements FancyUIProvider {
 
     @Override
     public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
-        LDLib2VoidingModeFancyConfigurator.attachConfigurators(configuratorPanel, machine);
-        configuratorPanel.attachConfigurators(new LDLib2WorkingEnabledFancyConfigurator(machine, holder));
+        VoidingModeConfigurator.attachConfigurators(configuratorPanel, machine);
+        configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(machine, holder));
     }
 
     @Override
     public void attachTooltips(FancyTooltipsPanel tooltipsPanel) {
         for (IMultiPart part : machine.getParts()) {
             if (part instanceof IMaintenanceMachine maintenanceMachine) {
-                maintenanceMachine.attachLDLib2MaintenanceTooltips(tooltipsPanel);
+                maintenanceMachine.attachMaintenanceTooltips(tooltipsPanel);
             }
         }
     }

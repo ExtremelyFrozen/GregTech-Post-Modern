@@ -17,7 +17,7 @@ import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyTooltip;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.TickableSubscription;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2DirectionalFancyConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.DirectionalConfigurator;
 import com.gregtechceu.gtceu.api.machine.feature.ITieredMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.*;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
@@ -57,7 +57,7 @@ import static com.gregtechceu.gtceu.api.machine.property.GTMachineModelPropertie
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 public class RotorHolderPartMachine extends TieredPartMachine
-                                    implements MachineUIProvider, LDLib2FancyPartUIProvider {
+                                    implements MachineUIProvider, FancyPartUIProvider {
 
     public static final int SPEED_INCREMENT = 1;
     public static final int SPEED_DECREMENT = 3;
@@ -260,7 +260,7 @@ public class RotorHolderPartMachine extends TieredPartMachine
      * Creates a new holder-scoped Rotor Holder page for one surrounding multiblock UI opening.
      */
     @Override
-    public FancyUIProvider createLDLib2FancyPage(Player player, MachineUIHolder holder) {
+    public FancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
         return new RotorHolderLDLib2Page(player, holder);
     }
 
@@ -307,12 +307,12 @@ public class RotorHolderPartMachine extends TieredPartMachine
     private final class RotorHolderLDLib2Page implements FancyUIProvider {
 
         private final MachineUIHolder holder;
-        private final LDLib2DirectionalFancyConfigurator directionalPage;
+        private final DirectionalConfigurator directionalPage;
 
         private RotorHolderLDLib2Page(Player player, MachineUIHolder holder) {
             requireMatchingLDLib2Holder(holder);
             this.holder = holder;
-            this.directionalPage = new LDLib2DirectionalFancyConfigurator(RotorHolderPartMachine.this, player,
+            this.directionalPage = new DirectionalConfigurator(RotorHolderPartMachine.this, player,
                     holder);
         }
 
@@ -375,8 +375,8 @@ public class RotorHolderPartMachine extends TieredPartMachine
     // ******* FANCY GUI ********//
     //////////////////////////////////////
     @Override
-    public void attachLDLib2FancyTooltipsToController(MultiblockControllerMachine controller,
-                                                      FancyTooltipsPanel tooltipsPanel) {
+    public void attachFancyTooltipsToController(MultiblockControllerMachine controller,
+                                                FancyTooltipsPanel tooltipsPanel) {
         tooltipsPanel.attachTooltips(createRotorObstructionTooltip());
     }
 

@@ -11,7 +11,7 @@ import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIProvider;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
 import com.gregtechceu.gtceu.api.machine.MachineDefinition;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.LDLib2FancyPartUIProvider;
+import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.SteamItemBus;
 import com.gregtechceu.gtceu.common.data.GTMachines;
 import com.gregtechceu.gtceu.config.ConfigHolder;
@@ -26,7 +26,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.state.BlockState;
 
 public class SteamItemBusPartMachine extends ItemBusPartMachine
-                                     implements MachineUIProvider, LDLib2FancyPartUIProvider, SteamItemBus {
+                                     implements MachineUIProvider, FancyPartUIProvider, SteamItemBus {
 
     private final String autoTooltipKey;
 
@@ -81,7 +81,7 @@ public class SteamItemBusPartMachine extends ItemBusPartMachine
      * Creates a holder-scoped Item Bus page for one surrounding steam multiblock UI opening.
      */
     @Override
-    public FancyUIProvider createLDLib2FancyPage(Player player, MachineUIHolder holder) {
+    public FancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
         return createLDLib2Page(player, holder);
     }
 

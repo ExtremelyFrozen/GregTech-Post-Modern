@@ -26,7 +26,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
  */
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-public final class LDLib2AutoStockingFancyConfigurator implements FancyConfigurator {
+public final class AutoStockingConfigurator implements FancyConfigurator {
 
     private static final int CONFIGURATOR_WIDTH = 90;
     private static final int CONFIGURATOR_HEIGHT = 70;
@@ -37,7 +37,7 @@ public final class LDLib2AutoStockingFancyConfigurator implements FancyConfigura
     /**
      * Creates an advanced auto-stocking configurator bound to the opened machine holder.
      */
-    public LDLib2AutoStockingFancyConfigurator(AutoStockingPart machine, MachineUIHolder holder) {
+    public AutoStockingConfigurator(AutoStockingPart machine, MachineUIHolder holder) {
         this.machine = machine;
         this.holder = holder;
     }
@@ -65,7 +65,7 @@ public final class LDLib2AutoStockingFancyConfigurator implements FancyConfigura
                 "gtpm.gui.title.adv_stocking_config." + suffix, true));
 
         GTIntInputElement minStackSizeInput = new GTIntInputElement(4, 12, 81, 14, machine::getMinStackSize,
-                this::setLDLib2MinStackSize);
+                this::setMinStackSize);
         minStackSizeInput.setMin(1);
         minStackSizeInput.style(style -> style.tooltips(Component.translatable(
                 "gtpm.gui.adv_stocking_config." + suffix)));
@@ -75,7 +75,7 @@ public final class LDLib2AutoStockingFancyConfigurator implements FancyConfigura
                 "gtpm.gui.title.adv_stocking_config.ticks_per_cycle", true));
 
         GTIntInputElement ticksPerCycleInput = new GTIntInputElement(4, 46, 81, 14, machine::getTicksPerCycle,
-                this::setLDLib2TicksPerCycle);
+                this::setTicksPerCycle);
         ticksPerCycleInput.setMin(ConfigHolder.INSTANCE.compat.ae2.updateIntervals);
         ticksPerCycleInput.style(style -> style.tooltips(Component.translatable(
                 "gtpm.gui.adv_stocking_config.ticks_per_cycle")));
@@ -94,7 +94,7 @@ public final class LDLib2AutoStockingFancyConfigurator implements FancyConfigura
         return CONFIGURATOR_HEIGHT;
     }
 
-    public void setLDLib2MinStackSize(int value) {
+    public void setMinStackSize(int value) {
         machine.setMinStackSize(value);
         var currentMachine = holder.getMachine();
         if (currentMachine != null && currentMachine.isRemote()) {
@@ -102,7 +102,7 @@ public final class LDLib2AutoStockingFancyConfigurator implements FancyConfigura
         }
     }
 
-    public void setLDLib2TicksPerCycle(int value) {
+    public void setTicksPerCycle(int value) {
         machine.setTicksPerCycle(value);
         var currentMachine = holder.getMachine();
         if (currentMachine != null && currentMachine.isRemote()) {

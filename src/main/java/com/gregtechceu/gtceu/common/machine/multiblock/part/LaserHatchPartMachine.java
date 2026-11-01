@@ -7,7 +7,7 @@ import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyPreviewPage;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
 import com.gregtechceu.gtceu.api.machine.feature.IDataInfoProvider;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.LDLib2FancyPartUIProvider;
+import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.machine.multiblock.part.TieredIOPartMachine;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableLaserContainer;
@@ -24,7 +24,7 @@ import java.util.Collections;
 import java.util.List;
 
 public class LaserHatchPartMachine extends TieredIOPartMachine
-                                   implements IDataInfoProvider, LDLib2FancyPartUIProvider {
+                                   implements IDataInfoProvider, FancyPartUIProvider {
 
     @SaveField
     private NotifiableLaserContainer buffer;
@@ -43,7 +43,7 @@ public class LaserHatchPartMachine extends TieredIOPartMachine
     }
 
     @Override
-    public FancyUIProvider createLDLib2FancyPage(Player player, MachineUIHolder holder) {
+    public FancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
         return new FancyPreviewPage(this, player, holder, switch (io) {
             case IN -> new FancyUIProvider.PageGroupingData(
                     "gtpm.multiblock.page_switcher.io.import", 1);

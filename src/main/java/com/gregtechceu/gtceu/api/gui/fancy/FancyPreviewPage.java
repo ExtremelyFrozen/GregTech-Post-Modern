@@ -7,9 +7,9 @@ import com.gregtechceu.gtceu.api.gui.element.GTImageElement;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2DirectionalFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2WorkingEnabledFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.feature.LDLib2FancyActionMachine;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.DirectionalConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
+import com.gregtechceu.gtceu.api.machine.feature.FancyActionMachine;
 import com.gregtechceu.gtceu.client.gui.fancy.PreviewScene;
 
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
@@ -38,7 +38,7 @@ public final class FancyPreviewPage implements FancyUIProvider {
 
     private final MetaMachine machine;
     private final MachineUIHolder holder;
-    private final LDLib2DirectionalFancyConfigurator directionalPage;
+    private final DirectionalConfigurator directionalPage;
     private final Consumer<FancyTooltipsPanel> tooltipAttacher;
     @Nullable
     private final PageGroupingData groupingData;
@@ -74,14 +74,14 @@ public final class FancyPreviewPage implements FancyUIProvider {
                             @Nullable PageGroupingData groupingData,
                             Consumer<FancyTooltipsPanel> tooltipAttacher) {
         requireMatchingHolder(machine, holder);
-        if (!(machine instanceof LDLib2FancyActionMachine)) {
+        if (!(machine instanceof FancyActionMachine)) {
             throw new IllegalArgumentException("Preview Fancy page machine must opt into LDLib2 Fancy actions.");
         }
         this.machine = machine;
         this.holder = holder;
         this.groupingData = groupingData;
         this.tooltipAttacher = tooltipAttacher;
-        this.directionalPage = new LDLib2DirectionalFancyConfigurator(machine, player, holder);
+        this.directionalPage = new DirectionalConfigurator(machine, player, holder);
     }
 
     @Override
@@ -135,7 +135,7 @@ public final class FancyPreviewPage implements FancyUIProvider {
     @Override
     public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
         if (machine instanceof IControllable controllable) {
-            configuratorPanel.attachConfigurators(new LDLib2WorkingEnabledFancyConfigurator(controllable, holder));
+            configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(controllable, holder));
         }
     }
 

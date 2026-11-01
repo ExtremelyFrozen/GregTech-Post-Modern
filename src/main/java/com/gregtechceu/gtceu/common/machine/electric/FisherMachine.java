@@ -12,7 +12,7 @@ import com.gregtechceu.gtceu.api.gui.element.GTToggleButtonElement;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUI;
 import com.gregtechceu.gtceu.api.machine.TickableSubscription;
 import com.gregtechceu.gtceu.api.machine.TieredEnergyMachine;
-import com.gregtechceu.gtceu.api.machine.feature.LDLib2FancyUIMachine;
+import com.gregtechceu.gtceu.api.machine.feature.FancyUIMachine;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncBoth;
@@ -52,7 +52,7 @@ import org.jetbrains.annotations.Nullable;
  * @implNote FisherMachine
  */
 public class FisherMachine extends TieredEnergyMachine
-                           implements LDLib2FancyUIMachine, IWorkable {
+                           implements FancyUIMachine, IWorkable {
 
     private static final int SLOT_SIZE = 18;
     private static final int TEMPLATE_PADDING = 8;

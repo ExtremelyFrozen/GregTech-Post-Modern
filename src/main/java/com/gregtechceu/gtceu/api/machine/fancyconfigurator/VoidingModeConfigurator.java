@@ -13,15 +13,15 @@ import java.util.List;
  * <p>
  * The selector updates the client-side sync field and flushes it through the GTM machine sync channel.
  */
-public final class LDLib2VoidingModeFancyConfigurator {
+public final class VoidingModeConfigurator {
 
-    private LDLib2VoidingModeFancyConfigurator() {}
+    private VoidingModeConfigurator() {}
 
     /**
      * Attaches a voiding mode selector to a migrated LDLib2 Fancy configurator panel.
      */
     public static void attachConfigurators(ConfiguratorPanel configuratorPanel, IVoidable controller) {
-        configuratorPanel.attachConfigurators(new LDLib2FancySelectorConfigurator<>(
+        configuratorPanel.attachConfigurators(new SelectorConfigurator<>(
                 IVoidable.VoidingMode.VALUES,
                 controller::getVoidingMode,
                 (event, mode) -> {

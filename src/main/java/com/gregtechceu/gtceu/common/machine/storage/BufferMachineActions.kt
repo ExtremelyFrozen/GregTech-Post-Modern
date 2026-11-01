@@ -1,7 +1,7 @@
 package com.gregtechceu.gtceu.common.machine.storage
 
 import com.gregtechceu.gtceu.GTCEu
-import com.gregtechceu.gtceu.api.machine.feature.LDLib2FancyActionMachine
+import com.gregtechceu.gtceu.api.machine.feature.FancyActionMachine
 import com.gregtechceu.gtceu.api.sync_system.SyncActionContext
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData
 import com.gregtechceu.gtceu.api.sync_system.SyncActionDispatchers
@@ -18,7 +18,7 @@ import org.jetbrains.annotations.ApiStatus
 
 /** Exposes the buffer fluid-slot operation that its Kotlin action handler may invoke. */
 @ApiStatus.Internal
-interface BufferFluidSlotActionTarget : LDLib2FancyActionMachine {
+interface BufferFluidSlotActionTarget : FancyActionMachine {
 
 	/** Executes one validated fluid-container click against [tankIndex]. */
 	fun clickBufferFluidSlot(player: ServerPlayer, tankIndex: Int, shiftDown: Boolean)

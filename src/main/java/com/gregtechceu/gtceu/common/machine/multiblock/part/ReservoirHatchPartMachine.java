@@ -5,7 +5,7 @@ import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo;
 import com.gregtechceu.gtceu.api.capability.recipe.IO;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.LDLib2FancyPartUIProvider;
+import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableFluidTank;
 import com.gregtechceu.gtceu.api.transfer.fluid.CustomFluidTank;
 
@@ -16,7 +16,7 @@ import net.neoforged.neoforge.fluids.FluidStack;
 
 import java.util.Collections;
 
-public class ReservoirHatchPartMachine extends FluidHatchPartMachine implements LDLib2FancyPartUIProvider {
+public class ReservoirHatchPartMachine extends FluidHatchPartMachine implements FancyPartUIProvider {
 
     protected InfiniteWaterTank waterTank;
 
@@ -34,7 +34,7 @@ public class ReservoirHatchPartMachine extends FluidHatchPartMachine implements 
 
     /** Reuses the reservoir-compatible generic page for one controller UI opening. */
     @Override
-    public FancyUIProvider createLDLib2FancyPage(Player player, MachineUIHolder holder) {
+    public FancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
         return createLDLib2Page(player, holder);
     }
 

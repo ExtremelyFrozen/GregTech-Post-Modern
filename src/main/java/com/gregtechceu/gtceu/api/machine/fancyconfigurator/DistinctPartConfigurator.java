@@ -17,9 +17,9 @@ import java.util.List;
  * <p>
  * The button updates the annotated distinct field on the client and flushes the owning machine's field changes.
  */
-public final class LDLib2DistinctPartFancyConfigurator {
+public final class DistinctPartConfigurator {
 
-    private LDLib2DistinctPartFancyConfigurator() {}
+    private DistinctPartConfigurator() {}
 
     /**
      * Attaches a distinct part toggle to a migrated LDLib2 Fancy configurator panel.

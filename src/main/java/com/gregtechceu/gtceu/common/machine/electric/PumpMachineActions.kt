@@ -1,7 +1,7 @@
 package com.gregtechceu.gtceu.common.machine.electric
 
 import com.gregtechceu.gtceu.GTCEu
-import com.gregtechceu.gtceu.api.machine.feature.LDLib2FancyActionMachine
+import com.gregtechceu.gtceu.api.machine.feature.FancyActionMachine
 import com.gregtechceu.gtceu.api.sync_system.SyncActionContext
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData
 import com.gregtechceu.gtceu.api.sync_system.SyncActionDispatchers
@@ -18,7 +18,7 @@ import org.jetbrains.annotations.ApiStatus
 
 /** Exposes the electric pump operation that its Kotlin action handler may invoke. */
 @ApiStatus.Internal
-interface PumpFluidSlotActionTarget : LDLib2FancyActionMachine {
+interface PumpFluidSlotActionTarget : FancyActionMachine {
 
 	/** Executes one validated fluid-container click against the pump's fixed cache tank. */
 	fun clickPumpFluidSlot(player: ServerPlayer, shiftDown: Boolean)

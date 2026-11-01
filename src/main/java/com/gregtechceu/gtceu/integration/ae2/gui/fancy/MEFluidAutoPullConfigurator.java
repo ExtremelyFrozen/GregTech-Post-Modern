@@ -22,12 +22,12 @@ import javax.annotation.ParametersAreNonnullByDefault;
  */
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-public final class LDLib2MEFluidAutoPullFancyConfigurator extends FancyConfiguratorButton.Toggle {
+public final class MEFluidAutoPullConfigurator extends FancyConfiguratorButton.Toggle {
 
     /**
      * Creates a toggle that sends the dedicated ME action only from the matching remote opening.
      */
-    public LDLib2MEFluidAutoPullFancyConfigurator(MEStockingHatchPartMachine machine, MachineUIHolder holder) {
+    public MEFluidAutoPullConfigurator(MEStockingHatchPartMachine machine, MachineUIHolder holder) {
         super(GuiTextures.BUTTON_AUTO_PULL.getSubTexture(0, 0, 1, 0.5),
                 GuiTextures.BUTTON_AUTO_PULL.getSubTexture(0, 0.5, 1, 0.5),
                 machine::isAutoPull, createClickHandler(machine, holder));

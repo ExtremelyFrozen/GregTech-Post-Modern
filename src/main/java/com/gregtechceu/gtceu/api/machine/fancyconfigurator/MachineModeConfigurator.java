@@ -25,7 +25,7 @@ import java.util.List;
  * <p>
  * The page updates the client-side sync field and flushes it through the GTM machine sync channel.
  */
-public class LDLib2MachineModeFancyConfigurator implements FancyUIProvider {
+public class MachineModeConfigurator implements FancyUIProvider {
 
     private static final int PAGE_WIDTH = 140;
     private static final int BUTTON_HEIGHT = 20;
@@ -38,7 +38,7 @@ public class LDLib2MachineModeFancyConfigurator implements FancyUIProvider {
     /**
      * Creates a mode selector page for one recipe logic machine.
      */
-    public LDLib2MachineModeFancyConfigurator(IRecipeLogicMachine machine) {
+    public MachineModeConfigurator(IRecipeLogicMachine machine) {
         this.machine = machine;
     }
 
