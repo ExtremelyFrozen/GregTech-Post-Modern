@@ -36,6 +36,8 @@ public class IntegrationLang {
                 "Availability is unknown in recipe previews");
         provider.add("gtpm.multiblock.preview.demolition_count", "D:%s");
         provider.add("gtpm.multiblock.preview.tooltip.demolition_count", "Demolition targets: %s");
+        provider.add("gtpm.multiblock.preview.tooltip.previous_materials", "Previous materials");
+        provider.add("gtpm.multiblock.preview.tooltip.next_materials", "Next materials");
         provider.add("gtpm.multiblock.preview.cell.position", "Relative position: %s, %s, %s");
         provider.add("gtpm.multiblock.preview.cell.contribution", "%s -> %s [%s], cell %s/%s/%s/%s/%s");
         provider.add("gtpm.multiblock.preview.cell.direction", "Required direction: %s");
@@ -111,7 +113,7 @@ public class IntegrationLang {
         provider.add("gtpm.multiblock.configuration.off", "OFF");
         provider.add("gtpm.multiblock.configuration.fullscreen", "Full screen");
         provider.add("gtpm.multiblock.configuration.compact", "Compact view");
-        provider.add("gtpm.multiblock.configuration.select", "Select a category and value");
+        provider.add("gtpm.multiblock.configuration.select", "Tiers and dimensions");
         provider.add("gtpm.multiblock.ability.import_items", "Item input");
         provider.add("gtpm.multiblock.ability.export_items", "Item output");
         provider.add("gtpm.multiblock.ability.import_fluids", "Fluid input");

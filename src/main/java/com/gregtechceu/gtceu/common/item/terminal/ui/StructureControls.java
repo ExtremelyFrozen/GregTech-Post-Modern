@@ -46,7 +46,6 @@ public final class StructureControls extends UIElement {
     private final MultiblockMachineDefinition definition;
     private final MultiblockPreviewPanel preview;
     private final Consumer<TerminalChange> update;
-    private final GTScrollerViewElement options;
     private final ObjectList<Control> controls = new ObjectArrayList<>();
     private final boolean showME;
     private final ObjectList<Selection> selections = new ObjectArrayList<>();
@@ -68,14 +67,12 @@ public final class StructureControls extends UIElement {
         this.showME = showME;
         this.update = update;
         contentWidth = width - 8;
-        options = scroller(4, 78, width - 8, height - 82);
         rebuild();
     }
 
     public void resize(int x, int y, int width, int height) {
         UITemplate.setLDLib2Bounds(this, x, y, width, height);
         contentWidth = width - 8;
-        options.getLayout().width(width - 8).height(height - 82);
         rebuild();
     }
 
@@ -97,7 +94,6 @@ public final class StructureControls extends UIElement {
         clearAllChildren();
         controls.clear();
         selections.clear();
-        options.clearAllScrollViewChildren();
         addChild(label(5, 4, contentWidth, text("title")));
         var shared = machine.sharedOptions();
         int toggleWidth = (contentWidth - (showME ? 4 : 2)) / (showME ? 3 : 2);
@@ -148,15 +144,11 @@ public final class StructureControls extends UIElement {
             event.stopPropagation();
         });
         addChild(visibility);
-        addChild(options);
-
-        int rowWidth = contentWidth - 4;
-        int fieldHalf = (rowWidth - 2) / 2;
-        action(options.viewContainer, 0, 0, fieldHalf, text("mode." + structure.mode().name().toLowerCase(Locale.ROOT)),
+        action(this, 4, 77, half, text("mode." + structure.mode().name().toLowerCase(Locale.ROOT)),
                 TerminalChange.structureMode(name, structure.mode() == StructureOperation.BUILD ?
                         StructureOperation.DEMOLISH : StructureOperation.BUILD),
                 !required);
-        action(options.viewContainer, fieldHalf + 2, 0, fieldHalf, text("flip", onOff(structure.flipMode())),
+        action(this, 6 + half, 77, half, text("flip", onOff(structure.flipMode())),
                 TerminalChange.structureFlip(name, !structure.flipMode()), definition.isAllowFlip());
         for (var repetition : definition.getPattern(name).getRepeatDescriptors()) {
             if (repetition.minimum() == repetition.maximum()) continue;
@@ -196,22 +188,13 @@ public final class StructureControls extends UIElement {
                             TerminalChange.tier(name, group, id), id.equals(selected)))
                             .collect(ObjectArrayList.toList())));
         }
-        int y = 22;
-        for (int index = 0; index < selections.size(); index++) {
-            int category = index;
-            Selection selection = selections.get(index);
-            options.addScrollViewChild(label(0, y, rowWidth, selection.name()));
-            y += 12;
-            var select = button(0, y, rowWidth, selection.selected());
-            controls.add(new Control(select, true));
-            select.setOnClick(event -> {
-                openSelection(category);
-                event.stopPropagation();
-            });
-            options.addScrollViewChild(select);
-            y += 22;
-        }
-        options.viewContainer.getLayout().width(rowWidth).height(y);
+        var select = button(4, 99, contentWidth, text("select"));
+        controls.add(new Control(select, !selections.isEmpty()));
+        select.setOnClick(event -> {
+            openSelection(0);
+            event.stopPropagation();
+        });
+        addChild(select);
         setInteractive(interactive);
     }
 
@@ -267,6 +250,7 @@ public final class StructureControls extends UIElement {
         for (int i = 0; i < selections.size(); i++) {
             int index = i;
             var category = button(0, i * 20, 100, selections.get(i).name());
+            category.getStyle().tooltips(selections.get(i).name(), selections.get(i).selected());
             category.setOnClick(event -> {
                 selectCategory.accept(index);
                 event.stopPropagation();

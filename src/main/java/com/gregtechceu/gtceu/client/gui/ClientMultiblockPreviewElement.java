@@ -6,8 +6,6 @@ import com.gregtechceu.gtceu.api.gui.element.GTButtonElement;
 import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTSceneElement;
-import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
-import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.multiblock.MultiblockBlockInfo;
 import com.gregtechceu.gtceu.api.multiblock.MultiblockPreviewLevel;
 import com.gregtechceu.gtceu.api.multiblock.preview.PreviewVisibility;
@@ -20,8 +18,6 @@ import com.gregtechceu.gtceu.integration.xei.handlers.item.CycleItemEntryHandler
 import com.lowdragmc.lowdraglib2.client.scene.ISceneBlockRenderHook;
 import com.lowdragmc.lowdraglib2.client.scene.WorldSceneRenderer;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
-import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
-import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollerMode;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.gui.ui.event.HoverTooltips;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
@@ -61,7 +57,7 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Client-owned scene, focus/layer controls and complete material scroller for one preview window.
+ * Client-owned scene, focus/layer controls and paged materials for one preview window.
  */
 @OnlyIn(Dist.CLIENT)
 @NullMarked
@@ -69,16 +65,19 @@ public final class ClientMultiblockPreviewElement extends UIElement {
 
     private static final BlockPos SCENE_ORIGIN = new BlockPos(0, 64, 0);
     private static final int MATERIAL_BAR_HEIGHT = 24;
-    private static final int MATERIAL_DETAIL_HEIGHT = 42;
+    private static final int MATERIAL_DETAIL_HEIGHT = 34;
 
     private final PreviewVisibility state;
     private MultiblockPreviewLevel previewLevel;
     @Nullable
     private Level sourceLevel;
     private final GTSceneElement scene;
-    private final GTScrollerViewElement materialScroller;
+    private final UIElement materialViewport;
+    private final GTButtonElement previousMaterials;
+    private final GTButtonElement nextMaterials;
+    private final ObjectList<GTItemSlotElement> materialSlots = new ObjectArrayList<>();
     @Nullable
-    private final GTScrollerViewElement materialDetails;
+    private final UIElement materialDetails;
     private final GTButtonElement focusButton;
     private final GTButtonElement layerButton;
     private final GTButtonElement hatchButton;
@@ -91,6 +90,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
     private final ObjectList<BlockPos> loadedPositions = new ObjectArrayList<>();
     private final ObjectList<BlockPos> hatchPositions = new ObjectArrayList<>();
     private int selectedMaterialIndex;
+    private int materialPage;
     private long renderedViewRevision;
     private boolean removed;
 
@@ -98,8 +98,8 @@ public final class ClientMultiblockPreviewElement extends UIElement {
                                           boolean showAvailability) {
         this.state = state;
         this.showAvailability = showAvailability;
-        materialViewportWidth = width - 44;
-        materialDetailViewportWidth = width - 6;
+        materialViewportWidth = width - 74;
+        materialDetailViewportWidth = width - 8;
         layout(layout -> {
             layout.positionType(TaffyPosition.ABSOLUTE);
             layout.width(width);
@@ -126,27 +126,12 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         addChild(scene);
 
         if (showAvailability) {
-            GTScrollerViewElement details = new GTScrollerViewElement(2, sceneHeight,
-                    width - 4, detailHeight);
-            details.scrollerStyle(style -> style
-                    .mode(ScrollerMode.VERTICAL)
-                    .verticalScrollDisplay(ScrollDisplay.AUTO)
-                    .horizontalScrollDisplay(ScrollDisplay.NEVER)
-                    .scrollerViewStyle(0));
-            details.viewPort(viewPort -> {
-                viewPort.layout(layout -> layout.paddingAll(0));
-                viewPort.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
-            });
-            details.verticalScroller(scroller -> {
-                scroller.layout(layout -> layout.width(2));
-                scroller.getStyle().backgroundTexture(GuiTextures.SLIDER_BACKGROUND_VERTICAL);
-                scroller.headButton.setDisplay(false);
-                scroller.tailButton.setDisplay(false);
-                scroller.scrollBar.buttonStyle(style -> style.baseTexture(GuiTextures.BUTTON)
-                        .hoverTexture(GuiTextures.BUTTON).pressedTexture(GuiTextures.BUTTON));
-            });
-            materialDetails = details;
-            addChild(details);
+            materialDetails = new UIElement();
+            materialDetails.layout(layout -> layout.positionType(TaffyPosition.ABSOLUTE)
+                    .left(2).top(sceneHeight).width(width - 4).height(detailHeight));
+            materialDetails.getStyle().backgroundTexture(GuiTextures.BACKGROUND_INVERSE);
+            materialDetails.setOverflowVisible(false);
+            addChild(materialDetails);
         } else {
             materialDetails = null;
         }
@@ -158,36 +143,39 @@ public final class ClientMultiblockPreviewElement extends UIElement {
                 Component.translatable("gtpm.multiblock.preview.tooltip.demolition_count", 0)));
         addChild(demolitionLabel);
 
-        materialScroller = new GTScrollerViewElement(42, height - MATERIAL_BAR_HEIGHT + 1,
-                materialViewportWidth, MATERIAL_BAR_HEIGHT - 2);
-        materialScroller.scrollerStyle(style -> style
-                .mode(ScrollerMode.HORIZONTAL)
-                .horizontalScrollDisplay(ScrollDisplay.AUTO)
-                .verticalScrollDisplay(ScrollDisplay.NEVER)
-                .scrollerViewStyle(0));
-        materialScroller.viewPort(viewPort -> {
-            viewPort.layout(layout -> layout.paddingAll(0));
-            viewPort.style(style -> style.backgroundTexture(IGuiTexture.EMPTY));
+        materialViewport = new UIElement();
+        materialViewport.layout(layout -> layout.positionType(TaffyPosition.ABSOLUTE)
+                .left(56).top(height - MATERIAL_BAR_HEIGHT + 3).width(materialViewportWidth).height(18));
+        materialViewport.setOverflowVisible(false);
+        previousMaterials = navigationButton(40, height - MATERIAL_BAR_HEIGHT + 3,
+                "gtpm.multiblock.preview.tooltip.previous_materials");
+        previousMaterials.getLayout().width(14);
+        previousMaterials.setText(Component.literal("<"));
+        previousMaterials.setOnClick(event -> {
+            materialPage--;
+            updateMaterialPage();
+            event.stopPropagation();
         });
-        materialScroller.horizontalScroller(scroller -> {
-            scroller.layout(layout -> layout.height(4));
-            scroller.getStyle().backgroundTexture(GuiTextures.SLIDER_BACKGROUND);
-            scroller.headButton.setDisplay(false);
-            scroller.tailButton.setDisplay(false);
-            scroller.scrollBar.buttonStyle(style -> style.baseTexture(GuiTextures.BUTTON)
-                    .hoverTexture(GuiTextures.BUTTON).pressedTexture(GuiTextures.BUTTON));
+        nextMaterials = navigationButton(width - 16, height - MATERIAL_BAR_HEIGHT + 3,
+                "gtpm.multiblock.preview.tooltip.next_materials");
+        nextMaterials.getLayout().width(14);
+        nextMaterials.setText(Component.literal(">"));
+        nextMaterials.setOnClick(event -> {
+            materialPage++;
+            updateMaterialPage();
+            event.stopPropagation();
         });
         // The container survives material changes; per-slot recipe widgets would retain removed slots.
         if (GTCEu.MODS.isEMILoaded()) {
-            LDLibEMIPlugin.recipeSlot(materialScroller.viewContainer, () -> EmiStack.of(getHoveredMaterial()));
+            LDLibEMIPlugin.recipeSlot(materialViewport, () -> EmiStack.of(getHoveredMaterial()));
         }
         if (GTCEu.MODS.isJEILoaded()) {
-            LDLibJEIPlugin.recipeSlot(materialScroller.viewContainer, () -> {
+            LDLibJEIPlugin.recipeSlot(materialViewport, () -> {
                 var stack = getHoveredMaterial();
                 return stack.isEmpty() ? null : TypedItemStack.create(stack);
             }, null);
         }
-        addChild(materialScroller);
+        addChildren(materialViewport, previousMaterials, nextMaterials);
 
         focusButton = navigationButton(width - 20, 2, "gtpm.multiblock.preview.tooltip.focus");
         focusButton.setOnClick(event -> {
@@ -229,12 +217,14 @@ public final class ClientMultiblockPreviewElement extends UIElement {
 
     public void resize(int width, int height) {
         getLayout().width(width).height(height);
-        materialViewportWidth = width - 44;
-        materialDetailViewportWidth = width - 6;
+        materialViewportWidth = width - 74;
+        materialDetailViewportWidth = width - 8;
         int sceneHeight = height - MATERIAL_BAR_HEIGHT - (showAvailability ? MATERIAL_DETAIL_HEIGHT : 0);
         scene.getLayout().width(width).height(sceneHeight);
         if (materialDetails != null) materialDetails.getLayout().top(sceneHeight).width(width - 4);
-        materialScroller.getLayout().top(height - MATERIAL_BAR_HEIGHT + 1).width(materialViewportWidth);
+        materialViewport.getLayout().top(height - MATERIAL_BAR_HEIGHT + 3).width(materialViewportWidth);
+        previousMaterials.getLayout().top(height - MATERIAL_BAR_HEIGHT + 3);
+        nextMaterials.getLayout().left(width - 16).top(height - MATERIAL_BAR_HEIGHT + 3);
         demolitionLabel.getLayout().top(height - MATERIAL_BAR_HEIGHT + 5);
         focusButton.getLayout().left(width - 20);
         layerButton.getLayout().left(width - 20);
@@ -306,12 +296,13 @@ public final class ClientMultiblockPreviewElement extends UIElement {
 
     private ItemStack getHoveredMaterial() {
         var hovered = getModularUI().getLastHoveredElement();
-        return hovered instanceof GTItemSlotElement slot && slot.getParent() == materialScroller.viewContainer ?
+        return hovered instanceof GTItemSlotElement slot && slot.getParent() == materialViewport ?
                 slot.getValue() : ItemStack.EMPTY;
     }
 
     private void rebuildMaterials() {
-        materialScroller.clearAllScrollViewChildren();
+        materialViewport.clearAllChildren();
+        materialSlots.clear();
         ObjectList<List<ItemStack>> displayStacks = state.getPreview().materials().stream()
                 .<List<ItemStack>>map(material -> material.candidates().stream()
                         .map(candidate -> candidate
@@ -320,7 +311,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
                 .collect(ObjectImmutableList.toList());
         if (displayStacks.isEmpty()) {
             selectedMaterialIndex = 0;
-            materialScroller.viewContainer.layout(layout -> layout.width(1).height(18));
+            updateMaterialPage();
             rebuildMaterialDetails();
             return;
         }
@@ -348,19 +339,32 @@ public final class ClientMultiblockPreviewElement extends UIElement {
                 rebuildMaterialDetails();
             });
             slot.xeiRecipeIngredient();
-            materialScroller.addScrollViewChild(slot);
+            materialViewport.addChild(slot);
+            materialSlots.add(slot);
         }
-        materialScroller.viewContainer.layout(layout -> layout
-                .width(Math.max(materialViewportWidth, displayStacks.size() * 18))
-                .height(18));
+        updateMaterialPage();
         rebuildMaterialDetails();
+    }
+
+    private void updateMaterialPage() {
+        int perPage = Math.max(1, materialViewportWidth / 18);
+        int lastPage = Math.max(0, (materialSlots.size() - 1) / perPage);
+        materialPage = Math.clamp(materialPage, 0, lastPage);
+        int first = materialPage * perPage;
+        // Keep every ingredient in the XEI tree; the viewport clips slots outside the current page.
+        for (int index = 0; index < materialSlots.size(); index++) {
+            materialSlots.get(index).getLayout().left((index - first) * 18);
+        }
+        materialViewport.getLayout().width(perPage * 18);
+        previousMaterials.setActive(materialPage > 0);
+        nextMaterials.setActive(materialPage < lastPage);
     }
 
     private void rebuildMaterialDetails() {
         @Nullable
-        GTScrollerViewElement details = materialDetails;
+        UIElement details = materialDetails;
         if (details == null) return;
-        details.clearAllScrollViewChildren();
+        details.clearAllChildren();
         ObjectList<StructurePreview.Material> materials = state.getPreview().materials();
         ObjectList<Component> lines = new ObjectArrayList<>();
         if (materials.isEmpty()) {
@@ -371,36 +375,25 @@ public final class ClientMultiblockPreviewElement extends UIElement {
             lines.add(Component.translatable("gtpm.multiblock.preview.material.selected",
                     material.candidates().getFirst().getHoverName()));
             lines.add(Component.translatable("gtpm.multiblock.preview.material.required", material.required()));
-            for (StructurePreview.StructureAmount structure : material.structures()) {
-                lines.add(Component.translatable("gtpm.multiblock.preview.material.structure",
-                        StructureControls.structureName(structure.structureName()), structure.required()));
-            }
             if (state.getPreview().availabilityKnown()) {
-                if (GTCEu.MODS.AE2.isLoaded()) {
-                    lines.add(Component.translatable("gtpm.multiblock.preview.material.me",
-                            material.meAvailable(), material.meAllocated()));
-                }
-                lines.add(Component.translatable("gtpm.multiblock.preview.material.player",
-                        material.playerAvailable(), material.playerAllocated()));
-                lines.add(Component.translatable("gtpm.multiblock.preview.material.missing", material.missing()));
-                if (material.unlimited()) {
-                    lines.add(Component.translatable("gtpm.multiblock.preview.material.unlimited"));
-                }
+                lines.add(Component.translatable(material.unlimited() ?
+                        "gtpm.multiblock.preview.material.unlimited" :
+                        "gtpm.multiblock.preview.material.missing", material.missing()));
             } else {
                 lines.add(Component.translatable("gtpm.multiblock.preview.material.availability_unknown"));
             }
         }
         for (int index = 0; index < lines.size(); index++) {
-            GTLabelElement label = new GTLabelElement(2, index * 10, materialDetailViewportWidth, 10,
+            GTLabelElement label = new GTLabelElement(2, 2 + index * 10, materialDetailViewportWidth, 10,
                     lines.get(index));
             label.textStyle(style -> style.adaptiveWidth(false).adaptiveHeight(false).fontSize(8)
                     .textColor(0xff404040).textShadow(false).textWrap(TextWrap.HIDE));
             label.getStyle().tooltips(lines.get(index));
-            details.addScrollViewChild(label);
+            details.addChild(label);
         }
-        details.viewContainer.layout(layout -> layout
-                .width(materialDetailViewportWidth)
-                .height(Math.max(MATERIAL_DETAIL_HEIGHT, lines.size() * 10)));
+        ObjectList<Component> tooltips = new ObjectArrayList<>();
+        if (!materials.isEmpty()) addMaterialTooltips(materials.get(selectedMaterialIndex), tooltips);
+        details.getStyle().tooltips(tooltips.toArray(Component[]::new));
     }
 
     private void addMaterialTooltips(StructurePreview.Material material, List<Component> tooltips) {
