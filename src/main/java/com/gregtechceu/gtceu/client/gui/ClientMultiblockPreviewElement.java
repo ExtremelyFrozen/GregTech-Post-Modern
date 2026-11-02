@@ -54,9 +54,9 @@ import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
 import it.unimi.dsi.fastutil.objects.ObjectList;
 import mezz.jei.library.ingredients.itemStacks.TypedItemStack;
+import org.joml.Vector3f;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
-import org.joml.Vector3f;
 
 import java.util.List;
 import java.util.Locale;

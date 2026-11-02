@@ -279,7 +279,7 @@ public final class MultiblockInWorldPreviewRenderer {
 
     private static Map<BlockPos, PlannedBlockInfo> previewBlocks(BatchPlan plan, List<Integer> layers,
                                                                  int selectedLayer,
-                                                                  MultiblockPreviewLevel previewLevel, Level source) {
+                                                                 MultiblockPreviewLevel previewLevel, Level source) {
         Map<BlockPos, PlannedBlockInfo> blockMap = new LinkedHashMap<>();
         for (MergedPlanCell merged : plan.mergedCells().values()) {
             if (selectedLayer != -1 && merged.relativePos().getY() != layers.get(selectedLayer)) {
