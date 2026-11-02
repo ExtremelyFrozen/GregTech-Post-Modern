@@ -390,7 +390,7 @@ final class CandidateExpansion {
                              @Nullable MaterialKey materialKey, boolean any,
                              PatternObservation observation) {
 
-        private static ResolvedCandidate wildcard() {
+        static ResolvedCandidate wildcard() {
             return new ResolvedCandidate(Blocks.AIR.defaultBlockState(),
                     PlannedBlockInfo.from(Blocks.AIR.defaultBlockState()),
                     new ObjectArrayList<>(), false, ObjectList.of(), 0, null, true, PatternObservation.of(true));

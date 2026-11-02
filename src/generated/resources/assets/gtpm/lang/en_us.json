@@ -2590,7 +2590,7 @@
     "gtpm.multiblock.preview.tooltip.flip": "Flip this structure",
     "gtpm.multiblock.preview.tooltip.repeat_unit": "Select a repeatable pattern unit",
     "gtpm.multiblock.preview.tooltip.repeat": "Change this unit's repetition count",
-    "gtpm.multiblock.preview.tooltip.no_hatch": "Exclude optional hatches; keep required hatches",
+    "gtpm.multiblock.preview.tooltip.no_hatch": "Filter hatches from multi-rule positions; allow single-rule positions",
     "gtpm.multiblock.preview.tooltip.replace": "Allow replacing occupied targets",
     "gtpm.multiblock.preview.tooltip.me": "Real execution uses ME first, then player inventory; XEI does not query the network",
 	"gtpm.multiblock.preview.tooltip.tier_group": "Select a tiered block group",

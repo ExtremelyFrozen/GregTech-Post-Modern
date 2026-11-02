@@ -29,6 +29,9 @@ import it.unimi.dsi.fastutil.objects.ObjectList;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
+import it.unimi.dsi.fastutil.objects.ReferenceSet;
+import it.unimi.dsi.fastutil.objects.ReferenceSets;
 import org.jspecify.annotations.Nullable;
 
 import java.util.Arrays;
@@ -40,7 +43,7 @@ import static com.gregtechceu.gtceu.api.multiblock.autobuild.plan.StructurePlann
 
 final class CandidateSearch {
 
-    final boolean minimizeHatches;
+    final boolean noHatchMode;
     final MaterialAllocation materials;
     final boolean consumeMaterials;
     final boolean canonical;
@@ -57,9 +60,9 @@ final class CandidateSearch {
     SelectionScore bestScore;
     int @Nullable [][] bestGroupCounts;
 
-    CandidateSearch(boolean minimizeHatches, MaterialAllocation materials,
+    CandidateSearch(boolean noHatchMode, MaterialAllocation materials,
                     boolean consumeMaterials, boolean canonical) {
-        this.minimizeHatches = minimizeHatches;
+        this.noHatchMode = noHatchMode;
         this.materials = materials;
         this.consumeMaterials = consumeMaterials;
         this.canonical = canonical;
@@ -68,9 +71,9 @@ final class CandidateSearch {
     ObjectList<SelectedCell> solve(ObjectList<UnresolvedCell> cells,
                                    ObjectList<ConstraintLimit> requirements,
                                    ObjectList<BuildProblem> problems) {
-        if (minimizeHatches) cells = withoutOptionalHatches(cells);
-        for (ConstraintLimit requirement : requirements) limits.put(requirement.key(), requirement);
-        registerLimits(cells);
+        ReferenceSet<Object> excludedLimits = noHatchMode ? new ReferenceOpenHashSet<>() : ReferenceSets.emptySet();
+        if (noHatchMode) cells = filterHatches(cells, excludedLimits);
+        registerLimits(cells, requirements, excludedLimits);
         ObjectList<VariableGroup> groups = groupCells(cells);
         int[][] groupCounts = new int[groups.size()][];
         for (int index = 0; index < groups.size(); index++) {
@@ -94,14 +97,20 @@ final class CandidateSearch {
         return new ObjectImmutableList<>(result);
     }
 
-    private static ObjectList<UnresolvedCell> withoutOptionalHatches(ObjectList<UnresolvedCell> cells) {
+    private static ObjectList<UnresolvedCell> filterHatches(ObjectList<UnresolvedCell> cells,
+                                                            ReferenceSet<Object> excludedLimits) {
         return cells.stream().map(cell -> {
-            if (cell.candidates().stream().noneMatch(candidate -> !candidate.hatch())) return cell;
-            // A preview count never makes a hatch mandatory. Keep counted minimums in the exact solver's domain.
-            ObjectList<ResolvedCandidate> candidates = cell.candidates().stream()
-                    .filter(candidate -> !candidate.hatch() || candidate.limits().stream()
-                            .anyMatch(limit -> limit.min() > 0 || limit.layerMin() > 0))
-                    .collect(ObjectImmutableList.toList());
+            if (cell.predicate().isSingle()) return cell;
+            ObjectList<ResolvedCandidate> candidates = new ObjectArrayList<>();
+            for (ResolvedCandidate candidate : cell.candidates()) {
+                if (candidate.hatch()) {
+                    for (ConstraintLimit limit : candidate.limits()) excludedLimits.add(limit.key());
+                } else {
+                    candidates.add(candidate);
+                }
+            }
+            // GTMM skips a position with no placeable candidates; it does not clear the occupied block.
+            if (candidates.isEmpty()) candidates.add(ResolvedCandidate.wildcard());
             return cell.withCandidates(candidates);
         }).collect(ObjectImmutableList.toList());
     }
@@ -155,7 +164,8 @@ final class CandidateSearch {
         return assignments;
     }
 
-    void registerLimits(ObjectList<UnresolvedCell> cells) {
+    void registerLimits(ObjectList<UnresolvedCell> cells, ObjectList<ConstraintLimit> requirements,
+                        ReferenceSet<Object> excludedLimits) {
         ObjectLinkedOpenHashSet<MaterialKey> encounteredKeys = new ObjectLinkedOpenHashSet<>();
         for (UnresolvedCell cell : cells) {
             for (ResolvedCandidate candidate : cell.candidates()) {
@@ -167,6 +177,12 @@ final class CandidateSearch {
                                 .putIfAbsent(limit.key(), limit);
                     }
                 }
+            }
+        }
+        // Shared casing constraints remain; requirements supplied only by removed hatches do not.
+        for (ConstraintLimit requirement : requirements) {
+            if (!excludedLimits.contains(requirement.key()) || limits.containsKey(requirement.key())) {
+                limits.put(requirement.key(), requirement);
             }
         }
         orderedLimits = limits.values().stream().sorted(Comparator.comparing(ConstraintLimit::id))
@@ -351,7 +367,7 @@ final class CandidateSearch {
             for (int index : candidates) {
                 ResolvedCandidate candidate = cell.candidates().get(index);
                 CandidateEffect effect = new CandidateEffect(candidate.limits(), candidate.observation().properties(),
-                        minimizeHatches && candidate.hatch(), modificationCost(cell, candidate), candidate.any());
+                        modificationCost(cell, candidate), candidate.any());
                 int previous = representatives.getInt(effect);
                 if (previous < 0 || candidate.order() < cell.candidates().get(previous).order()) {
                     representatives.put(effect, index);
@@ -363,8 +379,6 @@ final class CandidateSearch {
             var first = cell.candidates().get(left);
             var second = cell.candidates().get(right);
             int order = Integer.compare(requiredPriority(cell, first), requiredPriority(cell, second));
-            if (order != 0) return order;
-            order = Boolean.compare(minimizeHatches && first.hatch(), minimizeHatches && second.hatch());
             if (order != 0) return order;
             order = Boolean.compare(!exactObserved(cell, first), !exactObserved(cell, second));
             if (order != 0) return order;
@@ -392,7 +406,6 @@ final class CandidateSearch {
         BudgetUse budgetUse = willPlace(cell, candidate) ? budget.consume(candidate.materialKey(), count) :
                 BudgetUse.EMPTY;
         SelectionScore score = new SelectionScore(
-                minimizeHatches && candidate.hatch() ? count : 0,
                 SelectionScore.saturatedMultiply(modificationCost(cell, candidate), count),
                 budgetUse.sourceCost(), previewPenalty,
                 SelectionScore.saturatedMultiply(candidate.order(), count));
@@ -456,8 +469,7 @@ final class CandidateSearch {
                                             SearchBudget budget) {
         long sourceCost = willPlace(cell, candidate) && !budget.unlimited ?
                 budget.rank(candidate.materialKey()) : 0;
-        return new SelectionScore(minimizeHatches && candidate.hatch() ? 1 : 0,
-                modificationCost(cell, candidate), sourceCost,
+        return new SelectionScore(modificationCost(cell, candidate), sourceCost,
                 canonical ? previewPriority(cell, candidate) : 0, candidate.order());
     }
 
@@ -612,7 +624,7 @@ final class CandidateSearch {
                 .toArray());
         IntList layer = new IntImmutableList(orderedLayerLimits.stream()
                 .mapToInt(limit -> limit.limit().layerMax() >= 0 ? layerCount(limit.layer(), limit.limit().key()) :
-                        Math.min(layerCount(limit.layer(), limit.limit().key()), Math.max(0, limit.limit().layerMin())))
+                        Math.clamp(limit.limit().layerMin(), 0, layerCount(limit.layer(), limit.limit().key())))
                 .toArray());
         return new SearchState(groupIndex, candidateCursor, remainingCells, global, layer,
                 budget.values(budgetKeys), properties.values());
@@ -627,7 +639,7 @@ final class CandidateSearch {
     }
 
     private record CandidateEffect(ObjectList<ConstraintLimit> limits, Object2ObjectMap<String, Object> properties,
-                                   boolean hatch, long modifications, boolean any) {}
+                                   long modifications, boolean any) {}
 
     private record CandidateKey(BlockState state, @Nullable MaterialKey materialKey,
                                 boolean hasBlockEntity, boolean hatch, boolean any, int order,
@@ -666,31 +678,27 @@ final class CandidateSearch {
     private record AppliedCandidate(ResolvedCandidate candidate, int count, BudgetUse budgetUse,
                                     SelectionScore score) {}
 
-    private record SelectionScore(long hatches, long modifications, long sourcePriority,
+    private record SelectionScore(long modifications, long sourcePriority,
                                   long previewPenalty, long declarationOrder)
             implements Comparable<SelectionScore> {
 
-        private static final SelectionScore ZERO = new SelectionScore(0, 0, 0, 0, 0);
+        private static final SelectionScore ZERO = new SelectionScore(0, 0, 0, 0);
 
         private SelectionScore add(SelectionScore other) {
-            return new SelectionScore(saturatedAdd(hatches, other.hatches),
-                    saturatedAdd(modifications, other.modifications),
+            return new SelectionScore(saturatedAdd(modifications, other.modifications),
                     saturatedAdd(sourcePriority, other.sourcePriority),
                     saturatedAdd(previewPenalty, other.previewPenalty),
                     saturatedAdd(declarationOrder, other.declarationOrder));
         }
 
         private SelectionScore times(int count) {
-            return new SelectionScore(saturatedMultiply(hatches, count),
-                    saturatedMultiply(modifications, count), saturatedMultiply(sourcePriority, count),
+            return new SelectionScore(saturatedMultiply(modifications, count), saturatedMultiply(sourcePriority, count),
                     saturatedMultiply(previewPenalty, count), saturatedMultiply(declarationOrder, count));
         }
 
         @Override
         public int compareTo(SelectionScore other) {
-            int comparison = Long.compare(hatches, other.hatches);
-            if (comparison != 0) return comparison;
-            comparison = Long.compare(modifications, other.modifications);
+            int comparison = Long.compare(modifications, other.modifications);
             if (comparison != 0) return comparison;
             comparison = Long.compare(sourcePriority, other.sourcePriority);
             if (comparison != 0) return comparison;
