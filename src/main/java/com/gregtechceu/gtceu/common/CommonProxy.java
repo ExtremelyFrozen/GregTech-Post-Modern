@@ -21,6 +21,7 @@ import com.gregtechceu.gtceu.api.data.worldgen.bedrockore.BedrockOreDefinition;
 import com.gregtechceu.gtceu.api.data.worldgen.generator.IndicatorGenerators;
 import com.gregtechceu.gtceu.api.data.worldgen.generator.VeinGenerators;
 import com.gregtechceu.gtceu.api.gui.factory.UIRegistry;
+import com.gregtechceu.gtceu.api.gui.sync.StreamAccessor;
 import com.gregtechceu.gtceu.api.item.IComponentItem;
 import com.gregtechceu.gtceu.api.item.IGTTool;
 import com.gregtechceu.gtceu.api.item.MetaMachineItem;
@@ -91,6 +92,8 @@ import com.gregtechceu.gtceu.common.fluid.potion.PotionItemFluidHandler;
 import com.gregtechceu.gtceu.common.item.DrumMachineItem;
 import com.gregtechceu.gtceu.common.item.GTBucketItem;
 import com.gregtechceu.gtceu.common.item.armor.GTArmorMaterials;
+import com.gregtechceu.gtceu.common.item.terminal.network.TerminalAction;
+import com.gregtechceu.gtceu.common.item.terminal.network.TerminalStateUpdate;
 import com.gregtechceu.gtceu.common.item.tool.rotation.CustomBlockRotations;
 import com.gregtechceu.gtceu.common.machine.multiblock.electric.FusionReactorMachine;
 import com.gregtechceu.gtceu.common.machine.owner.MachineOwner;
@@ -111,6 +114,8 @@ import com.gregtechceu.gtceu.integration.ae2.autobuild.MEWirelessMaterialSource;
 import com.gregtechceu.gtceu.integration.cctweaked.CCTweakedPlugin;
 import com.gregtechceu.gtceu.integration.map.WaypointManager;
 import com.gregtechceu.gtceu.utils.input.SyncedKeyMappings;
+
+import com.lowdragmc.lowdraglib2.syncdata.AccessorRegistries;
 
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -192,6 +197,9 @@ public class CommonProxy {
         REGISTRATE.registerEventListeners(modBus);
         GTCreativeModeTabs.init();
         GTAttachmentTypes.ATTACHMENT_TYPES.register(modBus);
+        AccessorRegistries.registerAccessor(new StreamAccessor<>(TerminalAction.class, TerminalAction.STREAM_CODEC));
+        AccessorRegistries.registerAccessor(new StreamAccessor<>(TerminalStateUpdate.class,
+                TerminalStateUpdate.STREAM_CODEC));
         UIRegistry.init(modBus);
 
         FusionReactorMachine.registerFusionTier(GTValues.LuV, "MKI");

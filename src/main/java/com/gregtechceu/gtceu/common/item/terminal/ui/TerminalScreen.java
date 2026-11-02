@@ -32,13 +32,10 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.math.Size;
 
-import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 
-import io.netty.buffer.Unpooled;
 import it.unimi.dsi.fastutil.objects.ObjectList;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
@@ -56,7 +53,9 @@ public final class TerminalScreen extends UIElement {
     private final Player player;
     private final TerminalControllerBinding binding;
     private final @Nullable TerminalSession serverSession;
-    private final SyncValue<byte[]> stateSync = new SyncValue<>("terminal-state", byte[].class, new byte[0]);
+    private final SyncValue<TerminalStateUpdate> stateSync = new SyncValue<>("terminal-state",
+            TerminalStateUpdate.class,
+            null);
     private final RPCEmitter actions;
     private final MultiblockPreviewPanel preview;
     private final StructureControls configuration;
@@ -96,7 +95,7 @@ public final class TerminalScreen extends UIElement {
 
         UITemplate.setLDLib2Bounds(this, 0, 0, WIDTH, HEIGHT);
         style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));
-        actions = addRPCEvent(RPCEventBuilder.simple(byte[].class, this::receiveAction));
+        actions = addRPCEvent(RPCEventBuilder.simple(TerminalAction.class, this::receiveAction));
         stateSync.setAcceptSync(player.level().isClientSide);
         stateSync.setToSync(!player.level().isClientSide);
         stateSync.addListener(this::receiveState);
@@ -113,7 +112,7 @@ public final class TerminalScreen extends UIElement {
         addChild(preview);
         configuration = new StructureControls(188, 20, 108, 132, definition, state.machine(), preview,
                 GTCEu.MODS.AE2.isLoaded(),
-                change -> requestAction(change));
+                this::requestAction);
         addChild(configuration);
         if (player.level().isClientSide && definition.isRenderWorldPreview()) {
             configuration.setWorldPreview(
@@ -186,18 +185,16 @@ public final class TerminalScreen extends UIElement {
             return;
         }
         long sequence = nextSequence;
-        if (actions.send(encode(TerminalAction.STREAM_CODEC,
-                new TerminalAction(sessionId, sequence, state.revision(), update)))) {
+        if (actions.send(new TerminalAction(sessionId, sequence, state.revision(), update))) {
             pendingSequence = sequence;
             nextSequence++;
             updateInteractivity();
         }
     }
 
-    private void receiveAction(byte[] bytes) {
+    private void receiveAction(TerminalAction action) {
         if (!(player instanceof ServerPlayer serverPlayer) || serverSession == null || !installed()) return;
         try {
-            TerminalAction action = decode(TerminalAction.STREAM_CODEC, bytes);
             if (!serverSession.sessionId().equals(action.sessionId())) {
                 throw new IllegalArgumentException("Terminal action belongs to another opening");
             }
@@ -215,16 +212,14 @@ public final class TerminalScreen extends UIElement {
     private void publishState() {
         if (serverSession == null) throw new IllegalStateException("Only the server publishes terminal state");
         state = serverSession.state();
-        stateSync.setValue(encode(TerminalStateUpdate.STREAM_CODEC,
-                new TerminalStateUpdate(serverSession.sessionId(), state)));
+        stateSync.setValue(new TerminalStateUpdate(serverSession.sessionId(), state));
         stateSync.markAsChanged();
         updateDisplay();
     }
 
-    private void receiveState(byte[] bytes) {
-        if (!player.level().isClientSide || bytes.length == 0) return;
+    private void receiveState(TerminalStateUpdate update) {
+        if (!player.level().isClientSide) return;
         try {
-            TerminalStateUpdate update = decode(TerminalStateUpdate.STREAM_CODEC, bytes);
             if (sessionId != null && !sessionId.equals(update.sessionId()) ||
                     !state.definitionId().equals(update.state().definitionId()) ||
                     update.state().revision() < state.revision() ||
@@ -307,29 +302,5 @@ public final class TerminalScreen extends UIElement {
     protected void onRemoved() {
         if (serverSession != null) serverSession.close(player);
         super.onRemoved();
-    }
-
-    private <T> byte[] encode(StreamCodec<RegistryFriendlyByteBuf, T> codec, T value) {
-        RegistryFriendlyByteBuf buffer = new RegistryFriendlyByteBuf(Unpooled.buffer(), player.registryAccess());
-        try {
-            codec.encode(buffer, value);
-            byte[] bytes = new byte[buffer.readableBytes()];
-            buffer.readBytes(bytes);
-            return bytes;
-        } finally {
-            buffer.release();
-        }
-    }
-
-    private <T> T decode(StreamCodec<RegistryFriendlyByteBuf, T> codec, byte[] bytes) {
-        RegistryFriendlyByteBuf buffer = new RegistryFriendlyByteBuf(Unpooled.wrappedBuffer(bytes),
-                player.registryAccess());
-        try {
-            T value = codec.decode(buffer);
-            if (buffer.isReadable()) throw new IllegalArgumentException("Terminal payload contains trailing data");
-            return value;
-        } finally {
-            buffer.release();
-        }
     }
 }
