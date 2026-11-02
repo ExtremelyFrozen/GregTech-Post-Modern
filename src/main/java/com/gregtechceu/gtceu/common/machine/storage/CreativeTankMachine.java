@@ -188,27 +188,27 @@ public class CreativeTankMachine extends QuantumTankMachine
 
     @Override
     public UI createUI(Player player, MachineUIHolder holder) {
-        return UI.of(new FancyMachineUI(new CreativeTankLDLib2Page(player, holder),
+        return UI.of(new FancyMachineUI(new CreativeTankPage(player, holder),
                 player.getInventory(), holder, PAGE_WIDTH, PAGE_HEIGHT));
     }
 
-    private UIElement createLDLib2MainPage(Player player, MachineUIHolder holder) {
+    private UIElement createMainPage(Player player, MachineUIHolder holder) {
         UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
-        root.addChild(createLDLib2StoredFluidSlot(player, holder));
-        root.addChild(createLDLib2Label(7, 9, 162, 10, "gtpm.creative.tank.fluid"));
+        root.addChild(createStoredFluidSlot(player, holder));
+        root.addChild(createLabel(7, 9, 162, 10, "gtpm.creative.tank.fluid"));
         root.addChild(new GTImageElement(7, 45, 154, 14, GuiTextures.DISPLAY));
-        root.addChild(createLDLib2MillibucketsPerCycleField());
-        root.addChild(createLDLib2Label(7, 28, 162, 10, "gtpm.creative.tank.mbpc"));
+        root.addChild(createMillibucketsPerCycleField());
+        root.addChild(createLabel(7, 28, 162, 10, "gtpm.creative.tank.mbpc"));
         root.addChild(new GTImageElement(7, 82, 154, 14, GuiTextures.DISPLAY));
-        root.addChild(createLDLib2TicksPerCycleField());
-        root.addChild(createLDLib2Label(7, 65, 162, 10, "gtpm.creative.tank.tpc"));
-        root.addChild(createLDLib2ActivityButton());
+        root.addChild(createTicksPerCycleField());
+        root.addChild(createLabel(7, 65, 162, 10, "gtpm.creative.tank.tpc"));
+        root.addChild(createActivityButton());
         return root;
     }
 
-    private GTPhantomFluidSlotElement createLDLib2StoredFluidSlot(Player player, MachineUIHolder holder) {
+    private GTPhantomFluidSlotElement createStoredFluidSlot(Player player, MachineUIHolder holder) {
         GTPhantomFluidSlotElement slot = new GTPhantomFluidSlotElement(this::getStored,
-                fluid -> setLDLib2StoredFluid(player, holder, fluid), () -> FluidType.BUCKET_VOLUME) {
+                fluid -> setStoredFluid(player, holder, fluid), () -> FluidType.BUCKET_VOLUME) {
 
             @Override
             public void screenTick() {
@@ -236,7 +236,7 @@ public class CreativeTankMachine extends QuantumTankMachine
         return slot;
     }
 
-    private GTLabelElement createLDLib2Label(int x, int y, int width, int height, String translationKey) {
+    private GTLabelElement createLabel(int x, int y, int width, int height, String translationKey) {
         GTLabelElement label = new GTLabelElement(x, y, width, height, translationKey, true);
         label.textStyle(style -> style
                 .textColor(0x404040)
@@ -246,7 +246,7 @@ public class CreativeTankMachine extends QuantumTankMachine
         return label;
     }
 
-    GTTextFieldElement createLDLib2MillibucketsPerCycleField() {
+    GTTextFieldElement createMillibucketsPerCycleField() {
         GTTextFieldElement field = new GTTextFieldElement(9, 47, 152, 10) {
 
             @Override
@@ -262,11 +262,11 @@ public class CreativeTankMachine extends QuantumTankMachine
         field.textFieldStyle(style -> style
                 .textColor(0x404040)
                 .textShadow(false));
-        field.setTextResponder(this::setLDLib2MillibucketsPerCycle);
+        field.setTextResponder(this::setMillibucketsPerCycle);
         return field;
     }
 
-    GTTextFieldElement createLDLib2TicksPerCycleField() {
+    GTTextFieldElement createTicksPerCycleField() {
         GTTextFieldElement field = new GTTextFieldElement(9, 84, 152, 10) {
 
             @Override
@@ -282,34 +282,34 @@ public class CreativeTankMachine extends QuantumTankMachine
         field.textFieldStyle(style -> style
                 .textColor(0x404040)
                 .textShadow(false));
-        field.setTextResponder(this::setLDLib2TicksPerCycle);
+        field.setTextResponder(this::setTicksPerCycle);
         return field;
     }
 
-    private GTButtonElement createLDLib2ActivityButton() {
-        return new GTButtonElement(7, 101, 162, 20, createLDLib2ActivityButtonTexture(),
-                event -> setLDLib2WorkingEnabled(!isWorkingEnabled())) {
+    private GTButtonElement createActivityButton() {
+        return new GTButtonElement(7, 101, 162, 20, createActivityButtonTexture(),
+                event -> setWorkingEnabledAndSync(!isWorkingEnabled())) {
 
             @Override
             public void screenTick() {
-                setButtonTexture(createLDLib2ActivityButtonTexture());
+                setButtonTexture(createActivityButtonTexture());
                 super.screenTick();
             }
         };
     }
 
-    private IGuiTexture createLDLib2ActivityButtonTexture() {
+    private IGuiTexture createActivityButtonTexture() {
         return GuiTextures.group(GuiTextures.BUTTON,
                 GuiTextures.text(isWorkingEnabled() ? "gtpm.creative.activity.on" : "gtpm.creative.activity.off"));
     }
 
-    FancyConfiguratorButton.Toggle createLDLib2WorkingEnabledConfigurator() {
+    FancyConfiguratorButton.Toggle createWorkingEnabledConfigurator() {
         return new FancyConfiguratorButton.Toggle(
                 GuiTextures.BUTTON_POWER.getSubTexture(0, 0, 1, 0.5),
                 GuiTextures.BUTTON_POWER.getSubTexture(0, 0.5, 1, 0.5),
                 this::isWorkingEnabled,
                 (event, pressed) -> {
-                    setLDLib2WorkingEnabled(pressed);
+                    setWorkingEnabledAndSync(pressed);
                     event.stopImmediatePropagation();
                     event.hasHandler = true;
                 })
@@ -317,14 +317,14 @@ public class CreativeTankMachine extends QuantumTankMachine
                         pressed ? "behaviour.soft_hammer.enabled" : "behaviour.soft_hammer.disabled")));
     }
 
-    private void setLDLib2StoredFluid(Player player, MachineUIHolder holder, FluidStack fluid) {
+    private void setStoredFluid(Player player, MachineUIHolder holder, FluidStack fluid) {
         setCreativeTankFluid(fluid);
         if (player.level().isClientSide()) {
             MachineUIHelper.sendAction(holder, CreativeTankMachineActions.createSetFluidAction(fluid));
         }
     }
 
-    private void setLDLib2MillibucketsPerCycle(String value) {
+    private void setMillibucketsPerCycle(String value) {
         if (value.isEmpty()) {
             return;
         }
@@ -335,7 +335,7 @@ public class CreativeTankMachine extends QuantumTankMachine
         }
     }
 
-    private void setLDLib2TicksPerCycle(String value) {
+    private void setTicksPerCycle(String value) {
         if (value.isEmpty()) {
             return;
         }
@@ -346,7 +346,7 @@ public class CreativeTankMachine extends QuantumTankMachine
         }
     }
 
-    private void setLDLib2WorkingEnabled(boolean workingEnabled) {
+    private void setWorkingEnabledAndSync(boolean workingEnabled) {
         setWorkingEnabled(workingEnabled);
         if (isRemote()) {
             sendServerSyncChanges();
@@ -382,19 +382,19 @@ public class CreativeTankMachine extends QuantumTankMachine
         components.set(GTDataComponents.CREATIVE_MACHINE_INFO, new CreativeMachineInfo(mBPerCycle, ticksPerCycle));
     }
 
-    private final class CreativeTankLDLib2Page implements FancyUIProvider {
+    private final class CreativeTankPage implements FancyUIProvider {
 
         private final Player player;
         private final MachineUIHolder holder;
 
-        private CreativeTankLDLib2Page(Player player, MachineUIHolder holder) {
+        private CreativeTankPage(Player player, MachineUIHolder holder) {
             this.player = player;
             this.holder = holder;
         }
 
         @Override
         public UIElement createMainPage(FancyMachineUI shell) {
-            return CreativeTankMachine.this.createLDLib2MainPage(player, holder);
+            return CreativeTankMachine.this.createMainPage(player, holder);
         }
 
         @Override
@@ -419,7 +419,7 @@ public class CreativeTankMachine extends QuantumTankMachine
 
         @Override
         public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
-            configuratorPanel.attachConfigurators(createLDLib2WorkingEnabledConfigurator());
+            configuratorPanel.attachConfigurators(createWorkingEnabledConfigurator());
         }
 
         @Override

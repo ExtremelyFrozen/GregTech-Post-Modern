@@ -196,14 +196,14 @@ public class MufflerPartMachine extends TieredPartMachine
         UIElement root = new UIElement();
         UITemplate.setBounds(root, 0, 0, rootWidth, rootHeight);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));
-        root.addChild(createLDLib2TitleLabel(rootWidth));
+        root.addChild(createTitleLabel(rootWidth));
         root.addChild(UITemplate.bindPlayerInventory(player.getInventory(), GuiTextures.SLOT, 7 + xOffset,
                 18 + 18 * rowSize + 12, true));
 
         for (int y = 0; y < rowSize; y++) {
             for (int x = 0; x < rowSize; x++) {
                 int index = y * rowSize + x;
-                root.addChild(createLDLib2MufflerSlot(index,
+                root.addChild(createMufflerSlot(index,
                         (88 - rowSize * 9 + x * 18) + xOffset, 18 + y * 18));
             }
         }
@@ -216,7 +216,7 @@ public class MufflerPartMachine extends TieredPartMachine
         return new FancyPreviewPage(this, player, holder, null);
     }
 
-    private GTLabelElement createLDLib2TitleLabel(int rootWidth) {
+    private GTLabelElement createTitleLabel(int rootWidth) {
         GTLabelElement label = new GTLabelElement(10, 5, rootWidth - 20, 10,
                 getBlockState().getBlock().getDescriptionId(), true);
         label.textStyle(style -> style
@@ -227,7 +227,7 @@ public class MufflerPartMachine extends TieredPartMachine
         return label;
     }
 
-    private GTItemSlotElement createLDLib2MufflerSlot(int index, int x, int y) {
+    private GTItemSlotElement createMufflerSlot(int index, int x, int y) {
         GTItemSlotElement slot = new GTItemSlotElement(inventory, index)
                 .setBackgroundTexture(GuiTextures.SLOT)
                 .setCanTakeItems(true)

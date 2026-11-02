@@ -145,27 +145,27 @@ public class CreativeChestMachine extends QuantumChestMachine
 
     @Override
     public UI createUI(Player player, MachineUIHolder holder) {
-        return UI.of(new FancyMachineUI(new CreativeChestLDLib2Page(player, holder),
+        return UI.of(new FancyMachineUI(new CreativeChestPage(player, holder),
                 player.getInventory(), holder, PAGE_WIDTH, PAGE_HEIGHT));
     }
 
-    private UIElement createLDLib2MainPage(Player player, MachineUIHolder holder) {
+    private UIElement createMainPage(Player player, MachineUIHolder holder) {
         UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
-        root.addChild(createLDLib2StoredItemSlot(player, holder));
-        root.addChild(createLDLib2Label(7, 9, 162, 10, "gtpm.creative.chest.item"));
+        root.addChild(createStoredItemSlot(player, holder));
+        root.addChild(createLabel(7, 9, 162, 10, "gtpm.creative.chest.item"));
         root.addChild(new GTImageElement(7, 48, 154, 14, GuiTextures.DISPLAY));
-        root.addChild(createLDLib2ItemsPerCycleField());
-        root.addChild(createLDLib2Label(7, 28, 162, 10, "gtpm.creative.chest.ipc"));
+        root.addChild(createItemsPerCycleField());
+        root.addChild(createLabel(7, 28, 162, 10, "gtpm.creative.chest.ipc"));
         root.addChild(new GTImageElement(7, 85, 154, 14, GuiTextures.DISPLAY));
-        root.addChild(createLDLib2TicksPerCycleField());
-        root.addChild(createLDLib2Label(7, 65, 162, 10, "gtpm.creative.chest.tpc"));
-        root.addChild(createLDLib2ActivityButton());
+        root.addChild(createTicksPerCycleField());
+        root.addChild(createLabel(7, 65, 162, 10, "gtpm.creative.chest.tpc"));
+        root.addChild(createActivityButton());
         return root;
     }
 
-    private GTPhantomItemSlotElement createLDLib2StoredItemSlot(Player player, MachineUIHolder holder) {
+    private GTPhantomItemSlotElement createStoredItemSlot(Player player, MachineUIHolder holder) {
         GTPhantomItemSlotElement slot = new GTPhantomItemSlotElement(this::getStored,
-                stack -> setLDLib2StoredItem(player, holder, stack), () -> 1);
+                stack -> setStoredItem(player, holder, stack), () -> 1);
         slot.setBackgroundTexture(GuiTextures.SLOT);
         UITemplate.setBounds(slot, 36, 6, 18, 18);
         slot.addEventListener(UIEvents.MOUSE_DOWN, event -> {
@@ -188,7 +188,7 @@ public class CreativeChestMachine extends QuantumChestMachine
         return slot;
     }
 
-    private GTLabelElement createLDLib2Label(int x, int y, int width, int height, String translationKey) {
+    private GTLabelElement createLabel(int x, int y, int width, int height, String translationKey) {
         GTLabelElement label = new GTLabelElement(x, y, width, height, translationKey, true);
         label.textStyle(style -> style
                 .textColor(0x404040)
@@ -198,7 +198,7 @@ public class CreativeChestMachine extends QuantumChestMachine
         return label;
     }
 
-    GTTextFieldElement createLDLib2ItemsPerCycleField() {
+    GTTextFieldElement createItemsPerCycleField() {
         GTTextFieldElement field = new GTTextFieldElement(9, 50, 152, 10) {
 
             @Override
@@ -214,11 +214,11 @@ public class CreativeChestMachine extends QuantumChestMachine
         field.textFieldStyle(style -> style
                 .textColor(0x404040)
                 .textShadow(false));
-        field.setTextResponder(this::setLDLib2ItemsPerCycle);
+        field.setTextResponder(this::setItemsPerCycle);
         return field;
     }
 
-    GTTextFieldElement createLDLib2TicksPerCycleField() {
+    GTTextFieldElement createTicksPerCycleField() {
         GTTextFieldElement field = new GTTextFieldElement(9, 87, 152, 10) {
 
             @Override
@@ -234,34 +234,34 @@ public class CreativeChestMachine extends QuantumChestMachine
         field.textFieldStyle(style -> style
                 .textColor(0x404040)
                 .textShadow(false));
-        field.setTextResponder(this::setLDLib2TicksPerCycle);
+        field.setTextResponder(this::setTicksPerCycle);
         return field;
     }
 
-    private GTButtonElement createLDLib2ActivityButton() {
-        return new GTButtonElement(7, 101, 162, 20, createLDLib2ActivityButtonTexture(),
-                event -> setLDLib2WorkingEnabled(!isWorkingEnabled())) {
+    private GTButtonElement createActivityButton() {
+        return new GTButtonElement(7, 101, 162, 20, createActivityButtonTexture(),
+                event -> setWorkingEnabledAndSync(!isWorkingEnabled())) {
 
             @Override
             public void screenTick() {
-                setButtonTexture(createLDLib2ActivityButtonTexture());
+                setButtonTexture(createActivityButtonTexture());
                 super.screenTick();
             }
         };
     }
 
-    private IGuiTexture createLDLib2ActivityButtonTexture() {
+    private IGuiTexture createActivityButtonTexture() {
         return GuiTextures.group(GuiTextures.BUTTON,
                 GuiTextures.text(isWorkingEnabled() ? "gtpm.creative.activity.on" : "gtpm.creative.activity.off"));
     }
 
-    FancyConfiguratorButton.Toggle createLDLib2WorkingEnabledConfigurator() {
+    FancyConfiguratorButton.Toggle createWorkingEnabledConfigurator() {
         return new FancyConfiguratorButton.Toggle(
                 GuiTextures.BUTTON_POWER.getSubTexture(0, 0, 1, 0.5),
                 GuiTextures.BUTTON_POWER.getSubTexture(0, 0.5, 1, 0.5),
                 this::isWorkingEnabled,
                 (event, pressed) -> {
-                    setLDLib2WorkingEnabled(pressed);
+                    setWorkingEnabledAndSync(pressed);
                     event.stopImmediatePropagation();
                     event.hasHandler = true;
                 })
@@ -269,14 +269,14 @@ public class CreativeChestMachine extends QuantumChestMachine
                         pressed ? "behaviour.soft_hammer.enabled" : "behaviour.soft_hammer.disabled")));
     }
 
-    private void setLDLib2StoredItem(Player player, MachineUIHolder holder, ItemStack item) {
+    private void setStoredItem(Player player, MachineUIHolder holder, ItemStack item) {
         setCreativeChestItem(item);
         if (player.level().isClientSide()) {
             MachineUIHelper.sendAction(holder, CreativeChestMachineActions.createSetItemAction(item));
         }
     }
 
-    private void setLDLib2ItemsPerCycle(String value) {
+    private void setItemsPerCycle(String value) {
         if (value.isEmpty()) {
             return;
         }
@@ -287,7 +287,7 @@ public class CreativeChestMachine extends QuantumChestMachine
         }
     }
 
-    private void setLDLib2TicksPerCycle(String value) {
+    private void setTicksPerCycle(String value) {
         if (value.isEmpty()) {
             return;
         }
@@ -298,7 +298,7 @@ public class CreativeChestMachine extends QuantumChestMachine
         }
     }
 
-    private void setLDLib2WorkingEnabled(boolean workingEnabled) {
+    private void setWorkingEnabledAndSync(boolean workingEnabled) {
         setWorkingEnabled(workingEnabled);
         if (isRemote()) {
             sendServerSyncChanges();
@@ -318,19 +318,19 @@ public class CreativeChestMachine extends QuantumChestMachine
         }
     }
 
-    private final class CreativeChestLDLib2Page implements FancyUIProvider {
+    private final class CreativeChestPage implements FancyUIProvider {
 
         private final Player player;
         private final MachineUIHolder holder;
 
-        private CreativeChestLDLib2Page(Player player, MachineUIHolder holder) {
+        private CreativeChestPage(Player player, MachineUIHolder holder) {
             this.player = player;
             this.holder = holder;
         }
 
         @Override
         public UIElement createMainPage(FancyMachineUI shell) {
-            return CreativeChestMachine.this.createLDLib2MainPage(player, holder);
+            return CreativeChestMachine.this.createMainPage(player, holder);
         }
 
         @Override
@@ -355,7 +355,7 @@ public class CreativeChestMachine extends QuantumChestMachine
 
         @Override
         public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
-            configuratorPanel.attachConfigurators(createLDLib2WorkingEnabledConfigurator());
+            configuratorPanel.attachConfigurators(createWorkingEnabledConfigurator());
         }
 
         @Override

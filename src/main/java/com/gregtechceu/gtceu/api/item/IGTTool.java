@@ -702,7 +702,7 @@ public interface IGTTool extends HeldItemUIProvider, ItemLike {
     default boolean canCreateUI(Player player, HeldItemUIHolder holder) {
         for (var behavior : getToolStats().getBehaviors()) {
             if (behavior instanceof IToolUIBehavior<?> uiBehavior) {
-                if (uiBehavior.canCreateLDLib2UI(player, holder)) {
+                if (uiBehavior.canCreateUI(player, holder)) {
                     return true;
                 }
             }
@@ -716,10 +716,10 @@ public interface IGTTool extends HeldItemUIProvider, ItemLike {
             if (!(behavior instanceof IToolUIBehavior<?> uiBehavior)) {
                 continue;
             }
-            if (!uiBehavior.canCreateLDLib2UI(player, holder)) {
+            if (!uiBehavior.canCreateUI(player, holder)) {
                 continue;
             }
-            return uiBehavior.createLDLib2UI(player, holder);
+            return uiBehavior.createUI(player, holder);
         }
         throw new IllegalStateException("No tool behavior exposes an LDLib2 UI for the opened stack.");
     }
@@ -728,8 +728,8 @@ public interface IGTTool extends HeldItemUIProvider, ItemLike {
     default boolean isUIStillValid(Player player, HeldItemUIHolder holder) {
         for (var behavior : getToolStats().getBehaviors()) {
             if (behavior instanceof IToolUIBehavior<?> uiBehavior) {
-                if (uiBehavior.canCreateLDLib2UI(player, holder)) {
-                    return uiBehavior.isLDLib2UIStillValid(player, holder);
+                if (uiBehavior.canCreateUI(player, holder)) {
+                    return uiBehavior.isUIStillValid(player, holder);
                 }
             }
         }

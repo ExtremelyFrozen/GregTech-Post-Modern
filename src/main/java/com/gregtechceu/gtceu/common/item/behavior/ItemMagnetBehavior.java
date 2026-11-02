@@ -80,53 +80,53 @@ public class ItemMagnetBehavior implements IInteractionItem, IItemLifeCycle, IAd
     }
 
     @Override
-    public boolean canCreateLDLib2UI(HeldItemUIHolder holder, Player entityPlayer) {
+    public boolean canCreateUI(HeldItemUIHolder holder, Player entityPlayer) {
         ItemStack held = holder.getHeld();
         return isMagnet(held) && ItemStack.isSameItem(held, holder.getOpenedStack());
     }
 
     @Override
-    public boolean isLDLib2UIStillValid(HeldItemUIHolder holder, Player entityPlayer) {
+    public boolean isUIStillValid(HeldItemUIHolder holder, Player entityPlayer) {
         return isMagnet(holder.getHeld()) && ItemStack.isSameItem(holder.getHeld(), holder.getOpenedStack());
     }
 
     @Override
-    public UI createLDLib2UI(HeldItemUIHolder holder, Player entityPlayer) {
+    public UI createUI(HeldItemUIHolder holder, Player entityPlayer) {
         ItemStack held = holder.getHeld();
         Filter selected = held.getOrDefault(GTDataComponents.MAGNET, MagnetComponent.EMPTY).filterType();
-        List<LDLib2FilterPanel> panels = new ArrayList<>();
+        List<FilterPanel> panels = new ArrayList<>();
 
         UIElement root = new UIElement();
         UITemplate.setBounds(root, 0, 0, 176, 157);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));
 
         for (Filter filterType : Filter.values()) {
-            LDLib2FilterPanel panel = createLDLib2FilterPanel(holder, held, filterType, filterType == selected);
+            FilterPanel panel = createFilterPanel(holder, held, filterType, filterType == selected);
             panels.add(panel);
             root.addChild(panel.panel());
         }
         root.addChild(UITemplate.bindPlayerInventory(entityPlayer.getInventory(), GuiTextures.SLOT, 7, 75, true));
-        root.addChild(createLDLib2FilterButton(holder, selected, panels));
+        root.addChild(createFilterButton(holder, selected, panels));
         return UI.of(root);
     }
 
-    private static GTButtonElement createLDLib2FilterButton(HeldItemUIHolder holder, Filter selected,
-                                                            List<LDLib2FilterPanel> panels) {
+    private static GTButtonElement createFilterButton(HeldItemUIHolder holder, Filter selected,
+                                                      List<FilterPanel> panels) {
         GTButtonElement button = new GTButtonElement();
         button.noText();
-        updateLDLib2FilterButton(button, selected);
+        updateFilterButton(button, selected);
         button.setOnClick(event -> {
             Filter next = nextFilter(holder.getHeld()
                     .getOrDefault(GTDataComponents.MAGNET, MagnetComponent.EMPTY)
                     .filterType());
-            setLDLib2FilterSelection(holder, next, panels, button);
+            setFilterSelection(holder, next, panels, button);
         });
         UITemplate.setBounds(button, 146, 5, 20, 20);
         return button;
     }
 
-    private static LDLib2FilterPanel createLDLib2FilterPanel(HeldItemUIHolder holder, ItemStack held, Filter filterType,
-                                                             boolean visible) {
+    private static FilterPanel createFilterPanel(HeldItemUIHolder holder, ItemStack held, Filter filterType,
+                                                 boolean visible) {
         UIElement panel = new UIElement();
         UITemplate.setBounds(panel, 0, 0, 176, 75);
         panel.setVisible(visible);
@@ -134,12 +134,12 @@ public class ItemMagnetBehavior implements IInteractionItem, IItemLifeCycle, IAd
         ItemStack filterStack = filterType.getFilter(held);
         ItemFilter filter = ItemFilter.loadFilter(filterStack);
         filter.setOnUpdated(updated -> filterType.saveFilter(holder.getHeld(), updated));
-        panel.addChild(createLDLib2Label(filterStack.getDescriptionId()));
-        panel.addChild(filter.openLDLib2Configurator((176 - 80) / 2, (60 - 55) / 2 + 15));
-        return new LDLib2FilterPanel(filterType, panel);
+        panel.addChild(createLabel(filterStack.getDescriptionId()));
+        panel.addChild(filter.openConfigurator((176 - 80) / 2, (60 - 55) / 2 + 15));
+        return new FilterPanel(filterType, panel);
     }
 
-    private static GTLabelElement createLDLib2Label(String descriptionId) {
+    private static GTLabelElement createLabel(String descriptionId) {
         GTLabelElement label = new GTLabelElement(5, 5, 136, 10, descriptionId, true);
         label.textStyle(style -> style
                 .textColor(0x404040)
@@ -149,21 +149,21 @@ public class ItemMagnetBehavior implements IInteractionItem, IItemLifeCycle, IAd
         return label;
     }
 
-    private static void setLDLib2FilterSelection(HeldItemUIHolder holder, Filter filter,
-                                                 List<LDLib2FilterPanel> panels, GTButtonElement button) {
+    private static void setFilterSelection(HeldItemUIHolder holder, Filter filter,
+                                           List<FilterPanel> panels, GTButtonElement button) {
         ItemStack held = holder.getHeld();
         setMagnetFilter(held, filter);
-        for (LDLib2FilterPanel panel : panels) {
+        for (FilterPanel panel : panels) {
             panel.panel().setVisible(panel.filter() == filter);
         }
-        updateLDLib2FilterButton(button, filter);
+        updateFilterButton(button, filter);
         if (holder.getPlayer().level().isClientSide()) {
             HeldItemUIHelper.sendAction(holder,
                     ItemMagnetBehaviorActions.createSetMagnetFilterAction(held, filter));
         }
     }
 
-    private static void updateLDLib2FilterButton(GTButtonElement button, Filter filter) {
+    private static void updateFilterButton(GTButtonElement button, Filter filter) {
         IGuiTexture texture = GuiTextures.group(GuiTextures.VANILLA_BUTTON, filter.getIcon());
         button.setButtonTexture(texture);
         button.style(style -> style.tooltips(Component.translatable(filter.getTooltip())));
@@ -438,5 +438,5 @@ public class ItemMagnetBehavior implements IInteractionItem, IItemLifeCycle, IAd
         public static final MagnetComponent EMPTY = new MagnetComponent(false, Filter.SIMPLE);
     }
 
-    private record LDLib2FilterPanel(Filter filter, UIElement panel) {}
+    private record FilterPanel(Filter filter, UIElement panel) {}
 }

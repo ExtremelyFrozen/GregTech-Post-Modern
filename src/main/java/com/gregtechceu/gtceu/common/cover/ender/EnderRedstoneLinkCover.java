@@ -75,8 +75,8 @@ public class EnderRedstoneLinkCover extends AbstractEnderLinkCover<VirtualRedsto
     }
 
     @Override
-    protected UIElement addVirtualEntryLDLib2Element(VirtualEntry entry, int x, int y, int width, int height,
-                                                     boolean canClick) {
+    protected UIElement addVirtualEntryElement(VirtualEntry entry, int x, int y, int width, int height,
+                                               boolean canClick) {
         return UITemplate.setBounds(new UIElement(), x, y, width, height);
     }
 

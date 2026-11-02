@@ -331,12 +331,12 @@ public class LargeMinerMachine extends WorkableElectricMultiblockMachine
 
     @Override
     public UI createUI(Player player, MachineUIHolder holder) {
-        FancyUIProvider page = createLDLib2Page(player, holder);
+        FancyUIProvider page = createPage(player, holder);
         return UI.of(new FancyMachineUI(page, player.getInventory(), holder,
                 page.getPageWidth(), page.getPageHeight()));
     }
 
-    FancyUIProvider createLDLib2Page(Player player, MachineUIHolder holder) {
+    FancyUIProvider createPage(Player player, MachineUIHolder holder) {
         requireMatchingHolder(holder);
         return new LargeMinerFancyPage(player, holder);
     }
@@ -356,7 +356,7 @@ public class LargeMinerMachine extends WorkableElectricMultiblockMachine
         };
     }
 
-    private void handleLDLib2DisplayClick(Player player, MachineUIHolder holder, String componentData) {
+    private void handleDisplayClick(Player player, MachineUIHolder holder, String componentData) {
         SyncActionData action = resolveLargeMinerDisplayAction(holder, componentData);
         if (player.level().isClientSide()) {
             MachineUIHelper.sendAction(holder, action);
@@ -437,7 +437,7 @@ public class LargeMinerMachine extends WorkableElectricMultiblockMachine
             screen.addScrollViewChild(new GTComponentPanelElement(4, 17, LargeMinerMachine.this::addDisplayText)
                     .setMaxWidthLimit(200)
                     .clickHandler(
-                            (componentData, clickData) -> handleLDLib2DisplayClick(
+                            (componentData, clickData) -> handleDisplayClick(
                                     shell.getOpeningPlayer(), holder, componentData)));
             root.addChild(screen);
             return root;

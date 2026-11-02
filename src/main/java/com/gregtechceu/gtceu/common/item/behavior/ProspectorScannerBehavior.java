@@ -85,17 +85,17 @@ public class ProspectorScannerBehavior implements IItemUIFactory, IInteractionIt
     }
 
     @Override
-    public boolean canCreateLDLib2UI(HeldItemUIHolder holder, Player entityPlayer) {
+    public boolean canCreateUI(HeldItemUIHolder holder, Player entityPlayer) {
         return ItemStack.isSameItem(holder.getHeld(), holder.getOpenedStack());
     }
 
     @Override
-    public boolean isLDLib2UIStillValid(HeldItemUIHolder holder, Player entityPlayer) {
+    public boolean isUIStillValid(HeldItemUIHolder holder, Player entityPlayer) {
         return ItemStack.isSameItem(holder.getHeld(), holder.getOpenedStack());
     }
 
     @Override
-    public UI createLDLib2UI(HeldItemUIHolder holder, Player entityPlayer) {
+    public UI createUI(HeldItemUIHolder holder, Player entityPlayer) {
         var mode = getMode(holder.getHeld());
         UIElement root = new UIElement();
         UITemplate.setBounds(root, 0, 0, 332, 200);

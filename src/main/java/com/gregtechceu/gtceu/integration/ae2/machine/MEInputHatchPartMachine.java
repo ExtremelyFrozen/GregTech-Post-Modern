@@ -210,13 +210,13 @@ public class MEInputHatchPartMachine extends MEHatchPartMachine
 
     @Override
     public UI createUI(Player player, MachineUIHolder holder) {
-        FancyUIProvider page = createLDLib2Page(player, holder);
+        FancyUIProvider page = createPage(player, holder);
         return UI.of(new FancyMachineUI(page, player.getInventory(), holder,
                 page.getPageWidth(), page.getPageHeight()));
     }
 
     /** Creates one standalone opening-scoped page after validating the exact holder and definition. */
-    FancyUIProvider createLDLib2Page(Player player, MachineUIHolder holder) {
+    FancyUIProvider createPage(Player player, MachineUIHolder holder) {
         requireMatchingHolder(holder);
         if (!supportsMEFluidConfigActions()) {
             throw new IllegalStateException("ME fluid configuration page requires an exact input hatch definition.");
@@ -226,7 +226,7 @@ public class MEInputHatchPartMachine extends MEHatchPartMachine
 
     @Override
     public FancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
-        return createLDLib2Page(player, holder);
+        return createPage(player, holder);
     }
 
     private void requireMatchingHolder(MachineUIHolder holder) {
@@ -235,8 +235,8 @@ public class MEInputHatchPartMachine extends MEHatchPartMachine
         }
     }
 
-    private UIElement createLDLib2MainElement(Player player, MachineUIHolder holder) {
-        return createLDLib2MainElement(player, holder, MachineUIHelper::sendAction,
+    private UIElement createMainElement(Player player, MachineUIHolder holder) {
+        return createMainElement(player, holder, MachineUIHelper::sendAction,
                 () -> player.level().isClientSide() && holder.getMachine() == this,
                 UIEvent::isCtrlDown, UIEvent::isShiftDown);
     }
@@ -244,16 +244,16 @@ public class MEInputHatchPartMachine extends MEHatchPartMachine
     /**
      * Builds a directly testable page body with injected action transport and modifier state.
      */
-    UIElement createLDLib2MainElement(Player player, MachineUIHolder holder,
-                                      BiConsumer<MachineUIHolder, SyncActionData> actionSender,
-                                      BooleanSupplier canSendAction, Predicate<UIEvent> modifierDown) {
-        return createLDLib2MainElement(player, holder, actionSender, canSendAction, modifierDown, modifierDown);
+    UIElement createMainElement(Player player, MachineUIHolder holder,
+                                BiConsumer<MachineUIHolder, SyncActionData> actionSender,
+                                BooleanSupplier canSendAction, Predicate<UIEvent> modifierDown) {
+        return createMainElement(player, holder, actionSender, canSendAction, modifierDown, modifierDown);
     }
 
-    private UIElement createLDLib2MainElement(Player player, MachineUIHolder holder,
-                                              BiConsumer<MachineUIHolder, SyncActionData> actionSender,
-                                              BooleanSupplier canSendAction, Predicate<UIEvent> ctrlDown,
-                                              Predicate<UIEvent> shiftDown) {
+    private UIElement createMainElement(Player player, MachineUIHolder holder,
+                                        BiConsumer<MachineUIHolder, SyncActionData> actionSender,
+                                        BooleanSupplier canSendAction, Predicate<UIEvent> ctrlDown,
+                                        Predicate<UIEvent> shiftDown) {
         requireMatchingHolder(holder);
         UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, 150, 88);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
@@ -447,7 +447,7 @@ public class MEInputHatchPartMachine extends MEHatchPartMachine
             if (holder.getMachine() != MEInputHatchPartMachine.this) {
                 throw new IllegalStateException("ME fluid configuration page holder no longer resolves its hatch.");
             }
-            return createLDLib2MainElement(player, holder);
+            return createMainElement(player, holder);
         }
 
         @Override

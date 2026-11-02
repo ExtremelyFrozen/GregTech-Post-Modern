@@ -346,12 +346,12 @@ public class DataBankMachine extends WorkableElectricMultiblockMachine
 
     @Override
     public UI createUI(Player player, MachineUIHolder holder) {
-        FancyUIProvider page = createLDLib2Page(player, holder);
+        FancyUIProvider page = createPage(player, holder);
         return UI.of(new FancyMachineUI(page, player.getInventory(), holder,
                 page.getPageWidth(), page.getPageHeight()));
     }
 
-    FancyUIProvider createLDLib2Page(Player player, MachineUIHolder holder) {
+    FancyUIProvider createPage(Player player, MachineUIHolder holder) {
         requireMatchingHolder(holder);
         return new DataBankFancyPage(player, holder);
     }

@@ -104,12 +104,12 @@ public class ObjectHolderMachine extends MultiblockPartMachine
 
     @Override
     public UI createUI(Player player, MachineUIHolder holder) {
-        requireMatchingLDLib2Holder(holder);
+        requireMatchingHolder(holder);
         UIElement root = new UIElement();
         UITemplate.setBounds(root, 0, 0, UI_WIDTH, STANDALONE_UI_HEIGHT);
         UITemplate.setBackgroundTexture(root, GuiTextures.BACKGROUND);
-        root.addChild(createLDLib2TitleLabel());
-        addLDLib2ObjectHolderBody(root);
+        root.addChild(createTitleLabel());
+        addObjectHolderBody(root);
         root.addChild(UITemplate.bindPlayerInventory(player.getInventory(), GuiTextures.SLOT, 7, 84, true));
         return UI.of(root);
     }
@@ -117,31 +117,31 @@ public class ObjectHolderMachine extends MultiblockPartMachine
     /** Creates a new holder-scoped page for one surrounding multiblock UI opening. */
     @Override
     public FancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
-        requireMatchingLDLib2Holder(holder);
-        return new ObjectHolderLDLib2Page(player, holder);
+        requireMatchingHolder(holder);
+        return new ObjectHolderPage(player, holder);
     }
 
-    private UIElement createLDLib2ContextualBody() {
+    private UIElement createContextualBody() {
         UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, UI_WIDTH, CONTEXTUAL_PAGE_HEIGHT);
-        addLDLib2ObjectHolderBody(root);
+        addObjectHolderBody(root);
         return root;
     }
 
-    private void addLDLib2ObjectHolderBody(UIElement root) {
+    private void addObjectHolderBody(UIElement root) {
         root.addChild(new GTImageElement(46, 15, 84, 60, GuiTextures.PROGRESS_BAR_RESEARCH_STATION_BASE));
-        root.addChild(createLDLib2ItemSlot(inputItemHandler, 79, 36, GuiTextures.RESEARCH_STATION_OVERLAY));
-        root.addChild(createLDLib2LockedOverlay(79, 36));
-        root.addChild(createLDLib2ItemSlot(dataItemHandler, 15, 36, GuiTextures.DATA_ORB_OVERLAY));
-        root.addChild(createLDLib2LockedOverlay(15, 36));
+        root.addChild(createItemSlot(inputItemHandler, 79, 36, GuiTextures.RESEARCH_STATION_OVERLAY));
+        root.addChild(createLockedOverlay(79, 36));
+        root.addChild(createItemSlot(dataItemHandler, 15, 36, GuiTextures.DATA_ORB_OVERLAY));
+        root.addChild(createLockedOverlay(15, 36));
     }
 
-    private void requireMatchingLDLib2Holder(MachineUIHolder holder) {
+    private void requireMatchingHolder(MachineUIHolder holder) {
         if (holder.getMachine() != this) {
             throw new IllegalArgumentException("Object Holder page holder must resolve the opened machine.");
         }
     }
 
-    private GTLabelElement createLDLib2TitleLabel() {
+    private GTLabelElement createTitleLabel() {
         GTLabelElement label = new GTLabelElement(10, 5, 156, 10,
                 getBlockState().getBlock().getDescriptionId(), true);
         label.textStyle(style -> style
@@ -152,8 +152,8 @@ public class ObjectHolderMachine extends MultiblockPartMachine
         return label;
     }
 
-    private GTItemSlotElement createLDLib2ItemSlot(NotifiableItemStackHandler handler, int x, int y,
-                                                   IGuiTexture overlay) {
+    private GTItemSlotElement createItemSlot(NotifiableItemStackHandler handler, int x, int y,
+                                             IGuiTexture overlay) {
         GTItemSlotElement slot = new GTItemSlotElement(handler, 0)
                 .setBackgroundTexture(GuiTextures.SLOT)
                 .setContentOverlay(overlay)
@@ -163,19 +163,19 @@ public class ObjectHolderMachine extends MultiblockPartMachine
         return slot;
     }
 
-    private GTImageElement createLDLib2LockedOverlay(int slotX, int slotY) {
+    private GTImageElement createLockedOverlay(int slotX, int slotY) {
         return new GTImageElement(slotX + 1, slotY + 1, 16, 16, GuiTextures.colorRect(SLOT_LOCKED_OVERLAY_COLOR))
                 .setVisibleSupplier(this::isLocked);
     }
 
     /** Owns the contextual Object Holder page state for exactly one menu opening. */
-    private final class ObjectHolderLDLib2Page implements FancyUIProvider {
+    private final class ObjectHolderPage implements FancyUIProvider {
 
         private final MachineUIHolder holder;
         private final DirectionalConfigurator directionalPage;
 
-        private ObjectHolderLDLib2Page(Player player, MachineUIHolder holder) {
-            requireMatchingLDLib2Holder(holder);
+        private ObjectHolderPage(Player player, MachineUIHolder holder) {
+            requireMatchingHolder(holder);
             this.holder = holder;
             directionalPage = new DirectionalConfigurator(ObjectHolderMachine.this, player, holder);
         }
@@ -185,7 +185,7 @@ public class ObjectHolderMachine extends MultiblockPartMachine
             if (holder.getMachine() != ObjectHolderMachine.this) {
                 throw new IllegalStateException("Object Holder page holder no longer resolves its opened machine.");
             }
-            return createLDLib2ContextualBody();
+            return createContextualBody();
         }
 
         @Override

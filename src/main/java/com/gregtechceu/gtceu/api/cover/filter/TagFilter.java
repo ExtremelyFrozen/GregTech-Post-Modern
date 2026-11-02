@@ -51,15 +51,15 @@ public abstract class TagFilter<T, S extends Filter<T, S>> implements Filter<T, 
     }
 
     @Override
-    public UIElement openLDLib2Configurator(int x, int y) {
+    public UIElement openConfigurator(int x, int y) {
         UIElement group = new UIElement();
         setBounds(group, x, y, 18 * 3 + 25, 18 * 3);
-        group.addChild(createLDLib2InfoIcon());
-        group.addChild(createLDLib2TextField());
+        group.addChild(createInfoIcon());
+        group.addChild(createTextField());
         return group;
     }
 
-    private UIElement createLDLib2InfoIcon() {
+    private UIElement createInfoIcon() {
         UIElement icon = new UIElement();
         icon.style(style -> style
                 .backgroundTexture(GuiTextures.INFO_ICON)
@@ -68,15 +68,15 @@ public abstract class TagFilter<T, S extends Filter<T, S>> implements Filter<T, 
         return icon;
     }
 
-    private GTTextFieldElement createLDLib2TextField() {
+    private GTTextFieldElement createTextField() {
         GTTextFieldElement textField = new GTTextFieldElement(0, 29, 18 * 3 + 25, 12);
         textField.setAnyString();
         textField.setText(tagFilterExpression, false);
-        textField.setTextResponder(input -> updateLDLib2FilterExpr(textField, input));
+        textField.setTextResponder(input -> updateFilterExpr(textField, input));
         return textField;
     }
 
-    private void updateLDLib2FilterExpr(GTTextFieldElement textField, String input) {
+    private void updateFilterExpr(GTTextFieldElement textField, String input) {
         String normalized = normalizeInput(input);
         if (!normalized.equals(input)) {
             textField.setText(normalized, false);

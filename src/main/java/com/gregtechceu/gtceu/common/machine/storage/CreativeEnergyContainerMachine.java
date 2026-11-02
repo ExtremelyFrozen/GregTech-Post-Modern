@@ -277,25 +277,25 @@ public class CreativeEnergyContainerMachine extends TieredMachine
         UIElement root = new UIElement();
         UITemplate.setBounds(root, 0, 0, 176, 166);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));
-        root.addChild(createLDLib2TierSelector(player, holder));
-        root.addChild(createLDLib2Label(7, 32, 162, 10, Component.translatable("gtpm.creative.energy.voltage")));
-        root.addChild(createLDLib2VoltageField(player, holder));
-        root.addChild(createLDLib2Label(7, 74, 162, 10, Component.translatable("gtpm.creative.energy.amperage")));
-        root.addChild(createLDLib2AmpsDecreaseButton());
-        root.addChild(createLDLib2AmpsField());
-        root.addChild(createLDLib2AmpsIncreaseButton());
-        root.addChild(createLDLib2AverageIOLabel());
-        root.addChild(createLDLib2ActiveButton());
-        root.addChild(createLDLib2SourceButton());
+        root.addChild(createTierSelector(player, holder));
+        root.addChild(createLabel(7, 32, 162, 10, Component.translatable("gtpm.creative.energy.voltage")));
+        root.addChild(createVoltageField(player, holder));
+        root.addChild(createLabel(7, 74, 162, 10, Component.translatable("gtpm.creative.energy.amperage")));
+        root.addChild(createAmpsDecreaseButton());
+        root.addChild(createAmpsField());
+        root.addChild(createAmpsIncreaseButton());
+        root.addChild(createAverageIOLabel());
+        root.addChild(createActiveButton());
+        root.addChild(createSourceButton());
         return UI.of(root);
     }
 
-    private GTStringSelectorElement createLDLib2TierSelector(Player player, MachineUIHolder holder) {
+    private GTStringSelectorElement createTierSelector(Player player, MachineUIHolder holder) {
         return new GTStringSelectorElement(7, 7, 50, 20, Arrays.asList(GTValues.VNF),
-                () -> GTValues.VNF[setTier], tierName -> setLDLib2Tier(player, holder, tierName));
+                () -> GTValues.VNF[setTier], tierName -> setTier(player, holder, tierName));
     }
 
-    private GTLabelElement createLDLib2Label(int x, int y, int width, int height, Component text) {
+    private GTLabelElement createLabel(int x, int y, int width, int height, Component text) {
         GTLabelElement label = new GTLabelElement(x, y, width, height, text);
         label.textStyle(style -> style
                 .textColor(0x404040)
@@ -305,7 +305,7 @@ public class CreativeEnergyContainerMachine extends TieredMachine
         return label;
     }
 
-    private GTTextFieldElement createLDLib2VoltageField(Player player, MachineUIHolder holder) {
+    private GTTextFieldElement createVoltageField(Player player, MachineUIHolder holder) {
         GTTextFieldElement field = new GTTextFieldElement(9, 47, 152, 16) {
 
             @Override
@@ -321,11 +321,11 @@ public class CreativeEnergyContainerMachine extends TieredMachine
         field.textFieldStyle(style -> style
                 .textColor(0x404040)
                 .textShadow(false));
-        field.setTextResponder(value -> setLDLib2Voltage(player, holder, value));
+        field.setTextResponder(value -> setVoltage(player, holder, value));
         return field;
     }
 
-    private GTTextFieldElement createLDLib2AmpsField() {
+    private GTTextFieldElement createAmpsField() {
         GTTextFieldElement field = new GTTextFieldElement(31, 89, 114, 16) {
 
             @Override
@@ -341,27 +341,27 @@ public class CreativeEnergyContainerMachine extends TieredMachine
         field.textFieldStyle(style -> style
                 .textColor(0x404040)
                 .textShadow(false));
-        field.setTextResponder(this::setLDLib2Amps);
+        field.setTextResponder(this::setAmpsAndSync);
         return field;
     }
 
-    private GTButtonElement createLDLib2AmpsDecreaseButton() {
+    private GTButtonElement createAmpsDecreaseButton() {
         return new GTButtonElement(7, 87, 20, 20,
                 GuiTextures.group(GuiTextures.BUTTON, GuiTextures.text("-")),
-                event -> setLDLib2Amps(Math.max(0, amps - 1)));
+                event -> setAmpsAndSync(Math.max(0, amps - 1)));
     }
 
-    private GTButtonElement createLDLib2AmpsIncreaseButton() {
+    private GTButtonElement createAmpsIncreaseButton() {
         return new GTButtonElement(149, 87, 20, 20,
                 GuiTextures.group(GuiTextures.BUTTON, GuiTextures.text("+")),
                 event -> {
                     if (amps < Integer.MAX_VALUE) {
-                        setLDLib2Amps(amps + 1);
+                        setAmpsAndSync(amps + 1);
                     }
                 });
     }
 
-    private GTLabelElement createLDLib2AverageIOLabel() {
+    private GTLabelElement createAverageIOLabel() {
         GTLabelElement label = new GTLabelElement(7, 110, 162, 10) {
 
             @Override
@@ -383,41 +383,41 @@ public class CreativeEnergyContainerMachine extends TieredMachine
         return Component.literal("Average Energy I/O per tick: " + lastAverageEnergyIOPerTick);
     }
 
-    private GTButtonElement createLDLib2ActiveButton() {
-        return new GTButtonElement(7, 139, 77, 20, createLDLib2ActiveButtonTexture(),
-                event -> setLDLib2Active(!active)) {
+    private GTButtonElement createActiveButton() {
+        return new GTButtonElement(7, 139, 77, 20, createActiveButtonTexture(),
+                event -> setActiveAndSync(!active)) {
 
             @Override
             public void screenTick() {
-                setButtonTexture(createLDLib2ActiveButtonTexture());
+                setButtonTexture(createActiveButtonTexture());
                 super.screenTick();
             }
         };
     }
 
-    private GTButtonElement createLDLib2SourceButton() {
-        return new GTButtonElement(85, 139, 77, 20, createLDLib2SourceButtonTexture(),
-                event -> setLDLib2Source(!source)) {
+    private GTButtonElement createSourceButton() {
+        return new GTButtonElement(85, 139, 77, 20, createSourceButtonTexture(),
+                event -> setSourceAndSync(!source)) {
 
             @Override
             public void screenTick() {
-                setButtonTexture(createLDLib2SourceButtonTexture());
+                setButtonTexture(createSourceButtonTexture());
                 super.screenTick();
             }
         };
     }
 
-    private IGuiTexture createLDLib2ActiveButtonTexture() {
+    private IGuiTexture createActiveButtonTexture() {
         return GuiTextures.group(GuiTextures.BUTTON,
                 GuiTextures.text(active ? "gtpm.creative.activity.on" : "gtpm.creative.activity.off"));
     }
 
-    private IGuiTexture createLDLib2SourceButtonTexture() {
+    private IGuiTexture createSourceButtonTexture() {
         return GuiTextures.group(GuiTextures.BUTTON,
                 GuiTextures.text(source ? "gtpm.creative.energy.source" : "gtpm.creative.energy.sink"));
     }
 
-    private void setLDLib2Voltage(Player player, MachineUIHolder holder, String value) {
+    private void setVoltage(Player player, MachineUIHolder holder, String value) {
         if (value.isEmpty()) {
             return;
         }
@@ -435,7 +435,7 @@ public class CreativeEnergyContainerMachine extends TieredMachine
         }
     }
 
-    private void setLDLib2Amps(String value) {
+    private void setAmpsAndSync(String value) {
         if (value.isEmpty()) {
             return;
         }
@@ -446,15 +446,15 @@ public class CreativeEnergyContainerMachine extends TieredMachine
             GTCEu.LOGGER.error("Invalid creative energy amperage input: {}", value, e);
             throw e;
         }
-        setLDLib2Amps(parsedValue);
+        setAmpsAndSync(parsedValue);
     }
 
-    private void setLDLib2Amps(int value) {
+    private void setAmpsAndSync(int value) {
         setAmps(value);
         sendServerSyncChanges();
     }
 
-    private void setLDLib2Tier(Player player, MachineUIHolder holder, String tierName) {
+    private void setTier(Player player, MachineUIHolder holder, String tierName) {
         int tierIndex = getTierIndex(tierName);
         setCreativeEnergyTier(tierIndex);
         if (player.level().isClientSide()) {
@@ -462,12 +462,12 @@ public class CreativeEnergyContainerMachine extends TieredMachine
         }
     }
 
-    private void setLDLib2Active(boolean active) {
+    private void setActiveAndSync(boolean active) {
         setActive(active);
         sendServerSyncChanges();
     }
 
-    private void setLDLib2Source(boolean source) {
+    private void setSourceAndSync(boolean source) {
         setSource(source);
         sendServerSyncChanges();
     }

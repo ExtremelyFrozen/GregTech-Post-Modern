@@ -207,13 +207,13 @@ public class MEInputBusPartMachine extends MEBusPartMachine
 
     @Override
     public UI createUI(Player player, MachineUIHolder holder) {
-        FancyUIProvider page = createLDLib2Page(player, holder);
+        FancyUIProvider page = createPage(player, holder);
         return UI.of(new FancyMachineUI(page, player.getInventory(), holder,
                 page.getPageWidth(), page.getPageHeight()));
     }
 
     /** Creates one standalone opening-scoped page after validating the exact holder and definition. */
-    FancyUIProvider createLDLib2Page(Player player, MachineUIHolder holder) {
+    FancyUIProvider createPage(Player player, MachineUIHolder holder) {
         requireMatchingHolder(holder);
         if (!supportsMEItemConfigActions()) {
             throw new IllegalStateException("ME item configuration page requires an exact input bus definition.");
@@ -223,7 +223,7 @@ public class MEInputBusPartMachine extends MEBusPartMachine
 
     @Override
     public FancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
-        return createLDLib2Page(player, holder);
+        return createPage(player, holder);
     }
 
     private void requireMatchingHolder(MachineUIHolder holder) {
@@ -232,15 +232,15 @@ public class MEInputBusPartMachine extends MEBusPartMachine
         }
     }
 
-    private UIElement createLDLib2MainElement(Player player, MachineUIHolder holder) {
-        return createLDLib2MainElement(player, holder, MachineUIHelper::sendAction,
+    private UIElement createMainElement(Player player, MachineUIHolder holder) {
+        return createMainElement(player, holder, MachineUIHelper::sendAction,
                 () -> player.level().isClientSide() && holder.getMachine() == this, UIEvent::isCtrlDown);
     }
 
     /** Builds a directly testable page body with injected action transport and modifier state. */
-    UIElement createLDLib2MainElement(Player player, MachineUIHolder holder,
-                                      BiConsumer<MachineUIHolder, SyncActionData> actionSender,
-                                      BooleanSupplier canSendAction, Predicate<UIEvent> ctrlDown) {
+    UIElement createMainElement(Player player, MachineUIHolder holder,
+                                BiConsumer<MachineUIHolder, SyncActionData> actionSender,
+                                BooleanSupplier canSendAction, Predicate<UIEvent> ctrlDown) {
         requireMatchingHolder(holder);
         UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, 150, 88);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
@@ -459,7 +459,7 @@ public class MEInputBusPartMachine extends MEBusPartMachine
             if (holder.getMachine() != MEInputBusPartMachine.this) {
                 throw new IllegalStateException("ME item configuration page holder no longer resolves its bus.");
             }
-            return createLDLib2MainElement(player, holder);
+            return createMainElement(player, holder);
         }
 
         @Override

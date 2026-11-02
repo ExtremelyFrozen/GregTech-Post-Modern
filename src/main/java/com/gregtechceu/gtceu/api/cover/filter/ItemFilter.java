@@ -50,7 +50,7 @@ public interface ItemFilter extends Filter<ItemStack, ItemFilter> {
         }
 
         @Override
-        public UIElement openLDLib2Configurator(int x, int y) {
+        public UIElement openConfigurator(int x, int y) {
             throw new UnsupportedOperationException("Not available for empty item filter");
         }
 

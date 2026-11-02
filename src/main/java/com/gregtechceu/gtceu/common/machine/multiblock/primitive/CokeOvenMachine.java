@@ -48,17 +48,17 @@ public class CokeOvenMachine extends PrimitiveWorkableMachine implements Machine
         UIElement root = new UIElement();
         UITemplate.setBounds(root, 0, 0, 176, 166);
         root.style(style -> style.backgroundTexture(GuiTextures.PRIMITIVE_BACKGROUND));
-        root.addChild(createLDLib2TitleLabel());
-        root.addChild(createLDLib2InputSlot());
-        root.addChild(createLDLib2ProgressBar());
-        root.addChild(createLDLib2OutputSlot());
-        root.addChild(createLDLib2FluidTank());
+        root.addChild(createTitleLabel());
+        root.addChild(createInputSlot());
+        root.addChild(createProgressBar());
+        root.addChild(createOutputSlot());
+        root.addChild(createFluidTank());
         root.addChild(UITemplate.bindPlayerInventory(player.getInventory(), GuiTextures.PRIMITIVE_SLOT, 7, 84,
                 true));
         return UI.of(root);
     }
 
-    private GTLabelElement createLDLib2TitleLabel() {
+    private GTLabelElement createTitleLabel() {
         GTLabelElement label = new GTLabelElement(5, 5, 166, 10,
                 getBlockState().getBlock().getDescriptionId(), true);
         label.textStyle(style -> style
@@ -69,7 +69,7 @@ public class CokeOvenMachine extends PrimitiveWorkableMachine implements Machine
         return label;
     }
 
-    private GTItemSlotElement createLDLib2InputSlot() {
+    private GTItemSlotElement createInputSlot() {
         GTItemSlotElement slot = new GTItemSlotElement(importItems.storage, 0)
                 .setBackgroundTexture(GuiTextures.group(GuiTextures.PRIMITIVE_SLOT,
                         GuiTextures.PRIMITIVE_FURNACE_OVERLAY))
@@ -78,7 +78,7 @@ public class CokeOvenMachine extends PrimitiveWorkableMachine implements Machine
         return UITemplate.setBounds(slot, 52, 30, 18, 18);
     }
 
-    private GTProgressBarElement createLDLib2ProgressBar() {
+    private GTProgressBarElement createProgressBar() {
         GTProgressBarElement progress = new GTProgressBarElement(recipeLogic::getProgressPercent)
                 .setProgressTexture(
                         GuiTextures.PRIMITIVE_BLAST_FURNACE_PROGRESS_BAR.getSubTexture(0, 0, 1, 0.5),
@@ -86,7 +86,7 @@ public class CokeOvenMachine extends PrimitiveWorkableMachine implements Machine
         return UITemplate.setBounds(progress, 76, 32, 20, 15);
     }
 
-    private GTItemSlotElement createLDLib2OutputSlot() {
+    private GTItemSlotElement createOutputSlot() {
         GTItemSlotElement slot = new GTItemSlotElement(exportItems.storage, 0)
                 .setBackgroundTexture(GuiTextures.group(GuiTextures.PRIMITIVE_SLOT,
                         GuiTextures.PRIMITIVE_FURNACE_OVERLAY))
@@ -95,19 +95,19 @@ public class CokeOvenMachine extends PrimitiveWorkableMachine implements Machine
         return UITemplate.setBounds(slot, 103, 30, 18, 18);
     }
 
-    private GTFluidSlotElement createLDLib2FluidTank() {
+    private GTFluidSlotElement createFluidTank() {
         GTFluidSlotElement tank = new GTFluidSlotElement()
                 .setFluidTank(exportFluids, 0)
                 .setBackgroundTexture(GuiTextures.PRIMITIVE_LARGE_FLUID_TANK)
                 .setShowAmount(false)
                 .setAllowClickFilled(false)
                 .setAllowClickDrained(false)
-                .setOnAddedTooltips(this::addLDLib2FluidAmountTooltip)
+                .setOnAddedTooltips(this::addFluidAmountTooltip)
                 .setContentOverlay(GuiTextures.PRIMITIVE_LARGE_FLUID_TANK_OVERLAY);
         return UITemplate.setBounds(tank, 134, 13, 20, 58);
     }
 
-    private void addLDLib2FluidAmountTooltip(GTFluidSlotElement tank, List<Component> tooltips) {
+    private void addFluidAmountTooltip(GTFluidSlotElement tank, List<Component> tooltips) {
         int fluidAmount = tank.getFluid().getAmount();
         int capacity = Math.max(tank.getCapacity(), fluidAmount);
         tooltips.add(Component.translatable("gtpm.fluid.amount",

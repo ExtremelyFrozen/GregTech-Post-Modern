@@ -90,13 +90,13 @@ public class BufferMachine extends TieredMachine implements FancyUIMachine, Buff
         int index = 0;
         for (int y = 0; y < invTier; y++) {
             for (int x = 0; x < invTier; x++) {
-                container.addChild(createLDLib2ItemSlot(index++, 4 + x * 18, 4 + y * 18));
+                container.addChild(createItemSlot(index++, 4 + x * 18, 4 + y * 18));
             }
         }
 
         index = 0;
         for (int y = 0; y < invTier; y++) {
-            container.addChild(createLDLib2FluidSlot(shell, index++, 4 + invTier * 18, 4 + y * 18));
+            container.addChild(createFluidSlot(shell, index++, 4 + invTier * 18, 4 + y * 18));
         }
 
         root.addChild(container);
@@ -113,7 +113,7 @@ public class BufferMachine extends TieredMachine implements FancyUIMachine, Buff
         return 18 * getTankSize(tier) + 16;
     }
 
-    private GTItemSlotElement createLDLib2ItemSlot(int slot, int x, int y) {
+    private GTItemSlotElement createItemSlot(int slot, int x, int y) {
         GTItemSlotElement slotElement = new GTItemSlotElement(getInventory().storage, slot)
                 .setCanPutItems(true)
                 .setCanTakeItems(true)
@@ -121,7 +121,7 @@ public class BufferMachine extends TieredMachine implements FancyUIMachine, Buff
         return UITemplate.setBounds(slotElement, x, y, 18, 18);
     }
 
-    private GTFluidSlotElement createLDLib2FluidSlot(FancyMachineUI shell, int tankIndex, int x, int y) {
+    private GTFluidSlotElement createFluidSlot(FancyMachineUI shell, int tankIndex, int x, int y) {
         GTFluidSlotElement fluidSlot = new GTFluidSlotElement()
                 .setFluidTank(tank.getStorages()[tankIndex], 0)
                 .setShowAmount(true)
@@ -146,7 +146,7 @@ public class BufferMachine extends TieredMachine implements FancyUIMachine, Buff
         if (tankIndex < 0 || tankIndex >= tank.getStorages().length) {
             throw new IllegalArgumentException("Invalid buffer fluid tank index: " + tankIndex);
         }
-        new LDLib2FluidClickTarget(tank.getStorages()[tankIndex], true, true).click(player, shiftDown);
+        new FluidClickTarget(tank.getStorages()[tankIndex], true, true).click(player, shiftDown);
     }
 
     static boolean canSendFluidSlotAction(int button, boolean clientSide, ItemStack carried) {
@@ -157,8 +157,8 @@ public class BufferMachine extends TieredMachine implements FancyUIMachine, Buff
         return FluidUtil.getFluidHandler(stack).isPresent();
     }
 
-    private record LDLib2FluidClickTarget(IFluidHandler fluidTank, boolean allowClickFilled,
-                                          boolean allowClickDrained) {
+    private record FluidClickTarget(IFluidHandler fluidTank, boolean allowClickFilled,
+                                    boolean allowClickDrained) {
 
         private void click(ServerPlayer player, boolean shiftDown) {
             ItemStack currentStack = player.containerMenu.getCarried();

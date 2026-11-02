@@ -43,7 +43,7 @@ public class SimpleFluidFilter implements FluidFilter {
     @Getter
     protected int maxStackSize = 1;
 
-    private final List<GTPhantomFluidSlotElement> ldLib2FluidSlots = new ArrayList<>();
+    private final List<GTPhantomFluidSlotElement> fluidSlots = new ArrayList<>();
 
     protected SimpleFluidFilter() {
         Arrays.fill(matches, FluidStack.EMPTY);
@@ -85,41 +85,41 @@ public class SimpleFluidFilter implements FluidFilter {
     }
 
     @Override
-    public UIElement openLDLib2Configurator(int x, int y) {
+    public UIElement openConfigurator(int x, int y) {
         UIElement group = new UIElement();
         setBounds(group, x, y, 18 * 3 + 25, 18 * 3);
-        ldLib2FluidSlots.clear();
+        fluidSlots.clear();
         for (int i = 0; i < 3; i++) {
             for (int j = 0; j < 3; j++) {
                 int index = i * 3 + j;
-                group.addChild(createLDLib2MatchSlot(index, i * 18, j * 18));
+                group.addChild(createMatchSlot(index, i * 18, j * 18));
             }
         }
-        group.addChild(createLDLib2ToggleButton(18 * 3 + 5, 0,
+        group.addChild(createToggleButton(18 * 3 + 5, 0,
                 GuiTextures.BUTTON_BLACKLIST, this::isBlackList, this::setBlackList));
-        group.addChild(createLDLib2ToggleButton(18 * 3 + 5, 20,
+        group.addChild(createToggleButton(18 * 3 + 5, 20,
                 GuiTextures.BUTTON_FILTER_NBT, this::isIgnoreNbt, this::setIgnoreNbt));
         return group;
     }
 
-    private GTPhantomFluidSlotElement createLDLib2MatchSlot(int index, int x, int y) {
+    private GTPhantomFluidSlotElement createMatchSlot(int index, int x, int y) {
         GTPhantomFluidSlotElement slot = new GTPhantomFluidSlotElement(
                 () -> matches[index],
-                fluidStack -> syncLDLib2MatchSlot(index, fluidStack),
+                fluidStack -> syncMatchSlot(index, fluidStack),
                 () -> maxStackSize);
-        ldLib2FluidSlots.add(slot);
+        fluidSlots.add(slot);
         setBounds(slot, x, y, 18, 18);
         return slot;
     }
 
-    private void syncLDLib2MatchSlot(int index, FluidStack fluidStack) {
+    private void syncMatchSlot(int index, FluidStack fluidStack) {
         matches[index] = fluidStack;
         onUpdated.accept(this);
     }
 
-    private GTToggleButtonElement createLDLib2ToggleButton(int x, int y, IGuiTexture texture,
-                                                           BooleanSupplier isPressed,
-                                                           Consumer<Boolean> setPressed) {
+    private GTToggleButtonElement createToggleButton(int x, int y, IGuiTexture texture,
+                                                     BooleanSupplier isPressed,
+                                                     Consumer<Boolean> setPressed) {
         return new GTToggleButtonElement(x, y, 20, 20, texture, isPressed, setPressed);
     }
 
@@ -161,7 +161,7 @@ public class SimpleFluidFilter implements FluidFilter {
                 match.setAmount(Math.min(match.getAmount(), maxStackSize));
         }
 
-        for (GTPhantomFluidSlotElement slot : ldLib2FluidSlots) {
+        for (GTPhantomFluidSlotElement slot : fluidSlots) {
             slot.refreshFromSupplier();
         }
     }

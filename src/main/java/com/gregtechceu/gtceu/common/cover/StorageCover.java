@@ -84,15 +84,15 @@ public class StorageCover extends CoverBehavior implements CoverUIProvider {
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));
 
         int centeredGroupX = (176 - 126) / 2;
-        root.addChild(createLDLib2Label(centeredGroupX));
+        root.addChild(createLabel(centeredGroupX));
         for (int slot = 0; slot < SIZE; slot++) {
-            root.addChild(createLDLib2StorageSlot(slot, centeredGroupX));
+            root.addChild(createStorageSlot(slot, centeredGroupX));
         }
         root.addChild(UITemplate.bindPlayerInventory(player.getInventory(), GuiTextures.SLOT, 7, 87, true));
         return UI.of(root);
     }
 
-    private GTLabelElement createLDLib2Label(int groupX) {
+    private GTLabelElement createLabel(int groupX) {
         GTLabelElement label = new GTLabelElement(groupX + 10, 5, 116, 10, getUITitle(), true);
         label.textStyle(style -> style
                 .textColor(0x404040)
@@ -102,7 +102,7 @@ public class StorageCover extends CoverBehavior implements CoverUIProvider {
         return label;
     }
 
-    private GTItemSlotElement createLDLib2StorageSlot(int slot, int groupX) {
+    private GTItemSlotElement createStorageSlot(int slot, int groupX) {
         GTItemSlotElement element = new GTItemSlotElement(inventory, slot);
         UITemplate.setBounds(element, groupX + 7 + (slot % 6) * 18, 21 + (slot / 6) * 18, 18, 18);
         element.setBackgroundTexture(GuiTextures.SLOT);

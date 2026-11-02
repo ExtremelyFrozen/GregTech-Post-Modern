@@ -205,7 +205,7 @@ public class SimpleSteamMachine extends SteamWorkableMachine implements MachineU
         UITemplate.setBounds(root, 0, 0, 176, 166);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_STEAM.get(isHighPressure)));
         root.addChild(recipeTemplate.rootElement);
-        root.addChild(createLDLib2TitleLabel());
+        root.addChild(createTitleLabel());
         root.addChild(createWaitingIndicator(recipeX + recipeSize.width() / 2 - 9,
                 recipeY + recipeSize.height() / 2 - 9, 18, 18,
                 GuiTextures.INDICATOR_NO_STEAM.get(isHighPressure), recipeLogic::isWaiting));
@@ -214,7 +214,7 @@ public class SimpleSteamMachine extends SteamWorkableMachine implements MachineU
         return UI.of(root);
     }
 
-    private GTLabelElement createLDLib2TitleLabel() {
+    private GTLabelElement createTitleLabel() {
         GTLabelElement label = new GTLabelElement(5, 5, 166, 10,
                 getBlockState().getBlock().getDescriptionId(), true);
         label.textStyle(style -> style

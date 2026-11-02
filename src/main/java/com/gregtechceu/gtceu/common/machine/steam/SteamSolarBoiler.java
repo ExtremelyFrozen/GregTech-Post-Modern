@@ -69,11 +69,11 @@ public class SteamSolarBoiler extends SteamBoilerMachine {
     }
 
     @Override
-    protected void addLDLib2AdditionalWidgets(UIElement root, Player player, MachineUIHolder holder) {
-        root.addChild(createLDLib2SolarProgressBar());
+    protected void addAdditionalWidgets(UIElement root, Player player, MachineUIHolder holder) {
+        root.addChild(createSolarProgressBar());
     }
 
-    private GTProgressBarElement createLDLib2SolarProgressBar() {
+    private GTProgressBarElement createSolarProgressBar() {
         var progressTexture = GuiTextures.progressBar(
                 (ResourceTexture) GuiTextures.PROGRESS_BAR_SOLAR_STEAM.get(isHighPressure));
         GTProgressBarElement progressBar = new GTProgressBarElement(

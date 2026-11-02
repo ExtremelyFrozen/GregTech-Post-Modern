@@ -300,35 +300,35 @@ public class QuantumChestMachine extends TieredMachine implements IControllable,
 
     @Override
     public UI createUI(Player player, MachineUIHolder holder) {
-        return UI.of(new FancyMachineUI(new QuantumChestLDLib2Page(player, holder),
+        return UI.of(new FancyMachineUI(new QuantumChestPage(player, holder),
                 player.getInventory(), holder, PAGE_WIDTH, PAGE_HEIGHT));
     }
 
-    private UIElement createLDLib2MainPage(Player player, MachineUIHolder holder) {
+    private UIElement createStoragePage(Player player, MachineUIHolder holder) {
         UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
         root.addChild(new GTImageElement(4, 4, 81, 55, GuiTextures.DISPLAY));
-        root.addChild(createLDLib2StoredAmountLabel());
-        root.addChild(createLDLib2StoredAmountValueLabel());
-        root.addChild(createLDLib2ImportSlot(player, holder));
-        root.addChild(createLDLib2StoredDisplaySlot());
-        root.addChild(createLDLib2ExportButton(player, holder));
-        root.addChild(createLDLib2LockedItemSlot(player, holder));
+        root.addChild(createStoredAmountLabel());
+        root.addChild(createStoredAmountValueLabel());
+        root.addChild(createImportSlot(player, holder));
+        root.addChild(createStoredDisplaySlot());
+        root.addChild(createExportButton(player, holder));
+        root.addChild(createLockedItemSlot(player, holder));
         root.addChild(new GTToggleButtonElement(4, 41, 18, 18,
                 GuiTextures.BUTTON_ITEM_OUTPUT, this.autoOutput::isAutoOutputItems,
-                enabled -> setLDLib2AutoOutputItems(player, enabled))
+                enabled -> setAutoOutputItems(player, enabled))
                 .setShouldUseBaseBackground()
                 .setTooltipText("gtpm.gui.item_auto_output.tooltip"));
         root.addChild(new GTToggleButtonElement(22, 41, 18, 18,
                 GuiTextures.BUTTON_LOCK, this::isLocked,
-                locked -> setLDLib2Locked(player, holder, locked))
+                locked -> setLocked(player, holder, locked))
                 .setShouldUseBaseBackground()
                 .setTooltipText("gtpm.gui.item_lock.tooltip"));
-        root.addChild(createLDLib2VoidingButton());
+        root.addChild(createVoidingButton());
         return root;
     }
 
-    private static GTLabelElement createLDLib2StoredAmountLabel() {
+    private static GTLabelElement createStoredAmountLabel() {
         GTLabelElement label = new GTLabelElement(8, 8, 76, 10,
                 "gtpm.machine.quantum_chest.items_stored", true);
         label.textStyle(style -> style
@@ -339,7 +339,7 @@ public class QuantumChestMachine extends TieredMachine implements IControllable,
         return label;
     }
 
-    private GTLabelElement createLDLib2StoredAmountValueLabel() {
+    private GTLabelElement createStoredAmountValueLabel() {
         GTLabelElement label = new GTLabelElement(8, 18, 58, 10) {
 
             @Override
@@ -357,7 +357,7 @@ public class QuantumChestMachine extends TieredMachine implements IControllable,
         return label;
     }
 
-    private GTItemSlotElement createLDLib2ImportSlot(Player player, MachineUIHolder holder) {
+    private GTItemSlotElement createImportSlot(Player player, MachineUIHolder holder) {
         GTItemSlotElement slot = new GTItemSlotElement()
                 .setCanPutItems(false)
                 .setCanTakeItems(false)
@@ -378,30 +378,30 @@ public class QuantumChestMachine extends TieredMachine implements IControllable,
         return UITemplate.setBounds(slot, 87, 5, 18, 18);
     }
 
-    private GTItemSlotElement createLDLib2StoredDisplaySlot() {
+    private GTItemSlotElement createStoredDisplaySlot() {
         GTItemSlotElement slot = new GTItemSlotElement() {
 
             @Override
             public void screenTick() {
-                setValue(getLDLib2DisplayedStoredItem(), false);
+                setValue(getDisplayedStoredItem(), false);
                 super.screenTick();
             }
         };
-        slot.setValue(getLDLib2DisplayedStoredItem(), false);
+        slot.setValue(getDisplayedStoredItem(), false);
         slot.setCanPutItems(false)
                 .setCanTakeItems(false)
                 .setBackgroundTexture(GuiTextures.SLOT);
         return UITemplate.setBounds(slot, 87, 23, 18, 18);
     }
 
-    private ItemStack getLDLib2DisplayedStoredItem() {
+    private ItemStack getDisplayedStoredItem() {
         if (stored.isEmpty()) {
             return ItemStack.EMPTY;
         }
         return stored.copyWithCount((int) Math.min(storedAmount, stored.getMaxStackSize()));
     }
 
-    private GTButtonElement createLDLib2ExportButton(Player player, MachineUIHolder holder) {
+    private GTButtonElement createExportButton(Player player, MachineUIHolder holder) {
         return new GTButtonElement(87, 42, 18, 18,
                 GuiTextures.group(GuiTextures.VANILLA_BUTTON, GuiTextures.ICON_DOWN.copy().scale(0.7f)),
                 event -> {
@@ -414,9 +414,9 @@ public class QuantumChestMachine extends TieredMachine implements IControllable,
                 });
     }
 
-    private GTPhantomItemSlotElement createLDLib2LockedItemSlot(Player player, MachineUIHolder holder) {
+    private GTPhantomItemSlotElement createLockedItemSlot(Player player, MachineUIHolder holder) {
         GTPhantomItemSlotElement slot = new GTPhantomItemSlotElement(this::getLockedItem,
-                stack -> setLDLib2LockedItem(player, holder, stack), () -> 1) {
+                stack -> setLockedItem(player, holder, stack), () -> 1) {
 
             @Override
             public void screenTick() {
@@ -443,14 +443,14 @@ public class QuantumChestMachine extends TieredMachine implements IControllable,
         return slot;
     }
 
-    private FancyConfiguratorButton.Toggle createLDLib2WorkingEnabledConfigurator(Player player,
-                                                                                  MachineUIHolder holder) {
+    private FancyConfiguratorButton.Toggle createWorkingEnabledConfigurator(Player player,
+                                                                            MachineUIHolder holder) {
         return new FancyConfiguratorButton.Toggle(
                 GuiTextures.BUTTON_POWER.getSubTexture(0, 0, 1, 0.5),
                 GuiTextures.BUTTON_POWER.getSubTexture(0, 0.5, 1, 0.5),
                 this::isWorkingEnabled,
                 (event, pressed) -> {
-                    setLDLib2AutoOutputItems(player, pressed);
+                    setAutoOutputItems(player, pressed);
                     event.stopImmediatePropagation();
                     event.hasHandler = true;
                 })
@@ -458,7 +458,7 @@ public class QuantumChestMachine extends TieredMachine implements IControllable,
                         pressed ? "behaviour.soft_hammer.enabled" : "behaviour.soft_hammer.disabled")));
     }
 
-    private void setLDLib2LockedItem(Player player, MachineUIHolder holder, ItemStack item) {
+    private void setLockedItem(Player player, MachineUIHolder holder, ItemStack item) {
         setLocked(item);
         if (player.level().isClientSide()) {
             MachineUIHelper.sendAction(holder,
@@ -466,7 +466,7 @@ public class QuantumChestMachine extends TieredMachine implements IControllable,
         }
     }
 
-    private void setLDLib2Locked(Player player, MachineUIHolder holder, boolean locked) {
+    private void setLocked(Player player, MachineUIHolder holder, boolean locked) {
         setLocked(locked);
         if (player.level().isClientSide()) {
             MachineUIHelper.sendAction(holder,
@@ -474,21 +474,21 @@ public class QuantumChestMachine extends TieredMachine implements IControllable,
         }
     }
 
-    GTToggleButtonElement createLDLib2VoidingButton() {
+    GTToggleButtonElement createVoidingButton() {
         return new GTToggleButtonElement(40, 41, 18, 18,
-                GuiTextures.BUTTON_VOID, () -> isVoiding, this::setLDLib2Voiding)
+                GuiTextures.BUTTON_VOID, () -> isVoiding, this::setVoidingAndSync)
                 .setShouldUseBaseBackground()
                 .setTooltipText("gtpm.gui.item_voiding_partial.tooltip");
     }
 
-    private void setLDLib2Voiding(boolean voiding) {
+    private void setVoidingAndSync(boolean voiding) {
         setVoiding(voiding);
         if (isRemote()) {
             sendServerSyncChanges();
         }
     }
 
-    private void setLDLib2AutoOutputItems(Player player, boolean enabled) {
+    private void setAutoOutputItems(Player player, boolean enabled) {
         setWorkingEnabled(enabled);
         if (player.level().isClientSide()) {
             sendServerSyncChanges();
@@ -544,19 +544,19 @@ public class QuantumChestMachine extends TieredMachine implements IControllable,
         return super.sideTips(player, pos, state, toolTypes, held, side);
     }
 
-    private final class QuantumChestLDLib2Page implements FancyUIProvider {
+    private final class QuantumChestPage implements FancyUIProvider {
 
         private final Player player;
         private final MachineUIHolder holder;
 
-        private QuantumChestLDLib2Page(Player player, MachineUIHolder holder) {
+        private QuantumChestPage(Player player, MachineUIHolder holder) {
             this.player = player;
             this.holder = holder;
         }
 
         @Override
         public UIElement createMainPage(FancyMachineUI shell) {
-            return QuantumChestMachine.this.createLDLib2MainPage(player, holder);
+            return QuantumChestMachine.this.createStoragePage(player, holder);
         }
 
         @Override
@@ -581,7 +581,7 @@ public class QuantumChestMachine extends TieredMachine implements IControllable,
 
         @Override
         public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
-            configuratorPanel.attachConfigurators(createLDLib2WorkingEnabledConfigurator(player, holder));
+            configuratorPanel.attachConfigurators(createWorkingEnabledConfigurator(player, holder));
         }
 
         @Override

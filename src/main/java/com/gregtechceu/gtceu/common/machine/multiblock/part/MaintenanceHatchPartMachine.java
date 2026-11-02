@@ -354,10 +354,10 @@ public class MaintenanceHatchPartMachine extends TieredPartMachine
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
         if (isConfigurable) {
             root.addChild(new GTImageElement(4, 4, 150 - 8, 70 - 8, GuiTextures.DISPLAY));
-            root.addChild(createLDLib2DurationPanel(player, holder));
+            root.addChild(createDurationPanel(player, holder));
         }
-        root.addChild(createLDLib2DuctTapeSlot(rootWidth));
-        root.addChild(createLDLib2MaintenanceButton(player, holder, rootWidth));
+        root.addChild(createDuctTapeSlot(rootWidth));
+        root.addChild(createMaintenanceButton(player, holder, rootWidth));
         return UI.of(root);
     }
 
@@ -367,7 +367,7 @@ public class MaintenanceHatchPartMachine extends TieredPartMachine
                 this::attachMaintenanceTooltips);
     }
 
-    private GTComponentPanelElement createLDLib2DurationPanel(Player player, MachineUIHolder holder) {
+    private GTComponentPanelElement createDurationPanel(Player player, MachineUIHolder holder) {
         return new GTComponentPanelElement(8, 9, list -> {
             list.add(getTextWidgetText("duration", this::getDurationMultiplier));
             list.add(getTextWidgetText("time", this::getTimeMultiplier));
@@ -379,14 +379,14 @@ public class MaintenanceHatchPartMachine extends TieredPartMachine
             list.add(buttonText);
         }).setMaxWidthLimit(150 - 8 - 8 - 4).clickHandler((componentData, clickData) -> {
             switch (componentData) {
-                case "sub" -> adjustLDLib2Duration(player, holder, -1);
-                case "add" -> adjustLDLib2Duration(player, holder, 1);
+                case "sub" -> adjustDuration(player, holder, -1);
+                case "add" -> adjustDuration(player, holder, 1);
                 default -> throw new IllegalArgumentException("Unknown maintenance duration action: " + componentData);
             }
         });
     }
 
-    private GTItemSlotElement createLDLib2DuctTapeSlot(int rootWidth) {
+    private GTItemSlotElement createDuctTapeSlot(int rootWidth) {
         GTItemSlotElement slot = new GTItemSlotElement(itemStackHandler, 0)
                 .setBackgroundTexture(GuiTextures.group(GuiTextures.SLOT, GuiTextures.DUCT_TAPE_OVERLAY))
                 .setOnAddedTooltips((slotElement, tooltips) -> tooltips.add(Component.translatable(
@@ -394,9 +394,9 @@ public class MaintenanceHatchPartMachine extends TieredPartMachine
         return UITemplate.setBounds(slot, rootWidth - 4 - 18, 4, 18, 18);
     }
 
-    private GTButtonElement createLDLib2MaintenanceButton(Player player, MachineUIHolder holder, int rootWidth) {
+    private GTButtonElement createMaintenanceButton(Player player, MachineUIHolder holder, int rootWidth) {
         GTButtonElement button = new GTButtonElement(rootWidth - 4 - 18, 4 + 20, 18, 18,
-                GuiTextures.MAINTENANCE_BUTTON, event -> fixLDLib2MaintenanceProblems(player, holder));
+                GuiTextures.MAINTENANCE_BUTTON, event -> fixMaintenanceProblems(player, holder));
         button.style(style -> style.tooltips("gtpm.machine.maintenance_hatch_tool_slot.tooltip"));
         return button;
     }
@@ -415,7 +415,7 @@ public class MaintenanceHatchPartMachine extends TieredPartMachine
                 .setStyle(Style.EMPTY.withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, tooltip)));
     }
 
-    private void adjustLDLib2Duration(Player player, MachineUIHolder holder, int direction) {
+    private void adjustDuration(Player player, MachineUIHolder holder, int direction) {
         adjustDurationMultiplier(direction);
         if (player.level().isClientSide()) {
             MachineUIHelper.sendAction(holder,
@@ -423,7 +423,7 @@ public class MaintenanceHatchPartMachine extends TieredPartMachine
         }
     }
 
-    private void fixLDLib2MaintenanceProblems(Player player, MachineUIHolder holder) {
+    private void fixMaintenanceProblems(Player player, MachineUIHolder holder) {
         if (player.level().isClientSide()) {
             MachineUIHelper.sendAction(holder, MaintenanceHatchPartMachineActions.createFixMaintenanceProblemsAction());
         } else if (player instanceof ServerPlayer serverPlayer) {

@@ -99,19 +99,19 @@ public class ItemVoidingCover extends ConveyorCover implements IControllable {
         UITemplate.setBounds(root, 0, 0, 176, 202);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));
 
-        root.addChild(createLDLib2Label());
+        root.addChild(createLabel());
         root.addChild(new GTToggleButtonElement(10, 20, 20, 20, GuiTextures.BUTTON_POWER,
-                this::isWorkingEnabled, enabled -> setLDLib2WorkingEnabled(player, holder, enabled)));
-        buildAdditionalLDLib2UI(root, player, holder);
-        root.addChild(filterHandler.createFilterSlotLDLib2UI(148, 91));
-        root.addChild(filterHandler.createFilterConfigLDLib2UI(10, 50, 126, 60));
+                this::isWorkingEnabled, enabled -> setWorkingEnabled(player, holder, enabled)));
+        buildAdditionalUI(root, player, holder);
+        root.addChild(filterHandler.createFilterSlotUI(148, 91));
+        root.addChild(filterHandler.createFilterConfigUI(10, 50, 126, 60));
         root.addChild(UITemplate.bindPlayerInventory(player.getInventory(), GuiTextures.SLOT, 7, 120, true));
         return UI.of(root);
     }
 
-    protected void buildAdditionalLDLib2UI(UIElement root, Player player, UICoverHolder holder) {}
+    protected void buildAdditionalUI(UIElement root, Player player, UICoverHolder holder) {}
 
-    private GTLabelElement createLDLib2Label() {
+    private GTLabelElement createLabel() {
         GTLabelElement label = new GTLabelElement(10, 5, 156, 10, getUITitle(), true);
         label.textStyle(style -> style
                 .textColor(0x404040)
@@ -121,7 +121,7 @@ public class ItemVoidingCover extends ConveyorCover implements IControllable {
         return label;
     }
 
-    private void setLDLib2WorkingEnabled(Player player, UICoverHolder holder, boolean enabled) {
+    private void setWorkingEnabled(Player player, UICoverHolder holder, boolean enabled) {
         setWorkingEnabled(enabled);
         if (player.level().isClientSide()) {
             CoverUIHelper.sendAction(holder, ItemVoidingCoverConfigActions.createSetWorkingEnabledAction(enabled));

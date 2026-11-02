@@ -298,7 +298,7 @@ public class ComponentItem extends Item
     public boolean canCreateUI(Player entityPlayer, HeldItemUIHolder holder) {
         for (IItemComponent component : components) {
             if (component instanceof IItemUIFactory uiFactory) {
-                return uiFactory.canCreateLDLib2UI(holder, entityPlayer);
+                return uiFactory.canCreateUI(holder, entityPlayer);
             }
         }
         return false;
@@ -308,10 +308,10 @@ public class ComponentItem extends Item
     public UI createUI(Player entityPlayer, HeldItemUIHolder holder) {
         for (IItemComponent component : components) {
             if (component instanceof IItemUIFactory uiFactory) {
-                if (!uiFactory.canCreateLDLib2UI(holder, entityPlayer)) {
+                if (!uiFactory.canCreateUI(holder, entityPlayer)) {
                     break;
                 }
-                return uiFactory.createLDLib2UI(holder, entityPlayer);
+                return uiFactory.createUI(holder, entityPlayer);
             }
         }
         throw new IllegalStateException("No item component exposes an LDLib2 UI for the opened stack.");
@@ -321,7 +321,7 @@ public class ComponentItem extends Item
     public boolean isUIStillValid(Player entityPlayer, HeldItemUIHolder holder) {
         for (IItemComponent component : components) {
             if (component instanceof IItemUIFactory uiFactory) {
-                return uiFactory.isLDLib2UIStillValid(holder, entityPlayer);
+                return uiFactory.isUIStillValid(holder, entityPlayer);
             }
         }
         return HeldItemUIProvider.super.isUIStillValid(entityPlayer, holder);

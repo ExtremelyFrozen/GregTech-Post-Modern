@@ -144,7 +144,7 @@ public class SimpleGeneratorMachine extends WorkableTieredMachine
                                     machine.getClass().getName());
                         }
                         generatorMachine.bindRecipeElements(root, generatorMachine);
-                        generatorMachine.bindLDLib2EnergyBar(MachineUIXmlTemplates.requireElement(root,
+                        generatorMachine.bindEnergyBar(MachineUIXmlTemplates.requireElement(root,
                                 MachineUIXmlTemplates.ENERGY_BAR_ID, GTProgressBarElement.class));
                     }));
 }

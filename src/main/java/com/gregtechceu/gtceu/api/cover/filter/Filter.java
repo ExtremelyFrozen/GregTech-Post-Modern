@@ -13,7 +13,7 @@ public interface Filter<T, S extends Filter<T, S>> extends Predicate<T> {
     /**
      * Builds the LDLib2 configurator at the requested fixed-position offset.
      */
-    UIElement openLDLib2Configurator(int x, int y);
+    UIElement openConfigurator(int x, int y);
 
     /**
      * Registers the callback used to persist and propagate filter changes.

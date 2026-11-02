@@ -64,15 +64,15 @@ public class TerminalBehavior implements IItemUIFactory {
     }
 
     @Override
-    public boolean canCreateLDLib2UI(HeldItemUIHolder holder, Player player) {
+    public boolean canCreateUI(HeldItemUIHolder holder, Player player) {
         TerminalControllerBinding binding = holder.getOpenedStack().get(GTDataComponents.TERMINAL_CONTROLLER);
         return binding != null &&
                 GTRegistries.MACHINES.get(binding.definitionId()) instanceof MultiblockMachineDefinition &&
-                isLDLib2UIStillValid(holder, player);
+                isUIStillValid(holder, player);
     }
 
     @Override
-    public boolean isLDLib2UIStillValid(HeldItemUIHolder holder, Player player) {
+    public boolean isUIStillValid(HeldItemUIHolder holder, Player player) {
         TerminalControllerBinding binding = holder.getOpenedStack().get(GTDataComponents.TERMINAL_CONTROLLER);
         if (binding == null || !ItemStack.isSameItem(holder.getHeld(), holder.getOpenedStack()) ||
                 !Objects.equals(binding, holder.getHeld().get(GTDataComponents.TERMINAL_CONTROLLER)) ||
@@ -85,7 +85,7 @@ public class TerminalBehavior implements IItemUIFactory {
     }
 
     @Override
-    public UI createLDLib2UI(HeldItemUIHolder holder, Player player) {
+    public UI createUI(HeldItemUIHolder holder, Player player) {
         return new TerminalScreen(holder, player).createUI();
     }
 

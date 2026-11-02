@@ -171,7 +171,7 @@ public class SteamMinerMachine extends SteamWorkableMachine implements IControll
             }
         }
 
-        root.addChild(createLDLib2TitleLabel());
+        root.addChild(createTitleLabel());
         root.addChild(new GTImageElement(7, 16, 105, 75, GuiTextures.DISPLAY_STEAM.get(isHighPressure())));
         root.addChild(new GTImageElement(79, 42, 18, 18,
                 GuiTextures.INDICATOR_NO_STEAM.get(isHighPressure())).setVisibleSupplier(() -> !drainInput(true)));
@@ -181,7 +181,7 @@ public class SteamMinerMachine extends SteamWorkableMachine implements IControll
         return UI.of(root);
     }
 
-    private GTLabelElement createLDLib2TitleLabel() {
+    private GTLabelElement createTitleLabel() {
         GTLabelElement label = new GTLabelElement(5, 5, 166, 10,
                 getBlockState().getBlock().getDescriptionId(), true);
         label.textStyle(style -> style

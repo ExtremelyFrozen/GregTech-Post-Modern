@@ -26,13 +26,13 @@ public final class StandardFluidHatchPartMachine extends FluidHatchPartMachine
 
     /** Ordinary definitions always use the generic fluid hatch page, including addon registrations. */
     @Override
-    protected boolean supportsGenericLDLib2Page() {
+    protected boolean supportsGenericPage() {
         return true;
     }
 
     /** Reuses the holder-validated ordinary hatch page for one controller UI opening. */
     @Override
     public FancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
-        return createLDLib2Page(player, holder);
+        return createPage(player, holder);
     }
 }

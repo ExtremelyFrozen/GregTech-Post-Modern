@@ -122,14 +122,14 @@ public class DataAccessHatchMachine extends TieredPartMachine
         UIElement root = new UIElement();
         UITemplate.setBounds(root, 0, 0, rootWidth, rootHeight);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));
-        root.addChild(createLDLib2TitleLabel(rootWidth));
+        root.addChild(createTitleLabel(rootWidth));
         root.addChild(UITemplate.bindPlayerInventory(player.getInventory(), GuiTextures.SLOT, 7,
                 18 + 18 * rowSize + 12, true));
 
         for (int y = 0; y < rowSize; y++) {
             for (int x = 0; x < rowSize; x++) {
                 int index = y * rowSize + x;
-                root.addChild(createLDLib2DataSlot(index, 88 - rowSize * 9 + x * 18, 18 + y * 18));
+                root.addChild(createDataSlot(index, 88 - rowSize * 9 + x * 18, 18 + y * 18));
             }
         }
         return UI.of(root);
@@ -142,31 +142,31 @@ public class DataAccessHatchMachine extends TieredPartMachine
             throw new IllegalStateException(
                     "Creative Data Access Hatch is excluded from controller contextual pages.");
         }
-        requireMatchingLDLib2Holder(holder);
-        return new DataAccessHatchLDLib2Page(player, holder);
+        requireMatchingHolder(holder);
+        return new DataAccessHatchPage(player, holder);
     }
 
-    private void requireMatchingLDLib2Holder(MachineUIHolder holder) {
+    private void requireMatchingHolder(MachineUIHolder holder) {
         if (holder.getMachine() != this) {
             throw new IllegalArgumentException(
                     "Data Access Hatch contextual page holder must resolve the opened hatch.");
         }
     }
 
-    private UIElement createLDLib2ContextualMainElement() {
+    private UIElement createContextualMainElement() {
         int rowSize = (int) Math.sqrt(getInventorySize());
         int pageSize = rowSize * 18;
         UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, pageSize, pageSize);
         for (int y = 0; y < rowSize; y++) {
             for (int x = 0; x < rowSize; x++) {
                 int index = y * rowSize + x;
-                root.addChild(createLDLib2DataSlot(index, x * 18, y * 18));
+                root.addChild(createDataSlot(index, x * 18, y * 18));
             }
         }
         return root;
     }
 
-    private GTLabelElement createLDLib2TitleLabel(int rootWidth) {
+    private GTLabelElement createTitleLabel(int rootWidth) {
         GTLabelElement label = new GTLabelElement(10, 5, rootWidth - 20, 10,
                 getBlockState().getBlock().getDescriptionId(), true);
         label.textStyle(style -> style
@@ -177,7 +177,7 @@ public class DataAccessHatchMachine extends TieredPartMachine
         return label;
     }
 
-    private GTItemSlotElement createLDLib2DataSlot(int index, int x, int y) {
+    private GTItemSlotElement createDataSlot(int index, int x, int y) {
         GTItemSlotElement slot = new GTItemSlotElement(importItems, index)
                 .setBackgroundTexture(GuiTextures.SLOT)
                 .setCanPutItems(true)
@@ -187,13 +187,13 @@ public class DataAccessHatchMachine extends TieredPartMachine
     }
 
     /** Keeps contextual inventory state and actions scoped to one validated menu opening. */
-    private final class DataAccessHatchLDLib2Page implements FancyUIProvider {
+    private final class DataAccessHatchPage implements FancyUIProvider {
 
         private final MachineUIHolder holder;
         private final DirectionalConfigurator directionalPage;
 
-        private DataAccessHatchLDLib2Page(Player player, MachineUIHolder holder) {
-            requireMatchingLDLib2Holder(holder);
+        private DataAccessHatchPage(Player player, MachineUIHolder holder) {
+            requireMatchingHolder(holder);
             this.holder = holder;
             this.directionalPage = new DirectionalConfigurator(
                     DataAccessHatchMachine.this, player, holder);
@@ -205,7 +205,7 @@ public class DataAccessHatchMachine extends TieredPartMachine
                 throw new IllegalStateException(
                         "Data Access Hatch contextual page holder no longer resolves its opened hatch.");
             }
-            return createLDLib2ContextualMainElement();
+            return createContextualMainElement();
         }
 
         @Override

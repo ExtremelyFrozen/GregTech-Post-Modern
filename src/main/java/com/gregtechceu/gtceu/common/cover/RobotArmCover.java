@@ -50,7 +50,7 @@ public class RobotArmCover extends ConveyorCover {
     protected int globalTransferLimit;
     protected int itemsTransferBuffered;
 
-    private @Nullable GTIntInputElement stackSizeLDLib2Input;
+    private @Nullable GTIntInputElement stackSizeInput;
 
     public RobotArmCover(CoverDefinition definition, ICoverable coverHolder, Direction attachedSide, int tier,
                          int maxTransferRate) {
@@ -180,14 +180,14 @@ public class RobotArmCover extends ConveyorCover {
     }
 
     @Override
-    protected void buildAdditionalLDLib2UI(UIElement root, Player player, UICoverHolder holder) {
+    protected void buildAdditionalUI(UIElement root, Player player, UICoverHolder holder) {
         root.addChild(GTEnumSelectorElement.selectable(146, 45, 20, 20, TransferMode.values(),
-                this::getTransferMode, mode -> setLDLib2TransferMode(player, holder, mode)));
+                this::getTransferMode, mode -> setTransferMode(player, holder, mode)));
 
-        this.stackSizeLDLib2Input = new GTIntInputElement(64, 45, 80, 20,
-                this::getGlobalTransferLimit, value -> setLDLib2GlobalTransferLimit(player, holder, value));
+        this.stackSizeInput = new GTIntInputElement(64, 45, 80, 20,
+                this::getGlobalTransferLimit, value -> setGlobalTransferLimit(player, holder, value));
         configureStackSizeInput();
-        root.addChild(this.stackSizeLDLib2Input);
+        root.addChild(this.stackSizeInput);
     }
 
     public void setTransferMode(TransferMode transferMode) {
@@ -215,12 +215,12 @@ public class RobotArmCover extends ConveyorCover {
     }
 
     private void configureStackSizeInput() {
-        if (this.stackSizeLDLib2Input == null)
+        if (this.stackSizeInput == null)
             return;
 
-        this.stackSizeLDLib2Input.setVisible(shouldShowStackSize());
-        this.stackSizeLDLib2Input.setMin(1);
-        this.stackSizeLDLib2Input.setMax(this.transferMode.maxStackSize);
+        this.stackSizeInput.setVisible(shouldShowStackSize());
+        this.stackSizeInput.setMin(1);
+        this.stackSizeInput.setMax(this.transferMode.maxStackSize);
     }
 
     private boolean shouldShowStackSize() {
@@ -233,17 +233,17 @@ public class RobotArmCover extends ConveyorCover {
         return !this.filterHandler.getFilter().supportsAmounts();
     }
 
-    private void setLDLib2TransferMode(Player player, UICoverHolder holder, TransferMode mode) {
+    private void setTransferMode(Player player, UICoverHolder holder, TransferMode mode) {
         setTransferMode(mode);
-        sendLDLib2ConfigAction(player, holder);
+        sendConfigAction(player, holder);
     }
 
-    private void setLDLib2GlobalTransferLimit(Player player, UICoverHolder holder, int value) {
+    private void setGlobalTransferLimit(Player player, UICoverHolder holder, int value) {
         setGlobalTransferLimit(value);
-        sendLDLib2ConfigAction(player, holder);
+        sendConfigAction(player, holder);
     }
 
-    private void sendLDLib2ConfigAction(Player player, UICoverHolder holder) {
+    private void sendConfigAction(Player player, UICoverHolder holder) {
         if (player.level().isClientSide()) {
             CoverUIHelper.sendAction(holder, RobotArmCoverConfigActions.createSetConfigAction(getTransferMode(),
                     getGlobalTransferLimit()));

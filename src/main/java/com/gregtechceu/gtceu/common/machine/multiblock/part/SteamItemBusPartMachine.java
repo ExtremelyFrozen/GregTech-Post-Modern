@@ -52,8 +52,8 @@ public class SteamItemBusPartMachine extends ItemBusPartMachine
         UITemplate.setBounds(root, 0, 0, rootWidth, rootHeight);
         UITemplate.setBackgroundTexture(root,
                 GuiTextures.BACKGROUND_STEAM.get(steelSteamMultiblocks));
-        root.addChild(createLDLib2TitleLabel(rootWidth));
-        root.addChild(createLDLib2WorkingEnabledToggle(7 + xOffset, 18 + 18 * rowSize));
+        root.addChild(createTitleLabel(rootWidth));
+        root.addChild(createWorkingEnabledToggle(7 + xOffset, 18 + 18 * rowSize));
         root.addChild(UITemplate.bindPlayerInventory(player.getInventory(),
                 GuiTextures.SLOT_STEAM.get(steelSteamMultiblocks),
                 7 + xOffset, 18 + 18 * rowSize + 24, true));
@@ -61,7 +61,7 @@ public class SteamItemBusPartMachine extends ItemBusPartMachine
         for (int y = 0; y < rowSize; y++) {
             for (int x = 0; x < rowSize; x++) {
                 int index = y * rowSize + x;
-                root.addChild(createLDLib2InventorySlot(index,
+                root.addChild(createInventorySlot(index,
                         (88 - rowSize * 9 + x * 18) + xOffset, 18 + y * 18 + 6, steelSteamMultiblocks));
             }
         }
@@ -73,7 +73,7 @@ public class SteamItemBusPartMachine extends ItemBusPartMachine
      * Allows the steam-specific standalone screen to reuse the ordinary Item Bus body in a controller context.
      */
     @Override
-    protected boolean supportsGenericLDLib2Page() {
+    protected boolean supportsGenericPage() {
         return true;
     }
 
@@ -82,10 +82,10 @@ public class SteamItemBusPartMachine extends ItemBusPartMachine
      */
     @Override
     public FancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
-        return createLDLib2Page(player, holder);
+        return createPage(player, holder);
     }
 
-    private GTLabelElement createLDLib2TitleLabel(int rootWidth) {
+    private GTLabelElement createTitleLabel(int rootWidth) {
         GTLabelElement label = new GTLabelElement(10, 5, rootWidth - 20, 10,
                 getBlockState().getBlock().getDescriptionId(), true);
         label.textStyle(style -> style
@@ -96,7 +96,7 @@ public class SteamItemBusPartMachine extends ItemBusPartMachine
         return label;
     }
 
-    private GTItemSlotElement createLDLib2InventorySlot(int index, int x, int y, boolean steelSteamMultiblocks) {
+    private GTItemSlotElement createInventorySlot(int index, int x, int y, boolean steelSteamMultiblocks) {
         GTItemSlotElement slot = new GTItemSlotElement(getInventory().storage, index)
                 .setBackgroundTexture(GuiTextures.SLOT_STEAM.get(steelSteamMultiblocks))
                 .setCanTakeItems(true)
@@ -105,7 +105,7 @@ public class SteamItemBusPartMachine extends ItemBusPartMachine
         return slot;
     }
 
-    GTToggleButtonElement createLDLib2WorkingEnabledToggle(int x, int y) {
+    GTToggleButtonElement createWorkingEnabledToggle(int x, int y) {
         return new GTToggleButtonElement(x, y, 18, 18,
                 GuiTextures.BUTTON_ITEM_OUTPUT, this::isWorkingEnabled, enabled -> {
                     setWorkingEnabled(enabled);

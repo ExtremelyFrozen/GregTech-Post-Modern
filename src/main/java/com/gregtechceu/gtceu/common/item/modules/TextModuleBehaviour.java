@@ -95,21 +95,21 @@ public class TextModuleBehaviour implements IMonitorModuleItem, IAddInformation 
         UITemplate.setBounds(editor, EDITOR_X, 0, EDITOR_WIDTH, EDITOR_HEIGHT);
         editor.setLines(getFormatStringLines(stack));
 
-        GTTextFieldElement scaleInput = createLDLib2ScaleInput(stack);
+        GTTextFieldElement scaleInput = createScaleInput(stack);
         TextEditSession editSession = TextEditSession.open(machine, group, stack);
         GTButtonElement saveButton = new GTButtonElement(CONFIGURATION_WIDTH - 20, 84, 20, 20,
                 GuiTextures.group(GuiTextures.VANILLA_BUTTON, GuiTextures.BUTTON_CHECK),
                 event -> {
                     if (!machine.isRemote()) return;
-                    saveLDLib2Text(editSession, editor, scaleInput, actionSender);
+                    saveText(editSession, editor, scaleInput, actionSender);
                 });
         saveButton.noText();
 
-        builder.addChildren(editor, saveButton, scaleInput, createLDLib2PlaceholderReference());
+        builder.addChildren(editor, saveButton, scaleInput, createPlaceholderReference());
         return builder;
     }
 
-    private static GTTextFieldElement createLDLib2ScaleInput(ItemStack stack) {
+    private static GTTextFieldElement createScaleInput(ItemStack stack) {
         GTTextFieldElement scaleInput = new GTTextFieldElement(EDITOR_X, 86, 72, 12);
         scaleInput.setNumbersOnlyFloat(.0001f, 1000f);
         scaleInput.setText(getScaleText(stack), false);
@@ -133,8 +133,8 @@ public class TextModuleBehaviour implements IMonitorModuleItem, IAddInformation 
         return String.valueOf(Mth.clamp(configuration.scale(), .0001f, 1000f));
     }
 
-    private static void saveLDLib2Text(TextEditSession editSession, CodeEditor editor,
-                                       GTTextFieldElement scaleInput, Consumer<SyncActionData> actionSender) {
+    private static void saveText(TextEditSession editSession, CodeEditor editor,
+                                 GTTextFieldElement scaleInput, Consumer<SyncActionData> actionSender) {
         if (scaleInput.isError()) {
             GTCEu.LOGGER.error("Invalid monitor text module scale: {}", scaleInput.getRawText());
             return;
@@ -209,11 +209,11 @@ public class TextModuleBehaviour implements IMonitorModuleItem, IAddInformation 
         }
     }
 
-    private static UIElement createLDLib2PlaceholderReference() {
+    private static UIElement createPlaceholderReference() {
         UIElement root = new UIElement();
         UITemplate.setBounds(root, 0, 0, PLACEHOLDER_REFERENCE_WIDTH, CONFIGURATION_HEIGHT);
 
-        root.addChild(createLDLib2Label(0,
+        root.addChild(createLabel(0,
                 Component.literal(GTStringUtils.componentsToString(
                         LangHandler.getMultiLang("gtpm.gui.computer_monitor_cover.placeholder_reference")))));
 
@@ -228,7 +228,7 @@ public class TextModuleBehaviour implements IMonitorModuleItem, IAddInformation 
         List<String> placeholders = new ArrayList<>(PlaceholderHandler.getAllPlaceholderNames());
         placeholders.sort(Comparator.naturalOrder());
         for (String placeholder : placeholders) {
-            GTLabelElement placeholderName = createLDLib2Label(y, Component.literal(placeholder));
+            GTLabelElement placeholderName = createLabel(y, Component.literal(placeholder));
             placeholderName.style(style -> style.tooltips(tooltips(
                     LangHandler.getSingleOrMultiLang("gtpm.placeholder_info." + placeholder))));
             placeholderReference.addScrollViewChild(placeholderName);
@@ -238,7 +238,7 @@ public class TextModuleBehaviour implements IMonitorModuleItem, IAddInformation 
         return root;
     }
 
-    private static GTLabelElement createLDLib2Label(int y, Component text) {
+    private static GTLabelElement createLabel(int y, Component text) {
         GTLabelElement label = new GTLabelElement(0, y, PLACEHOLDER_REFERENCE_WIDTH, 15, text);
         label.textStyle(style -> style
                 .textColor(0x404040)

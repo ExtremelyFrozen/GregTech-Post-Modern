@@ -328,20 +328,20 @@ public abstract class SteamBoilerMachine extends SteamWorkableMachine
 
     @Override
     public UI createUI(Player player, MachineUIHolder holder) {
-        UIElement root = createLDLib2Root(player, holder);
-        addLDLib2AdditionalWidgets(root, player, holder);
+        UIElement root = createRoot(player, holder);
+        addAdditionalWidgets(root, player, holder);
         return UI.of(root);
     }
 
-    protected UIElement createLDLib2Root(Player player, MachineUIHolder holder) {
+    protected UIElement createRoot(Player player, MachineUIHolder holder) {
         UIElement root = new UIElement();
         UITemplate.setBounds(root, 0, 0, 176, 166);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_STEAM.get(isHighPressure)));
-        root.addChild(createLDLib2TitleLabel());
-        root.addChild(createLDLib2TemperatureProgressBar());
-        root.addChild(createLDLib2FluidSlot(player, holder, waterTank.getStorages()[0], 83, 26,
+        root.addChild(createTitleLabel());
+        root.addChild(createTemperatureProgressBar());
+        root.addChild(createFluidSlot(player, holder, waterTank.getStorages()[0], 83, 26,
                 WATER_FLUID_SLOT, false, true));
-        root.addChild(createLDLib2FluidSlot(player, holder, steamTank.getStorages()[0], 70, 26,
+        root.addChild(createFluidSlot(player, holder, steamTank.getStorages()[0], 70, 26,
                 STEAM_FLUID_SLOT, true, false));
         root.addChild(new GTImageElement(43, 44, 18, 18, GuiTextures.CANISTER_OVERLAY_STEAM.get(isHighPressure)));
         root.addChild(UITemplate.bindPlayerInventory(player.getInventory(),
@@ -349,9 +349,9 @@ public abstract class SteamBoilerMachine extends SteamWorkableMachine
         return root;
     }
 
-    protected void addLDLib2AdditionalWidgets(UIElement root, Player player, MachineUIHolder holder) {}
+    protected void addAdditionalWidgets(UIElement root, Player player, MachineUIHolder holder) {}
 
-    private GTLabelElement createLDLib2TitleLabel() {
+    private GTLabelElement createTitleLabel() {
         GTLabelElement label = new GTLabelElement(6, 6, 164, 10,
                 getBlockState().getBlock().getDescriptionId(), true);
         label.textStyle(style -> style
@@ -362,7 +362,7 @@ public abstract class SteamBoilerMachine extends SteamWorkableMachine
         return label;
     }
 
-    private GTProgressBarElement createLDLib2TemperatureProgressBar() {
+    private GTProgressBarElement createTemperatureProgressBar() {
         var progressTexture = GuiTextures.progressBar(
                 GuiTextures.PROGRESS_BAR_BOILER_EMPTY.get(isHighPressure),
                 GuiTextures.PROGRESS_BAR_BOILER_HEAT);
@@ -376,9 +376,9 @@ public abstract class SteamBoilerMachine extends SteamWorkableMachine
         return UITemplate.setBounds(progressBar, 96, 26, 10, 54);
     }
 
-    protected GTFluidSlotElement createLDLib2FluidSlot(Player player, MachineUIHolder holder, IFluidHandler storage,
-                                                       int x, int y, int fluidSlot, boolean allowClickFilled,
-                                                       boolean allowClickDrained) {
+    protected GTFluidSlotElement createFluidSlot(Player player, MachineUIHolder holder, IFluidHandler storage,
+                                                 int x, int y, int fluidSlot, boolean allowClickFilled,
+                                                 boolean allowClickDrained) {
         GTFluidSlotElement tank = new GTFluidSlotElement()
                 .setFluidTank(storage, 0)
                 .setShowAmount(false)
@@ -399,31 +399,31 @@ public abstract class SteamBoilerMachine extends SteamWorkableMachine
         return UITemplate.setBounds(tank, x, y, 10, 54);
     }
 
-    protected @Nullable LDLib2FluidClickTarget getLDLib2FluidClickTarget(int fluidSlot) {
+    protected @Nullable FluidClickTarget getFluidClickTarget(int fluidSlot) {
         return switch (fluidSlot) {
-            case WATER_FLUID_SLOT -> createLDLib2FluidClickTarget(waterTank.getStorages()[0], false, true);
-            case STEAM_FLUID_SLOT -> createLDLib2FluidClickTarget(steamTank.getStorages()[0], true, false);
+            case WATER_FLUID_SLOT -> createFluidClickTarget(waterTank.getStorages()[0], false, true);
+            case STEAM_FLUID_SLOT -> createFluidClickTarget(steamTank.getStorages()[0], true, false);
             default -> null;
         };
     }
 
-    protected LDLib2FluidClickTarget createLDLib2FluidClickTarget(IFluidHandler fluidTank, boolean allowClickFilled,
-                                                                  boolean allowClickDrained) {
-        return new LDLib2FluidClickTarget(fluidTank, allowClickFilled, allowClickDrained);
+    protected FluidClickTarget createFluidClickTarget(IFluidHandler fluidTank, boolean allowClickFilled,
+                                                      boolean allowClickDrained) {
+        return new FluidClickTarget(fluidTank, allowClickFilled, allowClickDrained);
     }
 
     @Override
     @ApiStatus.Internal
     public void clickSteamBoilerFluidSlot(@NotNull ServerPlayer player, int fluidSlot, boolean shiftDown) {
-        LDLib2FluidClickTarget target = getLDLib2FluidClickTarget(fluidSlot);
+        FluidClickTarget target = getFluidClickTarget(fluidSlot);
         if (target == null) {
             throw new IllegalArgumentException("Invalid steam boiler fluid slot: " + fluidSlot);
         }
         target.click(player, shiftDown);
     }
 
-    protected record LDLib2FluidClickTarget(IFluidHandler fluidTank, boolean allowClickFilled,
-                                            boolean allowClickDrained) {
+    protected record FluidClickTarget(IFluidHandler fluidTank, boolean allowClickFilled,
+                                      boolean allowClickDrained) {
 
         private void click(ServerPlayer player, boolean shiftDown) {
             ItemStack currentStack = player.containerMenu.getCarried();

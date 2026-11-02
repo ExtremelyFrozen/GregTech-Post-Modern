@@ -53,8 +53,8 @@ public class AdvancedFluidVoidingCover extends FluidVoidingCover
     @Getter
     private BucketMode transferBucketMode = BucketMode.MILLI_BUCKET;
 
-    private @Nullable GTIntInputElement stackSizeLDLib2Input;
-    private @Nullable GTEnumSelectorElement<BucketMode> stackSizeBucketModeLDLib2Input;
+    private @Nullable GTIntInputElement stackSizeInput;
+    private @Nullable GTEnumSelectorElement<BucketMode> stackSizeBucketModeInput;
 
     public AdvancedFluidVoidingCover(CoverDefinition definition, ICoverable coverHolder, Direction attachedSide) {
         super(definition, coverHolder, attachedSide);
@@ -118,8 +118,8 @@ public class AdvancedFluidVoidingCover extends FluidVoidingCover
         this.transferBucketMode = transferBucketMode;
         syncDataHolder.markClientSyncFieldDirty("transferBucketMode");
 
-        if (stackSizeLDLib2Input == null) return;
-        stackSizeLDLib2Input.setValue(getCurrentBucketModeTransferSize());
+        if (stackSizeInput == null) return;
+        stackSizeInput.setValue(getCurrentBucketModeTransferSize());
     }
 
     //////////////////////////////////////
@@ -132,20 +132,20 @@ public class AdvancedFluidVoidingCover extends FluidVoidingCover
     }
 
     @Override
-    protected void buildAdditionalLDLib2UI(UIElement root, Player player, UICoverHolder holder) {
+    protected void buildAdditionalUI(UIElement root, Player player, UICoverHolder holder) {
         root.addChild(GTEnumSelectorElement.selectable(146, 20, 20, 20, VoidingMode.values(), this::getVoidingMode,
-                mode -> setLDLib2VoidingMode(player, holder, mode)));
+                mode -> setVoidingMode(player, holder, mode)));
 
-        this.stackSizeLDLib2Input = new GTIntInputElement(35, 20, 84, 20,
+        this.stackSizeInput = new GTIntInputElement(35, 20, 84, 20,
                 this::getCurrentBucketModeTransferSize,
-                value -> setLDLib2CurrentBucketModeTransferSize(player, holder, value));
-        this.stackSizeLDLib2Input.setMin(1);
-        this.stackSizeLDLib2Input.setMax(Integer.MAX_VALUE);
-        root.addChild(this.stackSizeLDLib2Input);
+                value -> setCurrentBucketModeTransferSize(player, holder, value));
+        this.stackSizeInput.setMin(1);
+        this.stackSizeInput.setMax(Integer.MAX_VALUE);
+        root.addChild(this.stackSizeInput);
 
-        this.stackSizeBucketModeLDLib2Input = GTEnumSelectorElement.selectable(121, 20, 20, 20, BucketMode.values(),
-                this::getTransferBucketMode, mode -> setLDLib2TransferBucketMode(player, holder, mode));
-        root.addChild(this.stackSizeBucketModeLDLib2Input);
+        this.stackSizeBucketModeInput = GTEnumSelectorElement.selectable(121, 20, 20, 20, BucketMode.values(),
+                this::getTransferBucketMode, mode -> setTransferBucketMode(player, holder, mode));
+        root.addChild(this.stackSizeBucketModeInput);
         configureStackSizeInput();
     }
 
@@ -175,11 +175,11 @@ public class AdvancedFluidVoidingCover extends FluidVoidingCover
     }
 
     private void configureStackSizeInput() {
-        if (this.stackSizeLDLib2Input == null || stackSizeBucketModeLDLib2Input == null)
+        if (this.stackSizeInput == null || stackSizeBucketModeInput == null)
             return;
 
-        this.stackSizeLDLib2Input.setVisible(shouldShowStackSize());
-        this.stackSizeBucketModeLDLib2Input.setVisible(shouldShowStackSize());
+        this.stackSizeInput.setVisible(shouldShowStackSize());
+        this.stackSizeBucketModeInput.setVisible(shouldShowStackSize());
     }
 
     private boolean shouldShowStackSize() {
@@ -192,22 +192,22 @@ public class AdvancedFluidVoidingCover extends FluidVoidingCover
         return this.filterHandler.getFilter().isBlackList();
     }
 
-    private void setLDLib2VoidingMode(Player player, UICoverHolder holder, VoidingMode mode) {
+    private void setVoidingMode(Player player, UICoverHolder holder, VoidingMode mode) {
         setVoidingMode(mode);
-        sendLDLib2ConfigAction(player, holder);
+        sendConfigAction(player, holder);
     }
 
-    private void setLDLib2TransferBucketMode(Player player, UICoverHolder holder, BucketMode mode) {
+    private void setTransferBucketMode(Player player, UICoverHolder holder, BucketMode mode) {
         setTransferBucketMode(mode);
-        sendLDLib2ConfigAction(player, holder);
+        sendConfigAction(player, holder);
     }
 
-    private void setLDLib2CurrentBucketModeTransferSize(Player player, UICoverHolder holder, int transferSize) {
+    private void setCurrentBucketModeTransferSize(Player player, UICoverHolder holder, int transferSize) {
         setCurrentBucketModeTransferSize(transferSize);
-        sendLDLib2ConfigAction(player, holder);
+        sendConfigAction(player, holder);
     }
 
-    private void sendLDLib2ConfigAction(Player player, UICoverHolder holder) {
+    private void sendConfigAction(Player player, UICoverHolder holder) {
         if (player.level().isClientSide()) {
             CoverUIHelper.sendAction(holder, AdvancedFluidVoidingCoverConfigActions.createSetConfigAction(
                     getVoidingMode(), getGlobalTransferSizeMillibuckets(), getTransferBucketMode()));

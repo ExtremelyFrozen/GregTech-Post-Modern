@@ -384,12 +384,12 @@ public class FusionReactorMachine extends WorkableElectricMultiblockMachine
 
     @Override
     public UI createUI(Player player, MachineUIHolder holder) {
-        FancyUIProvider page = createLDLib2Page(player, holder);
+        FancyUIProvider page = createPage(player, holder);
         return UI.of(new FancyMachineUI(page, player.getInventory(), holder,
                 page.getPageWidth(), page.getPageHeight()));
     }
 
-    FancyUIProvider createLDLib2Page(Player player, MachineUIHolder holder) {
+    FancyUIProvider createPage(Player player, MachineUIHolder holder) {
         requireMatchingHolder(holder);
         return new FusionReactorFancyPage(player, holder);
     }
@@ -503,16 +503,16 @@ public class FusionReactorMachine extends WorkableElectricMultiblockMachine
         }
     }
 
-    public static void addLDLib2EUToStartLabel(GTRecipeDefinition recipe, UIElement root,
-                                               RecipeUISize rootSize) {
+    public static void addEUToStartLabel(GTRecipeDefinition recipe, UIElement root,
+                                         RecipeUISize rootSize) {
         long euToStart = RecipeData.getLong(recipe.data, "eu_to_start");
         if (euToStart <= 0) return;
         int recipeTier = RecipeHelper.getPreOCRecipeEuTier(recipe);
-        addLDLib2EUToStartLabel(root, euToStart, recipeTier, rootSize);
+        addEUToStartLabel(root, euToStart, recipeTier, rootSize);
     }
 
-    private static void addLDLib2EUToStartLabel(UIElement root, long euToStart, int recipeTier,
-                                                RecipeUISize rootSize) {
+    private static void addEUToStartLabel(UIElement root, long euToStart, int recipeTier,
+                                          RecipeUISize rootSize) {
         int fusionTier = findCeilingTier(euToStart);
         int tier = Math.max(MINIMUM_TIER, Math.max(recipeTier, fusionTier));
         GTLabelElement label = new GTLabelElement(-8, rootSize.height() - 10, rootSize.width() + 8, 10);

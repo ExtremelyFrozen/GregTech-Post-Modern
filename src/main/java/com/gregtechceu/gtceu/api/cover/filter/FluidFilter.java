@@ -51,7 +51,7 @@ public interface FluidFilter extends Filter<FluidStack, FluidFilter> {
         }
 
         @Override
-        public UIElement openLDLib2Configurator(int x, int y) {
+        public UIElement openConfigurator(int x, int y) {
             throw new UnsupportedOperationException("Not available for empty fluid filter");
         }
 

@@ -69,13 +69,13 @@ public class CrateMachine extends MetaMachine implements MachineUIProvider {
         UIElement root = new UIElement();
         UITemplate.setBounds(root, 0, 0, 176 + xOffset, 166 + yOffset);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));
-        root.addChild(createLDLib2TitleLabel(176 + xOffset));
+        root.addChild(createTitleLabel(176 + xOffset));
         root.addChild(UITemplate.bindPlayerInventory(player.getInventory(), GuiTextures.SLOT, 7 + xOffset / 2,
                 82 + yOffset, true));
         int x = 0;
         int y = 0;
         for (int slot = 0; slot < inventorySize; slot++) {
-            root.addChild(createLDLib2CrateSlot(slot, x * 18 + 7, y * 18 + 17));
+            root.addChild(createCrateSlot(slot, x * 18 + 7, y * 18 + 17));
             x++;
             if (x == yOverflow) {
                 x = 0;
@@ -85,7 +85,7 @@ public class CrateMachine extends MetaMachine implements MachineUIProvider {
         return UI.of(root);
     }
 
-    private GTLabelElement createLDLib2TitleLabel(int rootWidth) {
+    private GTLabelElement createTitleLabel(int rootWidth) {
         GTLabelElement label = new GTLabelElement(5, 5, rootWidth - 10, 10,
                 getBlockState().getBlock().getDescriptionId(), true);
         label.textStyle(style -> style
@@ -96,7 +96,7 @@ public class CrateMachine extends MetaMachine implements MachineUIProvider {
         return label;
     }
 
-    private GTItemSlotElement createLDLib2CrateSlot(int slot, int x, int y) {
+    private GTItemSlotElement createCrateSlot(int slot, int x, int y) {
         GTItemSlotElement slotElement = new GTItemSlotElement(inventory, slot);
         UITemplate.setBounds(slotElement, x, y, 18, 18);
         slotElement.setBackgroundTexture(GuiTextures.SLOT);

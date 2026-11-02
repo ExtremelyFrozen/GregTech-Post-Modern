@@ -393,12 +393,12 @@ public class MEPatternBufferPartMachine extends MEBusPartMachine
     //////////////////////////////////////
     @Override
     public boolean canCreateUI(Player player, MachineUIHolder holder) {
-        return matchesDirectLDLib2Opening(holder) && supportsMEPatternBufferActions();
+        return matchesDirectOpening(holder) && supportsMEPatternBufferActions();
     }
 
     @Override
     public UI createUI(Player player, MachineUIHolder holder) {
-        FancyUIProvider page = createLDLib2Page(player, holder);
+        FancyUIProvider page = createPage(player, holder);
         return UI.of(new FancyMachineUI(page, player.getInventory(), holder,
                 page.getPageWidth(), page.getPageHeight()));
     }
@@ -406,9 +406,9 @@ public class MEPatternBufferPartMachine extends MEBusPartMachine
     /**
      * Creates one standalone opening-scoped page after validating the holder and exact machine definition.
      */
-    FancyUIProvider createLDLib2Page(Player player, MachineUIHolder holder) {
-        BooleanSupplier openingValid = () -> matchesDirectLDLib2Opening(holder);
-        return createOpeningScopedLDLib2Page(player, holder, MachineUIHelper::sendAction, openingValid,
+    FancyUIProvider createPage(Player player, MachineUIHolder holder) {
+        BooleanSupplier openingValid = () -> matchesDirectOpening(holder);
+        return createOpeningScopedPage(player, holder, MachineUIHelper::sendAction, openingValid,
                 () -> player.level().isClientSide() && openingValid.getAsBoolean(),
                 UIEvent::isShiftDown, DIRECT_PAGE_ACTIONS);
     }
@@ -416,24 +416,24 @@ public class MEPatternBufferPartMachine extends MEBusPartMachine
     /**
      * Builds an opening-scoped page with injectable action transport for direct interaction tests.
      */
-    FancyUIProvider createLDLib2Page(Player player, MachineUIHolder holder,
+    FancyUIProvider createPage(Player player, MachineUIHolder holder,
                                      BiConsumer<MachineUIHolder, SyncActionData> actionSender,
                                      BooleanSupplier canSendAction, Predicate<UIEvent> shiftDown) {
-        requireMatchingLDLib2Holder(holder);
-        BooleanSupplier openingValid = () -> matchesDirectLDLib2Opening(holder);
-        return createOpeningScopedLDLib2Page(player, holder, actionSender, openingValid,
+        requireMatchingHolder(holder);
+        BooleanSupplier openingValid = () -> matchesDirectOpening(holder);
+        return createOpeningScopedPage(player, holder, actionSender, openingValid,
                 () -> openingValid.getAsBoolean() && canSendAction.getAsBoolean(), shiftDown, DIRECT_PAGE_ACTIONS);
     }
 
     /**
      * Builds this buffer's page around a caller-owned holder and immutable opening identity.
      */
-    FancyUIProvider createOpeningScopedLDLib2Page(Player player, MachineUIHolder holder,
-                                                  BiConsumer<MachineUIHolder, SyncActionData> actionSender,
-                                                  BooleanSupplier openingValid,
-                                                  BooleanSupplier canSendAction,
-                                                  Predicate<UIEvent> shiftDown,
-                                                  PatternBufferPageActions pageActions) {
+    FancyUIProvider createOpeningScopedPage(Player player, MachineUIHolder holder,
+                                            BiConsumer<MachineUIHolder, SyncActionData> actionSender,
+                                            BooleanSupplier openingValid,
+                                            BooleanSupplier canSendAction,
+                                            Predicate<UIEvent> shiftDown,
+                                            PatternBufferPageActions pageActions) {
         requireValidOpening(openingValid);
         requirePatternBufferDefinition();
         return new MEPatternBufferFancyPage(player, holder, actionSender, openingValid, canSendAction,
@@ -442,51 +442,51 @@ public class MEPatternBufferPartMachine extends MEBusPartMachine
 
     @Override
     public FancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
-        return createLDLib2Page(player, holder);
+        return createPage(player, holder);
     }
 
     /**
      * Builds the directly testable Pattern Buffer body for one validated opening.
      */
-    MEPatternBufferPageElement createLDLib2MainElement(Player player, MachineUIHolder holder,
-                                                       BiConsumer<MachineUIHolder, SyncActionData> actionSender,
-                                                       BooleanSupplier canSendAction) {
-        requireMatchingLDLib2Holder(holder);
-        BooleanSupplier openingValid = () -> matchesDirectLDLib2Opening(holder);
-        return createOpeningScopedLDLib2MainElement(player, holder, actionSender, openingValid,
+    MEPatternBufferPageElement createMainElement(Player player, MachineUIHolder holder,
+                                                 BiConsumer<MachineUIHolder, SyncActionData> actionSender,
+                                                 BooleanSupplier canSendAction) {
+        requireMatchingHolder(holder);
+        BooleanSupplier openingValid = () -> matchesDirectOpening(holder);
+        return createOpeningScopedMainElement(player, holder, actionSender, openingValid,
                 () -> openingValid.getAsBoolean() && canSendAction.getAsBoolean(), DIRECT_PAGE_ACTIONS);
     }
 
     /**
      * Builds the directly testable body for a validated direct or Proxy opening.
      */
-    MEPatternBufferPageElement createOpeningScopedLDLib2MainElement(
-                                                                    Player player, MachineUIHolder holder,
-                                                                    BiConsumer<MachineUIHolder, SyncActionData> actionSender,
-                                                                    BooleanSupplier openingValid,
-                                                                    BooleanSupplier canSendAction,
-                                                                    PatternBufferPageActions pageActions) {
+    MEPatternBufferPageElement createOpeningScopedMainElement(
+                                                              Player player, MachineUIHolder holder,
+                                                              BiConsumer<MachineUIHolder, SyncActionData> actionSender,
+                                                              BooleanSupplier openingValid,
+                                                              BooleanSupplier canSendAction,
+                                                              PatternBufferPageActions pageActions) {
         requireValidOpening(openingValid);
         requirePatternBufferDefinition();
         return new MEPatternBufferPageElement(this, player.level(), holder, actionSender, canSendAction,
                 openingValid, pageActions::createSetNameAction);
     }
 
-    public int getLDLib2PageWidth() {
+    public int getPageWidth() {
         return MEPatternBufferPageElement.WIDTH;
     }
 
-    public int getLDLib2PageHeight() {
+    public int getPageHeight() {
         return MEPatternBufferPageElement.HEIGHT;
     }
 
-    private void requireMatchingLDLib2Holder(MachineUIHolder holder) {
-        if (!matchesDirectLDLib2Opening(holder)) {
+    private void requireMatchingHolder(MachineUIHolder holder) {
+        if (!matchesDirectOpening(holder)) {
             throw new IllegalArgumentException("Pattern Buffer page holder must resolve the opened definition.");
         }
     }
 
-    private boolean matchesDirectLDLib2Opening(MachineUIHolder holder) {
+    private boolean matchesDirectOpening(MachineUIHolder holder) {
         return holder.getMachine() == this &&
                 holder.getMachineDefinitionId().equals(GTAEMachines.ME_PATTERN_BUFFER.getId());
     }
@@ -570,7 +570,7 @@ public class MEPatternBufferPartMachine extends MEBusPartMachine
             if (!openingValid.getAsBoolean()) {
                 throw new IllegalStateException("Pattern Buffer page no longer resolves its opened machine context.");
             }
-            return createOpeningScopedLDLib2MainElement(player, holder, actionSender, openingValid,
+            return createOpeningScopedMainElement(player, holder, actionSender, openingValid,
                     canSendAction, pageActions);
         }
 
@@ -586,12 +586,12 @@ public class MEPatternBufferPartMachine extends MEBusPartMachine
 
         @Override
         public int getPageWidth() {
-            return MEPatternBufferPartMachine.this.getLDLib2PageWidth();
+            return MEPatternBufferPartMachine.this.getPageWidth();
         }
 
         @Override
         public int getPageHeight() {
-            return MEPatternBufferPartMachine.this.getLDLib2PageHeight();
+            return MEPatternBufferPartMachine.this.getPageHeight();
         }
 
         @Override

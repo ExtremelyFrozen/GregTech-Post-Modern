@@ -454,25 +454,25 @@ public class ConveyorCover extends CoverBehavior
         UITemplate.setBounds(root, 0, 0, 176, 219);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));
 
-        root.addChild(createLDLib2Label());
+        root.addChild(createLabel());
         root.addChild(new GTIntInputElement(10, 20, 156, 20, this::getTransferRate,
-                value -> setLDLib2TransferRate(player, holder, value))
+                value -> setTransferRate(player, holder, value))
                 .setMin(1)
                 .setMax(maxItemTransferRate));
         root.addChild(GTEnumSelectorElement.selectable(10, 45, 20, 20, List.of(IO.IN, IO.OUT), this::getIo,
-                mode -> setLDLib2Io(player, holder, mode)));
+                mode -> setIo(player, holder, mode)));
 
         if (shouldDisplayDistributionMode()) {
             root.addChild(GTEnumSelectorElement.selectable(146, 67, 20, 20, DistributionMode.VALUES,
-                    this::getDistributionMode, mode -> setLDLib2DistributionMode(player, holder, mode)));
+                    this::getDistributionMode, mode -> setDistributionMode(player, holder, mode)));
         }
 
         root.addChild(GTEnumSelectorElement.selectable(146, 107, 20, 20, ManualIOMode.VALUES,
-                this::getManualIOMode, mode -> setLDLib2ManualIOMode(player, holder, mode)));
+                this::getManualIOMode, mode -> setManualIOMode(player, holder, mode)));
 
-        root.addChild(filterHandler.createFilterSlotLDLib2UI(125, 108));
-        root.addChild(filterHandler.createFilterConfigLDLib2UI(10, 72, 156, 60));
-        buildAdditionalLDLib2UI(root, player, holder);
+        root.addChild(filterHandler.createFilterSlotUI(125, 108));
+        root.addChild(filterHandler.createFilterConfigUI(10, 72, 156, 60));
+        buildAdditionalUI(root, player, holder);
         root.addChild(UITemplate.bindPlayerInventory(player.getInventory(), GuiTextures.SLOT, 7, 137, true));
         return UI.of(root);
     }
@@ -489,7 +489,7 @@ public class ConveyorCover extends CoverBehavior
         return "cover.conveyor.title";
     }
 
-    protected void buildAdditionalLDLib2UI(UIElement root, Player player, UICoverHolder holder) {
+    protected void buildAdditionalUI(UIElement root, Player player, UICoverHolder holder) {
         // Do nothing in the base implementation. This is intended to be overridden by subclasses.
     }
 
@@ -497,7 +497,7 @@ public class ConveyorCover extends CoverBehavior
         // Do nothing in the base implementation. This is intended to be overridden by subclasses.
     }
 
-    private GTLabelElement createLDLib2Label() {
+    private GTLabelElement createLabel() {
         GTLabelElement label = new GTLabelElement(10, 5, 156, 10, Component.translatable(getUITitle(),
                 GTValues.VN[tier]));
         label.textStyle(style -> style
@@ -508,27 +508,27 @@ public class ConveyorCover extends CoverBehavior
         return label;
     }
 
-    private void setLDLib2TransferRate(Player player, UICoverHolder holder, int value) {
+    private void setTransferRate(Player player, UICoverHolder holder, int value) {
         setTransferRate(value);
-        sendLDLib2ConfigAction(player, holder);
+        sendConfigAction(player, holder);
     }
 
-    private void setLDLib2Io(Player player, UICoverHolder holder, IO io) {
+    private void setIo(Player player, UICoverHolder holder, IO io) {
         setIo(io);
-        sendLDLib2ConfigAction(player, holder);
+        sendConfigAction(player, holder);
     }
 
-    private void setLDLib2DistributionMode(Player player, UICoverHolder holder, DistributionMode mode) {
+    private void setDistributionMode(Player player, UICoverHolder holder, DistributionMode mode) {
         setDistributionMode(mode);
-        sendLDLib2ConfigAction(player, holder);
+        sendConfigAction(player, holder);
     }
 
-    private void setLDLib2ManualIOMode(Player player, UICoverHolder holder, ManualIOMode mode) {
+    private void setManualIOMode(Player player, UICoverHolder holder, ManualIOMode mode) {
         setManualIOMode(mode);
-        sendLDLib2ConfigAction(player, holder);
+        sendConfigAction(player, holder);
     }
 
-    private void sendLDLib2ConfigAction(Player player, UICoverHolder holder) {
+    private void sendConfigAction(Player player, UICoverHolder holder) {
         if (player.level().isClientSide()) {
             CoverUIHelper.sendAction(holder, ConveyorCoverConfigActions.createSetConfigAction(getTransferRate(),
                     getIo(), getDistributionMode(), getManualIOMode()));

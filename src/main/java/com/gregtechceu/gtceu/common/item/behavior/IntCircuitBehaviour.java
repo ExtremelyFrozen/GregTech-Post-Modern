@@ -78,17 +78,17 @@ public class IntCircuitBehaviour implements IItemUIFactory, IAddInformation {
     }
 
     @Override
-    public boolean canCreateLDLib2UI(HeldItemUIHolder holder, Player entityPlayer) {
+    public boolean canCreateUI(HeldItemUIHolder holder, Player entityPlayer) {
         return isIntegratedCircuit(holder.getHeld());
     }
 
     @Override
-    public boolean isLDLib2UIStillValid(HeldItemUIHolder holder, Player entityPlayer) {
+    public boolean isUIStillValid(HeldItemUIHolder holder, Player entityPlayer) {
         return isIntegratedCircuit(holder.getHeld()) && ItemStack.isSameItem(holder.getHeld(), holder.getOpenedStack());
     }
 
     @Override
-    public UI createLDLib2UI(HeldItemUIHolder holder, Player entityPlayer) {
+    public UI createUI(HeldItemUIHolder holder, Player entityPlayer) {
         UIElement root = new UIElement();
         setBounds(root, 0, 0, 184, 132);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));
@@ -113,19 +113,19 @@ public class IntCircuitBehaviour implements IItemUIFactory, IAddInformation {
         int idx = 0;
         for (int x = 0; x <= 2; x++) {
             for (int y = 0; y <= 8; y++) {
-                root.addChild(createLDLib2CircuitButton(holder, selectedSlot, idx, 10 + 18 * y, 48 + 18 * x));
+                root.addChild(createCircuitButton(holder, selectedSlot, idx, 10 + 18 * y, 48 + 18 * x));
                 idx++;
             }
         }
         for (int x = 0; x <= 5; x++) {
             int configuration = x + 27;
-            root.addChild(createLDLib2CircuitButton(holder, selectedSlot, configuration, 10 + 18 * x, 102));
+            root.addChild(createCircuitButton(holder, selectedSlot, configuration, 10 + 18 * x, 102));
         }
         return UI.of(root);
     }
 
-    private static GTButtonElement createLDLib2CircuitButton(HeldItemUIHolder holder, GTItemSlotElement selectedSlot,
-                                                             int configuration, int x, int y) {
+    private static GTButtonElement createCircuitButton(HeldItemUIHolder holder, GTItemSlotElement selectedSlot,
+                                                       int configuration, int x, int y) {
         var texture = GuiTextures.group(GuiTextures.SLOT,
                 GuiTextures.itemStack(stack(configuration)).scale(16f / 18));
         GTButtonElement button = new GTButtonElement(x, y, 18, 18, texture,

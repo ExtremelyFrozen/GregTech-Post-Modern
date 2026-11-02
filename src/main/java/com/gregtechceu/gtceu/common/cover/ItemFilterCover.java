@@ -114,17 +114,17 @@ public class ItemFilterCover extends CoverBehavior
         UITemplate.setBounds(root, 0, 0, 176, 167);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));
 
-        root.addChild(createLDLib2Label());
+        root.addChild(createLabel());
         root.addChild(GTEnumSelectorElement.selectable(35, 25, 18, 18, FilterMode.VALUES, this::getFilterMode,
-                mode -> setLDLib2FilterMode(player, holder, mode)));
+                mode -> setFilterMode(player, holder, mode)));
         root.addChild(GTEnumSelectorElement.selectable(35, 45, 18, 18, ManualIOMode.VALUES, this::getAllowFlow,
-                mode -> setLDLib2ManualIO(player, holder, mode)));
-        root.addChild(getItemFilter().openLDLib2Configurator(62, 25));
+                mode -> setManualIO(player, holder, mode)));
+        root.addChild(getItemFilter().openConfigurator(62, 25));
         root.addChild(UITemplate.bindPlayerInventory(player.getInventory(), GuiTextures.SLOT, 7, 85, true));
         return UI.of(root);
     }
 
-    private GTLabelElement createLDLib2Label() {
+    private GTLabelElement createLabel() {
         GTLabelElement label = new GTLabelElement(60, 5, 111, 10, attachItem.getDescriptionId(), true);
         label.textStyle(style -> style
                 .textColor(0x404040)
@@ -134,17 +134,17 @@ public class ItemFilterCover extends CoverBehavior
         return label;
     }
 
-    private void setLDLib2FilterMode(Player player, UICoverHolder holder, FilterMode mode) {
+    private void setFilterMode(Player player, UICoverHolder holder, FilterMode mode) {
         setFilterMode(mode);
-        sendLDLib2ConfigAction(player, holder);
+        sendConfigAction(player, holder);
     }
 
-    private void setLDLib2ManualIO(Player player, UICoverHolder holder, ManualIOMode mode) {
+    private void setManualIO(Player player, UICoverHolder holder, ManualIOMode mode) {
         setAllowFlow(mode);
-        sendLDLib2ConfigAction(player, holder);
+        sendConfigAction(player, holder);
     }
 
-    private void sendLDLib2ConfigAction(Player player, UICoverHolder holder) {
+    private void sendConfigAction(Player player, UICoverHolder holder) {
         if (player.level().isClientSide()) {
             CoverUIHelper.sendAction(holder,
                     ItemFilterCoverConfigActions.createSetConfigAction(getFilterMode(), getAllowFlow()));

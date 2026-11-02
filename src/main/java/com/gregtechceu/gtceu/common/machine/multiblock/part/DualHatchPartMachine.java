@@ -199,9 +199,9 @@ public class DualHatchPartMachine extends ItemBusPartMachine
 
     @Override
     public UI createUI(Player player, MachineUIHolder holder) {
-        int pageWidth = getLDLib2PageWidth();
-        int pageHeight = getLDLib2PageHeight();
-        return UI.of(new FancyMachineUI(new DualHatchLDLib2Page(player, holder),
+        int pageWidth = getInventoryPageWidth();
+        int pageHeight = getInventoryPageHeight();
+        return UI.of(new FancyMachineUI(new DualHatchPage(player, holder),
                 player.getInventory(), holder, pageWidth, pageHeight));
     }
 
@@ -212,30 +212,30 @@ public class DualHatchPartMachine extends ItemBusPartMachine
     }
 
     @Override
-    int getLDLib2PageWidth() {
+    int getInventoryPageWidth() {
         int tanks = (int) Math.sqrt(getInventorySize());
         return 18 * (tanks + 1) + 16;
     }
 
     @Override
-    int getLDLib2PageHeight() {
+    int getInventoryPageHeight() {
         int tanks = (int) Math.sqrt(getInventorySize());
         return 18 * tanks + 16;
     }
 
-    private UIElement createLDLib2MainElement(Player player, MachineUIHolder holder) {
-        return createLDLib2MainElement(player, holder, MachineUIHelper::sendAction,
+    private UIElement createMainElement(Player player, MachineUIHolder holder) {
+        return createMainElement(player, holder, MachineUIHelper::sendAction,
                 event -> player.level().isClientSide() &&
                         FluidUtil.getFluidHandler(player.containerMenu.getCarried()).isPresent(),
                 UIEvent::isShiftDown);
     }
 
-    UIElement createLDLib2MainElement(Player player, MachineUIHolder holder,
-                                      BiConsumer<MachineUIHolder, SyncActionData> actionSender,
-                                      Predicate<UIEvent> actionGuard, Predicate<UIEvent> shiftDown) {
+    UIElement createMainElement(Player player, MachineUIHolder holder,
+                                BiConsumer<MachineUIHolder, SyncActionData> actionSender,
+                                Predicate<UIEvent> actionGuard, Predicate<UIEvent> shiftDown) {
         int tanks = (int) Math.sqrt(getInventorySize());
         UIElement root = UITemplate.setBounds(new UIElement(), 0, 0,
-                getLDLib2PageWidth(), getLDLib2PageHeight());
+                getInventoryPageWidth(), getInventoryPageHeight());
         UIElement container = UITemplate.setBounds(new UIElement(), 4, 4,
                 18 * (tanks + 1) + 8, 18 * tanks + 8);
         container.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
@@ -243,13 +243,13 @@ public class DualHatchPartMachine extends ItemBusPartMachine
         int index = 0;
         for (int y = 0; y < tanks; y++) {
             for (int x = 0; x < tanks; x++) {
-                container.addChild(createLDLib2ItemSlot(index++, 4 + x * 18, 4 + y * 18));
+                container.addChild(createItemSlot(index++, 4 + x * 18, 4 + y * 18));
             }
         }
 
         index = 0;
         for (int y = 0; y < tanks; y++) {
-            container.addChild(createLDLib2FluidSlot(holder, index++, 4 + tanks * 18, 4 + y * 18,
+            container.addChild(createFluidSlot(holder, index++, 4 + tanks * 18, 4 + y * 18,
                     actionSender, actionGuard, shiftDown));
         }
 
@@ -257,7 +257,7 @@ public class DualHatchPartMachine extends ItemBusPartMachine
         return root;
     }
 
-    private GTItemSlotElement createLDLib2ItemSlot(int slot, int x, int y) {
+    private GTItemSlotElement createItemSlot(int slot, int x, int y) {
         GTItemSlotElement slotElement = new GTItemSlotElement(getInventory().storage, slot)
                 .setCanPutItems(io.support(IO.IN))
                 .setCanTakeItems(true)
@@ -266,10 +266,10 @@ public class DualHatchPartMachine extends ItemBusPartMachine
         return UITemplate.setBounds(slotElement, x, y, 18, 18);
     }
 
-    private GTFluidSlotElement createLDLib2FluidSlot(MachineUIHolder holder, int tankIndex, int x, int y,
-                                                     BiConsumer<MachineUIHolder, SyncActionData> actionSender,
-                                                     Predicate<UIEvent> actionGuard,
-                                                     Predicate<UIEvent> shiftDown) {
+    private GTFluidSlotElement createFluidSlot(MachineUIHolder holder, int tankIndex, int x, int y,
+                                               BiConsumer<MachineUIHolder, SyncActionData> actionSender,
+                                               Predicate<UIEvent> actionGuard,
+                                               Predicate<UIEvent> shiftDown) {
         GTFluidSlotElement fluidSlot = new GTFluidSlotElement()
                 .setFluidTank(tank.getStorages()[tankIndex], 0)
                 .setShowAmount(true)
@@ -301,11 +301,11 @@ public class DualHatchPartMachine extends ItemBusPartMachine
         if (tankIndex < 0 || tankIndex >= tank.getTanks()) {
             throw new IllegalArgumentException("Invalid dual hatch fluid tank index: " + tankIndex);
         }
-        new LDLib2FluidClickTarget(tank.getStorages()[tankIndex], true, io.support(IO.IN)).click(player, shiftDown);
+        new FluidClickTarget(tank.getStorages()[tankIndex], true, io.support(IO.IN)).click(player, shiftDown);
     }
 
-    private record LDLib2FluidClickTarget(IFluidHandler fluidTank, boolean allowClickFilled,
-                                          boolean allowClickDrained) {
+    private record FluidClickTarget(IFluidHandler fluidTank, boolean allowClickFilled,
+                                    boolean allowClickDrained) {
 
         private void click(ServerPlayer player, boolean shiftDown) {
             ItemStack currentStack = player.containerMenu.getCarried();
@@ -409,8 +409,8 @@ public class DualHatchPartMachine extends ItemBusPartMachine
         return remainingStack.copy();
     }
 
-    private void attachLDLib2Configurators(ConfiguratorPanel configuratorPanel,
-                                           MachineUIHolder holder) {
+    private void attachConfigurators(ConfiguratorPanel configuratorPanel,
+                                     MachineUIHolder holder) {
         configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
                 this, holder));
         if (io != IO.IN) {
@@ -423,7 +423,7 @@ public class DualHatchPartMachine extends ItemBusPartMachine
         }
     }
 
-    private void attachLDLib2Tooltips(FancyTooltipsPanel tooltipsPanel) {
+    private void attachTooltips(FancyTooltipsPanel tooltipsPanel) {
         tooltipsPanel.attachTooltips(this);
         getTraitHolder().getAllTraits().stream()
                 .filter(IFancyTooltip.class::isInstance)
@@ -432,7 +432,7 @@ public class DualHatchPartMachine extends ItemBusPartMachine
     }
 
     @Nullable
-    private FancyUIProvider.PageGroupingData createLDLib2PageGroupingData() {
+    private FancyUIProvider.PageGroupingData createPageGroupingData() {
         return switch (io) {
             case IN -> new FancyUIProvider.PageGroupingData(
                     "gtpm.multiblock.page_switcher.io.import", 1);
@@ -453,7 +453,7 @@ public class DualHatchPartMachine extends ItemBusPartMachine
         private DualHatchContextualPreviewPage(Player player, MachineUIHolder holder) {
             this.holder = holder;
             this.previewPage = new FancyPreviewPage(DualHatchPartMachine.this, player, holder,
-                    createLDLib2PageGroupingData());
+                    createPageGroupingData());
         }
 
         @Override
@@ -488,12 +488,12 @@ public class DualHatchPartMachine extends ItemBusPartMachine
 
         @Override
         public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
-            attachLDLib2Configurators(configuratorPanel, holder);
+            DualHatchPartMachine.this.attachConfigurators(configuratorPanel, holder);
         }
 
         @Override
         public void attachTooltips(FancyTooltipsPanel tooltipsPanel) {
-            attachLDLib2Tooltips(tooltipsPanel);
+            DualHatchPartMachine.this.attachTooltips(tooltipsPanel);
         }
 
         @Override
@@ -512,7 +512,7 @@ public class DualHatchPartMachine extends ItemBusPartMachine
      * Adapts the inherited legacy Fancy machine metadata to an LDLib2 page without making the machine implement two
      * incompatible Fancy provider contracts.
      */
-    private final class DualHatchLDLib2Page implements FancyUIProvider {
+    private final class DualHatchPage implements FancyUIProvider {
 
         private final Player player;
         private final MachineUIHolder holder;
@@ -521,7 +521,7 @@ public class DualHatchPartMachine extends ItemBusPartMachine
         /**
          * Captures the player and validated machine holder used by page-local GT sync actions.
          */
-        private DualHatchLDLib2Page(Player player, MachineUIHolder holder) {
+        private DualHatchPage(Player player, MachineUIHolder holder) {
             this.player = player;
             this.holder = holder;
             this.directionalPage = new DirectionalConfigurator(
@@ -530,7 +530,7 @@ public class DualHatchPartMachine extends ItemBusPartMachine
 
         @Override
         public UIElement createMainPage(FancyMachineUI shell) {
-            return createLDLib2MainElement(player, holder);
+            return createMainElement(player, holder);
         }
 
         @Override
@@ -545,12 +545,12 @@ public class DualHatchPartMachine extends ItemBusPartMachine
 
         @Override
         public int getPageWidth() {
-            return DualHatchPartMachine.this.getLDLib2PageWidth();
+            return DualHatchPartMachine.this.getInventoryPageWidth();
         }
 
         @Override
         public int getPageHeight() {
-            return DualHatchPartMachine.this.getLDLib2PageHeight();
+            return DualHatchPartMachine.this.getInventoryPageHeight();
         }
 
         @Override
@@ -560,12 +560,12 @@ public class DualHatchPartMachine extends ItemBusPartMachine
 
         @Override
         public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
-            attachLDLib2Configurators(configuratorPanel, holder);
+            DualHatchPartMachine.this.attachConfigurators(configuratorPanel, holder);
         }
 
         @Override
         public void attachTooltips(FancyTooltipsPanel tooltipsPanel) {
-            attachLDLib2Tooltips(tooltipsPanel);
+            DualHatchPartMachine.this.attachTooltips(tooltipsPanel);
         }
 
         @Override
@@ -576,7 +576,7 @@ public class DualHatchPartMachine extends ItemBusPartMachine
         @Override
         @Nullable
         public FancyUIProvider.PageGroupingData getPageGroupingData() {
-            return createLDLib2PageGroupingData();
+            return createPageGroupingData();
         }
     }
 }

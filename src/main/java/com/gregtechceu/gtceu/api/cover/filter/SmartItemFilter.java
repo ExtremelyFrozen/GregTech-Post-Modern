@@ -56,26 +56,26 @@ public class SmartItemFilter implements ItemFilter {
     }
 
     @Override
-    public UIElement openLDLib2Configurator(int x, int y) {
+    public UIElement openConfigurator(int x, int y) {
         UIElement group = new UIElement();
         setBounds(group, x, y, 18 * 3 + 25, 18 * 3);
-        group.addChild(createLDLib2ModeButton(16, 8));
+        group.addChild(createModeButton(16, 8));
         return group;
     }
 
-    private GTButtonElement createLDLib2ModeButton(int x, int y) {
+    private GTButtonElement createModeButton(int x, int y) {
         GTButtonElement button = new GTButtonElement();
         button.noText();
-        updateLDLib2ModeButtonTexture(button);
+        updateModeButtonTexture(button);
         button.setOnClick(event -> {
             setFilterMode(nextMode());
-            updateLDLib2ModeButtonTexture(button);
+            updateModeButtonTexture(button);
         });
         setBounds(button, x, y, 32, 32);
         return button;
     }
 
-    private void updateLDLib2ModeButtonTexture(GTButtonElement button) {
+    private void updateModeButtonTexture(GTButtonElement button) {
         IGuiTexture texture = GuiTextures.group(GuiTextures.VANILLA_BUTTON, filterMode.getIcon());
         button.setButtonTexture(texture);
     }

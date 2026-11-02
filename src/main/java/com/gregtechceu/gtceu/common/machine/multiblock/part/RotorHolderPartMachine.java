@@ -252,8 +252,8 @@ public class RotorHolderPartMachine extends TieredPartMachine
 
     @Override
     public UI createUI(Player player, MachineUIHolder holder) {
-        requireMatchingLDLib2Holder(holder);
-        return UI.of(createLDLib2RotorPage());
+        requireMatchingHolder(holder);
+        return UI.of(createRotorPage());
     }
 
     /**
@@ -261,10 +261,10 @@ public class RotorHolderPartMachine extends TieredPartMachine
      */
     @Override
     public FancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
-        return new RotorHolderLDLib2Page(player, holder);
+        return new RotorHolderPage(player, holder);
     }
 
-    private UIElement createLDLib2RotorPage() {
+    private UIElement createRotorPage() {
         UIElement root = new UIElement();
         UITemplate.setBounds(root, 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
 
@@ -272,18 +272,18 @@ public class RotorHolderPartMachine extends TieredPartMachine
         UITemplate.setBounds(container, 4, 4, 26, 26);
         UITemplate.setBackgroundTexture(container, GuiTextures.BACKGROUND_INVERSE);
         root.addChild(container);
-        root.addChild(createLDLib2RotorSlot());
-        root.addChild(createLDLib2RotorLockedOverlay());
+        root.addChild(createRotorSlot());
+        root.addChild(createRotorLockedOverlay());
         return root;
     }
 
-    private void requireMatchingLDLib2Holder(MachineUIHolder holder) {
+    private void requireMatchingHolder(MachineUIHolder holder) {
         if (holder.getMachine() != this) {
             throw new IllegalArgumentException("Rotor Holder page holder must resolve the opened machine.");
         }
     }
 
-    private GTItemSlotElement createLDLib2RotorSlot() {
+    private GTItemSlotElement createRotorSlot() {
         GTItemSlotElement slot = new GTItemSlotElement(inventory.storage, 0)
                 .setBackgroundTexture(GuiTextures.SLOT)
                 .setContentOverlay(GuiTextures.TURBINE_OVERLAY)
@@ -292,7 +292,7 @@ public class RotorHolderPartMachine extends TieredPartMachine
         return UITemplate.setBounds(slot, 8, 8, 18, 18);
     }
 
-    private GTImageElement createLDLib2RotorLockedOverlay() {
+    private GTImageElement createRotorLockedOverlay() {
         return new GTImageElement(9, 9, 16, 16, GuiTextures.colorRect(ROTOR_SLOT_LOCKED_OVERLAY_COLOR))
                 .setVisibleSupplier(this::isRotorSlotBlocked);
     }
@@ -304,13 +304,13 @@ public class RotorHolderPartMachine extends TieredPartMachine
     /**
      * Owns the contextual Rotor Holder page state for exactly one menu opening.
      */
-    private final class RotorHolderLDLib2Page implements FancyUIProvider {
+    private final class RotorHolderPage implements FancyUIProvider {
 
         private final MachineUIHolder holder;
         private final DirectionalConfigurator directionalPage;
 
-        private RotorHolderLDLib2Page(Player player, MachineUIHolder holder) {
-            requireMatchingLDLib2Holder(holder);
+        private RotorHolderPage(Player player, MachineUIHolder holder) {
+            requireMatchingHolder(holder);
             this.holder = holder;
             this.directionalPage = new DirectionalConfigurator(RotorHolderPartMachine.this, player,
                     holder);
@@ -321,7 +321,7 @@ public class RotorHolderPartMachine extends TieredPartMachine
             if (holder.getMachine() != RotorHolderPartMachine.this) {
                 throw new IllegalStateException("Rotor Holder page holder no longer resolves its opened machine.");
             }
-            return createLDLib2RotorPage();
+            return createRotorPage();
         }
 
         @Override

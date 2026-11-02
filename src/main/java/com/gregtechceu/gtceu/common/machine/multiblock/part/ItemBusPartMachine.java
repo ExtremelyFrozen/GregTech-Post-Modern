@@ -301,25 +301,25 @@ public class ItemBusPartMachine extends TieredIOPartMachine
 
     @Override
     public boolean canCreateUI(Player player, MachineUIHolder holder) {
-        return holder.getMachine() == this && supportsGenericLDLib2Page();
+        return holder.getMachine() == this && supportsGenericPage();
     }
 
     @Override
     public UI createUI(Player player, MachineUIHolder holder) {
-        FancyUIProvider page = createLDLib2Page(player, holder);
+        FancyUIProvider page = createPage(player, holder);
         return UI.of(new FancyMachineUI(page, player.getInventory(), holder,
                 page.getPageWidth(), page.getPageHeight()));
     }
 
-    FancyUIProvider createLDLib2Page(Player player, MachineUIHolder holder) {
-        requireMatchingLDLib2Holder(holder);
-        if (!supportsGenericLDLib2Page()) {
+    FancyUIProvider createPage(Player player, MachineUIHolder holder) {
+        requireBusHolder(holder);
+        if (!supportsGenericPage()) {
             throw new IllegalStateException("Item Bus definition requires its specialized UI provider.");
         }
-        return new ItemBusLDLib2Page(player, holder);
+        return new ItemBusPage(player, holder);
     }
 
-    private void requireMatchingLDLib2Holder(MachineUIHolder holder) {
+    private void requireBusHolder(MachineUIHolder holder) {
         if (holder.getMachine() != this) {
             throw new IllegalArgumentException("Item Bus page holder must resolve the opened machine.");
         }
@@ -328,20 +328,20 @@ public class ItemBusPartMachine extends TieredIOPartMachine
     /**
      * Determines whether this definition may reuse the generic holder-scoped LDLib2 Item Bus page.
      */
-    protected boolean supportsGenericLDLib2Page() {
+    protected boolean supportsGenericPage() {
         return getClass() == ItemBusPartMachine.class;
     }
 
-    int getLDLib2PageWidth() {
-        return 18 * getLDLib2RowSize() + 16;
+    int getInventoryPageWidth() {
+        return 18 * getRowSize() + 16;
     }
 
-    int getLDLib2PageHeight() {
-        return 18 * getLDLib2ColumnSize() + 16;
+    int getInventoryPageHeight() {
+        return 18 * getColumnSize() + 16;
     }
 
     @Nullable
-    FancyUIProvider.PageGroupingData getLDLib2PageGroupingData() {
+    FancyUIProvider.PageGroupingData getPageGroupingData() {
         return switch (io) {
             case IN -> new FancyUIProvider.PageGroupingData(
                     "gtpm.multiblock.page_switcher.io.import", 1);
@@ -353,19 +353,19 @@ public class ItemBusPartMachine extends TieredIOPartMachine
         };
     }
 
-    private int getLDLib2RowSize() {
+    private int getRowSize() {
         return getInventorySize() == 8 ? 4 : (int) Math.sqrt(getInventorySize());
     }
 
-    private int getLDLib2ColumnSize() {
+    private int getColumnSize() {
         return getInventorySize() == 8 ? 2 : (int) Math.sqrt(getInventorySize());
     }
 
-    private UIElement createLDLib2MainElement() {
-        int rowSize = getLDLib2RowSize();
-        int columnSize = getLDLib2ColumnSize();
+    private UIElement createMainElement() {
+        int rowSize = getRowSize();
+        int columnSize = getColumnSize();
         UIElement root = UITemplate.setBounds(new UIElement(), 0, 0,
-                getLDLib2PageWidth(), getLDLib2PageHeight());
+                getInventoryPageWidth(), getInventoryPageHeight());
         UIElement container = UITemplate.setBounds(new UIElement(), 4, 4,
                 18 * rowSize + 8, 18 * columnSize + 8);
         UITemplate.setBackgroundTexture(container, GuiTextures.BACKGROUND_INVERSE);
@@ -373,12 +373,12 @@ public class ItemBusPartMachine extends TieredIOPartMachine
         int index = 0;
         for (int y = 0; y < columnSize; y++) {
             for (int x = 0; x < rowSize; x++) {
-                container.addChild(createLDLib2InventorySlot(index++, 4 + x * 18, 4 + y * 18));
+                container.addChild(createInventorySlot(index++, 4 + x * 18, 4 + y * 18));
             }
         }
 
         if (io == IO.OUT) {
-            UIElement filterSlot = filterHandler.createFilterSlotLDLib2UI(
+            UIElement filterSlot = filterHandler.createFilterSlotUI(
                     71 + (18 * rowSize) / 2, 35 + 9 * rowSize);
             filterSlot.style(style -> style.tooltips(Component.translatable("cover.item_filter.title")));
             root.addChild(filterSlot);
@@ -387,7 +387,7 @@ public class ItemBusPartMachine extends TieredIOPartMachine
         return root;
     }
 
-    private GTItemSlotElement createLDLib2InventorySlot(int index, int x, int y) {
+    private GTItemSlotElement createInventorySlot(int index, int x, int y) {
         GTItemSlotElement slot = new GTItemSlotElement(getInventory().storage, index)
                 .setCanPutItems(io.support(IO.IN))
                 .setCanTakeItems(true)
@@ -399,13 +399,13 @@ public class ItemBusPartMachine extends TieredIOPartMachine
     /**
      * Captures the validated opening-scoped holder for all Item Bus page actions and contextual tabs.
      */
-    private final class ItemBusLDLib2Page implements FancyUIProvider {
+    private final class ItemBusPage implements FancyUIProvider {
 
         private final MachineUIHolder holder;
         private final DirectionalConfigurator directionalPage;
 
-        private ItemBusLDLib2Page(Player player, MachineUIHolder holder) {
-            requireMatchingLDLib2Holder(holder);
+        private ItemBusPage(Player player, MachineUIHolder holder) {
+            requireBusHolder(holder);
             this.holder = holder;
             this.directionalPage = new DirectionalConfigurator(ItemBusPartMachine.this, player, holder);
         }
@@ -415,7 +415,7 @@ public class ItemBusPartMachine extends TieredIOPartMachine
             if (holder.getMachine() != ItemBusPartMachine.this) {
                 throw new IllegalStateException("Item Bus page holder no longer resolves its opened machine.");
             }
-            return createLDLib2MainElement();
+            return createMainElement();
         }
 
         @Override
@@ -430,12 +430,12 @@ public class ItemBusPartMachine extends TieredIOPartMachine
 
         @Override
         public int getPageWidth() {
-            return ItemBusPartMachine.this.getLDLib2PageWidth();
+            return ItemBusPartMachine.this.getInventoryPageWidth();
         }
 
         @Override
         public int getPageHeight() {
-            return ItemBusPartMachine.this.getLDLib2PageHeight();
+            return ItemBusPartMachine.this.getInventoryPageHeight();
         }
 
         @Override
@@ -474,7 +474,7 @@ public class ItemBusPartMachine extends TieredIOPartMachine
         @Override
         @Nullable
         public FancyUIProvider.PageGroupingData getPageGroupingData() {
-            return getLDLib2PageGroupingData();
+            return ItemBusPartMachine.this.getPageGroupingData();
         }
     }
 }

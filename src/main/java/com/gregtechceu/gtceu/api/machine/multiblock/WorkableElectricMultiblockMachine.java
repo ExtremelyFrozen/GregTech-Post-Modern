@@ -80,24 +80,24 @@ public class WorkableElectricMultiblockMachine extends WorkableMultiblockMachine
     @SyncBoth
     @Getter
     protected boolean batchEnabled;
-    private final ConditionalSubscriptionHandler ldlib2DisplaySnapshotSubscription;
+    private final ConditionalSubscriptionHandler displaySubscription;
     @Getter(AccessLevel.PACKAGE)
     @SyncToClient
-    private List<Component> ldlib2DisplaySnapshot = List.of();
-    private final Map<WorkableElectricMultiblockFancyPage, LDLib2DisplayOpening> ldlib2DisplayOpenings = new IdentityHashMap<>();
+    private List<Component> display = List.of();
+    private final Map<WorkableElectricMultiblockFancyPage, DisplayOpening> displayOpenings = new IdentityHashMap<>();
 
     public WorkableElectricMultiblockMachine(BlockEntityCreationInfo info, RecipeLogic recipeLogic) {
         super(info, recipeLogic);
-        ldlib2DisplaySnapshotSubscription = new ConditionalSubscriptionHandler(this,
-                this::tickLDLib2DisplayTracking,
-                () -> !ldlib2DisplayOpenings.isEmpty());
+        displaySubscription = new ConditionalSubscriptionHandler(this,
+                this::tickDisplayTracking,
+                () -> !displayOpenings.isEmpty());
     }
 
     public WorkableElectricMultiblockMachine(BlockEntityCreationInfo info) {
         super(info);
-        ldlib2DisplaySnapshotSubscription = new ConditionalSubscriptionHandler(this,
-                this::tickLDLib2DisplayTracking,
-                () -> !ldlib2DisplayOpenings.isEmpty());
+        displaySubscription = new ConditionalSubscriptionHandler(this,
+                this::tickDisplayTracking,
+                () -> !displayOpenings.isEmpty());
     }
 
     @Override
@@ -114,7 +114,7 @@ public class WorkableElectricMultiblockMachine extends WorkableMultiblockMachine
         if (DEFAULT_STRUCTURE.equals(structureName)) {
             this.energyContainer = null;
             this.tier = 0;
-            refreshLDLib2DisplayTracking();
+            refreshDisplayTracking();
         }
     }
 
@@ -124,14 +124,14 @@ public class WorkableElectricMultiblockMachine extends WorkableMultiblockMachine
         if (DEFAULT_STRUCTURE.equals(structureName)) {
             this.energyContainer = getEnergyContainer();
             this.tier = energyContainer.getTier();
-            refreshLDLib2DisplayTracking();
+            refreshDisplayTracking();
         }
     }
 
     @Override
     public void onUnload() {
         super.onUnload();
-        clearLDLib2DisplayOpenings();
+        clearDisplayOpenings();
     }
 
     @Override
@@ -139,42 +139,42 @@ public class WorkableElectricMultiblockMachine extends WorkableMultiblockMachine
         super.onPartUnload();
         this.energyContainer = null;
         this.tier = 0;
-        clearLDLib2DisplayOpenings();
+        clearDisplayOpenings();
     }
 
-    private void refreshLDLib2DisplayTracking() {
-        if (ldlib2DisplayOpenings.isEmpty() || isRemote()) return;
-        ldlib2DisplaySnapshotSubscription.updateSubscription();
-        refreshLDLib2DisplaySnapshot();
+    private void refreshDisplayTracking() {
+        if (displayOpenings.isEmpty() || isRemote()) return;
+        displaySubscription.updateSubscription();
+        refreshDisplay();
     }
 
-    private void startLDLib2DisplayTracking(WorkableElectricMultiblockFancyPage page, Player player,
-                                            AbstractContainerMenu menu) {
+    private void startDisplayTracking(WorkableElectricMultiblockFancyPage page, Player player,
+                                      AbstractContainerMenu menu) {
         if (isRemote()) return;
-        boolean firstAttach = !ldlib2DisplayOpenings.containsKey(page);
-        ldlib2DisplayOpenings.put(page, new LDLib2DisplayOpening(player, menu));
+        boolean firstAttach = !displayOpenings.containsKey(page);
+        displayOpenings.put(page, new DisplayOpening(player, menu));
         if (firstAttach) {
-            refreshLDLib2DisplayTracking();
+            refreshDisplayTracking();
         }
     }
 
-    private void tickLDLib2DisplayTracking() {
-        ldlib2DisplayOpenings.values().removeIf(opening -> opening.player().containerMenu != opening.menu());
-        if (ldlib2DisplayOpenings.isEmpty()) {
-            clearLDLib2DisplayRuntimeState();
+    private void tickDisplayTracking() {
+        displayOpenings.values().removeIf(opening -> opening.player().containerMenu != opening.menu());
+        if (displayOpenings.isEmpty()) {
+            stopDisplayTracking();
         } else if (isFormed()) {
-            refreshLDLib2DisplaySnapshot();
+            refreshDisplay();
         }
     }
 
-    private void clearLDLib2DisplayOpenings() {
-        ldlib2DisplayOpenings.clear();
-        clearLDLib2DisplayRuntimeState();
+    private void clearDisplayOpenings() {
+        displayOpenings.clear();
+        stopDisplayTracking();
     }
 
-    private void clearLDLib2DisplayRuntimeState() {
-        ldlib2DisplaySnapshot = List.of();
-        ldlib2DisplaySnapshotSubscription.unsubscribe();
+    private void stopDisplayTracking() {
+        display = List.of();
+        displaySubscription.unsubscribe();
     }
 
     @Override
@@ -212,7 +212,7 @@ public class WorkableElectricMultiblockMachine extends WorkableMultiblockMachine
 
     @Override
     public UI createUI(Player player, MachineUIHolder holder) {
-        requireMatchingLDLib2Holder(holder);
+        requireControllerHolder(holder);
         WorkableElectricMultiblockFancyPage page = new WorkableElectricMultiblockFancyPage(player, holder);
         FancyMachineUI shell = new FancyMachineUI(page, player.getInventory(), holder,
                 page.getPageWidth(), page.getPageHeight());
@@ -221,34 +221,34 @@ public class WorkableElectricMultiblockMachine extends WorkableMultiblockMachine
             if (modularUI != null) {
                 var menu = modularUI.getMenu();
                 if (menu != null) {
-                    startLDLib2DisplayTracking(page, player, menu);
+                    startDisplayTracking(page, player, menu);
                 }
             }
         });
         return UI.of(shell);
     }
 
-    private void requireMatchingLDLib2Holder(MachineUIHolder holder) {
+    private void requireControllerHolder(MachineUIHolder holder) {
         if (holder.getMachine() != this) {
             GTCEu.LOGGER.error("Workable multiblock UI holder no longer resolves controller at {}", getBlockPos());
             throw new IllegalArgumentException("Workable multiblock UI holder must resolve the opened controller.");
         }
     }
 
-    void refreshLDLib2DisplaySnapshot() {
-        List<Component> nextSnapshot = new ArrayList<>();
-        addDisplayText(nextSnapshot);
-        nextSnapshot = List.copyOf(nextSnapshot);
-        if (!ldlib2DisplaySnapshot.equals(nextSnapshot)) {
-            ldlib2DisplaySnapshot = nextSnapshot;
+    void refreshDisplay() {
+        List<Component> nextDisplay = new ArrayList<>();
+        addDisplayText(nextDisplay);
+        nextDisplay = List.copyOf(nextDisplay);
+        if (!display.equals(nextDisplay)) {
+            display = nextDisplay;
         }
     }
 
-    private void addLDLib2DisplayText(List<Component> textList) {
-        textList.addAll(ldlib2DisplaySnapshot);
+    private void appendSyncedDisplay(List<Component> textList) {
+        textList.addAll(display);
     }
 
-    private record LDLib2DisplayOpening(Player player, AbstractContainerMenu menu) {}
+    private record DisplayOpening(Player player, AbstractContainerMenu menu) {}
 
     private final class WorkableElectricMultiblockFancyPage implements FancyUIProvider {
 
@@ -316,7 +316,7 @@ public class WorkableElectricMultiblockMachine extends WorkableMultiblockMachine
                     .textAlignVertical(Vertical.CENTER));
             screen.addScrollViewChild(title);
             screen.addScrollViewChild(new GTComponentPanelElement(4, 17,
-                    WorkableElectricMultiblockMachine.this::addLDLib2DisplayText)
+                    WorkableElectricMultiblockMachine.this::appendSyncedDisplay)
                     .setMaxWidthLimit(200)
                     .clickHandler(WorkableElectricMultiblockMachine.this::handleDisplayClick));
             root.addChild(screen);

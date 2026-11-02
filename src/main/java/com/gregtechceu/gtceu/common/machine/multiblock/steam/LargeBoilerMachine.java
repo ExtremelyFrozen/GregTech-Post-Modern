@@ -287,10 +287,10 @@ public class LargeBoilerMachine extends WorkableMultiblockMachine
     private GTComponentPanelElement createDisplayTextPanel(Player player, MachineUIHolder holder) {
         return new GTComponentPanelElement(4, 17, this::addDisplayText)
                 .setMaxWidthLimit(150)
-                .clickHandler((componentData, clickData) -> adjustLDLib2Throttle(player, holder, componentData));
+                .clickHandler((componentData, clickData) -> adjustThrottle(player, holder, componentData));
     }
 
-    private void adjustLDLib2Throttle(Player player, MachineUIHolder holder, String componentData) {
+    private void adjustThrottle(Player player, MachineUIHolder holder, String componentData) {
         int direction = readThrottleButtonDirection(componentData);
         if (player.level().isClientSide()) {
             MachineUIHelper.sendAction(holder,

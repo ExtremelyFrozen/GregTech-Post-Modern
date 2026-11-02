@@ -137,16 +137,16 @@ public class CreativeComputationProviderMachine extends MetaMachine
         UIElement root = new UIElement();
         UITemplate.setBounds(root, 0, 0, 140, 95);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));
-        root.addChild(createLDLib2Label(7, 7, 126, 10, Component.literal("CWUt")));
-        root.addChild(createLDLib2MaxCWUtField());
-        root.addChild(createLDLib2Label(7, 42, 126, 10,
+        root.addChild(createLabel(7, 7, 126, 10, Component.literal("CWUt")));
+        root.addChild(createMaxCWUtField());
+        root.addChild(createLabel(7, 42, 126, 10,
                 Component.translatable("gtpm.creative.computation.average")));
-        root.addChild(createLDLib2LastRequestedCWUtLabel());
-        root.addChild(createLDLib2ActivityButton());
+        root.addChild(createLastRequestedCWUtLabel());
+        root.addChild(createActivityButton());
         return UI.of(root);
     }
 
-    private GTLabelElement createLDLib2Label(int x, int y, int width, int height, Component text) {
+    private GTLabelElement createLabel(int x, int y, int width, int height, Component text) {
         GTLabelElement label = new GTLabelElement(x, y, width, height, text);
         label.textStyle(style -> style
                 .textColor(0x404040)
@@ -156,7 +156,7 @@ public class CreativeComputationProviderMachine extends MetaMachine
         return label;
     }
 
-    private GTTextFieldElement createLDLib2MaxCWUtField() {
+    private GTTextFieldElement createMaxCWUtField() {
         GTTextFieldElement field = new GTTextFieldElement(9, 20, 122, 16) {
 
             @Override
@@ -172,11 +172,11 @@ public class CreativeComputationProviderMachine extends MetaMachine
         field.textFieldStyle(style -> style
                 .textColor(0x404040)
                 .textShadow(false));
-        field.setTextResponder(this::setLDLib2MaxCWUt);
+        field.setTextResponder(this::setMaxCWUt);
         return field;
     }
 
-    private GTLabelElement createLDLib2LastRequestedCWUtLabel() {
+    private GTLabelElement createLastRequestedCWUtLabel() {
         GTLabelElement label = new GTLabelElement(7, 54, 126, 10) {
 
             @Override
@@ -194,24 +194,24 @@ public class CreativeComputationProviderMachine extends MetaMachine
         return label;
     }
 
-    private GTButtonElement createLDLib2ActivityButton() {
-        return new GTButtonElement(9, 66, 122, 20, createLDLib2ActivityButtonTexture(),
-                event -> setLDLib2Active(!isActive())) {
+    private GTButtonElement createActivityButton() {
+        return new GTButtonElement(9, 66, 122, 20, createActivityButtonTexture(),
+                event -> setActiveAndSync(!isActive())) {
 
             @Override
             public void screenTick() {
-                setButtonTexture(createLDLib2ActivityButtonTexture());
+                setButtonTexture(createActivityButtonTexture());
                 super.screenTick();
             }
         };
     }
 
-    private IGuiTexture createLDLib2ActivityButtonTexture() {
+    private IGuiTexture createActivityButtonTexture() {
         return GuiTextures.group(GuiTextures.BUTTON,
                 GuiTextures.text(active ? "gtpm.creative.activity.on" : "gtpm.creative.activity.off"));
     }
 
-    private void setLDLib2MaxCWUt(String value) {
+    private void setMaxCWUt(String value) {
         if (value.isEmpty()) {
             return;
         }
@@ -226,7 +226,7 @@ public class CreativeComputationProviderMachine extends MetaMachine
         sendServerSyncChanges();
     }
 
-    private void setLDLib2Active(boolean active) {
+    private void setActiveAndSync(boolean active) {
         setActive(active);
         sendServerSyncChanges();
     }

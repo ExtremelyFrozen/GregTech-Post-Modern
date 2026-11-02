@@ -28,14 +28,14 @@ public class ReservoirHatchPartMachine extends FluidHatchPartMachine implements 
 
     /** Reservoir definitions always reuse their compatible generic fluid hatch page. */
     @Override
-    protected boolean supportsGenericLDLib2Page() {
+    protected boolean supportsGenericPage() {
         return true;
     }
 
     /** Reuses the reservoir-compatible generic page for one controller UI opening. */
     @Override
     public FancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
-        return createLDLib2Page(player, holder);
+        return createPage(player, holder);
     }
 
     //////////////////////////////////

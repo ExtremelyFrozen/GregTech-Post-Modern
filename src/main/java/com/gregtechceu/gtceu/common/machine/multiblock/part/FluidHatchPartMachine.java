@@ -293,32 +293,32 @@ public class FluidHatchPartMachine extends TieredIOPartMachine
 
     @Override
     public boolean canCreateUI(Player player, MachineUIHolder holder) {
-        return holder.getMachine() == this && supportsGenericLDLib2Page();
+        return holder.getMachine() == this && supportsGenericPage();
     }
 
     @Override
     public UI createUI(Player player, MachineUIHolder holder) {
-        FancyUIProvider page = createLDLib2Page(player, holder);
+        FancyUIProvider page = createPage(player, holder);
         return UI.of(new FancyMachineUI(page, player.getInventory(), holder,
                 page.getPageWidth(), page.getPageHeight()));
     }
 
-    FancyUIProvider createLDLib2Page(Player player, MachineUIHolder holder) {
-        requireMatchingLDLib2Holder(holder);
-        if (!supportsGenericLDLib2Page()) {
+    FancyUIProvider createPage(Player player, MachineUIHolder holder) {
+        requireHatchHolder(holder);
+        if (!supportsGenericPage()) {
             throw new IllegalStateException("Fluid hatch definition requires its specialized UI provider.");
         }
-        return new FluidHatchLDLib2Page(player, holder);
+        return new FluidHatchPage(player, holder);
     }
 
-    private void requireMatchingLDLib2Holder(MachineUIHolder holder) {
+    private void requireHatchHolder(MachineUIHolder holder) {
         if (holder.getMachine() != this) {
             throw new IllegalArgumentException("Fluid hatch page holder must resolve the opened machine.");
         }
     }
 
     /** Determines whether this definition may reuse the generic holder-scoped LDLib2 fluid hatch page. */
-    protected boolean supportsGenericLDLib2Page() {
+    protected boolean supportsGenericPage() {
         MachineDefinition definition = getDefinition();
         return containsDefinition(definition, GTMachines.FLUID_IMPORT_HATCH) ||
                 containsDefinition(definition, GTMachines.FLUID_IMPORT_HATCH_4X) ||
@@ -339,7 +339,7 @@ public class FluidHatchPartMachine extends TieredIOPartMachine
         return false;
     }
 
-    private int getLDLib2PageWidth() {
+    private int getPageWidth() {
         if (slots == 1) {
             return 89;
         }
@@ -347,7 +347,7 @@ public class FluidHatchPartMachine extends TieredIOPartMachine
         return 18 * rowSize + 16;
     }
 
-    private int getLDLib2PageHeight() {
+    private int getPageHeight() {
         if (slots == 1) {
             return 63;
         }
@@ -363,21 +363,21 @@ public class FluidHatchPartMachine extends TieredIOPartMachine
         return slots == 8 ? 2 : (int) Math.sqrt(slots);
     }
 
-    private UIElement createLDLib2MainElement(Player player, MachineUIHolder holder) {
-        return createLDLib2MainElement(player, holder, MachineUIHelper::sendAction,
+    private UIElement createMainElement(Player player, MachineUIHolder holder) {
+        return createMainElement(player, holder, MachineUIHelper::sendAction,
                 () -> player.level().isClientSide() && holder.getMachine() == this,
                 UIEvent::isShiftDown);
     }
 
-    UIElement createLDLib2MainElement(Player player, MachineUIHolder holder,
-                                      BiConsumer<MachineUIHolder, SyncActionData> actionSender,
-                                      BooleanSupplier canSendAction, Predicate<UIEvent> shiftDown) {
-        requireMatchingLDLib2Holder(holder);
+    UIElement createMainElement(Player player, MachineUIHolder holder,
+                                BiConsumer<MachineUIHolder, SyncActionData> actionSender,
+                                BooleanSupplier canSendAction, Predicate<UIEvent> shiftDown) {
+        requireHatchHolder(holder);
         if (slots == 1) {
-            return createLDLib2SingleSlotElement(player, holder, actionSender, canSendAction, shiftDown,
+            return createSingleSlotElement(player, holder, actionSender, canSendAction, shiftDown,
                     () -> getSelectedLockedFluid(player));
         }
-        return createLDLib2MultiSlotElement(player, holder, actionSender, canSendAction, shiftDown);
+        return createMultiSlotElement(player, holder, actionSender, canSendAction, shiftDown);
     }
 
     private static Optional<FluidStack> getSelectedLockedFluid(Player player) {
@@ -393,20 +393,20 @@ public class FluidHatchPartMachine extends TieredIOPartMachine
                 .orElse(FluidStack.EMPTY));
     }
 
-    private UIElement createLDLib2SingleSlotElement(
-                                                    Player player, MachineUIHolder holder,
-                                                    BiConsumer<MachineUIHolder, SyncActionData> actionSender,
-                                                    BooleanSupplier canSendAction, Predicate<UIEvent> shiftDown,
-                                                    Supplier<Optional<FluidStack>> selectedLockedFluid) {
+    private UIElement createSingleSlotElement(
+                                              Player player, MachineUIHolder holder,
+                                              BiConsumer<MachineUIHolder, SyncActionData> actionSender,
+                                              BooleanSupplier canSendAction, Predicate<UIEvent> shiftDown,
+                                              Supplier<Optional<FluidStack>> selectedLockedFluid) {
         UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, 89, 63);
         UITemplate.setBackgroundTexture(root, GuiTextures.BACKGROUND_INVERSE);
         root.addChild(new GTImageElement(4, 4, 81, 55, GuiTextures.DISPLAY));
 
-        GTFluidSlotElement fluidSlot = createLDLib2FluidSlot(player, holder, 0, 67, 22,
+        GTFluidSlotElement fluidSlot = createFluidSlot(player, holder, 0, 67, 22,
                 actionSender, canSendAction, shiftDown);
         root.addChild(fluidSlot);
         if (supportsFluidHatchLocking()) {
-            root.addChild(createLDLib2LockedFluidSlot(holder, actionSender, canSendAction, selectedLockedFluid));
+            root.addChild(createLockedFluidSlot(holder, actionSender, canSendAction, selectedLockedFluid));
             root.addChild(new GTToggleButtonElement(7, 40, 18, 18,
                     GuiTextures.BUTTON_LOCK, tank::isLocked,
                     locked -> sendSetLockedAction(holder, actionSender, canSendAction, locked))
@@ -414,13 +414,13 @@ public class FluidHatchPartMachine extends TieredIOPartMachine
                     .setShouldUseBaseBackground());
         }
 
-        root.addChild(createLDLib2FluidAmountLabel());
-        root.addChild(createLDLib2FluidAmountValueLabel());
-        root.addChild(createLDLib2FluidNameLabel());
+        root.addChild(createFluidAmountLabel());
+        root.addChild(createFluidAmountValueLabel());
+        root.addChild(createFluidNameLabel());
         return root;
     }
 
-    private static GTLabelElement createLDLib2FluidAmountLabel() {
+    private static GTLabelElement createFluidAmountLabel() {
         return new GTLabelElement(8, 8, 57, 10,
                 Component.translatable("gtpm.gui.fluid_amount"))
                 .setTextColor(-1)
@@ -429,37 +429,37 @@ public class FluidHatchPartMachine extends TieredIOPartMachine
                 .setTextAlignVertical(Vertical.CENTER);
     }
 
-    private GTLabelElement createLDLib2FluidAmountValueLabel() {
+    private GTLabelElement createFluidAmountValueLabel() {
         return new GTLabelElement(8, 18, 57, 10) {
 
             @Override
             public void screenTick() {
-                setValue(Component.literal(getLDLib2FluidAmountText()));
+                setValue(Component.literal(getFluidAmountText()));
                 super.screenTick();
             }
-        }.setValue(Component.literal(getLDLib2FluidAmountText()))
+        }.setValue(Component.literal(getFluidAmountText()))
                 .setTextColor(-1)
                 .setTextShadow(true)
                 .setTextAlignHorizontal(Horizontal.LEFT)
                 .setTextAlignVertical(Vertical.CENTER);
     }
 
-    private GTLabelElement createLDLib2FluidNameLabel() {
+    private GTLabelElement createFluidNameLabel() {
         return new GTLabelElement(8, 28, 57, 10) {
 
             @Override
             public void screenTick() {
-                setValue(getLDLib2FluidName());
+                setValue(getFluidName());
                 super.screenTick();
             }
-        }.setValue(getLDLib2FluidName())
+        }.setValue(getFluidName())
                 .setTextColor(-1)
                 .setTextShadow(true)
                 .setTextAlignHorizontal(Horizontal.LEFT)
                 .setTextAlignVertical(Vertical.CENTER);
     }
 
-    private String getLDLib2FluidAmountText() {
+    private String getFluidAmountText() {
         FluidStack fluid = tank.getFluidInTank(0);
         if (!fluid.isEmpty()) {
             return getFormattedFluidAmount(fluid);
@@ -467,16 +467,16 @@ public class FluidHatchPartMachine extends TieredIOPartMachine
         return tank.getLockedFluid().getFluid().isEmpty() ? "" : "0";
     }
 
-    private Component getLDLib2FluidName() {
+    private Component getFluidName() {
         FluidStack fluid = tank.getFluidInTank(0);
         return (fluid.isEmpty() ? tank.getLockedFluid().getFluid() : fluid).getHoverName();
     }
 
-    private GTPhantomFluidSlotElement createLDLib2LockedFluidSlot(
-                                                                  MachineUIHolder holder,
-                                                                  BiConsumer<MachineUIHolder, SyncActionData> actionSender,
-                                                                  BooleanSupplier canSendAction,
-                                                                  Supplier<Optional<FluidStack>> selectedLockedFluid) {
+    private GTPhantomFluidSlotElement createLockedFluidSlot(
+                                                            MachineUIHolder holder,
+                                                            BiConsumer<MachineUIHolder, SyncActionData> actionSender,
+                                                            BooleanSupplier canSendAction,
+                                                            Supplier<Optional<FluidStack>> selectedLockedFluid) {
         GTPhantomFluidSlotElement slot = new GTPhantomFluidSlotElement(
                 () -> tank.getLockedFluid().getFluid(),
                 fluid -> {
@@ -521,11 +521,11 @@ public class FluidHatchPartMachine extends TieredIOPartMachine
         }
     }
 
-    private UIElement createLDLib2MultiSlotElement(
-                                                   Player player, MachineUIHolder holder,
-                                                   BiConsumer<MachineUIHolder, SyncActionData> actionSender,
-                                                   BooleanSupplier canSendAction,
-                                                   Predicate<UIEvent> shiftDown) {
+    private UIElement createMultiSlotElement(
+                                             Player player, MachineUIHolder holder,
+                                             BiConsumer<MachineUIHolder, SyncActionData> actionSender,
+                                             BooleanSupplier canSendAction,
+                                             Predicate<UIEvent> shiftDown) {
         int rowSize = getTankRowSize();
         int columnSize = getTankColumnSize();
         UIElement root = UITemplate.setBounds(new UIElement(), 0, 0,
@@ -537,7 +537,7 @@ public class FluidHatchPartMachine extends TieredIOPartMachine
         int index = 0;
         for (int y = 0; y < columnSize; y++) {
             for (int x = 0; x < rowSize; x++) {
-                container.addChild(createLDLib2FluidSlot(player, holder, index++,
+                container.addChild(createFluidSlot(player, holder, index++,
                         4 + x * 18, 4 + y * 18, actionSender, canSendAction, shiftDown));
             }
         }
@@ -545,12 +545,12 @@ public class FluidHatchPartMachine extends TieredIOPartMachine
         return root;
     }
 
-    private GTFluidSlotElement createLDLib2FluidSlot(
-                                                     Player player, MachineUIHolder holder, int tankIndex, int x,
-                                                     int y,
-                                                     BiConsumer<MachineUIHolder, SyncActionData> actionSender,
-                                                     BooleanSupplier canSendAction,
-                                                     Predicate<UIEvent> shiftDown) {
+    private GTFluidSlotElement createFluidSlot(
+                                               Player player, MachineUIHolder holder, int tankIndex, int x,
+                                               int y,
+                                               BiConsumer<MachineUIHolder, SyncActionData> actionSender,
+                                               BooleanSupplier canSendAction,
+                                               Predicate<UIEvent> shiftDown) {
         GTFluidSlotElement fluidSlot = new GTFluidSlotElement()
                 .setFluidTank(tank.getStorages()[tankIndex], 0)
                 .setShowAmount(true)
@@ -573,7 +573,7 @@ public class FluidHatchPartMachine extends TieredIOPartMachine
     @Override
     @ApiStatus.Internal
     public boolean supportsFluidHatchActions() {
-        return supportsGenericLDLib2Page();
+        return supportsGenericPage();
     }
 
     @Override
@@ -595,7 +595,7 @@ public class FluidHatchPartMachine extends TieredIOPartMachine
         if (tankIndex < 0 || tankIndex >= tank.getTanks()) {
             throw new IllegalArgumentException("Invalid fluid hatch tank index: " + tankIndex);
         }
-        new LDLib2FluidClickTarget(tank.getStorages()[tankIndex], true, io.support(IO.IN))
+        new FluidClickTarget(tank.getStorages()[tankIndex], true, io.support(IO.IN))
                 .click(player, shiftDown);
     }
 
@@ -633,8 +633,8 @@ public class FluidHatchPartMachine extends TieredIOPartMachine
         }
     }
 
-    private record LDLib2FluidClickTarget(IFluidHandler fluidTank, boolean allowClickFilled,
-                                          boolean allowClickDrained) {
+    private record FluidClickTarget(IFluidHandler fluidTank, boolean allowClickFilled,
+                                    boolean allowClickDrained) {
 
         private void click(ServerPlayer player, boolean shiftDown) {
             ItemStack currentStack = player.containerMenu.getCarried();
@@ -742,14 +742,14 @@ public class FluidHatchPartMachine extends TieredIOPartMachine
     /**
      * Adapts this legacy multipart Fancy page to a holder-scoped LDLib2 Fancy provider.
      */
-    private final class FluidHatchLDLib2Page implements FancyUIProvider {
+    private final class FluidHatchPage implements FancyUIProvider {
 
         private final Player player;
         private final MachineUIHolder holder;
         private final DirectionalConfigurator directionalPage;
 
-        private FluidHatchLDLib2Page(Player player, MachineUIHolder holder) {
-            requireMatchingLDLib2Holder(holder);
+        private FluidHatchPage(Player player, MachineUIHolder holder) {
+            requireHatchHolder(holder);
             this.player = player;
             this.holder = holder;
             this.directionalPage = new DirectionalConfigurator(
@@ -761,7 +761,7 @@ public class FluidHatchPartMachine extends TieredIOPartMachine
             if (holder.getMachine() != FluidHatchPartMachine.this) {
                 throw new IllegalStateException("Fluid hatch page holder no longer resolves its opened machine.");
             }
-            return createLDLib2MainElement(player, holder);
+            return createMainElement(player, holder);
         }
 
         @Override
@@ -776,12 +776,12 @@ public class FluidHatchPartMachine extends TieredIOPartMachine
 
         @Override
         public int getPageWidth() {
-            return FluidHatchPartMachine.this.getLDLib2PageWidth();
+            return FluidHatchPartMachine.this.getPageWidth();
         }
 
         @Override
         public int getPageHeight() {
-            return FluidHatchPartMachine.this.getLDLib2PageHeight();
+            return FluidHatchPartMachine.this.getPageHeight();
         }
 
         @Override

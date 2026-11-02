@@ -29,7 +29,7 @@ public final class StandardItemBusPartMachine extends ItemBusPartMachine
      * Ordinary definitions always use the generic Item Bus page, including addon registrations.
      */
     @Override
-    protected boolean supportsGenericLDLib2Page() {
+    protected boolean supportsGenericPage() {
         return true;
     }
 
@@ -38,6 +38,6 @@ public final class StandardItemBusPartMachine extends ItemBusPartMachine
      */
     @Override
     public FancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
-        return createLDLib2Page(player, holder);
+        return createPage(player, holder);
     }
 }

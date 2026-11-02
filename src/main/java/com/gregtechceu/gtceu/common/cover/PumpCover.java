@@ -98,7 +98,7 @@ public class PumpCover extends CoverBehavior
     @SyncToClient
     protected final FilterHandler<FluidStack, FluidFilter> filterHandler;
     protected final ConditionalSubscriptionHandler subscriptionHandler;
-    private @Nullable GTIntInputElement transferRateLDLib2Input;
+    private @Nullable GTIntInputElement transferRateInput;
 
     public PumpCover(CoverDefinition definition, ICoverable coverHolder, Direction attachedSide, int tier,
                      int maxTransferRate) {
@@ -211,12 +211,12 @@ public class PumpCover extends CoverBehavior
         var newMultiplier = bucketMode.multiplier;
 
         if (this.bucketMode == bucketMode) {
-            configureTransferRateLDLib2Input(oldMultiplier, newMultiplier);
+            configureTransferRateInput(oldMultiplier, newMultiplier);
             return;
         }
         this.bucketMode = bucketMode;
         syncDataHolder.markClientSyncFieldDirty("bucketMode");
-        configureTransferRateLDLib2Input(oldMultiplier, newMultiplier);
+        configureTransferRateInput(oldMultiplier, newMultiplier);
     }
 
     @Override
@@ -314,25 +314,25 @@ public class PumpCover extends CoverBehavior
         UITemplate.setBounds(root, 0, 0, 176, 219);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));
 
-        root.addChild(createLDLib2Label());
-        transferRateLDLib2Input = new GTIntInputElement(10, 20, 134, 20,
+        root.addChild(createLabel());
+        transferRateInput = new GTIntInputElement(10, 20, 134, 20,
                 this::getCurrentBucketModeTransferRate,
-                value -> setLDLib2CurrentBucketModeTransferRate(player, holder, value))
+                value -> setCurrentBucketModeTransferRate(player, holder, value))
                 .setMin(0);
-        configureTransferRateLDLib2Input(bucketMode.multiplier, bucketMode.multiplier);
-        root.addChild(transferRateLDLib2Input);
+        configureTransferRateInput(bucketMode.multiplier, bucketMode.multiplier);
+        root.addChild(transferRateInput);
 
         root.addChild(GTEnumSelectorElement.selectable(146, 20, 20, 20, getAvailableBucketModes(),
-                this::getBucketMode, mode -> setLDLib2BucketMode(player, holder, mode))
+                this::getBucketMode, mode -> setBucketMode(player, holder, mode))
                 .setTooltipSupplier(this::getBucketModeTooltip));
         root.addChild(GTEnumSelectorElement.selectable(10, 45, 20, 20, List.of(IO.IN, IO.OUT), this::getIo,
-                mode -> setLDLib2Io(player, holder, mode)));
+                mode -> setIo(player, holder, mode)));
         root.addChild(GTEnumSelectorElement.selectable(146, 107, 20, 20, ManualIOMode.VALUES,
-                this::getManualIOMode, mode -> setLDLib2ManualIOMode(player, holder, mode)));
+                this::getManualIOMode, mode -> setManualIOMode(player, holder, mode)));
 
-        root.addChild(filterHandler.createFilterSlotLDLib2UI(125, 108));
-        root.addChild(filterHandler.createFilterConfigLDLib2UI(10, 72, 156, 60));
-        buildAdditionalLDLib2UI(root, player, holder);
+        root.addChild(filterHandler.createFilterSlotUI(125, 108));
+        root.addChild(filterHandler.createFilterConfigUI(10, 72, 156, 60));
+        buildAdditionalUI(root, player, holder);
         root.addChild(UITemplate.bindPlayerInventory(player.getInventory(), GuiTextures.SLOT, 7, 137, true));
         return UI.of(root);
     }
@@ -355,17 +355,17 @@ public class PumpCover extends CoverBehavior
         this.setTransferRate((int) Math.min(milliBucketsPerTick, maxFluidTransferRate));
     }
 
-    private void configureTransferRateLDLib2Input(int oldMultiplier, int newMultiplier) {
-        if (transferRateLDLib2Input == null) return;
+    private void configureTransferRateInput(int oldMultiplier, int newMultiplier) {
+        if (transferRateInput == null) return;
 
         if (oldMultiplier > newMultiplier) {
-            transferRateLDLib2Input.setValue(getCurrentBucketModeTransferRate());
+            transferRateInput.setValue(getCurrentBucketModeTransferRate());
         }
 
-        transferRateLDLib2Input.setMax(maxFluidTransferRate / bucketMode.multiplier);
+        transferRateInput.setMax(maxFluidTransferRate / bucketMode.multiplier);
 
         if (newMultiplier > oldMultiplier) {
-            transferRateLDLib2Input.setValue(getCurrentBucketModeTransferRate());
+            transferRateInput.setValue(getCurrentBucketModeTransferRate());
         }
     }
 
@@ -374,7 +374,7 @@ public class PumpCover extends CoverBehavior
         return "cover.pump.title";
     }
 
-    protected void buildAdditionalLDLib2UI(UIElement root, Player player, UICoverHolder holder) {
+    protected void buildAdditionalUI(UIElement root, Player player, UICoverHolder holder) {
         // Do nothing in the base implementation. This is intended to be overridden by subclasses.
     }
 
@@ -382,7 +382,7 @@ public class PumpCover extends CoverBehavior
         // Do nothing in the base implementation. This is intended to be overridden by subclasses.
     }
 
-    private GTLabelElement createLDLib2Label() {
+    private GTLabelElement createLabel() {
         GTLabelElement label = new GTLabelElement(10, 5, 156, 10, Component.translatable(getUITitle(),
                 GTValues.VN[tier]));
         label.textStyle(style -> style
@@ -393,27 +393,27 @@ public class PumpCover extends CoverBehavior
         return label;
     }
 
-    private void setLDLib2CurrentBucketModeTransferRate(Player player, UICoverHolder holder, int transferRate) {
+    private void setCurrentBucketModeTransferRate(Player player, UICoverHolder holder, int transferRate) {
         setCurrentBucketModeTransferRate(transferRate);
-        sendLDLib2ConfigAction(player, holder);
+        sendConfigAction(player, holder);
     }
 
-    private void setLDLib2BucketMode(Player player, UICoverHolder holder, BucketMode mode) {
+    private void setBucketMode(Player player, UICoverHolder holder, BucketMode mode) {
         setBucketMode(mode);
-        sendLDLib2ConfigAction(player, holder);
+        sendConfigAction(player, holder);
     }
 
-    private void setLDLib2Io(Player player, UICoverHolder holder, IO io) {
+    private void setIo(Player player, UICoverHolder holder, IO io) {
         setIo(io);
-        sendLDLib2ConfigAction(player, holder);
+        sendConfigAction(player, holder);
     }
 
-    private void setLDLib2ManualIOMode(Player player, UICoverHolder holder, ManualIOMode mode) {
+    private void setManualIOMode(Player player, UICoverHolder holder, ManualIOMode mode) {
         setManualIOMode(mode);
-        sendLDLib2ConfigAction(player, holder);
+        sendConfigAction(player, holder);
     }
 
-    private void sendLDLib2ConfigAction(Player player, UICoverHolder holder) {
+    private void sendConfigAction(Player player, UICoverHolder holder) {
         if (player.level().isClientSide()) {
             CoverUIHelper.sendAction(holder, PumpCoverConfigActions.createSetConfigAction(getTransferRate(), getIo(),
                     getBucketMode(), getManualIOMode()));

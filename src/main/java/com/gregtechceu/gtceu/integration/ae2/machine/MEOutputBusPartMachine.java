@@ -140,7 +140,7 @@ public class MEOutputBusPartMachine extends MEBusPartMachine
 
     @Override
     public UI createUI(Player player, MachineUIHolder holder) {
-        FancyUIProvider page = createLDLib2Page(player, holder);
+        FancyUIProvider page = createPage(player, holder);
         return UI.of(new FancyMachineUI(page, player.getInventory(), holder,
                 page.getPageWidth(), page.getPageHeight()));
     }
@@ -148,14 +148,14 @@ public class MEOutputBusPartMachine extends MEBusPartMachine
     /**
      * Creates one opening-scoped page after validating the exact item output bus holder and definition.
      */
-    FancyUIProvider createLDLib2Page(Player player, MachineUIHolder holder) {
+    FancyUIProvider createPage(Player player, MachineUIHolder holder) {
         requireMatchingHolder(holder);
         return new MEItemOutputBusFancyPage(player, holder);
     }
 
     @Override
     public FancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
-        return createLDLib2Page(player, holder);
+        return createPage(player, holder);
     }
 
     private void requireMatchingHolder(MachineUIHolder holder) {
@@ -168,9 +168,9 @@ public class MEOutputBusPartMachine extends MEBusPartMachine
         }
     }
 
-    private UIElement createLDLib2MainElement(Player player, MachineUIHolder holder,
-                                              MachineUIHolder actionHolder) {
-        return createLDLib2MainElement(player, holder, actionHolder, MachineUIHelper::sendAction,
+    private UIElement createMainElement(Player player, MachineUIHolder holder,
+                                        MachineUIHolder actionHolder) {
+        return createMainElement(player, holder, actionHolder, MachineUIHelper::sendAction,
                 () -> player.level().isClientSide() && holder.getMachine() == this &&
                         actionHolder.getMachine() != null);
     }
@@ -178,18 +178,18 @@ public class MEOutputBusPartMachine extends MEBusPartMachine
     /**
      * Builds the directly testable waiting-list body around an injected GT action transport.
      */
-    UIElement createLDLib2MainElement(Player player, MachineUIHolder holder,
-                                      BiConsumer<MachineUIHolder, SyncActionData> actionSender,
-                                      BooleanSupplier canSendAction) {
-        return createLDLib2MainElement(player, holder, holder, actionSender, canSendAction);
+    UIElement createMainElement(Player player, MachineUIHolder holder,
+                                BiConsumer<MachineUIHolder, SyncActionData> actionSender,
+                                BooleanSupplier canSendAction) {
+        return createMainElement(player, holder, holder, actionSender, canSendAction);
     }
 
     /**
      * Builds the waiting-list body with a part target holder and the real menu-root action holder.
      */
-    UIElement createLDLib2MainElement(Player player, MachineUIHolder holder, MachineUIHolder actionHolder,
-                                      BiConsumer<MachineUIHolder, SyncActionData> actionSender,
-                                      BooleanSupplier canSendAction) {
+    UIElement createMainElement(Player player, MachineUIHolder holder, MachineUIHolder actionHolder,
+                                BiConsumer<MachineUIHolder, SyncActionData> actionSender,
+                                BooleanSupplier canSendAction) {
         requireMatchingHolder(holder);
         UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
@@ -311,7 +311,7 @@ public class MEOutputBusPartMachine extends MEBusPartMachine
             if (holder.getMachine() != MEOutputBusPartMachine.this) {
                 throw new IllegalStateException("ME item output page holder no longer resolves its bus.");
             }
-            return createLDLib2MainElement(player, holder, shell.getHolder());
+            return createMainElement(player, holder, shell.getHolder());
         }
 
         @Override

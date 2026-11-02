@@ -347,44 +347,44 @@ public class ItemCollectorMachine extends TieredEnergyMachine
         UIElement root = UITemplate.setBounds(new UIElement(), 0, 0,
                 getPageWidth(), getPageHeight());
 
-        UIElement energyGroup = UITemplate.setBounds(new UIElement(), ENERGY_GROUP_X, getLDLib2EnergyGroupY(),
-                getLDLib2EnergyGroupWidth(), getLDLib2EnergyGroupHeight());
-        energyGroup.addChild(createLDLib2EnergyBar());
-        energyGroup.addChild(createLDLib2BatterySlot(BATTERY_SLOT_X, BATTERY_SLOT_Y));
+        UIElement energyGroup = UITemplate.setBounds(new UIElement(), ENERGY_GROUP_X, getEnergyGroupY(),
+                getEnergyGroupWidth(), getEnergyGroupHeight());
+        energyGroup.addChild(createEnergyBar());
+        energyGroup.addChild(createBatterySlot(BATTERY_SLOT_X, BATTERY_SLOT_Y));
         root.addChild(energyGroup);
 
-        UIElement template = UITemplate.setBounds(new UIElement(), getLDLib2TemplateX(), getLDLib2TemplateY(),
-                getLDLib2TemplateWidth(), getLDLib2TemplateHeight());
+        UIElement template = UITemplate.setBounds(new UIElement(), getTemplateX(), getTemplateY(),
+                getTemplateWidth(), getTemplateHeight());
         template.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
 
-        int rowSize = getLDLib2TemplateRowSize();
+        int rowSize = getTemplateRowSize();
         for (int y = 0; y < rowSize; y++) {
             for (int x = 0; x < rowSize; x++) {
                 int index = y * rowSize + x;
-                template.addChild(createLDLib2OutputSlot(index, OUTPUT_SLOT_X_OFFSET + x * SLOT_SIZE,
+                template.addChild(createOutputSlot(index, OUTPUT_SLOT_X_OFFSET + x * SLOT_SIZE,
                         TEMPLATE_SLOT_OFFSET + y * SLOT_SIZE));
             }
         }
 
-        template.addChild(createLDLib2FilterSlot(FILTER_SLOT_X, getLDLib2FilterSlotY()));
+        template.addChild(createFilterSlot(FILTER_SLOT_X, getFilterSlotY()));
         root.addChild(template);
-        root.addChild(createLDLib2RangeInput(getLDLib2RangeInputX(), RANGE_INPUT_Y));
+        root.addChild(createRangeInput(getRangeInputX(), RANGE_INPUT_Y));
         return root;
     }
 
     @Override
     public int getPageWidth() {
-        return Math.max(getLDLib2EnergyGroupWidth() + getLDLib2TemplateWidth() +
+        return Math.max(getEnergyGroupWidth() + getTemplateWidth() +
                 PAGE_ENERGY_TEMPLATE_GAP + TEMPLATE_PADDING, PAGE_MIN_WIDTH);
     }
 
     @Override
     public int getPageHeight() {
-        return Math.max(getLDLib2TemplateHeight() + TEMPLATE_PADDING + PAGE_RANGE_INPUT_RESERVED_HEIGHT,
-                getLDLib2EnergyGroupHeight() + TEMPLATE_PADDING);
+        return Math.max(getTemplateHeight() + TEMPLATE_PADDING + PAGE_RANGE_INPUT_RESERVED_HEIGHT,
+                getEnergyGroupHeight() + TEMPLATE_PADDING);
     }
 
-    private GTItemSlotElement createLDLib2OutputSlot(int index, int x, int y) {
+    private GTItemSlotElement createOutputSlot(int index, int x, int y) {
         GTItemSlotElement slot = new GTItemSlotElement(output.storage, index)
                 .setCanTakeItems(true)
                 .setCanPutItems(false)
@@ -392,7 +392,7 @@ public class ItemCollectorMachine extends TieredEnergyMachine
         return UITemplate.setBounds(slot, x, y, SLOT_SIZE, SLOT_SIZE);
     }
 
-    private GTItemSlotElement createLDLib2FilterSlot(int x, int y) {
+    private GTItemSlotElement createFilterSlot(int x, int y) {
         GTItemSlotElement slot = new GTItemSlotElement(filterInventory, 0)
                 .setCanTakeItems(true)
                 .setCanPutItems(true)
@@ -400,7 +400,7 @@ public class ItemCollectorMachine extends TieredEnergyMachine
         return UITemplate.setBounds(slot, x, y, SLOT_SIZE, SLOT_SIZE);
     }
 
-    private GTItemSlotElement createLDLib2BatterySlot(int x, int y) {
+    private GTItemSlotElement createBatterySlot(int x, int y) {
         GTItemSlotElement slot = new GTItemSlotElement(chargerInventory, 0)
                 .setCanPutItems(true)
                 .setCanTakeItems(true)
@@ -411,56 +411,56 @@ public class ItemCollectorMachine extends TieredEnergyMachine
         return UITemplate.setBounds(slot, x, y, SLOT_SIZE, SLOT_SIZE);
     }
 
-    private GTIntInputElement createLDLib2RangeInput(int x, int y) {
+    private GTIntInputElement createRangeInput(int x, int y) {
         return new GTIntInputElement(x, y, RANGE_INPUT_WIDTH, RANGE_INPUT_HEIGHT, this::getRange,
-                this::setLDLib2Range)
+                this::setRangeAndSync)
                 .setMin(MIN_RANGE)
                 .setMax(maxRange);
     }
 
-    private void setLDLib2Range(int value) {
+    private void setRangeAndSync(int value) {
         setRange(value);
         sendServerSyncChanges();
     }
 
-    private int getLDLib2EnergyGroupWidth() {
+    private int getEnergyGroupWidth() {
         return ENERGY_GROUP_WIDTH;
     }
 
-    private int getLDLib2EnergyGroupHeight() {
+    private int getEnergyGroupHeight() {
         return ENERGY_GROUP_HEIGHT;
     }
 
-    private int getLDLib2EnergyGroupY() {
-        return (getPageHeight() - getLDLib2EnergyGroupHeight()) / 2;
+    private int getEnergyGroupY() {
+        return (getPageHeight() - getEnergyGroupHeight()) / 2;
     }
 
-    private int getLDLib2TemplateX() {
-        return (getPageWidth() - getLDLib2EnergyGroupWidth() - PAGE_ENERGY_TEMPLATE_GAP -
-                getLDLib2TemplateWidth()) / 2 + 2 + getLDLib2EnergyGroupWidth() + 2;
+    private int getTemplateX() {
+        return (getPageWidth() - getEnergyGroupWidth() - PAGE_ENERGY_TEMPLATE_GAP -
+                getTemplateWidth()) / 2 + 2 + getEnergyGroupWidth() + 2;
     }
 
-    private int getLDLib2TemplateY() {
-        return (getPageHeight() - getLDLib2TemplateHeight()) / 2 + TEMPLATE_PAGE_Y_OFFSET;
+    private int getTemplateY() {
+        return (getPageHeight() - getTemplateHeight()) / 2 + TEMPLATE_PAGE_Y_OFFSET;
     }
 
-    private int getLDLib2TemplateWidth() {
-        return getLDLib2TemplateRowSize() * SLOT_SIZE + TEMPLATE_PADDING + TEMPLATE_CONTROL_COLUMN_WIDTH;
+    private int getTemplateWidth() {
+        return getTemplateRowSize() * SLOT_SIZE + TEMPLATE_PADDING + TEMPLATE_CONTROL_COLUMN_WIDTH;
     }
 
-    private int getLDLib2TemplateHeight() {
-        return getLDLib2TemplateRowSize() * SLOT_SIZE + TEMPLATE_PADDING;
+    private int getTemplateHeight() {
+        return getTemplateRowSize() * SLOT_SIZE + TEMPLATE_PADDING;
     }
 
-    private int getLDLib2TemplateRowSize() {
+    private int getTemplateRowSize() {
         return (int) Math.sqrt(inventorySize);
     }
 
-    private int getLDLib2FilterSlotY() {
-        return (getLDLib2TemplateHeight() - SLOT_SIZE) / 2;
+    private int getFilterSlotY() {
+        return (getTemplateHeight() - SLOT_SIZE) / 2;
     }
 
-    private int getLDLib2RangeInputX() {
+    private int getRangeInputX() {
         return (getPageWidth() - RANGE_INPUT_WIDTH) / 2;
     }
 }

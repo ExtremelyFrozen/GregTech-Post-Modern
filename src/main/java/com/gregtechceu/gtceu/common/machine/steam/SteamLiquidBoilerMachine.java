@@ -60,17 +60,17 @@ public class SteamLiquidBoilerMachine extends SteamBoilerMachine {
     }
 
     @Override
-    protected void addLDLib2AdditionalWidgets(UIElement root, Player player, MachineUIHolder holder) {
-        root.addChild(createLDLib2FluidSlot(player, holder, fuelTank.getStorages()[0], 119, 26,
+    protected void addAdditionalWidgets(UIElement root, Player player, MachineUIHolder holder) {
+        root.addChild(createFluidSlot(player, holder, fuelTank.getStorages()[0], 119, 26,
                 FUEL_FLUID_SLOT, true, true));
     }
 
     @Override
-    protected LDLib2FluidClickTarget getLDLib2FluidClickTarget(int fluidSlot) {
+    protected FluidClickTarget getFluidClickTarget(int fluidSlot) {
         if (fluidSlot == FUEL_FLUID_SLOT) {
-            return createLDLib2FluidClickTarget(fuelTank.getStorages()[0], true, true);
+            return createFluidClickTarget(fuelTank.getStorages()[0], true, true);
         }
-        return super.getLDLib2FluidClickTarget(fluidSlot);
+        return super.getFluidClickTarget(fluidSlot);
     }
 
     @Override

@@ -205,9 +205,9 @@ public class MEPatternBufferProxyPartMachine extends TieredIOPartMachine
     public UI createUI(Player player, MachineUIHolder holder) {
         FancyUIProvider page;
         if (holder instanceof MEPatternBufferProxyUIContext context) {
-            page = createLDLib2Page(player, context);
+            page = createPage(player, context);
         } else {
-            page = createLDLib2Page(player, holder, MachineUIHelper::sendAction,
+            page = createPage(player, holder, MachineUIHelper::sendAction,
                     () -> player.level().isClientSide(), UIEvent::isShiftDown);
         }
         return UI.of(new FancyMachineUI(page, player.getInventory(), holder,
@@ -230,9 +230,9 @@ public class MEPatternBufferProxyPartMachine extends TieredIOPartMachine
         return new MEPatternBufferProxyUIHolder(player, this, opening.buffer(), opening.identity(), snapshot);
     }
 
-    private FancyUIProvider createLDLib2Page(Player player, MEPatternBufferProxyUIContext context) {
+    private FancyUIProvider createPage(Player player, MEPatternBufferProxyUIContext context) {
         BooleanSupplier openingValid = () -> context.isOpeningValid(player);
-        return createLDLib2Page(player, context, context.getPatternBufferView(), context.getOpeningIdentity(),
+        return createPage(player, context, context.getPatternBufferView(), context.getOpeningIdentity(),
                 MachineUIHelper::sendAction, openingValid,
                 () -> player.level().isClientSide() && openingValid.getAsBoolean(), UIEvent::isShiftDown);
     }
@@ -240,16 +240,16 @@ public class MEPatternBufferProxyPartMachine extends TieredIOPartMachine
     /**
      * Builds an opening-scoped Proxy page with injectable action transport for direct interaction tests.
      */
-    FancyUIProvider createLDLib2Page(Player player, MachineUIHolder holder,
-                                     BiConsumer<MachineUIHolder, SyncActionData> actionSender,
-                                     BooleanSupplier canSendAction, Predicate<UIEvent> shiftDown) {
+    FancyUIProvider createPage(Player player, MachineUIHolder holder,
+                               BiConsumer<MachineUIHolder, SyncActionData> actionSender,
+                               BooleanSupplier canSendAction, Predicate<UIEvent> shiftDown) {
         PatternBufferProxyOpening opening = requireOpening(player, holder);
         BooleanSupplier openingValid = () -> matchesOpening(player, holder, opening);
-        return createLDLib2Page(player, holder, opening.buffer(), opening.identity(), actionSender, openingValid,
+        return createPage(player, holder, opening.buffer(), opening.identity(), actionSender, openingValid,
                 canSendAction, shiftDown);
     }
 
-    private FancyUIProvider createLDLib2Page(
+    private FancyUIProvider createPage(
                                              Player player, MachineUIHolder holder,
                                              MEPatternBufferPartMachine linkedBuffer,
                                              MEPatternBufferProxyOpeningIdentity opening,
@@ -262,7 +262,7 @@ public class MEPatternBufferProxyPartMachine extends TieredIOPartMachine
         }
         BooleanSupplier guardedCanSendAction = () -> openingValid.getAsBoolean() && canSendAction.getAsBoolean();
         MEPatternBufferPartMachine.PatternBufferPageActions pageActions = createOpeningPageActions(opening);
-        return linkedBuffer.createOpeningScopedLDLib2Page(
+        return linkedBuffer.createOpeningScopedPage(
                 player, holder, actionSender, openingValid, guardedCanSendAction, shiftDown, pageActions);
     }
 

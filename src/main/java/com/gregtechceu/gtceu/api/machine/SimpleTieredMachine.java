@@ -164,14 +164,14 @@ public class SimpleTieredMachine extends WorkableTieredMachine
                                     machine.getClass().getName());
                         }
                         tieredMachine.bindRecipeElements(root, tieredMachine);
-                        tieredMachine.bindLDLib2BatterySlot(MachineUIXmlTemplates.requireElement(root,
+                        tieredMachine.bindBatterySlot(MachineUIXmlTemplates.requireElement(root,
                                 MachineUIXmlTemplates.BATTERY_SLOT_ID, GTItemSlotElement.class));
                     }));
 
     /**
      * Binds a parsed LDLib2 battery slot to this machine's charger inventory.
      */
-    protected GTItemSlotElement bindLDLib2BatterySlot(GTItemSlotElement slot) {
+    protected GTItemSlotElement bindBatterySlot(GTItemSlotElement slot) {
         return slot.bind(chargerInventory, 0)
                 .setCanPutItems(true)
                 .setCanTakeItems(true)
@@ -183,8 +183,8 @@ public class SimpleTieredMachine extends WorkableTieredMachine
     /**
      * Create an LDLib2 battery slot element.
      */
-    protected GTItemSlotElement createLDLib2BatterySlot() {
-        var slot = bindLDLib2BatterySlot(new GTItemSlotElement())
+    protected GTItemSlotElement createBatterySlot() {
+        var slot = bindBatterySlot(new GTItemSlotElement())
                 .setBackgroundTexture(GuiTextures.group(GuiTextures.SLOT, GuiTextures.CHARGER_OVERLAY));
         return UITemplate.setBounds(slot, 0, 0, 18, 18);
     }

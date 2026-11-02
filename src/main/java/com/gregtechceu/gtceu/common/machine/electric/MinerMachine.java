@@ -155,42 +155,42 @@ public class MinerMachine extends WorkableTieredMachine
         UIElement root = UITemplate.setBounds(new UIElement(), 0, 0,
                 getPageWidth(), getPageHeight());
 
-        UIElement template = UITemplate.setBounds(new UIElement(), getLDLib2TemplateX(), getLDLib2TemplateY(),
-                getLDLib2TemplateWidth(), getLDLib2TemplateHeight());
-        template.addChild(createLDLib2DisplayContainer());
+        UIElement template = UITemplate.setBounds(new UIElement(), getTemplateX(), getTemplateY(),
+                getTemplateWidth(), getTemplateHeight());
+        template.addChild(createDisplayContainer());
 
-        int rowSize = getLDLib2OutputRowSize();
+        int rowSize = getOutputRowSize();
         for (int y = 0; y < rowSize; y++) {
             for (int x = 0; x < rowSize; x++) {
                 int index = y * rowSize + x;
-                template.addChild(createLDLib2OutputSlot(index, OUTPUT_SLOTS_X + x * SLOT_SIZE,
-                        getLDLib2OutputSlotsY() + y * SLOT_SIZE));
+                template.addChild(createOutputSlot(index, OUTPUT_SLOTS_X + x * SLOT_SIZE,
+                        getOutputSlotsY() + y * SLOT_SIZE));
             }
         }
 
         root.addChild(template);
-        root.addChild(createLDLib2BatterySlot(BATTERY_SLOT_X, BATTERY_SLOT_Y));
+        root.addChild(createBatterySlot(BATTERY_SLOT_X, BATTERY_SLOT_Y));
         return root;
     }
 
     @Override
     public int getPageWidth() {
-        return Math.max(getLDLib2TemplateWidth() + PAGE_TEMPLATE_EXTRA_WIDTH, PAGE_MIN_WIDTH);
+        return Math.max(getTemplateWidth() + PAGE_TEMPLATE_EXTRA_WIDTH, PAGE_MIN_WIDTH);
     }
 
     @Override
     public int getPageHeight() {
-        return getLDLib2TemplateHeight() + PAGE_TEMPLATE_EXTRA_HEIGHT;
+        return getTemplateHeight() + PAGE_TEMPLATE_EXTRA_HEIGHT;
     }
 
-    private UIElement createLDLib2DisplayContainer() {
+    private UIElement createDisplayContainer() {
         UIElement container = UITemplate.setBounds(new UIElement(), 0, 0,
-                DISPLAY_CONTAINER_WIDTH, getLDLib2TemplateHeight());
+                DISPLAY_CONTAINER_WIDTH, getTemplateHeight());
         container.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
 
         GTScrollerViewElement scroller = new GTScrollerViewElement(DISPLAY_SCROLLER_PADDING, DISPLAY_SCROLLER_PADDING,
                 DISPLAY_CONTAINER_WIDTH - DISPLAY_SCROLLER_PADDING * 2,
-                getLDLib2TemplateHeight() - DISPLAY_SCROLLER_PADDING * 2);
+                getTemplateHeight() - DISPLAY_SCROLLER_PADDING * 2);
         scroller.style(style -> style.backgroundTexture(GuiTextures.DISPLAY));
         scroller.viewPort(viewPort -> viewPort
                 .layout(layout -> layout.paddingAll(0))
@@ -199,17 +199,17 @@ public class MinerMachine extends WorkableTieredMachine
                 .mode(ScrollerMode.VERTICAL)
                 .verticalScrollDisplay(ScrollDisplay.AUTO)
                 .horizontalScrollDisplay(ScrollDisplay.NEVER));
-        scroller.addScrollViewChild(createLDLib2DisplayPanel());
+        scroller.addScrollViewChild(createDisplayPanel());
         container.addChild(scroller);
         return container;
     }
 
-    private GTComponentPanelElement createLDLib2DisplayPanel() {
+    private GTComponentPanelElement createDisplayPanel() {
         return new GTComponentPanelElement(DISPLAY_PANEL_X, DISPLAY_PANEL_Y, this::addDisplayText)
                 .setMaxWidthLimit(DISPLAY_PANEL_MAX_WIDTH);
     }
 
-    private GTItemSlotElement createLDLib2OutputSlot(int index, int x, int y) {
+    private GTItemSlotElement createOutputSlot(int index, int x, int y) {
         GTItemSlotElement slot = new GTItemSlotElement(exportItems.storage, index)
                 .setCanTakeItems(true)
                 .setCanPutItems(false)
@@ -217,7 +217,7 @@ public class MinerMachine extends WorkableTieredMachine
         return UITemplate.setBounds(slot, x, y, SLOT_SIZE, SLOT_SIZE);
     }
 
-    private GTItemSlotElement createLDLib2BatterySlot(int x, int y) {
+    private GTItemSlotElement createBatterySlot(int x, int y) {
         GTItemSlotElement slot = new GTItemSlotElement(chargerInventory, 0)
                 .setCanPutItems(true)
                 .setCanTakeItems(true)
@@ -228,28 +228,28 @@ public class MinerMachine extends WorkableTieredMachine
         return UITemplate.setBounds(slot, x, y, SLOT_SIZE, SLOT_SIZE);
     }
 
-    private int getLDLib2TemplateX() {
-        return (getPageWidth() - PAGE_TEMPLATE_X_BIAS - getLDLib2TemplateWidth()) / 2 +
+    private int getTemplateX() {
+        return (getPageWidth() - PAGE_TEMPLATE_X_BIAS - getTemplateWidth()) / 2 +
                 PAGE_TEMPLATE_X_BIAS;
     }
 
-    private int getLDLib2TemplateY() {
-        return (getPageHeight() - getLDLib2TemplateHeight()) / 2;
+    private int getTemplateY() {
+        return (getPageHeight() - getTemplateHeight()) / 2;
     }
 
-    private int getLDLib2TemplateWidth() {
-        return getLDLib2OutputRowSize() * SLOT_SIZE + OUTPUT_SLOTS_X;
+    private int getTemplateWidth() {
+        return getOutputRowSize() * SLOT_SIZE + OUTPUT_SLOTS_X;
     }
 
-    private int getLDLib2TemplateHeight() {
-        return Math.max(getLDLib2OutputRowSize() * SLOT_SIZE, DISPLAY_MIN_HEIGHT);
+    private int getTemplateHeight() {
+        return Math.max(getOutputRowSize() * SLOT_SIZE, DISPLAY_MIN_HEIGHT);
     }
 
-    private int getLDLib2OutputSlotsY() {
-        return (getLDLib2TemplateHeight() - getLDLib2OutputRowSize() * SLOT_SIZE) / 2;
+    private int getOutputSlotsY() {
+        return (getTemplateHeight() - getOutputRowSize() * SLOT_SIZE) / 2;
     }
 
-    private int getLDLib2OutputRowSize() {
+    private int getOutputRowSize() {
         return (int) Math.sqrt(exportItems.getSlots());
     }
 

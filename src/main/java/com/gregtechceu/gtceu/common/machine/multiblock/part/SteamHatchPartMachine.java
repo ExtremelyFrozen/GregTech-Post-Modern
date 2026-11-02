@@ -69,10 +69,10 @@ public class SteamHatchPartMachine extends FluidHatchPartMachine
         UITemplate.setBounds(root, 0, 0, 176, 166);
         UITemplate.setBackgroundTexture(root, GuiTextures.BACKGROUND_STEAM.get(IS_STEEL));
         root.addChild(new GTImageElement(7, 16, 81, 55, GuiTextures.DISPLAY_STEAM.get(IS_STEEL)));
-        root.addChild(createLDLib2FluidAmountLabel());
-        root.addChild(createLDLib2FluidAmountValueLabel());
-        root.addChild(createLDLib2TitleLabel());
-        root.addChild(createLDLib2FluidSlot(player, holder));
+        root.addChild(createFluidAmountLabel());
+        root.addChild(createFluidAmountValueLabel());
+        root.addChild(createTitleLabel());
+        root.addChild(createFluidSlot(player, holder));
         root.addChild(UITemplate.bindPlayerInventory(player.getInventory(),
                 GuiTextures.SLOT_STEAM.get(IS_STEEL), 7, 84, true));
         return UI.of(root);
@@ -82,7 +82,7 @@ public class SteamHatchPartMachine extends FluidHatchPartMachine
      * Allows the steam-specific standalone screen to reuse the ordinary Fluid Hatch body in a controller context.
      */
     @Override
-    protected boolean supportsGenericLDLib2Page() {
+    protected boolean supportsGenericPage() {
         return true;
     }
 
@@ -91,10 +91,10 @@ public class SteamHatchPartMachine extends FluidHatchPartMachine
      */
     @Override
     public FancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
-        return createLDLib2Page(player, holder);
+        return createPage(player, holder);
     }
 
-    private GTLabelElement createLDLib2TitleLabel() {
+    private GTLabelElement createTitleLabel() {
         GTLabelElement label = new GTLabelElement(6, 6, 164, 10,
                 getBlockState().getBlock().getDescriptionId(), true);
         label.textStyle(style -> style
@@ -105,7 +105,7 @@ public class SteamHatchPartMachine extends FluidHatchPartMachine
         return label;
     }
 
-    private static GTLabelElement createLDLib2FluidAmountLabel() {
+    private static GTLabelElement createFluidAmountLabel() {
         GTLabelElement label = new GTLabelElement(11, 20, 73, 10, "gtpm.gui.fluid_amount", true);
         label.textStyle(style -> style
                 .textColor(0x404040)
@@ -115,16 +115,16 @@ public class SteamHatchPartMachine extends FluidHatchPartMachine
         return label;
     }
 
-    private GTLabelElement createLDLib2FluidAmountValueLabel() {
+    private GTLabelElement createFluidAmountValueLabel() {
         GTLabelElement label = new GTLabelElement(11, 30, 73, 10) {
 
             @Override
             public void screenTick() {
-                setValue(Component.literal(getLDLib2FluidAmountText()));
+                setValue(Component.literal(getFluidAmountText()));
                 super.screenTick();
             }
         };
-        label.setValue(Component.literal(getLDLib2FluidAmountText()));
+        label.setValue(Component.literal(getFluidAmountText()));
         label.textStyle(style -> style
                 .textColor(-1)
                 .textShadow(true)
@@ -133,11 +133,11 @@ public class SteamHatchPartMachine extends FluidHatchPartMachine
         return label;
     }
 
-    private String getLDLib2FluidAmountText() {
+    private String getFluidAmountText() {
         return String.valueOf(tank.getFluidInTank(0).getAmount());
     }
 
-    private GTFluidSlotElement createLDLib2FluidSlot(Player player, MachineUIHolder holder) {
+    private GTFluidSlotElement createFluidSlot(Player player, MachineUIHolder holder) {
         GTFluidSlotElement fluidSlot = new GTFluidSlotElement()
                 .setFluidTank(tank.getStorages()[0], 0)
                 .setShowAmount(true)
@@ -158,11 +158,11 @@ public class SteamHatchPartMachine extends FluidHatchPartMachine
 
     @Override
     public void clickSteamHatchFluidSlot(ServerPlayer player, boolean shiftDown) {
-        new LDLib2FluidClickTarget(tank.getStorages()[0], true, true).click(player, shiftDown);
+        new FluidClickTarget(tank.getStorages()[0], true, true).click(player, shiftDown);
     }
 
-    private record LDLib2FluidClickTarget(IFluidHandler fluidTank, boolean allowClickFilled,
-                                          boolean allowClickDrained) {
+    private record FluidClickTarget(IFluidHandler fluidTank, boolean allowClickFilled,
+                                    boolean allowClickDrained) {
 
         private void click(ServerPlayer player, boolean shiftDown) {
             ItemStack currentStack = player.containerMenu.getCarried();

@@ -39,23 +39,22 @@ public class AOEConfigUIBehavior implements IToolUIBehavior<AOEConfigUIBehavior>
     }
 
     @Override
-    public boolean openLDLib2UI(@NotNull Player player, @NotNull InteractionHand hand) {
+    public boolean openUI(@NotNull Player player, @NotNull InteractionHand hand) {
         return player.isShiftKeyDown() && !player.getItemInHand(hand)
                 .getOrDefault(GTDataComponents.AOE, AoESymmetrical.ZERO).isZero();
     }
 
     @Override
-    public boolean canCreateLDLib2UI(Player player, HeldItemUIHolder holder) {
+    public boolean canCreateUI(Player player, HeldItemUIHolder holder) {
         return ItemStack.isSameItem(holder.getHeld(), holder.getOpenedStack()) && hasConfigurableAOE(holder.getHeld());
     }
 
     @Override
-    public boolean isLDLib2UIStillValid(Player player, HeldItemUIHolder holder) {
-        return canCreateLDLib2UI(player, holder);
+    public boolean isUIStillValid(Player player, HeldItemUIHolder holder) {
+        return canCreateUI(player, holder);
     }
 
-    @Override
-    public UI createLDLib2UI(Player player, HeldItemUIHolder holder) {
+    public UI createUI(Player player, HeldItemUIHolder holder) {
         ItemStack held = holder.getHeld();
         AoESymmetrical.Mutable definition = getAoEDefinition(held).toMutable();
 
@@ -63,35 +62,35 @@ public class AOEConfigUIBehavior implements IToolUIBehavior<AOEConfigUIBehavior>
         setBounds(root, 0, 0, 120, 80);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));
 
-        root.addChild(createLDLib2Label("item.gtpm.tool.aoe.columns", 6, 10, 38, 10, true));
-        root.addChild(createLDLib2Label("item.gtpm.tool.aoe.rows", 49, 10, 28, 10, true));
-        root.addChild(createLDLib2Label("item.gtpm.tool.aoe.layers", 79, 10, 34, 10, true));
+        root.addChild(createLabel("item.gtpm.tool.aoe.columns", 6, 10, 38, 10, true));
+        root.addChild(createLabel("item.gtpm.tool.aoe.rows", 49, 10, 28, 10, true));
+        root.addChild(createLabel("item.gtpm.tool.aoe.layers", 79, 10, 34, 10, true));
 
-        GTLabelElement columnValue = createLDLib2ValueLabel(columnText(definition.toImmutable()), 23, 65);
-        GTLabelElement rowValue = createLDLib2ValueLabel(rowText(definition.toImmutable()), 58, 65);
-        GTLabelElement layerValue = createLDLib2ValueLabel(layerText(definition.toImmutable()), 93, 65);
+        GTLabelElement columnValue = createValueLabel(columnText(definition.toImmutable()), 23, 65);
+        GTLabelElement rowValue = createValueLabel(rowText(definition.toImmutable()), 58, 65);
+        GTLabelElement layerValue = createValueLabel(layerText(definition.toImmutable()), 93, 65);
 
-        root.addChild(createLDLib2AOEButton("+", 15, 24, () -> {
+        root.addChild(createAOEButton("+", 15, 24, () -> {
             AoESymmetrical next = definition.increaseColumn().toImmutable();
             setAOEDefinition(holder, next, columnValue, rowValue, layerValue);
         }));
-        root.addChild(createLDLib2AOEButton("-", 15, 44, () -> {
+        root.addChild(createAOEButton("-", 15, 44, () -> {
             AoESymmetrical next = definition.decreaseColumn().toImmutable();
             setAOEDefinition(holder, next, columnValue, rowValue, layerValue);
         }));
-        root.addChild(createLDLib2AOEButton("+", 50, 24, () -> {
+        root.addChild(createAOEButton("+", 50, 24, () -> {
             AoESymmetrical next = definition.increaseRow().toImmutable();
             setAOEDefinition(holder, next, columnValue, rowValue, layerValue);
         }));
-        root.addChild(createLDLib2AOEButton("-", 50, 44, () -> {
+        root.addChild(createAOEButton("-", 50, 44, () -> {
             AoESymmetrical next = definition.decreaseRow().toImmutable();
             setAOEDefinition(holder, next, columnValue, rowValue, layerValue);
         }));
-        root.addChild(createLDLib2AOEButton("+", 85, 24, () -> {
+        root.addChild(createAOEButton("+", 85, 24, () -> {
             AoESymmetrical next = definition.increaseLayer().toImmutable();
             setAOEDefinition(holder, next, columnValue, rowValue, layerValue);
         }));
-        root.addChild(createLDLib2AOEButton("-", 85, 44, () -> {
+        root.addChild(createAOEButton("-", 85, 44, () -> {
             AoESymmetrical next = definition.decreaseLayer().toImmutable();
             setAOEDefinition(holder, next, columnValue, rowValue, layerValue);
         }));
@@ -105,8 +104,8 @@ public class AOEConfigUIBehavior implements IToolUIBehavior<AOEConfigUIBehavior>
         return GTToolBehaviors.AOE_CONFIG_UI;
     }
 
-    private static GTLabelElement createLDLib2Label(String text, int x, int y, int width, int height,
-                                                    boolean translate) {
+    private static GTLabelElement createLabel(String text, int x, int y, int width, int height,
+                                              boolean translate) {
         GTLabelElement label = new GTLabelElement(x, y, width, height, text, translate);
         label.textStyle(style -> style
                 .textColor(0x404040)
@@ -116,11 +115,11 @@ public class AOEConfigUIBehavior implements IToolUIBehavior<AOEConfigUIBehavior>
         return label;
     }
 
-    private static GTLabelElement createLDLib2ValueLabel(String text, int x, int y) {
-        return createLDLib2Label(text, x, y, 18, 10, false);
+    private static GTLabelElement createValueLabel(String text, int x, int y) {
+        return createLabel(text, x, y, 18, 10, false);
     }
 
-    private static GTButtonElement createLDLib2AOEButton(String text, int x, int y, Runnable action) {
+    private static GTButtonElement createAOEButton(String text, int x, int y, Runnable action) {
         GTButtonElement button = new GTButtonElement(x, y, 20, 20, GuiTextures.BUTTON, event -> action.run());
         button.setText(text, false);
         button.textStyle(style -> style

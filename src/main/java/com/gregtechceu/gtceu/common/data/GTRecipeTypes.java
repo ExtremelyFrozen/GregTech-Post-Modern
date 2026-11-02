@@ -631,7 +631,7 @@ public class GTRecipeTypes {
             .setSound(GTSoundEntries.ARC)
             .setOffsetVoltageText(true)
             .setMaxTooltips(4)
-            .setUiBuilder(FusionReactorMachine::addLDLib2EUToStartLabel);
+            .setUiBuilder(FusionReactorMachine::addEUToStartLabel);
 
     public static final GTRecipeType DUMMY_RECIPES = register("dummy", DUMMY)
             .setXEIVisible(false);

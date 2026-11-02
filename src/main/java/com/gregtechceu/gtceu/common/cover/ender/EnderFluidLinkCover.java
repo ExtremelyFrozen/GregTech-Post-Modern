@@ -147,8 +147,8 @@ public class EnderFluidLinkCover extends AbstractEnderLinkCover<VirtualTank> {
     //////////////////////////////////////
 
     @Override
-    protected UIElement addVirtualEntryLDLib2Element(VirtualEntry entry, int x, int y, int width, int height,
-                                                     boolean canClick) {
+    protected UIElement addVirtualEntryElement(VirtualEntry entry, int x, int y, int width, int height,
+                                               boolean canClick) {
         GTFluidSlotElement tank = new GTFluidSlotElement()
                 .setFluidTank(((VirtualTank) entry).getFluidTank(), 0)
                 .setAllowClickFilled(false)

@@ -88,45 +88,45 @@ public class ParallelHatchPartMachine extends TieredPartMachine
 
     @Override
     public UI createUI(Player player, MachineUIHolder holder) {
-        requireMatchingLDLib2Holder(holder);
-        return UI.of(createLDLib2ParallelInput());
+        requireMatchingHolder(holder);
+        return UI.of(createParallelInput());
     }
 
     /** Creates a new holder-scoped page for one surrounding multiblock UI opening. */
     @Override
     public FancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
-        requireMatchingLDLib2Holder(holder);
-        return new ParallelHatchLDLib2Page(player, holder);
+        requireMatchingHolder(holder);
+        return new ParallelHatchPage(player, holder);
     }
 
-    private UIElement createLDLib2ParallelInput() {
+    private UIElement createParallelInput() {
         UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
         root.addChild(new GTIntInputElement(0, 0, PAGE_WIDTH, PAGE_HEIGHT, this::getCurrentParallel,
-                this::setLDLib2CurrentParallel)
+                this::setCurrentParallelAndSync)
                 .setMin(MIN_PARALLEL)
                 .setMax(maxParallel));
         return root;
     }
 
-    private void requireMatchingLDLib2Holder(MachineUIHolder holder) {
+    private void requireMatchingHolder(MachineUIHolder holder) {
         if (holder.getMachine() != this) {
             throw new IllegalArgumentException("Parallel Hatch page holder must resolve the opened machine.");
         }
     }
 
-    private void setLDLib2CurrentParallel(int value) {
+    private void setCurrentParallelAndSync(int value) {
         setCurrentParallel(value);
         sendServerSyncChanges();
     }
 
     /** Owns the contextual Parallel Hatch page state for exactly one menu opening. */
-    private final class ParallelHatchLDLib2Page implements FancyUIProvider {
+    private final class ParallelHatchPage implements FancyUIProvider {
 
         private final MachineUIHolder holder;
         private final DirectionalConfigurator directionalPage;
 
-        private ParallelHatchLDLib2Page(Player player, MachineUIHolder holder) {
-            requireMatchingLDLib2Holder(holder);
+        private ParallelHatchPage(Player player, MachineUIHolder holder) {
+            requireMatchingHolder(holder);
             this.holder = holder;
             directionalPage = new DirectionalConfigurator(ParallelHatchPartMachine.this, player, holder);
         }
@@ -136,7 +136,7 @@ public class ParallelHatchPartMachine extends TieredPartMachine
             if (holder.getMachine() != ParallelHatchPartMachine.this) {
                 throw new IllegalStateException("Parallel Hatch page holder no longer resolves its opened machine.");
             }
-            return createLDLib2ParallelInput();
+            return createParallelInput();
         }
 
         @Override
