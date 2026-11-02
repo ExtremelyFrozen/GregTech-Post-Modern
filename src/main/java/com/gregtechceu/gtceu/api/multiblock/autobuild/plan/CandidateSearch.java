@@ -100,7 +100,6 @@ final class CandidateSearch {
     private static ObjectList<UnresolvedCell> filterHatches(ObjectList<UnresolvedCell> cells,
                                                             ReferenceSet<Object> excludedLimits) {
         return cells.stream().map(cell -> {
-            if (cell.predicate().isSingle()) return cell;
             ObjectList<ResolvedCandidate> candidates = new ObjectArrayList<>();
             for (ResolvedCandidate candidate : cell.candidates()) {
                 if (candidate.hatch()) {
@@ -109,7 +108,7 @@ final class CandidateSearch {
                     candidates.add(candidate);
                 }
             }
-            // GTMM skips a position with no placeable candidates; it does not clear the occupied block.
+            // Skip positions with no non-hatch candidates without clearing occupied blocks.
             if (candidates.isEmpty()) candidates.add(ResolvedCandidate.wildcard());
             return cell.withCandidates(candidates);
         }).collect(ObjectImmutableList.toList());

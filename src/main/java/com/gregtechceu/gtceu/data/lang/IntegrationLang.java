@@ -175,7 +175,7 @@ public class IntegrationLang {
         provider.add("gtpm.multiblock.preview.tooltip.repeat_unit", "Select a repeatable pattern unit");
         provider.add("gtpm.multiblock.preview.tooltip.repeat", "Change this unit's repetition count");
         provider.add("gtpm.multiblock.preview.tooltip.no_hatch",
-                "Filter hatches from multi-rule positions; allow single-rule positions");
+                "Exclude all hatches and fill with original non-hatch candidates; skip hatch-only positions");
         provider.add("gtpm.multiblock.preview.tooltip.replace", "Allow replacing occupied targets");
         provider.add("gtpm.multiblock.preview.tooltip.me",
                 "Real execution uses ME first, then player inventory; XEI does not query the network");

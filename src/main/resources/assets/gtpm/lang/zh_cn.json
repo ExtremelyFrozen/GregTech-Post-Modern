@@ -2577,7 +2577,7 @@
 	"gtpm.multiblock.preview.tooltip.flip": "翻转此结构",
 	"gtpm.multiblock.preview.tooltip.repeat_unit": "选择可重复结构段",
 	"gtpm.multiblock.preview.tooltip.repeat": "调整此结构段的重复次数",
-	"gtpm.multiblock.preview.tooltip.no_hatch": "过滤多谓词位置的舱室；单谓词位置仍允许放置",
+	"gtpm.multiblock.preview.tooltip.no_hatch": "排除所有舱室，使用原有非舱室候选补位；仅含舱室的位置跳过",
 	"gtpm.multiblock.preview.tooltip.replace": "允许替换已占用目标",
 	"gtpm.multiblock.preview.tooltip.me": "实际执行优先使用 AE，再使用玩家物品栏；XEI 不查询网络",
 	"gtpm.multiblock.preview.tooltip.tier_group": "选择等级方块组",
