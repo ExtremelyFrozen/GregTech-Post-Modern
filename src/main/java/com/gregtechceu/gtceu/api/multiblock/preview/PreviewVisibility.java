@@ -4,8 +4,6 @@ import it.unimi.dsi.fastutil.ints.IntAVLTreeSet;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
 import it.unimi.dsi.fastutil.objects.ObjectList;
-import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
-import it.unimi.dsi.fastutil.objects.ObjectSet;
 import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 
@@ -21,7 +19,6 @@ public final class PreviewVisibility {
 
     @Getter
     private StructurePreview preview;
-    private final ObjectSet<String> hiddenStructures = new ObjectOpenHashSet<>();
     private final IntArrayList layers = new IntArrayList();
     @Getter
     private long viewRevision;
@@ -50,8 +47,6 @@ public final class PreviewVisibility {
      */
     public void setPreview(StructurePreview preview) {
         this.preview = preview;
-        hiddenStructures.removeIf(name -> preview.structures().stream()
-                .noneMatch(structure -> structure.name().equals(name)));
         if (focusedStructure != null && preview.structures().stream()
                 .noneMatch(structure -> structure.name().equals(focusedStructure))) {
             focusedStructure = null;
@@ -60,34 +55,14 @@ public final class PreviewVisibility {
         viewRevision++;
     }
 
-    /** View changes stay local to the open window and never change build selection or material requirements. */
-    public boolean isStructureVisible(String structureName) {
-        return !hiddenStructures.contains(structureName);
-    }
-
-    public void setStructureVisible(String structureName, boolean visible) {
-        if (preview.structures().stream().noneMatch(structure -> structure.name().equals(structureName))) {
-            throw new IllegalArgumentException("Unknown preview structure: " + structureName);
-        }
-        if (visible) hiddenStructures.remove(structureName);
-        else hiddenStructures.add(structureName);
-        if (!visible && structureName.equals(focusedStructure)) focusedStructure = null;
-        updateLayers();
-        viewRevision++;
-    }
-
     private void updateLayers() {
         IntAVLTreeSet available = new IntAVLTreeSet();
         for (var cell : preview.cells()) {
-            if (hasVisibleContributor(cell)) available.add(cell.relativePos().getY());
+            available.add(cell.relativePos().getY());
         }
         layers.clear();
         layers.addAll(available);
         if (visibleLayer != null && !layers.contains(visibleLayer.intValue())) visibleLayer = null;
-    }
-
-    private boolean hasVisibleContributor(StructurePreview.Cell cell) {
-        return cell.contributions().stream().anyMatch(contribution -> isStructureVisible(contribution.structureName()));
     }
 
     /**
@@ -108,7 +83,7 @@ public final class PreviewVisibility {
     public void focusNext() {
         boolean next = focusedStructure == null;
         for (var structure : preview.structures()) {
-            if (next && isStructureVisible(structure.name())) {
+            if (next) {
                 setFocusedStructure(structure.name());
                 return;
             }
@@ -127,16 +102,14 @@ public final class PreviewVisibility {
     }
 
     /**
-     * Returns cells with at least one visible contributor in the active layer. Shared cells remain visible when
-     * another visible structure needs them; focus only changes emphasis.
+     * Returns cells in the active layer; focus only changes emphasis.
      */
     public ObjectList<StructurePreview.Cell> visibleCells() {
-        if (visibleLayer == null && hiddenStructures.isEmpty()) {
+        if (visibleLayer == null) {
             return preview.cells();
         }
         return preview.cells().stream()
-                .filter(this::hasVisibleContributor)
-                .filter(cell -> visibleLayer == null || cell.relativePos().getY() == visibleLayer)
+                .filter(cell -> cell.relativePos().getY() == visibleLayer)
                 .collect(ObjectImmutableList.toList());
     }
 

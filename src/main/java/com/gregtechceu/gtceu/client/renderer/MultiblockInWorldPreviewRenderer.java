@@ -14,6 +14,7 @@ import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.MergedPlanCell;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.PlannedBlockInfo;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.PlannedCell;
 import com.gregtechceu.gtceu.api.multiblock.preview.PatternGenerationGuard;
+import com.gregtechceu.gtceu.api.multiblock.preview.StructurePreview;
 import com.gregtechceu.gtceu.data.pattern.StructurePatternRegistry;
 
 import com.lowdragmc.lowdraglib2.client.scene.WorldSceneRenderer;
@@ -101,6 +102,9 @@ public final class MultiblockInWorldPreviewRenderer {
     @Nullable
     private static BlockPos LAST_POS = null;
     private static int LAST_LAYER = -1;
+    private static final ObjectSet<String> VISIBLE_STRUCTURES = new ObjectLinkedOpenHashSet<>();
+    @Nullable
+    private static String TERMINAL_FINGERPRINT;
 
     public static void cleanPreview() {
         PREVIEW_GENERATION.incrementAndGet();
@@ -119,6 +123,8 @@ public final class MultiblockInWorldPreviewRenderer {
         LEFT_TICK.set(-1);
         LAST_POS = null;
         LAST_LAYER = -1;
+        VISIBLE_STRUCTURES.clear();
+        TERMINAL_FINGERPRINT = null;
         closeBuffers();
     }
 
@@ -126,6 +132,54 @@ public final class MultiblockInWorldPreviewRenderer {
         if (LAST_POS != null && LAST_POS.equals(pos)) {
             cleanPreview();
         }
+    }
+
+    /** Whether this structure is currently shown at the bound controller in the active client world. */
+    public static boolean isPreviewVisible(BlockPos pos, String structure) {
+        return SOURCE_LEVEL == Minecraft.getInstance().level && pos.equals(LAST_POS) &&
+                VISIBLE_STRUCTURES.contains(structure);
+    }
+
+    /** Toggles a terminal structure using its already resolved world positions and block states. */
+    public static void togglePreview(BlockPos pos, StructurePreview preview, String structure, int duration) {
+        if (SOURCE_LEVEL != Minecraft.getInstance().level || !pos.equals(LAST_POS)) cleanPreview();
+        if (!VISIBLE_STRUCTURES.add(structure)) VISIBLE_STRUCTURES.remove(structure);
+        showTerminalPreview(pos, preview, duration);
+    }
+
+    /** Refreshes an active overlay after a terminal configuration change, without resolving the pattern again. */
+    public static void updatePreview(BlockPos pos, StructurePreview preview, int duration) {
+        if (SOURCE_LEVEL != Minecraft.getInstance().level || !pos.equals(LAST_POS) ||
+                preview.fingerprint().equals(TERMINAL_FINGERPRINT)) return;
+        VISIBLE_STRUCTURES.removeIf(name -> preview.structures().stream()
+                .noneMatch(structure -> structure.name().equals(name)));
+        showTerminalPreview(pos, preview, duration);
+    }
+
+    private static void showTerminalPreview(BlockPos pos, StructurePreview preview, int duration) {
+        if (VISIBLE_STRUCTURES.isEmpty()) {
+            cleanPreview();
+            return;
+        }
+        Level source = Minecraft.getInstance().level;
+        MultiblockPreviewLevel level = new MultiblockPreviewLevel(source);
+        ObjectSet<BlockPos> positions = new ObjectLinkedOpenHashSet<>();
+        for (var cell : preview.cells()) {
+            if (cell.controller() || cell.worldPos() == null) continue;
+            for (int index = cell.contributions().size() - 1; index >= 0; index--) {
+                var contribution = cell.contributions().get(index);
+                if (contribution.action() == CellAction.IGNORE_ANY ||
+                        !VISIBLE_STRUCTURES.contains(contribution.structureName())) continue;
+                if (!contribution.targetState().isAir()) {
+                    level.addBlock(cell.worldPos(), contribution.renderInfo().createBlockInfo());
+                    positions.add(cell.worldPos());
+                }
+                break;
+            }
+        }
+        long generation = beginPreview(source, level, pos, positions, -1);
+        TERMINAL_FINGERPRINT = preview.fingerprint();
+        prepareBuffers(level, positions, duration, generation);
     }
 
     /**
@@ -174,32 +228,43 @@ public final class MultiblockInWorldPreviewRenderer {
                 continue;
             }
 
-            long previewGeneration = PREVIEW_GENERATION.incrementAndGet();
-            @Nullable
-            Thread compiling = THREAD;
-            if (compiling != null) {
-                compiling.interrupt();
-                THREAD = null;
-            }
-            CACHE_STATE.set(CacheState.UNUSED);
-            releasePreviewLevel();
-            closeBuffers();
-            LEVEL = previewLevel;
-            SOURCE_LEVEL = controller.getLevel();
-            BLOCK_ENTITIES = null;
-            LOADED_POSITIONS = Set.copyOf(blockMap.keySet());
-            LAST_POS = pos;
-            LAST_LAYER = selectedLayer;
+            long previewGeneration = beginPreview(controller.getLevel(), previewLevel, pos,
+                    blockMap.keySet(), selectedLayer);
             if (StructurePatternRegistry.generation() != resolution.generation()) {
                 cleanPreview();
                 continue;
             }
+            VISIBLE_STRUCTURES.clear();
+            for (var structure : plan.executionOrder()) VISIBLE_STRUCTURES.add(structure.structureName());
+            TERMINAL_FINGERPRINT = null;
             prepareBuffers(previewLevel, blockMap.keySet(), duration, previewGeneration);
             return;
         }
         cleanPreview();
         GTCEu.LOGGER.warn("Pattern generation did not stabilize while publishing the in-world preview for {}",
                 controller.getDefinition().getId());
+    }
+
+    private static long beginPreview(Level source, MultiblockPreviewLevel level, BlockPos pos,
+                                     Set<BlockPos> positions, int layer) {
+        long generation = PREVIEW_GENERATION.incrementAndGet();
+        @Nullable
+        Thread compiling = THREAD;
+        if (compiling != null) {
+            compiling.interrupt();
+            THREAD = null;
+        }
+        CACHE_STATE.set(CacheState.UNUSED);
+        LEFT_TICK.set(-1);
+        releasePreviewLevel();
+        closeBuffers();
+        LEVEL = level;
+        SOURCE_LEVEL = source;
+        BLOCK_ENTITIES = null;
+        LOADED_POSITIONS = new ObjectLinkedOpenHashSet<>(positions);
+        LAST_POS = pos;
+        LAST_LAYER = layer;
+        return generation;
     }
 
     private static int selectedLayer(@Nullable BlockPos previousPos, int previousLayer, BlockPos pos, int layerCount) {
@@ -289,8 +354,6 @@ public final class MultiblockInWorldPreviewRenderer {
 
             for (int i = 0; i < RenderType.chunkBufferLayers().size(); i++) {
                 VertexBuffer vertexbuffer = getBuffers()[i];
-                // some of stupid mod doesn't check if the buffer is invalid
-                if (vertexbuffer.isInvalid() || vertexbuffer.getFormat() == null) continue;
                 var layer = RenderType.chunkBufferLayers().get(i);
 
                 // render TESR before translucent
@@ -319,6 +382,7 @@ public final class MultiblockInWorldPreviewRenderer {
                     buffers.endBatch();
                 }
 
+                if (vertexbuffer.isInvalid() || vertexbuffer.getFormat() == null) continue;
                 // render cache vbo
                 layer.setupRenderState();
                 poseStack.pushPose();
@@ -407,25 +471,32 @@ public final class MultiblockInWorldPreviewRenderer {
                 for (int i = 0; i < RenderType.chunkBufferLayers().size(); i++) {
                     if (stale(generation)) return;
                     var layer = RenderType.chunkBufferLayers().get(i);
-                    var buffer = new BufferBuilder(new ByteBufferBuilder(layer.bufferSize()),
-                            VertexFormat.Mode.QUADS, DefaultVertexFormat.BLOCK);
-                    renderBlocks(level, poseStack, dispatcher, layer,
-                            new WorldSceneRenderer.VertexConsumerWrapper(buffer), renderedBlocks);
-                    var meshData = buffer.buildOrThrow();
-                    VertexBuffer vertexBuffer = targetBuffers[i];
-                    RenderSystem.recordRenderCall(() -> {
-                        try (meshData) {
-                            if (stale(generation) || vertexBuffer.isInvalid()) {
-                                return;
-                            }
-                            vertexBuffer.bind();
-                            try {
-                                vertexBuffer.upload(meshData);
-                            } finally {
-                                VertexBuffer.unbind();
-                            }
+                    var memory = new ByteBufferBuilder(layer.bufferSize());
+                    try {
+                        var buffer = new BufferBuilder(memory, VertexFormat.Mode.QUADS, DefaultVertexFormat.BLOCK);
+                        renderBlocks(level, poseStack, dispatcher, layer,
+                                new WorldSceneRenderer.VertexConsumerWrapper(buffer), renderedBlocks);
+                        var meshData = buffer.build();
+                        if (meshData == null) {
+                            memory.close();
+                            continue;
                         }
-                    });
+                        VertexBuffer vertexBuffer = targetBuffers[i];
+                        RenderSystem.recordRenderCall(() -> {
+                            try (memory; meshData) {
+                                if (stale(generation) || vertexBuffer.isInvalid()) return;
+                                vertexBuffer.bind();
+                                try {
+                                    vertexBuffer.upload(meshData);
+                                } finally {
+                                    VertexBuffer.unbind();
+                                }
+                            }
+                        });
+                    } catch (RuntimeException | Error exception) {
+                        memory.close();
+                        throw exception;
+                    }
                 }
 
                 Set<BlockPos> poses = new HashSet<>();
@@ -446,6 +517,13 @@ public final class MultiblockInWorldPreviewRenderer {
                     CACHE_STATE.set(CacheState.COMPILED);
                     LEFT_TICK.set(duration);
                 });
+            } catch (RuntimeException exception) {
+                if (!stale(generation)) {
+                    GTCEu.LOGGER.warn("Could not compile the in-world multiblock preview at {}", LAST_POS, exception);
+                    RenderSystem.recordRenderCall(() -> {
+                        if (!stale(generation)) cleanPreview();
+                    });
+                }
             } finally {
                 ModelBlockRenderer.clearCache();
                 if (PREVIEW_GENERATION.get() == generation) {

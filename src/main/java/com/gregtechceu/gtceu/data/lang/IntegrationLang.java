@@ -95,8 +95,9 @@ public class IntegrationLang {
         provider.add("gtpm.multiblock.configuration.required", "Required");
         provider.add("gtpm.multiblock.configuration.selected", "Included");
         provider.add("gtpm.multiblock.configuration.unselected", "Excluded");
-        provider.add("gtpm.multiblock.configuration.visible", "Visible");
-        provider.add("gtpm.multiblock.configuration.hidden", "Hidden");
+        provider.add("gtpm.multiblock.configuration.visible", "Hide");
+        provider.add("gtpm.multiblock.configuration.hidden", "Show");
+        provider.add("gtpm.multiblock.configuration.world_preview", "Show or hide this structure at the bound controller");
         provider.add("gtpm.multiblock.configuration.mode.build", "Build");
         provider.add("gtpm.multiblock.configuration.mode.demolish", "Demolish");
         provider.add("gtpm.multiblock.configuration.flip", "Flip: %s");

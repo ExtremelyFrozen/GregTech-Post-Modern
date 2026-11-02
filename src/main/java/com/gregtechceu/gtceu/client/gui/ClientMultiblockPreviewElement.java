@@ -281,8 +281,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         hatchPositions.clear();
         for (var cell : visible) {
             if (!cell.renderState().isAir() && cell.contributions().stream()
-                    .anyMatch(contribution -> state.isStructureVisible(contribution.structureName()) &&
-                            contribution.hatchReplaceable())) {
+                    .anyMatch(StructurePreview.Contribution::hatchReplaceable)) {
                 hatchPositions.add(SCENE_ORIGIN.offset(cell.relativePos()));
             }
         }

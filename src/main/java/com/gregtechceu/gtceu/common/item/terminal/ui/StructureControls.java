@@ -32,10 +32,12 @@ import net.minecraft.world.item.ItemStack;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectList;
 import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Locale;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
 
@@ -54,6 +56,10 @@ public final class StructureControls extends UIElement {
     private ObjectList<Structure> displayedStructures = ObjectList.of();
     private int selectedStructure;
     private boolean interactive = true;
+    private Predicate<String> worldPreviewVisible = name -> false;
+    private @Nullable Consumer<String> toggleWorldPreview;
+    private @Nullable GTButtonElement visibilityButton;
+    private boolean worldVisible;
 
     public StructureControls(int x, int y, int width, int height, MultiblockMachineDefinition definition,
                              TerminalMachine machine, MultiblockPreviewPanel preview, boolean showME,
@@ -89,11 +95,19 @@ public final class StructureControls extends UIElement {
         for (Control control : controls) control.button.setActive(interactive && control.enabled);
     }
 
+    /** Installs the bound terminal's client overlay controls; unbound recipe previews have no world target. */
+    public void setWorldPreview(Predicate<String> visible, Consumer<String> toggle) {
+        worldPreviewVisible = visible;
+        toggleWorldPreview = toggle;
+        rebuild();
+    }
+
     private void rebuild() {
         displayedStructures = preview.getState().getPreview().structures();
         clearAllChildren();
         controls.clear();
         selections.clear();
+        visibilityButton = null;
         addChild(label(5, 4, contentWidth, text("title")));
         var shared = machine.sharedOptions();
         int toggleWidth = (contentWidth - (showME ? 4 : 2)) / (showME ? 3 : 2);
@@ -133,17 +147,22 @@ public final class StructureControls extends UIElement {
         boolean locked = required || structure.selected() &&
                 machine.structures().values().stream().filter(TerminalStructure::selected).count() == 1;
         int half = (contentWidth - 2) / 2;
-        action(this, 4, 55, half, text(locked ? "required" : structure.selected() ? "selected" : "unselected"),
+        action(this, 4, 55, toggleWorldPreview == null ? contentWidth : half,
+                text(locked ? "required" : structure.selected() ? "selected" : "unselected"),
                 TerminalChange.structureSelected(name, !structure.selected()), !locked);
-        boolean visible = preview.getState().isStructureVisible(name);
-        var visibility = button(6 + half, 55, half, text(visible ? "visible" : "hidden"));
-        visibility.setActive(displayedStructures.stream().anyMatch(current -> current.name().equals(name)));
-        visibility.setOnClick(event -> {
-            preview.getState().setStructureVisible(name, !preview.getState().isStructureVisible(name));
-            rebuild();
-            event.stopPropagation();
-        });
-        addChild(visibility);
+        Consumer<String> toggle = toggleWorldPreview;
+        if (toggle != null) {
+            worldVisible = worldPreviewVisible.test(name);
+            visibilityButton = button(6 + half, 55, half, text(worldVisible ? "visible" : "hidden"));
+            visibilityButton.getStyle().tooltips(text("world_preview"));
+            controls.add(new Control(visibilityButton,
+                    displayedStructures.stream().anyMatch(current -> current.name().equals(name))));
+            visibilityButton.setOnClick(event -> {
+                toggle.accept(name);
+                event.stopPropagation();
+            });
+            addChild(visibilityButton);
+        }
         action(this, 4, 77, half, text("mode." + structure.mode().name().toLowerCase(Locale.ROOT)),
                 TerminalChange.structureMode(name, structure.mode() == StructureOperation.BUILD ?
                         StructureOperation.DEMOLISH : StructureOperation.BUILD),
@@ -196,6 +215,17 @@ public final class StructureControls extends UIElement {
         });
         addChild(select);
         setInteractive(interactive);
+    }
+
+    @Override
+    public void screenTick() {
+        super.screenTick();
+        if (visibilityButton == null) return;
+        boolean visible = worldPreviewVisible.test(definition.getStructureOrder().get(selectedStructure));
+        if (worldVisible != visible) {
+            worldVisible = visible;
+            visibilityButton.setText(text(visible ? "visible" : "hidden"));
+        }
     }
 
     private void openSelection(int selectedCategory) {

@@ -12,6 +12,7 @@ import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.multiblock.preview.StructurePreview;
 import com.gregtechceu.gtceu.api.registry.GTRegistries;
+import com.gregtechceu.gtceu.client.renderer.MultiblockInWorldPreviewRenderer;
 import com.gregtechceu.gtceu.common.data.GTDataComponents;
 import com.gregtechceu.gtceu.common.item.datacomponents.TerminalControllerBinding;
 import com.gregtechceu.gtceu.common.item.datacomponents.TerminalMachine;
@@ -20,6 +21,7 @@ import com.gregtechceu.gtceu.common.item.terminal.menu.TerminalSession;
 import com.gregtechceu.gtceu.common.item.terminal.network.TerminalAction;
 import com.gregtechceu.gtceu.common.item.terminal.network.TerminalChange;
 import com.gregtechceu.gtceu.common.item.terminal.network.TerminalStateUpdate;
+import com.gregtechceu.gtceu.config.ConfigHolder;
 
 import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerScreen;
 import com.lowdragmc.lowdraglib2.gui.sync.SyncValue;
@@ -52,6 +54,7 @@ public final class TerminalScreen extends UIElement {
     private static final int HEIGHT = 200;
 
     private final Player player;
+    private final TerminalControllerBinding binding;
     private final @Nullable TerminalSession serverSession;
     private final SyncValue<byte[]> stateSync = new SyncValue<>("terminal-state", byte[].class, new byte[0]);
     private final RPCEmitter actions;
@@ -71,7 +74,7 @@ public final class TerminalScreen extends UIElement {
 
     public TerminalScreen(HeldItemUIHolder holder, Player player) {
         this.player = player;
-        TerminalControllerBinding binding = holder.getOpenedStack().get(GTDataComponents.TERMINAL_CONTROLLER);
+        binding = holder.getOpenedStack().get(GTDataComponents.TERMINAL_CONTROLLER);
         if (binding == null || !(GTRegistries.MACHINES
                 .get(binding.definitionId()) instanceof MultiblockMachineDefinition definition)) {
             throw new IllegalArgumentException("Terminal UI requires a registered bound multiblock");
@@ -112,6 +115,12 @@ public final class TerminalScreen extends UIElement {
                 GTCEu.MODS.AE2.isLoaded(),
                 change -> requestAction(change));
         addChild(configuration);
+        if (player.level().isClientSide && definition.isRenderWorldPreview()) {
+            configuration.setWorldPreview(
+                    name -> MultiblockInWorldPreviewRenderer.isPreviewVisible(binding.position(), name),
+                    name -> MultiblockInWorldPreviewRenderer.togglePreview(binding.position(), state.preview(), name,
+                            ConfigHolder.INSTANCE.client.inWorldPreviewDuration * 20));
+        }
         sourceLabel.textStyle(style -> style.adaptiveWidth(false).adaptiveHeight(false).fontSize(8)
                 .textColor(0xff404040).textShadow(false).textWrap(TextWrap.HIDE));
         resultLabel.textStyle(style -> style.adaptiveWidth(false).adaptiveHeight(false).fontSize(8)
@@ -236,6 +245,10 @@ public final class TerminalScreen extends UIElement {
     private void updateDisplay() {
         preview.setPreview(state.preview());
         configuration.setMachine(state.machine());
+        if (player.level().isClientSide && sessionId != null) {
+            MultiblockInWorldPreviewRenderer.updatePreview(binding.position(), state.preview(),
+                    ConfigHolder.INSTANCE.client.inWorldPreviewDuration * 20);
+        }
         var source = state.meSource();
         sourceLabel.setValue(Component.translatable(source == null ?
                 "gtpm.multiblock.autobuild.terminal.ae_unavailable" :
