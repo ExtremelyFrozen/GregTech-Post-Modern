@@ -385,8 +385,8 @@ final class CandidateSearch {
             order = Integer.compare(willPlace(cell, first) ? budget.rank(first.materialKey()) : 0,
                     willPlace(cell, second) ? budget.rank(second.materialKey()) : 0);
             if (order != 0) return order;
-            order = Integer.compare(canonical ? previewPriority(cell, first) : 0,
-                    canonical ? previewPriority(cell, second) : 0);
+            order = Integer.compare(canonical ? previewPriority(first) : 0,
+                    canonical ? previewPriority(second) : 0);
             if (order != 0) return order;
             order = Integer.compare(first.order(), second.order());
             return order != 0 ? order : BuiltInRegistries.BLOCK.getKey(first.state().getBlock()).toString()
@@ -400,7 +400,7 @@ final class CandidateSearch {
         if (count == 0) {
             return new AppliedCandidate(candidate, 0, BudgetUse.EMPTY, SelectionScore.ZERO);
         }
-        long previewPenalty = previewPenalty(cell, candidate, count);
+        long previewPenalty = previewPenalty(candidate, count);
         increment(cell.layer(), candidate, count);
         properties.add(candidate.observation().properties(), count);
         BudgetUse budgetUse = willPlace(cell, candidate) ? budget.consume(candidate.materialKey(), count) :
@@ -429,7 +429,7 @@ final class CandidateSearch {
         }
     }
 
-    long previewPenalty(UnresolvedCell cell, ResolvedCandidate candidate, int count) {
+    long previewPenalty(ResolvedCandidate candidate, int count) {
         if (!canonical) return 0;
         long penalty = 0;
         for (int offset = 0; offset < count; offset++) {
@@ -470,7 +470,7 @@ final class CandidateSearch {
         long sourceCost = willPlace(cell, candidate) && !budget.unlimited ?
                 budget.rank(candidate.materialKey()) : 0;
         return new SelectionScore(modificationCost(cell, candidate), sourceCost,
-                canonical ? previewPriority(cell, candidate) : 0, candidate.order());
+                canonical ? previewPriority(candidate) : 0, candidate.order());
     }
 
     long modificationCost(UnresolvedCell cell, ResolvedCandidate candidate) {
@@ -495,7 +495,7 @@ final class CandidateSearch {
         return contributes ? 0 : 1;
     }
 
-    int previewPriority(UnresolvedCell cell, ResolvedCandidate candidate) {
+    int previewPriority(ResolvedCandidate candidate) {
         for (ConstraintLimit limit : candidate.limits()) {
             if (limit.previewCount() >= 0 && globalCounts.getInt(limit.key()) < limit.previewCount()) return 0;
         }
@@ -512,15 +512,12 @@ final class CandidateSearch {
                 !canUpdateDirection(cell, candidate);
     }
 
-    boolean withinMaximums(int layer, ResolvedCandidate candidate) {
-        return withinMaximums(layer, candidate, 1);
-    }
 
-    boolean withinMaximums(int layer, ResolvedCandidate candidate, int count) {
+    boolean withinMaximums(int layer, ResolvedCandidate candidate) {
         for (ConstraintLimit limit : candidate.limits()) {
-            if (limit.max() >= 0 && (long) globalCounts.getInt(limit.key()) + count > limit.max()) return false;
+            if (limit.max() >= 0 && (long) globalCounts.getInt(limit.key()) + 1 > limit.max()) return false;
             if (limit.layerMax() >= 0 &&
-                    (long) layerCount(layer, limit.key()) + count > limit.layerMax())
+                    (long) layerCount(layer, limit.key()) + 1 > limit.layerMax())
                 return false;
         }
         return true;
