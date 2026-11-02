@@ -58,8 +58,8 @@ final class StructurePlanner {
             CellAction action = resolveAction(definition, pending.options().mode(), cell, candidate,
                     observed, context);
             BlockState targetState = candidate.state();
-            if (pending.options().mode() == StructureOperation.BUILD && observed != null) {
-                if (action == CellAction.KEEP) {
+            if (observed != null && (buildMode || action == CellAction.CONTROLLER)) {
+                if (action == CellAction.KEEP || action == CellAction.CONTROLLER) {
                     targetState = observed;
                 } else if (action == CellAction.UPDATE_DIRECTION && cell.requiredDirection() != null) {
                     targetState = MultiBlockPattern.applyDirectionalState(observed, cell.requiredDirection());

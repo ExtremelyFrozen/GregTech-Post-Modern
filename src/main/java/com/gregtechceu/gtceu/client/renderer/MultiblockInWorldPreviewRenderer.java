@@ -150,7 +150,8 @@ public final class MultiblockInWorldPreviewRenderer {
     /** Refreshes an active overlay after a terminal configuration change, without resolving the pattern again. */
     public static void updatePreview(BlockPos pos, StructurePreview preview, int duration) {
         if (SOURCE_LEVEL != Minecraft.getInstance().level || !pos.equals(LAST_POS) ||
-                preview.fingerprint().equals(TERMINAL_FINGERPRINT)) return;
+                preview.fingerprint().equals(TERMINAL_FINGERPRINT))
+            return;
         VISIBLE_STRUCTURES.removeIf(name -> preview.structures().stream()
                 .noneMatch(structure -> structure.name().equals(name)));
         showTerminalPreview(pos, preview, duration);
@@ -169,7 +170,8 @@ public final class MultiblockInWorldPreviewRenderer {
             for (int index = cell.contributions().size() - 1; index >= 0; index--) {
                 var contribution = cell.contributions().get(index);
                 if (contribution.action() == CellAction.IGNORE_ANY ||
-                        !VISIBLE_STRUCTURES.contains(contribution.structureName())) continue;
+                        !VISIBLE_STRUCTURES.contains(contribution.structureName()))
+                    continue;
                 if (!contribution.targetState().isAir()) {
                     level.addBlock(cell.worldPos(), contribution.renderInfo().createBlockInfo());
                     positions.add(cell.worldPos());

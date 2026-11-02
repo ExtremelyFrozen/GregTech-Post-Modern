@@ -1,6 +1,9 @@
 package com.gregtechceu.gtceu.client.gui;
 
 import com.gregtechceu.gtceu.GTCEu;
+import com.gregtechceu.gtceu.api.block.MetaMachineBlock;
+import com.gregtechceu.gtceu.api.block.property.GTBlockStateProperties;
+import com.gregtechceu.gtceu.api.data.RotationState;
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.element.GTButtonElement;
 import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
@@ -11,6 +14,7 @@ import com.gregtechceu.gtceu.api.multiblock.MultiblockPreviewLevel;
 import com.gregtechceu.gtceu.api.multiblock.preview.PreviewVisibility;
 import com.gregtechceu.gtceu.api.multiblock.preview.StructurePreview;
 import com.gregtechceu.gtceu.api.multiblock.preview.StructurePreview.Cell;
+import com.gregtechceu.gtceu.api.multiblock.util.RelativeDirection;
 import com.gregtechceu.gtceu.common.item.terminal.ui.StructureControls;
 import com.gregtechceu.gtceu.integration.xei.GTXEIHelper;
 import com.gregtechceu.gtceu.integration.xei.handlers.item.CycleItemEntryHandler;
@@ -52,6 +56,7 @@ import it.unimi.dsi.fastutil.objects.ObjectList;
 import mezz.jei.library.ingredients.itemStacks.TypedItemStack;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
+import org.joml.Vector3f;
 
 import java.util.List;
 import java.util.Locale;
@@ -92,6 +97,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
     private int selectedMaterialIndex;
     private int materialPage;
     private long renderedViewRevision;
+    private @Nullable BlockState cameraControllerState;
     private boolean removed;
 
     public ClientMultiblockPreviewElement(int width, int height, PreviewVisibility state,
@@ -229,7 +235,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         focusButton.getLayout().left(width - 20);
         layerButton.getLayout().left(width - 20);
         hatchButton.getLayout().left(width - 20);
-        diagnosticLabel.getLayout().top(sceneHeight / 2 - 10).width(width - 16);
+        diagnosticLabel.getLayout().top((float) sceneHeight / 2 - 10).width(width - 16);
         rebuildMaterials();
     }
 
@@ -258,6 +264,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
                 return;
             }
             sceneCells.clear();
+            BlockState controllerState = null;
             for (StructurePreview.Cell cell : state.getPreview().cells()) {
                 if (cell.renderState().isAir()) continue;
                 BlockPos scenePos = SCENE_ORIGIN.offset(cell.relativePos());
@@ -265,15 +272,38 @@ public final class ClientMultiblockPreviewElement extends UIElement {
                 previewLevel.addBlock(scenePos, blockInfo);
                 loadedPositions.add(scenePos);
                 sceneCells.put(scenePos, cell);
+                if (cell.controller()) controllerState = cell.renderState();
             }
             // Scene installs a core filter: attach it only after every block initializer has run.
             scene.createScene(previewLevel);
+            if (controllerState != null && controllerState != cameraControllerState) {
+                cameraControllerState = controllerState;
+                orientCamera(controllerState);
+            }
             rebuildRenderedCore(resetCamera);
             rebuildMaterials();
             updateDemolitionText();
             updateNavigationText();
             updateDiagnosticText();
         });
+    }
+
+    private void orientCamera(BlockState controllerState) {
+        if (!(controllerState.getBlock() instanceof MetaMachineBlock block)) return;
+        var definition = block.getDefinition();
+        var rotation = definition.getRotationState();
+        Direction front = rotation == RotationState.NONE ? Direction.NORTH :
+                controllerState.getValue(rotation.property);
+        Direction upwards = controllerState.hasProperty(GTBlockStateProperties.UPWARDS_FACING) ?
+                controllerState.getValue(GTBlockStateProperties.UPWARDS_FACING) : Direction.NORTH;
+        Direction up = RelativeDirection.UP.getRelative(front, upwards, false);
+        Direction right = RelativeDirection.RIGHT.getRelative(front, upwards, false);
+        // Look at the controller's front, right and top in the same coordinate frame as the resolved structure.
+        var eye = new Vector3f(front.getStepX(), front.getStepY(), front.getStepZ()).mul(2)
+                .add(right.getStepX(), right.getStepY(), right.getStepZ())
+                .add(up.getStepX(), up.getStepY(), up.getStepZ());
+        scene.setCameraYawAndPitch((float) Math.toDegrees(Math.atan2(eye.z, eye.x)),
+                (float) Math.toDegrees(Math.atan2(eye.y, Math.hypot(eye.x, eye.z))));
     }
 
     private void rebuildRenderedCore(boolean resetCamera) {
@@ -317,32 +347,36 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         selectedMaterialIndex = Math.min(selectedMaterialIndex, displayStacks.size() - 1);
         CycleItemEntryHandler itemHandler = CycleItemEntryHandler.createFromStacks(displayStacks);
         for (int index = 0; index < displayStacks.size(); index++) {
-            int slotIndex = index;
-            GTItemSlotElement slot = new GTItemSlotElement(itemHandler, index);
-            slot.layout(layout -> {
-                layout.positionType(TaffyPosition.ABSOLUTE);
-                layout.left(slotIndex * 18);
-                layout.top(0);
-                layout.width(18);
-                layout.height(18);
-            });
-            slot.setCanTakeItems(false);
-            slot.setCanPutItems(false);
-            slot.setIngredientIO(GTXEIHelper.input());
-            slot.setBackgroundTexture(GuiTextures.SLOT);
-            slot.setItemCountDecorationXOffset(ClientMultiblockPreviewElement::countDecorationOffset);
-            slot.setOnAddedTooltips((element, tooltips) -> addMaterialTooltips(
-                    state.getPreview().materials().get(slotIndex), tooltips));
-            slot.addEventListener(UIEvents.MOUSE_DOWN, event -> {
-                selectedMaterialIndex = slotIndex;
-                rebuildMaterialDetails();
-            });
-            slot.xeiRecipeIngredient();
+            GTItemSlotElement slot = getSlot(index, itemHandler);
             materialViewport.addChild(slot);
             materialSlots.add(slot);
         }
         updateMaterialPage();
         rebuildMaterialDetails();
+    }
+
+    private GTItemSlotElement getSlot(int slotIndex, CycleItemEntryHandler itemHandler) {
+        GTItemSlotElement slot = new GTItemSlotElement(itemHandler, slotIndex);
+        slot.layout(layout -> {
+            layout.positionType(TaffyPosition.ABSOLUTE);
+            layout.left(slotIndex * 18);
+            layout.top(0);
+            layout.width(18);
+            layout.height(18);
+        });
+        slot.setCanTakeItems(false);
+        slot.setCanPutItems(false);
+        slot.setIngredientIO(GTXEIHelper.input());
+        slot.setBackgroundTexture(GuiTextures.SLOT);
+        slot.setItemCountDecorationXOffset(ClientMultiblockPreviewElement::countDecorationOffset);
+        slot.setOnAddedTooltips((element, tooltips) -> addMaterialTooltips(
+                state.getPreview().materials().get(slotIndex), tooltips));
+        slot.addEventListener(UIEvents.MOUSE_DOWN, event -> {
+            selectedMaterialIndex = slotIndex;
+            rebuildMaterialDetails();
+        });
+        slot.xeiRecipeIngredient();
+        return slot;
     }
 
     private void updateMaterialPage() {
