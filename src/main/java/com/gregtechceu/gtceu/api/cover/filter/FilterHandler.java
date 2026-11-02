@@ -60,12 +60,12 @@ public abstract class FilterHandler<T, F extends Filter<T, F>> implements ISyncM
         GTItemSlotElement slot = new GTItemSlotElement(getFilterSlot(), 0)
                 .setChangeListener(this::updateFilter)
                 .setBackgroundTexture(GuiTextures.group(GuiTextures.SLOT, GuiTextures.FILTER_SLOT_OVERLAY));
-        return UITemplate.setLDLib2Bounds(slot, xPos, yPos, 18, 18);
+        return UITemplate.setBounds(slot, xPos, yPos, 18, 18);
     }
 
     public UIElement createFilterConfigLDLib2UI(int xPos, int yPos, int width, int height) {
         F loadedFilter = this.filterItem.isEmpty() ? null : getFilter();
-        this.filterLDLib2Group = UITemplate.setLDLib2Bounds(new UIElement(), xPos, yPos, width, height);
+        this.filterLDLib2Group = UITemplate.setBounds(new UIElement(), xPos, yPos, width, height);
         if (!this.filterItem.isEmpty() && loadedFilter != null) {
             this.filterLDLib2Group.addChild(loadedFilter.openLDLib2Configurator(0, 0));
         }

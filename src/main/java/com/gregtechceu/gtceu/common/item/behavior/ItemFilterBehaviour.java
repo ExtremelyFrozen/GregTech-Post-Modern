@@ -18,7 +18,7 @@ import net.minecraft.world.item.ItemStack;
 
 import java.util.function.Function;
 
-import static com.gregtechceu.gtceu.api.gui.UITemplate.setLDLib2Bounds;
+import static com.gregtechceu.gtceu.api.gui.UITemplate.setBounds;
 
 public record ItemFilterBehaviour(Function<ItemStack, ItemFilter> filterCreator) implements IItemUIFactory {
 
@@ -42,11 +42,11 @@ public record ItemFilterBehaviour(Function<ItemStack, ItemFilter> filterCreator)
     public UI createLDLib2UI(HeldItemUIHolder holder, Player entityPlayer) {
         var held = holder.getHeld();
         UIElement root = new UIElement();
-        setLDLib2Bounds(root, 0, 0, 176, 157);
+        setBounds(root, 0, 0, 176, 157);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));
         root.addChild(createLDLib2Label(held.getDescriptionId()));
         root.addChild(ItemFilter.loadFilter(held).openLDLib2Configurator((176 - 80) / 2, (60 - 55) / 2 + 15));
-        root.addChild(UITemplate.bindPlayerInventoryLDLib2(entityPlayer.getInventory(), GuiTextures.SLOT, 7, 75, true));
+        root.addChild(UITemplate.bindPlayerInventory(entityPlayer.getInventory(), GuiTextures.SLOT, 7, 75, true));
         return UI.of(root);
     }
 

@@ -136,13 +136,13 @@ public class EnderItemLinkCover extends AbstractEnderLinkCover<VirtualItemStorag
     @Override
     protected UIElement addVirtualEntryLDLib2Element(VirtualEntry entry, int x, int y, int width, int height,
                                                      boolean canClick) {
-        UIElement group = UITemplate.setLDLib2Bounds(new UIElement(), x, y, width, height);
+        UIElement group = UITemplate.setBounds(new UIElement(), x, y, width, height);
         for (int i = 0; i < ((VirtualItemStorage) entry).getHandler().getSlots(); i++) {
             GTItemSlotElement slot = new GTItemSlotElement(((VirtualItemStorage) entry).getHandler(), i)
                     .setCanPutItems(canClick)
                     .setCanTakeItems(canClick)
                     .setBackgroundTexture(GuiTextures.SLOT);
-            group.addChild(UITemplate.setLDLib2Bounds(slot, 8 * i, 0, 18, 18));
+            group.addChild(UITemplate.setBounds(slot, 8 * i, 0, 18, 18));
         }
         return group;
     }

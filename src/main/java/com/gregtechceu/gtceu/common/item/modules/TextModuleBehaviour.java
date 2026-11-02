@@ -89,10 +89,10 @@ public class TextModuleBehaviour implements IMonitorModuleItem, IAddInformation 
     public UIElement createConfigurationElement(ItemStack stack, CentralMonitorMachine machine, MonitorGroup group,
                                                 Consumer<SyncActionData> actionSender) {
         UIElement builder = new UIElement();
-        UITemplate.setLDLib2Bounds(builder, 0, 0, CONFIGURATION_WIDTH, CONFIGURATION_HEIGHT);
+        UITemplate.setBounds(builder, 0, 0, CONFIGURATION_WIDTH, CONFIGURATION_HEIGHT);
 
         CodeEditor editor = new CodeEditor();
-        UITemplate.setLDLib2Bounds(editor, EDITOR_X, 0, EDITOR_WIDTH, EDITOR_HEIGHT);
+        UITemplate.setBounds(editor, EDITOR_X, 0, EDITOR_WIDTH, EDITOR_HEIGHT);
         editor.setLines(getFormatStringLines(stack));
 
         GTTextFieldElement scaleInput = createLDLib2ScaleInput(stack);
@@ -211,7 +211,7 @@ public class TextModuleBehaviour implements IMonitorModuleItem, IAddInformation 
 
     private static UIElement createLDLib2PlaceholderReference() {
         UIElement root = new UIElement();
-        UITemplate.setLDLib2Bounds(root, 0, 0, PLACEHOLDER_REFERENCE_WIDTH, CONFIGURATION_HEIGHT);
+        UITemplate.setBounds(root, 0, 0, PLACEHOLDER_REFERENCE_WIDTH, CONFIGURATION_HEIGHT);
 
         root.addChild(createLDLib2Label(0,
                 Component.literal(GTStringUtils.componentsToString(

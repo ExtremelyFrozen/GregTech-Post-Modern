@@ -42,7 +42,7 @@ public class FancyPageSwitcher implements FancyUIProvider {
 
     public FancyPageSwitcher(Consumer<FancyUIProvider> onPageSwitched) {
         this.onPageSwitched = onPageSwitched;
-        this.container = UITemplate.setLDLib2Bounds(new UIElement(), 0, 0, WIDTH, HEIGHT);
+        this.container = UITemplate.setBounds(new UIElement(), 0, 0, WIDTH, HEIGHT);
         this.scrollableGroup = new GTScrollerViewElement(10, 10, 156, 146);
         container.addChild(scrollableGroup);
     }
@@ -119,7 +119,7 @@ public class FancyPageSwitcher implements FancyUIProvider {
     }
 
     private UIElement createPageButton(FancyUIProvider page, int x, int y) {
-        UIElement pageElement = UITemplate.setLDLib2Bounds(new UIElement(), x, y, BUTTON_SIZE, BUTTON_SIZE);
+        UIElement pageElement = UITemplate.setBounds(new UIElement(), x, y, BUTTON_SIZE, BUTTON_SIZE);
         GTButtonElement button = new GTButtonElement(0, 0, BUTTON_SIZE, BUTTON_SIZE);
         button.noText();
         if (page == currentPage) {

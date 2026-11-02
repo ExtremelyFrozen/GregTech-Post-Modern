@@ -296,16 +296,16 @@ public class FisherMachine extends TieredEnergyMachine
 
     @Override
     public UIElement createMainPage(FancyMachineUI shell) {
-        UIElement root = UITemplate.setLDLib2Bounds(new UIElement(), 0, 0,
+        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0,
                 getPageWidth(), getPageHeight());
 
-        UIElement energyGroup = UITemplate.setLDLib2Bounds(new UIElement(), ENERGY_GROUP_X, getLDLib2EnergyGroupY(),
+        UIElement energyGroup = UITemplate.setBounds(new UIElement(), ENERGY_GROUP_X, getLDLib2EnergyGroupY(),
                 getLDLib2EnergyGroupWidth(), getLDLib2EnergyGroupHeight());
         energyGroup.addChild(createLDLib2EnergyBar());
         energyGroup.addChild(createLDLib2BatterySlot(BATTERY_SLOT_X, BATTERY_SLOT_Y));
         root.addChild(energyGroup);
 
-        UIElement template = UITemplate.setLDLib2Bounds(new UIElement(), getLDLib2TemplateX(), getLDLib2TemplateY(),
+        UIElement template = UITemplate.setBounds(new UIElement(), getLDLib2TemplateX(), getLDLib2TemplateY(),
                 getLDLib2TemplateWidth(), getLDLib2TemplateHeight());
         template.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
 
@@ -341,7 +341,7 @@ public class FisherMachine extends TieredEnergyMachine
                 .setCanTakeItems(true)
                 .setCanPutItems(false)
                 .setBackgroundTexture(GuiTextures.SLOT);
-        return UITemplate.setLDLib2Bounds(slot, x, y, SLOT_SIZE, SLOT_SIZE);
+        return UITemplate.setBounds(slot, x, y, SLOT_SIZE, SLOT_SIZE);
     }
 
     private GTItemSlotElement createLDLib2BaitSlot(int x, int y) {
@@ -349,7 +349,7 @@ public class FisherMachine extends TieredEnergyMachine
                 .setCanTakeItems(true)
                 .setCanPutItems(true)
                 .setBackgroundTexture(GuiTextures.group(GuiTextures.SLOT, GuiTextures.STRING_SLOT_OVERLAY));
-        return UITemplate.setLDLib2Bounds(slot, x, y, SLOT_SIZE, SLOT_SIZE);
+        return UITemplate.setBounds(slot, x, y, SLOT_SIZE, SLOT_SIZE);
     }
 
     private GTItemSlotElement createLDLib2BatterySlot(int x, int y) {
@@ -360,7 +360,7 @@ public class FisherMachine extends TieredEnergyMachine
                 .setOnAddedTooltips((slotElement, tooltips) -> tooltips.addAll(
                         LangHandler.getMultiLang("gtpm.gui.charger_slot.tooltip",
                                 GTValues.VNF[getTier()], GTValues.VNF[getTier()])));
-        return UITemplate.setLDLib2Bounds(slot, x, y, SLOT_SIZE, SLOT_SIZE);
+        return UITemplate.setBounds(slot, x, y, SLOT_SIZE, SLOT_SIZE);
     }
 
     GTToggleButtonElement createLDLib2JunkButton(int x, int y) {

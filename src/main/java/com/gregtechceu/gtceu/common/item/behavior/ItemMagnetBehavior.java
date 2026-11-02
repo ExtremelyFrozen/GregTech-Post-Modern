@@ -97,7 +97,7 @@ public class ItemMagnetBehavior implements IInteractionItem, IItemLifeCycle, IAd
         List<LDLib2FilterPanel> panels = new ArrayList<>();
 
         UIElement root = new UIElement();
-        UITemplate.setLDLib2Bounds(root, 0, 0, 176, 157);
+        UITemplate.setBounds(root, 0, 0, 176, 157);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));
 
         for (Filter filterType : Filter.values()) {
@@ -105,7 +105,7 @@ public class ItemMagnetBehavior implements IInteractionItem, IItemLifeCycle, IAd
             panels.add(panel);
             root.addChild(panel.panel());
         }
-        root.addChild(UITemplate.bindPlayerInventoryLDLib2(entityPlayer.getInventory(), GuiTextures.SLOT, 7, 75, true));
+        root.addChild(UITemplate.bindPlayerInventory(entityPlayer.getInventory(), GuiTextures.SLOT, 7, 75, true));
         root.addChild(createLDLib2FilterButton(holder, selected, panels));
         return UI.of(root);
     }
@@ -121,14 +121,14 @@ public class ItemMagnetBehavior implements IInteractionItem, IItemLifeCycle, IAd
                     .filterType());
             setLDLib2FilterSelection(holder, next, panels, button);
         });
-        UITemplate.setLDLib2Bounds(button, 146, 5, 20, 20);
+        UITemplate.setBounds(button, 146, 5, 20, 20);
         return button;
     }
 
     private static LDLib2FilterPanel createLDLib2FilterPanel(HeldItemUIHolder holder, ItemStack held, Filter filterType,
                                                              boolean visible) {
         UIElement panel = new UIElement();
-        UITemplate.setLDLib2Bounds(panel, 0, 0, 176, 75);
+        UITemplate.setBounds(panel, 0, 0, 176, 75);
         panel.setVisible(visible);
 
         ItemStack filterStack = filterType.getFilter(held);

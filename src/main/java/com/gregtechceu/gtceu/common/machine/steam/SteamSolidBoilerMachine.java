@@ -128,7 +128,7 @@ public class SteamSolidBoilerMachine extends SteamBoilerMachine {
                         GuiTextures.COAL_OVERLAY_STEAM.get(isHighPressure)))
                 .setCanTakeItems(true)
                 .setCanPutItems(true);
-        return UITemplate.setLDLib2Bounds(slot, 115, 62, 18, 18);
+        return UITemplate.setBounds(slot, 115, 62, 18, 18);
     }
 
     private GTItemSlotElement createLDLib2AshSlot() {
@@ -137,7 +137,7 @@ public class SteamSolidBoilerMachine extends SteamBoilerMachine {
                         GuiTextures.DUST_OVERLAY_STEAM.get(isHighPressure)))
                 .setCanTakeItems(true)
                 .setCanPutItems(false);
-        return UITemplate.setLDLib2Bounds(slot, 115, 26, 18, 18);
+        return UITemplate.setBounds(slot, 115, 26, 18, 18);
     }
 
     private GTProgressBarElement createLDLib2FuelProgressBar() {
@@ -146,6 +146,6 @@ public class SteamSolidBoilerMachine extends SteamBoilerMachine {
         GTProgressBarElement progressBar = new GTProgressBarElement(recipeLogic::getProgressPercent)
                 .setProgressTexture(progressTexture.getEmptyBarArea(), progressTexture.getFilledBarArea())
                 .setFillDirection(FillDirection.DOWN_TO_UP);
-        return UITemplate.setLDLib2Bounds(progressBar, 115, 44, 18, 18);
+        return UITemplate.setBounds(progressBar, 115, 44, 18, 18);
     }
 }

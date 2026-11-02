@@ -64,7 +64,7 @@ public final class StructureControls extends UIElement {
     public StructureControls(int x, int y, int width, int height, MultiblockMachineDefinition definition,
                              TerminalMachine machine, MultiblockPreviewPanel preview, boolean showME,
                              Consumer<TerminalChange> update) {
-        UITemplate.setLDLib2Bounds(this, x, y, width, height);
+        UITemplate.setBounds(this, x, y, width, height);
         getStyle().backgroundTexture(GuiTextures.BACKGROUND_INVERSE);
         setOverflowVisible(false);
         this.definition = definition;
@@ -77,7 +77,7 @@ public final class StructureControls extends UIElement {
     }
 
     public void resize(int x, int y, int width, int height) {
-        UITemplate.setLDLib2Bounds(this, x, y, width, height);
+        UITemplate.setBounds(this, x, y, width, height);
         contentWidth = width - 8;
         rebuild();
     }
@@ -234,7 +234,7 @@ public final class StructureControls extends UIElement {
         dialog.overlay.getStyle().backgroundTexture(GuiTextures.BACKGROUND);
         dialog.titleBar.setDisplay(false);
         dialog.buttonContainer.setDisplay(false);
-        UITemplate.setLDLib2Bounds(dialog.contentContainer, 4, 4, 272, 170);
+        UITemplate.setBounds(dialog.contentContainer, 4, 4, 272, 170);
         dialog.contentContainer.getLayout().paddingAll(0);
         dialog.contentContainer.getStyle().backgroundTexture(IGuiTexture.EMPTY);
         var categories = scroller(0, 18, 106, 152);
@@ -263,7 +263,7 @@ public final class StructureControls extends UIElement {
                 if (!candidate.icon().isEmpty()) {
                     choice.getLayout().paddingLeft(20);
                     var icon = new UIElement();
-                    UITemplate.setLDLib2Bounds(icon, 1, 1, 16, 16);
+                    UITemplate.setBounds(icon, 1, 1, 16, 16);
                     icon.getStyle().backgroundTexture(new ItemStackTexture(candidate.icon()));
                     icon.setAllowHitTest(false);
                     choice.addChild(icon);

@@ -232,7 +232,7 @@ public class QuantumTankMachine extends TieredMachine implements IControllable,
     }
 
     private UIElement createLDLib2MainPage(Player player, MachineUIHolder holder) {
-        UIElement root = UITemplate.setLDLib2Bounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
+        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
         root.addChild(new GTImageElement(4, 4, 82, 55, GuiTextures.DISPLAY));
         root.addChild(createLDLib2FluidAmountLabel());
@@ -297,7 +297,7 @@ public class QuantumTankMachine extends TieredMachine implements IControllable,
                 event.hasHandler = true;
             }
         });
-        return UITemplate.setLDLib2Bounds(fluidSlot, 68, 23, 18, 18);
+        return UITemplate.setBounds(fluidSlot, 68, 23, 18, 18);
     }
 
     private GTPhantomFluidSlotElement createLDLib2LockedFluidSlot(Player player, MachineUIHolder holder) {
@@ -313,7 +313,7 @@ public class QuantumTankMachine extends TieredMachine implements IControllable,
         };
         slot.setBackgroundTexture(ColorPattern.T_GRAY.rectTexture());
         slot.setShowAmount(false);
-        UITemplate.setLDLib2Bounds(slot, 68, 41, 18, 18);
+        UITemplate.setBounds(slot, 68, 41, 18, 18);
         slot.addEventListener(UIEvents.MOUSE_DOWN, event -> {
             if (!player.level().isClientSide()) {
                 return;

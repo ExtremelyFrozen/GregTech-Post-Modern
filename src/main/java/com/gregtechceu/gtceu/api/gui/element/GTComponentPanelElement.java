@@ -62,7 +62,7 @@ public class GTComponentPanelElement extends UIElement {
     private int space = 2;
 
     public GTComponentPanelElement() {
-        UITemplate.setLDLib2Bounds(this, 0, 0, 0, 0);
+        UITemplate.setBounds(this, 0, 0, 0, 0);
         addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown);
         addEventListener(UIEvents.HOVER_TOOLTIPS, this::onHoverTooltips);
     }
@@ -270,7 +270,7 @@ public class GTComponentPanelElement extends UIElement {
     }
 
     private void applyBounds() {
-        UITemplate.setLDLib2Bounds(this, x, y, width, height);
+        UITemplate.setBounds(this, x, y, width, height);
     }
 
     @Nullable

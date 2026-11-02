@@ -96,7 +96,7 @@ public final class FancyPreviewPage implements FancyUIProvider {
      * Builds the common preview root and constructs its Scene only on the physical client.
      */
     public static UIElement createPreviewElement(MetaMachine machine) {
-        UIElement root = UITemplate.setLDLib2Bounds(new UIElement(), 0, 0,
+        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0,
                 PREVIEW_PAGE_WIDTH, PREVIEW_PAGE_HEIGHT);
         if (machine.isRemote()) {
             root.addChild(new GTImageElement(26, 60, 48, 16, GuiTextures.SCENE));

@@ -25,7 +25,7 @@ import com.mojang.serialization.Codec;
 import io.netty.buffer.ByteBuf;
 import org.jetbrains.annotations.NotNull;
 
-import static com.gregtechceu.gtceu.api.gui.UITemplate.setLDLib2Bounds;
+import static com.gregtechceu.gtceu.api.gui.UITemplate.setBounds;
 import static com.gregtechceu.gtceu.api.item.tool.ToolHelper.*;
 
 public class AOEConfigUIBehavior implements IToolUIBehavior<AOEConfigUIBehavior> {
@@ -60,7 +60,7 @@ public class AOEConfigUIBehavior implements IToolUIBehavior<AOEConfigUIBehavior>
         AoESymmetrical.Mutable definition = getAoEDefinition(held).toMutable();
 
         UIElement root = new UIElement();
-        setLDLib2Bounds(root, 0, 0, 120, 80);
+        setBounds(root, 0, 0, 120, 80);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));
 
         root.addChild(createLDLib2Label("item.gtpm.tool.aoe.columns", 6, 10, 38, 10, true));

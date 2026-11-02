@@ -75,7 +75,7 @@ public final class DirectionalSceneFactory {
         }
         var playerRotation = player.getRotationVector();
         scene.setCameraYawAndPitch(playerRotation.y - 90, playerRotation.x);
-        sceneContainer.addChild(UITemplate.setLDLib2Bounds(scene, 0, 0, width, height));
+        sceneContainer.addChild(UITemplate.setBounds(scene, 0, 0, width, height));
     }
 
     private static List<BlockPos> getAdjacentPositions(BlockPos pos) {

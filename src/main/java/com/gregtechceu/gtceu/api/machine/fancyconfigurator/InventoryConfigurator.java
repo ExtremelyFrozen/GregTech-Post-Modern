@@ -73,19 +73,19 @@ public class InventoryConfigurator implements FancyConfigurator {
     @Override
     public UIElement createConfigurator() {
         UIElement group = new UIElement();
-        UITemplate.setLDLib2Bounds(group, 0, 0, getConfiguratorWidth(), getConfiguratorHeight());
+        UITemplate.setBounds(group, 0, 0, getConfiguratorWidth(), getConfiguratorHeight());
 
         int rowSize = getRowSize();
         int colSize = getColSize();
         UIElement container = new UIElement();
-        UITemplate.setLDLib2Bounds(container, 4, 4, 18 * rowSize + 8, 18 * colSize + 8);
+        UITemplate.setBounds(container, 4, 4, 18 * rowSize + 8, 18 * colSize + 8);
         container.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
 
         int index = 0;
         for (int y = 0; y < colSize; y++) {
             for (int x = 0; x < rowSize; x++) {
                 GTItemSlotElement slot = new GTItemSlotElement(inventory, index++);
-                UITemplate.setLDLib2Bounds(slot, 4 + x * 18, 4 + y * 18, 18, 18);
+                UITemplate.setBounds(slot, 4 + x * 18, 4 + y * 18, 18, 18);
                 slot.setBackgroundTexture(GuiTextures.SLOT)
                         .setCanPlace(stack -> openingValid.getAsBoolean())
                         .setCanTake(player -> openingValid.getAsBoolean());

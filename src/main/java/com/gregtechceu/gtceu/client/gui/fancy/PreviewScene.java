@@ -46,7 +46,7 @@ public final class PreviewScene extends GTSceneElement {
             throw new IllegalStateException("LDLib2 preview scene did not create a renderer.");
         }
         renderer.setFov(PREVIEW_FOV);
-        return UITemplate.setLDLib2Bounds(scene, 0, 0, width, height);
+        return UITemplate.setBounds(scene, 0, 0, width, height);
     }
 
     @Override

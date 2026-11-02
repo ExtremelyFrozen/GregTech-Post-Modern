@@ -58,7 +58,7 @@ public final class MEPatternBufferPageElement extends UIElement {
         if (!openingValid.getAsBoolean()) {
             throw new IllegalArgumentException("Pattern Buffer page requires a valid opened machine context.");
         }
-        UITemplate.setLDLib2Bounds(this, 0, 0, WIDTH, HEIGHT);
+        UITemplate.setBounds(this, 0, 0, WIDTH, HEIGHT);
         style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
 
         int patternSlotCount = machine.getPatternInventory().getSlots();
@@ -68,7 +68,7 @@ public final class MEPatternBufferPageElement extends UIElement {
             AEPatternViewSlotElement slot = new AEPatternViewSlotElement(
                     machine.getPatternInventory(), patternIndex, level, () -> machine.onPatternChange(patternIndex),
                     openingValid);
-            UITemplate.setLDLib2Bounds(slot, 8 + index % 9 * 18, 14 + index / 9 * 18, 18, 18);
+            UITemplate.setBounds(slot, 8 + index % 9 * 18, 14 + index / 9 * 18, 18, 18);
             slots.add(slot);
             addChild(slot);
         }

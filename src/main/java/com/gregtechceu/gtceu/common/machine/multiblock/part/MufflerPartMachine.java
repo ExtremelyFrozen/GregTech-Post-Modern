@@ -194,10 +194,10 @@ public class MufflerPartMachine extends TieredPartMachine
         int rootHeight = 18 + 18 * rowSize + 94;
 
         UIElement root = new UIElement();
-        UITemplate.setLDLib2Bounds(root, 0, 0, rootWidth, rootHeight);
+        UITemplate.setBounds(root, 0, 0, rootWidth, rootHeight);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));
         root.addChild(createLDLib2TitleLabel(rootWidth));
-        root.addChild(UITemplate.bindPlayerInventoryLDLib2(player.getInventory(), GuiTextures.SLOT, 7 + xOffset,
+        root.addChild(UITemplate.bindPlayerInventory(player.getInventory(), GuiTextures.SLOT, 7 + xOffset,
                 18 + 18 * rowSize + 12, true));
 
         for (int y = 0; y < rowSize; y++) {
@@ -232,7 +232,7 @@ public class MufflerPartMachine extends TieredPartMachine
                 .setBackgroundTexture(GuiTextures.SLOT)
                 .setCanTakeItems(true)
                 .setCanPutItems(false);
-        UITemplate.setLDLib2Bounds(slot, x, y, 18, 18);
+        UITemplate.setBounds(slot, x, y, 18, 18);
         return slot;
     }
 }

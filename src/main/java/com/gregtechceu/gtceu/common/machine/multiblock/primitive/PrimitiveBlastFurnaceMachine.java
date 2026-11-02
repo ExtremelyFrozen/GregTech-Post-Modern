@@ -139,7 +139,7 @@ public class PrimitiveBlastFurnaceMachine extends PrimitiveWorkableMachine imple
     @Override
     public UI createUI(Player player, MachineUIHolder holder) {
         UIElement root = new UIElement();
-        UITemplate.setLDLib2Bounds(root, 0, 0, 176, 166);
+        UITemplate.setBounds(root, 0, 0, 176, 166);
         root.style(style -> style.backgroundTexture(GuiTextures.PRIMITIVE_BACKGROUND));
         root.addChild(createLDLib2TitleLabel());
         root.addChild(createLDLib2ImportSlot(0, 20,
@@ -155,7 +155,7 @@ public class PrimitiveBlastFurnaceMachine extends PrimitiveWorkableMachine imple
                 GuiTextures.group(GuiTextures.PRIMITIVE_SLOT, GuiTextures.PRIMITIVE_DUST_OVERLAY)));
         root.addChild(createLDLib2ExportSlot(2, 140,
                 GuiTextures.group(GuiTextures.PRIMITIVE_SLOT, GuiTextures.PRIMITIVE_DUST_OVERLAY)));
-        root.addChild(UITemplate.bindPlayerInventoryLDLib2(player.getInventory(),
+        root.addChild(UITemplate.bindPlayerInventory(player.getInventory(),
                 GuiTextures.PRIMITIVE_SLOT, 7, 84, true));
         return UI.of(root);
     }
@@ -176,7 +176,7 @@ public class PrimitiveBlastFurnaceMachine extends PrimitiveWorkableMachine imple
                 .setBackgroundTexture(backgroundTexture)
                 .setCanTakeItems(true)
                 .setCanPutItems(true);
-        UITemplate.setLDLib2Bounds(slot, 52, y, 18, 18);
+        UITemplate.setBounds(slot, 52, y, 18, 18);
         return slot;
     }
 
@@ -185,7 +185,7 @@ public class PrimitiveBlastFurnaceMachine extends PrimitiveWorkableMachine imple
                 .setBackgroundTexture(backgroundTexture)
                 .setCanTakeItems(true)
                 .setCanPutItems(false);
-        UITemplate.setLDLib2Bounds(slot, x, 38, 18, 18);
+        UITemplate.setBounds(slot, x, 38, 18, 18);
         return slot;
     }
 
@@ -193,7 +193,7 @@ public class PrimitiveBlastFurnaceMachine extends PrimitiveWorkableMachine imple
         var progressTexture = GuiTextures.progressBar(GuiTextures.PRIMITIVE_BLAST_FURNACE_PROGRESS_BAR);
         GTProgressBarElement progressBar = new GTProgressBarElement(recipeLogic::getProgressPercent)
                 .setProgressTexture(progressTexture.getEmptyBarArea(), progressTexture.getFilledBarArea());
-        UITemplate.setLDLib2Bounds(progressBar, 77, 39, 20, 15);
+        UITemplate.setBounds(progressBar, 77, 39, 20, 15);
         return progressBar;
     }
 

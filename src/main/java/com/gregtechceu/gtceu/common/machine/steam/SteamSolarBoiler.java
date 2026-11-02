@@ -79,7 +79,7 @@ public class SteamSolarBoiler extends SteamBoilerMachine {
         GTProgressBarElement progressBar = new GTProgressBarElement(
                 () -> GTUtil.canSeeSunClearly(getLevel(), getBlockPos()) ? 1.0 : 0.0)
                 .setProgressTexture(progressTexture.getEmptyBarArea(), progressTexture.getFilledBarArea());
-        return UITemplate.setLDLib2Bounds(progressBar, 114, 44, 20, 20);
+        return UITemplate.setBounds(progressBar, 114, 44, 20, 20);
     }
 
     @Override

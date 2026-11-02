@@ -193,10 +193,10 @@ public final class DirectionalConfigurator implements FancyUIProvider {
             throw new IllegalStateException("Directional page no longer resolves its opened machine context.");
         }
 
-        UIElement root = UITemplate.setLDLib2Bounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
+        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
 
-        UIElement sceneContainer = UITemplate.setLDLib2Bounds(new UIElement(), SCENE_MARGIN, SCENE_MARGIN,
+        UIElement sceneContainer = UITemplate.setBounds(new UIElement(), SCENE_MARGIN, SCENE_MARGIN,
                 SCENE_WIDTH, SCENE_HEIGHT);
         sceneContainer.style(style -> style.backgroundTexture(ColorPattern.BLACK.rectTexture()));
         root.addChild(sceneContainer);
@@ -333,7 +333,7 @@ public final class DirectionalConfigurator implements FancyUIProvider {
 
     private UIElement createItemControls() {
         DirectionalAutoOutputMachine output = requireOutput();
-        UIElement controls = UITemplate.setLDLib2Bounds(new UIElement(), 6,
+        UIElement controls = UITemplate.setBounds(new UIElement(), 6,
                 PAGE_HEIGHT - SCENE_MARGIN - CONTROL_SIZE, CONTROL_GROUP_WIDTH, CONTROL_SIZE);
         controls.addChild(new ItemOutputModeButton());
         controls.addChild(new GTToggleButtonElement(CONTROL_SIZE + CONTROL_GAP, 0, CONTROL_SIZE, CONTROL_SIZE,
@@ -350,7 +350,7 @@ public final class DirectionalConfigurator implements FancyUIProvider {
         if (output.supportsAutoOutputItems()) {
             y -= CONTROL_SIZE + CONTROL_ROW_GAP;
         }
-        UIElement controls = UITemplate.setLDLib2Bounds(new UIElement(), 6, y,
+        UIElement controls = UITemplate.setBounds(new UIElement(), 6, y,
                 CONTROL_GROUP_WIDTH, CONTROL_SIZE);
         controls.addChild(new FluidOutputModeButton());
         controls.addChild(new GTToggleButtonElement(CONTROL_SIZE + CONTROL_GAP, 0, CONTROL_SIZE, CONTROL_SIZE,
@@ -362,13 +362,13 @@ public final class DirectionalConfigurator implements FancyUIProvider {
     }
 
     private UIElement createCoverControls() {
-        UIElement controls = UITemplate.setLDLib2Bounds(new UIElement(),
+        UIElement controls = UITemplate.setBounds(new UIElement(),
                 PAGE_WIDTH - SCENE_MARGIN - CONTROL_GROUP_WIDTH,
                 PAGE_HEIGHT - SCENE_MARGIN - CONTROL_SIZE,
                 CONTROL_GROUP_WIDTH, CONTROL_SIZE);
         controls.addChild(new CoverConfigButton());
         CoverSlotElement coverSlot = new CoverSlotElement();
-        UITemplate.setLDLib2Bounds(coverSlot, CONTROL_SIZE + CONTROL_GAP, 0, CONTROL_SIZE, CONTROL_SIZE);
+        UITemplate.setBounds(coverSlot, CONTROL_SIZE + CONTROL_GAP, 0, CONTROL_SIZE, CONTROL_SIZE);
         controls.addChild(coverSlot);
         return controls;
     }

@@ -153,7 +153,7 @@ final class RecipeUIXmlTemplate {
             RecipeCapability<?> capability = entry.getKey();
             int capabilityCount = entry.getIntValue();
             for (int slotIndex = 0; slotIndex < capabilityCount; slotIndex++) {
-                Element slot = capability.createLDLib2XmlElement(document);
+                Element slot = capability.createXmlElement(document);
                 if (slot == null) {
                     IO io = output ? IO.OUT : IO.IN;
                     GTCEu.LOGGER.error("Recipe capability '{}' declares a rendered {} slot without an XML element",

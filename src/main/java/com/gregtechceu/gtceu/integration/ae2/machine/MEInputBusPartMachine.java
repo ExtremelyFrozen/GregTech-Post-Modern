@@ -242,7 +242,7 @@ public class MEInputBusPartMachine extends MEBusPartMachine
                                       BiConsumer<MachineUIHolder, SyncActionData> actionSender,
                                       BooleanSupplier canSendAction, Predicate<UIEvent> ctrlDown) {
         requireMatchingHolder(holder);
-        UIElement root = UITemplate.setLDLib2Bounds(new UIElement(), 0, 0, 150, 88);
+        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, 150, 88);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
         root.addChild(new AEItemConfigElement(this::getItemConfigSnapshot, player, holder,
                 actionSender, canSendAction, ctrlDown));

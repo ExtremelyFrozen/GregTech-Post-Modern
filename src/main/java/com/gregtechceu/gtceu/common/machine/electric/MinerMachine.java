@@ -152,10 +152,10 @@ public class MinerMachine extends WorkableTieredMachine
 
     @Override
     public UIElement createMainPage(FancyMachineUI shell) {
-        UIElement root = UITemplate.setLDLib2Bounds(new UIElement(), 0, 0,
+        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0,
                 getPageWidth(), getPageHeight());
 
-        UIElement template = UITemplate.setLDLib2Bounds(new UIElement(), getLDLib2TemplateX(), getLDLib2TemplateY(),
+        UIElement template = UITemplate.setBounds(new UIElement(), getLDLib2TemplateX(), getLDLib2TemplateY(),
                 getLDLib2TemplateWidth(), getLDLib2TemplateHeight());
         template.addChild(createLDLib2DisplayContainer());
 
@@ -184,7 +184,7 @@ public class MinerMachine extends WorkableTieredMachine
     }
 
     private UIElement createLDLib2DisplayContainer() {
-        UIElement container = UITemplate.setLDLib2Bounds(new UIElement(), 0, 0,
+        UIElement container = UITemplate.setBounds(new UIElement(), 0, 0,
                 DISPLAY_CONTAINER_WIDTH, getLDLib2TemplateHeight());
         container.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
 
@@ -214,7 +214,7 @@ public class MinerMachine extends WorkableTieredMachine
                 .setCanTakeItems(true)
                 .setCanPutItems(false)
                 .setBackgroundTexture(GuiTextures.SLOT);
-        return UITemplate.setLDLib2Bounds(slot, x, y, SLOT_SIZE, SLOT_SIZE);
+        return UITemplate.setBounds(slot, x, y, SLOT_SIZE, SLOT_SIZE);
     }
 
     private GTItemSlotElement createLDLib2BatterySlot(int x, int y) {
@@ -225,7 +225,7 @@ public class MinerMachine extends WorkableTieredMachine
                 .setOnAddedTooltips((slotElement, tooltips) -> tooltips.addAll(
                         LangHandler.getMultiLang("gtpm.gui.charger_slot.tooltip",
                                 GTValues.VNF[getTier()], GTValues.VNF[getTier()])));
-        return UITemplate.setLDLib2Bounds(slot, x, y, SLOT_SIZE, SLOT_SIZE);
+        return UITemplate.setBounds(slot, x, y, SLOT_SIZE, SLOT_SIZE);
     }
 
     private int getLDLib2TemplateX() {

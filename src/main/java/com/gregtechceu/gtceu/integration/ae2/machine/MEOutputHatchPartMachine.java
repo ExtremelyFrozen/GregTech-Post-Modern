@@ -185,7 +185,7 @@ public class MEOutputHatchPartMachine extends MEHatchPartMachine
                                       BiConsumer<MachineUIHolder, SyncActionData> actionSender,
                                       BooleanSupplier canSendAction) {
         requireMatchingHolder(holder);
-        UIElement root = UITemplate.setLDLib2Bounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
+        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
 
         GTLabelElement status = new GTLabelElement(5, 0, 160, 10, networkStatus()) {

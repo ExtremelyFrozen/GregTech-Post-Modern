@@ -77,12 +77,12 @@ public class TankConfigurator implements FancyConfigurator {
     @Override
     public UIElement createConfigurator() {
         UIElement group = new UIElement();
-        UITemplate.setLDLib2Bounds(group, 0, 0, getConfiguratorWidth(), getConfiguratorHeight());
+        UITemplate.setBounds(group, 0, 0, getConfiguratorWidth(), getConfiguratorHeight());
 
         int rowSize = getRowSize();
         int colSize = getColSize();
         UIElement container = new UIElement();
-        UITemplate.setLDLib2Bounds(container, 4, 4, 18 * rowSize + 8, 18 * colSize + 8);
+        UITemplate.setBounds(container, 4, 4, 18 * rowSize + 8, 18 * colSize + 8);
         container.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
 
         int index = 0;
@@ -103,7 +103,7 @@ public class TankConfigurator implements FancyConfigurator {
                         }
                     });
                 }
-                UITemplate.setLDLib2Bounds(slot, 4 + x * 18, 4 + y * 18, 18, 18);
+                UITemplate.setBounds(slot, 4 + x * 18, 4 + y * 18, 18, 18);
                 container.addChild(slot);
             }
         }

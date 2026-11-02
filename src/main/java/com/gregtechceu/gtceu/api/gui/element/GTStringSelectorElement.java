@@ -43,7 +43,7 @@ public class GTStringSelectorElement extends Selector<String> {
                 .scrollerViewHeight(75)
                 .closeAfterSelect(true));
         style(style -> style.backgroundTexture(GuiTextures.BUTTON));
-        UITemplate.setLDLib2Bounds(this, x, y, width, height);
+        UITemplate.setBounds(this, x, y, width, height);
         refreshSelected(true);
     }
 

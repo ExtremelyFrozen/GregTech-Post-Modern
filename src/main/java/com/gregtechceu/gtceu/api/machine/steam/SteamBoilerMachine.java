@@ -335,7 +335,7 @@ public abstract class SteamBoilerMachine extends SteamWorkableMachine
 
     protected UIElement createLDLib2Root(Player player, MachineUIHolder holder) {
         UIElement root = new UIElement();
-        UITemplate.setLDLib2Bounds(root, 0, 0, 176, 166);
+        UITemplate.setBounds(root, 0, 0, 176, 166);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_STEAM.get(isHighPressure)));
         root.addChild(createLDLib2TitleLabel());
         root.addChild(createLDLib2TemperatureProgressBar());
@@ -344,7 +344,7 @@ public abstract class SteamBoilerMachine extends SteamWorkableMachine
         root.addChild(createLDLib2FluidSlot(player, holder, steamTank.getStorages()[0], 70, 26,
                 STEAM_FLUID_SLOT, true, false));
         root.addChild(new GTImageElement(43, 44, 18, 18, GuiTextures.CANISTER_OVERLAY_STEAM.get(isHighPressure)));
-        root.addChild(UITemplate.bindPlayerInventoryLDLib2(player.getInventory(),
+        root.addChild(UITemplate.bindPlayerInventory(player.getInventory(),
                 GuiTextures.SLOT_STEAM.get(isHighPressure), 7, 84, true));
         return root;
     }
@@ -373,7 +373,7 @@ public abstract class SteamBoilerMachine extends SteamWorkableMachine
                 List.of(Component.translatable("gtpm.multiblock.large_boiler.temperature",
                         currentTemperature + 274, getMaxTemperature() + 274)),
                 null, null, null));
-        return UITemplate.setLDLib2Bounds(progressBar, 96, 26, 10, 54);
+        return UITemplate.setBounds(progressBar, 96, 26, 10, 54);
     }
 
     protected GTFluidSlotElement createLDLib2FluidSlot(Player player, MachineUIHolder holder, IFluidHandler storage,
@@ -396,7 +396,7 @@ public abstract class SteamBoilerMachine extends SteamWorkableMachine
                 }
             });
         }
-        return UITemplate.setLDLib2Bounds(tank, x, y, 10, 54);
+        return UITemplate.setBounds(tank, x, y, 10, 54);
     }
 
     protected @Nullable LDLib2FluidClickTarget getLDLib2FluidClickTarget(int fluidSlot) {

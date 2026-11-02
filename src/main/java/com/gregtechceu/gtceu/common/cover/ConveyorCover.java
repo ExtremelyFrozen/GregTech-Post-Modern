@@ -451,7 +451,7 @@ public class ConveyorCover extends CoverBehavior
     @Override
     public UI createUI(Player player, UICoverHolder holder) {
         UIElement root = new UIElement();
-        UITemplate.setLDLib2Bounds(root, 0, 0, 176, 219);
+        UITemplate.setBounds(root, 0, 0, 176, 219);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));
 
         root.addChild(createLDLib2Label());
@@ -473,7 +473,7 @@ public class ConveyorCover extends CoverBehavior
         root.addChild(filterHandler.createFilterSlotLDLib2UI(125, 108));
         root.addChild(filterHandler.createFilterConfigLDLib2UI(10, 72, 156, 60));
         buildAdditionalLDLib2UI(root, player, holder);
-        root.addChild(UITemplate.bindPlayerInventoryLDLib2(player.getInventory(), GuiTextures.SLOT, 7, 137, true));
+        root.addChild(UITemplate.bindPlayerInventory(player.getInventory(), GuiTextures.SLOT, 7, 137, true));
         return UI.of(root);
     }
 

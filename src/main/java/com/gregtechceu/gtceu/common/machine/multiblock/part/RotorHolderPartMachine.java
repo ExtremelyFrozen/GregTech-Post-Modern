@@ -266,11 +266,11 @@ public class RotorHolderPartMachine extends TieredPartMachine
 
     private UIElement createLDLib2RotorPage() {
         UIElement root = new UIElement();
-        UITemplate.setLDLib2Bounds(root, 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
+        UITemplate.setBounds(root, 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
 
         UIElement container = new UIElement();
-        UITemplate.setLDLib2Bounds(container, 4, 4, 26, 26);
-        UITemplate.setLDLib2BackgroundTexture(container, GuiTextures.BACKGROUND_INVERSE);
+        UITemplate.setBounds(container, 4, 4, 26, 26);
+        UITemplate.setBackgroundTexture(container, GuiTextures.BACKGROUND_INVERSE);
         root.addChild(container);
         root.addChild(createLDLib2RotorSlot());
         root.addChild(createLDLib2RotorLockedOverlay());
@@ -289,7 +289,7 @@ public class RotorHolderPartMachine extends TieredPartMachine
                 .setContentOverlay(GuiTextures.TURBINE_OVERLAY)
                 .setCanPut(stack -> !isRotorSlotBlocked())
                 .setCanTake(player -> !isRotorSlotBlocked());
-        return UITemplate.setLDLib2Bounds(slot, 8, 8, 18, 18);
+        return UITemplate.setBounds(slot, 8, 8, 18, 18);
     }
 
     private GTImageElement createLDLib2RotorLockedOverlay() {

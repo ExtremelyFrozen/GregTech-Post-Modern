@@ -100,7 +100,7 @@ public class FluidFilterCover extends CoverBehavior
     @Override
     public UI createUI(Player player, UICoverHolder holder) {
         UIElement root = new UIElement();
-        UITemplate.setLDLib2Bounds(root, 0, 0, 176, 167);
+        UITemplate.setBounds(root, 0, 0, 176, 167);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));
 
         root.addChild(createLDLib2Label());
@@ -109,7 +109,7 @@ public class FluidFilterCover extends CoverBehavior
         root.addChild(GTEnumSelectorElement.selectable(35, 45, 18, 18, ManualIOMode.VALUES, this::getAllowFlow,
                 mode -> setLDLib2ManualIO(player, holder, mode)));
         root.addChild(getFluidFilter().openLDLib2Configurator(62, 25));
-        root.addChild(UITemplate.bindPlayerInventoryLDLib2(player.getInventory(), GuiTextures.SLOT, 7, 85, true));
+        root.addChild(UITemplate.bindPlayerInventory(player.getInventory(), GuiTextures.SLOT, 7, 85, true));
         return UI.of(root);
     }
 

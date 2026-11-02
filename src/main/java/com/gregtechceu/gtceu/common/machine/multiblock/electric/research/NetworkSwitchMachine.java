@@ -341,7 +341,7 @@ public class NetworkSwitchMachine extends WorkableElectricMultiblockMachine
                 throw new IllegalStateException("Network Switch page holder no longer resolves its controller.");
             }
 
-            UIElement root = UITemplate.setLDLib2Bounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
+            UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
             root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
 
             GTScrollerViewElement screen = new GTScrollerViewElement(4, 4, 182, 117);

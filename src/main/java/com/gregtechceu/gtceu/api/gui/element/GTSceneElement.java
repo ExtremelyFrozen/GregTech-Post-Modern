@@ -20,6 +20,6 @@ public class GTSceneElement extends Scene {
     public GTSceneElement() {}
 
     public GTSceneElement(int x, int y, int width, int height) {
-        UITemplate.setLDLib2Bounds(this, x, y, width, height);
+        UITemplate.setBounds(this, x, y, width, height);
     }
 }

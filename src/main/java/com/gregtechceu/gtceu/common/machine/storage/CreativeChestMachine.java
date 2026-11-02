@@ -150,7 +150,7 @@ public class CreativeChestMachine extends QuantumChestMachine
     }
 
     private UIElement createLDLib2MainPage(Player player, MachineUIHolder holder) {
-        UIElement root = UITemplate.setLDLib2Bounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
+        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
         root.addChild(createLDLib2StoredItemSlot(player, holder));
         root.addChild(createLDLib2Label(7, 9, 162, 10, "gtpm.creative.chest.item"));
         root.addChild(new GTImageElement(7, 48, 154, 14, GuiTextures.DISPLAY));
@@ -167,7 +167,7 @@ public class CreativeChestMachine extends QuantumChestMachine
         GTPhantomItemSlotElement slot = new GTPhantomItemSlotElement(this::getStored,
                 stack -> setLDLib2StoredItem(player, holder, stack), () -> 1);
         slot.setBackgroundTexture(GuiTextures.SLOT);
-        UITemplate.setLDLib2Bounds(slot, 36, 6, 18, 18);
+        UITemplate.setBounds(slot, 36, 6, 18, 18);
         slot.addEventListener(UIEvents.MOUSE_DOWN, event -> {
             if (!player.level().isClientSide()) {
                 return;

@@ -102,7 +102,7 @@ public abstract class MEOutputWaitingListElement extends UIElement
         this.canSendAction = canSendAction;
 
         setId(MEOutputWaitingListReceiver.elementId(target.pos()));
-        UITemplate.setLDLib2Bounds(this, x, y, ROW_WIDTH, VIEWPORT_HEIGHT);
+        UITemplate.setBounds(this, x, y, ROW_WIDTH, VIEWPORT_HEIGHT);
         scroller = createScroller();
         addChild(scroller);
     }
@@ -242,7 +242,7 @@ public abstract class MEOutputWaitingListElement extends UIElement
 
     private VirtualScrollerView<MEOutputWaitingListEntry> createScroller() {
         VirtualScrollerView<MEOutputWaitingListEntry> view = new VirtualScrollerView<>();
-        UITemplate.setLDLib2Bounds(view, 0, 0, ROW_WIDTH, VIEWPORT_HEIGHT);
+        UITemplate.setBounds(view, 0, 0, ROW_WIDTH, VIEWPORT_HEIGHT);
         view.scrollerStyle(style -> style
                 .mode(ScrollerMode.VERTICAL)
                 .verticalScrollDisplay(ScrollDisplay.AUTO)

@@ -54,7 +54,7 @@ public final class PatternPreviewWidget extends UIElement {
         this.info = info;
         this.definition = info.getDefinition();
         this.expanded = expanded;
-        UITemplate.setLDLib2Bounds(this, 0, 0, WIDTH, HEIGHT);
+        UITemplate.setBounds(this, 0, 0, WIDTH, HEIGHT);
         getLayout().positionType(TaffyPosition.RELATIVE);
         getStyle().backgroundTexture(GuiTextures.BACKGROUND);
         setOverflowVisible(false);

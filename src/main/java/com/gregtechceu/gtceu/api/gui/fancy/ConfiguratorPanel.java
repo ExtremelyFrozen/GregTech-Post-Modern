@@ -45,7 +45,7 @@ public class ConfiguratorPanel extends UIElement {
         this.holder = holder;
         this.x = x;
         this.y = y;
-        UITemplate.setLDLib2Bounds(this, x, y, TAB_SIZE, 0);
+        UITemplate.setBounds(this, x, y, TAB_SIZE, 0);
         style(style -> style.overflowVisible(true));
     }
 
@@ -128,7 +128,7 @@ public class ConfiguratorPanel extends UIElement {
     }
 
     private void updatePanelBounds() {
-        UITemplate.setLDLib2Bounds(this, x, y, TAB_SIZE, getPanelContentHeight());
+        UITemplate.setBounds(this, x, y, TAB_SIZE, getPanelContentHeight());
     }
 
     /**
@@ -145,8 +145,8 @@ public class ConfiguratorPanel extends UIElement {
 
         private Tab(FancyConfigurator configurator, int index) {
             this.configurator = configurator;
-            UITemplate.setLDLib2Bounds(this, 0, index * (TAB_SIZE + TAB_GAP), TAB_SIZE, TAB_SIZE);
-            UITemplate.setLDLib2BackgroundTexture(this, texture);
+            UITemplate.setBounds(this, 0, index * (TAB_SIZE + TAB_GAP), TAB_SIZE, TAB_SIZE);
+            UITemplate.setBackgroundTexture(this, texture);
             style(style -> style.overflowVisible(true));
 
             this.button = new GTButtonElement(0, 0, TAB_SIZE, TAB_SIZE, IGuiTexture.EMPTY,
@@ -181,12 +181,12 @@ public class ConfiguratorPanel extends UIElement {
         private UIElement createView(FancyConfigurator configurator) {
             int width = configurator.getConfiguratorWidth() + border * 2;
             int height = configurator.getConfiguratorHeight() + TAB_SIZE + border;
-            UIElement createdView = UITemplate.setLDLib2Bounds(new UIElement(), 0, 0, width, height);
-            UITemplate.setLDLib2BackgroundTexture(createdView, texture);
+            UIElement createdView = UITemplate.setBounds(new UIElement(), 0, 0, width, height);
+            UITemplate.setBackgroundTexture(createdView, texture);
             createdView.style(style -> style.overflowVisible(true));
 
             UIElement configuratorBody = configurator.createConfigurator();
-            UITemplate.setLDLib2Bounds(configuratorBody, border, TAB_SIZE,
+            UITemplate.setBounds(configuratorBody, border, TAB_SIZE,
                     configurator.getConfiguratorWidth(),
                     configurator.getConfiguratorHeight());
             createdView.addChild(configuratorBody);
@@ -233,7 +233,7 @@ public class ConfiguratorPanel extends UIElement {
             int viewWidth = configurator.getConfiguratorWidth() + border * 2;
             int viewHeight = configurator.getConfiguratorHeight() + TAB_SIZE + border;
             int expandedX = -viewWidth + (tabs.size() > 1 ? -EXPANDED_GAP : TAB_SIZE);
-            UITemplate.setLDLib2Bounds(this, expandedX, 0, viewWidth, viewHeight);
+            UITemplate.setBounds(this, expandedX, 0, viewWidth, viewHeight);
             positionButton(viewWidth - TAB_SIZE);
             view.setVisible(true);
             view.setActive(true);
@@ -245,7 +245,7 @@ public class ConfiguratorPanel extends UIElement {
                 view.setVisible(false);
                 view.setActive(false);
             }
-            UITemplate.setLDLib2Bounds(this, x, y, TAB_SIZE, TAB_SIZE);
+            UITemplate.setBounds(this, x, y, TAB_SIZE, TAB_SIZE);
             positionButton(0);
             style(style -> style.zIndex(0));
         }
@@ -255,7 +255,7 @@ public class ConfiguratorPanel extends UIElement {
         }
 
         private void positionButton(int x) {
-            UITemplate.setLDLib2Bounds(button, x, 0, TAB_SIZE, TAB_SIZE);
+            UITemplate.setBounds(button, x, 0, TAB_SIZE, TAB_SIZE);
         }
     }
 }

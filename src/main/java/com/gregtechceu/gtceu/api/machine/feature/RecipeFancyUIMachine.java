@@ -77,7 +77,7 @@ public interface RecipeFancyUIMachine extends FancyUIMachine {
      * @param machine tiered recipe machine backing the elements.
      */
     default void bindRecipeElements(UIElement root, WorkableTieredMachine machine) {
-        machine.getRecipeType().getRecipeUI().bindLDLib2RecipeUI(root,
+        machine.getRecipeType().getRecipeUI().bindRecipeUI(root,
                 new RecipeHolder(machine.getRecipeLogic()::getProgressPercent,
                         createRecipeStorages(machine),
                         DataComponentMap.EMPTY,

@@ -276,17 +276,17 @@ public class BlockBreakerMachine extends TieredEnergyMachine
     //////////////////////////////////////
     @Override
     public UIElement createMainPage(FancyMachineUI shell) {
-        UIElement root = UITemplate.setLDLib2Bounds(new UIElement(), 0, 0,
+        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0,
                 getPageWidth(), getPageHeight());
 
-        UIElement energyGroup = UITemplate.setLDLib2Bounds(new UIElement(), ENERGY_GROUP_X, getLDLib2EnergyGroupY(),
+        UIElement energyGroup = UITemplate.setBounds(new UIElement(), ENERGY_GROUP_X, getLDLib2EnergyGroupY(),
                 getLDLib2EnergyGroupWidth(), getLDLib2EnergyGroupHeight());
         energyGroup.addChild(createLDLib2EnergyBar());
         energyGroup.addChild(createLDLib2ChargerSlot(getLDLib2ChargerSlotX(),
                 ENERGY_BAR_HEIGHT + ENERGY_GROUP_CHARGER_GAP));
         root.addChild(energyGroup);
 
-        UIElement template = UITemplate.setLDLib2Bounds(new UIElement(), getLDLib2CacheTemplateX(),
+        UIElement template = UITemplate.setBounds(new UIElement(), getLDLib2CacheTemplateX(),
                 getLDLib2CacheTemplateY(), getLDLib2CacheTemplateWidth(), getLDLib2CacheTemplateHeight());
         template.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
         int rowSize = getLDLib2CacheRowSize();
@@ -318,7 +318,7 @@ public class BlockBreakerMachine extends TieredEnergyMachine
                 .setCanTakeItems(true)
                 .setCanPutItems(false)
                 .setBackgroundTexture(GuiTextures.SLOT);
-        return UITemplate.setLDLib2Bounds(slot, x, y, SLOT_SIZE, SLOT_SIZE);
+        return UITemplate.setBounds(slot, x, y, SLOT_SIZE, SLOT_SIZE);
     }
 
     private GTItemSlotElement createLDLib2ChargerSlot(int x, int y) {
@@ -329,7 +329,7 @@ public class BlockBreakerMachine extends TieredEnergyMachine
                 .setOnAddedTooltips((slotElement, tooltips) -> tooltips.addAll(
                         LangHandler.getMultiLang("gtpm.gui.charger_slot.tooltip",
                                 GTValues.VNF[getTier()], GTValues.VNF[getTier()])));
-        return UITemplate.setLDLib2Bounds(slot, x, y, SLOT_SIZE, SLOT_SIZE);
+        return UITemplate.setBounds(slot, x, y, SLOT_SIZE, SLOT_SIZE);
     }
 
     private int getLDLib2EnergyGroupWidth() {

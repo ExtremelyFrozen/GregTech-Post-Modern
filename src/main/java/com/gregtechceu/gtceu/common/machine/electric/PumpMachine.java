@@ -558,7 +558,7 @@ public class PumpMachine extends TieredEnergyMachine implements MachineUIProvide
     @Override
     public UI createUI(Player player, MachineUIHolder holder) {
         UIElement root = new UIElement();
-        UITemplate.setLDLib2Bounds(root, 0, 0, 176, 166);
+        UITemplate.setBounds(root, 0, 0, 176, 166);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));
         root.addChild(new GTImageElement(7, 16, 81, 55, GuiTextures.DISPLAY));
         root.addChild(createLDLib2FluidAmountLabel());
@@ -566,7 +566,7 @@ public class PumpMachine extends TieredEnergyMachine implements MachineUIProvide
         root.addChild(createLDLib2TitleLabel());
         root.addChild(createLDLib2FluidSlot(player, holder));
         root.addChild(createLDLib2FluidAutoOutputToggle());
-        root.addChild(UITemplate.bindPlayerInventoryLDLib2(player.getInventory(), GuiTextures.SLOT, 7, 84, true));
+        root.addChild(UITemplate.bindPlayerInventory(player.getInventory(), GuiTextures.SLOT, 7, 84, true));
         return UI.of(root);
     }
 
@@ -637,7 +637,7 @@ public class PumpMachine extends TieredEnergyMachine implements MachineUIProvide
                 event.hasHandler = true;
             }
         });
-        return UITemplate.setLDLib2Bounds(fluidSlot, 90, 35, 18, 18);
+        return UITemplate.setBounds(fluidSlot, 90, 35, 18, 18);
     }
 
     private void requestLDLib2FluidAutoOutput(boolean enabled) {

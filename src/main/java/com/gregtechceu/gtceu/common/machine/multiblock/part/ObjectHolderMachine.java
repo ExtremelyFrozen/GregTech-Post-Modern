@@ -106,11 +106,11 @@ public class ObjectHolderMachine extends MultiblockPartMachine
     public UI createUI(Player player, MachineUIHolder holder) {
         requireMatchingLDLib2Holder(holder);
         UIElement root = new UIElement();
-        UITemplate.setLDLib2Bounds(root, 0, 0, UI_WIDTH, STANDALONE_UI_HEIGHT);
-        UITemplate.setLDLib2BackgroundTexture(root, GuiTextures.BACKGROUND);
+        UITemplate.setBounds(root, 0, 0, UI_WIDTH, STANDALONE_UI_HEIGHT);
+        UITemplate.setBackgroundTexture(root, GuiTextures.BACKGROUND);
         root.addChild(createLDLib2TitleLabel());
         addLDLib2ObjectHolderBody(root);
-        root.addChild(UITemplate.bindPlayerInventoryLDLib2(player.getInventory(), GuiTextures.SLOT, 7, 84, true));
+        root.addChild(UITemplate.bindPlayerInventory(player.getInventory(), GuiTextures.SLOT, 7, 84, true));
         return UI.of(root);
     }
 
@@ -122,7 +122,7 @@ public class ObjectHolderMachine extends MultiblockPartMachine
     }
 
     private UIElement createLDLib2ContextualBody() {
-        UIElement root = UITemplate.setLDLib2Bounds(new UIElement(), 0, 0, UI_WIDTH, CONTEXTUAL_PAGE_HEIGHT);
+        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, UI_WIDTH, CONTEXTUAL_PAGE_HEIGHT);
         addLDLib2ObjectHolderBody(root);
         return root;
     }
@@ -159,7 +159,7 @@ public class ObjectHolderMachine extends MultiblockPartMachine
                 .setContentOverlay(overlay)
                 .setCanPut(stack -> !isLocked())
                 .setCanTake(player -> !isLocked());
-        UITemplate.setLDLib2Bounds(slot, x, y, 18, 18);
+        UITemplate.setBounds(slot, x, y, 18, 18);
         return slot;
     }
 

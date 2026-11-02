@@ -53,7 +53,7 @@ public final class MEFluidOutputWaitingListElement extends MEOutputWaitingListEl
                     entry.key());
         }
 
-        UIElement row = UITemplate.setLDLib2Bounds(new UIElement(), 0, 0, ROW_WIDTH, ROW_HEIGHT);
+        UIElement row = UITemplate.setBounds(new UIElement(), 0, 0, ROW_WIDTH, ROW_HEIGHT);
         GTImageElement amountBackground = new GTImageElement(18, 0, 140, ROW_HEIGHT,
                 GuiTextures.NUMBER_BACKGROUND);
         amountBackground.setAllowHitTest(false);
@@ -69,7 +69,7 @@ public final class MEFluidOutputWaitingListElement extends MEOutputWaitingListEl
                 .setBackgroundTexture(GuiTextures.FLUID_SLOT)
                 .setOnAddedTooltips((slot, tooltips) -> tooltips.add(
                         Component.literal(String.format("%,d mB", entry.amount()))));
-        row.addChild(UITemplate.setLDLib2Bounds(fluid, 0, 0, 18, ROW_HEIGHT));
+        row.addChild(UITemplate.setBounds(fluid, 0, 0, 18, ROW_HEIGHT));
 
         GTLabelElement amount = new GTLabelElement(21, 0, 134, ROW_HEIGHT,
                 Component.literal(String.format("x%,d", entry.amount())))

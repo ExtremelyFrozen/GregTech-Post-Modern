@@ -2,7 +2,7 @@ package com.gregtechceu.gtceu.integration.emi.recipe;
 
 import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
 import com.gregtechceu.gtceu.integration.xei.GTXEIHelper;
-import com.gregtechceu.gtceu.integration.xei.GTXEIIngredientRoleLDLib2Adapter;
+import com.gregtechceu.gtceu.integration.xei.GTXEIIngredientRoleAdapter;
 
 import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerMenu;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ItemSlot;
@@ -32,13 +32,13 @@ public class GTEmiRecipeHandler implements StandardRecipeHandler<ModularUIContai
 
     @Override
     public boolean supportsRecipe(EmiRecipe recipe) {
-        return recipe instanceof GTLDLib2EmiRecipe;
+        return recipe instanceof GTEmiRecipe;
     }
 
     private boolean isRecipeInput(ModularUIContainerMenu handler, Slot slot) {
         GTItemSlotElement itemSlot = getGTItemSlot(handler, slot);
         return itemSlot != null &&
-                GTXEIHelper.isInput(GTXEIIngredientRoleLDLib2Adapter.fromLDLib2(itemSlot.getIngredientIO()));
+                GTXEIHelper.isInput(GTXEIIngredientRoleAdapter.fromIngredientIO(itemSlot.getIngredientIO()));
     }
 
     private boolean isPlayerSlot(ModularUIContainerMenu handler, Slot slot) {

@@ -48,7 +48,7 @@ public class MachineModeConfigurator implements FancyUIProvider {
     @Override
     public UIElement createMainPage(FancyMachineUI shell) {
         UIElement root = new UIElement();
-        UITemplate.setLDLib2Bounds(root, 0, 0, getPageWidth(), getPageHeight());
+        UITemplate.setBounds(root, 0, 0, getPageWidth(), getPageHeight());
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
 
         for (int index = 0; index < machine.getRecipeTypes().length; index++) {

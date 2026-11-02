@@ -120,10 +120,10 @@ public class DataAccessHatchMachine extends TieredPartMachine
         int rootHeight = 18 + 18 * rowSize + 94;
 
         UIElement root = new UIElement();
-        UITemplate.setLDLib2Bounds(root, 0, 0, rootWidth, rootHeight);
+        UITemplate.setBounds(root, 0, 0, rootWidth, rootHeight);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));
         root.addChild(createLDLib2TitleLabel(rootWidth));
-        root.addChild(UITemplate.bindPlayerInventoryLDLib2(player.getInventory(), GuiTextures.SLOT, 7,
+        root.addChild(UITemplate.bindPlayerInventory(player.getInventory(), GuiTextures.SLOT, 7,
                 18 + 18 * rowSize + 12, true));
 
         for (int y = 0; y < rowSize; y++) {
@@ -156,7 +156,7 @@ public class DataAccessHatchMachine extends TieredPartMachine
     private UIElement createLDLib2ContextualMainElement() {
         int rowSize = (int) Math.sqrt(getInventorySize());
         int pageSize = rowSize * 18;
-        UIElement root = UITemplate.setLDLib2Bounds(new UIElement(), 0, 0, pageSize, pageSize);
+        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, pageSize, pageSize);
         for (int y = 0; y < rowSize; y++) {
             for (int x = 0; x < rowSize; x++) {
                 int index = y * rowSize + x;
@@ -182,7 +182,7 @@ public class DataAccessHatchMachine extends TieredPartMachine
                 .setBackgroundTexture(GuiTextures.SLOT)
                 .setCanPutItems(true)
                 .setCanTakeItems(true);
-        UITemplate.setLDLib2Bounds(slot, x, y, 18, 18);
+        UITemplate.setBounds(slot, x, y, 18, 18);
         return slot;
     }
 

@@ -21,7 +21,7 @@ import it.unimi.dsi.fastutil.objects.Object2IntOpenCustomHashMap;
 import java.util.Collections;
 import java.util.function.Consumer;
 
-import static com.gregtechceu.gtceu.api.gui.UITemplate.setLDLib2Bounds;
+import static com.gregtechceu.gtceu.api.gui.UITemplate.setBounds;
 
 public class SmartItemFilter implements ItemFilter {
 
@@ -58,7 +58,7 @@ public class SmartItemFilter implements ItemFilter {
     @Override
     public UIElement openLDLib2Configurator(int x, int y) {
         UIElement group = new UIElement();
-        setLDLib2Bounds(group, x, y, 18 * 3 + 25, 18 * 3);
+        setBounds(group, x, y, 18 * 3 + 25, 18 * 3);
         group.addChild(createLDLib2ModeButton(16, 8));
         return group;
     }
@@ -71,7 +71,7 @@ public class SmartItemFilter implements ItemFilter {
             setFilterMode(nextMode());
             updateLDLib2ModeButtonTexture(button);
         });
-        setLDLib2Bounds(button, x, y, 32, 32);
+        setBounds(button, x, y, 32, 32);
         return button;
     }
 

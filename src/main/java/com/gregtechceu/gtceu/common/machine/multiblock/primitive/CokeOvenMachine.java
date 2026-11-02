@@ -46,14 +46,14 @@ public class CokeOvenMachine extends PrimitiveWorkableMachine implements Machine
     @Override
     public UI createUI(Player player, MachineUIHolder holder) {
         UIElement root = new UIElement();
-        UITemplate.setLDLib2Bounds(root, 0, 0, 176, 166);
+        UITemplate.setBounds(root, 0, 0, 176, 166);
         root.style(style -> style.backgroundTexture(GuiTextures.PRIMITIVE_BACKGROUND));
         root.addChild(createLDLib2TitleLabel());
         root.addChild(createLDLib2InputSlot());
         root.addChild(createLDLib2ProgressBar());
         root.addChild(createLDLib2OutputSlot());
         root.addChild(createLDLib2FluidTank());
-        root.addChild(UITemplate.bindPlayerInventoryLDLib2(player.getInventory(), GuiTextures.PRIMITIVE_SLOT, 7, 84,
+        root.addChild(UITemplate.bindPlayerInventory(player.getInventory(), GuiTextures.PRIMITIVE_SLOT, 7, 84,
                 true));
         return UI.of(root);
     }
@@ -75,7 +75,7 @@ public class CokeOvenMachine extends PrimitiveWorkableMachine implements Machine
                         GuiTextures.PRIMITIVE_FURNACE_OVERLAY))
                 .setCanTakeItems(true)
                 .setCanPutItems(true);
-        return UITemplate.setLDLib2Bounds(slot, 52, 30, 18, 18);
+        return UITemplate.setBounds(slot, 52, 30, 18, 18);
     }
 
     private GTProgressBarElement createLDLib2ProgressBar() {
@@ -83,7 +83,7 @@ public class CokeOvenMachine extends PrimitiveWorkableMachine implements Machine
                 .setProgressTexture(
                         GuiTextures.PRIMITIVE_BLAST_FURNACE_PROGRESS_BAR.getSubTexture(0, 0, 1, 0.5),
                         GuiTextures.PRIMITIVE_BLAST_FURNACE_PROGRESS_BAR.getSubTexture(0, 0.5, 1, 0.5));
-        return UITemplate.setLDLib2Bounds(progress, 76, 32, 20, 15);
+        return UITemplate.setBounds(progress, 76, 32, 20, 15);
     }
 
     private GTItemSlotElement createLDLib2OutputSlot() {
@@ -92,7 +92,7 @@ public class CokeOvenMachine extends PrimitiveWorkableMachine implements Machine
                         GuiTextures.PRIMITIVE_FURNACE_OVERLAY))
                 .setCanTakeItems(true)
                 .setCanPutItems(false);
-        return UITemplate.setLDLib2Bounds(slot, 103, 30, 18, 18);
+        return UITemplate.setBounds(slot, 103, 30, 18, 18);
     }
 
     private GTFluidSlotElement createLDLib2FluidTank() {
@@ -104,7 +104,7 @@ public class CokeOvenMachine extends PrimitiveWorkableMachine implements Machine
                 .setAllowClickDrained(false)
                 .setOnAddedTooltips(this::addLDLib2FluidAmountTooltip)
                 .setContentOverlay(GuiTextures.PRIMITIVE_LARGE_FLUID_TANK_OVERLAY);
-        return UITemplate.setLDLib2Bounds(tank, 134, 13, 20, 58);
+        return UITemplate.setBounds(tank, 134, 13, 20, 58);
     }
 
     private void addLDLib2FluidAmountTooltip(GTFluidSlotElement tank, List<Component> tooltips) {

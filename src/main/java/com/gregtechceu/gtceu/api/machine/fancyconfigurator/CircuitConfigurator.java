@@ -114,7 +114,7 @@ public class CircuitConfigurator implements FancyConfigurator, FancyMouseWheelAc
 
     @Override
     public UIElement createConfigurator() {
-        UIElement root = UITemplate.setLDLib2Bounds(new UIElement(), 0, 0, WIDTH, HEIGHT);
+        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, WIDTH, HEIGHT);
 
         GTLabelElement label = new GTLabelElement(9, 8, 166, 10,
                 "Programmed Circuit Configuration", false);
@@ -131,7 +131,7 @@ public class CircuitConfigurator implements FancyConfigurator, FancyMouseWheelAc
         selectedSlot.setBackgroundTexture(GuiTextures.group(GuiTextures.SLOT, GuiTextures.INT_CIRCUIT_OVERLAY))
                 .setCanPlace(stack -> canModifySlot && openingValid.getAsBoolean())
                 .setCanTake(player -> canModifySlot && openingValid.getAsBoolean());
-        UITemplate.setLDLib2Bounds(selectedSlot, selectedSlotX, 20, SLOT_SIZE, SLOT_SIZE);
+        UITemplate.setBounds(selectedSlot, selectedSlotX, 20, SLOT_SIZE, SLOT_SIZE);
         root.addChild(selectedSlot);
 
         if (ConfigHolder.INSTANCE.machines.ghostCircuit) {

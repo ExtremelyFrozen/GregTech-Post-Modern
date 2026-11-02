@@ -40,7 +40,7 @@ public final class AEFluidConfigAmountEditorElement extends UIElement {
         this.selectedSlotSupplier = selectedSlotSupplier;
         this.amountProjection = amountProjection;
         this.canSendAction = canSendAction;
-        UITemplate.setLDLib2Bounds(this, 35, 29, 80, 30);
+        UITemplate.setBounds(this, 35, 29, 80, 30);
 
         addChild(new GTImageElement(0, 0, 80, 30, GuiTextures.NUMBER_BACKGROUND));
         addChild(new GTLabelElement(3, 2, 74, 10, Component.literal("Amount")));

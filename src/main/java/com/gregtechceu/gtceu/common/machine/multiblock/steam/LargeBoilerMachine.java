@@ -251,10 +251,10 @@ public class LargeBoilerMachine extends WorkableMultiblockMachine
     @Override
     public UI createUI(Player player, MachineUIHolder holder) {
         UIElement root = new UIElement();
-        UITemplate.setLDLib2Bounds(root, 0, 0, 176, 216);
+        UITemplate.setBounds(root, 0, 0, 176, 216);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));
         root.addChild(createDisplayScreen(player, holder));
-        root.addChild(UITemplate.bindPlayerInventoryLDLib2(player.getInventory(), GuiTextures.SLOT, 7, 134, true));
+        root.addChild(UITemplate.bindPlayerInventory(player.getInventory(), GuiTextures.SLOT, 7, 134, true));
         return UI.of(root);
     }
 

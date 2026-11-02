@@ -98,7 +98,7 @@ public class ProspectorScannerBehavior implements IItemUIFactory, IInteractionIt
     public UI createLDLib2UI(HeldItemUIHolder holder, Player entityPlayer) {
         var mode = getMode(holder.getHeld());
         UIElement root = new UIElement();
-        UITemplate.setLDLib2Bounds(root, 0, 0, 332, 200);
+        UITemplate.setBounds(root, 0, 0, 332, 200);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));
 
         var map = new ProspectingMapElement(4, 4, 332 - 8, 200 - 8, radius, mode, 1, holder);

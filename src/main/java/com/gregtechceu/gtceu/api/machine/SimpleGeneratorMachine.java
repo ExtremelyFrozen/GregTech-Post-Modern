@@ -137,7 +137,7 @@ public class SimpleGeneratorMachine extends WorkableTieredMachine
     public static BiFunction<ResourceLocation, GTRecipeType, EditableMachineUI> EDITABLE_UI_CREATOR = Util
             .memoize((path, recipeType) -> new EditableMachineUI("generator", path,
                     () -> MachineUIXmlTemplates.createGeneratorMachineXml(
-                            recipeType.getRecipeUI().createLDLib2TemplateDocument()),
+                            recipeType.getRecipeUI().createTemplateDocument()),
                     (root, machine) -> {
                         if (!(machine instanceof SimpleGeneratorMachine generatorMachine)) {
                             throw new IllegalArgumentException("Generator machine XML cannot bind " +

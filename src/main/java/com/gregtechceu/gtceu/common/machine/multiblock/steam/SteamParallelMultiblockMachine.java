@@ -180,11 +180,11 @@ public class SteamParallelMultiblockMachine extends WorkableMultiblockMachine im
     @Override
     public UI createUI(Player player, MachineUIHolder holder) {
         UIElement root = new UIElement();
-        UITemplate.setLDLib2Bounds(root, 0, 0, 176, 216);
+        UITemplate.setBounds(root, 0, 0, 176, 216);
         root.style(style -> style.backgroundTexture(
                 GuiTextures.BACKGROUND_STEAM.get(ConfigHolder.INSTANCE.machines.steelSteamMultiblocks)));
         root.addChild(createDisplayScreen());
-        root.addChild(UITemplate.bindPlayerInventoryLDLib2(player.getInventory(),
+        root.addChild(UITemplate.bindPlayerInventory(player.getInventory(),
                 GuiTextures.SLOT_STEAM.get(ConfigHolder.INSTANCE.machines.steelSteamMultiblocks), 7, 134, true));
         return UI.of(root);
     }

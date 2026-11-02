@@ -49,12 +49,12 @@ public class SteamItemBusPartMachine extends ItemBusPartMachine
         boolean steelSteamMultiblocks = ConfigHolder.INSTANCE.machines.steelSteamMultiblocks;
 
         UIElement root = new UIElement();
-        UITemplate.setLDLib2Bounds(root, 0, 0, rootWidth, rootHeight);
-        UITemplate.setLDLib2BackgroundTexture(root,
+        UITemplate.setBounds(root, 0, 0, rootWidth, rootHeight);
+        UITemplate.setBackgroundTexture(root,
                 GuiTextures.BACKGROUND_STEAM.get(steelSteamMultiblocks));
         root.addChild(createLDLib2TitleLabel(rootWidth));
         root.addChild(createLDLib2WorkingEnabledToggle(7 + xOffset, 18 + 18 * rowSize));
-        root.addChild(UITemplate.bindPlayerInventoryLDLib2(player.getInventory(),
+        root.addChild(UITemplate.bindPlayerInventory(player.getInventory(),
                 GuiTextures.SLOT_STEAM.get(steelSteamMultiblocks),
                 7 + xOffset, 18 + 18 * rowSize + 24, true));
 
@@ -101,7 +101,7 @@ public class SteamItemBusPartMachine extends ItemBusPartMachine
                 .setBackgroundTexture(GuiTextures.SLOT_STEAM.get(steelSteamMultiblocks))
                 .setCanTakeItems(true)
                 .setCanPutItems(io.support(IO.IN));
-        UITemplate.setLDLib2Bounds(slot, x, y, 18, 18);
+        UITemplate.setBounds(slot, x, y, 18, 18);
         return slot;
     }
 

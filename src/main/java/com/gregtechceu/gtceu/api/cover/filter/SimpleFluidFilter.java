@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 
-import static com.gregtechceu.gtceu.api.gui.UITemplate.setLDLib2Bounds;
+import static com.gregtechceu.gtceu.api.gui.UITemplate.setBounds;
 
 public class SimpleFluidFilter implements FluidFilter {
 
@@ -87,7 +87,7 @@ public class SimpleFluidFilter implements FluidFilter {
     @Override
     public UIElement openLDLib2Configurator(int x, int y) {
         UIElement group = new UIElement();
-        setLDLib2Bounds(group, x, y, 18 * 3 + 25, 18 * 3);
+        setBounds(group, x, y, 18 * 3 + 25, 18 * 3);
         ldLib2FluidSlots.clear();
         for (int i = 0; i < 3; i++) {
             for (int j = 0; j < 3; j++) {
@@ -108,7 +108,7 @@ public class SimpleFluidFilter implements FluidFilter {
                 fluidStack -> syncLDLib2MatchSlot(index, fluidStack),
                 () -> maxStackSize);
         ldLib2FluidSlots.add(slot);
-        setLDLib2Bounds(slot, x, y, 18, 18);
+        setBounds(slot, x, y, 18, 18);
         return slot;
     }
 

@@ -236,7 +236,7 @@ public class MachineControllerCover extends CoverBehavior
             setControllerMode(null);
         }
         UIElement root = new UIElement();
-        UITemplate.setLDLib2Bounds(root, 0, 0, 176, 177);
+        UITemplate.setBounds(root, 0, 0, 176, 177);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));
 
         root.addChild(createLDLib2Label(10, 5, 156, 10, "cover.machine_controller.title"));
@@ -264,9 +264,9 @@ public class MachineControllerCover extends CoverBehavior
                 .setBackgroundTexture(GuiTextures.SLOT)
                 .setCanTakeItems(false)
                 .setCanPutItems(false);
-        root.addChild(UITemplate.setLDLib2Bounds(sideCoverSlotElement, 147, 46, 18, 18));
+        root.addChild(UITemplate.setBounds(sideCoverSlotElement, 147, 46, 18, 18));
 
-        root.addChild(UITemplate.bindPlayerInventoryLDLib2(player.getInventory(), GuiTextures.SLOT, 7, 95, true));
+        root.addChild(UITemplate.bindPlayerInventory(player.getInventory(), GuiTextures.SLOT, 7, 95, true));
         updateUI();
 
         return UI.of(root);

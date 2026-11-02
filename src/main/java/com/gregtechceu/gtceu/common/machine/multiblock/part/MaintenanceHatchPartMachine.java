@@ -350,7 +350,7 @@ public class MaintenanceHatchPartMachine extends TieredPartMachine
         int rootWidth = isConfigurable ? 150 : 8 + 18;
         int rootHeight = isConfigurable ? 70 : 8 + 20 + 18;
         UIElement root = new UIElement();
-        UITemplate.setLDLib2Bounds(root, 0, 0, rootWidth, rootHeight);
+        UITemplate.setBounds(root, 0, 0, rootWidth, rootHeight);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
         if (isConfigurable) {
             root.addChild(new GTImageElement(4, 4, 150 - 8, 70 - 8, GuiTextures.DISPLAY));
@@ -391,7 +391,7 @@ public class MaintenanceHatchPartMachine extends TieredPartMachine
                 .setBackgroundTexture(GuiTextures.group(GuiTextures.SLOT, GuiTextures.DUCT_TAPE_OVERLAY))
                 .setOnAddedTooltips((slotElement, tooltips) -> tooltips.add(Component.translatable(
                         "gtpm.machine.maintenance_hatch_tape_slot.tooltip")));
-        return UITemplate.setLDLib2Bounds(slot, rootWidth - 4 - 18, 4, 18, 18);
+        return UITemplate.setBounds(slot, rootWidth - 4 - 18, 4, 18, 18);
     }
 
     private GTButtonElement createLDLib2MaintenanceButton(Player player, MachineUIHolder holder, int rootWidth) {

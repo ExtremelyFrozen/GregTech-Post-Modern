@@ -234,9 +234,9 @@ public class DualHatchPartMachine extends ItemBusPartMachine
                                       BiConsumer<MachineUIHolder, SyncActionData> actionSender,
                                       Predicate<UIEvent> actionGuard, Predicate<UIEvent> shiftDown) {
         int tanks = (int) Math.sqrt(getInventorySize());
-        UIElement root = UITemplate.setLDLib2Bounds(new UIElement(), 0, 0,
+        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0,
                 getLDLib2PageWidth(), getLDLib2PageHeight());
-        UIElement container = UITemplate.setLDLib2Bounds(new UIElement(), 4, 4,
+        UIElement container = UITemplate.setBounds(new UIElement(), 4, 4,
                 18 * (tanks + 1) + 8, 18 * tanks + 8);
         container.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
 
@@ -263,7 +263,7 @@ public class DualHatchPartMachine extends ItemBusPartMachine
                 .setCanTakeItems(true)
                 .setBackgroundTexture(GuiTextures.SLOT)
                 .setIngredientIO(io.support(IO.IN) ? GTXEIHelper.input() : GTXEIHelper.output());
-        return UITemplate.setLDLib2Bounds(slotElement, x, y, 18, 18);
+        return UITemplate.setBounds(slotElement, x, y, 18, 18);
     }
 
     private GTFluidSlotElement createLDLib2FluidSlot(MachineUIHolder holder, int tankIndex, int x, int y,
@@ -286,7 +286,7 @@ public class DualHatchPartMachine extends ItemBusPartMachine
                 event.hasHandler = true;
             }
         });
-        return UITemplate.setLDLib2Bounds(fluidSlot, x, y, 18, 18);
+        return UITemplate.setBounds(fluidSlot, x, y, 18, 18);
     }
 
     @Override

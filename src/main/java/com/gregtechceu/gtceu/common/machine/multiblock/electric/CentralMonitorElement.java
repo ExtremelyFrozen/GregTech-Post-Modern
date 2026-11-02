@@ -154,13 +154,13 @@ final class CentralMonitorElement extends UIElement implements FancyUIProvider {
         }
         partPages = List.copyOf(pages);
 
-        UITemplate.setLDLib2Bounds(this, 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
+        UITemplate.setBounds(this, 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
         style(style -> style
                 .backgroundTexture(GuiTextures.BACKGROUND_INVERSE)
                 .overflowVisible(true));
 
-        overviewElement = UITemplate.setLDLib2Bounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
-        groupElement = UITemplate.setLDLib2Bounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
+        overviewElement = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
+        groupElement = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
         groupElement.setVisible(false);
         groupElement.setActive(false);
 
@@ -181,8 +181,8 @@ final class CentralMonitorElement extends UIElement implements FancyUIProvider {
                 .mode(ScrollerMode.BOTH)
                 .verticalScrollDisplay(ScrollDisplay.AUTO)
                 .horizontalScrollDisplay(ScrollDisplay.AUTO));
-        bindingHost = UITemplate.setLDLib2Bounds(new UIElement(), 88, 34, 108, 58);
-        moduleConfigurationHost = UITemplate.setLDLib2Bounds(new UIElement(), 86, 98, 248, 106);
+        bindingHost = UITemplate.setBounds(new UIElement(), 88, 34, 108, 58);
+        moduleConfigurationHost = UITemplate.setBounds(new UIElement(), 86, 98, 248, 106);
         groupTitle = new GTLabelElement(112, 10, 216, 12, Component.empty());
         groupTitle.textStyle(style -> style
                 .textColor(0x404040)
@@ -224,7 +224,7 @@ final class CentralMonitorElement extends UIElement implements FancyUIProvider {
                 .bindingSelectable(this::isBindingResolved)
                 .selectionListener(this::applyAcknowledgedSelection)
                 .build();
-        UITemplate.setLDLib2Bounds(sessionElement, 0, 0, 0, 0);
+        UITemplate.setBounds(sessionElement, 0, 0, 0, 0);
         sessionElement.setAllowHitTest(false);
         this.pageRequester = pageRequester == null ? new GroupPageSelectionRequester() {
 
@@ -422,7 +422,7 @@ final class CentralMonitorElement extends UIElement implements FancyUIProvider {
     private List<GTDynamicItemSlotElement> appendBinding(DynamicItemSlotBinding binding) {
         DynamicItemHandlerRoute route = new DynamicItemHandlerRoute(
                 binding.targetId(), binding.targetIncarnation(), binding.slotCount(), this::resolveGroupItemHandler);
-        UIElement bindingElement = UITemplate.setLDLib2Bounds(new UIElement(), 0, 0, 108, 58);
+        UIElement bindingElement = UITemplate.setBounds(new UIElement(), 0, 0, 108, 58);
         bindingElement.setVisible(false);
         bindingElement.setActive(false);
 
@@ -442,7 +442,7 @@ final class CentralMonitorElement extends UIElement implements FancyUIProvider {
                 x = 82;
                 y = 9;
             }
-            UITemplate.setLDLib2Bounds(slot, x, y, 18, 18);
+            UITemplate.setBounds(slot, x, y, 18, 18);
             slot.setBackgroundTexture(GuiTextures.SLOT);
             bindingElement.addChild(slot);
             slots.add(slot);

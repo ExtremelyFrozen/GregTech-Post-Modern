@@ -275,7 +275,7 @@ public class CreativeEnergyContainerMachine extends TieredMachine
     @Override
     public UI createUI(Player player, MachineUIHolder holder) {
         UIElement root = new UIElement();
-        UITemplate.setLDLib2Bounds(root, 0, 0, 176, 166);
+        UITemplate.setBounds(root, 0, 0, 176, 166);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));
         root.addChild(createLDLib2TierSelector(player, holder));
         root.addChild(createLDLib2Label(7, 32, 162, 10, Component.translatable("gtpm.creative.energy.voltage")));

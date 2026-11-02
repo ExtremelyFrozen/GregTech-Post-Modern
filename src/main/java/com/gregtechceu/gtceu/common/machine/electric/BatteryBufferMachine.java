@@ -129,15 +129,15 @@ public class BatteryBufferMachine extends TieredEnergyMachine
 
     @Override
     public UIElement createMainPage(FancyMachineUI shell) {
-        UIElement root = UITemplate.setLDLib2Bounds(new UIElement(), 0, 0,
+        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0,
                 getPageWidth(), getPageHeight());
 
         UIElement energyBar = createLDLib2EnergyBar();
-        UITemplate.setLDLib2Bounds(energyBar, ENERGY_BAR_X,
+        UITemplate.setBounds(energyBar, ENERGY_BAR_X,
                 (getPageHeight() - ENERGY_BAR_HEIGHT) / 2, ENERGY_BAR_WIDTH, ENERGY_BAR_HEIGHT);
         root.addChild(energyBar);
 
-        UIElement template = UITemplate.setLDLib2Bounds(new UIElement(),
+        UIElement template = UITemplate.setBounds(new UIElement(),
                 getLDLib2BatteryTemplateX(), getLDLib2BatteryTemplateY(),
                 getLDLib2BatteryTemplateWidth(), getLDLib2BatteryTemplateHeight());
         template.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
@@ -170,7 +170,7 @@ public class BatteryBufferMachine extends TieredEnergyMachine
                 .setCanTakeItems(true)
                 .setBackgroundTexture(GuiTextures.group(GuiTextures.SLOT,
                         chargerMode ? GuiTextures.CHARGER_OVERLAY : GuiTextures.BATTERY_OVERLAY));
-        return UITemplate.setLDLib2Bounds(slot, x, y, SLOT_SIZE, SLOT_SIZE);
+        return UITemplate.setBounds(slot, x, y, SLOT_SIZE, SLOT_SIZE);
     }
 
     private int getLDLib2BatteryTemplateX() {

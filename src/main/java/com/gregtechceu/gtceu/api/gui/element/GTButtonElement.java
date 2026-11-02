@@ -4,7 +4,6 @@ import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Button;
-import com.lowdragmc.lowdraglib2.gui.ui.elements.Button.ButtonStyle;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.TextElement.TextStyle;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEventListener;
@@ -37,14 +36,14 @@ public class GTButtonElement extends Button {
     public GTButtonElement() {}
 
     public GTButtonElement(int x, int y, int width, int height) {
-        UITemplate.setLDLib2Bounds(this, x, y, width, height);
+        UITemplate.setBounds(this, x, y, width, height);
     }
 
     public GTButtonElement(int x, int y, int width, int height, IGuiTexture texture,
                            Consumer<UIEvent> clickHandler) {
         setButtonTexture(texture);
         setOnClick(clickHandler::accept);
-        UITemplate.setLDLib2Bounds(this, x, y, width, height);
+        UITemplate.setBounds(this, x, y, width, height);
     }
 
     public GTButtonElement setButtonTexture(IGuiTexture texture) {

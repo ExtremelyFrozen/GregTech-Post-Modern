@@ -43,12 +43,12 @@ public class FancyTitleBar extends UIElement {
 
     public FancyTitleBar(int parentWidth, Consumer<UIEvent> onBackClicked,
                          Consumer<UIEvent> onMenuClicked) {
-        UITemplate.setLDLib2Bounds(this, HORIZONTAL_MARGIN, -HEIGHT, parentWidth, HEIGHT);
+        UITemplate.setBounds(this, HORIZONTAL_MARGIN, -HEIGHT, parentWidth, HEIGHT);
         style(style -> style.overflowVisible(true));
         this.width = parentWidth - 2 * HORIZONTAL_MARGIN;
 
-        this.buttonGroup = UITemplate.setLDLib2Bounds(new UIElement(), 0, BORDER_SIZE, width, innerHeight);
-        UITemplate.setLDLib2BackgroundTexture(buttonGroup, GuiTextures.TITLE_BAR_BACKGROUND);
+        this.buttonGroup = UITemplate.setBounds(new UIElement(), 0, BORDER_SIZE, width, innerHeight);
+        UITemplate.setBackgroundTexture(buttonGroup, GuiTextures.TITLE_BAR_BACKGROUND);
         addChild(buttonGroup);
 
         this.backButton = createTextButton(0, onBackClicked, Component.literal("<"),
@@ -57,8 +57,8 @@ public class FancyTitleBar extends UIElement {
                 Component.translatable("gtpm.gui.title_bar.page_switcher"));
         buttonGroup.addChildren(backButton, menuButton);
 
-        this.mainSection = UITemplate.setLDLib2Bounds(new UIElement(), BUTTON_WIDTH, 0, width, HEIGHT);
-        UITemplate.setLDLib2BackgroundTexture(mainSection, GuiTextures.TITLE_BAR_BACKGROUND);
+        this.mainSection = UITemplate.setBounds(new UIElement(), BUTTON_WIDTH, 0, width, HEIGHT);
+        UITemplate.setBackgroundTexture(mainSection, GuiTextures.TITLE_BAR_BACKGROUND);
         addChild(mainSection);
 
         this.tabIcon = new GTImageElement(BORDER_SIZE + 1, BORDER_SIZE + 1,
@@ -93,7 +93,7 @@ public class FancyTitleBar extends UIElement {
 
     public void resize(int parentWidth) {
         this.width = parentWidth - 2 * HORIZONTAL_MARGIN;
-        UITemplate.setLDLib2Bounds(this, HORIZONTAL_MARGIN, -HEIGHT, parentWidth, HEIGHT);
+        UITemplate.setBounds(this, HORIZONTAL_MARGIN, -HEIGHT, parentWidth, HEIGHT);
 
         int hiddenButtons = 2;
         if (showBackButton) {
@@ -104,14 +104,14 @@ public class FancyTitleBar extends UIElement {
         }
 
         int buttonGroupWidth = this.width - BUTTON_WIDTH * hiddenButtons;
-        UITemplate.setLDLib2Bounds(buttonGroup, showBackButton ? 0 : BUTTON_WIDTH, BORDER_SIZE,
+        UITemplate.setBounds(buttonGroup, showBackButton ? 0 : BUTTON_WIDTH, BORDER_SIZE,
                 buttonGroupWidth, innerHeight);
-        UITemplate.setLDLib2Bounds(menuButton, buttonGroupWidth - BUTTON_WIDTH, 0, BUTTON_WIDTH, innerHeight);
+        UITemplate.setBounds(menuButton, buttonGroupWidth - BUTTON_WIDTH, 0, BUTTON_WIDTH, innerHeight);
 
         int mainSectionWidth = this.width - BUTTON_WIDTH * 2;
         int titleWidth = mainSectionWidth - 2 * BORDER_SIZE - innerHeight;
-        UITemplate.setLDLib2Bounds(mainSection, BUTTON_WIDTH, 0, mainSectionWidth, HEIGHT);
-        UITemplate.setLDLib2Bounds(tabTitle, BORDER_SIZE + innerHeight, BORDER_SIZE, titleWidth,
+        UITemplate.setBounds(mainSection, BUTTON_WIDTH, 0, mainSectionWidth, HEIGHT);
+        UITemplate.setBounds(tabTitle, BORDER_SIZE + innerHeight, BORDER_SIZE, titleWidth,
                 HEIGHT - BORDER_SIZE);
         titleText.setWidth(titleWidth);
     }

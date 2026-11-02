@@ -154,7 +154,7 @@ public class EnderFluidLinkCover extends AbstractEnderLinkCover<VirtualTank> {
                 .setAllowClickFilled(false)
                 .setAllowClickDrained(false)
                 .setBackgroundTexture(GuiTextures.FLUID_SLOT);
-        return UITemplate.setLDLib2Bounds(tank, x, y, width, height);
+        return UITemplate.setBounds(tank, x, y, width, height);
     }
 
     @NotNull

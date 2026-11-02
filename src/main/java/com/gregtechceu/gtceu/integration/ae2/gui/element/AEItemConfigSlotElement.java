@@ -80,12 +80,12 @@ public final class AEItemConfigSlotElement extends UIElement {
         this.amountProjection = amountProjection;
         this.selectSlot = selectSlot;
         this.clearSelection = clearSelection;
-        UITemplate.setLDLib2Bounds(this, x, y, 18, 36);
+        UITemplate.setBounds(this, x, y, 18, 36);
 
         this.configElement = new ConfigItemElement();
         this.stockElement = new StockItemElement();
-        UITemplate.setLDLib2Bounds(configElement, 0, 0, 18, 18);
-        UITemplate.setLDLib2Bounds(stockElement, 0, 18, 18, 18);
+        UITemplate.setBounds(configElement, 0, 0, 18, 18);
+        UITemplate.setBounds(stockElement, 0, 18, 18, 18);
         configElement.setId("me_item_config_" + index);
         stockElement.setId("me_item_stock_" + index);
         addChildren(configElement, stockElement);

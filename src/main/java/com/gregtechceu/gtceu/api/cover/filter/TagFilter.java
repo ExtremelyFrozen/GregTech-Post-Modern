@@ -15,7 +15,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
-import static com.gregtechceu.gtceu.api.gui.UITemplate.setLDLib2Bounds;
+import static com.gregtechceu.gtceu.api.gui.UITemplate.setBounds;
 
 public abstract class TagFilter<T, S extends Filter<T, S>> implements Filter<T, S> {
 
@@ -53,7 +53,7 @@ public abstract class TagFilter<T, S extends Filter<T, S>> implements Filter<T, 
     @Override
     public UIElement openLDLib2Configurator(int x, int y) {
         UIElement group = new UIElement();
-        setLDLib2Bounds(group, x, y, 18 * 3 + 25, 18 * 3);
+        setBounds(group, x, y, 18 * 3 + 25, 18 * 3);
         group.addChild(createLDLib2InfoIcon());
         group.addChild(createLDLib2TextField());
         return group;
@@ -64,7 +64,7 @@ public abstract class TagFilter<T, S extends Filter<T, S>> implements Filter<T, 
         icon.style(style -> style
                 .backgroundTexture(GuiTextures.INFO_ICON)
                 .tooltips(LangHandler.getMultiLang("cover.tag_filter.info").toArray(Component[]::new)));
-        setLDLib2Bounds(icon, 0, 0, 20, 20);
+        setBounds(icon, 0, 0, 20, 20);
         return icon;
     }
 

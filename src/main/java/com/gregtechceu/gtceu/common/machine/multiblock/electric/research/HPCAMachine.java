@@ -398,7 +398,7 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
             }
             gatherClientComponentGrid();
 
-            UIElement root = UITemplate.setLDLib2Bounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
+            UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
             root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
 
             GTScrollerViewElement screen = new GTScrollerViewElement(4, 4, 182, 117);
@@ -502,14 +502,14 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
                                       ProgressTexture progressTexture) {
             this.tooltipSupplier = tooltipSupplier;
             this.componentTextureSupplier = componentTextureSupplier;
-            UITemplate.setLDLib2Bounds(this, 74, 57, 47, 47);
+            UITemplate.setBounds(this, 74, 57, 47, 47);
             setId("hpca_status_grid");
             addEventListener(UIEvents.HOVER_TOOLTIPS, this::addInfoTooltip);
 
             GTProgressBarElement progress = new GTProgressBarElement(progressSupplier);
             progress.setProgressTexture(progressTexture.getEmptyBarArea(), progressTexture.getFilledBarArea());
             progress.setFillDirection(FillDirection.LEFT_TO_RIGHT);
-            UITemplate.setLDLib2Bounds(progress, 0, 0, 47, 47);
+            UITemplate.setBounds(progress, 0, 0, 47, 47);
             addChild(progress);
 
             for (int row = 0; row < GRID_SIZE; row++) {

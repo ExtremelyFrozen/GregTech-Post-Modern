@@ -20,7 +20,7 @@ import com.gregtechceu.gtceu.api.recipe.RecipeHelper;
 import com.gregtechceu.gtceu.api.recipe.content.Content;
 import com.gregtechceu.gtceu.api.recipe.content.ContentListMap;
 import com.gregtechceu.gtceu.api.recipe.ui.GTRecipeTypeUI;
-import com.gregtechceu.gtceu.api.recipe.ui.GTRecipeTypeUI.LDLib2RecipeUISize;
+import com.gregtechceu.gtceu.api.recipe.ui.GTRecipeTypeUI.RecipeUISize;
 import com.gregtechceu.gtceu.api.registry.GTRegistries;
 import com.gregtechceu.gtceu.api.transfer.item.CustomItemStackHandler;
 import com.gregtechceu.gtceu.common.data.GTRecipeTypes;
@@ -58,14 +58,14 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Builds the parallel LDLib2 recipe UI tree without touching the legacy WidgetGroup XEI path.
+ * Builds the shared recipe UI and ingredient elements used by recipe viewers.
  */
-public final class GTLDLib2RecipeUI {
+public final class GTRecipeUI {
 
     private static final int TEXT_X = 3;
     private static final int LINE_HEIGHT = GTRecipeXEIHelper.LINE_HEIGHT;
 
-    private GTLDLib2RecipeUI() {}
+    private GTRecipeUI() {}
 
     public static UI createUI(GTRecipeDefinition recipe, int recipeTier, int chanceTier) {
         var storages = Tables.newCustomTable(new EnumMap<>(IO.class), LinkedHashMap<RecipeCapability<?>, Object>::new);
@@ -101,12 +101,12 @@ public final class GTLDLib2RecipeUI {
                 Object storage = storages.get(io, capability);
                 List<Content> capabilityContents = contentsEntry.getValue();
                 for (int index = 0; index < capabilityContents.size(); index++) {
-                    UIElement element = capability.createLDLib2Element();
+                    UIElement element = capability.createElement();
                     if (element == null) {
                         continue;
                     }
                     element.setId("%s_%d".formatted(capability.slotName(io), index));
-                    capability.applyLDLib2ElementInfo(element, index, true, io, recipeHolder, recipe.recipeType,
+                    capability.applyElementInfo(element, index, true, io, recipeHolder, recipe.recipeType,
                             recipe, capabilityContents.get(index), storage, recipeTier, chanceTier);
                     elements.add(element);
                 }
@@ -114,10 +114,10 @@ public final class GTLDLib2RecipeUI {
         }
 
         if (recipe.recipeType.isHasResearchSlot()) {
-            GTItemSlotElement element = ItemRecipeCapability.CAP.createLDLib2Element();
+            GTItemSlotElement element = ItemRecipeCapability.CAP.createElement();
             int index = recipe.recipeType.getMaxInputs(ItemRecipeCapability.CAP);
             element.setId("%s_%d".formatted(ItemRecipeCapability.CAP.slotName(IO.IN), index));
-            ItemRecipeCapability.CAP.applyLDLib2ElementInfo(element, index, true, IO.IN, recipeHolder,
+            ItemRecipeCapability.CAP.applyElementInfo(element, index, true, IO.IN, recipeHolder,
                     recipe.recipeType, null, null, storages.get(IO.IN, ItemRecipeCapability.CAP), recipeTier,
                     chanceTier);
             elements.add(element);
@@ -131,8 +131,8 @@ public final class GTLDLib2RecipeUI {
         private final Table<IO, RecipeCapability<?>, Object> storages;
         private final Table<IO, RecipeCapability<?>, List<Content>> contents;
         private final GTRecipeTypeUI recipeUI;
-        private final LDLib2RecipeUISize rootSize;
-        private final LDLib2RecipeUISize templateSize;
+        private final RecipeUISize rootSize;
+        private final RecipeUISize templateSize;
         private final int templateX;
         private final int minTier;
         private final int recipeTier;
@@ -155,8 +155,8 @@ public final class GTLDLib2RecipeUI {
             this.storages = storages;
             this.contents = contents;
             this.recipeUI = recipe.recipeType.getRecipeUI();
-            this.rootSize = recipeUI.getLDLib2XEIRecipeUISize();
-            this.templateSize = recipeUI.getLDLib2RecipeUISize(false, false);
+            this.rootSize = recipeUI.getXEIRecipeUISize();
+            this.templateSize = recipeUI.getRecipeUISize(false, false);
             this.templateX = Math.max((rootSize.width() - templateSize.width()) / 2, 0);
             this.minTier = RecipeHelper.getRecipeEUtTier(recipe);
             this.recipeTier = Mth.clamp(recipeTier, minTier, GTValues.MAX);
@@ -179,9 +179,9 @@ public final class GTLDLib2RecipeUI {
         }
 
         private UI createRecipeContent() {
-            UI template = recipeUI.createLDLib2UITemplate(GTRecipeTypeUI.XEI_PROGRESS, storages,
+            UI template = recipeUI.createUITemplate(GTRecipeTypeUI.XEI_PROGRESS, storages,
                     DataComponentMap.EMPTY, recipe.conditions);
-            recipeUI.applyLDLib2RecipeContent(template, contents, recipe, recipeTier, tier);
+            recipeUI.applyRecipeContent(template, contents, recipe, recipeTier, tier);
             template.rootElement.layout(layout -> {
                 layout.positionType(TaffyPosition.ABSOLUTE);
                 layout.left(templateX);
@@ -208,7 +208,7 @@ public final class GTLDLib2RecipeUI {
             addCWUInfo(root, rootSize, recipe, recipe.tickOutputs.get(CWURecipeCapability.CAP), true, cwuYOffset);
 
             addConditionAndDataInfos(root, rootSize, recipe, cwuYOffset[0]);
-            recipeUI.appendLDLib2XEIUI(recipe, root, rootSize);
+            recipeUI.appendXEIUI(recipe, root, rootSize);
         }
 
         private int addRecipeParameterTexts() {
@@ -352,7 +352,7 @@ public final class GTLDLib2RecipeUI {
 
     private record OverclockPreview(int duration, long eut, String tierText) {}
 
-    private static void addCWUInfo(UIElement root, LDLib2RecipeUISize rootSize, GTRecipeDefinition recipe,
+    private static void addCWUInfo(UIElement root, RecipeUISize rootSize, GTRecipeDefinition recipe,
                                    List<Content> contents, boolean perTick, int[] yOffset) {
         if (contents == null) {
             return;
@@ -371,7 +371,7 @@ public final class GTLDLib2RecipeUI {
         }
     }
 
-    private static void addConditionAndDataInfos(UIElement root, LDLib2RecipeUISize rootSize,
+    private static void addConditionAndDataInfos(UIElement root, RecipeUISize rootSize,
                                                  GTRecipeDefinition recipe, int yOffset) {
         for (RecipeCondition<?> condition : recipe.conditions) {
             Component tooltip = condition.getTooltips();
@@ -392,7 +392,7 @@ public final class GTLDLib2RecipeUI {
         }
     }
 
-    private static GTItemSlotElement createDimensionMarker(DimensionCondition condition, LDLib2RecipeUISize rootSize) {
+    private static GTItemSlotElement createDimensionMarker(DimensionCondition condition, RecipeUISize rootSize) {
         DimensionMarker dimMarker = GTRegistries.DIMENSION_MARKERS.getOptional(condition.getDimension().location())
                 .orElse(new DimensionMarker(DimensionMarker.MAX_TIER,
                         () -> Blocks.BARRIER, DimensionCondition.getDimensionName(condition.getDimension())));
@@ -445,7 +445,7 @@ public final class GTLDLib2RecipeUI {
         return x;
     }
 
-    private static void addRecipeIdButton(UIElement root, GTRecipeDefinition recipe, LDLib2RecipeUISize rootSize) {
+    private static void addRecipeIdButton(UIElement root, GTRecipeDefinition recipe, RecipeUISize rootSize) {
         if (GTCEu.isProd()) {
             return;
         }

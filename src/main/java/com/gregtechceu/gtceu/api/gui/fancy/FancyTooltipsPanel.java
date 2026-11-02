@@ -29,7 +29,7 @@ public class FancyTooltipsPanel extends UIElement {
     public FancyTooltipsPanel(int x, int y) {
         this.x = x;
         this.y = y;
-        UITemplate.setLDLib2Bounds(this, x, y, ICON_SIZE, 0);
+        UITemplate.setBounds(this, x, y, ICON_SIZE, 0);
     }
 
     public void clear() {
@@ -69,7 +69,7 @@ public class FancyTooltipsPanel extends UIElement {
         if (offsetY > 0) {
             offsetY -= ICON_GAP;
         }
-        UITemplate.setLDLib2Bounds(this, x, y, ICON_SIZE, offsetY);
+        UITemplate.setBounds(this, x, y, ICON_SIZE, offsetY);
     }
 
     private static void applyTooltip(UIEvent event, IFancyTooltip tooltip) {

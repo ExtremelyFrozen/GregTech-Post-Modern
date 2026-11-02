@@ -100,7 +100,7 @@ public class ParallelHatchPartMachine extends TieredPartMachine
     }
 
     private UIElement createLDLib2ParallelInput() {
-        UIElement root = UITemplate.setLDLib2Bounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
+        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
         root.addChild(new GTIntInputElement(0, 0, PAGE_WIDTH, PAGE_HEIGHT, this::getCurrentParallel,
                 this::setLDLib2CurrentParallel)
                 .setMin(MIN_PARALLEL)

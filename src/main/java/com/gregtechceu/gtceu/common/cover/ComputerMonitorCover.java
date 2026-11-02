@@ -161,13 +161,13 @@ public class ComputerMonitorCover extends CoverBehavior
         ensureFormatStringSlots();
 
         UIElement root = new UIElement();
-        UITemplate.setLDLib2Bounds(root, 0, 0, ROOT_WIDTH, CONTENT_HEIGHT + 82);
+        UITemplate.setBounds(root, 0, 0, ROOT_WIDTH, CONTENT_HEIGHT + 82);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));
 
         UIElement mainPage = new UIElement();
-        UITemplate.setLDLib2Bounds(mainPage, 0, 0, ROOT_WIDTH, CONTENT_HEIGHT);
+        UITemplate.setBounds(mainPage, 0, 0, ROOT_WIDTH, CONTENT_HEIGHT);
         UIElement formatStringArgsPage = new UIElement();
-        UITemplate.setLDLib2Bounds(formatStringArgsPage, 0, 0, ROOT_WIDTH, CONTENT_HEIGHT);
+        UITemplate.setBounds(formatStringArgsPage, 0, 0, ROOT_WIDTH, CONTENT_HEIGHT);
         formatStringArgsPage.setVisible(false);
 
         for (int i = 0; i < FORMAT_LINE_COUNT; i++) {
@@ -209,7 +209,7 @@ public class ComputerMonitorCover extends CoverBehavior
         formatStringArgsPage.addChild(switchBack);
         root.addChild(mainPage);
         root.addChild(formatStringArgsPage);
-        root.addChild(UITemplate.bindPlayerInventoryLDLib2(player.getInventory(), GuiTextures.SLOT, 7,
+        root.addChild(UITemplate.bindPlayerInventory(player.getInventory(), GuiTextures.SLOT, 7,
                 CONTENT_HEIGHT, true));
         return UI.of(root);
     }
@@ -249,7 +249,7 @@ public class ComputerMonitorCover extends CoverBehavior
     private GTItemSlotElement createLDLib2ItemSlot(int index) {
         GTItemSlotElement slot = new GTItemSlotElement(itemStackHandler, index)
                 .setBackgroundTexture(GuiTextures.SLOT);
-        UITemplate.setLDLib2Bounds(slot, HORIZONTAL_PADDING + 50, 20 * index, 18, 18);
+        UITemplate.setBounds(slot, HORIZONTAL_PADDING + 50, 20 * index, 18, 18);
         slot.style(style -> style.tooltips(tooltips(
                 LangHandler.getMultiLang("gtpm.gui.computer_monitor_cover.slot_tooltip", index + 1))));
         return slot;
@@ -257,7 +257,7 @@ public class ComputerMonitorCover extends CoverBehavior
 
     private UIElement createLDLib2PlaceholderReference(String filter) {
         UIElement root = new UIElement();
-        UITemplate.setLDLib2Bounds(root, 280, 0, 110, CONTENT_HEIGHT);
+        UITemplate.setBounds(root, 280, 0, 110, CONTENT_HEIGHT);
 
         root.addChild(createLDLib2Label(0, 0, 110, 15, Component.literal(GTStringUtils.componentsToString(
                 LangHandler.getMultiLang("gtpm.gui.computer_monitor_cover.placeholder_reference")))));

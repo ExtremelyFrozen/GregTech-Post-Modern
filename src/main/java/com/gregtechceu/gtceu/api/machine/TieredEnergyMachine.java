@@ -98,7 +98,7 @@ public class TieredEnergyMachine extends TieredMachine implements ITieredMachine
                 .setProgressTexture(IGuiTexture.EMPTY, GuiTextures.ENERGY_BAR_BASE)
                 .setFillDirection(FillDirection.DOWN_TO_UP);
         progressBar.style(style -> style.backgroundTexture(GuiTextures.ENERGY_BAR_BACKGROUND));
-        return UITemplate.setLDLib2Bounds(progressBar, 0, 0, 18, 60);
+        return UITemplate.setBounds(progressBar, 0, 0, 18, 60);
     }
 
     /**

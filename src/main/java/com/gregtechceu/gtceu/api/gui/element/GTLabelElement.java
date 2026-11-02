@@ -6,7 +6,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Label;
-import com.lowdragmc.lowdraglib2.gui.ui.elements.TextElement.TextStyle;
 import com.lowdragmc.lowdraglib2.gui.ui.style.LayoutStyle;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 
@@ -38,7 +37,7 @@ public class GTLabelElement extends Label {
     }
 
     public GTLabelElement(int x, int y, int width, int height) {
-        UITemplate.setLDLib2Bounds(this, x, y, width, height);
+        UITemplate.setBounds(this, x, y, width, height);
     }
 
     public GTLabelElement(int x, int y, int width, int height, Component text) {

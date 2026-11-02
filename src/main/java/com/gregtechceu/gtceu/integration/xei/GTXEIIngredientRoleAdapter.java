@@ -3,13 +3,13 @@ package com.gregtechceu.gtceu.integration.xei;
 import com.lowdragmc.lowdraglib2.integration.xei.IngredientIO;
 
 /**
- * Converts GTM roles for the LDLib2 UI facade; the legacy adapter remains for unmigrated LDLib1 widget boundaries.
+ * Converts recipe ingredient roles to and from the UI ingredient contract.
  */
-public final class GTXEIIngredientRoleLDLib2Adapter {
+public final class GTXEIIngredientRoleAdapter {
 
-    private GTXEIIngredientRoleLDLib2Adapter() {}
+    private GTXEIIngredientRoleAdapter() {}
 
-    public static IngredientIO toLDLib2(GTXEIIngredientRole role) {
+    public static IngredientIO toIngredientIO(GTXEIIngredientRole role) {
         return switch (role) {
             case INPUT -> IngredientIO.INPUT;
             case OUTPUT -> IngredientIO.OUTPUT;
@@ -18,7 +18,7 @@ public final class GTXEIIngredientRoleLDLib2Adapter {
         };
     }
 
-    public static GTXEIIngredientRole fromLDLib2(IngredientIO ingredientIO) {
+    public static GTXEIIngredientRole fromIngredientIO(IngredientIO ingredientIO) {
         return switch (ingredientIO) {
             case INPUT -> GTXEIIngredientRole.INPUT;
             case OUTPUT -> GTXEIIngredientRole.OUTPUT;

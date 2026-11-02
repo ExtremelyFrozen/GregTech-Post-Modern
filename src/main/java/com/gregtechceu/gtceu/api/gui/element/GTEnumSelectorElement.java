@@ -65,7 +65,7 @@ public class GTEnumSelectorElement<T extends Enum<T>> extends GTButtonElement {
         this.tooltipKeyGetter = tooltipKeyGetter;
         noText();
         setOnClick(event -> cycle());
-        UITemplate.setLDLib2Bounds(this, x, y, width, height);
+        UITemplate.setBounds(this, x, y, width, height);
         refreshState();
     }
 

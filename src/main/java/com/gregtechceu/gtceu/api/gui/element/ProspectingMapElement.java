@@ -102,17 +102,17 @@ public class ProspectingMapElement extends UIElement implements SearchComponent.
         int sidePanelWidth = width - (imageWidth + 10);
         this.itemListWidth = sidePanelWidth - 8;
 
-        UITemplate.setLDLib2Bounds(this, x, y, width, height);
+        UITemplate.setBounds(this, x, y, width, height);
         addEventListener(UIEvents.MOUSE_DOWN, this::onMapMouseDown);
 
         UIElement mapBackground = new UIElement();
-        UITemplate.setLDLib2Bounds(mapBackground, 0, (height - imageHeight) / 2 - 4,
+        UITemplate.setBounds(mapBackground, 0, (height - imageHeight) / 2 - 4,
                 imageWidth + 8, imageHeight + 8);
         mapBackground.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
         addChild(mapBackground);
 
         UIElement sidePanel = new UIElement();
-        UITemplate.setLDLib2Bounds(sidePanel, imageWidth + 10, 0, sidePanelWidth, height);
+        UITemplate.setBounds(sidePanel, imageWidth + 10, 0, sidePanelWidth, height);
         sidePanel.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
         addChild(sidePanel);
 
@@ -138,7 +138,7 @@ public class ProspectingMapElement extends UIElement implements SearchComponent.
                 .maxItemCount(8)
                 .scrollerViewHeight(96)
                 .closeAfterSelect(true));
-        UITemplate.setLDLib2Bounds(searchComponent, 6, 6, sidePanelWidth - 12, 18);
+        UITemplate.setBounds(searchComponent, 6, 6, sidePanelWidth - 12, 18);
         sidePanel.addChild(searchComponent);
 
         addNewItem(ProspectingTexture.SELECTED_ALL, Component.literal("all resources"), IGuiTexture.EMPTY, -1, null);
@@ -263,10 +263,10 @@ public class ProspectingMapElement extends UIElement implements SearchComponent.
             style.pressedTexture(ColorPattern.WHITE.borderTexture(-1));
         });
         button.setOnClick(event -> selectUniqueId(uniqueID));
-        UITemplate.setLDLib2Bounds(button, 0, index * 15, itemListWidth - 4, 15);
+        UITemplate.setBounds(button, 0, index * 15, itemListWidth - 4, 15);
 
         UIElement iconElement = new UIElement();
-        UITemplate.setLDLib2Bounds(iconElement, 0, 0, 15, 15);
+        UITemplate.setBounds(iconElement, 0, 0, 15, 15);
         iconElement.style(style -> style.backgroundTexture(icon));
         button.addChild(iconElement);
 
@@ -318,7 +318,7 @@ public class ProspectingMapElement extends UIElement implements SearchComponent.
         });
 
         UIElement iconElement = new UIElement();
-        UITemplate.setLDLib2Bounds(iconElement, 0, 0, 15, 15);
+        UITemplate.setBounds(iconElement, 0, 0, 15, 15);
         iconElement.style(style -> style.backgroundTexture(mode.getItemIcon(item)));
         row.addChild(iconElement);
 

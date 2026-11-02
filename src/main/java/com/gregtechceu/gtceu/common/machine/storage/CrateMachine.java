@@ -67,10 +67,10 @@ public class CrateMachine extends MetaMachine implements MachineUIProvider {
         int yOffset = inventorySize > 3 * yOverflow ?
                 (inventorySize - 3 * yOverflow - (inventorySize - 3 * yOverflow) % yOverflow) / yOverflow * 18 : 0;
         UIElement root = new UIElement();
-        UITemplate.setLDLib2Bounds(root, 0, 0, 176 + xOffset, 166 + yOffset);
+        UITemplate.setBounds(root, 0, 0, 176 + xOffset, 166 + yOffset);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));
         root.addChild(createLDLib2TitleLabel(176 + xOffset));
-        root.addChild(UITemplate.bindPlayerInventoryLDLib2(player.getInventory(), GuiTextures.SLOT, 7 + xOffset / 2,
+        root.addChild(UITemplate.bindPlayerInventory(player.getInventory(), GuiTextures.SLOT, 7 + xOffset / 2,
                 82 + yOffset, true));
         int x = 0;
         int y = 0;
@@ -98,7 +98,7 @@ public class CrateMachine extends MetaMachine implements MachineUIProvider {
 
     private GTItemSlotElement createLDLib2CrateSlot(int slot, int x, int y) {
         GTItemSlotElement slotElement = new GTItemSlotElement(inventory, slot);
-        UITemplate.setLDLib2Bounds(slotElement, x, y, 18, 18);
+        UITemplate.setBounds(slotElement, x, y, 18, 18);
         slotElement.setBackgroundTexture(GuiTextures.SLOT);
         return slotElement;
     }

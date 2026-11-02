@@ -122,7 +122,7 @@ public class EditableMachineUI {
      */
     public MachineUISize getSize(ResourceManager resourceManager) {
         Document document = parseDocument(getRuntimeXml(resourceManager), getXmlLocation().toString());
-        var size = UITemplate.getLDLib2RootSize(document);
+        var size = UITemplate.getRootSize(document);
         return new MachineUISize(size.width(), size.height());
     }
 

@@ -404,13 +404,13 @@ public class DataBankMachine extends WorkableElectricMultiblockMachine
                 throw new IllegalStateException("Data Bank page holder no longer resolves its controller.");
             }
 
-            UIElement root = UITemplate.setLDLib2Bounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
-            UITemplate.setLDLib2BackgroundTexture(root, GuiTextures.BACKGROUND_INVERSE);
+            UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
+            UITemplate.setBackgroundTexture(root, GuiTextures.BACKGROUND_INVERSE);
 
             GTScrollerViewElement screen = new GTScrollerViewElement(4, 4, 182, 117);
-            UITemplate.setLDLib2BackgroundTexture(screen, getScreenTexture());
+            UITemplate.setBackgroundTexture(screen, getScreenTexture());
             screen.viewPort.layout(layout -> layout.paddingAll(0));
-            UITemplate.setLDLib2BackgroundTexture(screen.viewPort, getScreenTexture());
+            UITemplate.setBackgroundTexture(screen.viewPort, getScreenTexture());
             screen.scrollerStyle(style -> style
                     .mode(ScrollerMode.VERTICAL)
                     .verticalScrollDisplay(ScrollDisplay.AUTO)

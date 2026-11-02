@@ -470,11 +470,11 @@ public abstract class AbstractEnderLinkCover<T extends VirtualEntry> extends Cov
             this.player = player;
             this.holder = holder;
             this.cover = cover;
-            this.mainGroup = UITemplate.setLDLib2Bounds(new UIElement(), 0, 0, GROUP_WIDTH, 137);
+            this.mainGroup = UITemplate.setBounds(new UIElement(), 0, 0, GROUP_WIDTH, 137);
             this.channelsGroup = new GTScrollerViewElement(0, 20, 170, 110);
-            this.mainChannelGroup = UITemplate.setLDLib2Bounds(new UIElement(), 10, 20, 156, 20);
+            this.mainChannelGroup = UITemplate.setBounds(new UIElement(), 10, 20, 156, 20);
             setId("ender_link_root");
-            UITemplate.setLDLib2Bounds(this, 0, 0, GROUP_WIDTH, 137 + 82);
+            UITemplate.setBounds(this, 0, 0, GROUP_WIDTH, 137 + 82);
             style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));
             initWidgets();
         }
@@ -499,12 +499,12 @@ public abstract class AbstractEnderLinkCover<T extends VirtualEntry> extends Cov
 
         private void initWidgets() {
             int currentX = 0;
-            UIElement titleGroup = UITemplate.setLDLib2Bounds(new UIElement(), 10, 5, GROUP_WIDTH, 20);
+            UIElement titleGroup = UITemplate.setBounds(new UIElement(), 10, 5, GROUP_WIDTH, 20);
 
             addChild(titleGroup);
             addChild(mainGroup);
             addChild(channelsGroup);
-            addChild(UITemplate.bindPlayerInventoryLDLib2(player.getInventory(), GuiTextures.SLOT, 7, 137, true));
+            addChild(UITemplate.bindPlayerInventory(player.getInventory(), GuiTextures.SLOT, 7, 137, true));
 
             channelsGroup.setVisible(false);
             titleGroup.addChild(createToggleButton());
@@ -666,7 +666,7 @@ public abstract class AbstractEnderLinkCover<T extends VirtualEntry> extends Cov
             this.returnValidator = returnValidator;
             this.textResponder = textResponder;
             this.inputText = text == null ? "" : text;
-            UITemplate.setLDLib2Bounds(this, x, y, width, height);
+            UITemplate.setBounds(this, x, y, width, height);
 
             GTButtonElement button = new GTButtonElement(width - height, 0, height, height,
                     GuiTextures.group(GuiTextures.VANILLA_BUTTON, GuiTextures.BUTTON_CHECK), event -> confirm());
@@ -703,7 +703,7 @@ public abstract class AbstractEnderLinkCover<T extends VirtualEntry> extends Cov
 
         ColorBlockElement(int x, int y, int width, int height, IntSupplier colorSupplier) {
             this.colorSupplier = colorSupplier;
-            UITemplate.setLDLib2Bounds(this, x, y, width, height);
+            UITemplate.setBounds(this, x, y, width, height);
             addEventListener(UIEvents.MOUSE_DOWN, event -> {
                 showAlpha = !showAlpha;
                 event.stopPropagation();
@@ -733,7 +733,7 @@ public abstract class AbstractEnderLinkCover<T extends VirtualEntry> extends Cov
                        Runnable onSelected) {
             this.selectedSupplier = selectedSupplier;
             this.onSelected = onSelected;
-            UITemplate.setLDLib2Bounds(this, x, y, width, height);
+            UITemplate.setBounds(this, x, y, width, height);
             addEventListener(UIEvents.MOUSE_DOWN, event -> {
                 this.onSelected.run();
                 event.stopPropagation();

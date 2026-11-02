@@ -364,11 +364,11 @@ public class ItemBusPartMachine extends TieredIOPartMachine
     private UIElement createLDLib2MainElement() {
         int rowSize = getLDLib2RowSize();
         int columnSize = getLDLib2ColumnSize();
-        UIElement root = UITemplate.setLDLib2Bounds(new UIElement(), 0, 0,
+        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0,
                 getLDLib2PageWidth(), getLDLib2PageHeight());
-        UIElement container = UITemplate.setLDLib2Bounds(new UIElement(), 4, 4,
+        UIElement container = UITemplate.setBounds(new UIElement(), 4, 4,
                 18 * rowSize + 8, 18 * columnSize + 8);
-        UITemplate.setLDLib2BackgroundTexture(container, GuiTextures.BACKGROUND_INVERSE);
+        UITemplate.setBackgroundTexture(container, GuiTextures.BACKGROUND_INVERSE);
 
         int index = 0;
         for (int y = 0; y < columnSize; y++) {
@@ -393,7 +393,7 @@ public class ItemBusPartMachine extends TieredIOPartMachine
                 .setCanTakeItems(true)
                 .setBackgroundTexture(GuiTextures.SLOT)
                 .setIngredientIO(io.support(IO.IN) ? GTXEIHelper.input() : GTXEIHelper.output());
-        return UITemplate.setLDLib2Bounds(slot, x, y, 18, 18);
+        return UITemplate.setBounds(slot, x, y, 18, 18);
     }
 
     /**

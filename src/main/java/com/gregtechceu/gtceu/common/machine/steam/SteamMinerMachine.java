@@ -154,9 +154,9 @@ public class SteamMinerMachine extends SteamWorkableMachine implements IControll
         int rowSize = (int) Math.sqrt(inventorySize);
 
         UIElement root = new UIElement();
-        UITemplate.setLDLib2Bounds(root, 0, 0, 175, 176);
+        UITemplate.setBounds(root, 0, 0, 175, 176);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_STEAM.get(isHighPressure())));
-        root.addChild(UITemplate.bindPlayerInventoryLDLib2(player.getInventory(),
+        root.addChild(UITemplate.bindPlayerInventory(player.getInventory(),
                 GuiTextures.SLOT_STEAM.get(isHighPressure()), 7, 94, true));
 
         for (int y = 0; y < rowSize; y++) {
@@ -166,7 +166,7 @@ public class SteamMinerMachine extends SteamWorkableMachine implements IControll
                         .setBackgroundTexture(GuiTextures.SLOT_STEAM.get(isHighPressure()))
                         .setCanTakeItems(true)
                         .setCanPutItems(false);
-                UITemplate.setLDLib2Bounds(slot, 142 - rowSize * 9 + x * 18, 18 + y * 18, 18, 18);
+                UITemplate.setBounds(slot, 142 - rowSize * 9 + x * 18, 18 + y * 18, 18, 18);
                 root.addChild(slot);
             }
         }

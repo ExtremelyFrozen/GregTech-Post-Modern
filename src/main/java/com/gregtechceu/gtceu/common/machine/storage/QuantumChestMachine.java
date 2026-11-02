@@ -305,7 +305,7 @@ public class QuantumChestMachine extends TieredMachine implements IControllable,
     }
 
     private UIElement createLDLib2MainPage(Player player, MachineUIHolder holder) {
-        UIElement root = UITemplate.setLDLib2Bounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
+        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
         root.addChild(new GTImageElement(4, 4, 81, 55, GuiTextures.DISPLAY));
         root.addChild(createLDLib2StoredAmountLabel());
@@ -375,7 +375,7 @@ public class QuantumChestMachine extends TieredMachine implements IControllable,
                 event.hasHandler = true;
             }
         });
-        return UITemplate.setLDLib2Bounds(slot, 87, 5, 18, 18);
+        return UITemplate.setBounds(slot, 87, 5, 18, 18);
     }
 
     private GTItemSlotElement createLDLib2StoredDisplaySlot() {
@@ -391,7 +391,7 @@ public class QuantumChestMachine extends TieredMachine implements IControllable,
         slot.setCanPutItems(false)
                 .setCanTakeItems(false)
                 .setBackgroundTexture(GuiTextures.SLOT);
-        return UITemplate.setLDLib2Bounds(slot, 87, 23, 18, 18);
+        return UITemplate.setBounds(slot, 87, 23, 18, 18);
     }
 
     private ItemStack getLDLib2DisplayedStoredItem() {
@@ -424,7 +424,7 @@ public class QuantumChestMachine extends TieredMachine implements IControllable,
                 super.screenTick();
             }
         };
-        UITemplate.setLDLib2Bounds(slot, 58, 41, 18, 18);
+        UITemplate.setBounds(slot, 58, 41, 18, 18);
         slot.addEventListener(UIEvents.MOUSE_DOWN, event -> {
             if (!player.level().isClientSide()) {
                 return;

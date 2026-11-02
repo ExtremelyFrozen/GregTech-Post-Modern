@@ -32,7 +32,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 
 import java.util.List;
 
-import static com.gregtechceu.gtceu.api.gui.UITemplate.setLDLib2Bounds;
+import static com.gregtechceu.gtceu.api.gui.UITemplate.setBounds;
 
 public class IntCircuitBehaviour implements IItemUIFactory, IAddInformation {
 
@@ -90,7 +90,7 @@ public class IntCircuitBehaviour implements IItemUIFactory, IAddInformation {
     @Override
     public UI createLDLib2UI(HeldItemUIHolder holder, Player entityPlayer) {
         UIElement root = new UIElement();
-        setLDLib2Bounds(root, 0, 0, 184, 132);
+        setBounds(root, 0, 0, 184, 132);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));
 
         GTLabelElement label = new GTLabelElement(9, 8, 166, 10,
@@ -107,7 +107,7 @@ public class IntCircuitBehaviour implements IItemUIFactory, IAddInformation {
         selectedSlot.setBackgroundTexture(GuiTextures.SLOT)
                 .setCanPutItems(false)
                 .setCanTakeItems(false);
-        setLDLib2Bounds(selectedSlot, 82, 20, 18, 18);
+        setBounds(selectedSlot, 82, 20, 18, 18);
         root.addChild(selectedSlot);
 
         int idx = 0;

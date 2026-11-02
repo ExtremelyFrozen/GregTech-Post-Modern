@@ -199,7 +199,7 @@ public final class MachineUIXmlTemplates {
     }
 
     private static FixedSize getFixedSize(Document document) {
-        var size = GTRecipeTypeUI.getLDLib2RecipeUISize(document);
+        var size = GTRecipeTypeUI.getRecipeUISize(document);
         return new FixedSize(size.width(), size.height());
     }
 

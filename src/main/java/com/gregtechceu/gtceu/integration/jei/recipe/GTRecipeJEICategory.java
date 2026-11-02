@@ -9,7 +9,7 @@ import com.gregtechceu.gtceu.api.recipe.RecipeHelper;
 import com.gregtechceu.gtceu.api.recipe.category.GTRecipeCategory;
 import com.gregtechceu.gtceu.api.registry.GTRegistries;
 import com.gregtechceu.gtceu.common.data.GTRecipeTypes;
-import com.gregtechceu.gtceu.integration.xei.GTLDLib2RecipeUI;
+import com.gregtechceu.gtceu.integration.xei.GTRecipeUI;
 
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.integration.xei.jei.ModularUIRecipeCategory;
@@ -33,9 +33,9 @@ import java.util.List;
 import java.util.function.Function;
 
 /**
- * LDLib2-backed JEI category for GT recipe displays.
+ * JEI category for GT recipe displays.
  */
-public class GTLDLib2RecipeJEICategory extends ModularUIRecipeCategory<GTRecipeDefinition> {
+public class GTRecipeJEICategory extends ModularUIRecipeCategory<GTRecipeDefinition> {
 
     public static final Function<GTRecipeCategory, RecipeType<GTRecipeDefinition>> TYPES = Util
             .memoize(c -> new RecipeType<>(c.registryKey, GTRecipeDefinition.class));
@@ -45,10 +45,10 @@ public class GTLDLib2RecipeJEICategory extends ModularUIRecipeCategory<GTRecipeD
     private final int height;
     private final IDrawable icon;
 
-    public GTLDLib2RecipeJEICategory(@NotNull GTRecipeCategory category) {
-        super(GTLDLib2RecipeJEICategory::createModularUI);
+    public GTRecipeJEICategory(@NotNull GTRecipeCategory category) {
+        super(GTRecipeJEICategory::createModularUI);
         this.category = category;
-        var size = category.getRecipeType().getRecipeUI().getLDLib2XEIRecipeUISize();
+        var size = category.getRecipeType().getRecipeUI().getXEIRecipeUISize();
         this.width = size.width();
         this.height = size.height();
         this.icon = toDrawable(category.getIcon(), 16, 16);
@@ -126,7 +126,7 @@ public class GTLDLib2RecipeJEICategory extends ModularUIRecipeCategory<GTRecipeD
 
     private static ModularUI createModularUI(GTRecipeDefinition recipe) {
         int tier = RecipeHelper.getRecipeEUtTier(recipe);
-        return GTLDLib2RecipeUI.createModularUI(recipe, tier, tier);
+        return GTRecipeUI.createModularUI(recipe, tier, tier);
     }
 
     private static IDrawable toDrawable(IGuiTexture texture, int width, int height) {

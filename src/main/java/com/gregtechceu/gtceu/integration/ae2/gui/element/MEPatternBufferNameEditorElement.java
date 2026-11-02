@@ -67,7 +67,7 @@ public final class MEPatternBufferNameEditorElement extends UIElement {
         this.actionSender = actionSender;
         this.canSendAction = canSendAction;
         this.nameActionFactory = nameActionFactory;
-        UITemplate.setLDLib2Bounds(this, x, y, WIDTH, HEIGHT);
+        UITemplate.setBounds(this, x, y, WIDTH, HEIGHT);
 
         textField = new GTTextFieldElement(0, 0, TEXT_WIDTH, HEIGHT)
                 .setAnyString()

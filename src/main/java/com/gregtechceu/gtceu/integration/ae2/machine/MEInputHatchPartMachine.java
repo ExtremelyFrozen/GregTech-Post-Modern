@@ -255,7 +255,7 @@ public class MEInputHatchPartMachine extends MEHatchPartMachine
                                               BooleanSupplier canSendAction, Predicate<UIEvent> ctrlDown,
                                               Predicate<UIEvent> shiftDown) {
         requireMatchingHolder(holder);
-        UIElement root = UITemplate.setLDLib2Bounds(new UIElement(), 0, 0, 150, 88);
+        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, 150, 88);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
         root.addChild(new AEFluidConfigElement(this::getFluidConfigSnapshot, player, holder,
                 actionSender, canSendAction, ctrlDown, shiftDown));

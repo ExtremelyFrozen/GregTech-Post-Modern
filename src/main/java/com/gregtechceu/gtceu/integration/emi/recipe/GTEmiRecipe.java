@@ -3,8 +3,8 @@ package com.gregtechceu.gtceu.integration.emi.recipe;
 import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.recipe.GTRecipeDefinition;
 import com.gregtechceu.gtceu.api.recipe.RecipeHelper;
-import com.gregtechceu.gtceu.api.recipe.ui.GTRecipeTypeUI.LDLib2RecipeUISize;
-import com.gregtechceu.gtceu.integration.xei.GTLDLib2RecipeUI;
+import com.gregtechceu.gtceu.api.recipe.ui.GTRecipeTypeUI.RecipeUISize;
+import com.gregtechceu.gtceu.integration.xei.GTRecipeUI;
 
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
@@ -26,17 +26,17 @@ import java.util.List;
 import java.util.function.Supplier;
 
 /**
- * LDLib2-backed EMI recipe display for GT recipes.
+ * EMI recipe display for GT recipes.
  */
-public class GTLDLib2EmiRecipe extends ModularUIEMIRecipe {
+public class GTEmiRecipe extends ModularUIEMIRecipe {
 
     private final EmiRecipeCategory category;
     private final GTRecipeDefinition recipe;
-    private final LDLib2RecipeUISize size;
+    private final RecipeUISize size;
     private final Supplier<EMIRecipeIngredientHandler> xeiIngredients;
 
-    public GTLDLib2EmiRecipe(GTRecipeDefinition recipe, EmiRecipeCategory category, LDLib2RecipeUISize size) {
-        super(GTLDLib2EmiRecipe::createModularUI);
+    public GTEmiRecipe(GTRecipeDefinition recipe, EmiRecipeCategory category, RecipeUISize size) {
+        super(GTEmiRecipe::createModularUI);
         this.category = category;
         this.recipe = recipe;
         this.size = size;
@@ -81,7 +81,7 @@ public class GTLDLib2EmiRecipe extends ModularUIEMIRecipe {
     private EMIRecipeIngredientHandler createIngredients() {
         int tier = RecipeHelper.getRecipeEUtTier(recipe);
         UIElement root = new UIElement();
-        GTLDLib2RecipeUI.createXEIIngredientElements(recipe, tier, tier).forEach(root::addChild);
+        GTRecipeUI.createXEIIngredientElements(recipe, tier, tier).forEach(root::addChild);
 
         EMIRecipeIngredientHandler ingredients = new EMIRecipeIngredientHandler();
         UIEvent event = UIEvent.create(EMIUIEvents.RECIPE_INGREDIENT);
@@ -92,11 +92,11 @@ public class GTLDLib2EmiRecipe extends ModularUIEMIRecipe {
     }
 
     private static ModularUI createModularUI(ModularUIEMIRecipe recipe) {
-        if (recipe instanceof GTLDLib2EmiRecipe gtRecipe) {
+        if (recipe instanceof GTEmiRecipe gtRecipe) {
             int tier = RecipeHelper.getRecipeEUtTier(gtRecipe.recipe);
-            return GTLDLib2RecipeUI.createModularUI(gtRecipe.recipe, tier, tier);
+            return GTRecipeUI.createModularUI(gtRecipe.recipe, tier, tier);
         }
-        GTCEu.LOGGER.error("Expected GTLDLib2EmiRecipe, got {}", recipe.getClass().getName());
-        throw new IllegalArgumentException("Expected GTLDLib2EmiRecipe, got " + recipe.getClass().getName());
+        GTCEu.LOGGER.error("Expected GTEmiRecipe, got {}", recipe.getClass().getName());
+        throw new IllegalArgumentException("Expected GTEmiRecipe, got " + recipe.getClass().getName());
     }
 }

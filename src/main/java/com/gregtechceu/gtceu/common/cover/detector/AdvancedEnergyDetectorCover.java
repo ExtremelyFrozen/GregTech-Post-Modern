@@ -153,7 +153,7 @@ public class AdvancedEnergyDetectorCover extends EnergyDetectorCover implements 
     @Override
     public UI createUI(Player player, UICoverHolder holder) {
         UIElement root = new UIElement();
-        UITemplate.setLDLib2Bounds(root, 0, 0, 176, 187);
+        UITemplate.setBounds(root, 0, 0, 176, 187);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));
 
         root.addChild(createLDLib2Label(10, 5, 156, 10, "cover.advanced_energy_detector.label"));
@@ -174,7 +174,7 @@ public class AdvancedEnergyDetectorCover extends EnergyDetectorCover implements 
                 this::isUsePercent, usePercent -> setLDLib2UsePercent(player, holder, usePercent))
                 .isMultiLang()
                 .setTooltipText("cover.advanced_energy_detector.use_percent"));
-        root.addChild(UITemplate.bindPlayerInventoryLDLib2(player.getInventory(), GuiTextures.SLOT, 7, 105, true));
+        root.addChild(UITemplate.bindPlayerInventory(player.getInventory(), GuiTextures.SLOT, 7, 105, true));
         return UI.of(root);
     }
 

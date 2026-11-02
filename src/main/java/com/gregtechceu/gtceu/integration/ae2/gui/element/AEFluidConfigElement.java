@@ -51,7 +51,7 @@ public final class AEFluidConfigElement extends UIElement {
                                 BooleanSupplier canSendAction, Predicate<UIEvent> ctrlDown,
                                 Predicate<UIEvent> shiftDown) {
         this.snapshotSupplier = snapshotSupplier;
-        UITemplate.setLDLib2Bounds(this, 0, 0, 150, 88);
+        UITemplate.setBounds(this, 0, 0, 150, 88);
         addChild(createOnlineLabel());
         this.amountProjection = new AEFluidConfigAmountProjection(snapshotSupplier, holder, actionSender,
                 canSendAction);

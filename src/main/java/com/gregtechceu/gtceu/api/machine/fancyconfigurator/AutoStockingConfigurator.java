@@ -55,7 +55,7 @@ public final class AutoStockingConfigurator implements FancyConfigurator {
     @Override
     public UIElement createConfigurator() {
         UIElement root = new UIElement();
-        UITemplate.setLDLib2Bounds(root, 0, 0, CONFIGURATOR_WIDTH, CONFIGURATOR_HEIGHT);
+        UITemplate.setBounds(root, 0, 0, CONFIGURATOR_WIDTH, CONFIGURATOR_HEIGHT);
 
         String suffix = switch (machine.getStockingTarget()) {
             case ITEM -> "min_item_count";

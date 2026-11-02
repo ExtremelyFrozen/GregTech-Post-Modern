@@ -171,13 +171,13 @@ public class GTRecipeType implements RecipeType<GTRecipeDefinition> {
         return this;
     }
 
-    public GTRecipeType setLDLib2UiBuilder(BiConsumer<GTRecipeDefinition, UIElement> uiBuilder) {
-        this.recipeUI.setLdLib2UiBuilder((recipe, root, rootSize) -> uiBuilder.accept(recipe, root));
+    public GTRecipeType setUiBuilder(BiConsumer<GTRecipeDefinition, UIElement> uiBuilder) {
+        this.recipeUI.setUiBuilder((recipe, root, rootSize) -> uiBuilder.accept(recipe, root));
         return this;
     }
 
-    public GTRecipeType setLDLib2UiBuilder(GTRecipeTypeUI.LDLib2UiBuilder uiBuilder) {
-        this.recipeUI.setLdLib2UiBuilder(uiBuilder);
+    public GTRecipeType setUiBuilder(GTRecipeTypeUI.RecipeUIBuilder uiBuilder) {
+        this.recipeUI.setUiBuilder(uiBuilder);
         return this;
     }
 

@@ -32,7 +32,7 @@ public class ImageModuleBehaviour implements IMonitorModuleItem {
     public UIElement createConfigurationElement(ItemStack stack, CentralMonitorMachine machine, MonitorGroup group,
                                                 Consumer<SyncActionData> actionSender) {
         UIElement builder = new UIElement();
-        UITemplate.setLDLib2Bounds(builder, 0, 0, 248, 42);
+        UITemplate.setBounds(builder, 0, 0, 248, 42);
 
         GTTextFieldElement textField = new GTTextFieldElement(0, 0, 220, 12);
         textField.setAnyString();

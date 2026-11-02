@@ -93,7 +93,7 @@ public final class TerminalScreen extends UIElement {
                     emptyPreview, false, null, null);
         }
 
-        UITemplate.setLDLib2Bounds(this, 0, 0, WIDTH, HEIGHT);
+        UITemplate.setBounds(this, 0, 0, WIDTH, HEIGHT);
         style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));
         actions = addRPCEvent(RPCEventBuilder.simple(TerminalAction.class, this::receiveAction));
         stateSync.setAcceptSync(player.level().isClientSide);

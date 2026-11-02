@@ -101,7 +101,7 @@ public class FluidVoidingCover extends PumpCover implements FluidVoidingWorkingE
     @Override
     public UI createUI(Player player, UICoverHolder holder) {
         UIElement root = new UIElement();
-        UITemplate.setLDLib2Bounds(root, 0, 0, 176, 202);
+        UITemplate.setBounds(root, 0, 0, 176, 202);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));
 
         root.addChild(createLDLib2Label());
@@ -110,7 +110,7 @@ public class FluidVoidingCover extends PumpCover implements FluidVoidingWorkingE
         buildAdditionalLDLib2UI(root, player, holder);
         root.addChild(filterHandler.createFilterSlotLDLib2UI(148, 91));
         root.addChild(filterHandler.createFilterConfigLDLib2UI(10, 50, 126, 60));
-        root.addChild(UITemplate.bindPlayerInventoryLDLib2(player.getInventory(), GuiTextures.SLOT, 7, 120, true));
+        root.addChild(UITemplate.bindPlayerInventory(player.getInventory(), GuiTextures.SLOT, 7, 120, true));
         return UI.of(root);
     }
 

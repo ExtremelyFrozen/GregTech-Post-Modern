@@ -41,7 +41,7 @@ import com.gregtechceu.gtceu.api.recipe.RecipeData;
 import com.gregtechceu.gtceu.api.recipe.RecipeHelper;
 import com.gregtechceu.gtceu.api.recipe.modifier.ModifierFunction;
 import com.gregtechceu.gtceu.api.recipe.modifier.RecipeModifier;
-import com.gregtechceu.gtceu.api.recipe.ui.GTRecipeTypeUI.LDLib2RecipeUISize;
+import com.gregtechceu.gtceu.api.recipe.ui.GTRecipeTypeUI.RecipeUISize;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
 import com.gregtechceu.gtceu.client.bloom.BloomRenderTicket;
@@ -432,13 +432,13 @@ public class FusionReactorMachine extends WorkableElectricMultiblockMachine
                 throw new IllegalStateException("Fusion Reactor page holder no longer resolves its controller.");
             }
 
-            UIElement root = UITemplate.setLDLib2Bounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
-            UITemplate.setLDLib2BackgroundTexture(root, GuiTextures.BACKGROUND_INVERSE);
+            UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
+            UITemplate.setBackgroundTexture(root, GuiTextures.BACKGROUND_INVERSE);
 
             GTScrollerViewElement screen = new GTScrollerViewElement(4, 4, 182, 117);
-            UITemplate.setLDLib2BackgroundTexture(screen, getScreenTexture());
+            UITemplate.setBackgroundTexture(screen, getScreenTexture());
             screen.viewPort.layout(layout -> layout.paddingAll(0));
-            UITemplate.setLDLib2BackgroundTexture(screen.viewPort, getScreenTexture());
+            UITemplate.setBackgroundTexture(screen.viewPort, getScreenTexture());
             screen.scrollerStyle(style -> style
                     .mode(ScrollerMode.VERTICAL)
                     .verticalScrollDisplay(ScrollDisplay.AUTO)
@@ -504,7 +504,7 @@ public class FusionReactorMachine extends WorkableElectricMultiblockMachine
     }
 
     public static void addLDLib2EUToStartLabel(GTRecipeDefinition recipe, UIElement root,
-                                               LDLib2RecipeUISize rootSize) {
+                                               RecipeUISize rootSize) {
         long euToStart = RecipeData.getLong(recipe.data, "eu_to_start");
         if (euToStart <= 0) return;
         int recipeTier = RecipeHelper.getPreOCRecipeEuTier(recipe);
@@ -512,7 +512,7 @@ public class FusionReactorMachine extends WorkableElectricMultiblockMachine
     }
 
     private static void addLDLib2EUToStartLabel(UIElement root, long euToStart, int recipeTier,
-                                                LDLib2RecipeUISize rootSize) {
+                                                RecipeUISize rootSize) {
         int fusionTier = findCeilingTier(euToStart);
         int tier = Math.max(MINIMUM_TIER, Math.max(recipeTier, fusionTier));
         GTLabelElement label = new GTLabelElement(-8, rootSize.height() - 10, rootSize.width() + 8, 10);

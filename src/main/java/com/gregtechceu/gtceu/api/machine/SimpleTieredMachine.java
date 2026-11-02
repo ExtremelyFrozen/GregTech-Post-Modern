@@ -157,7 +157,7 @@ public class SimpleTieredMachine extends WorkableTieredMachine
     public static BiFunction<ResourceLocation, GTRecipeType, EditableMachineUI> EDITABLE_UI_CREATOR = Util
             .memoize((path, recipeType) -> new EditableMachineUI("simple", path,
                     () -> MachineUIXmlTemplates.createSimpleMachineXml(
-                            recipeType.getRecipeUI().createLDLib2TemplateDocument()),
+                            recipeType.getRecipeUI().createTemplateDocument()),
                     (root, machine) -> {
                         if (!(machine instanceof SimpleTieredMachine tieredMachine)) {
                             throw new IllegalArgumentException("Simple machine XML cannot bind " +
@@ -186,6 +186,6 @@ public class SimpleTieredMachine extends WorkableTieredMachine
     protected GTItemSlotElement createLDLib2BatterySlot() {
         var slot = bindLDLib2BatterySlot(new GTItemSlotElement())
                 .setBackgroundTexture(GuiTextures.group(GuiTextures.SLOT, GuiTextures.CHARGER_OVERLAY));
-        return UITemplate.setLDLib2Bounds(slot, 0, 0, 18, 18);
+        return UITemplate.setBounds(slot, 0, 0, 18, 18);
     }
 }

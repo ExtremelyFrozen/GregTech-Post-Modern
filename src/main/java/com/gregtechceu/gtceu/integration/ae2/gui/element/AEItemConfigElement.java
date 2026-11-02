@@ -46,7 +46,7 @@ public final class AEItemConfigElement extends UIElement {
                                BiConsumer<MachineUIHolder, SyncActionData> actionSender,
                                BooleanSupplier canSendAction, Predicate<UIEvent> ctrlDown) {
         this.snapshotSupplier = snapshotSupplier;
-        UITemplate.setLDLib2Bounds(this, 0, 0, 150, 88);
+        UITemplate.setBounds(this, 0, 0, 150, 88);
         addChild(createOnlineLabel());
         this.amountProjection = new AEItemConfigAmountProjection(snapshotSupplier, holder, actionSender,
                 canSendAction);

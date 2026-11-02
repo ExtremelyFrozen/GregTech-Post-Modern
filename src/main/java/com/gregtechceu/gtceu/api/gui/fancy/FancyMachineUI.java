@@ -78,15 +78,15 @@ public class FancyMachineUI extends UIElement {
         this.openingPlayer = inventory.player;
         this.holder = holder;
         this.contextualSubTabs = List.copyOf(contextualSubTabs);
-        UITemplate.setLDLib2Bounds(this, 0, 0, width, height);
-        UITemplate.setLDLib2BackgroundTexture(this, GuiTextures.BACKGROUND);
+        UITemplate.setBounds(this, 0, 0, width, height);
+        UITemplate.setBackgroundTexture(this, GuiTextures.BACKGROUND);
         style(style -> style.overflowVisible(true));
 
-        this.pageContainer = UITemplate.setLDLib2Bounds(new UIElement(), 0, 0, width, height);
+        this.pageContainer = UITemplate.setBounds(new UIElement(), 0, 0, width, height);
         addChild(pageContainer);
 
         if (mainPage.hasPlayerInventory()) {
-            this.playerInventory = UITemplate.bindPlayerInventoryLDLib2(inventory, GuiTextures.SLOT, 0, 0, true);
+            this.playerInventory = UITemplate.bindPlayerInventory(inventory, GuiTextures.SLOT, 0, 0, true);
             addChild(playerInventory);
         } else {
             this.playerInventory = null;
@@ -215,9 +215,9 @@ public class FancyMachineUI extends UIElement {
 
         // The machine screen owns root positioning; page rebuilds only update the shell dimensions.
         getLayout().width(contentWidth).height(rootHeight);
-        UITemplate.setLDLib2Bounds(pageContainer, 0, 0, contentWidth, contentHeight);
-        UITemplate.setLDLib2BackgroundTexture(pageContainer, GuiTextures.BACKGROUND);
-        UITemplate.setLDLib2Bounds(sideTabsElement, -20, 0, 24, contentHeight);
+        UITemplate.setBounds(pageContainer, 0, 0, contentWidth, contentHeight);
+        UITemplate.setBackgroundTexture(pageContainer, GuiTextures.BACKGROUND);
+        UITemplate.setBounds(sideTabsElement, -20, 0, 24, contentHeight);
         tooltipsPanel.moveTo(contentWidth + 2, 2);
         titleBar.resize(contentWidth);
 
@@ -227,7 +227,7 @@ public class FancyMachineUI extends UIElement {
             cachedPage.setVisible(cachedPage == page);
             cachedPage.setActive(cachedPage == page);
         }
-        UITemplate.setLDLib2Bounds(page, (contentWidth - pageWidth) / 2, (contentHeight - pageHeight) / 2,
+        UITemplate.setBounds(page, (contentWidth - pageWidth) / 2, (contentHeight - pageHeight) / 2,
                 pageWidth, pageHeight);
 
         fancyUI.attachConfigurators(configuratorPanel);
@@ -283,7 +283,7 @@ public class FancyMachineUI extends UIElement {
         if (playerInventory == null) {
             return;
         }
-        UITemplate.setLDLib2Bounds(playerInventory, (contentWidth - PLAYER_INVENTORY_WIDTH) / 2, contentHeight,
+        UITemplate.setBounds(playerInventory, (contentWidth - PLAYER_INVENTORY_WIDTH) / 2, contentHeight,
                 PLAYER_INVENTORY_WIDTH, PLAYER_INVENTORY_ELEMENT_HEIGHT);
         playerInventory.setVisible(showInventory);
         playerInventory.setActive(showInventory);

@@ -5,7 +5,7 @@ import com.gregtechceu.gtceu.api.gui.texture.GuiTextureMetadata;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.transfer.item.NonMutatingItemCapacity;
 import com.gregtechceu.gtceu.integration.xei.GTXEIIngredientRole;
-import com.gregtechceu.gtceu.integration.xei.GTXEIIngredientRoleLDLib2Adapter;
+import com.gregtechceu.gtceu.integration.xei.GTXEIIngredientRoleAdapter;
 import com.gregtechceu.gtceu.integration.xei.handlers.item.CycleItemEntryHandler;
 
 import com.lowdragmc.lowdraglib2.gui.slot.ItemHandlerSlot;
@@ -144,7 +144,7 @@ public class GTItemSlotElement extends ItemSlot {
     }
 
     public GTItemSlotElement setIngredientIO(GTXEIIngredientRole ingredientRole) {
-        return setIngredientIO(GTXEIIngredientRoleLDLib2Adapter.toLDLib2(ingredientRole));
+        return setIngredientIO(GTXEIIngredientRoleAdapter.toIngredientIO(ingredientRole));
     }
 
     public GTItemSlotElement setIngredientIO(IngredientIO ingredientIO) {
@@ -227,7 +227,7 @@ public class GTItemSlotElement extends ItemSlot {
     }
 
     public GTItemSlotElement xeiRecipeIngredient(GTXEIIngredientRole role) {
-        return xeiRecipeIngredient(GTXEIIngredientRoleLDLib2Adapter.toLDLib2(role));
+        return xeiRecipeIngredient(GTXEIIngredientRoleAdapter.toIngredientIO(role));
     }
 
     public GTItemSlotElement xeiRecipeIngredient(IngredientIO io, Stream<ItemStack> allPossibleItems) {
@@ -238,7 +238,7 @@ public class GTItemSlotElement extends ItemSlot {
     }
 
     public GTItemSlotElement xeiRecipeIngredient(GTXEIIngredientRole role, Stream<ItemStack> allPossibleItems) {
-        return xeiRecipeIngredient(GTXEIIngredientRoleLDLib2Adapter.toLDLib2(role), allPossibleItems);
+        return xeiRecipeIngredient(GTXEIIngredientRoleAdapter.toIngredientIO(role), allPossibleItems);
     }
 
     public GTItemSlotElement xeiRecipeIngredient(IngredientIO io,
@@ -251,7 +251,7 @@ public class GTItemSlotElement extends ItemSlot {
 
     public GTItemSlotElement xeiRecipeIngredient(GTXEIIngredientRole role,
                                                  Supplier<Stream<ItemStack>> allPossibleItems) {
-        return xeiRecipeIngredient(GTXEIIngredientRoleLDLib2Adapter.toLDLib2(role), allPossibleItems);
+        return xeiRecipeIngredient(GTXEIIngredientRoleAdapter.toIngredientIO(role), allPossibleItems);
     }
 
     @Override
@@ -268,7 +268,7 @@ public class GTItemSlotElement extends ItemSlot {
     }
 
     public GTItemSlotElement xeiRecipeSlot(GTXEIIngredientRole role, float chance) {
-        return xeiRecipeSlot(GTXEIIngredientRoleLDLib2Adapter.toLDLib2(role), chance);
+        return xeiRecipeSlot(GTXEIIngredientRoleAdapter.toIngredientIO(role), chance);
     }
 
     public GTItemSlotElement xeiRecipeSlot(IngredientIO io, float chance, int amount,
@@ -283,7 +283,7 @@ public class GTItemSlotElement extends ItemSlot {
 
     public GTItemSlotElement xeiRecipeSlot(GTXEIIngredientRole role, float chance, int amount,
                                            Stream<ItemStack> allPossibleItems) {
-        return xeiRecipeSlot(GTXEIIngredientRoleLDLib2Adapter.toLDLib2(role), chance, amount, allPossibleItems);
+        return xeiRecipeSlot(GTXEIIngredientRoleAdapter.toIngredientIO(role), chance, amount, allPossibleItems);
     }
 
     public GTItemSlotElement xeiRecipeSlot(IngredientIO io, float chance, int amount,
@@ -298,7 +298,7 @@ public class GTItemSlotElement extends ItemSlot {
 
     public GTItemSlotElement xeiRecipeSlot(GTXEIIngredientRole role, float chance, int amount,
                                            Supplier<Stream<ItemStack>> allPossibleItems) {
-        return xeiRecipeSlot(GTXEIIngredientRoleLDLib2Adapter.toLDLib2(role), chance, amount, allPossibleItems);
+        return xeiRecipeSlot(GTXEIIngredientRoleAdapter.toIngredientIO(role), chance, amount, allPossibleItems);
     }
 
     @Override

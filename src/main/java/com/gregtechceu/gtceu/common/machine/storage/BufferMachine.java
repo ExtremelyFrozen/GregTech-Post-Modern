@@ -81,9 +81,9 @@ public class BufferMachine extends TieredMachine implements FancyUIMachine, Buff
     @Override
     public UIElement createMainPage(FancyMachineUI shell) {
         int invTier = getTankSize(tier);
-        UIElement root = UITemplate.setLDLib2Bounds(new UIElement(), 0, 0,
+        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0,
                 getPageWidth(), getPageHeight());
-        UIElement container = UITemplate.setLDLib2Bounds(new UIElement(), 4, 4,
+        UIElement container = UITemplate.setBounds(new UIElement(), 4, 4,
                 18 * (invTier + 1) + 8, 18 * invTier + 8);
         container.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
 
@@ -118,7 +118,7 @@ public class BufferMachine extends TieredMachine implements FancyUIMachine, Buff
                 .setCanPutItems(true)
                 .setCanTakeItems(true)
                 .setBackgroundTexture(GuiTextures.SLOT);
-        return UITemplate.setLDLib2Bounds(slotElement, x, y, 18, 18);
+        return UITemplate.setBounds(slotElement, x, y, 18, 18);
     }
 
     private GTFluidSlotElement createLDLib2FluidSlot(FancyMachineUI shell, int tankIndex, int x, int y) {
@@ -138,7 +138,7 @@ public class BufferMachine extends TieredMachine implements FancyUIMachine, Buff
                 event.hasHandler = true;
             }
         });
-        return UITemplate.setLDLib2Bounds(fluidSlot, x, y, 18, 18);
+        return UITemplate.setBounds(fluidSlot, x, y, 18, 18);
     }
 
     @Override

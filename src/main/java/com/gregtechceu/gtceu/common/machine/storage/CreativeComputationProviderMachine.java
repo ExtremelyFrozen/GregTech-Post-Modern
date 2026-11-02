@@ -135,7 +135,7 @@ public class CreativeComputationProviderMachine extends MetaMachine
     @Override
     public UI createUI(Player player, MachineUIHolder holder) {
         UIElement root = new UIElement();
-        UITemplate.setLDLib2Bounds(root, 0, 0, 140, 95);
+        UITemplate.setBounds(root, 0, 0, 140, 95);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));
         root.addChild(createLDLib2Label(7, 7, 126, 10, Component.literal("CWUt")));
         root.addChild(createLDLib2MaxCWUtField());

@@ -398,8 +398,8 @@ public class FluidHatchPartMachine extends TieredIOPartMachine
                                                     BiConsumer<MachineUIHolder, SyncActionData> actionSender,
                                                     BooleanSupplier canSendAction, Predicate<UIEvent> shiftDown,
                                                     Supplier<Optional<FluidStack>> selectedLockedFluid) {
-        UIElement root = UITemplate.setLDLib2Bounds(new UIElement(), 0, 0, 89, 63);
-        UITemplate.setLDLib2BackgroundTexture(root, GuiTextures.BACKGROUND_INVERSE);
+        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, 89, 63);
+        UITemplate.setBackgroundTexture(root, GuiTextures.BACKGROUND_INVERSE);
         root.addChild(new GTImageElement(4, 4, 81, 55, GuiTextures.DISPLAY));
 
         GTFluidSlotElement fluidSlot = createLDLib2FluidSlot(player, holder, 0, 67, 22,
@@ -496,7 +496,7 @@ public class FluidHatchPartMachine extends TieredIOPartMachine
         };
         slot.setBackgroundTexture(GuiTextures.FLUID_SLOT);
         slot.setShowAmount(false);
-        UITemplate.setLDLib2Bounds(slot, 67, 40, 18, 18);
+        UITemplate.setBounds(slot, 67, 40, 18, 18);
         slot.addEventListener(UIEvents.MOUSE_DOWN, event -> {
             if (canSendAction.getAsBoolean() &&
                     (event.button == GLFW.GLFW_MOUSE_BUTTON_LEFT ||
@@ -528,11 +528,11 @@ public class FluidHatchPartMachine extends TieredIOPartMachine
                                                    Predicate<UIEvent> shiftDown) {
         int rowSize = getTankRowSize();
         int columnSize = getTankColumnSize();
-        UIElement root = UITemplate.setLDLib2Bounds(new UIElement(), 0, 0,
+        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0,
                 18 * rowSize + 16, 18 * columnSize + 16);
-        UIElement container = UITemplate.setLDLib2Bounds(new UIElement(), 4, 4,
+        UIElement container = UITemplate.setBounds(new UIElement(), 4, 4,
                 18 * rowSize + 8, 18 * columnSize + 8);
-        UITemplate.setLDLib2BackgroundTexture(container, GuiTextures.BACKGROUND_INVERSE);
+        UITemplate.setBackgroundTexture(container, GuiTextures.BACKGROUND_INVERSE);
 
         int index = 0;
         for (int y = 0; y < columnSize; y++) {
@@ -567,7 +567,7 @@ public class FluidHatchPartMachine extends TieredIOPartMachine
                 event.hasHandler = true;
             }
         });
-        return UITemplate.setLDLib2Bounds(fluidSlot, x, y, 18, 18);
+        return UITemplate.setBounds(fluidSlot, x, y, 18, 18);
     }
 
     @Override

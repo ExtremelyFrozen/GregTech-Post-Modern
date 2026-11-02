@@ -422,18 +422,18 @@ public class ItemRecipeCapability extends RecipeCapability<SizedIngredient> {
 
     @NotNull
     @Override
-    public GTItemSlotElement createLDLib2Element() {
+    public GTItemSlotElement createElement() {
         return new GTItemSlotElement();
     }
 
     @NotNull
     @Override
-    public Class<? extends UIElement> getLDLib2ElementClass() {
+    public Class<? extends UIElement> getElementClass() {
         return GTItemSlotElement.class;
     }
 
     @Override
-    public Element createLDLib2XmlElement(Document document) {
+    public Element createXmlElement(Document document) {
         Element element = document.createElement("gtm-item-slot");
         element.setAttribute("draw-hover-overlay", "true");
         element.setAttribute("draw-hover-tips", "true");
@@ -444,15 +444,15 @@ public class ItemRecipeCapability extends RecipeCapability<SizedIngredient> {
     }
 
     @Override
-    public void applyLDLib2ElementInfo(@NotNull UIElement element,
-                                       int index,
-                                       boolean isXEI,
-                                       IO io,
-                                       GTRecipeTypeUI.@UnknownNullability("null when storage == null") RecipeHolder recipeHolder,
-                                       @NotNull GTRecipeType recipeType,
-                                       @UnknownNullability("null when content == null") GTRecipeDefinition recipe,
-                                       @Nullable Content content,
-                                       @Nullable Object storage, int recipeTier, int chanceTier) {
+    public void applyElementInfo(@NotNull UIElement element,
+                                 int index,
+                                 boolean isXEI,
+                                 IO io,
+                                 GTRecipeTypeUI.@UnknownNullability("null when storage == null") RecipeHolder recipeHolder,
+                                 @NotNull GTRecipeType recipeType,
+                                 @UnknownNullability("null when content == null") GTRecipeDefinition recipe,
+                                 @Nullable Content content,
+                                 @Nullable Object storage, int recipeTier, int chanceTier) {
         if (element instanceof GTItemSlotElement slot) {
             if (storage instanceof IItemHandlerModifiable items) {
                 if (index >= 0 && index < items.getSlots()) {
@@ -462,7 +462,7 @@ public class ItemRecipeCapability extends RecipeCapability<SizedIngredient> {
                     slot.setCanPutItems(!isXEI && io.support(IO.IN));
                 }
                 if (isXEI && recipeType.isHasResearchSlot() && index == items.getSlots()) {
-                    applyLDLib2ResearchSlot(slot, recipeHolder, recipeType);
+                    applyResearchSlot(slot, recipeHolder, recipeType);
                 }
             }
             if (content != null) {
@@ -493,9 +493,9 @@ public class ItemRecipeCapability extends RecipeCapability<SizedIngredient> {
         }
     }
 
-    private void applyLDLib2ResearchSlot(GTItemSlotElement slot,
-                                         GTRecipeTypeUI.@UnknownNullability("null when storage == null") RecipeHolder recipeHolder,
-                                         GTRecipeType recipeType) {
+    private void applyResearchSlot(GTItemSlotElement slot,
+                                   GTRecipeTypeUI.@UnknownNullability("null when storage == null") RecipeHolder recipeHolder,
+                                   GTRecipeType recipeType) {
         if (!ConfigHolder.INSTANCE.machines.enableResearch) {
             return;
         }
