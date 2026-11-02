@@ -3,8 +3,13 @@ package com.gregtechceu.gtceu.integration.jei.multipage;
 import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.gui.widget.PatternPreviewWidget;
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialKey;
+import com.gregtechceu.gtceu.api.multiblock.preview.PatternGenerationGuard;
+import com.gregtechceu.gtceu.api.multiblock.preview.PatternGenerationGuard.Resolution;
 import com.gregtechceu.gtceu.api.registry.GTRegistries;
 import com.gregtechceu.gtceu.common.data.machines.GTMultiMachines;
+import com.gregtechceu.gtceu.data.pattern.StructurePatternRegistry;
+import com.gregtechceu.gtceu.integration.xei.multiblock.MultiblockInfo;
 
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEventDispatcher;
@@ -19,18 +24,25 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.navigation.ScreenPosition;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
 
+import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
 import it.unimi.dsi.fastutil.objects.ObjectList;
+import mezz.jei.api.constants.VanillaTypes;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
 import mezz.jei.api.gui.drawable.IDrawable;
 import mezz.jei.api.gui.inputs.RecipeSlotUnderMouse;
 import mezz.jei.api.gui.widgets.IRecipeExtrasBuilder;
 import mezz.jei.api.gui.widgets.ISlottedRecipeWidget;
 import mezz.jei.api.helpers.IJeiHelpers;
+import mezz.jei.api.ingredients.ITypedIngredient;
 import mezz.jei.api.recipe.IFocusGroup;
 import mezz.jei.api.recipe.RecipeIngredientRole;
 import mezz.jei.api.recipe.RecipeType;
-import mezz.jei.api.registration.IRecipeRegistration;
+import mezz.jei.api.recipe.advanced.ISimpleRecipeManagerPlugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
@@ -43,39 +55,46 @@ import javax.annotation.ParametersAreNonnullByDefault;
 
 @MethodsReturnNonnullByDefault
 @ParametersAreNonnullByDefault
-public class MultiblockInfoCategory extends ModularUIRecipeCategory<MultiblockInfoWrapper> {
+public class MultiblockInfoCategory extends ModularUIRecipeCategory<MultiblockInfo>
+                                    implements ISimpleRecipeManagerPlugin<MultiblockInfo> {
 
-    public final static RecipeType<MultiblockInfoWrapper> RECIPE_TYPE = new RecipeType<>(
+    public final static RecipeType<MultiblockInfo> RECIPE_TYPE = new RecipeType<>(
             GTCEu.id("multiblock_info"),
-            MultiblockInfoWrapper.class);
+            MultiblockInfo.class);
     private final int width;
     private final int height;
     private final IDrawable icon;
+    private final ObjectList<MultiblockInfo> recipes;
+    private final Object2ObjectMap<MaterialKey, ObjectList<MultiblockInfo>> outputs = new Object2ObjectLinkedOpenHashMap<>();
+    private @Nullable Resolution<Object2ObjectMap<MaterialKey, ObjectList<MultiblockInfo>>> inputs;
 
     public MultiblockInfoCategory(IJeiHelpers helpers) {
-        super(MultiblockInfoWrapper::createModularUI);
+        super(PatternPreviewWidget::createModularUI);
         this.width = PatternPreviewWidget.WIDTH;
         this.height = PatternPreviewWidget.HEIGHT;
         this.icon = helpers.getGuiHelper().createDrawableItemStack(GTMultiMachines.ELECTRIC_BLAST_FURNACE.asStack());
-    }
-
-    public static void registerRecipes(IRecipeRegistration registry) {
-        registry.addRecipes(RECIPE_TYPE, GTRegistries.MACHINES.stream()
+        recipes = GTRegistries.MACHINES.stream()
                 .filter(MultiblockMachineDefinition.class::isInstance)
                 .map(MultiblockMachineDefinition.class::cast)
                 .filter(MultiblockMachineDefinition::isRenderXEIPreview)
-                .map(MultiblockInfoWrapper::new)
-                .toList());
+                .map(MultiblockInfo::new)
+                .collect(ObjectImmutableList.toList());
+        for (var recipe : recipes) {
+            for (ItemStack stack : recipe.getOutputs()) {
+                outputs.computeIfAbsent(MaterialKey.of(stack), ignored -> new ObjectArrayList<>()).add(recipe);
+            }
+        }
+        outputs.replaceAll((key, values) -> new ObjectImmutableList<>(values));
     }
 
     @Override
-    public @Nullable ResourceLocation getRegistryName(@NotNull MultiblockInfoWrapper recipe) {
-        return recipe.definition.getId();
+    public @Nullable ResourceLocation getRegistryName(@NotNull MultiblockInfo recipe) {
+        return recipe.getDefinition().getId();
     }
 
     @Override
     @NotNull
-    public RecipeType<MultiblockInfoWrapper> getRecipeType() {
+    public RecipeType<MultiblockInfo> getRecipeType() {
         return RECIPE_TYPE;
     }
 
@@ -101,14 +120,14 @@ public class MultiblockInfoCategory extends ModularUIRecipeCategory<MultiblockIn
     }
 
     @Override
-    public void setRecipe(IRecipeLayoutBuilder builder, MultiblockInfoWrapper recipe, IFocusGroup focuses) {
+    public void setRecipe(IRecipeLayoutBuilder builder, MultiblockInfo recipe, IFocusGroup focuses) {
         builder.addSlot(RecipeIngredientRole.OUTPUT)
-                .addItemStacks(PatternPreviewWidget.getOutputs(recipe.definition))
+                .addItemStacks(recipe.getOutputs())
                 .setPosition(PatternPreviewWidget.WIDTH - 22, 4);
     }
 
     @Override
-    public void createRecipeExtras(IRecipeExtrasBuilder builder, MultiblockInfoWrapper recipe, IFocusGroup focuses) {
+    public void createRecipeExtras(IRecipeExtrasBuilder builder, MultiblockInfo recipe, IFocusGroup focuses) {
         var ui = getUIForRecipe(recipe);
         var widget = new ModularUIJEIWidget(ui) {
 
@@ -162,5 +181,56 @@ public class MultiblockInfoCategory extends ModularUIRecipeCategory<MultiblockIn
                 }
             }, ObjectList.of());
         }
+    }
+
+    private ObjectList<MultiblockInfo> inputRecipes(ItemStack stack) {
+        var indexed = inputs;
+        if (indexed == null || indexed.generation() != StructurePatternRegistry.generation()) {
+            indexed = PatternGenerationGuard.resolve(StructurePatternRegistry::generation, attempt -> {
+                Object2ObjectMap<MaterialKey, ObjectList<MultiblockInfo>> index = new Object2ObjectLinkedOpenHashMap<>();
+                for (var recipe : recipes) {
+                    for (var key : recipe.getPotentialInputs()) {
+                        index.computeIfAbsent(key, ignored -> new ObjectArrayList<>()).add(recipe);
+                    }
+                }
+                index.replaceAll((key, values) -> new ObjectImmutableList<>(values));
+                return index;
+            });
+            inputs = indexed;
+        }
+        return indexed.value().getOrDefault(MaterialKey.of(stack), ObjectList.of());
+    }
+
+    @Override
+    public boolean isHandledInput(ITypedIngredient<?> input) {
+        return input.getIngredient(VanillaTypes.ITEM_STACK).map(stack -> !inputRecipes(stack).isEmpty()).orElse(false);
+    }
+
+    @Override
+    public boolean isHandledOutput(ITypedIngredient<?> output) {
+        return !getRecipesForOutput(output).isEmpty();
+    }
+
+    @Override
+    public ObjectList<MultiblockInfo> getRecipesForInput(ITypedIngredient<?> input) {
+        return input.getIngredient(VanillaTypes.ITEM_STACK).map(this::recipesUsing).orElse(ObjectList.of());
+    }
+
+    private ObjectList<MultiblockInfo> recipesUsing(ItemStack stack) {
+        return inputRecipes(stack).stream().filter(recipe -> recipe.getMaterials().stream()
+                .anyMatch(material -> material.candidates().stream()
+                        .anyMatch(candidate -> ItemStack.isSameItemSameComponents(candidate, stack))))
+                .collect(ObjectImmutableList.toList());
+    }
+
+    @Override
+    public ObjectList<MultiblockInfo> getRecipesForOutput(ITypedIngredient<?> output) {
+        return output.getIngredient(VanillaTypes.ITEM_STACK)
+                .map(stack -> outputs.getOrDefault(MaterialKey.of(stack), ObjectList.of())).orElse(ObjectList.of());
+    }
+
+    @Override
+    public ObjectList<MultiblockInfo> getAllRecipes() {
+        return recipes;
     }
 }

@@ -2,15 +2,13 @@ package com.gregtechceu.gtceu.integration.emi.multipage;
 
 import com.gregtechceu.gtceu.api.gui.widget.PatternPreviewWidget;
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
-import com.gregtechceu.gtceu.common.item.datacomponents.TerminalMachine;
+import com.gregtechceu.gtceu.integration.xei.multiblock.MultiblockInfo;
 
-import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEventDispatcher;
 import com.lowdragmc.lowdraglib2.integration.xei.emi.EMIUIEvents;
 import com.lowdragmc.lowdraglib2.integration.xei.emi.ModularUIEMIRecipe;
 import com.lowdragmc.lowdraglib2.integration.xei.emi.ModularUIEMIWidget;
-import com.lowdragmc.lowdraglib2.integration.xei.emi.handler.EMIRecipeIngredientHandler;
 import com.lowdragmc.lowdraglib2.integration.xei.emi.handler.EMIRecipeWidgetHandler;
 
 import net.minecraft.client.gui.GuiGraphics;
@@ -21,6 +19,8 @@ import dev.emi.emi.api.stack.EmiIngredient;
 import dev.emi.emi.api.stack.EmiStack;
 import dev.emi.emi.api.widget.SlotWidget;
 import dev.emi.emi.api.widget.WidgetHolder;
+import dev.emi.emi.registry.EmiRecipes;
+import dev.emi.emi.runtime.EmiReloadManager;
 import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
 import it.unimi.dsi.fastutil.objects.ObjectList;
 import org.jetbrains.annotations.NotNull;
@@ -33,16 +33,11 @@ import java.util.List;
 
 public class MultiblockInfoEmiRecipe extends ModularUIEMIRecipe {
 
-    private final MultiblockMachineDefinition definition;
-    private @Nullable TerminalMachine machine;
+    private final MultiblockInfo info;
 
     public MultiblockInfoEmiRecipe(MultiblockMachineDefinition definition) {
-        super(recipe -> ((MultiblockInfoEmiRecipe) recipe).createModularUI());
-        this.definition = definition;
-    }
-
-    private ModularUI createModularUI() {
-        return PatternPreviewWidget.createModularUI(definition, machine, value -> machine = value);
+        super(recipe -> PatternPreviewWidget.createModularUI(((MultiblockInfoEmiRecipe) recipe).info));
+        info = new MultiblockInfo(definition);
     }
 
     @Override
@@ -102,26 +97,25 @@ public class MultiblockInfoEmiRecipe extends ModularUIEMIRecipe {
 
     @Override
     public @Nullable ResourceLocation getId() {
-        return definition.getId().withPrefix("/");
+        return info.getDefinition().getId().withPrefix("/");
     }
 
     @Override
     public @NotNull ObjectList<EmiStack> getOutputs() {
-        return PatternPreviewWidget.getOutputs(definition).stream().map(EmiStack::of)
+        return info.getOutputs().stream().map(EmiStack::of)
                 .collect(ObjectImmutableList.toList());
     }
 
     @Override
     public @NotNull List<EmiIngredient> getInputs() {
-        // Registration indexes stable outputs; material inputs belong to the currently configured page.
-        var ui = uiCache.getIfPresent(this);
-        if (ui == null) return ObjectList.of();
-        var ingredients = new EMIRecipeIngredientHandler();
-        var event = UIEvent.create(EMIUIEvents.RECIPE_INGREDIENT);
-        event.target = ui.ui.rootElement;
-        event.customData = ingredients;
-        UIEventDispatcher.dispatchAllChildren(event);
-        return ingredients.inputs;
+        // Both native indexing passes need the candidate superset. EMI's pruneUses then queries the live inputs.
+        if (!EmiReloadManager.isLoaded() || EmiRecipes.activeWorker != null) {
+            return info.getPotentialInputs().stream().<EmiIngredient>map(key -> EmiStack.of(key.prototype()))
+                    .collect(ObjectImmutableList.toList());
+        }
+        return info.getMaterials().stream().map(material -> EmiIngredient.of(material.candidates().stream()
+                .map(stack -> EmiStack.of(stack).setAmount(material.required())).toList()))
+                .collect(ObjectImmutableList.toList());
     }
 
     @Override

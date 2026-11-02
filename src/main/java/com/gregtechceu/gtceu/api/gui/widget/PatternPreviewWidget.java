@@ -6,14 +6,11 @@ import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTButtonElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
-import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.BatchPlanner;
-import com.gregtechceu.gtceu.api.multiblock.preview.PatternGenerationGuard;
 import com.gregtechceu.gtceu.api.multiblock.preview.StructurePreview;
-import com.gregtechceu.gtceu.common.item.datacomponents.TerminalMachine;
 import com.gregtechceu.gtceu.common.item.terminal.network.TerminalChange;
 import com.gregtechceu.gtceu.common.item.terminal.ui.StructureControls;
 import com.gregtechceu.gtceu.data.pattern.StructurePatternRegistry;
+import com.gregtechceu.gtceu.integration.xei.multiblock.MultiblockInfo;
 
 import com.lowdragmc.lowdraglib2.gui.holder.ModularUIScreen;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
@@ -24,20 +21,14 @@ import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.math.Size;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.item.ItemStack;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import dev.vfyjxf.taffy.style.TaffyPosition;
-import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
 import it.unimi.dsi.fastutil.objects.ObjectList;
 import org.jspecify.annotations.NullMarked;
-import org.jspecify.annotations.Nullable;
-
-import java.util.function.Consumer;
 
 /**
  * One XEI opening owns its configuration and scene. The same controls and validation are used by the terminal,
@@ -51,27 +42,23 @@ public final class PatternPreviewWidget extends UIElement {
     public static final int HEIGHT = 200;
 
     private final MultiblockMachineDefinition definition;
-    private final BatchPlanner resolver = new BatchPlanner();
+    private final MultiblockInfo info;
     private final MultiblockPreviewPanel preview;
     private final StructureControls configuration;
     private final GTLabelElement title;
     private final GTButtonElement fullscreen = new GTButtonElement(258, 4, 16, 14);
     private final boolean expanded;
-    private final Consumer<TerminalMachine> save;
-    private TerminalMachine machine;
     private long observedGeneration;
 
-    private PatternPreviewWidget(MultiblockMachineDefinition definition, TerminalMachine machine, boolean expanded,
-                                 Consumer<TerminalMachine> save) {
-        this.definition = definition;
-        this.machine = machine;
+    private PatternPreviewWidget(MultiblockInfo info, boolean expanded) {
+        this.info = info;
+        this.definition = info.getDefinition();
         this.expanded = expanded;
-        this.save = save;
         UITemplate.setLDLib2Bounds(this, 0, 0, WIDTH, HEIGHT);
         getLayout().positionType(TaffyPosition.RELATIVE);
         getStyle().backgroundTexture(GuiTextures.BACKGROUND);
         setOverflowVisible(false);
-        var initial = resolvePreview(false);
+        var initial = info.resolvePreview();
         observedGeneration = initial.generation();
 
         title = new GTLabelElement(6, 6, 246, 10, definition.getBlock().getName());
@@ -82,7 +69,7 @@ public final class PatternPreviewWidget extends UIElement {
         preview = new MultiblockPreviewPanel(180, 176, initial.value(), false);
         preview.layout(layout -> layout.left(4).top(20));
         addChild(preview);
-        configuration = new StructureControls(188, 20, 108, 176, definition, machine, preview, false,
+        configuration = new StructureControls(188, 20, 108, 176, definition, info.getMachine(), preview, false,
                 this::applyChange);
         addChild(configuration);
         fullscreen.setButtonTexture(GuiTextures.BUTTON).setText(Component.literal(expanded ? "↙" : "↗"));
@@ -99,10 +86,8 @@ public final class PatternPreviewWidget extends UIElement {
     }
 
     /** Keeps the recipe's configuration when its render cache expires or the fullscreen page closes. */
-    public static ModularUI createModularUI(MultiblockMachineDefinition definition, @Nullable TerminalMachine machine,
-                                            Consumer<TerminalMachine> save) {
-        var root = new PatternPreviewWidget(definition,
-                machine == null ? TerminalMachine.defaults(definition) : machine, false, save);
+    public static ModularUI createModularUI(MultiblockInfo info) {
+        var root = new PatternPreviewWidget(info, false);
         return ModularUI.of(UI.of(root, root::resize));
     }
 
@@ -119,55 +104,34 @@ public final class PatternPreviewWidget extends UIElement {
     private void openFullscreen() {
         var client = Minecraft.getInstance();
         var parent = client.screen;
-        var root = new PatternPreviewWidget(definition, machine, true, save);
+        var root = new PatternPreviewWidget(info, true);
         client.setScreen(new ModularUIScreen(ModularUI.of(UI.of(root, root::resize)), definition.getBlock().getName()) {
 
             @Override
             public void onClose() {
-                machine = root.machine;
                 observedGeneration = root.observedGeneration;
                 preview.setPreview(root.preview.getState().getPreview());
-                configuration.setMachine(machine);
+                configuration.setMachine(info.getMachine());
                 client.setScreen(parent);
             }
         });
     }
 
-    public static ObjectList<ItemStack> getOutputs(MultiblockMachineDefinition definition) {
-        return definition.getStructureOrder().stream().map(name -> {
-            var stack = definition.asStack();
-            if (!MultiblockControllerMachine.DEFAULT_STRUCTURE.equals(name)) {
-                stack.set(DataComponents.CUSTOM_NAME,
-                        stack.getHoverName().copy().append(" - ").append(Component.translatable(name)));
-            }
-            return stack;
-        }).collect(ObjectImmutableList.toList());
-    }
-
     private void applyChange(TerminalChange update) {
         try {
-            machine = update.apply(definition, machine);
-            publishPreview(false);
+            info.setMachine(update.apply(definition, info.getMachine()));
+            publishPreview();
         } catch (RuntimeException exception) {
             showFailure(exception);
         }
     }
 
-    private PatternGenerationGuard.Resolution<StructurePreview> resolvePreview(boolean reset) {
-        return PatternGenerationGuard.resolve(StructurePatternRegistry::generation, attempt -> {
-            if (reset || attempt > 0) machine = TerminalMachine.defaults(definition);
-            var plan = resolver.resolveCanonical(definition, machine.createRequest(definition, ObjectList.of()));
-            return StructurePreview.canonical(definition.getId(), plan);
-        });
-    }
-
-    private void publishPreview(boolean reset) {
-        var resolved = resolvePreview(reset);
+    private void publishPreview() {
+        var resolved = info.resolvePreview();
         observedGeneration = resolved.generation();
         preview.setPreview(resolved.value());
-        configuration.setMachine(machine);
+        configuration.setMachine(info.getMachine());
         configuration.setInteractive(true);
-        save.accept(machine);
     }
 
     private void showFailure(RuntimeException exception) {
@@ -184,7 +148,7 @@ public final class PatternPreviewWidget extends UIElement {
         super.screenTick();
         if (StructurePatternRegistry.generation() != observedGeneration) {
             try {
-                publishPreview(true);
+                publishPreview();
             } catch (RuntimeException exception) {
                 showFailure(exception);
             }

@@ -45,6 +45,7 @@ import java.util.List;
 @JeiPlugin
 public class GTJEIPlugin implements IModPlugin {
 
+    private MultiblockInfoCategory multiblocks;
     public static IJeiRuntime jeiRuntime;
     public static IJeiHelpers jeiHelpers;
 
@@ -71,7 +72,8 @@ public class GTJEIPlugin implements IModPlugin {
         if (!GTCEu.MODS.isJEILoaded()) return;
 
         jeiHelpers = registry.getJeiHelpers();
-        registry.addRecipeCategories(new MultiblockInfoCategory(jeiHelpers));
+        multiblocks = new MultiblockInfoCategory(jeiHelpers);
+        registry.addRecipeCategories(multiblocks);
         if (!ConfigHolder.INSTANCE.compat.hideOreProcessingDiagrams)
             registry.addRecipeCategories(new GTOreProcessingInfoCategory(jeiHelpers));
         registry.addRecipeCategories(new GTOreVeinInfoCategory(jeiHelpers));
@@ -84,6 +86,12 @@ public class GTJEIPlugin implements IModPlugin {
             }
         }
         registry.addRecipeCategories(new GTProgrammedCircuitCategory(jeiHelpers));
+    }
+
+    @Override
+    public void registerAdvanced(@NotNull IAdvancedRegistration registration) {
+        if (!GTCEu.MODS.isJEILoaded()) return;
+        registration.addTypedRecipeManagerPlugin(MultiblockInfoCategory.RECIPE_TYPE, multiblocks);
     }
 
     @Override
@@ -106,7 +114,6 @@ public class GTJEIPlugin implements IModPlugin {
     public void registerRecipes(@NotNull IRecipeRegistration registration) {
         if (!GTCEu.MODS.isJEILoaded()) return;
 
-        MultiblockInfoCategory.registerRecipes(registration);
         GTLDLib2RecipeJEICategory.registerRecipes(registration);
         if (!ConfigHolder.INSTANCE.compat.hideOreProcessingDiagrams)
             GTOreProcessingInfoCategory.registerRecipes(registration);
