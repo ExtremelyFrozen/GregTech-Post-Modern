@@ -4,6 +4,7 @@ import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo
 import com.gregtechceu.gtceu.api.machine.MetaMachine
 import com.gregtechceu.gtceu.api.sync_system.SyncDataHolder
+import com.gregtechceu.gtceu.api.sync_system.SyncFieldData
 import com.gregtechceu.gtceu.common.network.packets.CPacketMachineSyncToServer
 import com.gregtechceu.gtceu.common.network.packets.SPacketMachineSyncToClient
 
@@ -126,7 +127,7 @@ abstract class ManagedSyncBlockEntity :
 		val fullSync = syncDataHolder.isFullSyncPending()
 		if (serverLevel != null && syncDataHolder.scanAndMarkChanges(serverLevel.registryAccess())) {
 			val changes = syncDataHolder.collectClientNetworkChanges(serverLevel.registryAccess(), false)
-			if (!changes.isEmpty) {
+			if (!changes.isEmpty()) {
 				PacketDistributor.sendToPlayersTrackingChunk(
 					serverLevel,
 					ChunkPos(blockPos),
@@ -149,7 +150,7 @@ abstract class ManagedSyncBlockEntity :
 	open fun clientTick() {}
 
 	/** Publishes the exact GT client-sync delta after it has been sent to ordinary chunk observers. */
-	protected open fun onClientNetworkChanges(changes: DataComponentMap) {}
+	protected open fun onClientNetworkChanges(changes: SyncFieldData) {}
 
 	open fun sendServerSyncChanges() {
 		if (level == null || !level!!.isClientSide) {
@@ -158,14 +159,14 @@ abstract class ManagedSyncBlockEntity :
 
 		val registryAccess = level!!.registryAccess()
 		val rootChanges = syncDataHolder.collectServerNetworkChanges(registryAccess)
-		if (!rootChanges.isEmpty) {
+		if (!rootChanges.isEmpty()) {
 			PacketDistributor.sendToServer(CPacketMachineSyncToServer(blockPos, BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(type)!!, rootChanges))
 		}
 
 		if (this is MetaMachine) {
-			for (trait in getSyncTraits()) {
+			for (trait in syncTraits) {
 				val traitChanges = trait.getSyncDataHolder().collectServerNetworkChanges(registryAccess)
-				if (!traitChanges.isEmpty) {
+				if (!traitChanges.isEmpty()) {
 					PacketDistributor.sendToServer(CPacketMachineSyncToServer.forMachineTrait(this, trait, traitChanges))
 				}
 			}

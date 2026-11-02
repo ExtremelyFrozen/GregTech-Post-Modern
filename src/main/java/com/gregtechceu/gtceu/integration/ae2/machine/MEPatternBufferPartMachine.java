@@ -32,6 +32,7 @@ import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler;
 import com.gregtechceu.gtceu.api.recipe.handler.RecipeHandlerList;
 import com.gregtechceu.gtceu.api.recipe.ingredient.SizedIngredientExtensions;
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData;
+import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
 import com.gregtechceu.gtceu.api.transfer.item.CustomItemStackHandler;
@@ -50,7 +51,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionResult;
@@ -320,7 +320,7 @@ public class MEPatternBufferPartMachine extends MEBusPartMachine
     }
 
     @Override
-    protected void onClientNetworkChanges(DataComponentMap changes) {
+    protected void onClientNetworkChanges(SyncFieldData changes) {
         for (MEPatternBufferProxyUIContainerMenu menu : List.copyOf(proxyUIMenus)) {
             try {
                 menu.sendBufferChanges(this, changes);
@@ -417,8 +417,8 @@ public class MEPatternBufferPartMachine extends MEBusPartMachine
      * Builds an opening-scoped page with injectable action transport for direct interaction tests.
      */
     FancyUIProvider createPage(Player player, MachineUIHolder holder,
-                                     BiConsumer<MachineUIHolder, SyncActionData> actionSender,
-                                     BooleanSupplier canSendAction, Predicate<UIEvent> shiftDown) {
+                               BiConsumer<MachineUIHolder, SyncActionData> actionSender,
+                               BooleanSupplier canSendAction, Predicate<UIEvent> shiftDown) {
         requireMatchingHolder(holder);
         BooleanSupplier openingValid = () -> matchesDirectOpening(holder);
         return createOpeningScopedPage(player, holder, actionSender, openingValid,

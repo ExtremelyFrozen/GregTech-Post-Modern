@@ -5,7 +5,6 @@ import com.gregtechceu.gtceu.api.sync_system.SyncFieldData
 import com.gregtechceu.gtceu.api.sync_system.managed.ManagedSyncBlockEntity
 
 import net.minecraft.core.BlockPos
-import net.minecraft.core.component.DataComponentMap
 import net.minecraft.network.RegistryFriendlyByteBuf
 import net.minecraft.network.codec.StreamCodec
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload
@@ -15,26 +14,26 @@ import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.entity.BlockEntity
 import net.neoforged.neoforge.network.handling.IPayloadContext
 
-open class SPacketMachineSyncToClient(private val pos: BlockPos, private val data: DataComponentMap, private val fullSync: Boolean) : CustomPacketPayload {
+open class SPacketMachineSyncToClient(private val pos: BlockPos, private val data: SyncFieldData, private val fullSync: Boolean) : CustomPacketPayload {
 
-	constructor(pos: BlockPos, data: DataComponentMap) : this(pos, data, false)
+	constructor(pos: BlockPos, data: SyncFieldData) : this(pos, data, false)
 
 	constructor(buffer: RegistryFriendlyByteBuf) : this(
 		buffer.readBlockPos(),
-		SyncFieldData.DATA_COMPONENT_MAP_STREAM_CODEC.decode(buffer),
+		SyncFieldData.STREAM_CODEC.decode(buffer),
 		buffer.readBoolean(),
 	)
 
 	open fun encode(buffer: RegistryFriendlyByteBuf) {
 		buffer.writeBlockPos(pos)
-		SyncFieldData.DATA_COMPONENT_MAP_STREAM_CODEC.encode(buffer, data)
+		SyncFieldData.STREAM_CODEC.encode(buffer, data)
 		buffer.writeBoolean(fullSync)
 	}
 
 	fun isFullSync(): Boolean = fullSync
 
 	open fun execute(context: IPayloadContext) {
-		if (data.isEmpty) {
+		if (data.isEmpty()) {
 			return
 		}
 

@@ -43,7 +43,7 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 	private val authoritativeClientFields: ObjectSet<FieldSyncData> = ObjectOpenHashSet()
 
 	@field:Nullable
-	private var pendingClientChanges: DataComponentMap? = null
+	private var pendingClientChanges: SyncFieldData? = null
 	private var resyncAll = true
 
 	init {
@@ -111,8 +111,6 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 		return builder.build()
 	}
 
-	fun serializeFullClientSyncComponents(registries: HolderLookup.Provider): DataComponentMap = componentsOf(serializeFullClientSyncData(registries))
-
 	/**
 	 * Serializes one client field for validation without consuming pending changes or updating synchronization caches.
 	 */
@@ -135,24 +133,14 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 			if (pendingClientChanges == null) {
 				scanAndMarkChanges(registries)
 			}
-			getPendingFieldData()
+			getPendingChanges()
 		}
 	} else {
 		serializeToSaveFieldData(registries)
 	}
 
-	fun serializeToComponents(registries: HolderLookup.Provider, writeClientFields: Boolean, fullSync: Boolean): DataComponentMap = if (writeClientFields) {
-		if (fullSync) {
-			serializeFullClientSyncComponents(registries)
-		} else {
-			if (pendingClientChanges == null) {
-				scanAndMarkChanges(registries)
-			}
-			getPendingChanges()
-		}
-	} else {
-		componentsOf(serializeToSaveFieldData(registries))
-	}
+	fun serializeToComponents(registries: HolderLookup.Provider, writeClientFields: Boolean, fullSync: Boolean): DataComponentMap =
+		componentsOf(serializeToFieldData(registries, writeClientFields, fullSync))
 
 	fun serializeToSaveFieldData(registries: HolderLookup.Provider): SyncFieldData {
 		val builder = SyncFieldData.builder()
@@ -194,7 +182,7 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 		resyncAll = false
 		dirtySyncFields.clear()
 		if (hasChanges) {
-			pendingClientChanges = componentsOf(changes.build())
+			pendingClientChanges = changes.build()
 			return true
 		}
 		return false
@@ -237,28 +225,18 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 		)
 	}
 
-	fun getPendingChanges(): DataComponentMap {
-		val changes = pendingClientChanges
-		pendingClientChanges = null
-		return changes ?: DataComponentMap.EMPTY
-	}
+	fun getPendingChanges(): SyncFieldData = (pendingClientChanges ?: SyncFieldData.EMPTY).also { pendingClientChanges = null }
 
-	fun getPendingFieldData(): SyncFieldData {
-		val changes = getPendingChanges()
-		return changes.get(GTDataComponents.SYNC_FIELD_DATA.get()) ?: SyncFieldData.EMPTY
-	}
-
-	fun collectClientNetworkChanges(registries: RegistryAccess, force: Boolean): DataComponentMap {
+	fun collectClientNetworkChanges(registries: RegistryAccess, force: Boolean): SyncFieldData {
 		if (force) {
-			pendingClientChanges = serializeFullClientSyncComponents(registries)
+			pendingClientChanges = serializeFullClientSyncData(registries)
 		}
 
 		return getPendingChanges()
 	}
 
-	fun collectServerNetworkChanges(registries: RegistryAccess): DataComponentMap {
+	fun collectServerNetworkChanges(registries: RegistryAccess): SyncFieldData {
 		val changes = SyncFieldData.builder()
-		var wroteAny = false
 		val fields = syncData.getOrderedServerUpdateFields()
 		for (field in fields) {
 			val currentValue = field.handle.get(holder)
@@ -271,13 +249,9 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 				FieldSyncHandler.encodeDetachedServerCandidate(registries, holder, field),
 			)
 			cachedServerValues[field] = currentValue
-			wroteAny = true
 		}
 
-		if (!wroteAny) {
-			return DataComponentMap.EMPTY
-		}
-		return componentsOf(changes.build())
+		return changes.build()
 	}
 
 	fun deserializeItemComponents(registries: HolderLookup.Provider, components: DataComponentMap) {
@@ -305,7 +279,7 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 			if (!fieldData.fields.containsKey(itemFieldKey(field))) {
 				continue
 			}
-			val savedValue = fieldData.get(itemFieldKey(field)) ?: JsonNull.INSTANCE
+			val savedValue = fieldData[itemFieldKey(field)] ?: JsonNull.INSTANCE
 			FieldSyncHandler.deserializeFieldData(registries, holder, field, savedValue, false)
 		}
 	}
@@ -329,7 +303,7 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 			if (!fieldData.fields.containsKey(field.componentKey)) {
 				continue
 			}
-			val savedValue = fieldData.get(field.componentKey) ?: JsonNull.INSTANCE
+			val savedValue = fieldData[field.componentKey] ?: JsonNull.INSTANCE
 			val previousClientValue = if (readingClientFields) {
 				snapshotClientValue(field.handle.get(holder))
 			} else {
@@ -372,8 +346,8 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 		}
 	}
 
-	fun applyServerNetworkUpdate(registries: RegistryAccess, components: DataComponentMap) {
-		val result = tryApplyServerNetworkUpdate(registries, components)
+	fun applyServerNetworkUpdate(registries: RegistryAccess, changes: SyncFieldData) {
+		val result = tryApplyServerNetworkUpdate(registries, changes)
 		if (!result.accepted) {
 			throw IllegalArgumentException(result.rejectionReason ?: "Sync: Server field update was rejected")
 		}
@@ -382,16 +356,8 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 	/**
 	 * Applies a client field-update batch without exposing partially decoded or normalized values to the holder.
 	 */
-	fun tryApplyServerNetworkUpdate(registries: RegistryAccess, components: DataComponentMap): ServerFieldUpdateResult {
-		if (components.isEmpty) {
-			return ServerFieldUpdateResult.accepted(false)
-		}
-
-		val changes = components.get(GTDataComponents.SYNC_FIELD_DATA.get())
-			?: return ServerFieldUpdateResult.rejected("Sync: Server field update is missing sync field data")
-		if (changes.isEmpty()) {
-			return ServerFieldUpdateResult.rejected("Sync: Server field update contains empty sync field data")
-		}
+	fun tryApplyServerNetworkUpdate(registries: RegistryAccess, changes: SyncFieldData): ServerFieldUpdateResult {
+		if (changes.isEmpty()) return ServerFieldUpdateResult.accepted(false)
 
 		val serverFields = syncData.getOrderedServerUpdateFields()
 		val selectedFields = serverFields.filter { field -> changes.fields.containsKey(field.componentKey) }
@@ -411,7 +377,7 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 		try {
 			// Decode every candidate without consulting or mutating the holder.
 			for (field in selectedFields) {
-				val encodedValue = changes.get(field.componentKey) ?: JsonNull.INSTANCE
+				val encodedValue = changes[field.componentKey] ?: JsonNull.INSTANCE
 				val candidate = FieldSyncHandler.decodeDetachedServerCandidate(registries, holder, field, encodedValue)
 				pendingUpdates.add(PendingServerFieldUpdate(field, candidate))
 			}
@@ -426,8 +392,8 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 			for (update in pendingUpdates) {
 				update.normalizedCandidate = normalizeServerCandidate(update)
 			}
-			for (update in pendingUpdates) {
-				validateServerCandidateType(update.field, update.normalizedCandidate)
+			for ((field, _, _, normalizedCandidate) in pendingUpdates) {
+				validateServerCandidateType(field, normalizedCandidate)
 			}
 
 			commitServerUpdates(pendingUpdates)
@@ -449,22 +415,13 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 	}
 
 	@JvmOverloads
-	fun applyClientNetworkUpdate(registries: RegistryAccess, components: DataComponentMap, fullSync: Boolean = false, notifyUnchangedOnFullSync: Boolean = true) {
-		applyClientNetworkUpdateInternal(registries, components, fullSync, notifyUnchangedOnFullSync)
-	}
-
-	private fun applyClientNetworkUpdateInternal(registries: RegistryAccess, components: DataComponentMap, fullSync: Boolean, notifyUnchangedOnFullSync: Boolean) {
-		if (components.isEmpty) {
-			return
-		}
-
-		val changes = components.get(GTDataComponents.SYNC_FIELD_DATA.get()) ?: return
+	fun applyClientNetworkUpdate(registries: RegistryAccess, changes: SyncFieldData, fullSync: Boolean = false, notifyUnchangedOnFullSync: Boolean = true) {
 		val changedClientFields = ArrayList<FieldSyncData>()
 		for (field in syncData.getClientSyncFields()) {
 			if (!changes.fields.containsKey(field.componentKey)) {
 				continue
 			}
-			val value = changes.get(field.componentKey) ?: JsonNull.INSTANCE
+			val value = changes[field.componentKey] ?: JsonNull.INSTANCE
 			val previousValue = snapshotClientValue(field.handle.get(holder))
 			FieldSyncHandler.deserializeFieldData(
 				registries,
@@ -596,8 +553,8 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 	private fun commitServerUpdates(updates: List<PendingServerFieldUpdate>) {
 		var committed = 0
 		try {
-			for (update in updates) {
-				update.field.handle.set(holder, update.normalizedCandidate)
+			for ((field, _, _, normalizedCandidate) in updates) {
+				field.handle.set(holder, normalizedCandidate)
 				committed++
 			}
 		} catch (e: Throwable) {

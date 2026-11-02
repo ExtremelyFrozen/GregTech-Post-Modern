@@ -1,10 +1,10 @@
 package com.gregtechceu.gtceu.integration.ae2.machine;
 
+import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
 import com.gregtechceu.gtceu.common.network.packets.SPacketMEPatternBufferProxyViewToClient;
 
 import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerMenu;
 
-import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -30,7 +30,7 @@ public final class MEPatternBufferProxyUIContainerMenu extends ModularUIContaine
     }
 
     /** Forwards the exact GT client-sync delta collected by the linked server Buffer. */
-    void sendBufferChanges(MEPatternBufferPartMachine buffer, DataComponentMap changes) {
+    void sendBufferChanges(MEPatternBufferPartMachine buffer, SyncFieldData changes) {
         if (!(inventory.player instanceof ServerPlayer player) || player.containerMenu != this ||
                 buffer != holder.getPatternBufferView() || !holder.isOpeningValid(player)) {
             buffer.removeProxyUIMenu(this);
@@ -49,7 +49,7 @@ public final class MEPatternBufferProxyUIContainerMenu extends ModularUIContaine
         BlockState currentState = holder.getPatternBufferView().getBlockState();
         if (!currentState.equals(lastSentBlockState)) {
             sendUpdate(player, MEPatternBufferProxyViewSnapshot.update(
-                    holder.getPatternBufferView(), DataComponentMap.EMPTY));
+                    holder.getPatternBufferView(), SyncFieldData.EMPTY));
         }
     }
 

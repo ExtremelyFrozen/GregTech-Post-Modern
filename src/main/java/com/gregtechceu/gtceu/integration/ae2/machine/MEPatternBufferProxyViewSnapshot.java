@@ -9,7 +9,6 @@ import com.lowdragmc.lowdraglib2.utils.virtuallevel.DummyWorld;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
-import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.world.level.Level;
@@ -29,7 +28,7 @@ import java.util.List;
  * @param data         full opening snapshot or a later GT client-sync delta
  * @param sharedFluids omitted for vanilla opening data, otherwise the complete indexed shared-fluid container
  */
-public record MEPatternBufferProxyViewSnapshot(BlockState blockState, DataComponentMap data,
+public record MEPatternBufferProxyViewSnapshot(BlockState blockState, SyncFieldData data,
                                                List<FluidStack> sharedFluids) {
 
     private static final int SHARED_TANK_COUNT = 9;
@@ -40,7 +39,7 @@ public record MEPatternBufferProxyViewSnapshot(BlockState blockState, DataCompon
         @Override
         public MEPatternBufferProxyViewSnapshot decode(RegistryFriendlyByteBuf buffer) {
             BlockState blockState = MachineUIProvider.BLOCK_STATE_CODEC.decode(buffer);
-            DataComponentMap data = SyncFieldData.DATA_COMPONENT_MAP_STREAM_CODEC.decode(buffer);
+            SyncFieldData data = SyncFieldData.STREAM_CODEC.decode(buffer);
             int fluidCount = buffer.readVarInt();
             if (fluidCount != 0 && fluidCount != SHARED_TANK_COUNT) {
                 throw new IllegalArgumentException(
@@ -56,7 +55,7 @@ public record MEPatternBufferProxyViewSnapshot(BlockState blockState, DataCompon
         @Override
         public void encode(RegistryFriendlyByteBuf buffer, MEPatternBufferProxyViewSnapshot value) {
             MachineUIProvider.BLOCK_STATE_CODEC.encode(buffer, value.blockState);
-            SyncFieldData.DATA_COMPONENT_MAP_STREAM_CODEC.encode(buffer, value.data);
+            SyncFieldData.STREAM_CODEC.encode(buffer, value.data);
             buffer.writeVarInt(value.sharedFluids.size());
             for (FluidStack fluid : value.sharedFluids) {
                 FluidStack.OPTIONAL_STREAM_CODEC.encode(buffer, fluid);
@@ -87,9 +86,9 @@ public record MEPatternBufferProxyViewSnapshot(BlockState blockState, DataCompon
                                                            HolderLookup.Provider registries) {
         requirePatternBuffer(buffer);
         SyncDataHolder syncData = buffer.getSyncDataHolder();
-        DataComponentMap data;
+        SyncFieldData data;
         try {
-            data = syncData.serializeFullClientSyncComponents(registries);
+            data = syncData.serializeFullClientSyncData(registries);
         } finally {
             syncData.resyncAllFields();
         }
@@ -99,7 +98,7 @@ public record MEPatternBufferProxyViewSnapshot(BlockState blockState, DataCompon
 
     /** Wraps one already-collected GT client delta with the current render state and complete shared tank contents. */
     public static MEPatternBufferProxyViewSnapshot update(MEPatternBufferPartMachine buffer,
-                                                          DataComponentMap changes) {
+                                                          SyncFieldData changes) {
         requirePatternBuffer(buffer);
         return new MEPatternBufferProxyViewSnapshot(
                 buffer.getBlockState(), changes, captureSharedFluids(buffer));
@@ -107,7 +106,7 @@ public record MEPatternBufferProxyViewSnapshot(BlockState blockState, DataCompon
 
     /** Retains only the block state needed to construct the client projection in vanilla menu opening data. */
     public MEPatternBufferProxyViewSnapshot withoutFieldData() {
-        return new MEPatternBufferProxyViewSnapshot(blockState, DataComponentMap.EMPTY, List.of());
+        return new MEPatternBufferProxyViewSnapshot(blockState, SyncFieldData.EMPTY, List.of());
     }
 
     /**
@@ -153,7 +152,7 @@ public record MEPatternBufferProxyViewSnapshot(BlockState blockState, DataCompon
             }
         }
         if (!data.isEmpty()) {
-            view.getSyncDataHolder().deserializeComponents(registries, data, true);
+            view.getSyncDataHolder().deserializeFieldData(registries, data, true);
         }
         if (!sharedFluids.isEmpty()) {
             requireSharedTankCount(view);
