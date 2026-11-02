@@ -89,7 +89,6 @@ object CentralMonitorTextModuleActions {
 			"Central Monitor text module action must change the editable configuration."
 		}
 		val encodedRequest = encodeConfiguration(canonicalRequest)
-		SyncFieldData.requireFieldValueWithinNetworkLimit(REQUESTED_CONFIGURATION_FIELD, encodedRequest)
 
 		val fields =
 			SyncFieldData.builder()
@@ -282,7 +281,6 @@ object CentralMonitorTextModuleActions {
 
 	private fun readConfiguration(value: JsonElement?): TextLineList? {
 		val encoded = value as? JsonObject ?: return null
-		if (!SyncFieldData.isFieldValueWithinNetworkLimit(encoded)) return null
 		if (
 			encoded.size() != 2 ||
 			!encoded.has(CONFIGURATION_LINES_FIELD) ||

@@ -5,10 +5,9 @@ import com.gregtechceu.gtceu.api.capability.ICoverable
 import com.gregtechceu.gtceu.api.cover.CoverBehavior
 import com.gregtechceu.gtceu.api.registry.GTRegistries
 import com.gregtechceu.gtceu.api.sync_system.ContextualFieldCodec
-import com.gregtechceu.gtceu.api.sync_system.SyncSerializationTarget
 
 import net.minecraft.core.Direction
-import net.minecraft.core.component.DataComponentMap
+import com.gregtechceu.gtceu.api.sync_system.SyncFieldData
 import net.minecraft.resources.ResourceLocation
 
 import com.google.gson.JsonElement
@@ -23,10 +22,10 @@ class CoverBehaviorCodec private constructor() : ContextualFieldCodec<CoverBehav
 		json.addProperty("coverType", value.coverDefinition.getId().toString())
 		json.add(
 			"data",
-			DataComponentMap.CODEC
+			SyncFieldData.CODEC
 				.encodeStart(
 					context.lookup.createSerializationContext(JsonOps.INSTANCE),
-					value.getSyncDataHolder().serializeToComponents(
+					value.getSyncDataHolder().serializeToFieldData(
 						context.lookup,
 						context.isClientSync,
 						context.isClientFullSyncUpdate,
@@ -42,15 +41,7 @@ class CoverBehaviorCodec private constructor() : ContextualFieldCodec<CoverBehav
 			value.getSyncDataHolder().resyncAllFields()
 			return true
 		}
-		return when (context.serializationTarget) {
-			SyncSerializationTarget.NBT -> {
-				val message = "Sync: CoverBehavior client sync NBT is disabled; use DataComponentMap serialization"
-				GTCEu.LOGGER.error(message)
-				throw IllegalStateException(message)
-			}
-
-			SyncSerializationTarget.DATA_COMPONENTS -> value.getSyncDataHolder().scanAndMarkChanges(context.lookup)
-		}
+		return value.getSyncDataHolder().scanAndMarkChanges(context.lookup)
 	}
 
 	override fun deserializeField(value: JsonElement, context: ContextualFieldCodec.Context<CoverBehavior>): CoverBehavior? {
@@ -82,10 +73,10 @@ class CoverBehaviorCodec private constructor() : ContextualFieldCodec<CoverBehav
 		}
 
 		val cover = holder.getCoverAtSide(side) ?: return null
-		val components = DataComponentMap.CODEC
+		val components = SyncFieldData.CODEC
 			.parse(context.lookup.createSerializationContext(JsonOps.INSTANCE), json.get("data"))
 			.getOrThrow()
-		cover.getSyncDataHolder().deserializeComponents(
+		cover.getSyncDataHolder().deserializeFieldData(
 			context.lookup,
 			components,
 			context.isClientSync,

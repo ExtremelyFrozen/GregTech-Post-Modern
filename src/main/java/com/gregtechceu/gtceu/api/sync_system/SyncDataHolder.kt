@@ -2,11 +2,9 @@ package com.gregtechceu.gtceu.api.sync_system
 
 import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.sync_system.managed.ISyncManaged
-import com.gregtechceu.gtceu.common.data.GTDataComponents
 
 import net.minecraft.core.HolderLookup
 import net.minecraft.core.RegistryAccess
-import net.minecraft.core.component.DataComponentMap
 
 import com.google.gson.JsonElement
 import com.google.gson.JsonNull
@@ -76,8 +74,6 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 	 */
 	fun isFullSyncPending(): Boolean = resyncAll
 
-	fun serializeToItemComponents(registries: HolderLookup.Provider): DataComponentMap = componentsOf(serializeToItemFieldData(registries))
-
 	fun serializeToItemFieldData(registries: HolderLookup.Provider): SyncFieldData {
 		val builder = SyncFieldData.builder()
 		for (field in syncData.getItemSaveFields()) {
@@ -139,9 +135,6 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 		serializeToSaveFieldData(registries)
 	}
 
-	fun serializeToComponents(registries: HolderLookup.Provider, writeClientFields: Boolean, fullSync: Boolean): DataComponentMap =
-		componentsOf(serializeToFieldData(registries, writeClientFields, fullSync))
-
 	fun serializeToSaveFieldData(registries: HolderLookup.Provider): SyncFieldData {
 		val builder = SyncFieldData.builder()
 		for (field in syncData.getServerSaveFields()) {
@@ -188,17 +181,8 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 		return false
 	}
 
-	private fun shouldSyncContextualField(registries: HolderLookup.Provider, field: FieldSyncData, @Nullable currentValue: Any?, fullSync: Boolean, manuallyDirty: Boolean): Boolean = shouldSyncContextualField(
-		registries,
-		field,
-		currentValue,
-		fullSync,
-		manuallyDirty,
-		SyncSerializationTarget.DATA_COMPONENTS,
-	)
-
 	@Suppress("UNCHECKED_CAST")
-	private fun shouldSyncContextualField(registries: HolderLookup.Provider, field: FieldSyncData, @Nullable currentValue: Any?, fullSync: Boolean, manuallyDirty: Boolean, serializationTarget: SyncSerializationTarget): Boolean {
+	private fun shouldSyncContextualField(registries: HolderLookup.Provider, field: FieldSyncData, @Nullable currentValue: Any?, fullSync: Boolean, manuallyDirty: Boolean): Boolean {
 		if (currentValue == null) {
 			return false
 		}
@@ -218,7 +202,6 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 				true,
 				fullSync,
 				registries,
-				serializationTarget,
 			),
 			fullSync,
 			manuallyDirty,
@@ -252,26 +235,6 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 		}
 
 		return changes.build()
-	}
-
-	fun deserializeItemComponents(registries: HolderLookup.Provider, components: DataComponentMap) {
-		val fieldData = components.get(GTDataComponents.SYNC_FIELD_DATA.get())
-			?: return
-		deserializeItemFieldData(registries, fieldData)
-	}
-
-	@JvmOverloads
-	fun deserializeComponents(registries: HolderLookup.Provider, components: DataComponentMap, readingClientFields: Boolean, parseExplicitNull: Boolean = false, fullSync: Boolean = false, notifyUnchangedOnFullSync: Boolean = true) {
-		val fieldData = components.get(GTDataComponents.SYNC_FIELD_DATA.get())
-			?: return
-		deserializeFieldData(
-			registries,
-			fieldData,
-			readingClientFields,
-			parseExplicitNull,
-			fullSync,
-			notifyUnchangedOnFullSync,
-		)
 	}
 
 	fun deserializeItemFieldData(registries: HolderLookup.Provider, fieldData: SyncFieldData) {
@@ -617,24 +580,15 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 	private fun itemFieldKey(field: FieldSyncData) = field.itemDataKey
 		?: throw IllegalArgumentException("Sync: @ItemSave field ${field.fieldName} has no item data component key")
 
-	private fun componentsOf(fieldData: SyncFieldData): DataComponentMap {
-		if (fieldData.isEmpty()) {
-			return DataComponentMap.EMPTY
-		}
-		return DataComponentMap.builder()
-			.set(GTDataComponents.SYNC_FIELD_DATA.get(), fieldData)
-			.build()
-	}
-
 	private data class PendingServerFieldUpdate(val field: FieldSyncData, @field:Nullable val decodedCandidate: Any?, @field:Nullable var oldValue: Any? = null, @field:Nullable var normalizedCandidate: Any? = null)
 
 	companion object {
 		@JvmField
 		val SYNC_MANAGED_CODEC: ContextualFieldCodec<ISyncManaged> = object : ContextualFieldCodec<ISyncManaged> {
-			override fun serializeField(value: ISyncManaged, context: ContextualFieldCodec.Context<ISyncManaged>) = DataComponentMap.CODEC
+			override fun serializeField(value: ISyncManaged, context: ContextualFieldCodec.Context<ISyncManaged>) = SyncFieldData.CODEC
 				.encodeStart(
 					context.lookup.createSerializationContext(JsonOps.INSTANCE),
-					value.getSyncDataHolder().serializeToComponents(context.lookup, context.isClientSync, context.isClientFullSyncUpdate),
+					value.getSyncDataHolder().serializeToFieldData(context.lookup, context.isClientSync, context.isClientFullSyncUpdate),
 				)
 				.getOrThrow()
 
@@ -644,15 +598,7 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 					value.getSyncDataHolder().resyncAllFields()
 					return true
 				}
-				return when (context.serializationTarget) {
-					SyncSerializationTarget.NBT -> {
-						val message = "Sync: client sync NBT is disabled for ${context.fieldName}; use DataComponentMap serialization"
-						GTCEu.LOGGER.error(message)
-						throw IllegalStateException(message)
-					}
-
-					SyncSerializationTarget.DATA_COMPONENTS -> value.getSyncDataHolder().scanAndMarkChanges(context.lookup)
-				}
+				return value.getSyncDataHolder().scanAndMarkChanges(context.lookup)
 			}
 
 			@Nullable
@@ -662,10 +608,10 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 					GTCEu.LOGGER.error("Sync: ISyncManaged field was null, cannot instantiate {}", context.fieldName)
 					return null
 				}
-				val components = DataComponentMap.CODEC
+				val components = SyncFieldData.CODEC
 					.parse(context.lookup.createSerializationContext(JsonOps.INSTANCE), value)
 					.getOrThrow()
-				syncManaged.getSyncDataHolder().deserializeComponents(
+				syncManaged.getSyncDataHolder().deserializeFieldData(
 					context.lookup,
 					components,
 					context.isClientSync,

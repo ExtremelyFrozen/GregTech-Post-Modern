@@ -14,19 +14,19 @@ class ItemSyncHolder(owner: ISyncManaged) : ISyncManaged {
 	override fun getSyncDataHolder(): SyncDataHolder = syncDataHolder
 
 	fun saveToStack(stack: ItemStack, registries: HolderLookup.Provider) {
-		val data = syncDataHolder.serializeToItemComponents(registries)
-		if (!data.isEmpty) {
+		val data = syncDataHolder.serializeToItemFieldData(registries)
+		if (!data.isEmpty()) {
 			stack.set(GTDataComponents.BLOCK_ITEM_DATA, data)
 		}
 	}
 
 	fun loadFromStack(stack: ItemStack, registries: HolderLookup.Provider, clientSide: Boolean) {
 		val data = stack.get(GTDataComponents.BLOCK_ITEM_DATA)
-		if (data == null || data.isEmpty) {
+		if (data == null || data.isEmpty()) {
 			return
 		}
 
-		syncDataHolder.deserializeItemComponents(registries, data)
+		syncDataHolder.deserializeItemFieldData(registries, data)
 	}
 
 	@Nullable

@@ -235,9 +235,9 @@ public class GTDataComponents {
     public static final DeferredHolder<DataComponentType<?>, DataComponentType<SyncFieldData>> SYNC_FIELD_DATA = DATA_COMPONENTS
             .registerComponentType("sync_field_data", builder -> builder.persistent(SyncFieldData.CODEC)
                     .networkSynchronized(SyncFieldData.STREAM_CODEC));
-    public static final DeferredHolder<DataComponentType<?>, DataComponentType<DataComponentMap>> BLOCK_ITEM_DATA = DATA_COMPONENTS
-            .registerComponentType("block_item_data", builder -> builder.persistent(DataComponentMap.CODEC)
-                    .networkSynchronized(SyncFieldData.DATA_COMPONENT_MAP_STREAM_CODEC));
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<SyncFieldData>> BLOCK_ITEM_DATA = DATA_COMPONENTS
+            .registerComponentType("block_item_data", builder -> builder.persistent(SyncFieldData.CODEC)
+                    .networkSynchronized(SyncFieldData.STREAM_CODEC));
     public static final DeferredHolder<DataComponentType<?>, DataComponentType<FluidProspectionCache>> FLUID_PROSPECTION_CACHE = DATA_COMPONENTS
             .registerComponentType("fluid_prospection_cache", builder -> builder
                     .persistent(FluidProspectionCache.CODEC)

@@ -36,7 +36,6 @@ object FieldSyncHandler {
 						writeClientFields,
 						fullSync,
 						registries,
-						SyncSerializationTarget.DATA_COMPONENTS,
 					),
 				)
 			} catch (e: Exception) {
@@ -174,7 +173,6 @@ object FieldSyncHandler {
 		savedValue: JsonElement,
 		readingClientFields: Boolean,
 		parseExplicitNull: Boolean = false,
-		serializationTarget: SyncSerializationTarget = SyncSerializationTarget.DATA_COMPONENTS,
 		fullSync: Boolean = false,
 		notifyUnchangedOnFullSync: Boolean = true,
 	) {
@@ -198,7 +196,6 @@ object FieldSyncHandler {
 						readingClientFields,
 						fullSync,
 						registries,
-						serializationTarget,
 						parseExplicitNull,
 						notifyUnchangedOnFullSync,
 					),

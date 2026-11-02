@@ -400,7 +400,6 @@ object FieldCodecs {
 		parent.isClientSync,
 		parent.isClientFullSyncUpdate,
 		parent.lookup,
-		parent.serializationTarget,
 		parent.parseExplicitNull,
 		parent.notifyUnchangedOnFullSync,
 	)

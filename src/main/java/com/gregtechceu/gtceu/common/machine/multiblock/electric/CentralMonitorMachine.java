@@ -25,7 +25,6 @@ import com.gregtechceu.gtceu.api.multiblock.pattern.match.MultiBlockPattern;
 import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternNode;
 import com.gregtechceu.gtceu.api.multiblock.structurepredicate.PatternPredicate;
 import com.gregtechceu.gtceu.api.multiblock.util.RelativeDirection;
-import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.RerenderOnChanged;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
@@ -45,9 +44,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.component.DataComponentMap;
-import net.minecraft.nbt.NbtOps;
-import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.player.Player;
@@ -57,15 +53,10 @@ import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.network.PacketDistributor;
 
-import com.google.gson.JsonElement;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.UTFDataFormatException;
 import java.util.*;
 import java.util.List;
 import java.util.stream.Stream;
@@ -561,62 +552,7 @@ public class CentralMonitorMachine extends WorkableElectricMultiblockMachine
                     group.getIdentity(), getBlockPos());
             return null;
         }
-        long nextRevision = Math.incrementExact(group.getTextConfigurationRevision());
-        return canPersistCentralMonitorTextModuleConfiguration(
-                group, currentModule, requestedConfiguration, nextRevision) ? group : null;
-    }
-
-    private boolean canPersistCentralMonitorTextModuleConfiguration(MonitorGroup group, ItemStack currentModule,
-                                                                    TextLineList requestedConfiguration,
-                                                                    long nextRevision) {
-        Level level = getLevel();
-        if (level == null) {
-            GTCEu.LOGGER.error("Central Monitor at {} cannot validate text module save data without a level",
-                    getBlockPos());
-            return false;
-        }
-
-        ItemStack candidate = currentModule.copy();
-        candidate.set(GTDataComponents.FORMAT_STRING_LIST.get(), requestedConfiguration);
-        var stacks = group.getItemStackHandler().getStacks();
-        ItemStack previous = stacks.set(0, candidate);
-        long previousRevision = group.getTextConfigurationRevision();
-        group.setTextConfigurationRevision(nextRevision);
-        try {
-            DataComponentMap savedData = getSyncDataHolder()
-                    .serializeToComponents(level.registryAccess(), false, false);
-            Tag savedTag = DataComponentMap.CODEC
-                    .encodeStart(level.registryAccess().createSerializationContext(NbtOps.INSTANCE), savedData)
-                    .getOrThrow();
-            try (DataOutputStream output = new DataOutputStream(OutputStream.nullOutputStream())) {
-                savedTag.write(output);
-            }
-            JsonElement monitorGroupsData = getSyncDataHolder()
-                    .serializeClientFieldSnapshot(level.registryAccess(), MONITOR_GROUPS_SYNC_FIELD);
-            if (!SyncFieldData.isFieldValueWithinNetworkLimit(monitorGroupsData)) {
-                GTCEu.LOGGER.warn(
-                        "Rejecting Central Monitor text module configuration for group {} at {} because monitorGroups exceeds the network field limit",
-                        group.getIdentity(), getBlockPos());
-                return false;
-            }
-            return true;
-        } catch (UTFDataFormatException exception) {
-            GTCEu.LOGGER.warn(
-                    "Rejecting Central Monitor text module configuration for group {} at {} because its save data exceeds the modified-UTF limit",
-                    group.getIdentity(), getBlockPos());
-            return false;
-        } catch (IOException exception) {
-            GTCEu.LOGGER.error("Failed to validate Central Monitor text module save data for group {} at {}",
-                    group.getIdentity(), getBlockPos(), exception);
-            throw new IllegalStateException("Failed to validate Central Monitor text module save data", exception);
-        } catch (RuntimeException exception) {
-            GTCEu.LOGGER.error("Failed to encode Central Monitor text module save data for group {} at {}",
-                    group.getIdentity(), getBlockPos(), exception);
-            throw exception;
-        } finally {
-            stacks.set(0, previous);
-            group.setTextConfigurationRevision(previousRevision);
-        }
+        return group;
     }
 
     @Override
@@ -666,48 +602,7 @@ public class CentralMonitorMachine extends WorkableElectricMultiblockMachine
         if (!sameNullableString(snapshotUrl, expectedUrl) || !sameNullableString(currentUrl, expectedUrl)) {
             return null;
         }
-        return canPersistCentralMonitorImageModuleUrl(group, currentModule, requestedUrl) ? group : null;
-    }
-
-    private boolean canPersistCentralMonitorImageModuleUrl(MonitorGroup group, ItemStack currentModule,
-                                                           String requestedUrl) {
-        Level level = getLevel();
-        if (level == null) {
-            GTCEu.LOGGER.error("Central Monitor at {} cannot validate image module save data without a level",
-                    getBlockPos());
-            return false;
-        }
-
-        ItemStack candidate = currentModule.copy();
-        candidate.set(GTDataComponents.IMAGE_MODULE_URL.get(), requestedUrl);
-        var stacks = group.getItemStackHandler().getStacks();
-        ItemStack previous = stacks.set(0, candidate);
-        try {
-            DataComponentMap savedData = getSyncDataHolder()
-                    .serializeToComponents(level.registryAccess(), false, false);
-            Tag savedTag = DataComponentMap.CODEC
-                    .encodeStart(level.registryAccess().createSerializationContext(NbtOps.INSTANCE), savedData)
-                    .getOrThrow();
-            try (DataOutputStream output = new DataOutputStream(OutputStream.nullOutputStream())) {
-                savedTag.write(output);
-            }
-            return true;
-        } catch (UTFDataFormatException exception) {
-            GTCEu.LOGGER.warn(
-                    "Rejecting Central Monitor image module URL with {} characters for group {} at {} because its save data exceeds the modified-UTF limit",
-                    requestedUrl.length(), group.getIdentity(), getBlockPos());
-            return false;
-        } catch (IOException exception) {
-            GTCEu.LOGGER.error("Failed to validate Central Monitor save data for group {} at {}",
-                    group.getIdentity(), getBlockPos(), exception);
-            throw new IllegalStateException("Failed to validate Central Monitor save data", exception);
-        } catch (RuntimeException exception) {
-            GTCEu.LOGGER.error("Failed to encode Central Monitor save data for group {} at {}",
-                    group.getIdentity(), getBlockPos(), exception);
-            throw exception;
-        } finally {
-            stacks.set(0, previous);
-        }
+        return group;
     }
 
     private static boolean sameNullableString(@Nullable String first, @Nullable String second) {

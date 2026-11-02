@@ -1,6 +1,8 @@
 package com.gregtechceu.gtceu.api.blockentity;
 
+import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
 import com.gregtechceu.gtceu.api.sync_system.managed.ISyncManaged;
+import com.gregtechceu.gtceu.common.data.GTDataComponents;
 
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.component.DataComponentMap;
@@ -22,7 +24,8 @@ public interface ICopyable {
      */
     default DataComponentMap copyConfig(HolderLookup.Provider registries) {
         if (this instanceof ISyncManaged syncManaged) {
-            return syncManaged.getSyncDataHolder().serializeToComponents(registries, false, false);
+            return syncManaged.getSyncDataHolder().serializeToSaveFieldData(registries)
+                    .toComponentMap(GTDataComponents.SYNC_FIELD_DATA.get());
         }
         return DataComponentMap.EMPTY;
     }
@@ -35,7 +38,8 @@ public interface ICopyable {
      */
     default void pasteConfig(ServerPlayer player, HolderLookup.Provider registries, DataComponentMap config) {
         if (this instanceof ISyncManaged syncManaged) {
-            syncManaged.getSyncDataHolder().deserializeComponents(registries, config, false);
+            syncManaged.getSyncDataHolder().deserializeFieldData(registries,
+                    config.getOrDefault(GTDataComponents.SYNC_FIELD_DATA.get(), SyncFieldData.EMPTY), false);
         }
     }
 

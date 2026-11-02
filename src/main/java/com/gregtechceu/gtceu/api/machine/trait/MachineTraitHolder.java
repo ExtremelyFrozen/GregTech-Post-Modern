@@ -3,11 +3,8 @@ package com.gregtechceu.gtceu.api.machine.trait;
 import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
-import com.gregtechceu.gtceu.api.sync_system.SyncSerializationTarget;
-import com.gregtechceu.gtceu.common.data.GTDataComponents;
 
 import net.minecraft.core.HolderLookup;
-import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.resources.ResourceLocation;
 
 import com.google.gson.JsonElement;
@@ -155,30 +152,12 @@ public final class MachineTraitHolder {
         return builder.build();
     }
 
-    public DataComponentMap serializeSyncComponents(HolderLookup.Provider lookup, boolean isClientSync,
-                                                    boolean fullSync) {
-        SyncFieldData fieldData = serializeSyncFieldData(lookup, isClientSync, fullSync);
-        if (fieldData.isEmpty()) {
-            return DataComponentMap.EMPTY;
-        }
-        return DataComponentMap.builder()
-                .set(GTDataComponents.SYNC_FIELD_DATA.get(), fieldData)
-                .build();
-    }
-
     public boolean scanAndMarkClientChanges(HolderLookup.Provider lookup, boolean fullSync) {
-        return scanAndMarkClientChanges(lookup, fullSync, SyncSerializationTarget.DATA_COMPONENTS);
-    }
-
-    public boolean scanAndMarkClientChanges(HolderLookup.Provider lookup, boolean fullSync,
-                                            SyncSerializationTarget serializationTarget) {
         boolean changed = false;
         for (MachineTrait trait : traits) {
             if (fullSync) {
                 trait.getSyncDataHolder().resyncAllFields();
                 changed = true;
-            } else if (serializationTarget == SyncSerializationTarget.NBT) {
-                throw disabledClientSyncNbt();
             } else if (trait.getSyncDataHolder().scanAndMarkChanges(lookup)) {
                 changed = true;
             }
@@ -237,38 +216,6 @@ public final class MachineTraitHolder {
             trait.getSyncDataHolder().deserializeFieldData(lookup, SyncFieldData.fromJson(entry.getValue()),
                     isClientSync, parseExplicitNull, fullSync, notifyUnchangedOnFullSync);
         }
-    }
-
-    public void deserializeSyncComponents(HolderLookup.Provider lookup, DataComponentMap components,
-                                          boolean isClientSync) {
-        deserializeSyncComponents(lookup, components, isClientSync, false);
-    }
-
-    public void deserializeSyncComponents(HolderLookup.Provider lookup, DataComponentMap components,
-                                          boolean isClientSync, boolean parseExplicitNull) {
-        deserializeSyncComponents(lookup, components, isClientSync, parseExplicitNull, false);
-    }
-
-    public void deserializeSyncComponents(HolderLookup.Provider lookup, DataComponentMap components,
-                                          boolean isClientSync, boolean parseExplicitNull, boolean fullSync) {
-        deserializeSyncComponents(lookup, components, isClientSync, parseExplicitNull, fullSync, true);
-    }
-
-    public void deserializeSyncComponents(HolderLookup.Provider lookup, DataComponentMap components,
-                                          boolean isClientSync, boolean parseExplicitNull, boolean fullSync,
-                                          boolean notifyUnchangedOnFullSync) {
-        SyncFieldData fieldData = components.get(GTDataComponents.SYNC_FIELD_DATA.get());
-        if (fieldData == null) {
-            return;
-        }
-        deserializeSyncFieldData(lookup, fieldData, isClientSync, parseExplicitNull, fullSync,
-                notifyUnchangedOnFullSync);
-    }
-
-    private static IllegalStateException disabledClientSyncNbt() {
-        String message = "Sync: MachineTraitHolder client sync NBT is disabled; use DataComponentMap serialization";
-        GTCEu.LOGGER.error(message);
-        return new IllegalStateException(message);
     }
 
     /**

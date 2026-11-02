@@ -236,9 +236,9 @@ public class MetaMachine extends ManagedSyncBlockEntity implements IGregtechBloc
     protected void applyImplicitComponents(DataComponentInput componentInput) {
         if (getLevel() == null) return;
 
-        DataComponentMap itemData = componentInput.get(GTDataComponents.BLOCK_ITEM_DATA);
+        SyncFieldData itemData = componentInput.get(GTDataComponents.BLOCK_ITEM_DATA);
         if (itemData != null && !itemData.isEmpty()) {
-            syncDataHolder.deserializeItemComponents(getLevel().registryAccess(), itemData);
+            syncDataHolder.deserializeItemFieldData(getLevel().registryAccess(), itemData);
         }
     }
 
@@ -250,7 +250,7 @@ public class MetaMachine extends ManagedSyncBlockEntity implements IGregtechBloc
     public void collectImplicitComponents(DataComponentMap.Builder components) {
         if (getLevel() == null) return;
 
-        DataComponentMap itemData = syncDataHolder.serializeToItemComponents(getLevel().registryAccess());
+        SyncFieldData itemData = syncDataHolder.serializeToItemFieldData(getLevel().registryAccess());
         if (!itemData.isEmpty()) {
             components.set(GTDataComponents.BLOCK_ITEM_DATA, itemData);
         }
