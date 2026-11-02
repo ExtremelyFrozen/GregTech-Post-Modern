@@ -75,10 +75,12 @@ public class CTMMeshBuilder {
 
     // filled in first copyUv() calls
     private static final ThreadLocal<Vector2f[]> uvs = ThreadLocal.withInitial(() -> new Vector2f[4]);
-    private static final ThreadLocal<Vector2f[]> uvExtremes = ThreadLocal.withInitial(() -> new Vector2f[] { new Vector2f(), new Vector2f() });
+    private static final ThreadLocal<Vector2f[]> uvExtremes = ThreadLocal
+            .withInitial(() -> new Vector2f[] { new Vector2f(), new Vector2f() });
     // set in copyPos() calls
     private static final ThreadLocal<Vector3f> position = ThreadLocal.withInitial(Vector3f::new);
-    private static final ThreadLocal<Vector2f[]> xy = ThreadLocal.withInitial(() -> new Vector2f[] { new Vector2f(), new Vector2f(), new Vector2f(), new Vector2f() });
+    private static final ThreadLocal<Vector2f[]> xy = ThreadLocal
+            .withInitial(() -> new Vector2f[] { new Vector2f(), new Vector2f(), new Vector2f(), new Vector2f() });
 
     private static void remapUVs(MutableQuadView quad, ISubmap submap) {
         submap = submap.unitScale();

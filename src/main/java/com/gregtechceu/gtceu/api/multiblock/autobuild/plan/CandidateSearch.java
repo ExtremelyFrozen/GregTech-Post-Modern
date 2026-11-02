@@ -512,7 +512,6 @@ final class CandidateSearch {
                 !canUpdateDirection(cell, candidate);
     }
 
-
     boolean withinMaximums(int layer, ResolvedCandidate candidate) {
         for (ConstraintLimit limit : candidate.limits()) {
             if (limit.max() >= 0 && (long) globalCounts.getInt(limit.key()) + 1 > limit.max()) return false;
