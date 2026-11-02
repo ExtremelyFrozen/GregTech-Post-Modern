@@ -174,6 +174,7 @@ public final class MultiblockInWorldPreviewRenderer {
                     continue;
                 if (!contribution.targetState().isAir()) {
                     level.addBlock(cell.worldPos(), contribution.renderInfo().createBlockInfo());
+                    level.copyMachineAppearance(source, cell.worldPos(), cell.worldPos());
                     positions.add(cell.worldPos());
                 }
                 break;
@@ -224,7 +225,8 @@ public final class MultiblockInWorldPreviewRenderer {
                     .toList();
             int selectedLayer = selectedLayer(previousPos, previousLayer, pos, layers.size());
             MultiblockPreviewLevel previewLevel = new MultiblockPreviewLevel(controller.getLevel());
-            Map<BlockPos, PlannedBlockInfo> blockMap = previewBlocks(plan, layers, selectedLayer, previewLevel);
+            Map<BlockPos, PlannedBlockInfo> blockMap = previewBlocks(plan, layers, selectedLayer, previewLevel,
+                    controller.getLevel());
             if (StructurePatternRegistry.generation() != resolution.generation()) {
                 releasePreviewLevel(previewLevel, blockMap.keySet());
                 continue;
@@ -277,7 +279,7 @@ public final class MultiblockInWorldPreviewRenderer {
 
     private static Map<BlockPos, PlannedBlockInfo> previewBlocks(BatchPlan plan, List<Integer> layers,
                                                                  int selectedLayer,
-                                                                 MultiblockPreviewLevel previewLevel) {
+                                                                  MultiblockPreviewLevel previewLevel, Level source) {
         Map<BlockPos, PlannedBlockInfo> blockMap = new LinkedHashMap<>();
         for (MergedPlanCell merged : plan.mergedCells().values()) {
             if (selectedLayer != -1 && merged.relativePos().getY() != layers.get(selectedLayer)) {
@@ -296,6 +298,7 @@ public final class MultiblockInWorldPreviewRenderer {
             blockMap.put(worldPos, blockInfo);
             var previewInfo = blockInfo.createBlockInfo();
             previewLevel.addBlock(worldPos, previewInfo);
+            previewLevel.copyMachineAppearance(source, worldPos, worldPos);
         }
         return blockMap;
     }

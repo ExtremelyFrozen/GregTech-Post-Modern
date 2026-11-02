@@ -270,6 +270,9 @@ public final class ClientMultiblockPreviewElement extends UIElement {
                 BlockPos scenePos = SCENE_ORIGIN.offset(cell.relativePos());
                 MultiblockBlockInfo blockInfo = cell.renderInfo().createBlockInfo();
                 previewLevel.addBlock(scenePos, blockInfo);
+                if (cell.worldPos() != null) {
+                    previewLevel.copyMachineAppearance(sourceLevel, cell.worldPos(), scenePos);
+                }
                 loadedPositions.add(scenePos);
                 sceneCells.put(scenePos, cell);
                 if (cell.controller()) controllerState = cell.renderState();

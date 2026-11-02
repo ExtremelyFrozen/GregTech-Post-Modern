@@ -1,5 +1,7 @@
 package com.gregtechceu.gtceu.api.multiblock;
 
+import com.gregtechceu.gtceu.api.machine.MetaMachine;
+
 import com.lowdragmc.lowdraglib2.utils.virtuallevel.TrackedDummyWorld;
 
 import net.minecraft.core.BlockPos;
@@ -28,6 +30,16 @@ public class MultiblockPreviewLevel extends TrackedDummyWorld {
     public void setInnerBlockEntity(BlockEntity blockEntity) {
         blockEntity.setLevel(this);
         setBlockEntity(blockEntity);
+    }
+
+    /** Copies client-visible machine appearance without sharing live entities or their inventories. */
+    public void copyMachineAppearance(Level source, BlockPos sourcePos, BlockPos previewPos) {
+        if (source.getBlockEntity(sourcePos) instanceof MetaMachine original &&
+                getBlockEntity(previewPos) instanceof MetaMachine preview &&
+                original.getDefinition() == preview.getDefinition()) {
+            preview.setPaintingColor(original.getPaintingColor());
+            preview.setRenderState(original.getRenderState());
+        }
     }
 
     public void setRenderFilter(Predicate<BlockPos> renderFilter) {
