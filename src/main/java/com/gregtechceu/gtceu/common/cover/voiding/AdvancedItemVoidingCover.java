@@ -7,12 +7,11 @@ import com.gregtechceu.gtceu.api.cover.filter.ItemFilter;
 import com.gregtechceu.gtceu.api.cover.filter.SimpleItemFilter;
 import com.gregtechceu.gtceu.api.gui.element.GTEnumSelectorElement;
 import com.gregtechceu.gtceu.api.gui.element.GTIntInputElement;
-import com.gregtechceu.gtceu.api.gui.factory.CoverUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.UICoverHolder;
 import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
-import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
 import com.gregtechceu.gtceu.common.cover.data.VoidingMode;
 
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
@@ -30,12 +29,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
 
-public class AdvancedItemVoidingCover extends ItemVoidingCover
-                                      implements AdvancedItemVoidingCoverConfigActionTarget {
-
-    static {
-        RPCRegistry.register(AdvancedItemVoidingCoverConfigActions.INSTANCE);
-    }
+public class AdvancedItemVoidingCover extends ItemVoidingCover {
 
     @SaveField
     @SyncToClient
@@ -104,7 +98,6 @@ public class AdvancedItemVoidingCover extends ItemVoidingCover
         return filter.isBlackList() ? globalVoidingLimit : filter.testItemCount(itemStack);
     }
 
-    @Override
     public void setVoidingMode(VoidingMode voidingMode) {
         this.voidingMode = voidingMode;
 
@@ -175,16 +168,20 @@ public class AdvancedItemVoidingCover extends ItemVoidingCover
         sendConfigAction(player, holder);
     }
 
-    @Override
     public void setGlobalVoidingLimit(int value) {
         this.globalVoidingLimit = Math.max(value, 1);
         configureStackSizeInput();
     }
 
+    @RPCMethod
+    public void configureAdvancedItemVoiding(VoidingMode voidingMode, int voidingLimit) {
+        setVoidingMode(voidingMode);
+        setGlobalVoidingLimit(voidingLimit);
+    }
+
     private void sendConfigAction(Player player, UICoverHolder holder) {
         if (player.level().isClientSide()) {
-            CoverUIHelper.sendAction(holder, AdvancedItemVoidingCoverConfigActions.createSetConfigAction(
-                    getVoidingMode(), getGlobalVoidingLimit()));
+            holder.getCover().rpcToServer("configureAdvancedItemVoiding", getVoidingMode(), getGlobalVoidingLimit());
         }
     }
 

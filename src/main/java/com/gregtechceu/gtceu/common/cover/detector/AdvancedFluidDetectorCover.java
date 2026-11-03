@@ -11,13 +11,12 @@ import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTIntInputElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTToggleButtonElement;
-import com.gregtechceu.gtceu.api.gui.factory.CoverUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.CoverUIProvider;
 import com.gregtechceu.gtceu.api.gui.factory.UICoverHolder;
 import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
-import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
 
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
@@ -44,10 +43,6 @@ public class AdvancedFluidDetectorCover extends FluidDetectorCover implements Co
 
     private static final int DEFAULT_MIN = 64;
     private static final int DEFAULT_MAX = 512;
-    static {
-        RPCRegistry.register(AdvancedFluidDetectorConfigActions.INSTANCE);
-    }
-
     @SaveField
     @SyncToClient
     @Getter
@@ -193,10 +188,18 @@ public class AdvancedFluidDetectorCover extends FluidDetectorCover implements Co
         sendConfigAction(player, holder);
     }
 
+    @RPCMethod
+    public void configureAdvancedFluidDetector(int min, int max, boolean latched, boolean inverted) {
+        setMinValue(min);
+        setMaxValue(max);
+        setLatched(latched);
+        setInverted(inverted);
+    }
+
     private void sendConfigAction(Player player, UICoverHolder holder) {
         if (player.level().isClientSide()) {
-            CoverUIHelper.sendAction(holder, AdvancedFluidDetectorConfigActions.createSetConfigAction(
-                    getMinValue(), getMaxValue(), isLatched(), isInverted()));
+            holder.getCover().rpcToServer("configureAdvancedFluidDetector", getMinValue(), getMaxValue(), isLatched(),
+                    isInverted());
         }
     }
 

@@ -10,13 +10,12 @@ import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLongInputElement;
 import com.gregtechceu.gtceu.api.gui.element.GTToggleButtonElement;
-import com.gregtechceu.gtceu.api.gui.factory.CoverUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.CoverUIProvider;
 import com.gregtechceu.gtceu.api.gui.factory.UICoverHolder;
 import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
-import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
 import com.gregtechceu.gtceu.utils.GTMath;
 
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
@@ -41,10 +40,6 @@ public class AdvancedEnergyDetectorCover extends EnergyDetectorCover implements 
     private static final int DEFAULT_MIN_PERCENT = 33;
     private static final int DEFAULT_MAX_PERCENT = 66;
     private static final BigInteger LONG_MAX_VALUE = BigInteger.valueOf(Long.MAX_VALUE);
-
-    static {
-        RPCRegistry.register(AdvancedEnergyDetectorConfigActions.INSTANCE);
-    }
 
     @SaveField
     @SyncToClient
@@ -208,10 +203,18 @@ public class AdvancedEnergyDetectorCover extends EnergyDetectorCover implements 
         sendConfigAction(player, holder);
     }
 
+    @RPCMethod
+    public void configureAdvancedEnergyDetector(long min, long max, boolean usePercent, boolean inverted) {
+        setUsePercent(usePercent);
+        setMinValue(min);
+        setMaxValue(max);
+        setInverted(inverted);
+    }
+
     private void sendConfigAction(Player player, UICoverHolder holder) {
         if (player.level().isClientSide()) {
-            CoverUIHelper.sendAction(holder, AdvancedEnergyDetectorConfigActions.createSetConfigAction(
-                    getMinValue(), getMaxValue(), isUsePercent(), isInverted()));
+            holder.getCover().rpcToServer("configureAdvancedEnergyDetector", getMinValue(), getMaxValue(),
+                    isUsePercent(), isInverted());
         }
     }
 

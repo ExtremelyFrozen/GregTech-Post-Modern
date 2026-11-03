@@ -16,7 +16,6 @@ import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
 import com.gregtechceu.gtceu.api.gui.element.GTTextFieldElement;
 import com.gregtechceu.gtceu.api.gui.element.GTToggleButtonElement;
-import com.gregtechceu.gtceu.api.gui.factory.CoverUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.CoverUIProvider;
 import com.gregtechceu.gtceu.api.gui.factory.UICoverHolder;
 import com.gregtechceu.gtceu.api.gui.sync.StreamAccessor;
@@ -30,7 +29,8 @@ import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.RerenderOnChanged;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
-import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCSender;
 import com.gregtechceu.gtceu.common.cover.data.ManualIOMode;
 
 import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerMenu;
@@ -72,8 +72,7 @@ import java.util.regex.Pattern;
 
 @SuppressWarnings("SameParameterValue")
 public abstract class AbstractEnderLinkCover<T extends VirtualEntry> extends CoverBehavior
-                                            implements CoverUIProvider, IControllable,
-                                            EnderLinkCoverActionTarget {
+                                            implements CoverUIProvider, IControllable {
 
     public static final Pattern COLOR_INPUT_PATTERN = Pattern.compile("^[0-9a-fA-F]{0,8}$");
 
@@ -84,7 +83,6 @@ public abstract class AbstractEnderLinkCover<T extends VirtualEntry> extends Cov
 
     static {
         AccessorRegistries.registerAccessor(new StreamAccessor<>(VirtualEntry.class, VirtualEntry.STREAM_CODEC));
-        RPCRegistry.register(EnderLinkCoverActions.INSTANCE);
     }
 
     protected final ConditionalSubscriptionHandler subscriptionHandler;
@@ -168,7 +166,6 @@ public abstract class AbstractEnderLinkCover<T extends VirtualEntry> extends Cov
         return UI.of(new EnderLinkRootElement(player, holder, this));
     }
 
-    @Override
     public void setIo(@NotNull IO io) {
         if (io == IO.IN || io == IO.OUT) {
             this.io = io;
@@ -199,7 +196,6 @@ public abstract class AbstractEnderLinkCover<T extends VirtualEntry> extends Cov
         return identifier() + this.colorStr;
     }
 
-    @Override
     public void setChannelName(@NotNull String name) {
         if (coverHolder.isRemote()) return;
         VirtualEnderRegistry.getInstance().deleteEntryIf(getOwner(), getEntryType(), getChannelName(),
@@ -213,7 +209,6 @@ public abstract class AbstractEnderLinkCover<T extends VirtualEntry> extends Cov
         return identifier() + entry.getColorStr();
     }
 
-    @Override
     public void setPermission(@NotNull Permissions permission) {
         if (coverHolder.isRemote()) return;
         VirtualEnderRegistry.getInstance().deleteEntryIf(getOwner(), getEntryType(), getChannelName(),
@@ -257,7 +252,6 @@ public abstract class AbstractEnderLinkCover<T extends VirtualEntry> extends Cov
 
     protected abstract void transfer();
 
-    @Override
     public void setManualIOMode(@NotNull ManualIOMode manualIOMode) {
         this.manualIOMode = manualIOMode;
         syncDataHolder.markClientSyncFieldDirty("manualIOMode");
@@ -300,12 +294,64 @@ public abstract class AbstractEnderLinkCover<T extends VirtualEntry> extends Cov
         super.pasteConfig(player, registries, config);
     }
 
+    @RPCMethod
+    public void configureAbstractEnderLink(String channelColor, Permissions permission, IO io,
+                                           ManualIOMode manualIOMode, boolean workingEnabled) {
+        setChannelName(normalizeColorInput(channelColor));
+        setPermission(permission);
+        setIo(io);
+        setManualIOMode(manualIOMode);
+        setWorkingEnabled(workingEnabled);
+        markEnderLinkUIChanged();
+    }
+
+    @RPCMethod
+    public void setChannelDescription(String channelName, String description) {
+        VirtualEntry entry = findEnderLinkActionChannel(channelName);
+        if (entry == null) {
+            throw new IllegalStateException("Ender link channel is missing: " + channelName);
+        }
+        setEnderLinkActionChannelDescription(entry, description);
+        markEnderLinkUIChanged();
+    }
+
+    @RPCMethod
+    public void requestChannels(RPCSender sender) {
+        sendChannelList(sender);
+    }
+
+    @RPCMethod
+    public void clearChannelDescription(RPCSender sender, String channelName) {
+        VirtualEntry entry = findEnderLinkActionChannel(channelName);
+        if (entry == null) {
+            throw new IllegalStateException("Ender link channel is missing: " + channelName);
+        }
+        setEnderLinkActionChannelDescription(entry, "");
+        sendChannelList(sender);
+    }
+
+    private void sendChannelList(RPCSender sender) {
+        BlockPos pos = coverHolder.getBlockPos();
+        Direction side = attachedSide;
+        List<VirtualEntry> entries = getEnderLinkActionChannelNames().stream()
+                .map(name -> {
+                    VirtualEntry entry = findEnderLinkActionChannel(name);
+                    if (entry == null) {
+                        throw new IllegalStateException("Ender link channel is missing: " + name);
+                    }
+                    return entry;
+                })
+                .sorted(Comparator.comparing(this::getEnderLinkActionChannelColor))
+                .toList();
+        sendEnderLinkActionChannelList(sender.asPlayer(), pos, side, entries);
+    }
+
     private void setChannelColor(Player player, UICoverHolder holder, String channelColor) {
         String normalized = normalizeColorInput(channelColor);
         if (player.level().isClientSide()) {
             colorStr = normalized;
-            CoverUIHelper.sendAction(holder, EnderLinkCoverActions.createSetConfigAction(colorStr, permission, io,
-                    manualIOMode, isWorkingEnabled));
+            holder.getCover().rpcToServer("configureAbstractEnderLink", colorStr, permission, io, manualIOMode,
+                    isWorkingEnabled);
         } else {
             setChannelName(normalized);
         }
@@ -314,8 +360,8 @@ public abstract class AbstractEnderLinkCover<T extends VirtualEntry> extends Cov
     private void setPermission(Player player, UICoverHolder holder, Permissions permission) {
         if (player.level().isClientSide()) {
             this.permission = permission;
-            CoverUIHelper.sendAction(holder, EnderLinkCoverActions.createSetConfigAction(colorStr, permission, io,
-                    manualIOMode, isWorkingEnabled));
+            holder.getCover().rpcToServer("configureAbstractEnderLink", colorStr, permission, io, manualIOMode,
+                    isWorkingEnabled);
         } else {
             setPermission(permission);
         }
@@ -324,8 +370,8 @@ public abstract class AbstractEnderLinkCover<T extends VirtualEntry> extends Cov
     private void setIo(Player player, UICoverHolder holder, IO io) {
         if (player.level().isClientSide()) {
             this.io = io;
-            CoverUIHelper.sendAction(holder, EnderLinkCoverActions.createSetConfigAction(colorStr, permission, io,
-                    manualIOMode, isWorkingEnabled));
+            holder.getCover().rpcToServer("configureAbstractEnderLink", colorStr, permission, io, manualIOMode,
+                    isWorkingEnabled);
         } else {
             setIo(io);
         }
@@ -334,8 +380,8 @@ public abstract class AbstractEnderLinkCover<T extends VirtualEntry> extends Cov
     private void setManualIOMode(Player player, UICoverHolder holder, ManualIOMode manualIOMode) {
         if (player.level().isClientSide()) {
             this.manualIOMode = manualIOMode;
-            CoverUIHelper.sendAction(holder, EnderLinkCoverActions.createSetConfigAction(colorStr, permission, io,
-                    manualIOMode, isWorkingEnabled));
+            holder.getCover().rpcToServer("configureAbstractEnderLink", colorStr, permission, io, manualIOMode,
+                    isWorkingEnabled);
         } else {
             setManualIOMode(manualIOMode);
         }
@@ -344,8 +390,8 @@ public abstract class AbstractEnderLinkCover<T extends VirtualEntry> extends Cov
     private void setWorkingEnabled(Player player, UICoverHolder holder, boolean workingEnabled) {
         if (player.level().isClientSide()) {
             isWorkingEnabled = workingEnabled;
-            CoverUIHelper.sendAction(holder, EnderLinkCoverActions.createSetConfigAction(colorStr, permission, io,
-                    manualIOMode, isWorkingEnabled));
+            holder.getCover().rpcToServer("configureAbstractEnderLink", colorStr, permission, io, manualIOMode,
+                    isWorkingEnabled);
         } else {
             setWorkingEnabled(workingEnabled);
         }
@@ -357,8 +403,7 @@ public abstract class AbstractEnderLinkCover<T extends VirtualEntry> extends Cov
             entry.setDescription(description);
         }
         if (player.level().isClientSide()) {
-            CoverUIHelper.sendAction(holder,
-                    EnderLinkCoverActions.createSetDescriptionAction(getChannelName(), description));
+            holder.getCover().rpcToServer("setChannelDescription", getChannelName(), description);
         } else {
             markEnderLinkUIChanged();
         }
@@ -366,46 +411,40 @@ public abstract class AbstractEnderLinkCover<T extends VirtualEntry> extends Cov
 
     private void requestChannels(Player player, UICoverHolder holder) {
         if (player.level().isClientSide()) {
-            CoverUIHelper.sendAction(holder, EnderLinkCoverActions.createRequestChannelsAction());
+            holder.getCover().rpcToServer("requestChannels");
         }
     }
 
     private void clearDescription(Player player, UICoverHolder holder, VirtualEntry entry) {
         entry.setDescription("");
         if (player.level().isClientSide()) {
-            CoverUIHelper.sendAction(holder, EnderLinkCoverActions.createClearDescriptionAction(getChannelName(entry)));
+            holder.getCover().rpcToServer("clearChannelDescription", getChannelName(entry));
             requestChannels(player, holder);
         }
     }
 
-    @Override
     public void markEnderLinkUIChanged() {
         syncDataHolder.markClientSyncFieldDirty("isAnyChanged");
         this.isAnyChanged = true;
     }
 
-    @Override
     public @NotNull List<String> getEnderLinkActionChannelNames() {
         return List.copyOf(VirtualEnderRegistry.getInstance().getEntryNames(getOwner(), getEntryType()));
     }
 
     @Nullable
-    @Override
     public VirtualEntry findEnderLinkActionChannel(@NotNull String channelName) {
         return VirtualEnderRegistry.getInstance().getEntry(getOwner(), getEntryType(), channelName);
     }
 
-    @Override
     public void setEnderLinkActionChannelDescription(@NotNull VirtualEntry entry, @NotNull String description) {
         entry.setDescription(description);
     }
 
-    @Override
     public @NotNull String getEnderLinkActionChannelColor(@NotNull VirtualEntry entry) {
         return entry.getColorStr();
     }
 
-    @Override
     public void sendEnderLinkActionChannelList(@NotNull ServerPlayer player, @NotNull BlockPos pos,
                                                @NotNull Direction side,
                                                @NotNull List<? extends VirtualEntry> entries) {

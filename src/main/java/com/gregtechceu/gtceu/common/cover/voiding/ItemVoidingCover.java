@@ -8,11 +8,10 @@ import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTToggleButtonElement;
-import com.gregtechceu.gtceu.api.gui.factory.CoverUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.UICoverHolder;
 import com.gregtechceu.gtceu.api.item.tool.GTToolType;
 import com.gregtechceu.gtceu.api.item.tool.GridHighlightTexture;
-import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
 import com.gregtechceu.gtceu.common.cover.ConveyorCover;
 import com.gregtechceu.gtceu.common.data.item.GTItemAbilities;
 import com.gregtechceu.gtceu.utils.ExtendedUseOnContext;
@@ -37,10 +36,6 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Set;
 
 public class ItemVoidingCover extends ConveyorCover implements IControllable {
-
-    static {
-        RPCRegistry.register(ItemVoidingCoverConfigActions.INSTANCE);
-    }
 
     public ItemVoidingCover(CoverDefinition definition, ICoverable coverHolder, Direction attachedSide) {
         super(definition, coverHolder, attachedSide, 0);
@@ -122,10 +117,16 @@ public class ItemVoidingCover extends ConveyorCover implements IControllable {
         return label;
     }
 
+    @Override
+    @RPCMethod
+    public void setWorkingEnabled(boolean enabled) {
+        super.setWorkingEnabled(enabled);
+    }
+
     private void setWorkingEnabled(Player player, UICoverHolder holder, boolean enabled) {
         setWorkingEnabled(enabled);
         if (player.level().isClientSide()) {
-            CoverUIHelper.sendAction(holder, ItemVoidingCoverConfigActions.createSetWorkingEnabledAction(enabled));
+            holder.getCover().rpcToServer("setWorkingEnabled", enabled);
         }
     }
 

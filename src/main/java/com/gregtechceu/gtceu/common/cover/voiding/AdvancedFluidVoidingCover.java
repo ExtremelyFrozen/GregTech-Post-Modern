@@ -7,12 +7,11 @@ import com.gregtechceu.gtceu.api.cover.filter.FluidFilter;
 import com.gregtechceu.gtceu.api.cover.filter.SimpleFluidFilter;
 import com.gregtechceu.gtceu.api.gui.element.GTEnumSelectorElement;
 import com.gregtechceu.gtceu.api.gui.element.GTIntInputElement;
-import com.gregtechceu.gtceu.api.gui.factory.CoverUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.UICoverHolder;
 import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
-import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
 import com.gregtechceu.gtceu.api.transfer.fluid.IFluidHandlerModifiable;
 import com.gregtechceu.gtceu.common.cover.data.BucketMode;
 import com.gregtechceu.gtceu.common.cover.data.VoidingMode;
@@ -32,12 +31,7 @@ import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class AdvancedFluidVoidingCover extends FluidVoidingCover
-                                       implements AdvancedFluidVoidingCoverConfigActionTarget {
-
-    static {
-        RPCRegistry.register(AdvancedFluidVoidingCoverConfigActions.INSTANCE);
-    }
+public class AdvancedFluidVoidingCover extends FluidVoidingCover {
 
     @SaveField
     @SyncToClient
@@ -102,7 +96,6 @@ public class AdvancedFluidVoidingCover extends FluidVoidingCover
         return filter.isBlackList() ? globalTransferSizeMillibuckets : filter.testFluidAmount(fluidStack);
     }
 
-    @Override
     public void setVoidingMode(VoidingMode voidingMode) {
         this.voidingMode = voidingMode;
         syncDataHolder.markClientSyncFieldDirty("voidingMode");
@@ -113,7 +106,6 @@ public class AdvancedFluidVoidingCover extends FluidVoidingCover
         }
     }
 
-    @Override
     public void setTransferBucketMode(BucketMode transferBucketMode) {
         this.transferBucketMode = transferBucketMode;
         syncDataHolder.markClientSyncFieldDirty("transferBucketMode");
@@ -158,7 +150,6 @@ public class AdvancedFluidVoidingCover extends FluidVoidingCover
         syncDataHolder.markClientSyncFieldDirty("globalTransferSizeMillibuckets");
     }
 
-    @Override
     public void setGlobalTransferSizeMillibuckets(int transferSize) {
         this.globalTransferSizeMillibuckets = Math.max(transferSize, 1);
         syncDataHolder.markClientSyncFieldDirty("globalTransferSizeMillibuckets");
@@ -207,10 +198,17 @@ public class AdvancedFluidVoidingCover extends FluidVoidingCover
         sendConfigAction(player, holder);
     }
 
+    @RPCMethod
+    public void configureAdvancedFluidVoiding(VoidingMode voidingMode, int transferSize, BucketMode bucketMode) {
+        setVoidingMode(voidingMode);
+        setTransferBucketMode(bucketMode);
+        setGlobalTransferSizeMillibuckets(transferSize);
+    }
+
     private void sendConfigAction(Player player, UICoverHolder holder) {
         if (player.level().isClientSide()) {
-            CoverUIHelper.sendAction(holder, AdvancedFluidVoidingCoverConfigActions.createSetConfigAction(
-                    getVoidingMode(), getGlobalTransferSizeMillibuckets(), getTransferBucketMode()));
+            holder.getCover().rpcToServer("configureAdvancedFluidVoiding", getVoidingMode(),
+                    getGlobalTransferSizeMillibuckets(), getTransferBucketMode());
         }
     }
 
