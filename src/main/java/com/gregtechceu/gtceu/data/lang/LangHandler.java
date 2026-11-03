@@ -1449,6 +1449,7 @@ public class LangHandler {
         provider.add("gtpm.gui.me_network.offline", "Network Status: §4Offline§r");
         provider.add("gtpm.gui.waiting_list", "Sending Queue:");
         provider.add("gtpm.gui.config_slot", "§fConfig Slot§r");
+        provider.add("gtpm.gui.config_slot.amount", "Amount");
         provider.add("gtpm.gui.config_slot.set", "§7Click to §bset/select§7 config slot.§r");
         provider.add("gtpm.gui.config_slot.scroll", "§7Scroll wheel to §achange§7 config amount.§r");
         provider.add("gtpm.gui.config_slot.remove", "§7Right click to §4clear§7 config slot.§r");

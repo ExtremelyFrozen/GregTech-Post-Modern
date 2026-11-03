@@ -2371,6 +2371,7 @@
     "gtpm.gui.computer_monitor_cover.slot_tooltip.1": "Slot number: %d",
     "gtpm.gui.computer_monitor_cover.update_interval": "Update interval (in ticks)",
     "gtpm.gui.config_slot": "§fConfig Slot§r",
+    "gtpm.gui.config_slot.amount": "Amount",
     "gtpm.gui.config_slot.auto_pull_managed": "§4Disabled:§7 Managed by Auto-Pull",
     "gtpm.gui.config_slot.remove": "§7Right click to §4clear§7 config slot.§r",
     "gtpm.gui.config_slot.scroll": "§7Scroll wheel to §achange§7 config amount.§r",

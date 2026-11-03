@@ -4,13 +4,13 @@ import com.gregtechceu.gtceu.api.capability.recipe.IO;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler;
 import com.gregtechceu.gtceu.api.recipe.GTRecipe;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
+import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
 import com.gregtechceu.gtceu.api.transfer.item.CustomItemStackHandler;
 
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.common.crafting.SizedIngredient;
 
 import lombok.Getter;
-import lombok.Setter;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
@@ -20,11 +20,8 @@ public class ExportOnlyAEItemList extends NotifiableItemStackHandler implements 
 
     @SaveField
     @Getter
+    @SyncToClient
     protected ExportOnlyAEItemSlot[] inventory;
-
-    /** Keeps construction-time and standalone slots callable before an owning snapshot subscribes. */
-    @Setter
-    private Runnable snapshotChangeListener = () -> {};
 
     private @Nullable CustomItemStackHandler itemHandler;
 
@@ -39,13 +36,8 @@ public class ExportOnlyAEItemList extends NotifiableItemStackHandler implements 
             this.inventory[i] = slotFactory.get();
         }
         for (ExportOnlyAEItemSlot slot : this.inventory) {
-            slot.setOnContentsChanged(this::onSlotContentsChanged);
+            slot.setOnContentsChanged(this::onContentsChanged);
         }
-    }
-
-    private void onSlotContentsChanged() {
-        onContentsChanged();
-        snapshotChangeListener.run();
     }
 
     public CustomItemStackHandler getHandler() {

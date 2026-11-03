@@ -2362,6 +2362,7 @@
 	"gtpm.gui.computer_monitor_cover.slot_tooltip.1": "槽位编号：%d",
 	"gtpm.gui.computer_monitor_cover.update_interval": "更新间隔（单位：tick）",
 	"gtpm.gui.config_slot": "§f配置槽位§r",
+	"gtpm.gui.config_slot.amount": "数量",
 	"gtpm.gui.config_slot.auto_pull_managed": "§4禁用：§7由ME自动拉取管理",
 	"gtpm.gui.config_slot.remove": "§7右击§4清除§7配置槽位。§r",
 	"gtpm.gui.config_slot.scroll": "§7使用滚轮§a切换§7配置数。§r",

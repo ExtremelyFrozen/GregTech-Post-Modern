@@ -209,7 +209,6 @@ public class MEStockingBusPartMachine extends MEInputBusPartMachine implements I
                 this.refreshList();
                 updateInventorySubscription();
             }
-            refreshItemConfigSnapshot();
         }
     }
 

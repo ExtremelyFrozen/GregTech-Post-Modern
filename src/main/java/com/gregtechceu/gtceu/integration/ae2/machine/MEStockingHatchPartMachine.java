@@ -201,7 +201,6 @@ public class MEStockingHatchPartMachine extends MEInputHatchPartMachine implemen
                 this.refreshList();
                 updateTankSubscription();
             }
-            refreshFluidConfigSnapshot();
         }
     }
 
