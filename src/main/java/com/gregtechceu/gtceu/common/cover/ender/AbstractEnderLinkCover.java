@@ -26,6 +26,7 @@ import com.gregtechceu.gtceu.api.misc.virtualregistry.EntryTypes;
 import com.gregtechceu.gtceu.api.misc.virtualregistry.VirtualEnderRegistry;
 import com.gregtechceu.gtceu.api.misc.virtualregistry.VirtualEntry;
 import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry;
 import com.gregtechceu.gtceu.api.sync_system.annotations.RerenderOnChanged;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
@@ -82,7 +83,7 @@ public abstract class AbstractEnderLinkCover<T extends VirtualEntry> extends Cov
     private static final int BUTTON_SIZE = 16;
 
     static {
-        EnderLinkCoverActions.initialize();
+        RpcRegistry.register(EnderLinkCoverActions.INSTANCE);
     }
 
     protected final ConditionalSubscriptionHandler subscriptionHandler;
