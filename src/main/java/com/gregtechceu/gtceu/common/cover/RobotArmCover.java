@@ -13,6 +13,7 @@ import com.gregtechceu.gtceu.api.gui.factory.UICoverHolder;
 import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry;
 import com.gregtechceu.gtceu.common.cover.data.TransferMode;
 import com.gregtechceu.gtceu.common.pipelike.item.ItemNetHandler;
 
@@ -36,7 +37,7 @@ import java.util.Map;
 public class RobotArmCover extends ConveyorCover {
 
     static {
-        RobotArmCoverConfigActions.initialize();
+        RpcRegistry.register(RobotArmCoverConfigActions.INSTANCE);
     }
 
     @SaveField

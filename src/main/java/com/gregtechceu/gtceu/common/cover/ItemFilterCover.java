@@ -18,6 +18,7 @@ import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry;
 import com.gregtechceu.gtceu.api.transfer.item.ItemHandlerDelegate;
 import com.gregtechceu.gtceu.common.cover.data.FilterMode;
 import com.gregtechceu.gtceu.common.cover.data.ManualIOMode;
@@ -43,7 +44,7 @@ public class ItemFilterCover extends CoverBehavior
                              implements CoverUIProvider, ItemFilterCoverConfigActionTarget {
 
     static {
-        ItemFilterCoverConfigActions.initialize();
+        RpcRegistry.register(ItemFilterCoverConfigActions.INSTANCE);
     }
 
     protected ItemFilter itemFilter;

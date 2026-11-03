@@ -3,14 +3,10 @@ package com.gregtechceu.gtceu.common.cover
 import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.sync_system.SyncActionContext
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData
-import com.gregtechceu.gtceu.api.sync_system.SyncActionDispatchers
-import com.gregtechceu.gtceu.api.sync_system.SyncActionHandler
+import com.gregtechceu.gtceu.api.sync_system.rpc.RpcAction
+import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry
 import com.gregtechceu.gtceu.common.cover.data.BucketMode
 import com.gregtechceu.gtceu.common.cover.data.TransferMode
-
-import net.minecraft.core.component.DataComponentMap
-import net.minecraft.resources.ResourceLocation
-import net.minecraft.server.level.ServerPlayer
 
 import org.jetbrains.annotations.ApiStatus
 
@@ -31,57 +27,19 @@ interface FluidRegulatorCoverConfigActionTarget {
 /** Owns the wire action and server handler used by the fluid regulator configuration UI. */
 object FluidRegulatorCoverConfigActions {
 
-	private val SET_FLUID_REGULATOR_COVER_CONFIG_ACTION = GTCEu.id("set_fluid_regulator_cover_config")
-	private val TRANSFER_MODES = TransferMode.entries
-	private val TRANSFER_BUCKET_MODES = BucketMode.entries
-	private val PROTOCOL_SCHEMA =
-		RegulatedTransferConfigActionProtocol.Schema(
-			transferModeValueCount = TRANSFER_MODES.size,
-			minimumTransferLimit = 0,
-			transferBucketValueCount = TRANSFER_BUCKET_MODES.size,
-		)
+	private val ACTION = GTCEu.id("set_fluid_regulator_cover_config")
 
-	init {
-		SyncActionDispatchers.server().register(FluidRegulatorCoverConfigActionHandler)
-	}
-
-	/** Forces common-side handler registration when the owning cover class initializes. */
+	/** Creates a request using the registered method parameter codecs. */
 	@JvmStatic
-	fun initialize() = Unit
+	fun createSetConfigAction(transferMode: TransferMode, transferLimit: Int, transferBucketMode: BucketMode): SyncActionData = RpcRegistry.create(ACTION, 0, transferMode, transferLimit, transferBucketMode)
 
-	/** Creates one complete client request from the current fluid regulator state. */
-	@JvmStatic
-	fun createSetConfigAction(transferMode: TransferMode, transferLimit: Int, transferBucketMode: BucketMode): SyncActionData = RegulatedTransferConfigActionProtocol.createAction(
-		SET_FLUID_REGULATOR_COVER_CONFIG_ACTION,
-		PROTOCOL_SCHEMA,
-		transferMode.ordinal,
-		transferLimit,
-		transferBucketMode.ordinal,
-	)
-
-	private object FluidRegulatorCoverConfigActionHandler : SyncActionHandler {
-
-		override fun actionId(): ResourceLocation = SET_FLUID_REGULATOR_COVER_CONFIG_ACTION
-
-		override fun acceptsHolder(context: SyncActionContext): Boolean = context.holder is FluidRegulatorCoverConfigActionTarget
-
-		override fun acceptsPayload(payload: DataComponentMap): Boolean = RegulatedTransferConfigActionProtocol.read(payload, PROTOCOL_SCHEMA) != null
-
-		override fun mayExecute(player: ServerPlayer, context: SyncActionContext): Boolean = !player.isSpectator
-
-		override fun execute(context: SyncActionContext) {
-			val target = context.holder as? FluidRegulatorCoverConfigActionTarget
-				?: throw IllegalStateException(
-					"Fluid regulator cover config action received a non-fluid-regulator target.",
-				)
-			val config = RegulatedTransferConfigActionProtocol.requireConfig(context.payload(), PROTOCOL_SCHEMA)
-			val transferBucketOrdinal = config.transferBucketOrdinal
-				?: throw IllegalStateException(
-					"Fluid regulator cover config action schema omitted the transfer bucket.",
-				)
-			target.setTransferMode(TRANSFER_MODES[config.transferModeOrdinal])
-			target.setGlobalTransferLimit(config.transferLimit)
-			target.setTransferBucketMode(TRANSFER_BUCKET_MODES[transferBucketOrdinal])
-		}
+	@RpcAction("set_fluid_regulator_cover_config")
+	fun apply(context: SyncActionContext, transferMode: TransferMode, transferLimit: Int, transferBucketMode: BucketMode): Boolean {
+		val target = context.holder as? FluidRegulatorCoverConfigActionTarget ?: return false
+		require(transferLimit >= 0) { "Fluid regulator transfer limit must be non-negative: $transferLimit" }
+		target.setTransferMode(transferMode)
+		target.setGlobalTransferLimit(transferLimit)
+		target.setTransferBucketMode(transferBucketMode)
+		return true
 	}
 }

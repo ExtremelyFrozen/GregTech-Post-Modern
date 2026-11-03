@@ -15,6 +15,7 @@ import com.gregtechceu.gtceu.api.gui.factory.UICoverHolder;
 import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry;
 import com.gregtechceu.gtceu.api.transfer.fluid.FluidHandlerDelegate;
 import com.gregtechceu.gtceu.api.transfer.fluid.IFluidHandlerModifiable;
 import com.gregtechceu.gtceu.common.cover.data.FilterMode;
@@ -39,7 +40,7 @@ public class FluidFilterCover extends CoverBehavior
                               implements CoverUIProvider, FluidFilterCoverConfigActionTarget {
 
     static {
-        FluidFilterCoverConfigActions.initialize();
+        RpcRegistry.register(FluidFilterCoverConfigActions.INSTANCE);
     }
 
     protected FluidFilter fluidFilter;
