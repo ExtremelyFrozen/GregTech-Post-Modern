@@ -2,11 +2,9 @@ package com.gregtechceu.gtceu.api.machine.fancyconfigurator;
 
 import com.gregtechceu.gtceu.api.capability.IControllable;
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyConfiguratorButton;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
-import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry;
 
 import net.minecraft.network.chat.Component;
 
@@ -20,10 +18,6 @@ import java.util.List;
  * channels.
  */
 public class WorkingEnabledConfigurator extends FancyConfiguratorButton.Toggle {
-
-    static {
-        RPCRegistry.register(WorkingEnabledConfiguratorActions.INSTANCE);
-    }
 
     /**
      * Creates a working-enabled toggle bound to the opened machine holder.
@@ -42,9 +36,7 @@ public class WorkingEnabledConfigurator extends FancyConfiguratorButton.Toggle {
                                 "Working-enabled configurator holder no longer resolves its opened machine.");
                     }
                     if (opening.machine().isRemote()) {
-                        MachineUIHelper.sendAction(opening.holder(),
-                                WorkingEnabledConfiguratorActions
-                                        .createSetWorkingEnabledAction(pressed));
+                        opening.machine().rpcToServer("setWorkingEnabled", pressed);
                         event.stopImmediatePropagation();
                         event.hasHandler = true;
                     }

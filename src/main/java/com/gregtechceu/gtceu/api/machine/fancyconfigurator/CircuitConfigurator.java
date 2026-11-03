@@ -5,7 +5,6 @@ import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTButtonElement;
 import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyConfigurator;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyMiddleClickAction;
@@ -13,8 +12,7 @@ import com.gregtechceu.gtceu.api.gui.fancy.FancyMouseWheelAction;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.feature.IHasCircuitSlot;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler;
-import com.gregtechceu.gtceu.api.sync_system.SyncActionData;
-import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry;
+import com.gregtechceu.gtceu.api.sync_system.managed.ISyncManaged;
 import com.gregtechceu.gtceu.common.item.behavior.IntCircuitBehaviour;
 import com.gregtechceu.gtceu.config.ConfigHolder;
 import com.gregtechceu.gtceu.data.lang.LangHandler;
@@ -32,6 +30,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.BooleanSupplier;
+import java.util.function.Consumer;
 import java.util.function.IntFunction;
 
 /**
@@ -50,15 +49,11 @@ public class CircuitConfigurator implements FancyConfigurator, FancyMouseWheelAc
     private static final int SELECTED_SLOT = 0;
     private static final int NO_CONFIG = -1;
 
-    static {
-        RPCRegistry.register(CircuitConfiguratorActions.INSTANCE);
-    }
-
     private final IHasCircuitSlot circuitMachine;
     private final MachineUIHolder holder;
-    private final BiConsumer<MachineUIHolder, SyncActionData> actionSender;
+    private final BiConsumer<MachineUIHolder, Consumer<ISyncManaged>> actionSender;
     private final BooleanSupplier openingValid;
-    private final IntFunction<SyncActionData> actionFactory;
+    private final IntFunction<Consumer<ISyncManaged>> actionFactory;
 
     /**
      * Creates a circuit configurator bound to the machine circuit inventory and opened UI holder.
@@ -67,17 +62,17 @@ public class CircuitConfigurator implements FancyConfigurator, FancyMouseWheelAc
      * @param holder         opened machine UI holder used to send GTM machine actions.
      */
     public CircuitConfigurator(IHasCircuitSlot circuitMachine, MachineUIHolder holder) {
-        this(circuitMachine, holder, MachineUIHelper::sendAction, () -> true,
-                CircuitConfiguratorActions::createSetMachineCircuitConfigurationAction);
+        this(circuitMachine, holder, (target, action) -> action.accept(target.getMachine()), () -> true,
+                configuration -> managed -> managed.rpcToServer("configureCircuit", configuration));
     }
 
     /**
      * Creates a circuit configurator whose authoritative action and slot validity belong to its caller's opening.
      */
     public CircuitConfigurator(IHasCircuitSlot circuitMachine, MachineUIHolder holder,
-                               BiConsumer<MachineUIHolder, SyncActionData> actionSender,
+                               BiConsumer<MachineUIHolder, Consumer<ISyncManaged>> actionSender,
                                BooleanSupplier openingValid,
-                               IntFunction<SyncActionData> actionFactory) {
+                               IntFunction<Consumer<ISyncManaged>> actionFactory) {
         if (!hasUsableCircuitSlot(circuitMachine)) {
             throw new IllegalArgumentException("Circuit Fancy configurator requires an enabled circuit slot.");
         }
@@ -256,8 +251,8 @@ public class CircuitConfigurator implements FancyConfigurator, FancyMouseWheelAc
         return false;
     }
 
-    static void writeMachineCircuitConfiguration(NotifiableItemStackHandler circuitInventory, int configuration) {
-        validateActionConfiguration(configuration);
+    public static void writeMachineCircuitConfiguration(NotifiableItemStackHandler circuitInventory,
+                                                        int configuration) {
         if (configuration == NO_CONFIG) {
             if (ConfigHolder.INSTANCE.machines.ghostCircuit ||
                     circuitInventory.getStackInSlot(SELECTED_SLOT).isEmpty()) {

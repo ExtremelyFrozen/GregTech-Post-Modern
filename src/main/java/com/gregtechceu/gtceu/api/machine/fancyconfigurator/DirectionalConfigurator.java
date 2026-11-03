@@ -9,7 +9,6 @@ import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTToggleButtonElement;
 import com.gregtechceu.gtceu.api.gui.factory.CoverUIHelper;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUI;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
@@ -17,8 +16,7 @@ import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.MachineCoverContainer;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.api.machine.feature.DirectionalAutoOutputMachine;
-import com.gregtechceu.gtceu.api.sync_system.SyncActionData;
-import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry;
+import com.gregtechceu.gtceu.api.sync_system.managed.ISyncManaged;
 import com.gregtechceu.gtceu.client.gui.fancy.DirectionalSceneFactory;
 import com.gregtechceu.gtceu.common.machine.trait.AutoOutputTrait;
 import com.gregtechceu.gtceu.data.lang.LangHandler;
@@ -41,6 +39,7 @@ import org.lwjgl.glfw.GLFW;
 import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.BooleanSupplier;
+import java.util.function.Consumer;
 
 /**
  * LDLib2 Fancy side page that composes directional machine controls around one shared scene.
@@ -90,7 +89,7 @@ public final class DirectionalConfigurator implements FancyUIProvider {
     @Nullable
     private final DirectionalAutoOutputMachine output;
     private final MachineUIHolder pageHolder;
-    private final BiConsumer<MachineUIHolder, SyncActionData> actionSender;
+    private final BiConsumer<MachineUIHolder, Consumer<ISyncManaged>> actionSender;
     private final BooleanSupplier openingValid;
     private final CoverActionRequests coverActionRequests;
 
@@ -109,30 +108,30 @@ public final class DirectionalConfigurator implements FancyUIProvider {
     public interface CoverActionRequests {
 
         /** Creates a request to place or replace a cover on the selected side. */
-        SyncActionData createPlaceCoverAction(Direction side);
+        Consumer<ISyncManaged> createPlaceCoverAction(Direction side);
 
         /** Creates a request to remove the cover on the selected side. */
-        SyncActionData createRemoveCoverAction(Direction side);
+        Consumer<ISyncManaged> createRemoveCoverAction(Direction side);
 
         /** Creates a request to open the cover UI on the selected side. */
-        SyncActionData createOpenCoverAction(Direction side);
+        Consumer<ISyncManaged> createOpenCoverAction(Direction side);
     }
 
     private static final CoverActionRequests DIRECT_COVER_ACTIONS = new CoverActionRequests() {
 
         @Override
-        public SyncActionData createPlaceCoverAction(Direction side) {
-            return DirectionalCoverActions.createPlaceCoverAction(side);
+        public Consumer<ISyncManaged> createPlaceCoverAction(Direction side) {
+            return managed -> ((MetaMachine) managed).getCoverContainer().rpcToServer("placeDirectionalCover", side);
         }
 
         @Override
-        public SyncActionData createRemoveCoverAction(Direction side) {
-            return DirectionalCoverActions.createRemoveCoverAction(side);
+        public Consumer<ISyncManaged> createRemoveCoverAction(Direction side) {
+            return managed -> ((MetaMachine) managed).getCoverContainer().rpcToServer("removeDirectionalCover", side);
         }
 
         @Override
-        public SyncActionData createOpenCoverAction(Direction side) {
-            return DirectionalCoverActions.createOpenCoverAction(side);
+        public Consumer<ISyncManaged> createOpenCoverAction(Direction side) {
+            return managed -> ((MetaMachine) managed).getCoverContainer().rpcToServer("openDirectionalCover", side);
         }
     };
 
@@ -144,12 +143,12 @@ public final class DirectionalConfigurator implements FancyUIProvider {
      * @param pageHolder stable holder used for every machine action sent by the page
      */
     public DirectionalConfigurator(MetaMachine machine, Player player, MachineUIHolder pageHolder) {
-        this(machine, player, pageHolder, MachineUIHelper::sendAction,
+        this(machine, player, pageHolder, (target, action) -> action.accept(target.getMachine()),
                 () -> pageHolder.getMachine() == machine, DIRECT_COVER_ACTIONS);
     }
 
     DirectionalConfigurator(MetaMachine machine, Player player, MachineUIHolder pageHolder,
-                            BiConsumer<MachineUIHolder, SyncActionData> actionSender) {
+                            BiConsumer<MachineUIHolder, Consumer<ISyncManaged>> actionSender) {
         this(machine, player, pageHolder, actionSender,
                 () -> pageHolder.getMachine() == machine, DIRECT_COVER_ACTIONS);
     }
@@ -158,7 +157,7 @@ public final class DirectionalConfigurator implements FancyUIProvider {
      * Creates a directional page whose holder validity and cover actions belong to a caller-owned opening.
      */
     public DirectionalConfigurator(MetaMachine machine, Player player, MachineUIHolder pageHolder,
-                                   BiConsumer<MachineUIHolder, SyncActionData> actionSender,
+                                   BiConsumer<MachineUIHolder, Consumer<ISyncManaged>> actionSender,
                                    BooleanSupplier openingValid,
                                    CoverActionRequests coverActionRequests) {
         requireValidOpening(openingValid);
@@ -170,7 +169,6 @@ public final class DirectionalConfigurator implements FancyUIProvider {
         this.actionSender = actionSender;
         this.openingValid = openingValid;
         this.coverActionRequests = coverActionRequests;
-        RPCRegistry.register(DirectionalCoverActions.INSTANCE);
     }
 
     private static void requireValidOpening(BooleanSupplier openingValid) {
@@ -374,7 +372,7 @@ public final class DirectionalConfigurator implements FancyUIProvider {
         return controls;
     }
 
-    private void sendAction(SyncActionData action) {
+    private void sendAction(Consumer<ISyncManaged> action) {
         if (openingValid.getAsBoolean()) {
             actionSender.accept(pageHolder, action);
         }
@@ -610,7 +608,7 @@ public final class DirectionalConfigurator implements FancyUIProvider {
                 event.button != GLFW.GLFW_MOUSE_BUTTON_RIGHT)) {
             return;
         }
-        SyncActionData action = player.containerMenu.getCarried().isEmpty() && getSelectedCover() != null ?
+        Consumer<ISyncManaged> action = player.containerMenu.getCarried().isEmpty() && getSelectedCover() != null ?
                 coverActionRequests.createRemoveCoverAction(side) :
                 coverActionRequests.createPlaceCoverAction(side);
         sendAction(action);

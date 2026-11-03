@@ -1,10 +1,8 @@
 package com.gregtechceu.gtceu.integration.ae2.machine;
 
-import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo;
 import com.gregtechceu.gtceu.api.capability.recipe.IO;
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUI;
@@ -19,11 +17,10 @@ import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
 import com.gregtechceu.gtceu.api.machine.TickableSubscription;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.ButtonConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CircuitConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CircuitConfiguratorActions;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.DirectionalConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.DirectionalCoverActions;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.InventoryConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.TankConfigurator;
+import com.gregtechceu.gtceu.api.machine.feature.FancyActionMachine;
 import com.gregtechceu.gtceu.api.machine.feature.IDataStickInteractable;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
@@ -32,11 +29,10 @@ import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler;
 import com.gregtechceu.gtceu.api.recipe.handler.RecipeHandlerList;
 import com.gregtechceu.gtceu.api.recipe.ingredient.SizedIngredientExtensions;
 import com.gregtechceu.gtceu.api.sync_system.ContextualFieldCodec.Context;
-import com.gregtechceu.gtceu.api.sync_system.SyncActionData;
-import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
-import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCSender;
 import com.gregtechceu.gtceu.api.transfer.item.CustomItemStackHandler;
 import com.gregtechceu.gtceu.common.data.GTDataComponents;
 import com.gregtechceu.gtceu.common.data.machines.GTAEMachines;
@@ -49,12 +45,9 @@ import com.gregtechceu.gtceu.utils.ItemStackHashStrategy;
 
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
-import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -96,77 +89,15 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.BiConsumer;
-import java.util.function.BooleanSupplier;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 @ExtensionMethod(SizedIngredientExtensions.class)
 public class MEPatternBufferPartMachine extends MEBusPartMachine
                                         implements ICraftingProvider, PatternContainer, IDataStickInteractable,
-                                        FancyPartUIProvider, MEPatternBufferActionTarget {
-
-    static {
-        RPCRegistry.register(MEPatternBufferActions.INSTANCE);
-    }
+                                        FancyPartUIProvider, FancyActionMachine {
 
     protected static final int MAX_PATTERN_COUNT = 27;
 
-    /**
-     * Creates every authoritative command exposed by one Pattern Buffer Fancy page.
-     */
-    interface PatternBufferPageActions extends DirectionalConfigurator.CoverActionRequests {
-
-        /** Creates the exact terminal-name command for this opening. */
-        SyncActionData createSetNameAction(String name);
-
-        /** Creates the command that refunds every buffered crafting input. */
-        SyncActionData createRefundAllAction();
-
-        /** Creates one shared-tank container interaction. */
-        SyncActionData createClickShareTankAction(int tankIndex, boolean shiftDown);
-
-        /** Creates one programmed-circuit configuration command. */
-        SyncActionData createSetCircuitConfigurationAction(int configuration);
-    }
-
-    private static final PatternBufferPageActions DIRECT_PAGE_ACTIONS = new PatternBufferPageActions() {
-
-        @Override
-        public SyncActionData createSetNameAction(String name) {
-            return MEPatternBufferActions.createSetNameAction(name);
-        }
-
-        @Override
-        public SyncActionData createRefundAllAction() {
-            return MEPatternBufferActions.createRefundAllAction();
-        }
-
-        @Override
-        public SyncActionData createClickShareTankAction(int tankIndex, boolean shiftDown) {
-            return MEPatternBufferActions.createClickShareTankAction(tankIndex, shiftDown);
-        }
-
-        @Override
-        public SyncActionData createSetCircuitConfigurationAction(int configuration) {
-            return CircuitConfiguratorActions.createSetMachineCircuitConfigurationAction(configuration);
-        }
-
-        @Override
-        public SyncActionData createPlaceCoverAction(Direction side) {
-            return DirectionalCoverActions.createPlaceCoverAction(side);
-        }
-
-        @Override
-        public SyncActionData createRemoveCoverAction(Direction side) {
-            return DirectionalCoverActions.createRemoveCoverAction(side);
-        }
-
-        @Override
-        public SyncActionData createOpenCoverAction(Direction side) {
-            return DirectionalCoverActions.createOpenCoverAction(side);
-        }
-    };
     private final InternalInventory internalPatternInventory = new InternalInventory() {
 
         @Override
@@ -218,7 +149,6 @@ public class MEPatternBufferPartMachine extends MEBusPartMachine
     @SaveField
     private final Set<BlockPos> proxies = new ObjectOpenHashSet<>();
     private final Set<MEPatternBufferProxyPartMachine> proxyMachines = new ReferenceOpenHashSet<>();
-    private final Set<MEPatternBufferProxyUIContainerMenu> proxyUIMenus = new ReferenceOpenHashSet<>();
 
     @Getter
     protected final InternalSlotRecipeHandler internalRecipeHandler;
@@ -269,7 +199,6 @@ public class MEPatternBufferPartMachine extends MEBusPartMachine
             return;
         }
         customName = newName;
-        syncDataHolder.markClientSyncFieldDirty("customName");
     }
 
     @Override
@@ -313,34 +242,6 @@ public class MEPatternBufferPartMachine extends MEBusPartMachine
     public void removeProxy(MEPatternBufferProxyPartMachine proxy) {
         proxies.remove(proxy.getBlockPos());
         proxyMachines.remove(proxy);
-    }
-
-    void addProxyUIMenu(MEPatternBufferProxyUIContainerMenu menu) {
-        if (!proxyUIMenus.add(menu)) {
-            throw new IllegalStateException("Pattern Buffer Proxy menu was registered more than once.");
-        }
-    }
-
-    void removeProxyUIMenu(MEPatternBufferProxyUIContainerMenu menu) {
-        proxyUIMenus.remove(menu);
-    }
-
-    @Override
-    protected void onClientNetworkChanges(SyncFieldData changes) {
-        for (MEPatternBufferProxyUIContainerMenu menu : List.copyOf(proxyUIMenus)) {
-            try {
-                menu.sendBufferChanges(this, changes);
-            } catch (RuntimeException exception) {
-                proxyUIMenus.remove(menu);
-                try {
-                    menu.closeAfterSyncFailure();
-                } catch (RuntimeException closeException) {
-                    exception.addSuppressed(closeException);
-                }
-                GTCEu.LOGGER.error("Failed to forward client sync changes from Pattern Buffer at {} to Proxy menu {}",
-                        getBlockPos(), menu.containerId, exception);
-            }
-        }
     }
 
     @UnmodifiableView
@@ -399,7 +300,7 @@ public class MEPatternBufferPartMachine extends MEBusPartMachine
     //////////////////////////////////////
     @Override
     public boolean canCreateUI(Player player, MachineUIHolder holder) {
-        return matchesDirectOpening(holder) && supportsMEPatternBufferActions();
+        return holder.getMachine() == this;
     }
 
     @Override
@@ -409,73 +310,13 @@ public class MEPatternBufferPartMachine extends MEBusPartMachine
                 page.getPageWidth(), page.getPageHeight()));
     }
 
-    /**
-     * Creates one standalone opening-scoped page after validating the holder and exact machine definition.
-     */
     FancyUIProvider createPage(Player player, MachineUIHolder holder) {
-        BooleanSupplier openingValid = () -> matchesDirectOpening(holder);
-        return createOpeningScopedPage(player, holder, MachineUIHelper::sendAction, openingValid,
-                () -> player.level().isClientSide() && openingValid.getAsBoolean(),
-                UIEvent::isShiftDown, DIRECT_PAGE_ACTIONS);
-    }
-
-    /**
-     * Builds an opening-scoped page with injectable action transport for direct interaction tests.
-     */
-    FancyUIProvider createPage(Player player, MachineUIHolder holder,
-                               BiConsumer<MachineUIHolder, SyncActionData> actionSender,
-                               BooleanSupplier canSendAction, Predicate<UIEvent> shiftDown) {
-        requireMatchingHolder(holder);
-        BooleanSupplier openingValid = () -> matchesDirectOpening(holder);
-        return createOpeningScopedPage(player, holder, actionSender, openingValid,
-                () -> openingValid.getAsBoolean() && canSendAction.getAsBoolean(), shiftDown, DIRECT_PAGE_ACTIONS);
-    }
-
-    /**
-     * Builds this buffer's page around a caller-owned holder and immutable opening identity.
-     */
-    FancyUIProvider createOpeningScopedPage(Player player, MachineUIHolder holder,
-                                            BiConsumer<MachineUIHolder, SyncActionData> actionSender,
-                                            BooleanSupplier openingValid,
-                                            BooleanSupplier canSendAction,
-                                            Predicate<UIEvent> shiftDown,
-                                            PatternBufferPageActions pageActions) {
-        requireValidOpening(openingValid);
-        requirePatternBufferDefinition();
-        return new MEPatternBufferFancyPage(player, holder, actionSender, openingValid, canSendAction,
-                shiftDown, pageActions);
+        return new MEPatternBufferFancyPage(player, holder);
     }
 
     @Override
     public FancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
         return createPage(player, holder);
-    }
-
-    /**
-     * Builds the directly testable Pattern Buffer body for one validated opening.
-     */
-    MEPatternBufferPageElement createMainElement(Player player, MachineUIHolder holder,
-                                                 BiConsumer<MachineUIHolder, SyncActionData> actionSender,
-                                                 BooleanSupplier canSendAction) {
-        requireMatchingHolder(holder);
-        BooleanSupplier openingValid = () -> matchesDirectOpening(holder);
-        return createOpeningScopedMainElement(player, holder, actionSender, openingValid,
-                () -> openingValid.getAsBoolean() && canSendAction.getAsBoolean(), DIRECT_PAGE_ACTIONS);
-    }
-
-    /**
-     * Builds the directly testable body for a validated direct or Proxy opening.
-     */
-    MEPatternBufferPageElement createOpeningScopedMainElement(
-                                                              Player player, MachineUIHolder holder,
-                                                              BiConsumer<MachineUIHolder, SyncActionData> actionSender,
-                                                              BooleanSupplier openingValid,
-                                                              BooleanSupplier canSendAction,
-                                                              PatternBufferPageActions pageActions) {
-        requireValidOpening(openingValid);
-        requirePatternBufferDefinition();
-        return new MEPatternBufferPageElement(this, player.level(), holder, actionSender, canSendAction,
-                openingValid, pageActions::createSetNameAction);
     }
 
     public int getPageWidth() {
@@ -486,57 +327,23 @@ public class MEPatternBufferPartMachine extends MEBusPartMachine
         return MEPatternBufferPageElement.HEIGHT;
     }
 
-    private void requireMatchingHolder(MachineUIHolder holder) {
-        if (!matchesDirectOpening(holder)) {
-            throw new IllegalArgumentException("Pattern Buffer page holder must resolve the opened definition.");
-        }
-    }
-
-    private boolean matchesDirectOpening(MachineUIHolder holder) {
-        return holder.getMachine() == this &&
-                holder.getMachineDefinitionId().equals(GTAEMachines.ME_PATTERN_BUFFER.getId());
-    }
-
-    private static void requireValidOpening(BooleanSupplier openingValid) {
-        if (!openingValid.getAsBoolean()) {
-            throw new IllegalArgumentException("Pattern Buffer page requires a valid opening identity.");
-        }
-    }
-
-    private void requirePatternBufferDefinition() {
-        if (!supportsMEPatternBufferActions()) {
-            throw new IllegalStateException("Pattern Buffer LDLib2 UI requires the exact Pattern Buffer definition.");
-        }
-    }
-
-    @Override
-    public boolean supportsMEPatternBufferActions() {
-        return getDefinition() == GTAEMachines.ME_PATTERN_BUFFER;
-    }
-
-    @Override
+    @RPCMethod
     public void setMEPatternBufferName(String name) {
-        requirePatternBufferDefinition();
         setCustomName(name);
     }
 
-    @Override
+    @RPCMethod
     public void refundMEPatternBufferContents() {
-        requirePatternBufferDefinition();
         refundAllContents();
     }
 
-    @Override
     public int getMEPatternBufferShareTankCount() {
         return shareTank.getStorages().length;
     }
 
-    @Override
-    public void clickMEPatternBufferShareTank(ServerPlayer player, int tankIndex, boolean shiftDown) {
-        requirePatternBufferDefinition();
-        if (tankIndex < 0 || tankIndex >= getMEPatternBufferShareTankCount()) {
-            throw new IllegalArgumentException("Invalid Pattern Buffer shared tank index: " + tankIndex);
-        }
+    @RPCMethod
+    public void clickMEPatternBufferShareTank(RPCSender sender, int tankIndex, boolean shiftDown) {
+        var player = sender.asPlayer();
         new FluidContainerSlotInteraction(shareTank.getStorages()[tankIndex], true, true)
                 .click(player, shiftDown);
     }
@@ -548,36 +355,17 @@ public class MEPatternBufferPartMachine extends MEBusPartMachine
 
         private final Player player;
         private final MachineUIHolder holder;
-        private final BiConsumer<MachineUIHolder, SyncActionData> actionSender;
-        private final BooleanSupplier openingValid;
-        private final BooleanSupplier canSendAction;
-        private final Predicate<UIEvent> shiftDown;
-        private final PatternBufferPageActions pageActions;
         private final DirectionalConfigurator directionalPage;
 
-        private MEPatternBufferFancyPage(Player player, MachineUIHolder holder,
-                                         BiConsumer<MachineUIHolder, SyncActionData> actionSender,
-                                         BooleanSupplier openingValid, BooleanSupplier canSendAction,
-                                         Predicate<UIEvent> shiftDown, PatternBufferPageActions pageActions) {
-            requireValidOpening(openingValid);
+        private MEPatternBufferFancyPage(Player player, MachineUIHolder holder) {
             this.player = player;
             this.holder = holder;
-            this.actionSender = actionSender;
-            this.openingValid = openingValid;
-            this.canSendAction = canSendAction;
-            this.shiftDown = shiftDown;
-            this.pageActions = pageActions;
-            directionalPage = new DirectionalConfigurator(MEPatternBufferPartMachine.this, player,
-                    holder, actionSender, openingValid, pageActions);
+            directionalPage = new DirectionalConfigurator(MEPatternBufferPartMachine.this, player, holder);
         }
 
         @Override
         public UIElement createMainPage(FancyMachineUI shell) {
-            if (!openingValid.getAsBoolean()) {
-                throw new IllegalStateException("Pattern Buffer page no longer resolves its opened machine context.");
-            }
-            return createOpeningScopedMainElement(player, holder, actionSender, openingValid,
-                    canSendAction, pageActions);
+            return new MEPatternBufferPageElement(MEPatternBufferPartMachine.this, player.level(), holder);
         }
 
         @Override
@@ -609,29 +397,27 @@ public class MEPatternBufferPartMachine extends MEBusPartMachine
         public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
             configuratorPanel.attachConfigurators(new ButtonConfigurator(
                     GuiTextures.group(GuiTextures.BUTTON, GuiTextures.REFUND_OVERLAY), event -> {
-                        if (canSendAction.getAsBoolean()) {
-                            actionSender.accept(holder, pageActions.createRefundAllAction());
+                        if (player.level().isClientSide()) {
+                            rpcToServer("refundMEPatternBufferContents");
                         }
                     }).setTooltips(List.of(Component.translatable("gui.gtpm.refund_all.desc"))));
             if (isHasCircuitSlot() && isCircuitSlotEnabled()) {
                 configuratorPanel.attachConfigurators(new CircuitConfigurator(
-                        MEPatternBufferPartMachine.this, holder, actionSender, openingValid,
-                        pageActions::createSetCircuitConfigurationAction));
+                        MEPatternBufferPartMachine.this, holder));
             }
             configuratorPanel.attachConfigurators(new InventoryConfigurator(
-                    shareInventory.storage, Component.translatable("gui.gtpm.share_inventory.title"), openingValid)
+                    shareInventory.storage, Component.translatable("gui.gtpm.share_inventory.title"), () -> true)
                     .setTooltips(List.of(
                             Component.translatable("gui.gtpm.share_inventory.desc.0"),
                             Component.translatable("gui.gtpm.share_inventory.desc.1"))));
             configuratorPanel.attachConfigurators(new TankConfigurator(
                     shareTank.getStorages(), Component.translatable("gui.gtpm.share_tank.title"))
                     .setTankClickHandler((tankIndex, event) -> {
-                        if (!canSendAction.getAsBoolean() ||
+                        if (!player.level().isClientSide() ||
                                 FluidUtil.getFluidHandler(player.containerMenu.getCarried()).isEmpty()) {
                             return false;
                         }
-                        actionSender.accept(holder, pageActions.createClickShareTankAction(
-                                tankIndex, shiftDown.test(event)));
+                        rpcToServer("clickMEPatternBufferShareTank", tankIndex, event.isShiftDown());
                         return true;
                     })
                     .setTooltips(List.of(

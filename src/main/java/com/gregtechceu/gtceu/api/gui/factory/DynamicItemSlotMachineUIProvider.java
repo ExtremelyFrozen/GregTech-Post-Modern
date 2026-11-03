@@ -5,11 +5,9 @@ import com.gregtechceu.gtceu.api.machine.MetaMachine;
 
 import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerMenu;
 
-import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.level.block.state.BlockState;
 
 /**
  * Opens an LDLib2 machine UI through GTM's session-bound dynamic item-slot menu.
@@ -30,8 +28,8 @@ public interface DynamicItemSlotMachineUIProvider extends MachineUIProvider {
     }
 
     @Override
-    default ModularUIContainerMenu createClientMenu(int windowId, Inventory inventory, BlockPos pos,
-                                                    BlockState blockState, RegistryFriendlyByteBuf data) {
-        return DynamicItemSlotMachineUIHolder.read(windowId, inventory, pos, data);
+    default ModularUIContainerMenu createClientMenu(int windowId, Inventory inventory, MachineBlockUIHolder holder,
+                                                    RegistryFriendlyByteBuf data) {
+        return DynamicItemSlotMachineUIHolder.read(windowId, inventory, holder.getPos(), data);
     }
 }

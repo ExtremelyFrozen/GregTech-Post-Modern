@@ -1,12 +1,11 @@
 package com.gregtechceu.gtceu.api.gui.factory;
 
-import com.gregtechceu.gtceu.api.block.MetaMachineBlock;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
+import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
 
 import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerMenu;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
 
-import net.minecraft.core.BlockPos;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
@@ -41,23 +40,20 @@ public interface MachineUIProvider {
     }
 
     /**
-     * Reconstructs this machine's client menu after the common factory validates the announced position, machine
-     * block and definition. Session-backed providers consume their remaining immutable opening data here; ordinary
-     * machines have no additional payload. This runs once on the client thread and must release partially allocated
-     * client views if construction fails.
+     * Applies the machine's initial synchronized fields before its UI reads them on the client thread.
+     * Providers with additional opening data may override this method.
      *
-     * @param windowId   server-assigned vanilla container identifier
-     * @param inventory  receiving player's inventory
-     * @param pos        opened machine position from the server header
-     * @param blockState validated machine block state from the server header
-     * @param data       remaining provider-owned payload; it may be empty for ordinary machines
+     * @param windowId  server-assigned vanilla container identifier
+     * @param inventory receiving player's inventory
+     * @param holder    machine resolved from the common opening header
+     * @param data      synchronized fields followed by any provider-owned opening data
      * @return menu using the common {@link UIRegistry#MENU} type
      */
-    default ModularUIContainerMenu createClientMenu(int windowId, Inventory inventory, BlockPos pos,
-                                                    BlockState blockState, RegistryFriendlyByteBuf data) {
-        MetaMachineBlock block = (MetaMachineBlock) blockState.getBlock();
-        return new ModularUIContainerMenu(UIRegistry.MENU.get(), windowId, inventory,
-                new MachineBlockUIHolder(inventory.player, pos, blockState, block.getDefinition().getId()));
+    default ModularUIContainerMenu createClientMenu(int windowId, Inventory inventory, MachineBlockUIHolder holder,
+                                                    RegistryFriendlyByteBuf data) {
+        holder.getMachine().getSyncDataHolder().deserializeFieldData(inventory.player.registryAccess(),
+                SyncFieldData.STREAM_CODEC.decode(data), true, true, true);
+        return new ModularUIContainerMenu(UIRegistry.MENU.get(), windowId, inventory, holder);
     }
 
     /**

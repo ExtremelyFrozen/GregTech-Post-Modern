@@ -92,11 +92,6 @@ public final class UIRegistry {
     }
 
     private static ModularUIContainerMenu create(int windowId, Inventory inventory, RegistryFriendlyByteBuf data) {
-        ResourceLocation id = data.readResourceLocation();
-        UIFactory factory = FACTORIES.get(id);
-        if (factory == null) {
-            throw new IllegalArgumentException("Unknown UI factory: " + id);
-        }
-        return factory.create(windowId, inventory, data);
+        return FACTORIES.get(data.readResourceLocation()).create(windowId, inventory, data);
     }
 }

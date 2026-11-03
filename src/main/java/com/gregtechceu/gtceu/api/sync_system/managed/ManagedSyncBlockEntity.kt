@@ -2,10 +2,13 @@ package com.gregtechceu.gtceu.api.sync_system.managed
 
 import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo
+import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder
 import com.gregtechceu.gtceu.api.machine.MetaMachine
 import com.gregtechceu.gtceu.api.sync_system.SyncFieldData
 import com.gregtechceu.gtceu.common.network.packets.CPacketMachineSyncToServer
 import com.gregtechceu.gtceu.common.network.packets.SPacketMachineSyncToClient
+
+import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerMenu
 
 import net.minecraft.core.BlockPos
 import net.minecraft.core.HolderLookup
@@ -24,6 +27,7 @@ import net.minecraft.world.level.block.entity.BlockEntityType
 import net.minecraft.world.level.block.state.BlockState
 import net.neoforged.neoforge.network.PacketDistributor
 
+import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet
 import org.jetbrains.annotations.MustBeInvokedByOverriders
 import org.jetbrains.annotations.Nullable
 
@@ -118,20 +122,18 @@ abstract class ManagedSyncBlockEntity :
 	open fun serverTick() {
 		setChanged()
 		val serverLevel = level as? ServerLevel
-		val fullSync = getSyncDataHolder().isFullSyncPending()
-		if (serverLevel != null && getSyncDataHolder().scanAndMarkChanges(serverLevel.registryAccess())) {
-			val changes = getSyncDataHolder().collectClientNetworkChanges(serverLevel.registryAccess(), false)
+		val storage = getSyncDataHolder()
+		val fullSync = storage.isFullSyncPending()
+		if (serverLevel != null && storage.scanAndMarkChanges(serverLevel.registryAccess())) {
+			val changes = storage.collectClientNetworkChanges(serverLevel.registryAccess(), false)
 			if (!changes.isEmpty()) {
-				PacketDistributor.sendToPlayersTrackingChunk(
-					serverLevel,
-					ChunkPos(blockPos),
-					SPacketMachineSyncToClient(blockPos, changes, fullSync),
-				)
-				try {
-					onClientNetworkChanges(changes)
-				} catch (exception: RuntimeException) {
-					GTCEu.LOGGER.error("Failed to publish collected client sync changes for block entity at {}", blockPos, exception)
+				val recipients = ReferenceOpenHashSet(serverLevel.chunkSource.chunkMap.getPlayers(ChunkPos(blockPos), false))
+				for (player in serverLevel.players()) {
+					val holder = (player.containerMenu as? ModularUIContainerMenu)?.uiHolder as? MachineUIHolder
+					if (holder?.getMachine() === this) recipients.add(player)
 				}
+				val packet = SPacketMachineSyncToClient(blockPos, changes, fullSync)
+				for (player in recipients) PacketDistributor.sendToPlayer(player, packet)
 			}
 			dirty = true
 		}
@@ -142,9 +144,6 @@ abstract class ManagedSyncBlockEntity :
 	}
 
 	open fun clientTick() {}
-
-	/** Publishes the exact GT client-sync delta after it has been sent to ordinary chunk observers. */
-	protected open fun onClientNetworkChanges(changes: SyncFieldData) {}
 
 	open fun sendServerSyncChanges() {
 		if (level == null || !level!!.isClientSide) {
