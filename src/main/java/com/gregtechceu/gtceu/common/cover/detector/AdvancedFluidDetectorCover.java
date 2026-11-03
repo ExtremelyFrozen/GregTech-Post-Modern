@@ -26,7 +26,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
-import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
@@ -202,25 +201,24 @@ public class AdvancedFluidDetectorCover extends FluidDetectorCover implements Co
     }
 
     @Override
-    public DataComponentMap copyConfig(HolderLookup.Provider registries) {
+    public SyncFieldData copyConfig(HolderLookup.Provider registries) {
         return ConfigCopyHelper.withFields(super.copyConfig(registries), fields -> fields
                 .put(SyncFieldData.key("min"),
-                        ConfigCopyHelper.intValue(minValue))
+                        minValue)
                 .put(SyncFieldData.key("max"),
-                        ConfigCopyHelper.intValue(maxValue))
+                        maxValue)
                 .put(SyncFieldData.key("latched"),
-                        ConfigCopyHelper.booleanValue(isLatched))
-                .put(SyncFieldData.key("filter"),
-                        ConfigCopyHelper.encodeItem(registries, filterHandler.getFilterItem())));
+                        isLatched)
+                .put(SyncFieldData.key("filter"), ItemStack.OPTIONAL_CODEC, filterHandler.getFilterItem(), registries));
     }
 
     @Override
-    public void pasteConfig(ServerPlayer player, HolderLookup.Provider registries, DataComponentMap config) {
+    public void pasteConfig(ServerPlayer player, HolderLookup.Provider registries, SyncFieldData config) {
         setMinValue(ConfigCopyHelper.getInt(config, "min"));
         setMaxValue(ConfigCopyHelper.getInt(config, "max"));
         setLatched(ConfigCopyHelper.getBoolean(config, "latched"));
         filterHandler
-                .setFilterItem(ConfigCopyHelper.decodeItem(registries, ConfigCopyHelper.getField(config, "filter")));
+                .setFilterItem(ConfigCopyHelper.getItem(registries, config, "filter"));
         super.pasteConfig(player, registries, config);
     }
 }

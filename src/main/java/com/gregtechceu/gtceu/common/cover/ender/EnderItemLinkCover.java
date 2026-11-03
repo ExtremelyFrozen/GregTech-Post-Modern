@@ -23,7 +23,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
-import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.items.IItemHandler;
@@ -111,16 +110,15 @@ public class EnderItemLinkCover extends AbstractEnderLinkCover<VirtualItemStorag
     }
 
     @Override
-    public DataComponentMap copyConfig(HolderLookup.Provider registries) {
+    public SyncFieldData copyConfig(HolderLookup.Provider registries) {
         return ConfigCopyHelper.withFields(super.copyConfig(registries), fields -> fields
-                .put(SyncFieldData.key("filter"),
-                        ConfigCopyHelper.encodeItem(registries, filterHandler.getFilterItem())));
+                .put(SyncFieldData.key("filter"), ItemStack.OPTIONAL_CODEC, filterHandler.getFilterItem(), registries));
     }
 
     @Override
-    public void pasteConfig(ServerPlayer player, HolderLookup.Provider registries, DataComponentMap config) {
+    public void pasteConfig(ServerPlayer player, HolderLookup.Provider registries, SyncFieldData config) {
         filterHandler
-                .setFilterItem(ConfigCopyHelper.decodeItem(registries, ConfigCopyHelper.getField(config, "filter")));
+                .setFilterItem(ConfigCopyHelper.getItem(registries, config, "filter"));
         super.pasteConfig(player, registries, config);
     }
 

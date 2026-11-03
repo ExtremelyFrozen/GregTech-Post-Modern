@@ -14,7 +14,6 @@ import com.gregtechceu.gtceu.utils.GTTransferUtils;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.Direction;
-import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
@@ -24,8 +23,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.context.UseOnContext;
 
-import com.google.gson.JsonElement;
-import com.google.gson.JsonPrimitive;
+import com.mojang.serialization.Codec;
 import joptsimple.internal.Strings;
 import org.jetbrains.annotations.Nullable;
 
@@ -205,30 +203,20 @@ public class MachineConfigCopyBehaviour implements IInteractionItem, IAddInforma
         }
     }
 
-    private static @Nullable JsonElement getField(DataComponentMap config, String key) {
-        SyncFieldData fields = config.get(GTDataComponents.SYNC_FIELD_DATA.get());
-        return fields == null ? null : fields.get(SyncFieldData.key(key));
+    private static <T> @Nullable T getField(SyncFieldData config, String key, Codec<T> codec) {
+        return config.read(SyncFieldData.key(key), codec);
     }
 
-    private static @Nullable Integer getInt(DataComponentMap config, String key) {
-        JsonElement field = getField(config, key);
-        return field instanceof JsonPrimitive primitive && primitive.isNumber() ? primitive.getAsInt() : null;
+    private static @Nullable Integer getInt(SyncFieldData config, String key) {
+        return getField(config, key, Codec.INT);
     }
 
-    private static @Nullable Boolean getBoolean(DataComponentMap config, String key) {
-        JsonElement field = getField(config, key);
-        if (!(field instanceof JsonPrimitive primitive)) {
-            return null;
-        }
-        if (primitive.isBoolean()) {
-            return primitive.getAsBoolean();
-        }
-        return primitive.isNumber() ? primitive.getAsByte() != 0 : null;
+    private static @Nullable Boolean getBoolean(SyncFieldData config, String key) {
+        return getField(config, key, Codec.BOOL);
     }
 
-    private static @Nullable String getString(DataComponentMap config, String key) {
-        JsonElement field = getField(config, key);
-        return field instanceof JsonPrimitive primitive ? primitive.getAsString() : null;
+    private static @Nullable String getString(SyncFieldData config, String key) {
+        return getField(config, key, Codec.STRING);
     }
 
     @Override

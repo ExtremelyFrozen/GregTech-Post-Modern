@@ -26,7 +26,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
-import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 
@@ -266,18 +265,18 @@ public class AdvancedEnergyDetectorCover extends EnergyDetectorCover implements 
     }
 
     @Override
-    public DataComponentMap copyConfig(HolderLookup.Provider registries) {
+    public SyncFieldData copyConfig(HolderLookup.Provider registries) {
         return ConfigCopyHelper.withFields(super.copyConfig(registries), fields -> fields
                 .put(SyncFieldData.key("min"),
-                        ConfigCopyHelper.longValue(minValue))
+                        minValue)
                 .put(SyncFieldData.key("max"),
-                        ConfigCopyHelper.longValue(maxValue))
+                        maxValue)
                 .put(SyncFieldData.key("percent"),
-                        ConfigCopyHelper.booleanValue(usePercent)));
+                        usePercent));
     }
 
     @Override
-    public void pasteConfig(ServerPlayer player, HolderLookup.Provider registries, DataComponentMap config) {
+    public void pasteConfig(ServerPlayer player, HolderLookup.Provider registries, SyncFieldData config) {
         setMinValue(ConfigCopyHelper.getLong(config, "min"));
         setMaxValue(ConfigCopyHelper.getLong(config, "max"));
         setUsePercent(ConfigCopyHelper.getBoolean(config, "percent"));

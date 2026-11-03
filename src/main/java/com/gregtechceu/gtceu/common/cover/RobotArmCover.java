@@ -21,7 +21,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
-import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -252,16 +251,16 @@ public class RobotArmCover extends ConveyorCover {
     }
 
     @Override
-    public DataComponentMap copyConfig(HolderLookup.Provider registries) {
+    public SyncFieldData copyConfig(HolderLookup.Provider registries) {
         return ConfigCopyHelper.withFields(super.copyConfig(registries), fields -> fields
                 .put(SyncFieldData.key("transferMode"),
-                        ConfigCopyHelper.intValue(transferMode.ordinal()))
+                        transferMode.ordinal())
                 .put(SyncFieldData.key("transferLimit"),
-                        ConfigCopyHelper.intValue(globalTransferLimit)));
+                        globalTransferLimit));
     }
 
     @Override
-    public void pasteConfig(ServerPlayer player, HolderLookup.Provider registries, DataComponentMap config) {
+    public void pasteConfig(ServerPlayer player, HolderLookup.Provider registries, SyncFieldData config) {
         setTransferMode(TransferMode.values()[ConfigCopyHelper.getInt(config, "transferMode")]);
         setGlobalTransferLimit(ConfigCopyHelper.getInt(config, "transferLimit"));
         super.pasteConfig(player, registries, config);

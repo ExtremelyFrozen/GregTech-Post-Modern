@@ -12,7 +12,6 @@ import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
 import com.gregtechceu.gtceu.common.data.datacomponents.AE2GridNodeData;
 import com.gregtechceu.gtceu.common.data.datacomponents.AEInputConfigCopyData;
 import com.gregtechceu.gtceu.common.data.datacomponents.CapeData;
-import com.gregtechceu.gtceu.common.data.datacomponents.CoverConfigCopyData;
 import com.gregtechceu.gtceu.common.data.datacomponents.FluidProspectionCache;
 import com.gregtechceu.gtceu.common.data.datacomponents.MedicalConditionTrackerData;
 import com.gregtechceu.gtceu.common.data.datacomponents.OreProspectionCache;
@@ -148,9 +147,6 @@ public class GTDataComponents {
     public static final DeferredHolder<DataComponentType<?>, DataComponentType<MachineConfigCopyData>> DATA_COPY_TAG = DATA_COMPONENTS
             .registerComponentType("data_copy_tag", builder -> builder.persistent(MachineConfigCopyData.CODEC)
                     .networkSynchronized(MachineConfigCopyData.STREAM_CODEC));
-    public static final DeferredHolder<DataComponentType<?>, DataComponentType<CoverConfigCopyData>> COVER_CONFIG_COPY_DATA = DATA_COMPONENTS
-            .registerComponentType("cover_config_copy_data", builder -> builder.persistent(CoverConfigCopyData.CODEC)
-                    .networkSynchronized(CoverConfigCopyData.STREAM_CODEC));
     public static final DeferredHolder<DataComponentType<?>, DataComponentType<AEInputConfigCopyData>> AE_INPUT_CONFIG_COPY_DATA = DATA_COMPONENTS
             .registerComponentType("ae_input_config_copy_data", builder -> builder
                     .persistent(AEInputConfigCopyData.CODEC)

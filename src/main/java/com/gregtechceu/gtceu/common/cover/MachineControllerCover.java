@@ -32,7 +32,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
-import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
@@ -382,18 +381,18 @@ public class MachineControllerCover extends CoverBehavior
     }
 
     @Override
-    public DataComponentMap copyConfig(HolderLookup.Provider registries) {
+    public SyncFieldData copyConfig(HolderLookup.Provider registries) {
         return ConfigCopyHelper.withFields(super.copyConfig(registries), fields -> fields
                 .put(SyncFieldData.key("inverted"),
-                        ConfigCopyHelper.booleanValue(isInverted))
+                        isInverted)
                 .put(SyncFieldData.key("redstoneLvl"),
-                        ConfigCopyHelper.intValue(minRedstoneStrength))
+                        minRedstoneStrength)
                 .put(SyncFieldData.key("preventPowerfail"),
-                        ConfigCopyHelper.booleanValue(preventPowerFail)));
+                        preventPowerFail));
     }
 
     @Override
-    public void pasteConfig(ServerPlayer player, HolderLookup.Provider registries, DataComponentMap config) {
+    public void pasteConfig(ServerPlayer player, HolderLookup.Provider registries, SyncFieldData config) {
         setInverted(ConfigCopyHelper.getBoolean(config, "inverted"));
         setMinRedstoneStrength(ConfigCopyHelper.getInt(config, "redstoneLvl"));
         setPreventPowerFail(ConfigCopyHelper.getBoolean(config, "preventPowerfail"));

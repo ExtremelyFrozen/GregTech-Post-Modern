@@ -1031,41 +1031,38 @@ public class MetaMachine extends ManagedSyncBlockEntity implements IGregtechBloc
     private static final String CIRCUIT = "circuit_config";
 
     @Override
-    public DataComponentMap copyConfig(HolderLookup.Provider registries) {
-        DataComponentMap config = ConfigCopyHelper.withFields(ICopyable.super.copyConfig(registries), fields -> fields
+    public SyncFieldData copyConfig(HolderLookup.Provider registries) {
+        SyncFieldData config = ConfigCopyHelper.withFields(ICopyable.super.copyConfig(registries), fields -> fields
                 .put(SyncFieldData.key(FACING_DIR),
-                        ConfigCopyHelper.stringValue(MachineConfigCopyBehaviour.directionToString(getFrontFacing()))));
+                        MachineConfigCopyBehaviour.directionToString(getFrontFacing())));
 
         var outputTrait = getTrait(AutoOutputTrait.TYPE);
         if (outputTrait != null && outputTrait.supportsAutoOutputItems() &&
                 outputTrait.getItemOutputDirection() != null) {
             config = ConfigCopyHelper.withFields(config, fields -> fields
                     .put(SyncFieldData.key(ITEM_OUTPUT_SIDE),
-                            ConfigCopyHelper.stringValue(
-                                    MachineConfigCopyBehaviour.directionToString(outputTrait.getItemOutputDirection())))
+                            MachineConfigCopyBehaviour.directionToString(outputTrait.getItemOutputDirection()))
                     .put(SyncFieldData.key(ITEM_AUTO_OUTPUT),
-                            ConfigCopyHelper.booleanValue(outputTrait.isAutoOutputItems()))
+                            outputTrait.isAutoOutputItems())
                     .put(SyncFieldData.key(ALLOW_ITEM_IN_FROM_OUT),
-                            ConfigCopyHelper.booleanValue(outputTrait.allowsItemInputFromOutputSide())));
+                            outputTrait.allowsItemInputFromOutputSide()));
         }
 
         if (outputTrait != null && outputTrait.supportsAutoOutputFluids() &&
                 outputTrait.getFluidOutputDirection() != null) {
             config = ConfigCopyHelper.withFields(config, fields -> fields
                     .put(SyncFieldData.key(FLUID_OUTPUT_SIDE),
-                            ConfigCopyHelper.stringValue(
-                                    MachineConfigCopyBehaviour
-                                            .directionToString(outputTrait.getFluidOutputDirection())))
+                            MachineConfigCopyBehaviour.directionToString(outputTrait.getFluidOutputDirection()))
                     .put(SyncFieldData.key(FLUID_AUTO_OUTPUT),
-                            ConfigCopyHelper.booleanValue(outputTrait.isAutoOutputFluids()))
+                            outputTrait.isAutoOutputFluids())
                     .put(SyncFieldData.key(ALLOW_FLUID_IN_FROM_OUT),
-                            ConfigCopyHelper.booleanValue(outputTrait.allowsFluidInputFromOutputSide())));
+                            outputTrait.allowsFluidInputFromOutputSide()));
         }
 
         if (this instanceof IMufflableMachine mufflableMachine) {
             config = ConfigCopyHelper.withFields(config, fields -> fields
                     .put(SyncFieldData.key(MUFFLED),
-                            ConfigCopyHelper.booleanValue(mufflableMachine.isMuffled())));
+                            mufflableMachine.isMuffled()));
         }
 
         if (this instanceof IHasCircuitSlot circuitMachine) {
@@ -1074,15 +1071,15 @@ public class MetaMachine extends ManagedSyncBlockEntity implements IGregtechBloc
             if (circuitMachine.isCircuitSlotEnabled() && circuit != 0) {
                 config = ConfigCopyHelper.withFields(config, fields -> fields
                         .put(SyncFieldData.key(CIRCUIT),
-                                ConfigCopyHelper.intValue(circuit)));
+                                circuit));
             }
         }
 
-        return ConfigCopyHelper.mergeComponents(config, getCoverContainer().copyConfig(registries));
+        return ConfigCopyHelper.merge(config, getCoverContainer().copyConfig(registries));
     }
 
     @Override
-    public void pasteConfig(ServerPlayer player, HolderLookup.Provider registries, DataComponentMap config) {
+    public void pasteConfig(ServerPlayer player, HolderLookup.Provider registries, SyncFieldData config) {
         var outputTrait = getTrait(AutoOutputTrait.TYPE);
         if (outputTrait != null) {
             if (ConfigCopyHelper.contains(config, ITEM_OUTPUT_SIDE)) {

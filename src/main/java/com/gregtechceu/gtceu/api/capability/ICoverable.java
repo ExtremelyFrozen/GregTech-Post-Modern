@@ -10,16 +10,15 @@ import com.gregtechceu.gtceu.api.cover.CoverDefinition;
 import com.gregtechceu.gtceu.api.item.tool.ToolHelper;
 import com.gregtechceu.gtceu.api.machine.TickableSubscription;
 import com.gregtechceu.gtceu.api.registry.GTRegistries;
+import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
 import com.gregtechceu.gtceu.api.sync_system.managed.ISyncManaged;
 import com.gregtechceu.gtceu.api.transfer.fluid.IFluidHandlerModifiable;
-import com.gregtechceu.gtceu.common.data.GTDataComponents;
 import com.gregtechceu.gtceu.common.data.datacomponents.CoverConfigCopyData;
 import com.gregtechceu.gtceu.utils.GTUtil;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
-import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
@@ -366,7 +365,7 @@ public interface ICoverable extends ITickSubscription, ISyncManaged, ICopyable {
     }
 
     @Override
-    default DataComponentMap copyConfig(HolderLookup.Provider registries) {
+    default SyncFieldData copyConfig(HolderLookup.Provider registries) {
         Map<Direction, CoverConfigCopyData.Entry> covers = new EnumMap<>(Direction.class);
         for (Direction dir : GTUtil.DIRECTIONS) {
             CoverConfigCopyData.Entry entry = createCoverConfig(registries, getCoverAtSide(dir));
@@ -378,17 +377,17 @@ public interface ICoverable extends ITickSubscription, ISyncManaged, ICopyable {
         if (data.isEmpty()) {
             return ICopyable.super.copyConfig(registries);
         }
-        return ConfigCopyHelper.withComponent(ICopyable.super.copyConfig(registries),
-                GTDataComponents.COVER_CONFIG_COPY_DATA.get(), data);
+        return ConfigCopyHelper.withFields(ICopyable.super.copyConfig(registries),
+                fields -> fields.put(CoverConfigCopyData.KEY, CoverConfigCopyData.CODEC, data, registries));
     }
 
     @Override
-    default void pasteConfig(ServerPlayer player, HolderLookup.Provider registries, DataComponentMap config) {
+    default void pasteConfig(ServerPlayer player, HolderLookup.Provider registries, SyncFieldData config) {
         for (Direction side : GTUtil.DIRECTIONS) {
             removeCover(side, player);
         }
 
-        CoverConfigCopyData data = config.get(GTDataComponents.COVER_CONFIG_COPY_DATA.get());
+        CoverConfigCopyData data = config.read(CoverConfigCopyData.KEY, CoverConfigCopyData.CODEC, registries);
         if (data != null) {
             for (Map.Entry<Direction, CoverConfigCopyData.Entry> entry : data.covers().entrySet()) {
                 applyCoverConfig(player, registries, entry.getKey(), entry.getValue());

@@ -26,10 +26,10 @@ import com.gregtechceu.gtceu.api.misc.virtualregistry.EntryTypes;
 import com.gregtechceu.gtceu.api.misc.virtualregistry.VirtualEnderRegistry;
 import com.gregtechceu.gtceu.api.misc.virtualregistry.VirtualEntry;
 import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry;
 import com.gregtechceu.gtceu.api.sync_system.annotations.RerenderOnChanged;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry;
 import com.gregtechceu.gtceu.common.cover.data.ManualIOMode;
 import com.gregtechceu.gtceu.common.network.packets.SPacketEnderLinkChannelsToClient;
 
@@ -45,7 +45,6 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
-import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
@@ -278,20 +277,20 @@ public abstract class AbstractEnderLinkCover<T extends VirtualEntry> extends Cov
     }
 
     @Override
-    public DataComponentMap copyConfig(HolderLookup.Provider registries) {
+    public SyncFieldData copyConfig(HolderLookup.Provider registries) {
         return ConfigCopyHelper.withFields(super.copyConfig(registries), fields -> fields
                 .put(SyncFieldData.key("colorStr"),
-                        ConfigCopyHelper.stringValue(colorStr))
+                        colorStr)
                 .put(SyncFieldData.key("permission"),
-                        ConfigCopyHelper.intValue(getPermission().ordinal()))
+                        getPermission().ordinal())
                 .put(SyncFieldData.key("io"),
-                        ConfigCopyHelper.intValue(getIo().ordinal()))
+                        getIo().ordinal())
                 .put(SyncFieldData.key("manualIO"),
-                        ConfigCopyHelper.intValue(getManualIOMode().ordinal())));
+                        getManualIOMode().ordinal()));
     }
 
     @Override
-    public void pasteConfig(ServerPlayer player, HolderLookup.Provider registries, DataComponentMap config) {
+    public void pasteConfig(ServerPlayer player, HolderLookup.Provider registries, SyncFieldData config) {
         setChannelName(ConfigCopyHelper.getString(config, "colorStr"));
         setPermission(Permissions.values()[ConfigCopyHelper.getInt(config, "permission")]);
         setIo(IO.values()[ConfigCopyHelper.getInt(config, "io")]);

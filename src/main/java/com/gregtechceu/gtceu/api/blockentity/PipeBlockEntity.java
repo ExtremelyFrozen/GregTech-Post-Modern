@@ -24,7 +24,6 @@ import com.gregtechceu.gtceu.utils.GTUtil;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
-import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -405,17 +404,17 @@ public abstract class PipeBlockEntity<PipeType extends Enum<PipeType> & IPipeTyp
     }
 
     @Override
-    public DataComponentMap copyConfig(HolderLookup.Provider registries) {
-        DataComponentMap config = ConfigCopyHelper.withFields(ICopyable.super.copyConfig(registries), fields -> fields
+    public SyncFieldData copyConfig(HolderLookup.Provider registries) {
+        SyncFieldData config = ConfigCopyHelper.withFields(ICopyable.super.copyConfig(registries), fields -> fields
                 .put(SyncFieldData.key("pipe_connections"),
-                        ConfigCopyHelper.intValue(getConnections()))
+                        getConnections())
                 .put(SyncFieldData.key("pipe_blocked_connections"),
-                        ConfigCopyHelper.intValue(getBlockedConnections())));
-        return ConfigCopyHelper.mergeComponents(config, getCoverContainer().copyConfig(registries));
+                        getBlockedConnections()));
+        return ConfigCopyHelper.merge(config, getCoverContainer().copyConfig(registries));
     }
 
     @Override
-    public void pasteConfig(ServerPlayer player, HolderLookup.Provider registries, DataComponentMap config) {
+    public void pasteConfig(ServerPlayer player, HolderLookup.Provider registries, SyncFieldData config) {
         if (ConfigCopyHelper.contains(config, "pipe_connections")) {
             var connections = ConfigCopyHelper.getInt(config, "pipe_connections");
 

@@ -40,7 +40,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
-import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
@@ -597,28 +596,27 @@ public class ConveyorCover extends CoverBehavior
     }
 
     @Override
-    public DataComponentMap copyConfig(HolderLookup.Provider registries) {
+    public SyncFieldData copyConfig(HolderLookup.Provider registries) {
         return ConfigCopyHelper.withFields(super.copyConfig(registries), fields -> fields
                 .put(SyncFieldData.key("transferRate"),
-                        ConfigCopyHelper.intValue(getTransferRate()))
+                        getTransferRate())
                 .put(SyncFieldData.key("io"),
-                        ConfigCopyHelper.intValue(getIo().ordinal()))
+                        getIo().ordinal())
                 .put(SyncFieldData.key("distributionMode"),
-                        ConfigCopyHelper.intValue(getDistributionMode().ordinal()))
+                        getDistributionMode().ordinal())
                 .put(SyncFieldData.key("manualIO"),
-                        ConfigCopyHelper.intValue(getManualIOMode().ordinal()))
-                .put(SyncFieldData.key("filter"),
-                        ConfigCopyHelper.encodeItem(registries, filterHandler.getFilterItem())));
+                        getManualIOMode().ordinal())
+                .put(SyncFieldData.key("filter"), ItemStack.OPTIONAL_CODEC, filterHandler.getFilterItem(), registries));
     }
 
     @Override
-    public void pasteConfig(ServerPlayer player, HolderLookup.Provider registries, DataComponentMap config) {
+    public void pasteConfig(ServerPlayer player, HolderLookup.Provider registries, SyncFieldData config) {
         setTransferRate(ConfigCopyHelper.getInt(config, "transferRate"));
         setIo(IO.values()[ConfigCopyHelper.getInt(config, "io")]);
         setDistributionMode(DistributionMode.values()[ConfigCopyHelper.getInt(config, "distributionMode")]);
         setManualIOMode(ManualIOMode.values()[ConfigCopyHelper.getInt(config, "manualIO")]);
         filterHandler
-                .setFilterItem(ConfigCopyHelper.decodeItem(registries, ConfigCopyHelper.getField(config, "filter")));
+                .setFilterItem(ConfigCopyHelper.getItem(registries, config, "filter"));
         super.pasteConfig(player, registries, config);
     }
 }

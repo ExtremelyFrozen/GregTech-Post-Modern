@@ -28,9 +28,9 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
-import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.fluids.FluidStack;
 
 import lombok.Getter;
@@ -181,22 +181,20 @@ public class FluidFilterCover extends CoverBehavior
     }
 
     @Override
-    public DataComponentMap copyConfig(HolderLookup.Provider registries) {
+    public SyncFieldData copyConfig(HolderLookup.Provider registries) {
         return ConfigCopyHelper.withFields(super.copyConfig(registries), fields -> fields
                 .put(SyncFieldData.key("manualIO"),
-                        ConfigCopyHelper.intValue(getAllowFlow().ordinal()))
+                        getAllowFlow().ordinal())
                 .put(SyncFieldData.key("filterMode"),
-                        ConfigCopyHelper.intValue(getFilterMode().ordinal()))
-                .put(SyncFieldData.key("filter"),
-                        ConfigCopyHelper.encodeItem(registries, attachItem)));
+                        getFilterMode().ordinal())
+                .put(SyncFieldData.key("filter"), ItemStack.OPTIONAL_CODEC, attachItem, registries));
     }
 
     @Override
-    public void pasteConfig(ServerPlayer player, HolderLookup.Provider registries, DataComponentMap config) {
+    public void pasteConfig(ServerPlayer player, HolderLookup.Provider registries, SyncFieldData config) {
         setAllowFlow(ManualIOMode.values()[ConfigCopyHelper.getInt(config, "manualIO")]);
         setFilterMode(FilterMode.values()[ConfigCopyHelper.getInt(config, "filterMode")]);
-        fluidFilter = FluidFilter.loadFilter(ConfigCopyHelper.decodeItem(registries, ConfigCopyHelper.getField(config,
-                "filter")));
+        fluidFilter = FluidFilter.loadFilter(ConfigCopyHelper.getItem(registries, config, "filter"));
         super.pasteConfig(player, registries, config);
     }
 }

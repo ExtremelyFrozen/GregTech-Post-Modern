@@ -22,7 +22,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
-import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.neoforged.neoforge.fluids.FluidStack;
@@ -216,18 +215,18 @@ public class AdvancedFluidVoidingCover extends FluidVoidingCover
     }
 
     @Override
-    public DataComponentMap copyConfig(HolderLookup.Provider registries) {
+    public SyncFieldData copyConfig(HolderLookup.Provider registries) {
         return ConfigCopyHelper.withFields(super.copyConfig(registries), fields -> fields
                 .put(SyncFieldData.key("voidingMode"),
-                        ConfigCopyHelper.intValue(getVoidingMode().ordinal()))
+                        getVoidingMode().ordinal())
                 .put(SyncFieldData.key("voidSize"),
-                        ConfigCopyHelper.intValue(getGlobalTransferSizeMillibuckets()))
+                        getGlobalTransferSizeMillibuckets())
                 .put(SyncFieldData.key("voidBucketMode"),
-                        ConfigCopyHelper.intValue(getTransferBucketMode().ordinal())));
+                        getTransferBucketMode().ordinal()));
     }
 
     @Override
-    public void pasteConfig(ServerPlayer player, HolderLookup.Provider registries, DataComponentMap config) {
+    public void pasteConfig(ServerPlayer player, HolderLookup.Provider registries, SyncFieldData config) {
         setVoidingMode(VoidingMode.values()[ConfigCopyHelper.getInt(config, "voidingMode")]);
         setTransferBucketMode(BucketMode.values()[ConfigCopyHelper.getInt(config, "voidBucketMode")]);
         setGlobalTransferSizeMillibuckets(ConfigCopyHelper.getInt(config, "voidSize"));
