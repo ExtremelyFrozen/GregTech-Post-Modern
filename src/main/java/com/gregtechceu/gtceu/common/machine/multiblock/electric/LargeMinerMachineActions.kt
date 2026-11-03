@@ -3,12 +3,8 @@ package com.gregtechceu.gtceu.common.machine.multiblock.electric
 import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.sync_system.SyncActionContext
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData
-import com.gregtechceu.gtceu.api.sync_system.SyncActionDispatchers
-import com.gregtechceu.gtceu.api.sync_system.SyncActionHandler
-
-import net.minecraft.core.component.DataComponentMap
-import net.minecraft.resources.ResourceLocation
-import net.minecraft.server.level.ServerPlayer
+import com.gregtechceu.gtceu.api.sync_system.rpc.RpcAction
+import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry
 
 import org.jetbrains.annotations.ApiStatus
 
@@ -29,56 +25,25 @@ interface LargeMinerModeActionTarget {
 /** Owns the empty-payload GT actions for the two clickable Large Miner display modes. */
 object LargeMinerMachineActions {
 
-	private val TOGGLE_SILK_TOUCH_ACTION = GTCEu.id("toggle_large_miner_silk_touch")
-	private val TOGGLE_CHUNK_MODE_ACTION = GTCEu.id("toggle_large_miner_chunk_mode")
+	@JvmStatic
+	fun createToggleSilkTouchAction(): SyncActionData = RpcRegistry.create(GTCEu.id("toggle_large_miner_silk_touch"), 0)
 
-	init {
-		SyncActionDispatchers.server().register(ToggleSilkTouchActionHandler)
-		SyncActionDispatchers.server().register(ToggleChunkModeActionHandler)
+	@JvmStatic
+	fun createToggleChunkModeAction(): SyncActionData = RpcRegistry.create(GTCEu.id("toggle_large_miner_chunk_mode"), 0)
+
+	@RpcAction("toggle_large_miner_silk_touch")
+	fun toggleSilkTouch(context: SyncActionContext): Boolean {
+		val target = context.holder as? LargeMinerMachine ?: return false
+		if (target.isLargeMinerModeChangeBlocked()) return false
+		target.toggleLargeMinerSilkTouch()
+		return true
 	}
 
-	/** Forces common-side handler registration when the owning machine class initializes. */
-	@JvmStatic
-	fun initialize() = Unit
-
-	/** Creates one holder-scoped request to toggle silk touch while the miner is idle. */
-	@JvmStatic
-	fun createToggleSilkTouchAction(): SyncActionData = SyncActionData(TOGGLE_SILK_TOUCH_ACTION, 0, DataComponentMap.EMPTY)
-
-	/** Creates one holder-scoped request to toggle chunk mode while the miner is idle. */
-	@JvmStatic
-	fun createToggleChunkModeAction(): SyncActionData = SyncActionData(TOGGLE_CHUNK_MODE_ACTION, 0, DataComponentMap.EMPTY)
-
-	private object ToggleSilkTouchActionHandler : SyncActionHandler {
-
-		override fun actionId(): ResourceLocation = TOGGLE_SILK_TOUCH_ACTION
-
-		override fun acceptsHolder(context: SyncActionContext): Boolean = context.holder is LargeMinerMachine
-
-		override fun acceptsPayload(payload: DataComponentMap): Boolean = payload.isEmpty
-
-		override fun mayExecute(player: ServerPlayer, context: SyncActionContext): Boolean = !player.isSpectator && !target(context).isLargeMinerModeChangeBlocked()
-
-		override fun execute(context: SyncActionContext) {
-			target(context).toggleLargeMinerSilkTouch()
-		}
+	@RpcAction("toggle_large_miner_chunk_mode")
+	fun toggleChunkMode(context: SyncActionContext): Boolean {
+		val target = context.holder as? LargeMinerMachine ?: return false
+		if (target.isLargeMinerModeChangeBlocked()) return false
+		target.toggleLargeMinerChunkMode()
+		return true
 	}
-
-	private object ToggleChunkModeActionHandler : SyncActionHandler {
-
-		override fun actionId(): ResourceLocation = TOGGLE_CHUNK_MODE_ACTION
-
-		override fun acceptsHolder(context: SyncActionContext): Boolean = context.holder is LargeMinerMachine
-
-		override fun acceptsPayload(payload: DataComponentMap): Boolean = payload.isEmpty
-
-		override fun mayExecute(player: ServerPlayer, context: SyncActionContext): Boolean = !player.isSpectator && !target(context).isLargeMinerModeChangeBlocked()
-
-		override fun execute(context: SyncActionContext) {
-			target(context).toggleLargeMinerChunkMode()
-		}
-	}
-
-	private fun target(context: SyncActionContext): LargeMinerModeActionTarget = context.holder as? LargeMinerModeActionTarget
-		?: throw IllegalStateException("Large Miner mode action received a non-Large-Miner machine.")
 }

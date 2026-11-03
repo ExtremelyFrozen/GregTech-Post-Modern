@@ -22,6 +22,7 @@ import com.gregtechceu.gtceu.api.recipe.modifier.ModifierFunction;
 import com.gregtechceu.gtceu.api.recipe.modifier.RecipeModifier;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry;
 import com.gregtechceu.gtceu.common.data.GTMaterials;
 import com.gregtechceu.gtceu.common.item.behavior.PortableScannerBehavior;
 import com.gregtechceu.gtceu.config.ConfigHolder;
@@ -75,7 +76,7 @@ public abstract class SteamBoilerMachine extends SteamWorkableMachine
     protected static final int FUEL_FLUID_SLOT = 2;
 
     static {
-        SteamBoilerMachineActions.initialize();
+        RpcRegistry.register(SteamBoilerMachineActions.INSTANCE);
     }
 
     @SaveField

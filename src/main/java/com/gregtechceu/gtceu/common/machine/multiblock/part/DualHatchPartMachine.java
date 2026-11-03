@@ -26,6 +26,7 @@ import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableFluidTank;
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry;
 import com.gregtechceu.gtceu.common.data.GTMachines;
 import com.gregtechceu.gtceu.integration.xei.GTXEIHelper;
 import com.gregtechceu.gtceu.utils.GTTransferUtils;
@@ -67,7 +68,7 @@ public class DualHatchPartMachine extends ItemBusPartMachine
     public static final int INITIAL_TANK_CAPACITY = 16 * FluidType.BUCKET_VOLUME;
 
     static {
-        DualHatchPartMachineActions.initialize();
+        RpcRegistry.register(DualHatchPartMachineActions.INSTANCE);
     }
 
     @SaveField

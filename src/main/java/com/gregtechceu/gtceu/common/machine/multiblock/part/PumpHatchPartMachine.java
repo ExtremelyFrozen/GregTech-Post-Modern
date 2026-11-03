@@ -15,6 +15,7 @@ import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.PumpHatch;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableFluidTank;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry;
 import com.gregtechceu.gtceu.common.data.GTMaterials;
 import com.gregtechceu.gtceu.utils.GTUtil;
 
@@ -43,7 +44,7 @@ public class PumpHatchPartMachine extends FluidHatchPartMachine
                                   PumpHatchFluidSlotActionTarget {
 
     static {
-        PumpHatchPartMachineActions.initialize();
+        RpcRegistry.register(PumpHatchPartMachineActions.INSTANCE);
     }
 
     public PumpHatchPartMachine(BlockEntityCreationInfo info) {

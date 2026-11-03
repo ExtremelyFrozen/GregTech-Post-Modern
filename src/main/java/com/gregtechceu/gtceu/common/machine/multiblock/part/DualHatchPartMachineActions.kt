@@ -4,16 +4,11 @@ import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.machine.feature.FancyActionMachine
 import com.gregtechceu.gtceu.api.sync_system.SyncActionContext
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData
-import com.gregtechceu.gtceu.api.sync_system.SyncActionDispatchers
-import com.gregtechceu.gtceu.api.sync_system.SyncActionHandler
-import com.gregtechceu.gtceu.api.sync_system.SyncFieldData
-import com.gregtechceu.gtceu.common.data.GTDataComponents
+import com.gregtechceu.gtceu.api.sync_system.rpc.RpcAction
+import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry
 
-import net.minecraft.core.component.DataComponentMap
-import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.level.ServerPlayer
 
-import com.google.gson.JsonPrimitive
 import org.jetbrains.annotations.ApiStatus
 
 /**
@@ -32,112 +27,17 @@ interface DualHatchFluidSlotActionTarget : FancyActionMachine {
 /** Owns the wire protocol and server handler for dual hatch fluid-slot clicks. */
 object DualHatchPartMachineActions {
 
-	private val CLICK_DUAL_HATCH_FLUID_SLOT_ACTION = GTCEu.id("click_dual_hatch_fluid_slot")
-	private val TANK_FIELD = SyncFieldData.key("tank")
-	private val SHIFT_FIELD = SyncFieldData.key("shift")
+	private val ACTION = GTCEu.id("click_dual_hatch_fluid_slot")
 
-	init {
-		SyncActionDispatchers.server().register(DualHatchFluidSlotActionHandler)
-	}
-
-	/** Forces this object's static registration from the owning machine's class initializer. */
+	/** Creates a request using the registered method parameter codecs. */
 	@JvmStatic
-	fun initialize() = Unit
+	fun createClickDualHatchFluidSlotAction(tankIndex: Int, shiftDown: Boolean): SyncActionData = RpcRegistry.create(ACTION, tankIndex * 2 + if (shiftDown) 1 else 0, tankIndex, shiftDown)
 
-	/** Creates the client action payload for one dual hatch fluid-slot click. */
-	@JvmStatic
-	fun createClickDualHatchFluidSlotAction(tankIndex: Int, shiftDown: Boolean): SyncActionData {
-		val fields =
-			SyncFieldData.builder()
-				.put(TANK_FIELD, JsonPrimitive(tankIndex))
-				.put(SHIFT_FIELD, JsonPrimitive(shiftDown))
-				.build()
-		val payload = fields.toComponentMap(GTDataComponents.SYNC_FIELD_DATA.get())
-		return SyncActionData(
-			CLICK_DUAL_HATCH_FLUID_SLOT_ACTION,
-			tankIndex * 2 + if (shiftDown) 1 else 0,
-			payload,
-		)
-	}
-
-	private object DualHatchFluidSlotActionHandler : SyncActionHandler {
-
-		override fun actionId(): ResourceLocation = CLICK_DUAL_HATCH_FLUID_SLOT_ACTION
-
-		override fun acceptsHolder(context: SyncActionContext): Boolean = context.holder is DualHatchFluidSlotActionTarget
-
-		override fun acceptsPayload(payload: DataComponentMap): Boolean {
-			val fields = payload[GTDataComponents.SYNC_FIELD_DATA.get()] ?: return false
-			return readTankIndex(fields) != null && readShift(fields) != null
-		}
-
-		override fun mayExecute(player: ServerPlayer, context: SyncActionContext): Boolean {
-			if (player.isSpectator) {
-				return false
-			}
-			val target = context.holder as DualHatchFluidSlotActionTarget
-			val fields = context.payload()[GTDataComponents.SYNC_FIELD_DATA.get()] ?: return false
-			val tankIndex = readTankIndex(fields) ?: return false
-			return tankIndex < target.getFluidTankCount()
-		}
-
-		override fun execute(context: SyncActionContext) {
-			val target =
-				context.holder as? DualHatchFluidSlotActionTarget
-					?: throw IllegalStateException(
-						"Dual hatch fluid slot action received a non-dual-hatch machine.",
-					)
-			target.clickFluidSlot(
-				context.player,
-				requireTankIndex(context.payload()),
-				requireShift(context.payload()),
-			)
-		}
-	}
-
-	private fun requireFieldData(payload: DataComponentMap): SyncFieldData = payload[GTDataComponents.SYNC_FIELD_DATA.get()]
-		?: throw IllegalStateException(
-			"Dual hatch fluid slot action payload is missing field data.",
-		)
-
-	private fun requireTankIndex(payload: DataComponentMap): Int = readTankIndex(requireFieldData(payload))
-		?: throw IllegalStateException(
-			"Dual hatch fluid slot action payload is missing $TANK_FIELD.",
-		)
-
-	private fun requireShift(payload: DataComponentMap): Boolean = readShift(requireFieldData(payload))
-		?: throw IllegalStateException(
-			"Dual hatch fluid slot action payload is missing $SHIFT_FIELD.",
-		)
-
-	private fun readTankIndex(fields: SyncFieldData): Int? {
-		val primitive = fields[TANK_FIELD] as? JsonPrimitive ?: return null
-		if (!primitive.isNumber) {
-			return null
-		}
-		val value =
-			try {
-				primitive.asBigDecimal.longValueExact()
-			} catch (exception: NumberFormatException) {
-				logInvalidTankIndex(primitive, exception)
-				return null
-			} catch (exception: ArithmeticException) {
-				logInvalidTankIndex(primitive, exception)
-				return null
-			}
-		return if (value in 0L..Int.MAX_VALUE.toLong()) value.toInt() else null
-	}
-
-	private fun logInvalidTankIndex(primitive: JsonPrimitive, exception: RuntimeException) {
-		GTCEu.LOGGER.warn(
-			"Dual hatch fluid slot action rejected invalid tank index {}",
-			primitive,
-			exception,
-		)
-	}
-
-	private fun readShift(fields: SyncFieldData): Boolean? {
-		val primitive = fields[SHIFT_FIELD] as? JsonPrimitive ?: return null
-		return if (primitive.isBoolean) primitive.asBoolean else null
+	@RpcAction("click_dual_hatch_fluid_slot")
+	fun apply(context: SyncActionContext, tankIndex: Int, shiftDown: Boolean): Boolean {
+		val target = context.holder as? DualHatchFluidSlotActionTarget ?: return false
+		if (tankIndex !in 0 until target.getFluidTankCount()) return false
+		target.clickFluidSlot(context.player, tankIndex, shiftDown)
+		return true
 	}
 }

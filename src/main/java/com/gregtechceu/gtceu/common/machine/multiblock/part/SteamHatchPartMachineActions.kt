@@ -4,16 +4,11 @@ import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.machine.feature.FancyActionMachine
 import com.gregtechceu.gtceu.api.sync_system.SyncActionContext
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData
-import com.gregtechceu.gtceu.api.sync_system.SyncActionDispatchers
-import com.gregtechceu.gtceu.api.sync_system.SyncActionHandler
-import com.gregtechceu.gtceu.api.sync_system.SyncFieldData
-import com.gregtechceu.gtceu.common.data.GTDataComponents
+import com.gregtechceu.gtceu.api.sync_system.rpc.RpcAction
+import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry
 
-import net.minecraft.core.component.DataComponentMap
-import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.level.ServerPlayer
 
-import com.google.gson.JsonPrimitive
 import org.jetbrains.annotations.ApiStatus
 
 /** Exposes the steam hatch operation that its Kotlin action handler may invoke. */
@@ -27,60 +22,16 @@ interface SteamHatchFluidSlotActionTarget : FancyActionMachine {
 /** Owns the wire protocol and server handler for steam hatch fluid-slot clicks. */
 object SteamHatchPartMachineActions {
 
-	private val CLICK_STEAM_HATCH_FLUID_SLOT_ACTION = GTCEu.id("click_steam_hatch_fluid_slot")
-	private val SHIFT_FIELD = SyncFieldData.key("shift")
+	private val ACTION = GTCEu.id("click_steam_hatch_fluid_slot")
 
-	init {
-		SyncActionDispatchers.server().register(SteamHatchFluidSlotActionHandler)
-	}
-
-	/** Forces this object's static registration from the owning machine's class initializer. */
+	/** Creates a request using the registered method parameter codecs. */
 	@JvmStatic
-	fun initialize() = Unit
+	fun createClickSteamHatchFluidSlotAction(shiftDown: Boolean): SyncActionData = RpcRegistry.create(ACTION, if (shiftDown) 1 else 0, shiftDown)
 
-	/** Creates one client action for the steam tank's real fluid-container interaction. */
-	@JvmStatic
-	fun createClickSteamHatchFluidSlotAction(shiftDown: Boolean): SyncActionData {
-		val fields =
-			SyncFieldData.builder()
-				.put(SHIFT_FIELD, JsonPrimitive(shiftDown))
-				.build()
-		return SyncActionData(
-			CLICK_STEAM_HATCH_FLUID_SLOT_ACTION,
-			if (shiftDown) 1 else 0,
-			fields.toComponentMap(GTDataComponents.SYNC_FIELD_DATA.get()),
-		)
-	}
-
-	private object SteamHatchFluidSlotActionHandler : SyncActionHandler {
-
-		override fun actionId(): ResourceLocation = CLICK_STEAM_HATCH_FLUID_SLOT_ACTION
-
-		override fun acceptsHolder(context: SyncActionContext): Boolean = context.holder is SteamHatchFluidSlotActionTarget
-
-		override fun acceptsPayload(payload: DataComponentMap): Boolean {
-			val fields = payload[GTDataComponents.SYNC_FIELD_DATA.get()] ?: return false
-			return readShift(fields) != null
-		}
-
-		override fun mayExecute(player: ServerPlayer, context: SyncActionContext): Boolean = !player.isSpectator
-
-		override fun execute(context: SyncActionContext) {
-			target(context).clickSteamHatchFluidSlot(context.player, requireShift(context.payload()))
-		}
-	}
-
-	private fun target(context: SyncActionContext): SteamHatchFluidSlotActionTarget = context.holder as? SteamHatchFluidSlotActionTarget
-		?: throw IllegalStateException("Steam hatch fluid slot action received a non-steam-hatch machine.")
-
-	private fun requireFieldData(payload: DataComponentMap): SyncFieldData = payload[GTDataComponents.SYNC_FIELD_DATA.get()]
-		?: throw IllegalStateException("Steam hatch fluid slot action payload is missing field data.")
-
-	private fun requireShift(payload: DataComponentMap): Boolean = readShift(requireFieldData(payload))
-		?: throw IllegalStateException("Steam hatch fluid slot action payload is missing $SHIFT_FIELD.")
-
-	private fun readShift(fields: SyncFieldData): Boolean? {
-		val primitive = fields[SHIFT_FIELD] as? JsonPrimitive ?: return null
-		return if (primitive.isBoolean) primitive.asBoolean else null
+	@RpcAction("click_steam_hatch_fluid_slot")
+	fun apply(context: SyncActionContext, shiftDown: Boolean): Boolean {
+		val target = context.holder as? SteamHatchFluidSlotActionTarget ?: return false
+		target.clickSteamHatchFluidSlot(context.player, shiftDown)
+		return true
 	}
 }

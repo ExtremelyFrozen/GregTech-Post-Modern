@@ -14,6 +14,7 @@ import com.gregtechceu.gtceu.api.gui.factory.MachineUIProvider;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableFluidTank;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry;
 import com.gregtechceu.gtceu.api.transfer.fluid.IFluidHandlerModifiable;
 import com.gregtechceu.gtceu.utils.ExtendedUseOnContext;
 import com.gregtechceu.gtceu.utils.GTUtil;
@@ -46,7 +47,7 @@ public class MultiblockTankMachine extends MultiblockControllerMachine
                                    implements MachineUIProvider, MultiblockTankFluidSlotActionTarget {
 
     static {
-        MultiblockTankMachineActions.initialize();
+        RpcRegistry.register(MultiblockTankMachineActions.INSTANCE);
     }
 
     @SaveField
