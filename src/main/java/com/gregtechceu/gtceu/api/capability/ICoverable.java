@@ -7,13 +7,17 @@ import com.gregtechceu.gtceu.api.blockentity.IGregtechBlockEntity;
 import com.gregtechceu.gtceu.api.blockentity.ITickSubscription;
 import com.gregtechceu.gtceu.api.cover.CoverBehavior;
 import com.gregtechceu.gtceu.api.cover.CoverDefinition;
+import com.gregtechceu.gtceu.api.gui.factory.CoverUIHelper;
 import com.gregtechceu.gtceu.api.item.tool.ToolHelper;
 import com.gregtechceu.gtceu.api.machine.TickableSubscription;
 import com.gregtechceu.gtceu.api.registry.GTRegistries;
 import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
 import com.gregtechceu.gtceu.api.sync_system.managed.ISyncManaged;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCSender;
 import com.gregtechceu.gtceu.api.transfer.fluid.IFluidHandlerModifiable;
 import com.gregtechceu.gtceu.common.data.datacomponents.CoverConfigCopyData;
+import com.gregtechceu.gtceu.common.item.behavior.CoverPlaceBehavior;
 import com.gregtechceu.gtceu.utils.GTUtil;
 
 import net.minecraft.core.BlockPos;
@@ -44,6 +48,48 @@ import java.util.stream.Collectors;
 public interface ICoverable extends ITickSubscription, ISyncManaged, ICopyable {
 
     IGregtechBlockEntity getHolder();
+
+    @RPCMethod
+    default boolean placeDirectionalCover(RPCSender sender, Direction side) {
+        var player = sender.asPlayer();
+        var carried = player.containerMenu.getCarried();
+        var definition = CoverPlaceBehavior.findCoverDefinition(carried);
+        if (definition == null) return false;
+        var previous = getCoverAtSide(side);
+        if (previous == null) {
+            if (!placeCoverOnSide(side, carried, definition, player)) return false;
+            if (!player.isCreative()) carried.shrink(1);
+        } else {
+            if (carried.getCount() != 1 || ItemStack.isSameItemSameComponents(carried, previous.getPickItem()))
+                return false;
+            var replacement = definition.createCoverBehavior(this, side);
+            if (!canPlaceCoverOnSide(definition, side) || !replacement.canAttach()) return false;
+            var item = previous.getPickItem().copy();
+            if (!replaceCoverOnSide(side, previous, replacement, carried, player)) return false;
+            player.containerMenu.setCarried(item);
+        }
+        player.containerMenu.broadcastChanges();
+        return true;
+    }
+
+    @RPCMethod
+    default boolean removeDirectionalCover(RPCSender sender, Direction side) {
+        var player = sender.asPlayer();
+        if (!player.containerMenu.getCarried().isEmpty()) return false;
+        var cover = getCoverAtSide(side);
+        if (cover == null) return false;
+        var item = cover.getPickItem().copy();
+        if (!removeCover(false, side, player)) return false;
+        player.containerMenu.setCarried(item);
+        player.containerMenu.broadcastChanges();
+        return true;
+    }
+
+    @RPCMethod
+    default boolean openDirectionalCover(RPCSender sender, Direction side) {
+        var cover = getCoverAtSide(side);
+        return cover != null && CoverUIHelper.open(cover, sender.asPlayer());
+    }
 
     @Override
     default ISyncManaged getParentSyncObject() {
