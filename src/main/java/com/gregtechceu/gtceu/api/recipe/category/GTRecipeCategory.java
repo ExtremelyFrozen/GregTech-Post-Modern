@@ -11,6 +11,7 @@ import com.gregtechceu.gtceu.common.data.GTRecipeTypes;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Items;
 
+import com.mojang.serialization.Codec;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -19,6 +20,8 @@ import org.jetbrains.annotations.Nullable;
 
 @Accessors(chain = true)
 public class GTRecipeCategory {
+
+    public static final Codec<GTRecipeCategory> CODEC = GTRegistries.RECIPE_CATEGORIES.byNameCodec();
 
     // Placeholder category used if category isn't defined for a recipe for registration
     public static final GTRecipeCategory DEFAULT = new GTRecipeCategory(GTCEu.id("default"),

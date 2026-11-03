@@ -27,6 +27,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.crafting.*;
 import net.neoforged.neoforge.common.crafting.SizedIngredient;
 
+import com.mojang.serialization.Codec;
 import it.unimi.dsi.fastutil.objects.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -40,6 +41,9 @@ import java.util.function.*;
 
 @Accessors(chain = true)
 public class GTRecipeType implements RecipeType<GTRecipeDefinition> {
+
+    public static final Codec<GTRecipeType> CODEC = ResourceLocation.CODEC
+            .xmap(id -> (GTRecipeType) BuiltInRegistries.RECIPE_TYPE.get(id), GTRecipeType::getRegistryName);
 
     public static final String LANGUAGE_KEY_PATH = "recipe_type";
 
