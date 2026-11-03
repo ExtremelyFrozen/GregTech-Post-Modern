@@ -6,72 +6,29 @@ import com.gregtechceu.gtceu.api.item.datacomponents.AoESymmetrical
 import com.gregtechceu.gtceu.api.item.tool.ToolHelper
 import com.gregtechceu.gtceu.api.sync_system.SyncActionContext
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData
-import com.gregtechceu.gtceu.api.sync_system.SyncActionDispatchers
-import com.gregtechceu.gtceu.api.sync_system.SyncActionHandler
+import com.gregtechceu.gtceu.api.sync_system.rpc.RpcAction
+import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry
 import com.gregtechceu.gtceu.common.data.GTDataComponents
 
-import net.minecraft.core.component.DataComponentMap
-import net.minecraft.resources.ResourceLocation
-import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.item.ItemStack
 
 /** Owns the wire protocol and server handler for the held-tool AOE configuration UI. */
 object AOEConfigUIBehaviorActions {
 
-	private const val ACTION_SEQUENCE = 0
-	private val SET_TOOL_AOE_ACTION = GTCEu.id("set_tool_aoe")
+	private val ACTION = GTCEu.id("set_tool_aoe")
 
-	init {
-		SyncActionDispatchers.server().register(AOEConfigurationActionHandler)
-	}
-
-	/** Forces common-side handler registration when the owning behavior class initializes. */
+	/** Creates a request using the registered method parameter codecs. */
 	@JvmStatic
-	fun initialize() = Unit
+	fun createSetToolAOEAction(definition: AoESymmetrical): SyncActionData = RpcRegistry.create(ACTION, 0, definition)
 
-	/** Creates one client request for a complete, locally valid AOE definition. */
-	@JvmStatic
-	fun createSetToolAOEAction(definition: AoESymmetrical): SyncActionData {
-		require(isValidAOEDefinition(definition)) { "Given AOE definition is out of range." }
-		val payload =
-			DataComponentMap
-				.builder()
-				.set(GTDataComponents.AOE.get(), definition)
-				.build()
-		return SyncActionData(SET_TOOL_AOE_ACTION, ACTION_SEQUENCE, payload)
-	}
-
-	private object AOEConfigurationActionHandler : SyncActionHandler {
-
-		override fun actionId(): ResourceLocation = SET_TOOL_AOE_ACTION
-
-		override fun acceptsHolder(context: SyncActionContext): Boolean {
-			val stack = context.holder as? ItemStack ?: return false
-			val openedStack = context.openedStack ?: return false
-			return ItemStack.isSameItem(stack, openedStack) &&
-				isAOEConfigTool(stack) &&
-				hasConfigurableAOE(stack) &&
-				hasConfigurableAOE(openedStack)
-		}
-
-		override fun acceptsPayload(payload: DataComponentMap): Boolean {
-			val definition = payload[GTDataComponents.AOE.get()] ?: return false
-			return isValidAOEDefinition(definition)
-		}
-
-		override fun mayExecute(player: ServerPlayer, context: SyncActionContext): Boolean = !player.isSpectator
-
-		override fun execute(context: SyncActionContext) {
-			val stack = context.holder as? ItemStack
-				?: throw IllegalStateException("AOE configuration action received a non-item holder.")
-			val requested = context.payload()[GTDataComponents.AOE.get()]
-				?: throw IllegalStateException("AOE configuration action payload is missing.")
-			val current = ToolHelper.getAoEDefinition(stack)
-			require(canApplyAOEDefinition(current, requested)) {
-				"AOE configuration action payload does not match the current tool."
-			}
-			stack.set(GTDataComponents.AOE, requested)
-		}
+	@RpcAction("set_tool_aoe")
+	fun apply(context: SyncActionContext, definition: AoESymmetrical): Boolean {
+		val stack = context.holder as? ItemStack ?: return false
+		val openedStack = context.openedStack ?: return false
+		if (!isAOEConfigTool(stack) || !hasConfigurableAOE(stack) || !hasConfigurableAOE(openedStack)) return false
+		require(canApplyAOEDefinition(ToolHelper.getAoEDefinition(stack), definition)) { "AOE definition does not match the current tool." }
+		stack.set(GTDataComponents.AOE, definition)
+		return true
 	}
 
 	private fun hasConfigurableAOE(stack: ItemStack): Boolean = !ToolHelper.getAoEDefinition(stack).isZero()

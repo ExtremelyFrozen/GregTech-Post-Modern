@@ -9,6 +9,7 @@ import com.gregtechceu.gtceu.api.sync_system.SyncActionData
 import com.gregtechceu.gtceu.api.sync_system.SyncActionDispatchers
 import com.gregtechceu.gtceu.api.sync_system.SyncActionHandler
 import com.gregtechceu.gtceu.api.sync_system.SyncFieldData
+import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry
 import com.gregtechceu.gtceu.common.data.GTDataComponents
 import com.gregtechceu.gtceu.common.item.behavior.IntCircuitBehaviour
 
@@ -107,8 +108,8 @@ object MEPatternBufferProxyActions {
 	private val COVER_OPERATION_FIELD = SyncFieldData.key("cover_operation")
 
 	init {
-		CircuitConfiguratorActions.initialize()
-		DirectionalCoverActions.initialize()
+		RpcRegistry.register(CircuitConfiguratorActions)
+		RpcRegistry.register(DirectionalCoverActions)
 		SyncActionDispatchers.server().register(SetNameHandler)
 		SyncActionDispatchers.server().register(RefundAllHandler)
 		SyncActionDispatchers.server().register(ClickShareTankHandler)

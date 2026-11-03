@@ -14,6 +14,7 @@ import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.feature.IHasCircuitSlot;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler;
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry;
 import com.gregtechceu.gtceu.common.item.behavior.IntCircuitBehaviour;
 import com.gregtechceu.gtceu.config.ConfigHolder;
 import com.gregtechceu.gtceu.data.lang.LangHandler;
@@ -50,7 +51,7 @@ public class CircuitConfigurator implements FancyConfigurator, FancyMouseWheelAc
     private static final int NO_CONFIG = -1;
 
     static {
-        CircuitConfiguratorActions.initialize();
+        RpcRegistry.register(CircuitConfiguratorActions.INSTANCE);
     }
 
     private final IHasCircuitSlot circuitMachine;

@@ -11,6 +11,7 @@ import com.gregtechceu.gtceu.api.item.component.IItemUIFactory;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.api.machine.feature.IHasCircuitSlot;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry;
 import com.gregtechceu.gtceu.api.transfer.item.CustomItemStackHandler;
 import com.gregtechceu.gtceu.common.data.GTDataComponents;
 import com.gregtechceu.gtceu.common.data.GTItems;
@@ -39,7 +40,7 @@ public class IntCircuitBehaviour implements IItemUIFactory, IAddInformation {
     public static final int CIRCUIT_MAX = 32;
 
     static {
-        IntCircuitBehaviourActions.initialize();
+        RpcRegistry.register(IntCircuitBehaviourActions.INSTANCE);
     }
 
     public static ItemStack stack(int configuration) {
