@@ -11,7 +11,6 @@ import com.gregtechceu.gtceu.api.gui.element.GTDynamicItemSlotSessionElement;
 import com.gregtechceu.gtceu.api.gui.element.GTIntInputElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolderContext;
 import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
@@ -32,8 +31,10 @@ import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigu
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMaintenanceMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMultiPart;
-import com.gregtechceu.gtceu.api.sync_system.SyncActionData;
+import com.gregtechceu.gtceu.common.item.modules.ImageModuleBehaviour;
+import com.gregtechceu.gtceu.common.item.modules.TextModuleBehaviour;
 import com.gregtechceu.gtceu.common.machine.multiblock.electric.monitor.CentralMonitorGroupItemHandler;
+import com.gregtechceu.gtceu.common.machine.multiblock.electric.monitor.CentralMonitorGroupTargetState;
 import com.gregtechceu.gtceu.common.machine.multiblock.electric.monitor.MonitorGroup;
 import com.gregtechceu.gtceu.data.lang.LangHandler;
 
@@ -84,7 +85,7 @@ final class CentralMonitorElement extends UIElement implements FancyUIProvider {
     private final CentralMonitorMachine machine;
     private final Player player;
     private final MachineUIHolder holder;
-    private final Consumer<SyncActionData> actionSender;
+    private final Consumer<Runnable> actionSender;
     private final Supplier<UUID> groupIdentitySupplier;
     private final GroupPageSelectionRequester pageRequester;
     private final DirectionalConfigurator directionalPage;
@@ -117,23 +118,22 @@ final class CentralMonitorElement extends UIElement implements FancyUIProvider {
     private @Nullable AuthoritativeModuleSnapshot renderedModuleSnapshot;
     private int dataSlot = 1;
     private int dataSlotCount = 1;
-    private int nextActionSequence;
 
     CentralMonitorElement(CentralMonitorMachine machine, Player player, MachineUIHolder holder) {
         this(machine, player, holder, action -> {
             if (player.level().isClientSide()) {
-                MachineUIHelper.sendAction(holder, action);
+                action.run();
             }
         }, UUID::randomUUID, null);
     }
 
     CentralMonitorElement(CentralMonitorMachine machine, Player player, MachineUIHolder holder,
-                          Consumer<SyncActionData> actionSender, Supplier<UUID> groupIdentitySupplier) {
+                          Consumer<Runnable> actionSender, Supplier<UUID> groupIdentitySupplier) {
         this(machine, player, holder, actionSender, groupIdentitySupplier, null);
     }
 
     CentralMonitorElement(CentralMonitorMachine machine, Player player, MachineUIHolder holder,
-                          Consumer<SyncActionData> actionSender, Supplier<UUID> groupIdentitySupplier,
+                          Consumer<Runnable> actionSender, Supplier<UUID> groupIdentitySupplier,
                           @Nullable GroupPageSelectionRequester pageRequester) {
         this.machine = machine;
         this.player = player;
@@ -775,13 +775,12 @@ final class CentralMonitorElement extends UIElement implements FancyUIProvider {
                 selectedMonitorPositions.stream().anyMatch(this::isInAnyGroup)) {
             return;
         }
-        Set<BlockPos> positions = Set.copyOf(selectedMonitorPositions);
-        int sequence = nextActionSequence;
-        SyncActionData action = CentralMonitorMembershipActions.createGroupAction(
-                machine.getCentralMonitorActionIncarnation(), machine.getCentralMonitorMembershipRevision(),
-                groupIdentitySupplier.get(), positions, sequence);
-        actionSender.accept(action);
-        nextActionSequence = Math.incrementExact(sequence);
+        List<BlockPos> positions = List.copyOf(selectedMonitorPositions);
+        UUID holderIncarnation = machine.getCentralMonitorActionIncarnation();
+        long expectedRevision = machine.getCentralMonitorMembershipRevision();
+        UUID groupIdentity = groupIdentitySupplier.get();
+        actionSender.accept(() -> machine.rpcToServer("createCentralMonitorGroup",
+                holderIncarnation, expectedRevision, groupIdentity, positions));
         clearSelectionDraft();
     }
 
@@ -791,7 +790,6 @@ final class CentralMonitorElement extends UIElement implements FancyUIProvider {
             return;
         }
         long expectedRevision = machine.getCentralMonitorMembershipRevision();
-        int sequence = nextActionSequence;
         for (MonitorGroup group : List.copyOf(machine.getMonitorGroups())) {
             Set<BlockPos> positions = new LinkedHashSet<>();
             for (BlockPos position : selectedMonitorPositions) {
@@ -802,14 +800,14 @@ final class CentralMonitorElement extends UIElement implements FancyUIProvider {
             if (positions.isEmpty()) {
                 continue;
             }
-            SyncActionData action = CentralMonitorMembershipActions.createRemoveGroupMembersAction(
-                    machine.getCentralMonitorActionIncarnation(), expectedRevision, group.getIdentity(), positions,
-                    sequence);
-            actionSender.accept(action);
+            UUID holderIncarnation = machine.getCentralMonitorActionIncarnation();
+            long revision = expectedRevision;
+            UUID groupIdentity = group.getIdentity();
+            List<BlockPos> members = List.copyOf(positions);
+            actionSender.accept(() -> machine.rpcToServer("removeCentralMonitorGroupMembers",
+                    holderIncarnation, revision, groupIdentity, members));
             expectedRevision = Math.incrementExact(expectedRevision);
-            sequence = Math.incrementExact(sequence);
         }
-        nextActionSequence = sequence;
         clearSelectionDraft();
     }
 
@@ -827,11 +825,11 @@ final class CentralMonitorElement extends UIElement implements FancyUIProvider {
         if (expected.equals(requested)) {
             return;
         }
-        int sequence = nextActionSequence;
-        SyncActionData action = CentralMonitorGroupTargetActions.createSetGroupTargetAction(
-                machine.getCentralMonitorActionIncarnation(), group.getIdentity(), expected, requested, sequence);
-        actionSender.accept(action);
-        nextActionSequence = Math.incrementExact(sequence);
+        UUID holderIncarnation = machine.getCentralMonitorActionIncarnation();
+        UUID groupIdentity = group.getIdentity();
+        actionSender.accept(() -> machine.rpcToServer("setCentralMonitorGroupTarget",
+                holderIncarnation, groupIdentity, Optional.ofNullable(expected.targetPos()), expected.dataSlot(),
+                Optional.ofNullable(requested.targetPos()), requested.dataSlot()));
     }
 
     private CentralMonitorGroupTargetState createRequestedTargetState() {
@@ -911,16 +909,16 @@ final class CentralMonitorElement extends UIElement implements FancyUIProvider {
 
         private static AuthoritativeModuleSnapshot capture(MonitorGroup group) {
             ItemStack module = group.getItemStackHandler().getStackInSlot(0);
-            if (CentralMonitorTextModuleActions.isTextModule(module)) {
+            if (TextModuleBehaviour.isTextModule(module)) {
                 return new AuthoritativeModuleSnapshot(
                         group.getModuleSlotIncarnation(),
-                        CentralMonitorTextModuleActions.captureExpectedModule(module),
+                        TextModuleBehaviour.captureExpectedModule(module),
                         group.getTextConfigurationRevision());
             }
-            if (CentralMonitorImageModuleActions.isImageModule(module)) {
+            if (ImageModuleBehaviour.isImageModule(module)) {
                 return new AuthoritativeModuleSnapshot(
                         group.getModuleSlotIncarnation(),
-                        CentralMonitorImageModuleActions.captureExpectedModule(module),
+                        ImageModuleBehaviour.captureExpectedModule(module),
                         NON_TEXT_CONFIGURATION_REVISION);
             }
             return new AuthoritativeModuleSnapshot(

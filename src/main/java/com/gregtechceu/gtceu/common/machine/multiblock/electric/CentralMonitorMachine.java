@@ -28,12 +28,15 @@ import com.gregtechceu.gtceu.api.multiblock.util.RelativeDirection;
 import com.gregtechceu.gtceu.api.sync_system.annotations.RerenderOnChanged;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
-import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
 import com.gregtechceu.gtceu.common.data.GTBlocks;
 import com.gregtechceu.gtceu.common.data.GTDataComponents;
 import com.gregtechceu.gtceu.common.data.GTMachines;
 import com.gregtechceu.gtceu.common.item.behavior.PortableScannerBehavior;
 import com.gregtechceu.gtceu.common.item.datacomponents.TextLineList;
+import com.gregtechceu.gtceu.common.item.modules.ImageModuleBehaviour;
+import com.gregtechceu.gtceu.common.item.modules.TextModuleBehaviour;
+import com.gregtechceu.gtceu.common.machine.multiblock.electric.monitor.CentralMonitorGroupTargetState;
 import com.gregtechceu.gtceu.common.machine.multiblock.electric.monitor.MonitorGroup;
 import com.gregtechceu.gtceu.common.machine.trait.CentralMonitorLogic;
 import com.gregtechceu.gtceu.common.network.packets.SCPacketMonitorGroupDataChange;
@@ -51,7 +54,6 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
-import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 import lombok.Getter;
@@ -68,16 +70,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
 @MethodsReturnNonnullByDefault
 public class CentralMonitorMachine extends WorkableElectricMultiblockMachine
                                    implements IMonitorComponent, IDataInfoProvider,
-                                   DynamicItemSlotMachineUIProvider,
-                                   CentralMonitorMembershipActionTarget, CentralMonitorGroupTargetActionHost,
-                                   CentralMonitorImageModuleActionHost, CentralMonitorTextModuleActionHost {
-
-    static {
-        RPCRegistry.register(CentralMonitorMembershipActions.INSTANCE);
-        RPCRegistry.register(CentralMonitorGroupTargetActions.INSTANCE);
-        RPCRegistry.register(CentralMonitorImageModuleActions.INSTANCE);
-        RPCRegistry.register(CentralMonitorTextModuleActions.INSTANCE);
-    }
+                                   DynamicItemSlotMachineUIProvider {
 
     private static final String MONITOR_GROUPS_SYNC_FIELD = "monitorGroups";
     private static final String MONITOR_GROUP_MEMBERSHIP_REVISION_SYNC_FIELD = "monitorGroupMembershipRevision";
@@ -325,28 +318,23 @@ public class CentralMonitorMachine extends WorkableElectricMultiblockMachine
         return monitorGroups.stream().anyMatch(group -> group.contains(component.getBlockPos()));
     }
 
-    @Override
     public UUID getCentralMonitorActionIncarnation() {
         return centralMonitorActionIncarnation;
     }
 
-    @Override
     public int getCentralMonitorMembershipCapacity() {
         int width = Math.addExact(Math.addExact(leftDist, rightDist), 1);
         int height = Math.addExact(Math.addExact(upDist, downDist), 1);
         return Math.multiplyExact(width, height);
     }
 
-    @Override
     public long getCentralMonitorMembershipRevision() {
         return monitorGroupMembershipRevision;
     }
 
-    @Override
     public boolean canCreateCentralMonitorGroup(long expectedRevision, UUID groupIdentity,
                                                 Set<BlockPos> positions) {
         if (!isMembershipStructureAvailable() || monitorGroupMembershipRevision != expectedRevision ||
-                positions.isEmpty() || positions.size() > getCentralMonitorMembershipCapacity() ||
                 hasMonitorGroupIdentity(groupIdentity)) {
             return false;
         }
@@ -360,7 +348,6 @@ public class CentralMonitorMachine extends WorkableElectricMultiblockMachine
         return true;
     }
 
-    @Override
     public boolean createCentralMonitorGroup(long expectedRevision, UUID groupIdentity, Set<BlockPos> positions) {
         if (!canCreateCentralMonitorGroup(expectedRevision, groupIdentity, positions)) {
             return false;
@@ -374,11 +361,9 @@ public class CentralMonitorMachine extends WorkableElectricMultiblockMachine
         return true;
     }
 
-    @Override
     public boolean canRemoveCentralMonitorGroupMembers(long expectedRevision, UUID groupIdentity,
                                                        Set<BlockPos> positions) {
-        if (!isMembershipStructureAvailable() || monitorGroupMembershipRevision != expectedRevision ||
-                positions.isEmpty() || positions.size() > getCentralMonitorMembershipCapacity()) {
+        if (!isMembershipStructureAvailable() || monitorGroupMembershipRevision != expectedRevision) {
             return false;
         }
         MonitorGroup group = resolveCentralMonitorGroup(groupIdentity);
@@ -395,7 +380,6 @@ public class CentralMonitorMachine extends WorkableElectricMultiblockMachine
         return true;
     }
 
-    @Override
     public boolean removeCentralMonitorGroupMembers(long expectedRevision, UUID groupIdentity,
                                                     Set<BlockPos> positions) {
         if (!canRemoveCentralMonitorGroupMembers(expectedRevision, groupIdentity, positions)) {
@@ -417,11 +401,9 @@ public class CentralMonitorMachine extends WorkableElectricMultiblockMachine
         return true;
     }
 
-    @Override
     public boolean canSetCentralMonitorGroupTarget(UUID groupIdentity, CentralMonitorGroupTargetState expected,
                                                    CentralMonitorGroupTargetState requested) {
-        if (!isMembershipStructureAvailable() || expected.dataSlot() < 0 || requested.dataSlot() < 0 ||
-                expected.equals(requested)) {
+        if (!isMembershipStructureAvailable()) {
             return false;
         }
         MonitorGroup group = resolveCentralMonitorGroup(groupIdentity);
@@ -430,17 +412,15 @@ public class CentralMonitorMachine extends WorkableElectricMultiblockMachine
         }
         BlockPos requestedPosition = requested.targetPos();
         if (requestedPosition == null) {
-            return requested.dataSlot() == 0;
+            return true;
         }
         IMonitorComponent component = resolveMembershipComponents().get(requestedPosition);
         if (component == null) {
             return false;
         }
-        IItemHandler dataItems = component.getDataItems();
-        return dataItems == null ? requested.dataSlot() == 0 : requested.dataSlot() < dataItems.getSlots();
+        return true;
     }
 
-    @Override
     public boolean setCentralMonitorGroupTarget(UUID groupIdentity, CentralMonitorGroupTargetState expected,
                                                 CentralMonitorGroupTargetState requested) {
         if (!canSetCentralMonitorGroupTarget(groupIdentity, expected, requested)) {
@@ -462,12 +442,10 @@ public class CentralMonitorMachine extends WorkableElectricMultiblockMachine
         getSyncDataHolder().markClientSyncFieldDirty(MONITOR_GROUPS_SYNC_FIELD);
     }
 
-    @Override
     public void resyncCentralMonitorImageModuleState() {
         markMonitorGroupDataChanged();
     }
 
-    @Override
     public void resyncCentralMonitorTextModuleState() {
         markMonitorGroupDataChanged();
     }
@@ -482,7 +460,7 @@ public class CentralMonitorMachine extends WorkableElectricMultiblockMachine
             return null;
         }
         ItemStack module = group.getItemStackHandler().getStackInSlot(0);
-        return CentralMonitorImageModuleActions.isImageModule(module) ? module : null;
+        return ImageModuleBehaviour.isImageModule(module) ? module : null;
     }
 
     /**
@@ -495,10 +473,9 @@ public class CentralMonitorMachine extends WorkableElectricMultiblockMachine
             return null;
         }
         ItemStack module = group.getItemStackHandler().getStackInSlot(0);
-        return CentralMonitorTextModuleActions.isTextModule(module) ? module : null;
+        return TextModuleBehaviour.isTextModule(module) ? module : null;
     }
 
-    @Override
     public boolean canSetCentralMonitorTextModuleConfiguration(UUID groupIdentity, UUID moduleSlotIncarnation,
                                                                long expectedConfigurationRevision,
                                                                ItemStack expectedModule,
@@ -508,7 +485,6 @@ public class CentralMonitorMachine extends WorkableElectricMultiblockMachine
                 expectedModule, requestedConfiguration) != null;
     }
 
-    @Override
     public boolean setCentralMonitorTextModuleConfiguration(UUID groupIdentity, UUID moduleSlotIncarnation,
                                                             long expectedConfigurationRevision,
                                                             ItemStack expectedModule,
@@ -530,8 +506,7 @@ public class CentralMonitorMachine extends WorkableElectricMultiblockMachine
                                                                  long expectedConfigurationRevision,
                                                                  ItemStack expectedModule,
                                                                  TextLineList requestedConfiguration) {
-        if (!isMembershipStructureAvailable() ||
-                !CentralMonitorTextModuleActions.isValidScale(requestedConfiguration.scale())) {
+        if (!isMembershipStructureAvailable()) {
             return null;
         }
         MonitorGroup group = resolveCentralMonitorGroup(groupIdentity);
@@ -540,8 +515,8 @@ public class CentralMonitorMachine extends WorkableElectricMultiblockMachine
             return null;
         }
         ItemStack currentModule = group.getItemStackHandler().getStackInSlot(0);
-        if (!CentralMonitorTextModuleActions.isTextModule(currentModule) ||
-                !CentralMonitorTextModuleActions.matchesExpectedModule(currentModule, expectedModule)) {
+        if (!TextModuleBehaviour.isTextModule(currentModule) ||
+                !TextModuleBehaviour.matchesExpectedModule(currentModule, expectedModule)) {
             return null;
         }
         TextLineList currentConfiguration = currentModule.get(GTDataComponents.FORMAT_STRING_LIST.get());
@@ -556,7 +531,6 @@ public class CentralMonitorMachine extends WorkableElectricMultiblockMachine
         return group;
     }
 
-    @Override
     public boolean canSetCentralMonitorImageModuleUrl(UUID groupIdentity, UUID moduleSlotIncarnation,
                                                       ItemStack expectedModule, @Nullable String expectedUrl,
                                                       String requestedUrl) {
@@ -564,7 +538,6 @@ public class CentralMonitorMachine extends WorkableElectricMultiblockMachine
                 groupIdentity, moduleSlotIncarnation, expectedModule, expectedUrl, requestedUrl) != null;
     }
 
-    @Override
     public boolean setCentralMonitorImageModuleUrl(UUID groupIdentity, UUID moduleSlotIncarnation,
                                                    ItemStack expectedModule, @Nullable String expectedUrl,
                                                    String requestedUrl) {
@@ -585,7 +558,6 @@ public class CentralMonitorMachine extends WorkableElectricMultiblockMachine
                                                                   @Nullable String expectedUrl,
                                                                   String requestedUrl) {
         if (!isMembershipStructureAvailable() ||
-                !CentralMonitorImageModuleActions.isValidUrl(requestedUrl) ||
                 sameNullableString(expectedUrl, requestedUrl)) {
             return null;
         }
@@ -594,13 +566,8 @@ public class CentralMonitorMachine extends WorkableElectricMultiblockMachine
             return null;
         }
         ItemStack currentModule = group.getItemStackHandler().getStackInSlot(0);
-        if (!CentralMonitorImageModuleActions.isImageModule(currentModule) ||
-                !CentralMonitorImageModuleActions.matchesExpectedModule(currentModule, expectedModule)) {
-            return null;
-        }
-        String snapshotUrl = expectedModule.get(GTDataComponents.IMAGE_MODULE_URL.get());
-        String currentUrl = currentModule.get(GTDataComponents.IMAGE_MODULE_URL.get());
-        if (!sameNullableString(snapshotUrl, expectedUrl) || !sameNullableString(currentUrl, expectedUrl)) {
+        if (!ImageModuleBehaviour.isImageModule(currentModule) ||
+                !ImageModuleBehaviour.matchesExpectedModule(currentModule, expectedModule)) {
             return null;
         }
         return group;
@@ -608,6 +575,55 @@ public class CentralMonitorMachine extends WorkableElectricMultiblockMachine
 
     private static boolean sameNullableString(@Nullable String first, @Nullable String second) {
         return first == null ? second == null : first.equals(second);
+    }
+
+    @RPCMethod
+    public void createCentralMonitorGroup(UUID holderIncarnation, long expectedRevision, UUID groupIdentity,
+                                          List<BlockPos> positions) {
+        if (centralMonitorActionIncarnation.equals(holderIncarnation)) {
+            createCentralMonitorGroup(expectedRevision, groupIdentity, new LinkedHashSet<>(positions));
+        }
+    }
+
+    @RPCMethod
+    public void removeCentralMonitorGroupMembers(UUID holderIncarnation, long expectedRevision, UUID groupIdentity,
+                                                 List<BlockPos> positions) {
+        if (centralMonitorActionIncarnation.equals(holderIncarnation)) {
+            removeCentralMonitorGroupMembers(expectedRevision, groupIdentity, new LinkedHashSet<>(positions));
+        }
+    }
+
+    @RPCMethod
+    public void setCentralMonitorGroupTarget(UUID holderIncarnation, UUID groupIdentity,
+                                             Optional<BlockPos> expectedPosition, int expectedSlot,
+                                             Optional<BlockPos> requestedPosition, int requestedSlot) {
+        if (centralMonitorActionIncarnation.equals(holderIncarnation)) {
+            setCentralMonitorGroupTarget(groupIdentity,
+                    new CentralMonitorGroupTargetState(expectedPosition.orElse(null), expectedSlot),
+                    new CentralMonitorGroupTargetState(requestedPosition.orElse(null), requestedSlot));
+        }
+    }
+
+    @RPCMethod
+    public void setCentralMonitorImageModuleUrl(UUID holderIncarnation, UUID groupIdentity, UUID moduleSlotIncarnation,
+                                                ItemStack expectedModule, String requestedUrl) {
+        if (!centralMonitorActionIncarnation.equals(holderIncarnation) ||
+                !setCentralMonitorImageModuleUrl(groupIdentity, moduleSlotIncarnation, expectedModule,
+                        expectedModule.get(GTDataComponents.IMAGE_MODULE_URL.get()), requestedUrl)) {
+            resyncCentralMonitorImageModuleState();
+        }
+    }
+
+    @RPCMethod
+    public void setCentralMonitorTextModuleConfiguration(UUID holderIncarnation, UUID groupIdentity,
+                                                         UUID moduleSlotIncarnation, long expectedConfigurationRevision,
+                                                         ItemStack expectedModule, List<String> lines, float scale) {
+        if (!centralMonitorActionIncarnation.equals(holderIncarnation) ||
+                !setCentralMonitorTextModuleConfiguration(groupIdentity, moduleSlotIncarnation,
+                        expectedConfigurationRevision, expectedModule,
+                        TextModuleBehaviour.createConfiguration(lines, scale))) {
+            resyncCentralMonitorTextModuleState();
+        }
     }
 
     /**

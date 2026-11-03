@@ -7,18 +7,17 @@ import com.gregtechceu.gtceu.api.gui.element.GTButtonElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
 import com.gregtechceu.gtceu.api.gui.element.GTTextFieldElement;
+import com.gregtechceu.gtceu.api.item.IComponentItem;
 import com.gregtechceu.gtceu.api.item.component.IAddInformation;
 import com.gregtechceu.gtceu.api.item.component.IMonitorModuleItem;
 import com.gregtechceu.gtceu.api.placeholder.MultiLineComponent;
 import com.gregtechceu.gtceu.api.placeholder.PlaceholderContext;
 import com.gregtechceu.gtceu.api.placeholder.PlaceholderHandler;
-import com.gregtechceu.gtceu.api.sync_system.SyncActionData;
 import com.gregtechceu.gtceu.client.renderer.monitor.IMonitorRenderer;
 import com.gregtechceu.gtceu.client.renderer.monitor.MonitorTextRenderer;
 import com.gregtechceu.gtceu.common.data.GTDataComponents;
 import com.gregtechceu.gtceu.common.item.datacomponents.TextLineList;
 import com.gregtechceu.gtceu.common.machine.multiblock.electric.CentralMonitorMachine;
-import com.gregtechceu.gtceu.common.machine.multiblock.electric.CentralMonitorTextModuleActions;
 import com.gregtechceu.gtceu.common.machine.multiblock.electric.monitor.MonitorGroup;
 import com.gregtechceu.gtceu.data.lang.LangHandler;
 import com.gregtechceu.gtceu.utils.GTStringUtils;
@@ -33,7 +32,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.codeeditor.CodeEditor;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.util.Mth;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
@@ -87,7 +85,7 @@ public class TextModuleBehaviour implements IMonitorModuleItem, IAddInformation 
 
     @Override
     public UIElement createConfigurationElement(ItemStack stack, CentralMonitorMachine machine, MonitorGroup group,
-                                                Consumer<SyncActionData> actionSender) {
+                                                Consumer<Runnable> actionSender) {
         UIElement builder = new UIElement();
         UITemplate.setBounds(builder, 0, 0, CONFIGURATION_WIDTH, CONFIGURATION_HEIGHT);
 
@@ -101,7 +99,7 @@ public class TextModuleBehaviour implements IMonitorModuleItem, IAddInformation 
                 GuiTextures.group(GuiTextures.VANILLA_BUTTON, GuiTextures.BUTTON_CHECK),
                 event -> {
                     if (!machine.isRemote()) return;
-                    saveText(editSession, editor, scaleInput, actionSender);
+                    saveText(machine, editSession, editor, scaleInput, actionSender);
                 });
         saveButton.noText();
 
@@ -111,7 +109,7 @@ public class TextModuleBehaviour implements IMonitorModuleItem, IAddInformation 
 
     private static GTTextFieldElement createScaleInput(ItemStack stack) {
         GTTextFieldElement scaleInput = new GTTextFieldElement(EDITOR_X, 86, 72, 12);
-        scaleInput.setNumbersOnlyFloat(.0001f, 1000f);
+        scaleInput.setAnyString();
         scaleInput.setText(getScaleText(stack), false);
         scaleInput.style(style -> style.tooltips(Component.translatable("gtpm.gui.central_monitor.text_scale")));
         return scaleInput;
@@ -130,41 +128,34 @@ public class TextModuleBehaviour implements IMonitorModuleItem, IAddInformation 
             return "1";
         }
         TextLineList configuration = stack.getOrDefault(GTDataComponents.FORMAT_STRING_LIST, TextLineList.EMPTY);
-        return String.valueOf(Mth.clamp(configuration.scale(), .0001f, 1000f));
+        return String.valueOf(configuration.scale());
     }
 
-    private static void saveText(TextEditSession editSession, CodeEditor editor,
-                                 GTTextFieldElement scaleInput, Consumer<SyncActionData> actionSender) {
-        if (scaleInput.isError()) {
-            GTCEu.LOGGER.error("Invalid monitor text module scale: {}", scaleInput.getRawText());
-            return;
-        }
-        sendTextChange(editSession, Arrays.asList(editor.getValue()), scaleInput.getValue(), actionSender);
+    private static void saveText(CentralMonitorMachine machine, TextEditSession editSession, CodeEditor editor,
+                                 GTTextFieldElement scaleInput, Consumer<Runnable> actionSender) {
+        sendTextChange(machine, editSession, Arrays.asList(editor.getValue()), scaleInput.getValue(), actionSender);
     }
 
-    private static void sendTextChange(TextEditSession editSession, List<String> requestedLines,
-                                       String scaleText, Consumer<SyncActionData> actionSender) {
+    private static void sendTextChange(CentralMonitorMachine machine, TextEditSession editSession,
+                                       List<String> requestedLines, String scaleText, Consumer<Runnable> actionSender) {
         Float requestedScale = readScale(scaleText);
         if (requestedScale == null) {
             return;
         }
-        TextLineList requestedConfiguration = CentralMonitorTextModuleActions.createConfiguration(
+        TextLineList requestedConfiguration = createConfiguration(
                 requestedLines, requestedScale);
         if (requestedConfiguration.equals(
                 editSession.expectedModule.get(GTDataComponents.FORMAT_STRING_LIST))) {
             return;
         }
-        int nextSequence = Math.incrementExact(editSession.sequence);
-        var action = CentralMonitorTextModuleActions.createSetTextModuleConfigurationAction(
+        actionSender.accept(() -> machine.rpcToServer("setCentralMonitorTextModuleConfiguration",
                 editSession.holderIncarnation,
                 editSession.groupIdentity,
                 editSession.moduleSlotIncarnation,
                 editSession.expectedConfigurationRevision,
                 editSession.expectedModule,
-                requestedConfiguration,
-                editSession.sequence);
-        actionSender.accept(action);
-        editSession.sequence = nextSequence;
+                requestedLines,
+                requestedScale));
     }
 
     private static final class TextEditSession {
@@ -174,7 +165,6 @@ public class TextModuleBehaviour implements IMonitorModuleItem, IAddInformation 
         private final UUID moduleSlotIncarnation;
         private final ItemStack expectedModule;
         private final long expectedConfigurationRevision;
-        private int sequence;
 
         private TextEditSession(UUID holderIncarnation, UUID groupIdentity, UUID moduleSlotIncarnation,
                                 long expectedConfigurationRevision, ItemStack expectedModule) {
@@ -191,22 +181,39 @@ public class TextModuleBehaviour implements IMonitorModuleItem, IAddInformation 
                     group.getIdentity(),
                     group.getModuleSlotIncarnation(),
                     group.getTextConfigurationRevision(),
-                    CentralMonitorTextModuleActions.captureExpectedModule(module));
+                    captureExpectedModule(module));
         }
     }
 
     private static @Nullable Float readScale(String text) {
         try {
-            float scale = Float.parseFloat(text);
-            if (!CentralMonitorTextModuleActions.isValidScale(scale)) {
-                GTCEu.LOGGER.error("Monitor text module scale is outside the supported range: {}", text);
-                return null;
-            }
-            return scale;
+            return Float.parseFloat(text);
         } catch (NumberFormatException e) {
             GTCEu.LOGGER.error("Invalid monitor text module scale: {}", text, e);
             return null;
         }
+    }
+
+    public static TextLineList createConfiguration(List<String> lines, float scale) {
+        return new TextLineList(lines.stream().map(Component::literal).map(Component.class::cast).toList(), scale);
+    }
+
+    /** Captures editable data without placeholder identity and server-derived display text. */
+    public static ItemStack captureExpectedModule(ItemStack module) {
+        ItemStack snapshot = module.copy();
+        snapshot.remove(GTDataComponents.TEXT_LINE_LIST.get());
+        snapshot.remove(GTDataComponents.PLACEHOLDER_UUID.get());
+        return snapshot;
+    }
+
+    /** Compares stable module data while allowing derived display components to change. */
+    public static boolean matchesExpectedModule(ItemStack current, ItemStack expected) {
+        return ItemStack.matches(captureExpectedModule(current), expected);
+    }
+
+    public static boolean isTextModule(ItemStack stack) {
+        return stack.getItem() instanceof IComponentItem componentItem &&
+                componentItem.getComponents().stream().anyMatch(TextModuleBehaviour.class::isInstance);
     }
 
     private static UIElement createPlaceholderReference() {
