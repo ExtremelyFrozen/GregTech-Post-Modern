@@ -8,9 +8,8 @@ repositories {
             includeGroup("it.unimi.dsi")
             includeGroup("org.lwjgl")
             includeGroup("com.google.guava")
-            includeGroup("io.netty")
-            includeGroup("org.jetbrains")
-            includeGroup("org.jetbrains.kotlin")
+            includeGroupAndSubgroups("io.netty")
+            includeGroupAndSubgroups("org.jetbrains")
         }
     }
 
@@ -25,6 +24,11 @@ repositories {
     maven { // JEI mirror, AE2
         name = "ModMaven"
         url = "https://modmaven.dev/"
+        metadataSources {
+            gradleMetadata()
+            mavenPom()
+            artifact()
+        }
     }
 
     maven { // LDLib, Shimmer

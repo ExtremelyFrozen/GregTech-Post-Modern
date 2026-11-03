@@ -426,7 +426,7 @@ public class GTItemSlotElement extends ItemSlot {
                                   Supplier<Stream<ItemStack>> allPossibleItems) {
         RegistrateDistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> {
             if (GTCEu.MODS.isJEILoaded()) {
-                JEISupport.recipeSlot(this, allPossibleItems);
+                JEISupport.recipeSlot(this, io, allPossibleItems);
             }
             if (GTCEu.MODS.isEMILoaded()) {
                 EMISupport.recipeSlot(this, chance, amount, allPossibleItems);

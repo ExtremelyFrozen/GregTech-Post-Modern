@@ -492,12 +492,8 @@ public class GTFluidSlotElement extends FluidSlot {
                                   Supplier<Stream<FluidStack>> allPossibleFluids) {
         RegistrateDistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> {
             if (GTCEu.MODS.isJEILoaded()) {
-                LDLibJEIPlugin.recipeSlot(this,
-                        () -> createJEIFluidIngredient(getFluid()).orElse(null),
-                        () -> allPossibleFluids.get()
-                                .map(this::createJEIFluidIngredient)
-                                .flatMap(Optional::stream)
-                                .collect(Collectors.toList()));
+                registerValueListener(LDLibJEIPlugin.recipeSlot(this, io, NeoForgeTypes.FLUID_STACK,
+                        allPossibleFluids, fluid -> setFluid(fluid, false)));
             }
             if (GTCEu.MODS.isEMILoaded()) {
                 LDLibEMIPlugin.recipeSlot(this, () -> new ListEmiIngredient(

@@ -1,12 +1,12 @@
 [versions]
 minecraft = "1.21.1"
-neoForge = "21.1.216"
+neoForge = "21.1.265"
 loader = "4"
 parchment = "2024.11.17" # https://parchmentmc.org/docs/getting-started
-shadow = "9.4.1"
-spotless = "8.6.0"
-modDevGradle = "2.0.141"
-lombok = "9.5.0"
+shadow = "9.6.1"
+spotless = "8.11.0"
+modDevGradle = "2.0.148"
+lombok = "9.8.3"
 kotlin = "2.4.21"
 jetbrains-annotations = "26.1.0"
 jspecify = "1.0.1"
@@ -19,12 +19,12 @@ zstd = "1.5.7-8"
 minecraft               = { module = "com.mojang:minecraft", version.ref = "minecraft" }
 neoForge                = { module = "net.neoforged:neoforge", version.ref = "neoForge" }
 testframework           = { module = "net.neoforged:testframework", version.ref = "neoForge" }
-jetbrains-annotations   = { module = "org.jetbrains:annotations", version.ref = "jetbrains-annotations" }
-jspecify                = { module = "org.jspecify:jspecify", version.ref = "jspecify" }
 zstd                    = { module = "com.github.luben:zstd-jni", version.ref = "zstd" }
 kotlin-stdlib           = { module = "org.jetbrains.kotlin:kotlin-stdlib", version.ref = "kotlin" }
 renderNurse             = { module = "net.neoforged:render-nurse", version.ref = "renderNurse" }
 mixin                   = { module = "org.spongepowered:mixin", version.ref = "mixin" }
+jetbrains-annotations   = { module = "org.jetbrains:annotations", version.ref = "jetbrains-annotations" }
+jspecify                = { module = "org.jspecify:jspecify", version.ref = "jspecify" }
 
 [plugins]
 modDevGradle            = { id = "net.neoforged.moddev", version.ref = "modDevGradle" }

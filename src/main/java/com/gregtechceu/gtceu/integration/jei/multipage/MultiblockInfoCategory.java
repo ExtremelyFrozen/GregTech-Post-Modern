@@ -11,12 +11,9 @@ import com.gregtechceu.gtceu.common.data.machines.GTMultiMachines;
 import com.gregtechceu.gtceu.data.pattern.StructurePatternRegistry;
 import com.gregtechceu.gtceu.integration.xei.multiblock.MultiblockInfo;
 
-import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
-import com.lowdragmc.lowdraglib2.gui.ui.event.UIEventDispatcher;
-import com.lowdragmc.lowdraglib2.integration.xei.jei.JEIUIEvents;
 import com.lowdragmc.lowdraglib2.integration.xei.jei.ModularUIJEIWidget;
 import com.lowdragmc.lowdraglib2.integration.xei.jei.ModularUIRecipeCategory;
-import com.lowdragmc.lowdraglib2.integration.xei.jei.handler.JEIRecipeWidgetHandler;
+import com.lowdragmc.lowdraglib2.integration.xei.jei.handler.JEIRecipeSlotHandler;
 
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.client.Minecraft;
@@ -121,6 +118,7 @@ public class MultiblockInfoCategory extends ModularUIRecipeCategory<MultiblockIn
 
     @Override
     public void setRecipe(IRecipeLayoutBuilder builder, MultiblockInfo recipe, IFocusGroup focuses) {
+        super.setRecipe(builder, recipe, focuses);
         builder.addSlot(RecipeIngredientRole.OUTPUT)
                 .addItemStacks(recipe.getOutputs())
                 .setPosition(PatternPreviewWidget.WIDTH - 22, 4);
@@ -162,24 +160,25 @@ public class MultiblockInfoCategory extends ModularUIRecipeCategory<MultiblockIn
         };
         builder.addWidget(widget);
         builder.addGuiEventListener(widget);
-        var slots = new JEIRecipeWidgetHandler(widget::getLocalToWorld);
-        var event = UIEvent.create(JEIUIEvents.RECIPE_WIDGET);
-        event.target = ui.ui.rootElement;
-        event.customData = slots;
-        UIEventDispatcher.dispatchAllChildren(event);
-        for (var slot : slots.slots) {
-            builder.addSlottedWidget(new ISlottedRecipeWidget() {
+        for (var binding : JEIRecipeSlotHandler.collectBindings(ui)) {
+            builder.getRecipeSlots().findSlotByName(binding.name()).ifPresent(slot -> {
+                var updater = binding.slotUpdater();
+                if (updater != null) updater.bind(slot);
+                builder.addSlottedWidget(new ISlottedRecipeWidget() {
 
-                @Override
-                public Optional<RecipeSlotUnderMouse> getSlotUnderMouse(double mouseX, double mouseY) {
-                    return Optional.ofNullable(slot.getRecipeSlots(mouseX, mouseY));
-                }
+                    @Override
+                    public Optional<RecipeSlotUnderMouse> getSlotUnderMouse(double mouseX, double mouseY) {
+                        var mouse = widget.getWorldMouse((float) mouseX, (float) mouseY);
+                        return binding.isInteractive() && binding.element().isMouseOverElement(mouse.x, mouse.y) ?
+                                Optional.of(new RecipeSlotUnderMouse(slot, 0, 0)) : Optional.empty();
+                    }
 
-                @Override
-                public ScreenPosition getPosition() {
-                    return ModularUIJEIWidget.ZERO;
-                }
-            }, ObjectList.of());
+                    @Override
+                    public ScreenPosition getPosition() {
+                        return ModularUIJEIWidget.ZERO;
+                    }
+                }, ObjectList.of(slot));
+            });
         }
     }
 

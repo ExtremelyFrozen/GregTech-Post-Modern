@@ -26,6 +26,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.gui.ui.event.HoverTooltips;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
+import com.lowdragmc.lowdraglib2.integration.xei.IngredientIO;
 import com.lowdragmc.lowdraglib2.integration.xei.emi.LDLibEMIPlugin;
 import com.lowdragmc.lowdraglib2.integration.xei.jei.LDLibJEIPlugin;
 import com.lowdragmc.lowdraglib2.utils.data.BlockPosFace;
@@ -53,13 +54,15 @@ import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
 import it.unimi.dsi.fastutil.objects.ObjectList;
-import mezz.jei.library.ingredients.itemStacks.TypedItemStack;
+import mezz.jei.api.constants.VanillaTypes;
 import org.joml.Vector3f;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 /**
  * Client-owned scene, focus/layer controls and paged materials for one preview window.
@@ -78,6 +81,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
     private Level sourceLevel;
     private final GTSceneElement scene;
     private final UIElement materialViewport;
+    private @Nullable Consumer<ItemStack> updateJEIMaterial;
     private final GTButtonElement previousMaterials;
     private final GTButtonElement nextMaterials;
     private final ObjectList<GTItemSlotElement> materialSlots = new ObjectArrayList<>();
@@ -176,10 +180,8 @@ public final class ClientMultiblockPreviewElement extends UIElement {
             LDLibEMIPlugin.recipeSlot(materialViewport, () -> EmiStack.of(getHoveredMaterial()));
         }
         if (GTCEu.MODS.isJEILoaded()) {
-            LDLibJEIPlugin.recipeSlot(materialViewport, () -> {
-                var stack = getHoveredMaterial();
-                return stack.isEmpty() ? null : TypedItemStack.create(stack);
-            }, null);
+            updateJEIMaterial = LDLibJEIPlugin.recipeSlot(materialViewport, IngredientIO.INPUT,
+                    VanillaTypes.ITEM_STACK, () -> Stream.of(getHoveredMaterial()), ignored -> {});
         }
         addChildren(materialViewport, previousMaterials, nextMaterials);
 
@@ -556,6 +558,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
     @Override
     public void screenTick() {
         super.screenTick();
+        if (updateJEIMaterial != null) updateJEIMaterial.accept(getHoveredMaterial());
         @Nullable
         Level currentLevel = Minecraft.getInstance().level;
         if (currentLevel != sourceLevel) {
