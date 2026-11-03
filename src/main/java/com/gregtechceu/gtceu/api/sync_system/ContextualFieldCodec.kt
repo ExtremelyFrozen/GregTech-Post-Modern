@@ -5,9 +5,6 @@ import com.gregtechceu.gtceu.api.sync_system.managed.ISyncManaged
 import net.minecraft.core.HolderLookup
 
 import com.mojang.serialization.Codec
-import com.mojang.serialization.Dynamic
-import com.mojang.serialization.JsonOps
-import com.google.gson.JsonElement
 
 /**
  * Supplies a value Codec for a field that must retain its owning object or existing runtime instance.
@@ -16,16 +13,7 @@ import com.google.gson.JsonElement
  */
 interface ContextualFieldCodec<T> {
 	/** Decoding may update the existing instance in [Context.currentValue] after the payload has decoded. */
-	fun codec(context: Context<T>): Codec<T> = Codec.PASSTHROUGH.xmap(
-		{ value -> requireNotNull(deserializeField(value.convert(JsonOps.INSTANCE).value, context)) },
-		{ value -> Dynamic(JsonOps.INSTANCE, serializeField(value, context)) },
-	)
-
-	fun serializeField(value: T, context: Context<T>): JsonElement = codec(context)
-		.encodeStart(context.lookup.createSerializationContext(JsonOps.INSTANCE), value).getOrThrow()
-
-	fun deserializeField(value: JsonElement, context: Context<T>): T? = codec(context)
-		.parse(context.lookup.createSerializationContext(JsonOps.INSTANCE), value).getOrThrow()
+	fun codec(context: Context<T>): Codec<T>
 
 	fun shouldSyncField(value: T, context: Context<T>, fullSync: Boolean, manuallyDirty: Boolean): Boolean {
 		if (!context.isClientSync || value !is ISyncManaged) return fullSync || manuallyDirty

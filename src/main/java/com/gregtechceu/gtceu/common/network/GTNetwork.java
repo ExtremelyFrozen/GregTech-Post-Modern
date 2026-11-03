@@ -36,7 +36,6 @@ public class GTNetwork {
             registar.playToClient(SPacketMEOutputWaitingListSessionToClient.TYPE, SPacketMEOutputWaitingListSessionToClient.CODEC, SPacketMEOutputWaitingListSessionToClient::execute);
             registar.playToClient(SPacketMEOutputWaitingListToClient.TYPE, SPacketMEOutputWaitingListToClient.CODEC, SPacketMEOutputWaitingListToClient::execute);
         }
-        registar.playToClient(SPacketEnderLinkChannelsToClient.TYPE, SPacketEnderLinkChannelsToClient.CODEC, SPacketEnderLinkChannelsToClient::execute);
         registar.playToClient(SPacketProspectingMapData.TYPE, SPacketProspectingMapData.CODEC, SPacketProspectingMapData::execute);
 
         registar.playToServer(CPacketKeyDown.TYPE, CPacketKeyDown.CODEC, CPacketKeyDown::execute);

@@ -95,6 +95,7 @@ class FieldSyncData(field: Field, @JvmField val handle: VarHandle, @JvmField val
 
 	fun setCodec(codec: Codec<*>?) {
 		this.codec = codec
+		contextualCodec = null
 	}
 
 	fun setContextualCodec(contextualCodec: ContextualFieldCodec<*>?) {

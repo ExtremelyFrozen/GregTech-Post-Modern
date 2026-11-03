@@ -1,7 +1,5 @@
 package com.gregtechceu.gtceu.common.data.datacomponents;
 
-import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
-
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -33,7 +31,8 @@ public final class PipeNetData {
                 .apply(instance, Nodes::new));
         public static final StreamCodec<RegistryFriendlyByteBuf, Nodes> STREAM_CODEC = StreamCodec.composite(
                 NodeEntry.STREAM_CODEC.apply(ByteBufCodecs.list()), Nodes::nodes,
-                SyncFieldData.DATA_COMPONENT_MAP_STREAM_CODEC.apply(ByteBufCodecs.list()), Nodes::properties,
+                ByteBufCodecs.fromCodecWithRegistries(DataComponentMap.CODEC).apply(ByteBufCodecs.list()),
+                Nodes::properties,
                 Nodes::new);
 
         public Nodes {

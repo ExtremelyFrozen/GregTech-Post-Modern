@@ -6,7 +6,6 @@ import com.gregtechceu.gtceu.api.recipe.chance.logic.ChanceLogic;
 import com.gregtechceu.gtceu.api.recipe.content.Content;
 import com.gregtechceu.gtceu.api.recipe.content.ContentListMap;
 import com.gregtechceu.gtceu.api.registry.GTRegistries;
-import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
 import com.gregtechceu.gtceu.common.recipe.condition.ResearchCondition;
 
 import net.minecraft.core.component.DataComponentMap;
@@ -146,7 +145,7 @@ public class GTRecipeSerializer implements RecipeSerializer<GTRecipeDefinition> 
         Map<RecipeCapability<?>, ChanceLogic> tickOutputChanceLogics = logicTuplesToMap(
                 readCollection(buf, GTRecipeSerializer::changeLogicEntryReader));
 
-        DataComponentMap data = SyncFieldData.DATA_COMPONENT_MAP_STREAM_CODEC.decode(buf);
+        DataComponentMap data = ByteBufCodecs.fromCodecWithRegistries(DataComponentMap.CODEC).decode(buf);
         int groupColor = buf.readInt();
         int tier = buf.readVarInt();
         ResourceLocation categoryLoc = buf.readResourceLocation();
@@ -196,7 +195,7 @@ public class GTRecipeSerializer implements RecipeSerializer<GTRecipeDefinition> 
         writeCollection(recipe.tickOutputChanceLogics.entrySet(), buf,
                 GTRecipeSerializer::changeLogicEntryWriter);
 
-        SyncFieldData.DATA_COMPONENT_MAP_STREAM_CODEC.encode(buf, recipe.data);
+        ByteBufCodecs.fromCodecWithRegistries(DataComponentMap.CODEC).encode(buf, recipe.data);
         buf.writeInt(recipe.groupColor);
         buf.writeVarInt(recipe.tier);
         buf.writeResourceLocation(recipe.recipeCategory.registryKey);

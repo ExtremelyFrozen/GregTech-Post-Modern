@@ -3,23 +3,16 @@ package com.gregtechceu.gtceu.api.sync_system
 import com.gregtechceu.gtceu.GTCEu
 
 import net.minecraft.core.HolderLookup
-import net.minecraft.core.component.DataComponentMap
-import net.minecraft.core.component.DataComponentType
-import net.minecraft.core.component.TypedDataComponent
+import net.minecraft.nbt.NbtOps
 import net.minecraft.network.RegistryFriendlyByteBuf
 import net.minecraft.network.codec.ByteBufCodecs
 import net.minecraft.network.codec.StreamCodec
 import net.minecraft.resources.ResourceLocation
 
-import com.google.gson.Gson
-import com.google.gson.JsonElement
-import com.google.gson.JsonNull
-import com.google.gson.JsonParser
 import com.mojang.serialization.Codec
-import com.mojang.serialization.JsonOps
-import com.mojang.serialization.codecs.RecordCodecBuilder
+import com.mojang.serialization.Dynamic
+import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap
 
-import java.util.LinkedHashMap
 import java.util.Optional
 
 import java.util.Map.copyOf as immutableCopyOf
@@ -27,38 +20,27 @@ import java.util.Map.copyOf as immutableCopyOf
 /**
  * Field data shared by persistence and network synchronization.
  *
- * Missing keys mean "unchanged"; [JsonNull] means the field value was explicitly set to `null`.
+ * Missing keys mean "unchanged"; an empty value means the field was explicitly set to `null`.
  */
-class SyncFieldData(fields: Map<ResourceLocation, @JvmSuppressWildcards JsonElement?>) {
+class SyncFieldData(fields: Map<ResourceLocation, @JvmSuppressWildcards Optional<Dynamic<*>>>) {
 	@get:JvmName("fields")
-	val fields: Map<ResourceLocation, JsonElement> = immutableFields(fields)
+	val fields: Map<ResourceLocation, Optional<Dynamic<*>>> = immutableCopyOf(fields)
 
 	fun isEmpty(): Boolean = fields.isEmpty()
 
 	operator fun contains(key: ResourceLocation): Boolean = fields.containsKey(key)
 
-	operator fun get(key: ResourceLocation): JsonElement? = fields[key]
-
+	operator fun get(key: ResourceLocation): Optional<Dynamic<*>>? = fields[key]
 
 	fun <T> read(key: ResourceLocation, codec: Codec<T>): T? {
-		val value = fields[key]?.takeUnless { it.isJsonNull } ?: return null
-		return codec.parse(JsonOps.INSTANCE, value).getOrThrow()
+		val value = fields[key]?.orElse(null) ?: return null
+		return codec.parse(value).getOrThrow()
 	}
 
 	fun <T> read(key: ResourceLocation, codec: Codec<T>, registries: HolderLookup.Provider): T? {
-		val value = fields[key]?.takeUnless { it.isJsonNull } ?: return null
-		return codec.parse(registries.createSerializationContext(JsonOps.INSTANCE), value).getOrThrow()
-	}
-
-	fun toJson(): JsonElement = CODEC.encodeStart(JsonOps.INSTANCE, this).getOrThrow()
-
-	fun toComponentMap(componentType: DataComponentType<SyncFieldData>): DataComponentMap {
-		if (isEmpty()) {
-			return DataComponentMap.EMPTY
-		}
-		return DataComponentMap.builder()
-			.set(componentType, this)
-			.build()
+		val value = fields[key]?.orElse(null) ?: return null
+		val ops = registries.createSerializationContext(NbtOps.INSTANCE)
+		return codec.parse(ops, value.convert(ops).value).getOrThrow()
 	}
 
 	override fun equals(other: Any?): Boolean = this === other || (other is SyncFieldData && fields == other.fields)
@@ -68,22 +50,16 @@ class SyncFieldData(fields: Map<ResourceLocation, @JvmSuppressWildcards JsonElem
 	override fun toString(): String = "SyncFieldData[fields=$fields]"
 
 	class Builder {
-		private val fields: MutableMap<ResourceLocation, JsonElement> = LinkedHashMap()
-
-		fun put(key: ResourceLocation, value: JsonElement?): Builder {
-			fields[key] = value ?: JsonNull.INSTANCE
-			return this
-		}
-
-		fun put(key: ResourceLocation, value: SyncFieldData): Builder {
-			fields[key] = value.toJson()
-			return this
-		}
-
+		private val fields: MutableMap<ResourceLocation, Optional<Dynamic<*>>> = Object2ObjectLinkedOpenHashMap()
 
 		fun putAll(data: SyncFieldData): Builder = apply { fields.putAll(data.fields) }
 
 		fun remove(key: ResourceLocation): Builder = apply { fields.remove(key) }
+
+		fun put(key: ResourceLocation, value: Dynamic<*>?): Builder {
+			fields[key] = Optional.ofNullable(value)
+			return this
+		}
 
 		fun put(key: ResourceLocation, value: String): Builder = put(key, Codec.STRING, value)
 
@@ -93,28 +69,19 @@ class SyncFieldData(fields: Map<ResourceLocation, @JvmSuppressWildcards JsonElem
 
 		fun put(key: ResourceLocation, value: Long): Builder = put(key, Codec.LONG, value)
 
-		fun <T> put(key: ResourceLocation, codec: Codec<T>, value: T): Builder = put(key, codec.encodeStart(JsonOps.INSTANCE, value).getOrThrow())
+		fun put(key: ResourceLocation, value: SyncFieldData): Builder = put(key, CODEC, value)
 
-		fun <T> put(key: ResourceLocation, codec: Codec<T>, value: T, registries: HolderLookup.Provider): Builder = put(key, codec.encodeStart(registries.createSerializationContext(JsonOps.INSTANCE), value).getOrThrow())
+		fun <T> put(key: ResourceLocation, codec: Codec<T>, value: T): Builder = put(
+			key,
+			Dynamic(NbtOps.INSTANCE, codec.encodeStart(NbtOps.INSTANCE, value).getOrThrow()),
+		)
+
+		fun <T> put(key: ResourceLocation, codec: Codec<T>, value: T, registries: HolderLookup.Provider): Builder {
+			val ops = registries.createSerializationContext(NbtOps.INSTANCE)
+			return put(key, Dynamic(ops, codec.encodeStart(ops, value).getOrThrow()))
+		}
 
 		fun build(): SyncFieldData = if (fields.isEmpty()) EMPTY else SyncFieldData(fields)
-	}
-
-	private class FieldEntry(val key: ResourceLocation, val value: JsonElement) {
-		fun valueForCodec(): Optional<JsonElement> = if (value.isJsonNull) Optional.empty() else Optional.of(value)
-
-		companion object {
-			// Preserve JSON scalar types and heterogeneous lists across NBT operations.
-			private val VALUE_CODEC: Codec<JsonElement> = Codec.STRING.xmap(JsonParser::parseString, Gson()::toJson)
-			val CODEC: Codec<FieldEntry> = RecordCodecBuilder.create { instance ->
-				instance.group(
-					ResourceLocation.CODEC.fieldOf("key").forGetter(FieldEntry::key),
-					VALUE_CODEC.optionalFieldOf("value").forGetter(FieldEntry::valueForCodec),
-				).apply(instance, ::fromCodec)
-			}
-
-			private fun fromCodec(key: ResourceLocation, value: Optional<JsonElement>): FieldEntry = FieldEntry(key, value.orElse(JsonNull.INSTANCE))
-		}
 	}
 
 	companion object {
@@ -122,30 +89,11 @@ class SyncFieldData(fields: Map<ResourceLocation, @JvmSuppressWildcards JsonElem
 		val EMPTY = SyncFieldData(emptyMap())
 
 		@JvmField
-		val CODEC: Codec<SyncFieldData> = FieldEntry.CODEC.listOf().xmap(::fromEntries, ::toEntries)
+		val CODEC: Codec<SyncFieldData> = Codec.unboundedMap(ResourceLocation.CODEC, Codec.PASSTHROUGH.optionalFieldOf("value").codec())
+			.xmap(::SyncFieldData) { it.fields }
 
 		@JvmField
 		val STREAM_CODEC: StreamCodec<RegistryFriendlyByteBuf, SyncFieldData> = ByteBufCodecs.fromCodecWithRegistries(CODEC)
-
-		@JvmField
-		val DATA_COMPONENT_MAP_STREAM_CODEC: StreamCodec<RegistryFriendlyByteBuf, DataComponentMap> =
-			object : StreamCodec<RegistryFriendlyByteBuf, DataComponentMap> {
-				override fun decode(buffer: RegistryFriendlyByteBuf): DataComponentMap {
-					val size = buffer.readVarInt()
-					val builder = DataComponentMap.builder()
-					for (index in 0 until size) {
-						setDecodedComponent(builder, TypedDataComponent.STREAM_CODEC.decode(buffer))
-					}
-					return builder.build()
-				}
-
-				override fun encode(buffer: RegistryFriendlyByteBuf, value: DataComponentMap) {
-					buffer.writeVarInt(value.size())
-					for (component in value) {
-						TypedDataComponent.STREAM_CODEC.encode(buffer, component)
-					}
-				}
-			}
 
 		@JvmStatic
 		fun builder(): Builder = Builder()
@@ -155,32 +103,6 @@ class SyncFieldData(fields: Map<ResourceLocation, @JvmSuppressWildcards JsonElem
 			ResourceLocation.parse(key)
 		} else {
 			GTCEu.id(escapePath(key))
-		}
-
-		@JvmStatic
-		fun fromJson(json: JsonElement): SyncFieldData = CODEC.parse(JsonOps.INSTANCE, json).getOrThrow()
-
-		private fun immutableFields(fields: Map<ResourceLocation, JsonElement?>): Map<ResourceLocation, JsonElement> {
-			val copy: MutableMap<ResourceLocation, JsonElement> = LinkedHashMap(fields.size)
-			for ((key, fieldValue) in fields) {
-				copy[key] = fieldValue ?: JsonNull.INSTANCE
-			}
-			return immutableCopyOf(copy)
-		}
-
-		private fun fromEntries(entries: List<FieldEntry>): SyncFieldData {
-			val fields: MutableMap<ResourceLocation, JsonElement> = LinkedHashMap()
-			for (entry in entries) {
-				fields[entry.key] = entry.value
-			}
-			return SyncFieldData(fields)
-		}
-
-		private fun toEntries(data: SyncFieldData): List<FieldEntry> = data.fields.entries.map { entry -> FieldEntry(entry.key, entry.value) }
-
-		private fun <T> setDecodedComponent(builder: DataComponentMap.Builder, component: TypedDataComponent<T>) {
-			val type: DataComponentType<T> = component.type()
-			builder.set(type, component.value())
 		}
 
 		private fun escapePath(key: String): String {

@@ -252,13 +252,13 @@ public class MEPatternBufferProxyPartMachine extends TieredIOPartMachine
     }
 
     private FancyUIProvider createPage(
-                                             Player player, MachineUIHolder holder,
-                                             MEPatternBufferPartMachine linkedBuffer,
-                                             MEPatternBufferProxyOpeningIdentity opening,
-                                             BiConsumer<MachineUIHolder, SyncActionData> actionSender,
-                                             BooleanSupplier openingValid,
-                                             BooleanSupplier canSendAction,
-                                             Predicate<UIEvent> shiftDown) {
+                                       Player player, MachineUIHolder holder,
+                                       MEPatternBufferPartMachine linkedBuffer,
+                                       MEPatternBufferProxyOpeningIdentity opening,
+                                       BiConsumer<MachineUIHolder, SyncActionData> actionSender,
+                                       BooleanSupplier openingValid,
+                                       BooleanSupplier canSendAction,
+                                       Predicate<UIEvent> shiftDown) {
         if (!openingValid.getAsBoolean()) {
             throw new IllegalStateException("Pattern Buffer Proxy page requires its exact opening context.");
         }

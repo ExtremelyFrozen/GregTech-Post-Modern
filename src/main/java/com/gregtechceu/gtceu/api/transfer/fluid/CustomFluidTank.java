@@ -1,20 +1,18 @@
 package com.gregtechceu.gtceu.api.transfer.fluid;
 
-import com.gregtechceu.gtceu.api.transfer.DataComponentTransfer;
-import com.gregtechceu.gtceu.common.data.GTDataComponents;
-import com.gregtechceu.gtceu.common.data.datacomponents.TransferData;
+import com.gregtechceu.gtceu.api.sync_system.ContextualFieldCodec;
 
-import net.minecraft.core.component.DataComponentMap;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.templates.FluidTank;
 
+import com.mojang.serialization.Codec;
 import lombok.Getter;
 import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.function.Predicate;
 
-public class CustomFluidTank extends FluidTank implements IFluidHandlerModifiable, DataComponentTransfer {
+public class CustomFluidTank extends FluidTank implements IFluidHandlerModifiable {
 
     @Getter
     @Setter
@@ -49,24 +47,14 @@ public class CustomFluidTank extends FluidTank implements IFluidHandlerModifiabl
         this.onContentsChanged();
     }
 
-    @Override
-    public DataComponentMap exportComponents() {
-        return DataComponentMap.builder()
-                .set(GTDataComponents.TRANSFER_FLUID_TANK.get(),
-                        new TransferData.FluidTank(getCapacity(), getFluid()))
-                .build();
+    public static Codec<CustomFluidTank> codec(ContextualFieldCodec.Context<CustomFluidTank> context) {
+        return context.currentValue().codec();
     }
 
-    @Override
-    public void importComponents(DataComponentMap components) {
-        TransferData.FluidTank data = components.get(GTDataComponents.TRANSFER_FLUID_TANK.get());
-        if (data == null) {
-            throw new IllegalArgumentException("Fluid tank component data is missing transfer_fluid_tank");
-        }
-        if (data.capacity() != getCapacity()) {
-            throw new IllegalArgumentException("Fluid tank expected capacity " + getCapacity() +
-                    " but received " + data.capacity());
-        }
-        setFluid(data.fluid());
+    public Codec<CustomFluidTank> codec() {
+        return FluidStack.OPTIONAL_CODEC.xmap(stack -> {
+            setFluid(stack);
+            return this;
+        }, tank -> tank.getFluid().copy());
     }
 }

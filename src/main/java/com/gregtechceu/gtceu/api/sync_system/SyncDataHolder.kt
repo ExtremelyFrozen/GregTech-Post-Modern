@@ -6,9 +6,7 @@ import com.gregtechceu.gtceu.api.sync_system.managed.ISyncManaged
 import net.minecraft.core.HolderLookup
 import net.minecraft.core.RegistryAccess
 
-import com.google.gson.JsonElement
-import com.google.gson.JsonNull
-import com.mojang.serialization.JsonOps
+import com.mojang.serialization.Dynamic
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet
 import it.unimi.dsi.fastutil.objects.ObjectSet
 import it.unimi.dsi.fastutil.objects.Reference2ReferenceOpenHashMap
@@ -84,7 +82,7 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 				writeClientFields = false,
 				fullSync = false,
 			)
-			if (!value.isJsonNull) {
+			if (value != null) {
 				builder.put(itemFieldKey(field), value)
 			}
 		}
@@ -110,7 +108,7 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 	/**
 	 * Serializes one client field for validation without consuming pending changes or updating synchronization caches.
 	 */
-	fun serializeClientFieldSnapshot(registries: HolderLookup.Provider, fieldName: String): JsonElement {
+	fun serializeClientFieldSnapshot(registries: HolderLookup.Provider, fieldName: String): Dynamic<*>? {
 		val field = syncData.getClientSyncFields().singleOrNull { candidate -> candidate.fieldName == fieldName }
 			?: throw IllegalArgumentException("Unknown or ambiguous client sync field: $fieldName")
 		return FieldSyncHandler.serializeFieldData(
@@ -145,7 +143,7 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 				writeClientFields = false,
 				fullSync = false,
 			)
-			if (!value.isJsonNull) {
+			if (value != null) {
 				builder.put(field.componentKey, value)
 			}
 		}
@@ -185,9 +183,6 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 	private fun shouldSyncContextualField(registries: HolderLookup.Provider, field: FieldSyncData, @Nullable currentValue: Any?, fullSync: Boolean, manuallyDirty: Boolean): Boolean {
 		if (currentValue == null) {
 			return false
-		}
-		if (field.contextualCodec == null) {
-			field.setContextualCodec(FieldCodecs.getContextual(field.type.rawType))
 		}
 		if (field.contextualCodec == null) {
 			return false
@@ -242,7 +237,7 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 			if (!fieldData.fields.containsKey(itemFieldKey(field))) {
 				continue
 			}
-			val savedValue = fieldData[itemFieldKey(field)] ?: JsonNull.INSTANCE
+			val savedValue = fieldData[itemFieldKey(field)]?.orElse(null)
 			FieldSyncHandler.deserializeFieldData(registries, holder, field, savedValue, false)
 		}
 	}
@@ -266,7 +261,7 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 			if (!fieldData.fields.containsKey(field.componentKey)) {
 				continue
 			}
-			val savedValue = fieldData[field.componentKey] ?: JsonNull.INSTANCE
+			val savedValue = fieldData[field.componentKey]?.orElse(null)
 			val previousClientValue = if (readingClientFields) {
 				snapshotClientValue(field.handle.get(holder))
 			} else {
@@ -340,7 +335,7 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 		try {
 			// Decode every candidate without consulting or mutating the holder.
 			for (field in selectedFields) {
-				val encodedValue = changes[field.componentKey] ?: JsonNull.INSTANCE
+				val encodedValue = changes[field.componentKey]?.orElse(null)
 				val candidate = FieldSyncHandler.decodeDetachedServerCandidate(registries, holder, field, encodedValue)
 				pendingUpdates.add(PendingServerFieldUpdate(field, candidate))
 			}
@@ -384,7 +379,7 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 			if (!changes.fields.containsKey(field.componentKey)) {
 				continue
 			}
-			val value = changes[field.componentKey] ?: JsonNull.INSTANCE
+			val value = changes[field.componentKey]?.orElse(null)
 			val previousValue = snapshotClientValue(field.handle.get(holder))
 			FieldSyncHandler.deserializeFieldData(
 				registries,
@@ -581,46 +576,4 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 		?: throw IllegalArgumentException("Sync: @ItemSave field ${field.fieldName} has no item data component key")
 
 	private data class PendingServerFieldUpdate(val field: FieldSyncData, @field:Nullable val decodedCandidate: Any?, @field:Nullable var oldValue: Any? = null, @field:Nullable var normalizedCandidate: Any? = null)
-
-	companion object {
-		@JvmField
-		val SYNC_MANAGED_CODEC: ContextualFieldCodec<ISyncManaged> = object : ContextualFieldCodec<ISyncManaged> {
-			override fun serializeField(value: ISyncManaged, context: ContextualFieldCodec.Context<ISyncManaged>) = SyncFieldData.CODEC
-				.encodeStart(
-					context.lookup.createSerializationContext(JsonOps.INSTANCE),
-					value.getSyncDataHolder().serializeToFieldData(context.lookup, context.isClientSync, context.isClientFullSyncUpdate),
-				)
-				.getOrThrow()
-
-			override fun shouldSyncField(value: ISyncManaged, context: ContextualFieldCodec.Context<ISyncManaged>, fullSync: Boolean, manuallyDirty: Boolean): Boolean {
-				if (!context.isClientSync) return fullSync || manuallyDirty
-				if (fullSync || manuallyDirty) {
-					value.getSyncDataHolder().resyncAllFields()
-					return true
-				}
-				return value.getSyncDataHolder().scanAndMarkChanges(context.lookup)
-			}
-
-			@Nullable
-			override fun deserializeField(value: JsonElement, context: ContextualFieldCodec.Context<ISyncManaged>): ISyncManaged? {
-				val syncManaged = context.currentValue
-				if (syncManaged == null) {
-					GTCEu.LOGGER.error("Sync: ISyncManaged field was null, cannot instantiate {}", context.fieldName)
-					return null
-				}
-				val components = SyncFieldData.CODEC
-					.parse(context.lookup.createSerializationContext(JsonOps.INSTANCE), value)
-					.getOrThrow()
-				syncManaged.getSyncDataHolder().deserializeFieldData(
-					context.lookup,
-					components,
-					context.isClientSync,
-					context.parseExplicitNull,
-					context.isClientFullSyncUpdate,
-					false,
-				)
-				return syncManaged
-			}
-		}
-	}
 }

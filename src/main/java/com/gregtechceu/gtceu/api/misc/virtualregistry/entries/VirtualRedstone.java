@@ -2,24 +2,20 @@ package com.gregtechceu.gtceu.api.misc.virtualregistry.entries;
 
 import com.gregtechceu.gtceu.api.misc.virtualregistry.EntryTypes;
 import com.gregtechceu.gtceu.api.misc.virtualregistry.VirtualEntry;
-import com.gregtechceu.gtceu.common.data.GTDataComponents;
-import com.gregtechceu.gtceu.common.data.datacomponents.VirtualEntryData;
-
-import net.minecraft.core.HolderLookup;
-import net.minecraft.core.component.DataComponentMap;
+import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
+import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
 
 import it.unimi.dsi.fastutil.objects.Object2ShortMap;
 import it.unimi.dsi.fastutil.objects.Object2ShortOpenHashMap;
 import lombok.Getter;
-import org.jspecify.annotations.NonNull;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 
 public class VirtualRedstone extends VirtualEntry {
 
     @Getter
+    @SaveField
+    @SyncToClient
     private final Object2ShortMap<UUID> members = new Object2ShortOpenHashMap<>();
 
     public VirtualRedstone() {}
@@ -47,25 +43,11 @@ public class VirtualRedstone extends VirtualEntry {
     }
 
     @Override
-    public DataComponentMap exportComponents(HolderLookup.@NonNull Provider provider) {
-        List<VirtualEntryData.Member> data = new ArrayList<>(members.size());
-        for (var entry : members.object2ShortEntrySet()) {
-            data.add(new VirtualEntryData.Member(entry.getKey(), entry.getShortValue()));
-        }
-        return putBaseComponent(DataComponentMap.builder())
-                .set(GTDataComponents.VIRTUAL_REDSTONE.get(), new VirtualEntryData.Redstone(data))
-                .build();
-    }
-
-    @Override
-    public void importComponents(HolderLookup.Provider provider, DataComponentMap components) {
-        super.importComponents(provider, components);
-        VirtualEntryData.Redstone data = components.getOrDefault(GTDataComponents.VIRTUAL_REDSTONE.get(),
-                VirtualEntryData.Redstone.EMPTY);
+    public void copyFrom(VirtualEntry source) {
+        super.copyFrom(source);
+        VirtualRedstone redstone = (VirtualRedstone) source;
         members.clear();
-        for (VirtualEntryData.Member member : data.members()) {
-            members.put(member.id(), member.signal());
-        }
+        members.putAll(redstone.members);
     }
 
     @Override

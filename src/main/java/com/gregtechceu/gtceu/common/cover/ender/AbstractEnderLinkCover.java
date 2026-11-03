@@ -19,6 +19,7 @@ import com.gregtechceu.gtceu.api.gui.element.GTToggleButtonElement;
 import com.gregtechceu.gtceu.api.gui.factory.CoverUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.CoverUIProvider;
 import com.gregtechceu.gtceu.api.gui.factory.UICoverHolder;
+import com.gregtechceu.gtceu.api.gui.sync.StreamAccessor;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.ConditionalSubscriptionHandler;
 import com.gregtechceu.gtceu.api.machine.MachineCoverContainer;
@@ -31,8 +32,9 @@ import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
 import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry;
 import com.gregtechceu.gtceu.common.cover.data.ManualIOMode;
-import com.gregtechceu.gtceu.common.network.packets.SPacketEnderLinkChannelsToClient;
 
+import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerMenu;
+import com.lowdragmc.lowdraglib2.gui.sync.SyncValue;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
@@ -40,6 +42,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
+import com.lowdragmc.lowdraglib2.syncdata.AccessorRegistries;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
@@ -50,15 +53,13 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.neoforge.network.PacketDistributor;
 
-import com.google.gson.JsonElement;
 import lombok.Getter;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
@@ -82,6 +83,7 @@ public abstract class AbstractEnderLinkCover<T extends VirtualEntry> extends Cov
     private static final int BUTTON_SIZE = 16;
 
     static {
+        AccessorRegistries.registerAccessor(new StreamAccessor<>(VirtualEntry.class, VirtualEntry.STREAM_CODEC));
         RpcRegistry.register(EnderLinkCoverActions.INSTANCE);
     }
 
@@ -407,19 +409,13 @@ public abstract class AbstractEnderLinkCover<T extends VirtualEntry> extends Cov
     public void sendEnderLinkActionChannelList(@NotNull ServerPlayer player, @NotNull BlockPos pos,
                                                @NotNull Direction side,
                                                @NotNull List<? extends VirtualEntry> entries) {
-        List<JsonElement> serializedEntries = entries.stream()
-                .map(entry -> serializeEntry(entry, player.registryAccess()))
-                .toList();
-        PacketDistributor.sendToPlayer(player, new SPacketEnderLinkChannelsToClient(pos, side,
-                coverDefinition.getId(), serializedEntries));
-    }
-
-    private static JsonElement serializeEntry(VirtualEntry entry, HolderLookup.Provider registries) {
-        return entry.serializeJson(registries);
-    }
-
-    private static void deserializeEntry(VirtualEntry entry, JsonElement data, HolderLookup.Provider registries) {
-        entry.deserializeJson(registries, data);
+        if (!(player.containerMenu instanceof ModularUIContainerMenu menu)) return;
+        List<VirtualEntry> snapshot = entries.stream().map(VirtualEntry::copy).toList();
+        menu.getModularUI().ui.rootElement.selfAndAllChildren()
+                .filter(EnderLinkChannelListReceiver.class::isInstance)
+                .map(EnderLinkChannelListReceiver.class::cast)
+                .filter(receiver -> receiver.acceptsEnderLinkChannelList(pos, side, coverDefinition.getId()))
+                .forEach(receiver -> receiver.receiveEnderLinkChannelList(snapshot, player.registryAccess()));
     }
 
     private static String normalizeColorInput(String color) {
@@ -464,6 +460,8 @@ public abstract class AbstractEnderLinkCover<T extends VirtualEntry> extends Cov
         private final UIElement mainGroup;
         private final UIElement mainChannelGroup;
         private final GTScrollerViewElement channelsGroup;
+        // Each server menu owns this value; its native UI transport publishes only to that opening's player.
+        private final SyncValue<VirtualEntry[]> channelEntries;
         private boolean showChannels;
 
         EnderLinkRootElement(Player player, UICoverHolder holder, AbstractEnderLinkCover<?> cover) {
@@ -477,6 +475,11 @@ public abstract class AbstractEnderLinkCover<T extends VirtualEntry> extends Cov
             UITemplate.setBounds(this, 0, 0, GROUP_WIDTH, 137 + 82);
             style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));
             initWidgets();
+            channelEntries = new SyncValue<>("ender_link_channels", VirtualEntry[].class, new VirtualEntry[0]);
+            channelEntries.setToSync(!player.level().isClientSide());
+            channelEntries.setAcceptSync(player.level().isClientSide());
+            channelEntries.addListener(entries -> addChannelWidgets(Arrays.asList(entries)));
+            addSyncValue(channelEntries);
         }
 
         @Override
@@ -487,14 +490,9 @@ public abstract class AbstractEnderLinkCover<T extends VirtualEntry> extends Cov
         }
 
         @Override
-        public void receiveEnderLinkChannelList(List<JsonElement> entries, HolderLookup.Provider registries) {
-            List<VirtualEntry> deserialized = new ArrayList<>(entries.size());
-            for (JsonElement data : entries) {
-                VirtualEntry entry = cover.getEntryType().createInstance();
-                deserializeEntry(entry, data, registries);
-                deserialized.add(entry);
-            }
-            addChannelWidgets(deserialized);
+        public void receiveEnderLinkChannelList(List<VirtualEntry> entries, HolderLookup.Provider registries) {
+            channelEntries.setValue(entries.toArray(VirtualEntry[]::new));
+            channelEntries.markAsChanged();
         }
 
         private void initWidgets() {

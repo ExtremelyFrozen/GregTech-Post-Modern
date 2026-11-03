@@ -1,19 +1,17 @@
 package com.gregtechceu.gtceu.api.transfer.item;
 
 import com.gregtechceu.gtceu.GTCEu;
-import com.gregtechceu.gtceu.api.transfer.DataComponentTransfer;
-import com.gregtechceu.gtceu.common.data.GTDataComponents;
-import com.gregtechceu.gtceu.common.data.datacomponents.TransferData;
+import com.gregtechceu.gtceu.api.sync_system.ContextualFieldCodec;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.NonNullList;
-import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.ItemContainerContents;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.neoforged.neoforge.items.ItemStackHandler;
 
+import com.mojang.serialization.Codec;
 import lombok.Getter;
 import lombok.Setter;
 import org.jetbrains.annotations.ApiStatus;
@@ -21,7 +19,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.function.Predicate;
 
-public class CustomItemStackHandler extends ItemStackHandler implements DataComponentTransfer, NonMutatingItemCapacity {
+public class CustomItemStackHandler extends ItemStackHandler implements NonMutatingItemCapacity {
 
     @Getter
     @Setter
@@ -108,27 +106,17 @@ public class CustomItemStackHandler extends ItemStackHandler implements DataComp
         clear();
     }
 
-    @Override
-    public DataComponentMap exportComponents() {
-        return DataComponentMap.builder()
-                .set(GTDataComponents.TRANSFER_ITEM_HANDLER.get(),
-                        new TransferData.ItemHandler(stacks.size(), stacks))
-                .build();
+    public static Codec<CustomItemStackHandler> codec(ContextualFieldCodec.Context<CustomItemStackHandler> context) {
+        return context.currentValue().codec();
     }
 
-    @Override
-    public void importComponents(DataComponentMap components) {
-        TransferData.ItemHandler data = components.get(GTDataComponents.TRANSFER_ITEM_HANDLER.get());
-        if (data == null) {
-            throw new IllegalArgumentException("Item handler component data is missing transfer_item_handler");
-        }
-        if (data.slots() != stacks.size()) {
-            throw new IllegalArgumentException("Item handler expected " + stacks.size() + " slots but received " +
-                    data.slots());
-        }
-        for (int i = 0; i < data.stacks().size(); i++) {
-            stacks.set(i, data.stacks().get(i).copy());
-        }
-        onContentsChanged.run();
+    public Codec<CustomItemStackHandler> codec() {
+        return ItemStack.OPTIONAL_CODEC.listOf().xmap(items -> {
+            for (int i = 0; i < stacks.size(); i++) {
+                stacks.set(i, items.get(i).copy());
+            }
+            onContentsChanged.run();
+            return this;
+        }, handler -> handler.stacks.stream().map(ItemStack::copy).toList());
     }
 }

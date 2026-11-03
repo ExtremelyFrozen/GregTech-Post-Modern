@@ -1,10 +1,12 @@
 package com.gregtechceu.gtceu.api.sync_system.managed
 
+import com.gregtechceu.gtceu.api.sync_system.ContextualFieldCodec
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs
 import com.gregtechceu.gtceu.api.sync_system.SyncDataHolder
+import com.gregtechceu.gtceu.api.sync_system.SyncFieldData
 
+import com.mojang.serialization.Codec
 import org.jetbrains.annotations.Nullable
-
-import kotlin.jvm.JvmDefaultWithCompatibility
 
 /**
  * Represents a class with fields that have sync annotations. <br></br>
@@ -17,14 +19,12 @@ import kotlin.jvm.JvmDefaultWithCompatibility
  * <ul>
  * <li>`T` is primitive</li>
  * <li>`T` has a [com.gregtechceu.gtceu.api.sync_system.FieldCodecs] codec registered</li>
- * <li>`T` implements [com.gregtechceu.gtceu.api.transfer.DataComponentTransfer]</li>
  * <li>`T` is an [ISyncManaged] or [ISyncAnnotated] class</li>
  * </ul>
  *
  * @see com.gregtechceu.gtceu.api.sync_system.SyncDataHolder
  * @see ISyncAnnotated
  */
-@JvmDefaultWithCompatibility
 interface ISyncManaged {
 	fun getSyncDataHolder(): SyncDataHolder
 
@@ -49,5 +49,18 @@ interface ISyncManaged {
 	 */
 	fun markAsChanged() {
 		getParentSyncObject()?.markAsChanged()
+	}
+
+	companion object {
+		val CODEC: ContextualFieldCodec<ISyncManaged> = object : ContextualFieldCodec<ISyncManaged> {
+			override fun codec(context: ContextualFieldCodec.Context<ISyncManaged>): Codec<ISyncManaged> = SyncFieldData.CODEC.xmap(
+				{ data ->
+					val value = context.currentValue ?: FieldCodecs.create(requireNotNull(context.type.classValue)) as ISyncManaged
+					value.getSyncDataHolder().deserializeFieldData(context.lookup, data, context.isClientSync, true, context.isClientFullSyncUpdate, false)
+					value
+				},
+				{ value -> value.getSyncDataHolder().serializeToFieldData(context.lookup, context.isClientSync, context.isClientFullSyncUpdate) },
+			)
+		}
 	}
 }

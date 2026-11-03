@@ -1,26 +1,43 @@
 package com.gregtechceu.gtceu.api.misc.virtualregistry;
 
-import net.minecraft.core.HolderLookup;
-import net.minecraft.core.component.DataComponentMap;
-import net.minecraft.core.component.DataComponentType;
+import com.gregtechceu.gtceu.api.sync_system.SyncDataHolder;
+import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
+import com.gregtechceu.gtceu.api.sync_system.managed.ISyncManaged;
 
-import org.jetbrains.annotations.NotNull;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
-public class VirtualRegistryMap {
+public class VirtualRegistryMap implements ISyncManaged {
 
-    private final Map<EntryTypes<?>, Map<String, VirtualEntry>> registryMap = new ConcurrentHashMap<>();
+    @SaveField
+    private final Map<EntryTypes<?>, Map<String, VirtualEntry>> registryMap = new Object2ObjectOpenHashMap<>();
+    private SyncDataHolder syncDataHolder;
+
+    @Override
+    public SyncDataHolder getSyncDataHolder() {
+        if (syncDataHolder == null) syncDataHolder = new SyncDataHolder(this);
+        return syncDataHolder;
+    }
+
+    @Override
+    public @Nullable ISyncManaged getParentSyncObject() {
+        return null;
+    }
 
     public VirtualRegistryMap() {}
 
-    public VirtualRegistryMap(HolderLookup.@NotNull Provider registries, DataComponentMap components) {
-        importComponents(registries, components);
+    public VirtualRegistryMap(Map<EntryTypes<?>, Map<String, VirtualEntry>> entries) {
+        entries.forEach((type, values) -> values.forEach((name, value) -> {
+            if (value.getType() != type) {
+                throw new IllegalArgumentException("Virtual entry type does not match its registry: " + name);
+            }
+            addEntry(name, value);
+        }));
     }
 
     @SuppressWarnings("unchecked")
@@ -29,7 +46,7 @@ public class VirtualRegistryMap {
     }
 
     public void addEntry(String name, VirtualEntry entry) {
-        registryMap.computeIfAbsent(entry.getType(), k -> new ConcurrentHashMap<>()).put(name, entry);
+        registryMap.computeIfAbsent(entry.getType(), k -> new Object2ObjectOpenHashMap<>()).put(name, entry);
     }
 
     public boolean contains(EntryTypes<?> type, String name) {
@@ -51,46 +68,6 @@ public class VirtualRegistryMap {
     }
 
     public Set<String> getEntryNames(EntryTypes<?> type) {
-        return new HashSet<>(registryMap.getOrDefault(type, Collections.emptyMap()).keySet());
-    }
-
-    public DataComponentMap exportComponents(HolderLookup.@NotNull Provider registries) {
-        DataComponentMap.Builder builder = DataComponentMap.builder();
-        for (Map.Entry<EntryTypes<?>, Map<String, VirtualEntry>> entry : registryMap.entrySet()) {
-            builder.set(dataType(entry.getKey()), exportEntries(registries, entry.getValue()));
-        }
-        return builder.build();
-    }
-
-    public void importComponents(HolderLookup.@NotNull Provider registries, DataComponentMap components) {
-        registryMap.clear();
-        for (EntryTypes<?> type : EntryTypes.values()) {
-            Map<String, DataComponentMap> entries = components.get(dataType(type));
-            if (entries == null) {
-                continue;
-            }
-            importEntries(registries, type, entries);
-        }
-    }
-
-    private static Map<String, DataComponentMap> exportEntries(HolderLookup.Provider registries,
-                                                               Map<String, VirtualEntry> entries) {
-        Map<String, DataComponentMap> data = new ConcurrentHashMap<>();
-        for (Map.Entry<String, VirtualEntry> entry : entries.entrySet()) {
-            data.put(entry.getKey(), entry.getValue().exportComponents(registries));
-        }
-        return data;
-    }
-
-    private void importEntries(HolderLookup.Provider registries, EntryTypes<?> type,
-                               Map<String, DataComponentMap> entries) {
-        for (Map.Entry<String, DataComponentMap> entry : entries.entrySet()) {
-            addEntry(entry.getKey(), type.createInstance(registries, entry.getValue()));
-        }
-    }
-
-    @SuppressWarnings({ "unchecked", "rawtypes" })
-    private static DataComponentType<Map<String, DataComponentMap>> dataType(EntryTypes<?> type) {
-        return (DataComponentType) type.getDataComponentType();
+        return new ObjectOpenHashSet<>(registryMap.getOrDefault(type, Collections.emptyMap()).keySet());
     }
 }

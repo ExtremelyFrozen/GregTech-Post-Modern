@@ -15,7 +15,9 @@ class ItemSyncHolder(owner: ISyncManaged) : ISyncManaged {
 
 	fun saveToStack(stack: ItemStack, registries: HolderLookup.Provider) {
 		val data = syncDataHolder.serializeToItemFieldData(registries)
-		if (!data.isEmpty()) {
+		if (data.isEmpty()) {
+			stack.remove(GTDataComponents.BLOCK_ITEM_DATA)
+		} else {
 			stack.set(GTDataComponents.BLOCK_ITEM_DATA, data)
 		}
 	}

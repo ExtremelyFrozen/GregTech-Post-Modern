@@ -2,32 +2,43 @@ package com.gregtechceu.gtceu.api.misc.virtualregistry.entries;
 
 import com.gregtechceu.gtceu.api.misc.virtualregistry.EntryTypes;
 import com.gregtechceu.gtceu.api.misc.virtualregistry.VirtualEntry;
-import com.gregtechceu.gtceu.common.data.GTDataComponents;
-import com.gregtechceu.gtceu.common.data.datacomponents.VirtualEntryData;
+import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
+import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
+import com.gregtechceu.gtceu.api.transfer.fluid.CustomFluidTank;
 
-import net.minecraft.core.HolderLookup;
-import net.minecraft.core.component.DataComponentMap;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.templates.FluidTank;
 
-import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 
 public class VirtualTank extends VirtualEntry {
 
     public static final int DEFAULT_CAPACITY = 160_000; // 160B for per second transfer
     @NotNull
-    @Getter
-    private final FluidTank fluidTank;
+    @SaveField
+    @SyncToClient
+    private final CustomFluidTank fluidTank;
+    @SaveField
+    @SyncToClient
     private int capacity;
 
     public VirtualTank(int capacity) {
         this.capacity = capacity;
-        fluidTank = new FluidTank(this.capacity);
+        fluidTank = new CustomFluidTank(this.capacity);
     }
 
     public VirtualTank() {
         this(DEFAULT_CAPACITY);
+    }
+
+    public FluidTank getFluidTank() {
+        return fluidTank;
+    }
+
+    @Override
+    protected void onStateDecoded() {
+        super.onStateDecoded();
+        fluidTank.setCapacity(capacity);
     }
 
     @Override
@@ -46,23 +57,12 @@ public class VirtualTank extends VirtualEntry {
     }
 
     @Override
-    public DataComponentMap exportComponents(HolderLookup.@NotNull Provider registries) {
-        return putBaseComponent(DataComponentMap.builder())
-                .set(GTDataComponents.VIRTUAL_TANK.get(), new VirtualEntryData.Tank(this.capacity,
-                        this.fluidTank.getFluid()))
-                .build();
-    }
-
-    @Override
-    public void importComponents(HolderLookup.@NotNull Provider registries, DataComponentMap components) {
-        super.importComponents(registries, components);
-        VirtualEntryData.Tank data = components.get(GTDataComponents.VIRTUAL_TANK.get());
-        if (data == null) {
-            throw new IllegalArgumentException("Virtual tank entry is missing tank data component");
-        }
-        this.capacity = data.capacity();
+    public void copyFrom(VirtualEntry source) {
+        super.copyFrom(source);
+        VirtualTank tank = (VirtualTank) source;
+        this.capacity = tank.capacity;
         this.fluidTank.setCapacity(this.capacity);
-        setFluid(data.fluid());
+        setFluid(tank.fluidTank.getFluid().copy());
     }
 
     @Override

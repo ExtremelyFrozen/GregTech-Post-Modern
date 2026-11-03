@@ -1,16 +1,16 @@
 package com.gregtechceu.gtceu.common.cover.ender;
 
+import com.gregtechceu.gtceu.api.misc.virtualregistry.VirtualEntry;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.resources.ResourceLocation;
 
-import com.google.gson.JsonElement;
-
 import java.util.List;
 
 /**
- * Client-side LDLib2 Ender link UI element that accepts one requested channel list response.
+ * Opening-scoped LDLib2 Ender link UI element whose channel state is synchronized only to its player.
  */
 public interface EnderLinkChannelListReceiver {
 
@@ -20,7 +20,7 @@ public interface EnderLinkChannelListReceiver {
     boolean acceptsEnderLinkChannelList(BlockPos pos, Direction side, ResourceLocation coverDefinitionId);
 
     /**
-     * Rebuilds the visible channel list from registry-aware serialized virtual entries.
+     * Publishes a channel snapshot through this opening's native UI sync value after holder authorization.
      */
-    void receiveEnderLinkChannelList(List<JsonElement> entries, HolderLookup.Provider registries);
+    void receiveEnderLinkChannelList(List<VirtualEntry> entries, HolderLookup.Provider registries);
 }

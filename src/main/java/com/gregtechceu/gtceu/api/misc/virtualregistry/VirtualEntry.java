@@ -1,34 +1,90 @@
 package com.gregtechceu.gtceu.api.misc.virtualregistry;
 
-import com.gregtechceu.gtceu.common.data.GTDataComponents;
-import com.gregtechceu.gtceu.common.data.datacomponents.VirtualEntryData;
+import com.gregtechceu.gtceu.api.sync_system.ContextualFieldCodec.Context;
+import com.gregtechceu.gtceu.api.sync_system.SyncDataHolder;
+import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
+import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
+import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
+import com.gregtechceu.gtceu.api.sync_system.managed.ISyncManaged;
 
 import net.minecraft.core.HolderLookup;
-import net.minecraft.core.component.DataComponentMap;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
 
-import com.google.gson.JsonElement;
 import com.mojang.serialization.Codec;
-import com.mojang.serialization.JsonOps;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Locale;
 
 @Getter
 @Accessors(chain = true)
-public abstract class VirtualEntry {
+public abstract class VirtualEntry implements ISyncManaged {
 
     public static final String DEFAULT_COLOR = "FFFFFFFF";
+    public static final StreamCodec<RegistryFriendlyByteBuf, VirtualEntry> STREAM_CODEC = new StreamCodec<>() {
+
+        @Override
+        public VirtualEntry decode(RegistryFriendlyByteBuf buffer) {
+            return ByteBufCodecs.fromCodecWithRegistries(codec(buffer.registryAccess(), null, false, true))
+                    .decode(buffer);
+        }
+
+        @Override
+        public void encode(RegistryFriendlyByteBuf buffer, VirtualEntry value) {
+            ByteBufCodecs.fromCodecWithRegistries(codec(buffer.registryAccess(), null, false, true)).encode(buffer,
+                    value);
+        }
+    };
 
     @Setter
     @NotNull
+    @SaveField
+    @SyncToClient
     private String description = "";
     private int color = 0xFFFFFFFF;
+    @SaveField
+    @SyncToClient
     private String colorStr = DEFAULT_COLOR;
+    private SyncDataHolder syncDataHolder;
+
+    @Override
+    public SyncDataHolder getSyncDataHolder() {
+        if (syncDataHolder == null) syncDataHolder = new SyncDataHolder(this);
+        return syncDataHolder;
+    }
+
+    @Override
+    public @Nullable ISyncManaged getParentSyncObject() {
+        return null;
+    }
 
     public abstract EntryTypes<? extends VirtualEntry> getType();
+
+    /** Keeps a synchronized registry entry and its shared storage alive when the entry type is unchanged. */
+    public static Codec<VirtualEntry> codec(Context<VirtualEntry> context) {
+        return codec(context.lookup(), context.currentValue(), context.isClientSync(),
+                context.isClientFullSyncUpdate());
+    }
+
+    private static Codec<VirtualEntry> codec(HolderLookup.Provider lookup, @Nullable VirtualEntry current,
+                                             boolean clientSync, boolean fullSync) {
+        return EntryTypes.CODEC.dispatch("type", VirtualEntry::getType, type -> SyncFieldData.CODEC.xmap(fields -> {
+            VirtualEntry entry = current != null && current.getType() == type ? current : type.createInstance();
+            entry.getSyncDataHolder().deserializeFieldData(lookup, fields, clientSync, true, fullSync, false);
+            entry.onStateDecoded();
+            return entry;
+        }, entry -> entry.getSyncDataHolder().serializeToFieldData(lookup, clientSync, fullSync)).fieldOf("data"));
+    }
+
+    /** Restores runtime values derived from fields after one complete managed state has been applied. */
+    protected void onStateDecoded() {
+        setColor(colorStr);
+    }
 
     public void setColor(String color) {
         this.color = parseColor(color);
@@ -60,39 +116,21 @@ public abstract class VirtualEntry {
                 this.description.equals(other.description);
     }
 
-    public DataComponentMap exportComponents(HolderLookup.@NotNull Provider registries) {
-        return putBaseComponent(DataComponentMap.builder()).build();
-    }
-
-    public JsonElement serializeJson(HolderLookup.@NotNull Provider registries) {
-        return encodeJson(registries, DataComponentMap.CODEC, exportComponents(registries));
-    }
-
-    public void importComponents(HolderLookup.@NotNull Provider registries, DataComponentMap components) {
-        VirtualEntryData.Base base = components.getOrDefault(GTDataComponents.VIRTUAL_ENTRY_BASE.get(),
-                VirtualEntryData.Base.EMPTY);
-        setColor(base.color());
-        this.description = base.description();
-    }
-
-    public void deserializeJson(HolderLookup.@NotNull Provider registries, JsonElement data) {
-        importComponents(registries, decodeJson(registries, DataComponentMap.CODEC, data));
-    }
-
-    protected DataComponentMap.Builder putBaseComponent(DataComponentMap.Builder builder) {
-        VirtualEntryData.Base base = new VirtualEntryData.Base(this.colorStr, this.description);
-        if (!base.isEmpty()) {
-            builder.set(GTDataComponents.VIRTUAL_ENTRY_BASE.get(), base);
+    /** Applies decoded state without replacing a registry-owned entry or its shared storage objects. */
+    public void copyFrom(VirtualEntry source) {
+        if (source.getType() != getType()) {
+            throw new IllegalArgumentException("Cannot copy virtual entries of different types");
         }
-        return builder;
+        this.color = source.color;
+        this.colorStr = source.colorStr;
+        this.description = source.description;
     }
 
-    protected static <T> JsonElement encodeJson(HolderLookup.Provider registries, Codec<T> codec, T value) {
-        return codec.encodeStart(registries.createSerializationContext(JsonOps.INSTANCE), value).getOrThrow();
-    }
-
-    protected static <T> T decodeJson(HolderLookup.Provider registries, Codec<T> codec, JsonElement value) {
-        return codec.parse(registries.createSerializationContext(JsonOps.INSTANCE), value).getOrThrow();
+    /** Captures an independent channel snapshot for a queued client publication. */
+    public VirtualEntry copy() {
+        VirtualEntry copy = getType().createInstance();
+        copy.copyFrom(this);
+        return copy;
     }
 
     public boolean canRemove() {
