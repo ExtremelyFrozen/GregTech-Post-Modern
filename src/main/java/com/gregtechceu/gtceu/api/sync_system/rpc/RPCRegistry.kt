@@ -15,6 +15,7 @@ import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet
 
 import java.lang.reflect.InvocationTargetException
 import java.lang.reflect.Method
+import java.lang.reflect.Modifier
 import java.util.Collections
 
 /**
@@ -26,17 +27,22 @@ object RPCRegistry {
 	private val actions = Collections.synchronizedMap(Object2ObjectOpenHashMap<ResourceLocation, Endpoint>())
 	private val owners = ReferenceOpenHashSet<Any>()
 
-	/** Registers the public annotated methods of one common-side action object exactly once. */
+	/** Registers annotated methods declared by the class that owns the operation. */
 	@JvmStatic
-	fun register(owner: Any): Unit = synchronized(actions) {
-		if (owner in owners) return
-		for (method in owner.javaClass.declaredMethods) {
+	fun register(type: Class<*>) = registerMethods(type, null)
+
+	@JvmStatic
+	fun register(owner: Any) = registerMethods(owner.javaClass, owner)
+
+	private fun registerMethods(type: Class<*>, owner: Any?): Unit = synchronized(actions) {
+		if (type in owners) return
+		for (method in type.declaredMethods) {
 			val annotation = method.getAnnotation(RPCAction::class.java) ?: continue
 			val id = GTCEu.id(annotation.value)
 			val endpoint = Endpoint(owner, method)
 			require(actions.putIfAbsent(id, endpoint) == null) { "Duplicate RPC action: $id" }
 		}
-		owners.add(owner)
+		owners.add(type)
 	}
 
 	/** Captures ordinary arguments; server context parameters are supplied only at execution. */
@@ -68,11 +74,13 @@ object RPCRegistry {
 
 	private fun endpoint(actionId: ResourceLocation): Endpoint = actions[actionId] ?: throw IllegalArgumentException("Unknown RPC action: $actionId")
 
-	private class Endpoint(val owner: Any, val method: Method) {
+	private class Endpoint(val owner: Any?, val method: Method) {
 		init {
-			require(method.returnType == Boolean::class.javaPrimitiveType) { "RPC method must return whether it executed: $method" }
+			require(method.returnType == Boolean::class.javaPrimitiveType || method.returnType == Void.TYPE) { "RPC method must return void or boolean: $method" }
+			require(method.trySetAccessible()) { "Cannot access RPC method: $method" }
 		}
 
+		private val isStatic = Modifier.isStatic(method.modifiers)
 		private val parameterTypes = method.parameterTypes
 		private val argumentTypes = method.genericParameterTypes.filterIndexed { index, _ ->
 			parameterTypes[index] != SyncActionContext::class.java && parameterTypes[index] != ServerPlayer::class.java
@@ -94,6 +102,8 @@ object RPCRegistry {
 		}
 
 		fun invoke(context: SyncActionContext): Boolean {
+			val receiver = if (isStatic) null else owner ?: context.holder
+			if (!isStatic && !method.declaringClass.isInstance(receiver)) return false
 			var argumentIndex = 0
 			val arguments = Array(parameterTypes.size) { index ->
 				when (parameterTypes[index]) {
@@ -102,7 +112,8 @@ object RPCRegistry {
 					else -> context.action.payload[argumentIndex++]
 				}
 			}
-			return method.invoke(owner, *arguments) as Boolean
+			val result = method.invoke(receiver, *arguments)
+			return method.returnType == Void.TYPE || result as Boolean
 		}
 	}
 }
