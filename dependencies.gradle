@@ -1,7 +1,7 @@
 dependencies {
     compileOnly(libs.jetbrains.annotations)
 
-    testJarJar(testApi(libs.testframework.get()))
+    testApi(libs.testframework.get())
 
     jarJar(api(libs.zstd.get()))
     additionalRuntimeClasspath(libs.zstd)
