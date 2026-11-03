@@ -3,7 +3,6 @@ package com.gregtechceu.gtceu.api.sync_system.managed
 import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo
 import com.gregtechceu.gtceu.api.machine.MetaMachine
-import com.gregtechceu.gtceu.api.sync_system.SyncDataHolder
 import com.gregtechceu.gtceu.api.sync_system.SyncFieldData
 import com.gregtechceu.gtceu.common.network.packets.CPacketMachineSyncToServer
 import com.gregtechceu.gtceu.common.network.packets.SPacketMachineSyncToClient
@@ -38,15 +37,11 @@ abstract class ManagedSyncBlockEntity :
 	ISyncManaged {
 	private val savedSyncDataKey = "${GTCEu.MOD_ID}_sync_data"
 
-	@JvmField
-	protected val syncDataHolder: SyncDataHolder = SyncDataHolder(this)
 	private var dirty = false
 
 	constructor(info: BlockEntityCreationInfo) : super(info.type(), info.pos(), info.state())
 
 	constructor(type: BlockEntityType<*>, pos: BlockPos, blockState: BlockState) : super(type, pos, blockState)
-
-	override fun getSyncDataHolder(): SyncDataHolder = syncDataHolder
 
 	fun isDirty(): Boolean = dirty
 
@@ -123,9 +118,9 @@ abstract class ManagedSyncBlockEntity :
 	open fun serverTick() {
 		setChanged()
 		val serverLevel = level as? ServerLevel
-		val fullSync = syncDataHolder.isFullSyncPending()
-		if (serverLevel != null && syncDataHolder.scanAndMarkChanges(serverLevel.registryAccess())) {
-			val changes = syncDataHolder.collectClientNetworkChanges(serverLevel.registryAccess(), false)
+		val fullSync = getSyncDataHolder().isFullSyncPending()
+		if (serverLevel != null && getSyncDataHolder().scanAndMarkChanges(serverLevel.registryAccess())) {
+			val changes = getSyncDataHolder().collectClientNetworkChanges(serverLevel.registryAccess(), false)
 			if (!changes.isEmpty()) {
 				PacketDistributor.sendToPlayersTrackingChunk(
 					serverLevel,
@@ -157,7 +152,7 @@ abstract class ManagedSyncBlockEntity :
 		}
 
 		val registryAccess = level!!.registryAccess()
-		val rootChanges = syncDataHolder.collectServerNetworkChanges(registryAccess)
+		val rootChanges = getSyncDataHolder().collectServerNetworkChanges(registryAccess)
 		if (!rootChanges.isEmpty()) {
 			PacketDistributor.sendToServer(CPacketMachineSyncToServer(blockPos, BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(type)!!, rootChanges))
 		}

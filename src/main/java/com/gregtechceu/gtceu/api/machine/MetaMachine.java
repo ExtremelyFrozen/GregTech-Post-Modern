@@ -52,6 +52,7 @@ import com.gregtechceu.gtceu.common.item.behavior.MachineConfigCopyBehaviour;
 import com.gregtechceu.gtceu.common.machine.owner.MachineOwner;
 import com.gregtechceu.gtceu.common.machine.owner.PlayerOwner;
 import com.gregtechceu.gtceu.common.machine.trait.AutoOutputTrait;
+import com.gregtechceu.gtceu.common.network.packets.PacketRPCBlockEntity;
 import com.gregtechceu.gtceu.utils.ExtendedUseOnContext;
 import com.gregtechceu.gtceu.utils.GTStringUtils;
 import com.gregtechceu.gtceu.utils.data.TagCompatibilityFixer;
@@ -78,6 +79,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.BlockAndTintGetter;
 import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
@@ -146,6 +148,26 @@ public class MetaMachine extends ManagedSyncBlockEntity implements IGregtechBloc
         this.coverContainer = attachTrait(new MachineCoverContainer(this));
         this.serverTicks = new ArrayList<>();
         this.waitingToAdd = new ArrayList<>();
+    }
+
+    @Override
+    public SyncDataHolder getRootStorage() {
+        return syncDataHolder;
+    }
+
+    @Override
+    public PacketRPCBlockEntity createRPCPacket(byte[] data) {
+        return new PacketRPCBlockEntity(this, data);
+    }
+
+    @Override
+    public ServerLevel getServerLevel() {
+        return (ServerLevel) getLevel();
+    }
+
+    @Override
+    public ChunkPos getTrackingPos() {
+        return new ChunkPos(getBlockPos());
     }
 
     //////////////////////////////////////

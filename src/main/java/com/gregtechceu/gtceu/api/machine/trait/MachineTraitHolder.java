@@ -97,6 +97,7 @@ public final class MachineTraitHolder {
         traits.add(trait);
         traits.sort(Comparator.comparingInt(MachineTrait::getTraitPriority).reversed());
         syncTraits.add(trait);
+        machine.getSyncDataHolder().attachRPC(trait);
 
         trait.setMachine(machine);
         return trait;

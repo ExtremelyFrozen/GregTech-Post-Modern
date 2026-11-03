@@ -48,6 +48,7 @@ import com.gregtechceu.gtceu.api.recipe.lookup.ingredient.item.ItemStackMapIngre
 import com.gregtechceu.gtceu.api.recipe.lookup.ingredient.item.ItemTagMapIngredient;
 import com.gregtechceu.gtceu.api.registry.GTRegistries;
 import com.gregtechceu.gtceu.api.registry.registrate.GTRegistrate;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCPacketDistributor;
 import com.gregtechceu.gtceu.common.block.CableBlock;
 import com.gregtechceu.gtceu.common.block.DuctPipeBlock;
 import com.gregtechceu.gtceu.common.block.FluidPipeBlock;
@@ -365,6 +366,7 @@ public class CommonProxy {
     public static void commonSetup(FMLCommonSetupEvent event) {
         event.enqueueWork(() -> {
             BlockCategories.initialize();
+            RPCPacketDistributor.init();
             // register the map ingredient converters for all of our ingredients
             // spotless:off
             MapIngredientTypeManager.registerMapIngredient(SizedFluidIngredient.class, (ingredient) -> {
