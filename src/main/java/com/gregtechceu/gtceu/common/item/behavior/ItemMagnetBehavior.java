@@ -12,7 +12,6 @@ import com.gregtechceu.gtceu.api.gui.SelectableEnum;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTButtonElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
-import com.gregtechceu.gtceu.api.gui.factory.HeldItemUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.HeldItemUIHolder;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.item.ComponentItem;
@@ -21,10 +20,11 @@ import com.gregtechceu.gtceu.api.item.component.IAddInformation;
 import com.gregtechceu.gtceu.api.item.component.IInteractionItem;
 import com.gregtechceu.gtceu.api.item.component.IItemLifeCycle;
 import com.gregtechceu.gtceu.api.item.component.IItemUIFactory;
-import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry;
 import com.gregtechceu.gtceu.common.data.GTDataComponents;
 import com.gregtechceu.gtceu.common.data.GTItems;
 
+import com.lowdragmc.lowdraglib2.gui.sync.rpc.RPCEmitter;
+import com.lowdragmc.lowdraglib2.gui.sync.rpc.RPCEventBuilder;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
@@ -77,7 +77,6 @@ public class ItemMagnetBehavior implements IInteractionItem, IItemLifeCycle, IAd
 
     static {
         NeoForge.EVENT_BUS.register(ItemMagnetBehavior.class);
-        RPCRegistry.register(ItemMagnetBehaviorActions.INSTANCE);
     }
 
     @Override
@@ -98,6 +97,8 @@ public class ItemMagnetBehavior implements IInteractionItem, IItemLifeCycle, IAd
         List<FilterPanel> panels = new ArrayList<>();
 
         UIElement root = new UIElement();
+        RPCEmitter configureFilter = root.addRPCEvent(RPCEventBuilder.simple(Filter.class,
+                filter -> setMagnetFilter(holder.getHeld(), filter)));
         UITemplate.setBounds(root, 0, 0, 176, 157);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));
 
@@ -107,12 +108,12 @@ public class ItemMagnetBehavior implements IInteractionItem, IItemLifeCycle, IAd
             root.addChild(panel.panel());
         }
         root.addChild(UITemplate.bindPlayerInventory(entityPlayer.getInventory(), GuiTextures.SLOT, 7, 75, true));
-        root.addChild(createFilterButton(holder, selected, panels));
+        root.addChild(createFilterButton(holder, selected, panels, configureFilter));
         return UI.of(root);
     }
 
     private static GTButtonElement createFilterButton(HeldItemUIHolder holder, Filter selected,
-                                                      List<FilterPanel> panels) {
+                                                      List<FilterPanel> panels, RPCEmitter configureFilter) {
         GTButtonElement button = new GTButtonElement();
         button.noText();
         updateFilterButton(button, selected);
@@ -120,7 +121,7 @@ public class ItemMagnetBehavior implements IInteractionItem, IItemLifeCycle, IAd
             Filter next = nextFilter(holder.getHeld()
                     .getOrDefault(GTDataComponents.MAGNET, MagnetComponent.EMPTY)
                     .filterType());
-            setFilterSelection(holder, next, panels, button);
+            setFilterSelection(holder, next, panels, button, configureFilter);
         });
         UITemplate.setBounds(button, 146, 5, 20, 20);
         return button;
@@ -151,7 +152,8 @@ public class ItemMagnetBehavior implements IInteractionItem, IItemLifeCycle, IAd
     }
 
     private static void setFilterSelection(HeldItemUIHolder holder, Filter filter,
-                                           List<FilterPanel> panels, GTButtonElement button) {
+                                           List<FilterPanel> panels, GTButtonElement button,
+                                           RPCEmitter configureFilter) {
         ItemStack held = holder.getHeld();
         setMagnetFilter(held, filter);
         for (FilterPanel panel : panels) {
@@ -159,8 +161,7 @@ public class ItemMagnetBehavior implements IInteractionItem, IItemLifeCycle, IAd
         }
         updateFilterButton(button, filter);
         if (holder.getPlayer().level().isClientSide()) {
-            HeldItemUIHelper.sendAction(holder,
-                    ItemMagnetBehaviorActions.createSetMagnetFilterAction(held, filter));
+            configureFilter.send(filter);
         }
     }
 
