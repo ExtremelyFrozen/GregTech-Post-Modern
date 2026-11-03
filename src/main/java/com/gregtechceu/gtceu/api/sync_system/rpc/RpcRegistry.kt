@@ -66,9 +66,6 @@ object RpcRegistry {
 		false
 	}
 
-	@JvmStatic
-	fun contains(actionId: ResourceLocation): Boolean = actions.containsKey(actionId)
-
 	private fun endpoint(actionId: ResourceLocation): Endpoint = actions[actionId] ?: throw IllegalArgumentException("Unknown RPC action: $actionId")
 
 	private class Endpoint(val owner: Any, val method: Method) {
@@ -96,14 +93,13 @@ object RpcRegistry {
 			codecs.forEachIndexed { index, codec -> codec.encode(buffer, args[index]) }
 		}
 
-		@Suppress("UNCHECKED_CAST") // Migrated endpoints carry the typed argument array.
 		fun invoke(context: SyncActionContext): Boolean {
 			var argumentIndex = 0
 			val arguments = Array<Any>(parameterTypes.size) { index ->
 				when (parameterTypes[index]) {
 					SyncActionContext::class.java -> context
 					ServerPlayer::class.java -> context.player
-					else -> (context.action.payload as Array<out Any>)[argumentIndex++]
+					else -> context.action.payload[argumentIndex++]
 				}
 			}
 			return method.invoke(owner, *arguments) as Boolean

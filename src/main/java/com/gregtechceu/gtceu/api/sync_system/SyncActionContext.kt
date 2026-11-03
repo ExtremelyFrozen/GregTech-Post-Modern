@@ -3,7 +3,6 @@ package com.gregtechceu.gtceu.api.sync_system
 import com.gregtechceu.gtceu.api.cover.CoverBehavior
 import com.gregtechceu.gtceu.api.sync_system.managed.ManagedSyncBlockEntity
 
-import net.minecraft.core.component.DataComponentMap
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.level.ServerPlayer
 
@@ -37,9 +36,9 @@ data class SyncActionContext(val player: ServerPlayer, val holder: Any, val acti
 	fun sequence(): Int = action.sequence
 
 	/**
-	 * Returns the component payload that action handlers must validate before use.
+	 * Returns the already decoded concrete action payload.
 	 */
-	fun payload(): DataComponentMap = action.payload as DataComponentMap
+	fun payload(): Any = action.payload
 
 	override fun toString(): String = "SyncActionContext[player=$player, holder=$holder, action=$action, pos=$pos, side=$side, hand=$hand, openedStack=$openedStack]"
 

@@ -7,7 +7,7 @@ import com.gregtechceu.gtceu.api.gui.factory.GTCoverUIContainerMenu
 import com.gregtechceu.gtceu.api.machine.MetaMachine
 import com.gregtechceu.gtceu.api.sync_system.SyncActionContext
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData
-import com.gregtechceu.gtceu.api.sync_system.SyncActionDispatchers
+import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry
 import com.gregtechceu.gtceu.common.machine.owner.MachineOwner
 
 import net.minecraft.core.BlockPos
@@ -166,7 +166,7 @@ open class CPacketCoverActionToServer(private val pos: BlockPos, private val sid
 			return
 		}
 
-		SyncActionDispatchers.server().dispatch(SyncActionContext.cover(player, cover, action, pos, side))
+		RpcRegistry.dispatch(SyncActionContext.cover(player, cover, action, pos, side))
 	}
 
 	private fun canInteract(player: ServerPlayer, pos: BlockPos): Boolean {

@@ -3,7 +3,7 @@ package com.gregtechceu.gtceu.common.network.packets
 import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.sync_system.SyncActionContext
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData
-import com.gregtechceu.gtceu.api.sync_system.SyncActionDispatchers
+import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry
 
 import net.minecraft.network.RegistryFriendlyByteBuf
 import net.minecraft.network.codec.StreamCodec
@@ -64,7 +64,7 @@ open class CPacketItemActionToServer(private val hand: InteractionHand, private 
 			return
 		}
 
-		SyncActionDispatchers.server().dispatch(SyncActionContext.item(player, stack, openedStack, action, hand))
+		RpcRegistry.dispatch(SyncActionContext.item(player, stack, openedStack, action, hand))
 	}
 
 	override fun type(): Type<CPacketItemActionToServer> = TYPE
