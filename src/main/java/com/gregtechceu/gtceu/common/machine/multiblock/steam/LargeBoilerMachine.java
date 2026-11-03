@@ -8,7 +8,6 @@ import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTComponentPanelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIProvider;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
@@ -21,7 +20,7 @@ import com.gregtechceu.gtceu.api.recipe.modifier.ModifierFunction;
 import com.gregtechceu.gtceu.api.recipe.modifier.RecipeModifier;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
-import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
 import com.gregtechceu.gtceu.common.data.GTMaterials;
 import com.gregtechceu.gtceu.config.ConfigHolder;
 import com.gregtechceu.gtceu.utils.GTUtil;
@@ -51,16 +50,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class LargeBoilerMachine extends WorkableMultiblockMachine
-                                implements MachineUIProvider, LargeBoilerThrottleActionTarget {
+                                implements MachineUIProvider {
 
     public static final int TICKS_PER_STEAM_GENERATION = 5;
     private static final int THROTTLE_STEP = 5;
     private static final int MIN_THROTTLE = 25;
     private static final int MAX_THROTTLE = 100;
-    static {
-        RPCRegistry.register(LargeBoilerMachineActions.INSTANCE);
-    }
-
     @Getter
     public final int maxTemperature, heatSpeed;
     @SaveField
@@ -294,17 +289,13 @@ public class LargeBoilerMachine extends WorkableMultiblockMachine
     private void adjustThrottle(Player player, MachineUIHolder holder, String componentData) {
         int direction = readThrottleButtonDirection(componentData);
         if (player.level().isClientSide()) {
-            MachineUIHelper.sendAction(holder,
-                    LargeBoilerMachineActions.createAdjustLargeBoilerThrottleAction(direction));
+            holder.getMachine().rpcToServer("adjustLargeBoilerThrottle", direction);
         }
     }
 
-    @Override
+    @RPCMethod
     @ApiStatus.Internal
     public void adjustLargeBoilerThrottle(int direction) {
-        if (direction != -1 && direction != 1) {
-            throw new IllegalArgumentException("Invalid large boiler throttle direction: " + direction);
-        }
         setThrottle(Mth.clamp(throttle + direction * THROTTLE_STEP, MIN_THROTTLE, MAX_THROTTLE));
     }
 

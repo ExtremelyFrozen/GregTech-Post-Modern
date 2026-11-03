@@ -9,7 +9,6 @@ import com.gregtechceu.gtceu.api.gui.element.GTFluidSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTImageElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTProgressBarElement;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIProvider;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
@@ -22,7 +21,7 @@ import com.gregtechceu.gtceu.api.recipe.modifier.ModifierFunction;
 import com.gregtechceu.gtceu.api.recipe.modifier.RecipeModifier;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
-import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
 import com.gregtechceu.gtceu.common.data.GTMaterials;
 import com.gregtechceu.gtceu.common.item.behavior.PortableScannerBehavior;
 import com.gregtechceu.gtceu.config.ConfigHolder;
@@ -68,16 +67,11 @@ import java.util.Collections;
 import java.util.List;
 
 public abstract class SteamBoilerMachine extends SteamWorkableMachine
-                                         implements MachineUIProvider, IDataInfoProvider,
-                                         SteamBoilerFluidSlotActionTarget {
+                                         implements MachineUIProvider, IDataInfoProvider {
 
     protected static final int WATER_FLUID_SLOT = 0;
     protected static final int STEAM_FLUID_SLOT = 1;
     protected static final int FUEL_FLUID_SLOT = 2;
-
-    static {
-        RPCRegistry.register(SteamBoilerMachineActions.INSTANCE);
-    }
 
     @SaveField
     public final NotifiableFluidTank waterTank;
@@ -390,8 +384,7 @@ public abstract class SteamBoilerMachine extends SteamWorkableMachine
             tank.addEventListener(UIEvents.MOUSE_DOWN, event -> {
                 if (event.button == 0 && player.level().isClientSide() &&
                         FluidUtil.getFluidHandler(player.containerMenu.getCarried()).isPresent()) {
-                    MachineUIHelper.sendAction(holder, SteamBoilerMachineActions.createClickSteamBoilerFluidSlotAction(
-                            fluidSlot, GTUtil.isShiftDown()));
+                    holder.getMachine().rpcToServer("clickSteamBoilerFluidSlot", fluidSlot, GTUtil.isShiftDown());
                     event.stopImmediatePropagation();
                     event.hasHandler = true;
                 }
@@ -413,14 +406,10 @@ public abstract class SteamBoilerMachine extends SteamWorkableMachine
         return new FluidClickTarget(fluidTank, allowClickFilled, allowClickDrained);
     }
 
-    @Override
+    @RPCMethod
     @ApiStatus.Internal
     public void clickSteamBoilerFluidSlot(@NotNull ServerPlayer player, int fluidSlot, boolean shiftDown) {
-        FluidClickTarget target = getFluidClickTarget(fluidSlot);
-        if (target == null) {
-            throw new IllegalArgumentException("Invalid steam boiler fluid slot: " + fluidSlot);
-        }
-        target.click(player, shiftDown);
+        getFluidClickTarget(fluidSlot).click(player, shiftDown);
     }
 
     protected record FluidClickTarget(IFluidHandler fluidTank, boolean allowClickFilled,

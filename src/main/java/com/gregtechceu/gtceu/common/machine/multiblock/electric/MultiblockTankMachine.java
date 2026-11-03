@@ -8,13 +8,13 @@ import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTFluidSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTImageElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIProvider;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableFluidTank;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
-import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCSender;
 import com.gregtechceu.gtceu.api.transfer.fluid.IFluidHandlerModifiable;
 import com.gregtechceu.gtceu.utils.ExtendedUseOnContext;
 import com.gregtechceu.gtceu.utils.GTUtil;
@@ -44,11 +44,7 @@ import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
 
 public class MultiblockTankMachine extends MultiblockControllerMachine
-                                   implements MachineUIProvider, MultiblockTankFluidSlotActionTarget {
-
-    static {
-        RPCRegistry.register(MultiblockTankMachineActions.INSTANCE);
-    }
+                                   implements MachineUIProvider {
 
     @SaveField
     @Getter
@@ -156,8 +152,8 @@ public class MultiblockTankMachine extends MultiblockControllerMachine
         fluidSlot.addEventListener(UIEvents.MOUSE_DOWN, event -> {
             if (event.button == 0 && player.level().isClientSide() &&
                     FluidUtil.getFluidHandler(player.containerMenu.getCarried()).isPresent()) {
-                MachineUIHelper.sendAction(holder,
-                        MultiblockTankMachineActions.createClickMultiblockTankFluidSlotAction(GTUtil.isShiftDown()));
+                boolean shiftDown = GTUtil.isShiftDown();
+                holder.getMachine().rpcToServer("clickMultiblockTankFluidSlot", shiftDown);
                 event.stopImmediatePropagation();
                 event.hasHandler = true;
             }
@@ -165,8 +161,9 @@ public class MultiblockTankMachine extends MultiblockControllerMachine
         return UITemplate.setBounds(fluidSlot, 90, 35, 18, 18);
     }
 
-    @Override
-    public void clickMultiblockTankFluidSlot(ServerPlayer player, boolean shiftDown) {
+    @RPCMethod
+    public void clickMultiblockTankFluidSlot(RPCSender sender, boolean shiftDown) {
+        var player = sender.asPlayer();
         new FluidClickTarget(tank.getStorages()[0], true, true).click(player, shiftDown);
     }
 

@@ -9,14 +9,15 @@ import com.gregtechceu.gtceu.api.gui.element.GTFluidSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTImageElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTToggleButtonElement;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIProvider;
 import com.gregtechceu.gtceu.api.machine.TieredEnergyMachine;
+import com.gregtechceu.gtceu.api.machine.feature.FancyActionMachine;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableFluidTank;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
-import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCSender;
 import com.gregtechceu.gtceu.common.data.GTBlocks;
 import com.gregtechceu.gtceu.common.machine.trait.AutoOutputTrait;
 import com.gregtechceu.gtceu.utils.GTUtil;
@@ -71,15 +72,11 @@ import javax.annotation.ParametersAreNonnullByDefault;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-public class PumpMachine extends TieredEnergyMachine implements MachineUIProvider, PumpFluidSlotActionTarget {
+public class PumpMachine extends TieredEnergyMachine implements MachineUIProvider, FancyActionMachine {
 
     public static final int BASE_PUMP_RADIUS = 16;
     public static final int EXTRA_PUMP_RADIUS = 4;
     public static final int PUMP_SPEED_BASE = 80;
-    static {
-        RPCRegistry.register(PumpMachineActions.INSTANCE);
-    }
-
     private final Set<BlockPos> forbiddenBlocks = new ObjectOpenHashSet<>();
     private @Nullable PumpQueue pumpQueue = null;
     @Getter
@@ -632,8 +629,8 @@ public class PumpMachine extends TieredEnergyMachine implements MachineUIProvide
         fluidSlot.addEventListener(UIEvents.MOUSE_DOWN, event -> {
             if (event.button == 0 && player.level().isClientSide() &&
                     FluidUtil.getFluidHandler(player.containerMenu.getCarried()).isPresent()) {
-                MachineUIHelper.sendAction(holder,
-                        PumpMachineActions.createClickPumpFluidSlotAction(GTUtil.isShiftDown()));
+                boolean shiftDown = GTUtil.isShiftDown();
+                holder.getMachine().rpcToServer("clickPumpFluidSlot", shiftDown);
                 event.stopImmediatePropagation();
                 event.hasHandler = true;
             }
@@ -648,8 +645,9 @@ public class PumpMachine extends TieredEnergyMachine implements MachineUIProvide
         }
     }
 
-    @Override
-    public void clickPumpFluidSlot(ServerPlayer player, boolean shiftDown) {
+    @RPCMethod
+    public void clickPumpFluidSlot(RPCSender sender, boolean shiftDown) {
+        var player = sender.asPlayer();
         new FluidClickTarget(cache.getStorages()[0], true, true).click(player, shiftDown);
     }
 
