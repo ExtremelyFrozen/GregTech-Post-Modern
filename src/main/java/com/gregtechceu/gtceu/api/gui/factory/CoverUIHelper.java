@@ -1,13 +1,10 @@
 package com.gregtechceu.gtceu.api.gui.factory;
 
 import com.gregtechceu.gtceu.api.cover.CoverBehavior;
-import com.gregtechceu.gtceu.api.sync_system.SyncActionData;
-import com.gregtechceu.gtceu.common.network.packets.CPacketCoverActionToServer;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
-import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.util.function.BooleanSupplier;
 
@@ -63,13 +60,5 @@ public final class CoverUIHelper {
             return uiProvider.canCreateUI(player, holder);
         }
         return false;
-    }
-
-    /**
-     * Sends a cover UI sync action to the server.
-     */
-    public static void sendAction(UICoverHolder holder, SyncActionData action) {
-        PacketDistributor.sendToServer(new CPacketCoverActionToServer(holder.getPos(), holder.getSide(),
-                holder.getCoverDefinitionId(), holder.getActionSessionId(), action));
     }
 }
