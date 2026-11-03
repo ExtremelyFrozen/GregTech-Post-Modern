@@ -4,8 +4,9 @@ import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo;
 import com.gregtechceu.gtceu.api.capability.recipe.IO;
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
+import com.gregtechceu.gtceu.api.gui.element.GTFluidSlotElement;
+import com.gregtechceu.gtceu.api.gui.element.GTImageElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUI;
@@ -20,18 +21,22 @@ import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigu
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableFluidTank;
 import com.gregtechceu.gtceu.api.recipe.GTRecipe;
-import com.gregtechceu.gtceu.api.sync_system.SyncActionData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
-import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry;
 import com.gregtechceu.gtceu.api.transfer.fluid.CustomFluidTank;
 import com.gregtechceu.gtceu.common.data.machines.GTAEMachines;
-import com.gregtechceu.gtceu.integration.ae2.gui.element.MEFluidOutputWaitingListElement;
 import com.gregtechceu.gtceu.integration.ae2.utils.KeyStorage;
 import com.gregtechceu.gtceu.utils.GTMath;
 
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
+import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
+import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollerMode;
+import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.VirtualItemHeightMode;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.VirtualScrollerView;
+import com.lowdragmc.lowdraglib2.integration.xei.IngredientIO;
 
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
@@ -41,48 +46,26 @@ import net.neoforged.neoforge.fluids.crafting.SizedFluidIngredient;
 
 import appeng.api.config.Actionable;
 import appeng.api.stacks.AEFluidKey;
-import lombok.Getter;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.UUID;
-import java.util.function.BiConsumer;
-import java.util.function.BooleanSupplier;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 
 @MethodsReturnNonnullByDefault
 @ParametersAreNonnullByDefault
 public class MEOutputHatchPartMachine extends MEHatchPartMachine
-                                      implements FancyPartUIProvider, MEOutputWaitingListActionTarget {
-
-    static {
-        RPCRegistry.register(MEOutputWaitingListActions.INSTANCE);
-    }
+                                      implements FancyPartUIProvider {
 
     private static final int PAGE_WIDTH = 170;
     private static final int PAGE_HEIGHT = 74;
 
     @SaveField
-    private KeyStorage internalBuffer; // Do not use KeyCounter, use our simple implementation
-
-    /** Distinguishes a replacement hatch at the same position from queued packets for its predecessor. */
-    @SaveField
     @SyncToClient
-    private UUID waitingListIncarnation = UUID.randomUUID();
-
-    /** Publishes ordered changes from the virtual output tank to active waiting-list openings. */
-    @Getter
-    private final MEOutputWaitingListPublisher waitingListPublisher;
+    private KeyStorage internalBuffer; // Do not use KeyCounter, use our simple implementation
 
     public MEOutputHatchPartMachine(BlockEntityCreationInfo info) {
         super(info, IO.OUT);
-        waitingListPublisher = new MEOutputWaitingListPublisher(this, internalBuffer);
-    }
-
-    @Override
-    public MEOutputWaitingListTarget getWaitingListTarget() {
-        return new MEOutputWaitingListTarget(getBlockPos(), getDefinition().getId(), waitingListIncarnation);
     }
 
     /////////////////////////////////
@@ -148,7 +131,6 @@ public class MEOutputHatchPartMachine extends MEHatchPartMachine
 
     /** Creates one opening-scoped page after validating the exact fluid output hatch holder and definition. */
     FancyUIProvider createPage(Player player, MachineUIHolder holder) {
-        requireMatchingHolder(holder);
         return new MEFluidOutputHatchFancyPage(player, holder);
     }
 
@@ -157,35 +139,7 @@ public class MEOutputHatchPartMachine extends MEHatchPartMachine
         return createPage(player, holder);
     }
 
-    private void requireMatchingHolder(MachineUIHolder holder) {
-        if (holder.getMachine() != this) {
-            throw new IllegalArgumentException("ME fluid output page holder must resolve the opened hatch.");
-        }
-        if (getDefinition() != GTAEMachines.FLUID_EXPORT_HATCH_ME ||
-                !holder.getMachineDefinitionId().equals(GTAEMachines.FLUID_EXPORT_HATCH_ME.getId())) {
-            throw new IllegalStateException("ME fluid output page requires the exact output hatch definition.");
-        }
-    }
-
-    private UIElement createMainElement(Player player, MachineUIHolder holder,
-                                        MachineUIHolder actionHolder) {
-        return createMainElement(player, holder, actionHolder, MachineUIHelper::sendAction,
-                () -> player.level().isClientSide() && holder.getMachine() == this &&
-                        actionHolder.getMachine() != null);
-    }
-
-    /** Builds the directly testable waiting-list body around an injected GT action transport. */
-    UIElement createMainElement(Player player, MachineUIHolder holder,
-                                BiConsumer<MachineUIHolder, SyncActionData> actionSender,
-                                BooleanSupplier canSendAction) {
-        return createMainElement(player, holder, holder, actionSender, canSendAction);
-    }
-
-    /** Builds the waiting-list body with a hatch target holder and the real menu-root action holder. */
-    UIElement createMainElement(Player player, MachineUIHolder holder, MachineUIHolder actionHolder,
-                                BiConsumer<MachineUIHolder, SyncActionData> actionSender,
-                                BooleanSupplier canSendAction) {
-        requireMatchingHolder(holder);
+    private UIElement createMainElement() {
         UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
 
@@ -203,8 +157,67 @@ public class MEOutputHatchPartMachine extends MEHatchPartMachine
                 Component.translatable("gtpm.gui.waiting_list"));
         title.setId("me_output_waiting_list_label");
         root.addChild(title);
-        root.addChild(new MEFluidOutputWaitingListElement(holder, actionHolder, actionSender, canSendAction));
+        root.addChild(createWaitingList());
         return root;
+    }
+
+    private UIElement createWaitingList() {
+        var view = new VirtualScrollerView<KeyStorage.Entry>() {
+
+            private List<KeyStorage.Entry> displayed = List.of();
+
+            @Override
+            public void screenTick() {
+                var current = internalBuffer.getEntries();
+                if (current != displayed) {
+                    displayed = current;
+                    setItems(current);
+                }
+                super.screenTick();
+            }
+        };
+        UITemplate.setBounds(view, 5, 20, 158, 54);
+        view.scrollerStyle(style -> style.mode(ScrollerMode.VERTICAL)
+                .verticalScrollDisplay(ScrollDisplay.AUTO).horizontalScrollDisplay(ScrollDisplay.NEVER)
+                .adaptiveWidth(false).adaptiveHeight(false).minScrollPixel(18).maxScrollPixel(18));
+        view.virtualScrollerViewStyle(style -> style.itemHeightMode(VirtualItemHeightMode.FIXED)
+                .estimatedItemHeight(18).overscanPixels(18));
+        view.viewPort.layout(layout -> layout.paddingAll(0));
+        view.viewPort.style(style -> style.backgroundTexture(IGuiTexture.EMPTY));
+        view.setItemUIProvider(this::createWaitingRow);
+        return view;
+    }
+
+    private UIElement createWaitingRow(KeyStorage.Entry entry) {
+        AEFluidKey fluidKey = (AEFluidKey) entry.key();
+
+        UIElement row = UITemplate.setBounds(new UIElement(), 0, 0, 158, 18);
+        GTImageElement amountBackground = new GTImageElement(18, 0, 140, 18,
+                GuiTextures.NUMBER_BACKGROUND);
+        amountBackground.setAllowHitTest(false);
+        row.addChild(amountBackground);
+
+        GTFluidSlotElement fluid = new GTFluidSlotElement()
+                .setFluid(fluidKey.toStack(1))
+                .setCapacity(1)
+                .setShowAmount(false)
+                .setAllowClickFilled(false)
+                .setAllowClickDrained(false)
+                .setIngredientIO(IngredientIO.NONE)
+                .setBackgroundTexture(GuiTextures.FLUID_SLOT)
+                .setOnAddedTooltips((slot, tooltips) -> tooltips.add(
+                        Component.literal(String.format("%,d mB", entry.amount()))));
+        row.addChild(UITemplate.setBounds(fluid, 0, 0, 18, 18));
+
+        GTLabelElement amount = new GTLabelElement(21, 0, 134, 18,
+                Component.literal(String.format("x%,d", entry.amount())))
+                .setTextColor(-1)
+                .setTextShadow(true)
+                .setTextAlignHorizontal(Horizontal.LEFT)
+                .setTextAlignVertical(Vertical.CENTER);
+        amount.setAllowHitTest(false);
+        row.addChild(amount);
+        return row;
     }
 
     private Component networkStatus() {
@@ -337,7 +350,6 @@ public class MEOutputHatchPartMachine extends MEHatchPartMachine
         private final DirectionalConfigurator directionalPage;
 
         private MEFluidOutputHatchFancyPage(Player player, MachineUIHolder holder) {
-            requireMatchingHolder(holder);
             this.player = player;
             this.holder = holder;
             directionalPage = new DirectionalConfigurator(
@@ -346,10 +358,7 @@ public class MEOutputHatchPartMachine extends MEHatchPartMachine
 
         @Override
         public UIElement createMainPage(FancyMachineUI shell) {
-            if (holder.getMachine() != MEOutputHatchPartMachine.this) {
-                throw new IllegalStateException("ME fluid output page holder no longer resolves its hatch.");
-            }
-            return createMainElement(player, holder, shell.getHolder());
+            return createMainElement();
         }
 
         @Override
