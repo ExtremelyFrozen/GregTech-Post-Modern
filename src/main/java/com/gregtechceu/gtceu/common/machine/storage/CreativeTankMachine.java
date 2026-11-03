@@ -10,7 +10,6 @@ import com.gregtechceu.gtceu.api.gui.element.GTImageElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTPhantomFluidSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTTextFieldElement;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIProvider;
 import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
@@ -25,7 +24,7 @@ import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.ServerFieldChangeListener;
 import com.gregtechceu.gtceu.api.sync_system.annotations.ServerFieldNormalizer;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncBoth;
-import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
 import com.gregtechceu.gtceu.api.transfer.fluid.CustomFluidTank;
 import com.gregtechceu.gtceu.common.data.GTDataComponents;
 import com.gregtechceu.gtceu.utils.ExtendedUseOnContext;
@@ -52,14 +51,10 @@ import org.jetbrains.annotations.NotNull;
 import java.util.List;
 
 public class CreativeTankMachine extends QuantumTankMachine
-                                 implements MachineUIProvider, CreativeTankFluidActionTarget {
+                                 implements MachineUIProvider {
 
     private static final int PAGE_WIDTH = 176;
     private static final int PAGE_HEIGHT = 131;
-    static {
-        RPCRegistry.register(CreativeTankMachineActions.INSTANCE);
-    }
-
     @Getter
     @SaveField
     @SyncBoth
@@ -90,7 +85,7 @@ public class CreativeTankMachine extends QuantumTankMachine
         return (long) Math.ceil(1d * mBPerCycle / ticksPerCycle);
     }
 
-    @Override
+    @RPCMethod
     public void setCreativeTankFluid(FluidStack fluid) {
         stored = fluid.isEmpty() ? FluidStack.EMPTY : fluid.copyWithAmount(FluidType.BUCKET_VOLUME);
         onFluidChanged();
@@ -321,7 +316,8 @@ public class CreativeTankMachine extends QuantumTankMachine
     private void setStoredFluid(Player player, MachineUIHolder holder, FluidStack fluid) {
         setCreativeTankFluid(fluid);
         if (player.level().isClientSide()) {
-            MachineUIHelper.sendAction(holder, CreativeTankMachineActions.createSetFluidAction(fluid));
+            FluidStack storedFluid = fluid.isEmpty() ? FluidStack.EMPTY : fluid.copyWithAmount(FluidType.BUCKET_VOLUME);
+            holder.getMachine().rpcToServer("setCreativeTankFluid", storedFluid);
         }
     }
 

@@ -11,7 +11,6 @@ import com.gregtechceu.gtceu.api.gui.element.GTImageElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTPhantomFluidSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTToggleButtonElement;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIProvider;
 import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
@@ -28,7 +27,8 @@ import com.gregtechceu.gtceu.api.machine.trait.MachineTraitType;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncBoth;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
-import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCSender;
 import com.gregtechceu.gtceu.api.transfer.fluid.CustomFluidTank;
 import com.gregtechceu.gtceu.api.transfer.fluid.IFluidHandlerModifiable;
 import com.gregtechceu.gtceu.common.machine.trait.AutoOutputTrait;
@@ -71,17 +71,13 @@ import java.util.List;
 import java.util.function.Predicate;
 
 public class QuantumTankMachine extends TieredMachine implements IControllable,
-                                MachineUIProvider, QuantumTankActionTarget {
+                                MachineUIProvider {
 
     public static Object2LongMap<MachineDefinition> TANK_CAPACITY = Util.make(new Object2LongArrayMap<>(),
             map -> map.defaultReturnValue(-1L));
 
     private static final int PAGE_WIDTH = 90;
     private static final int PAGE_HEIGHT = 63;
-
-    static {
-        RPCRegistry.register(QuantumTankMachineActions.INSTANCE);
-    }
 
     @SaveField
     @SyncBoth
@@ -200,12 +196,12 @@ public class QuantumTankMachine extends TieredMachine implements IControllable,
         syncDataHolder.markClientSyncFieldDirty("lockedFluid");
     }
 
-    @Override
+    @RPCMethod
     public void setQuantumTankLockedFluid(FluidStack fluid) {
         setLocked(fluid);
     }
 
-    @Override
+    @RPCMethod
     public void setQuantumTankLocked(boolean locked) {
         setLocked(locked);
     }
@@ -292,8 +288,8 @@ public class QuantumTankMachine extends TieredMachine implements IControllable,
         fluidSlot.addEventListener(UIEvents.MOUSE_DOWN, event -> {
             if (event.button == 0 && player.level().isClientSide() &&
                     FluidUtil.getFluidHandler(player.containerMenu.getCarried()).isPresent()) {
-                MachineUIHelper.sendAction(holder,
-                        QuantumTankMachineActions.createClickQuantumTankFluidSlotAction(GTUtil.isShiftDown()));
+                boolean shiftDown = GTUtil.isShiftDown();
+                holder.getMachine().rpcToServer("clickQuantumTankFluidSlot", shiftDown);
                 event.stopImmediatePropagation();
                 event.hasHandler = true;
             }
@@ -349,15 +345,15 @@ public class QuantumTankMachine extends TieredMachine implements IControllable,
     private void setLockedFluid(Player player, MachineUIHolder holder, FluidStack fluid) {
         setLocked(fluid);
         if (player.level().isClientSide()) {
-            MachineUIHelper.sendAction(holder,
-                    QuantumTankMachineActions.createSetQuantumTankLockedFluidAction(fluid));
+            FluidStack locked = fluid.isEmpty() ? FluidStack.EMPTY : fluid.copyWithAmount(FluidType.BUCKET_VOLUME);
+            holder.getMachine().rpcToServer("setQuantumTankLockedFluid", locked);
         }
     }
 
     private void setLocked(Player player, MachineUIHolder holder, boolean locked) {
         setLocked(locked);
         if (player.level().isClientSide()) {
-            MachineUIHelper.sendAction(holder, QuantumTankMachineActions.createSetQuantumTankLockedAction(locked));
+            holder.getMachine().rpcToServer("setQuantumTankLocked", locked);
         }
     }
 
@@ -382,8 +378,9 @@ public class QuantumTankMachine extends TieredMachine implements IControllable,
         }
     }
 
-    @Override
-    public void clickQuantumTankFluidSlot(ServerPlayer player, boolean shiftDown) {
+    @RPCMethod
+    public void clickQuantumTankFluidSlot(RPCSender sender, boolean shiftDown) {
+        var player = sender.asPlayer();
         new FluidClickTarget(cache, true, true).click(player, shiftDown);
     }
 

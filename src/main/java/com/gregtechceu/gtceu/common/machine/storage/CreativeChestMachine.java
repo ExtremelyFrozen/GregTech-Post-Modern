@@ -10,7 +10,6 @@ import com.gregtechceu.gtceu.api.gui.element.GTImageElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTPhantomItemSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTTextFieldElement;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIProvider;
 import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
@@ -25,7 +24,7 @@ import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.ServerFieldChangeListener;
 import com.gregtechceu.gtceu.api.sync_system.annotations.ServerFieldNormalizer;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncBoth;
-import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
 import com.gregtechceu.gtceu.common.data.GTDataComponents;
 import com.gregtechceu.gtceu.utils.ExtendedUseOnContext;
 
@@ -46,14 +45,10 @@ import lombok.Getter;
 import java.util.List;
 
 public class CreativeChestMachine extends QuantumChestMachine
-                                  implements MachineUIProvider, CreativeChestItemActionTarget {
+                                  implements MachineUIProvider {
 
     private static final int PAGE_WIDTH = 176;
     private static final int PAGE_HEIGHT = 131;
-    static {
-        RPCRegistry.register(CreativeChestMachineActions.INSTANCE);
-    }
-
     @Getter
     @SaveField
     @SyncBoth
@@ -78,7 +73,7 @@ public class CreativeChestMachine extends QuantumChestMachine
         return new InfiniteCache();
     }
 
-    @Override
+    @RPCMethod
     public void setCreativeChestItem(ItemStack item) {
         stored = item.isEmpty() ? ItemStack.EMPTY : item.copyWithCount(1);
         onItemChanged();
@@ -273,7 +268,8 @@ public class CreativeChestMachine extends QuantumChestMachine
     private void setStoredItem(Player player, MachineUIHolder holder, ItemStack item) {
         setCreativeChestItem(item);
         if (player.level().isClientSide()) {
-            MachineUIHelper.sendAction(holder, CreativeChestMachineActions.createSetItemAction(item));
+            ItemStack storedItem = item.isEmpty() ? ItemStack.EMPTY : item.copyWithCount(1);
+            holder.getMachine().rpcToServer("setCreativeChestItem", storedItem);
         }
     }
 

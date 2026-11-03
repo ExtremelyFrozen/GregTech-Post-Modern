@@ -12,7 +12,6 @@ import com.gregtechceu.gtceu.api.gui.element.GTButtonElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTStringSelectorElement;
 import com.gregtechceu.gtceu.api.gui.element.GTTextFieldElement;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIProvider;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
@@ -22,7 +21,7 @@ import com.gregtechceu.gtceu.api.sync_system.annotations.ServerFieldChangeListen
 import com.gregtechceu.gtceu.api.sync_system.annotations.ServerFieldNormalizer;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncBoth;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
-import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
 import com.gregtechceu.gtceu.utils.GTUtil;
 
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
@@ -38,12 +37,7 @@ import net.minecraft.world.level.Level;
 import java.util.Arrays;
 
 public class CreativeEnergyContainerMachine extends TieredMachine
-                                            implements ILaserContainer, MachineUIProvider,
-                                            CreativeEnergyActionTarget {
-
-    static {
-        RPCRegistry.register(CreativeEnergyContainerMachineActions.INSTANCE);
-    }
+                                            implements ILaserContainer, MachineUIProvider {
 
     @SaveField
     @SyncToClient
@@ -98,7 +92,7 @@ public class CreativeEnergyContainerMachine extends TieredMachine
         }
         ampsReceived = 0;
         if (!active || !source || voltage <= 0 || amps <= 0) return;
-        int ampsUsed = 0;
+        long ampsUsed = 0;
         for (var facing : GTUtil.DIRECTIONS) {
             var opposite = facing.getOpposite();
             IEnergyContainer container = GTCapabilityHelper.getEnergyContainer(getLevel(),
@@ -194,11 +188,8 @@ public class CreativeEnergyContainerMachine extends TieredMachine
         }
     }
 
-    @Override
+    @RPCMethod
     public void setCreativeEnergyVoltage(long voltage) {
-        if (voltage < 0L) {
-            throw new IllegalArgumentException("Creative energy voltage cannot be negative: " + voltage);
-        }
         this.voltage = voltage;
         this.setTier = GTUtil.getTierByVoltage(voltage);
         syncDataHolder.markClientSyncFieldDirty("voltage");
@@ -253,11 +244,8 @@ public class CreativeEnergyContainerMachine extends TieredMachine
         }
     }
 
-    @Override
+    @RPCMethod
     public void setCreativeEnergyTier(int tier) {
-        if (tier < 0 || tier >= GTValues.VNF.length) {
-            throw new IllegalArgumentException("Creative energy tier is out of range: " + tier);
-        }
         setTier = tier;
         voltage = GTValues.VEX[tier];
         syncDataHolder.markClientSyncFieldDirty("setTier");
@@ -431,8 +419,7 @@ public class CreativeEnergyContainerMachine extends TieredMachine
         }
         setCreativeEnergyVoltage(parsedValue);
         if (player.level().isClientSide()) {
-            MachineUIHelper.sendAction(holder,
-                    CreativeEnergyContainerMachineActions.createSetVoltageAction(parsedValue));
+            holder.getMachine().rpcToServer("setCreativeEnergyVoltage", parsedValue);
         }
     }
 
@@ -459,7 +446,7 @@ public class CreativeEnergyContainerMachine extends TieredMachine
         int tierIndex = getTierIndex(tierName);
         setCreativeEnergyTier(tierIndex);
         if (player.level().isClientSide()) {
-            MachineUIHelper.sendAction(holder, CreativeEnergyContainerMachineActions.createSetTierAction(tierIndex));
+            holder.getMachine().rpcToServer("setCreativeEnergyTier", tierIndex);
         }
     }
 

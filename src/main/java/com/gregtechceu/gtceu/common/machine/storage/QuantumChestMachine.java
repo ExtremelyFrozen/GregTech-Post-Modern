@@ -11,7 +11,6 @@ import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTPhantomItemSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTToggleButtonElement;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIProvider;
 import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
@@ -30,7 +29,8 @@ import com.gregtechceu.gtceu.api.machine.trait.MachineTraitType;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncBoth;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
-import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCSender;
 import com.gregtechceu.gtceu.api.transfer.fluid.IFluidHandlerModifiable;
 import com.gregtechceu.gtceu.api.transfer.item.CustomItemStackHandler;
 import com.gregtechceu.gtceu.common.data.GTDataComponents;
@@ -50,7 +50,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.network.chat.Component;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
@@ -70,7 +69,7 @@ import java.util.UUID;
 import java.util.function.Predicate;
 
 public class QuantumChestMachine extends TieredMachine implements IControllable,
-                                 MachineUIProvider, QuantumChestActionTarget {
+                                 MachineUIProvider {
 
     /**
      * Sourced from FunctionalStorage's
@@ -82,10 +81,6 @@ public class QuantumChestMachine extends TieredMachine implements IControllable,
 
     private static final int PAGE_WIDTH = 109;
     private static final int PAGE_HEIGHT = 63;
-
-    static {
-        RPCRegistry.register(QuantumChestMachineActions.INSTANCE);
-    }
 
     @SaveField
     @SyncBoth
@@ -261,7 +256,7 @@ public class QuantumChestMachine extends TieredMachine implements IControllable,
         }
     }
 
-    @Override
+    @RPCMethod
     public void setQuantumChestLockedItem(ItemStack stack) {
         if (stack.isEmpty()) {
             setLocked(false);
@@ -273,7 +268,7 @@ public class QuantumChestMachine extends TieredMachine implements IControllable,
         lockedItem.setStackInSlot(0, stack.copyWithCount(1));
     }
 
-    @Override
+    @RPCMethod
     public void setQuantumChestLocked(boolean locked) {
         setLocked(locked);
     }
@@ -369,9 +364,10 @@ public class QuantumChestMachine extends TieredMachine implements IControllable,
             }
             ItemStack carried = player.containerMenu.getCarried();
             if ((event.button == 0 || event.button == 1) && !carried.isEmpty()) {
-                MachineUIHelper.sendAction(holder,
-                        QuantumChestMachineActions.createClickQuantumChestImportSlotAction(carried,
-                                event.button == 1));
+                ItemStack item = carried.copy();
+                boolean rightClick = event.button == 1;
+                int sequence = ItemStack.hashItemAndComponents(item) * 31 + item.getCount();
+                holder.getMachine().rpcToServer("clickQuantumChestImportSlot", item, rightClick);
                 event.stopImmediatePropagation();
                 event.hasHandler = true;
             }
@@ -407,8 +403,7 @@ public class QuantumChestMachine extends TieredMachine implements IControllable,
                 GuiTextures.group(GuiTextures.VANILLA_BUTTON, GuiTextures.ICON_DOWN.copy().scale(0.7f)),
                 event -> {
                     if (player.level().isClientSide()) {
-                        MachineUIHelper.sendAction(holder,
-                                QuantumChestMachineActions.createExportQuantumChestItemAction());
+                        holder.getMachine().rpcToServer("exportQuantumChestItem");
                     }
                     event.stopImmediatePropagation();
                     event.hasHandler = true;
@@ -462,16 +457,15 @@ public class QuantumChestMachine extends TieredMachine implements IControllable,
     private void setLockedItem(Player player, MachineUIHolder holder, ItemStack item) {
         setLocked(item);
         if (player.level().isClientSide()) {
-            MachineUIHelper.sendAction(holder,
-                    QuantumChestMachineActions.createSetQuantumChestLockedItemAction(item));
+            ItemStack locked = item.isEmpty() ? ItemStack.EMPTY : item.copyWithCount(1);
+            holder.getMachine().rpcToServer("setQuantumChestLockedItem", locked);
         }
     }
 
     private void setLocked(Player player, MachineUIHolder holder, boolean locked) {
         setLocked(locked);
         if (player.level().isClientSide()) {
-            MachineUIHelper.sendAction(holder,
-                    QuantumChestMachineActions.createSetQuantumChestLockedAction(locked));
+            holder.getMachine().rpcToServer("setQuantumChestLocked", locked);
         }
     }
 
@@ -496,8 +490,9 @@ public class QuantumChestMachine extends TieredMachine implements IControllable,
         }
     }
 
-    @Override
-    public void clickQuantumChestImportSlot(ServerPlayer player, ItemStack requestedItem, boolean rightClick) {
+    @RPCMethod
+    public void clickQuantumChestImportSlot(RPCSender sender, ItemStack requestedItem, boolean rightClick) {
+        var player = sender.asPlayer();
         ItemStack carried = player.containerMenu.getCarried();
         if (requestedItem.isEmpty() || carried.isEmpty() ||
                 !ItemStack.isSameItemSameComponents(requestedItem, carried)) {
@@ -517,8 +512,9 @@ public class QuantumChestMachine extends TieredMachine implements IControllable,
         }
     }
 
-    @Override
-    public void exportQuantumChestItem(ServerPlayer player) {
+    @RPCMethod
+    public void exportQuantumChestItem(RPCSender sender) {
+        var player = sender.asPlayer();
         if (stored.isEmpty()) {
             return;
         }

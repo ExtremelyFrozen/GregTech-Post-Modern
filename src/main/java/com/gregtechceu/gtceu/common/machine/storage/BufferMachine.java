@@ -6,15 +6,16 @@ import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTFluidSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHelper;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUI;
 import com.gregtechceu.gtceu.api.machine.TieredMachine;
+import com.gregtechceu.gtceu.api.machine.feature.FancyActionMachine;
 import com.gregtechceu.gtceu.api.machine.feature.FancyUIMachine;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableFluidTank;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
-import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCSender;
 import com.gregtechceu.gtceu.common.machine.trait.AutoOutputTrait;
 import com.gregtechceu.gtceu.utils.GTUtil;
 
@@ -37,13 +38,9 @@ import org.lwjgl.glfw.GLFW;
 
 import java.util.List;
 
-public class BufferMachine extends TieredMachine implements FancyUIMachine, BufferFluidSlotActionTarget {
+public class BufferMachine extends TieredMachine implements FancyUIMachine, FancyActionMachine {
 
     public static final int TANK_SIZE = 64000;
-
-    static {
-        RPCRegistry.register(BufferMachineActions.INSTANCE);
-    }
 
     @SaveField
     @Getter
@@ -133,8 +130,8 @@ public class BufferMachine extends TieredMachine implements FancyUIMachine, Buff
         fluidSlot.addEventListener(UIEvents.MOUSE_DOWN, event -> {
             ItemStack carried = openingPlayer.containerMenu.getCarried();
             if (canSendFluidSlotAction(event.button, openingPlayer.level().isClientSide(), carried)) {
-                MachineUIHelper.sendAction(shell.getHolder(),
-                        BufferMachineActions.createClickFluidSlotAction(tankIndex, GTUtil.isShiftDown()));
+                boolean shiftDown = GTUtil.isShiftDown();
+                shell.getHolder().getMachine().rpcToServer("clickBufferFluidSlot", tankIndex, shiftDown);
                 event.stopImmediatePropagation();
                 event.hasHandler = true;
             }
@@ -142,11 +139,9 @@ public class BufferMachine extends TieredMachine implements FancyUIMachine, Buff
         return UITemplate.setBounds(fluidSlot, x, y, 18, 18);
     }
 
-    @Override
-    public void clickBufferFluidSlot(ServerPlayer player, int tankIndex, boolean shiftDown) {
-        if (tankIndex < 0 || tankIndex >= tank.getStorages().length) {
-            throw new IllegalArgumentException("Invalid buffer fluid tank index: " + tankIndex);
-        }
+    @RPCMethod
+    public void clickBufferFluidSlot(RPCSender sender, int tankIndex, boolean shiftDown) {
+        var player = sender.asPlayer();
         new FluidClickTarget(tank.getStorages()[tankIndex], true, true).click(player, shiftDown);
     }
 
