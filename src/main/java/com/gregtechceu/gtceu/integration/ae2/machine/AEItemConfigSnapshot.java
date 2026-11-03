@@ -4,10 +4,13 @@ import com.gregtechceu.gtceu.integration.ae2.slot.ExportOnlyAEItemSlot;
 
 import appeng.api.stacks.AEItemKey;
 import appeng.api.stacks.GenericStack;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Immutable client view of one ME item input bus configuration and its displayed network stock.
@@ -22,6 +25,13 @@ import java.util.List;
  * @param slots    exactly sixteen immutable config/stock pairs
  */
 public record AEItemConfigSnapshot(boolean online, boolean stocking, boolean autoPull, List<Slot> slots) {
+
+    public static final Codec<AEItemConfigSnapshot> CODEC = RecordCodecBuilder.create(instance -> instance.group(
+            Codec.BOOL.fieldOf("online").forGetter(AEItemConfigSnapshot::online),
+            Codec.BOOL.fieldOf("stocking").forGetter(AEItemConfigSnapshot::stocking),
+            Codec.BOOL.fieldOf("autoPull").forGetter(AEItemConfigSnapshot::autoPull),
+            Slot.CODEC.listOf().fieldOf("slots").forGetter(AEItemConfigSnapshot::slots))
+            .apply(instance, AEItemConfigSnapshot::new));
 
     /**
      * Number of item configuration slots exposed by both ME input bus definitions.
@@ -79,6 +89,11 @@ public record AEItemConfigSnapshot(boolean online, boolean stocking, boolean aut
      * @param stock  optional displayed network stock with a positive long amount
      */
     public record Slot(@Nullable GenericStack config, @Nullable GenericStack stock) {
+
+        public static final Codec<Slot> CODEC = RecordCodecBuilder.create(instance -> instance.group(
+                GenericStack.CODEC.optionalFieldOf("config").forGetter(slot -> Optional.ofNullable(slot.config)),
+                GenericStack.CODEC.optionalFieldOf("stock").forGetter(slot -> Optional.ofNullable(slot.stock)))
+                .apply(instance, (config, stock) -> new Slot(config.orElse(null), stock.orElse(null))));
 
         /**
          * Copies and validates both optional item stacks at the snapshot boundary.

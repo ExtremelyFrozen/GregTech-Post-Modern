@@ -23,6 +23,7 @@ import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableFluidTank;
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry;
 import com.gregtechceu.gtceu.common.data.GTDataComponents;
 import com.gregtechceu.gtceu.common.data.datacomponents.AEInputConfigCopyData;
 import com.gregtechceu.gtceu.common.data.machines.GTAEMachines;
@@ -69,7 +70,7 @@ public class MEInputHatchPartMachine extends MEHatchPartMachine
                                      FancyPartUIProvider, MEFluidConfigActionTarget {
 
     static {
-        MEFluidConfigActions.initialize();
+        RpcRegistry.register(MEFluidConfigActions.INSTANCE);
     }
 
     /** Authoritative sixteen-slot fluid request and stock inventory. */

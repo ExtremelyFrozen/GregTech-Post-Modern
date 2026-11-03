@@ -1,14 +1,39 @@
 package com.gregtechceu.gtceu.integration.ae2.slot;
 
+import com.gregtechceu.gtceu.api.sync_system.ContextualFieldCodec.Context;
+
 import appeng.api.stacks.GenericStack;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import lombok.Getter;
 import lombok.Setter;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.Objects;
+import java.util.Optional;
 
 /**
  * An export only slot to hold {@link appeng.api.stacks.GenericStack}
  */
 public abstract class ExportOnlyAESlot implements IConfigurableSlot {
+
+    /** Replaces a complete decoded slot state without exposing a half-updated state to its listener. */
+    public static <T extends ExportOnlyAESlot> Codec<T> codec(Context<T> context) {
+        return RecordCodecBuilder.create(instance -> instance.group(
+                GenericStack.CODEC.optionalFieldOf("config").forGetter((T slot) -> Optional.ofNullable(slot.config)),
+                GenericStack.CODEC.optionalFieldOf("stock").forGetter((T slot) -> Optional.ofNullable(slot.stock)))
+                .apply(instance, (config, stock) -> {
+                    T slot = Objects.requireNonNull(context.currentValue(), "AE export slot must be initialized");
+                    GenericStack requestedConfig = config.orElse(null);
+                    GenericStack requestedStock = stock.orElse(null);
+                    if (!Objects.equals(slot.config, requestedConfig) || !Objects.equals(slot.stock, requestedStock)) {
+                        slot.config = requestedConfig;
+                        slot.stock = requestedStock;
+                        slot.onContentsChanged.run();
+                    }
+                    return slot;
+                }));
+    }
 
     @Getter
     @Setter

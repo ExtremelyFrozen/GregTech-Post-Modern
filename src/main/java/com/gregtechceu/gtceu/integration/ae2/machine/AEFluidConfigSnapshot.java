@@ -4,10 +4,13 @@ import com.gregtechceu.gtceu.integration.ae2.slot.ExportOnlyAEFluidSlot;
 
 import appeng.api.stacks.AEFluidKey;
 import appeng.api.stacks.GenericStack;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Immutable client view of one ME fluid input hatch configuration and its displayed network stock.
@@ -22,6 +25,13 @@ import java.util.List;
  * @param slots    exactly sixteen immutable config/stock pairs
  */
 public record AEFluidConfigSnapshot(boolean online, boolean stocking, boolean autoPull, List<Slot> slots) {
+
+    public static final Codec<AEFluidConfigSnapshot> CODEC = RecordCodecBuilder.create(instance -> instance.group(
+            Codec.BOOL.fieldOf("online").forGetter(AEFluidConfigSnapshot::online),
+            Codec.BOOL.fieldOf("stocking").forGetter(AEFluidConfigSnapshot::stocking),
+            Codec.BOOL.fieldOf("autoPull").forGetter(AEFluidConfigSnapshot::autoPull),
+            Slot.CODEC.listOf().fieldOf("slots").forGetter(AEFluidConfigSnapshot::slots))
+            .apply(instance, AEFluidConfigSnapshot::new));
 
     /** Number of fluid configuration slots exposed by both ME input hatch definitions. */
     public static final int SLOT_COUNT = 16;
@@ -77,6 +87,11 @@ public record AEFluidConfigSnapshot(boolean online, boolean stocking, boolean au
      * @param stock  optional displayed network stock with a positive long amount
      */
     public record Slot(@Nullable GenericStack config, @Nullable GenericStack stock) {
+
+        public static final Codec<Slot> CODEC = RecordCodecBuilder.create(instance -> instance.group(
+                GenericStack.CODEC.optionalFieldOf("config").forGetter(slot -> Optional.ofNullable(slot.config)),
+                GenericStack.CODEC.optionalFieldOf("stock").forGetter(slot -> Optional.ofNullable(slot.stock)))
+                .apply(instance, (config, stock) -> new Slot(config.orElse(null), stock.orElse(null))));
 
         /**
          * Copies and validates both optional fluid stacks at the snapshot boundary.

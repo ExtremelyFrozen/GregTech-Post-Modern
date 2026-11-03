@@ -35,6 +35,7 @@ import com.gregtechceu.gtceu.api.sync_system.SyncActionData;
 import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry;
 import com.gregtechceu.gtceu.api.transfer.item.CustomItemStackHandler;
 import com.gregtechceu.gtceu.common.data.GTDataComponents;
 import com.gregtechceu.gtceu.common.data.machines.GTAEMachines;
@@ -101,7 +102,7 @@ public class MEPatternBufferPartMachine extends MEBusPartMachine
                                         FancyPartUIProvider, MEPatternBufferActionTarget {
 
     static {
-        MEPatternBufferActions.initialize();
+        RpcRegistry.register(MEPatternBufferActions.INSTANCE);
     }
 
     protected static final int MAX_PATTERN_COUNT = 27;

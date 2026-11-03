@@ -24,6 +24,7 @@ import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler;
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry;
 import com.gregtechceu.gtceu.common.data.GTDataComponents;
 import com.gregtechceu.gtceu.common.data.datacomponents.AEInputConfigCopyData;
 import com.gregtechceu.gtceu.common.data.machines.GTAEMachines;
@@ -66,7 +67,7 @@ public class MEInputBusPartMachine extends MEBusPartMachine
                                    FancyPartUIProvider, MEItemConfigActionTarget {
 
     static {
-        MEItemConfigActions.initialize();
+        RpcRegistry.register(MEItemConfigActions.INSTANCE);
     }
 
     protected final static int CONFIG_SIZE = 16;
