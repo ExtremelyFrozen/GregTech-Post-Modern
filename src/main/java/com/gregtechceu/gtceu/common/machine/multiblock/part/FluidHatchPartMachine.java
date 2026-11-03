@@ -33,7 +33,7 @@ import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler;
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry;
 import com.gregtechceu.gtceu.common.data.GTMachines;
 import com.gregtechceu.gtceu.common.item.behavior.IntCircuitBehaviour;
 import com.gregtechceu.gtceu.config.ConfigHolder;
@@ -94,7 +94,7 @@ public class FluidHatchPartMachine extends TieredIOPartMachine
     public static final int INITIAL_TANK_CAPACITY_9X = FluidType.BUCKET_VOLUME;
 
     static {
-        RpcRegistry.register(FluidHatchPartMachineActions.INSTANCE);
+        RPCRegistry.register(FluidHatchPartMachineActions.INSTANCE);
     }
 
     @SaveField

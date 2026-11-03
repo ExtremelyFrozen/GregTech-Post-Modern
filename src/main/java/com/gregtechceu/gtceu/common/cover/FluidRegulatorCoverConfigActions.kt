@@ -3,8 +3,8 @@ package com.gregtechceu.gtceu.common.cover
 import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.sync_system.SyncActionContext
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcAction
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCAction
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry
 import com.gregtechceu.gtceu.common.cover.data.BucketMode
 import com.gregtechceu.gtceu.common.cover.data.TransferMode
 
@@ -31,9 +31,9 @@ object FluidRegulatorCoverConfigActions {
 
 	/** Creates a request using the registered method parameter codecs. */
 	@JvmStatic
-	fun createSetConfigAction(transferMode: TransferMode, transferLimit: Int, transferBucketMode: BucketMode): SyncActionData = RpcRegistry.create(ACTION, 0, transferMode, transferLimit, transferBucketMode)
+	fun createSetConfigAction(transferMode: TransferMode, transferLimit: Int, transferBucketMode: BucketMode): SyncActionData = RPCRegistry.create(ACTION, 0, transferMode, transferLimit, transferBucketMode)
 
-	@RpcAction("set_fluid_regulator_cover_config")
+	@RPCAction("set_fluid_regulator_cover_config")
 	fun apply(context: SyncActionContext, transferMode: TransferMode, transferLimit: Int, transferBucketMode: BucketMode): Boolean {
 		val target = context.holder as? FluidRegulatorCoverConfigActionTarget ?: return false
 		require(transferLimit >= 0) { "Fluid regulator transfer limit must be non-negative: $transferLimit" }

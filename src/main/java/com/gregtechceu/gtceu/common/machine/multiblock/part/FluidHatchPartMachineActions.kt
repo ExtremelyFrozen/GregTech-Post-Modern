@@ -4,8 +4,8 @@ import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.machine.feature.FancyActionMachine
 import com.gregtechceu.gtceu.api.sync_system.SyncActionContext
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcAction
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCAction
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry
 
 import net.minecraft.server.level.ServerPlayer
 import net.neoforged.neoforge.fluids.FluidStack
@@ -41,18 +41,18 @@ interface FluidHatchFluidSlotActionTarget : FancyActionMachine {
 object FluidHatchPartMachineActions {
 
 	@JvmStatic
-	fun createClickFluidSlotAction(tankIndex: Int, shiftDown: Boolean): SyncActionData = RpcRegistry.create(GTCEu.id("click_fluid_hatch_fluid_slot"), tankIndex * 2 + if (shiftDown) 1 else 0, tankIndex, shiftDown)
+	fun createClickFluidSlotAction(tankIndex: Int, shiftDown: Boolean): SyncActionData = RPCRegistry.create(GTCEu.id("click_fluid_hatch_fluid_slot"), tankIndex * 2 + if (shiftDown) 1 else 0, tankIndex, shiftDown)
 
 	@JvmStatic
 	fun createSetLockedFluidAction(fluid: FluidStack): SyncActionData {
 		val lockedFluid = if (fluid.isEmpty) FluidStack.EMPTY else fluid.copyWithAmount(1)
-		return RpcRegistry.create(GTCEu.id("set_fluid_hatch_locked_fluid"), FluidStack.hashFluidAndComponents(lockedFluid) * 31 + lockedFluid.amount, lockedFluid)
+		return RPCRegistry.create(GTCEu.id("set_fluid_hatch_locked_fluid"), FluidStack.hashFluidAndComponents(lockedFluid) * 31 + lockedFluid.amount, lockedFluid)
 	}
 
 	@JvmStatic
-	fun createSetLockedAction(locked: Boolean): SyncActionData = RpcRegistry.create(GTCEu.id("set_fluid_hatch_locked"), if (locked) 1 else 0, locked)
+	fun createSetLockedAction(locked: Boolean): SyncActionData = RPCRegistry.create(GTCEu.id("set_fluid_hatch_locked"), if (locked) 1 else 0, locked)
 
-	@RpcAction("click_fluid_hatch_fluid_slot")
+	@RPCAction("click_fluid_hatch_fluid_slot")
 	fun clickFluidSlot(context: SyncActionContext, tankIndex: Int, shiftDown: Boolean): Boolean {
 		val target = context.holder as? FluidHatchFluidSlotActionTarget ?: return false
 		if (!target.supportsFluidHatchActions() || tankIndex !in 0 until target.getFluidHatchTankCount()) return false
@@ -60,7 +60,7 @@ object FluidHatchPartMachineActions {
 		return true
 	}
 
-	@RpcAction("set_fluid_hatch_locked_fluid")
+	@RPCAction("set_fluid_hatch_locked_fluid")
 	fun setLockedFluid(context: SyncActionContext, fluid: FluidStack): Boolean {
 		val target = context.holder as? FluidHatchFluidSlotActionTarget ?: return false
 		if (!target.supportsFluidHatchActions() || !target.supportsFluidHatchLocking()) return false
@@ -68,7 +68,7 @@ object FluidHatchPartMachineActions {
 		return true
 	}
 
-	@RpcAction("set_fluid_hatch_locked")
+	@RPCAction("set_fluid_hatch_locked")
 	fun setLocked(context: SyncActionContext, locked: Boolean): Boolean {
 		val target = context.holder as? FluidHatchFluidSlotActionTarget ?: return false
 		if (!target.supportsFluidHatchActions() || !target.supportsFluidHatchLocking()) return false

@@ -3,8 +3,8 @@ package com.gregtechceu.gtceu.common.machine.multiblock.electric
 import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.sync_system.SyncActionContext
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcAction
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCAction
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry
 
 import net.minecraft.core.BlockPos
 
@@ -51,13 +51,13 @@ object CentralMonitorMembershipActions {
 	private const val MAX_MEMBERSHIP_POSITIONS = 65_536
 
 	@JvmStatic
-	fun createGroupAction(holderIncarnation: UUID, expectedRevision: Long, groupIdentity: UUID, positions: Set<BlockPos>, sequence: Int): SyncActionData = RpcRegistry.create(GTCEu.id("create_central_monitor_group"), sequence, holderIncarnation, expectedRevision, groupIdentity, positions.toList())
+	fun createGroupAction(holderIncarnation: UUID, expectedRevision: Long, groupIdentity: UUID, positions: Set<BlockPos>, sequence: Int): SyncActionData = RPCRegistry.create(GTCEu.id("create_central_monitor_group"), sequence, holderIncarnation, expectedRevision, groupIdentity, positions.toList())
 
 	@JvmStatic
 	fun createRemoveGroupMembersAction(holderIncarnation: UUID, expectedRevision: Long, groupIdentity: UUID, positions: Set<BlockPos>, sequence: Int): SyncActionData =
-		RpcRegistry.create(GTCEu.id("remove_central_monitor_group_members"), sequence, holderIncarnation, expectedRevision, groupIdentity, positions.toList())
+		RPCRegistry.create(GTCEu.id("remove_central_monitor_group_members"), sequence, holderIncarnation, expectedRevision, groupIdentity, positions.toList())
 
-	@RpcAction("create_central_monitor_group")
+	@RPCAction("create_central_monitor_group")
 	fun createGroup(context: SyncActionContext, holderIncarnation: UUID, expectedRevision: Long, groupIdentity: UUID, positions: List<BlockPos>): Boolean {
 		val target = context.holder as? CentralMonitorMembershipActionTarget ?: return false
 		if (context.sequence() < 0 || target.getCentralMonitorActionIncarnation() != holderIncarnation) return false
@@ -71,7 +71,7 @@ object CentralMonitorMembershipActions {
 		return true
 	}
 
-	@RpcAction("remove_central_monitor_group_members")
+	@RPCAction("remove_central_monitor_group_members")
 	fun removeMembers(context: SyncActionContext, holderIncarnation: UUID, expectedRevision: Long, groupIdentity: UUID, positions: List<BlockPos>): Boolean {
 		val target = context.holder as? CentralMonitorMembershipActionTarget ?: return false
 		if (context.sequence() < 0 || target.getCentralMonitorActionIncarnation() != holderIncarnation) return false

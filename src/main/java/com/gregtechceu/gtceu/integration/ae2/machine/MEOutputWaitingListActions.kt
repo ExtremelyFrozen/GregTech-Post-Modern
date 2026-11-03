@@ -5,8 +5,8 @@ import com.gregtechceu.gtceu.api.machine.MetaMachine
 import com.gregtechceu.gtceu.api.machine.feature.FancyActionMachine
 import com.gregtechceu.gtceu.api.sync_system.SyncActionContext
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcAction
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCAction
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry
 import com.gregtechceu.gtceu.common.machine.owner.MachineOwner
 import com.gregtechceu.gtceu.common.network.packets.SPacketMEOutputWaitingListSessionToClient
 
@@ -57,12 +57,12 @@ object MEOutputWaitingListActions {
 	private val ACTION = GTCEu.id("request_me_output_waiting_list_full")
 
 	@JvmStatic
-	fun createRequestFullAction(target: MEOutputWaitingListTarget, openingId: UUID, requestSequence: Int): SyncActionData = RpcRegistry.create(ACTION, requestSequence, target, openingId, Optional.empty<UUID>())
+	fun createRequestFullAction(target: MEOutputWaitingListTarget, openingId: UUID, requestSequence: Int): SyncActionData = RPCRegistry.create(ACTION, requestSequence, target, openingId, Optional.empty<UUID>())
 
 	@JvmStatic
-	fun createRequestFullAction(target: MEOutputWaitingListTarget, openingId: UUID, requestSequence: Int, menuSessionId: UUID): SyncActionData = RpcRegistry.create(ACTION, requestSequence, target, openingId, Optional.of(menuSessionId))
+	fun createRequestFullAction(target: MEOutputWaitingListTarget, openingId: UUID, requestSequence: Int, menuSessionId: UUID): SyncActionData = RPCRegistry.create(ACTION, requestSequence, target, openingId, Optional.of(menuSessionId))
 
-	@RpcAction("request_me_output_waiting_list_full")
+	@RPCAction("request_me_output_waiting_list_full")
 	fun requestFull(context: SyncActionContext, target: MEOutputWaitingListTarget, openingId: UUID, menuSession: Optional<UUID>): Boolean {
 		val root = context.holder
 		if (root !is MetaMachine || root !is FancyActionMachine || context.sequence() < 0) return false

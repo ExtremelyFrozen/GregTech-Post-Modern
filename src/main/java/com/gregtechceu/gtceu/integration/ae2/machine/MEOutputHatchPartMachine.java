@@ -23,7 +23,7 @@ import com.gregtechceu.gtceu.api.recipe.GTRecipe;
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry;
 import com.gregtechceu.gtceu.api.transfer.fluid.CustomFluidTank;
 import com.gregtechceu.gtceu.common.data.machines.GTAEMachines;
 import com.gregtechceu.gtceu.integration.ae2.gui.element.MEFluidOutputWaitingListElement;
@@ -57,7 +57,7 @@ public class MEOutputHatchPartMachine extends MEHatchPartMachine
                                       implements FancyPartUIProvider, MEOutputWaitingListActionTarget {
 
     static {
-        RpcRegistry.register(MEOutputWaitingListActions.INSTANCE);
+        RPCRegistry.register(MEOutputWaitingListActions.INSTANCE);
     }
 
     private static final int PAGE_WIDTH = 170;

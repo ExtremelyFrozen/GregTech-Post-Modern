@@ -6,8 +6,8 @@ import com.gregtechceu.gtceu.api.item.datacomponents.AoESymmetrical
 import com.gregtechceu.gtceu.api.item.tool.ToolHelper
 import com.gregtechceu.gtceu.api.sync_system.SyncActionContext
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcAction
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCAction
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry
 import com.gregtechceu.gtceu.common.data.GTDataComponents
 
 import net.minecraft.world.item.ItemStack
@@ -19,9 +19,9 @@ object AOEConfigUIBehaviorActions {
 
 	/** Creates a request using the registered method parameter codecs. */
 	@JvmStatic
-	fun createSetToolAOEAction(definition: AoESymmetrical): SyncActionData = RpcRegistry.create(ACTION, 0, definition)
+	fun createSetToolAOEAction(definition: AoESymmetrical): SyncActionData = RPCRegistry.create(ACTION, 0, definition)
 
-	@RpcAction("set_tool_aoe")
+	@RPCAction("set_tool_aoe")
 	fun apply(context: SyncActionContext, definition: AoESymmetrical): Boolean {
 		val stack = context.holder as? ItemStack ?: return false
 		val openedStack = context.openedStack ?: return false

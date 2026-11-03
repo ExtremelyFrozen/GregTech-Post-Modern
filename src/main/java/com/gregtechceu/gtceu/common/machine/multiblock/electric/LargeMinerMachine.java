@@ -35,7 +35,7 @@ import com.gregtechceu.gtceu.api.machine.multiblock.WorkableElectricMultiblockMa
 import com.gregtechceu.gtceu.api.misc.EnergyContainerList;
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry;
 import com.gregtechceu.gtceu.api.transfer.fluid.FluidHandlerList;
 import com.gregtechceu.gtceu.common.data.GTBlocks;
 import com.gregtechceu.gtceu.common.data.GTMaterials;
@@ -80,7 +80,7 @@ public class LargeMinerMachine extends WorkableElectricMultiblockMachine
 
     public static final int CHUNK_LENGTH = 16;
     static {
-        RpcRegistry.register(LargeMinerMachineActions.INSTANCE);
+        RPCRegistry.register(LargeMinerMachineActions.INSTANCE);
     }
 
     @Getter

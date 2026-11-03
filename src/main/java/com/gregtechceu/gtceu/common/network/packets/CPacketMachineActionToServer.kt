@@ -5,7 +5,7 @@ import com.gregtechceu.gtceu.api.machine.MetaMachine
 import com.gregtechceu.gtceu.api.sync_system.SyncActionContext
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData
 import com.gregtechceu.gtceu.api.sync_system.managed.ManagedSyncBlockEntity
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry
 import com.gregtechceu.gtceu.common.machine.owner.MachineOwner
 
 import net.minecraft.core.BlockPos
@@ -92,7 +92,7 @@ open class CPacketMachineActionToServer(private val pos: BlockPos, private val m
 			}
 		}
 
-		RpcRegistry.dispatch(SyncActionContext.machine(player, blockEntity, action, pos))
+		RPCRegistry.dispatch(SyncActionContext.machine(player, blockEntity, action, pos))
 	}
 
 	private fun canInteract(player: ServerPlayer, pos: BlockPos): Boolean = !player.isSpectator && player.canInteractWithBlock(pos, MAX_INTERACTION_DISTANCE)

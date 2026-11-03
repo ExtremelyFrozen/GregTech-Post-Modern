@@ -30,7 +30,7 @@ import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.RerenderOnChanged;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry;
 import com.gregtechceu.gtceu.common.cover.data.ManualIOMode;
 
 import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerMenu;
@@ -84,7 +84,7 @@ public abstract class AbstractEnderLinkCover<T extends VirtualEntry> extends Cov
 
     static {
         AccessorRegistries.registerAccessor(new StreamAccessor<>(VirtualEntry.class, VirtualEntry.STREAM_CODEC));
-        RpcRegistry.register(EnderLinkCoverActions.INSTANCE);
+        RPCRegistry.register(EnderLinkCoverActions.INSTANCE);
     }
 
     protected final ConditionalSubscriptionHandler subscriptionHandler;

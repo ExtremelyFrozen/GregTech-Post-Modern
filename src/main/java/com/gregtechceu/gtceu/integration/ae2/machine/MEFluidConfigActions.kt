@@ -4,8 +4,8 @@ import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.machine.feature.FancyActionMachine
 import com.gregtechceu.gtceu.api.sync_system.SyncActionContext
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcAction
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCAction
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry
 
 import net.neoforged.neoforge.fluids.FluidStack
 
@@ -51,19 +51,19 @@ object MEFluidConfigActions {
 	@JvmStatic
 	fun createSetConfigAction(slot: Int, fluid: FluidStack): SyncActionData {
 		val copied = fluid.copy()
-		return RpcRegistry.create(GTCEu.id("set_me_fluid_config"), slot * 31 + FluidStack.hashFluidAndComponents(copied) * 31 + copied.amount, slot, copied)
+		return RPCRegistry.create(GTCEu.id("set_me_fluid_config"), slot * 31 + FluidStack.hashFluidAndComponents(copied) * 31 + copied.amount, slot, copied)
 	}
 
 	@JvmStatic
 	fun createSetAmountAction(slot: Int, expectedFluid: FluidStack, amount: Int): SyncActionData {
 		val normalized = expectedFluid.copyWithAmount(1)
-		return RpcRegistry.create(GTCEu.id("set_me_fluid_config_amount"), slot * 31 + FluidStack.hashFluidAndComponents(normalized) * 31 + amount, slot, normalized, amount)
+		return RPCRegistry.create(GTCEu.id("set_me_fluid_config_amount"), slot * 31 + FluidStack.hashFluidAndComponents(normalized) * 31 + amount, slot, normalized, amount)
 	}
 
 	@JvmStatic
-	fun createSetAutoPullAction(autoPull: Boolean): SyncActionData = RpcRegistry.create(GTCEu.id("set_me_fluid_auto_pull"), if (autoPull) 1 else 0, autoPull)
+	fun createSetAutoPullAction(autoPull: Boolean): SyncActionData = RPCRegistry.create(GTCEu.id("set_me_fluid_auto_pull"), if (autoPull) 1 else 0, autoPull)
 
-	@RpcAction("set_me_fluid_config")
+	@RPCAction("set_me_fluid_config")
 	fun setConfig(context: SyncActionContext, slot: Int, fluid: FluidStack): Boolean {
 		val target = context.holder as? MEFluidConfigActionTarget ?: return false
 		if (!target.supportsMEFluidConfigActions() || slot !in 0 until target.getMEFluidConfigSlotCount()) return false
@@ -72,7 +72,7 @@ object MEFluidConfigActions {
 		return true
 	}
 
-	@RpcAction("set_me_fluid_config_amount")
+	@RPCAction("set_me_fluid_config_amount")
 	fun setAmount(context: SyncActionContext, slot: Int, expectedFluid: FluidStack, amount: Int): Boolean {
 		val target = context.holder as? MEFluidConfigActionTarget ?: return false
 		if (!target.supportsMEFluidConfigActions() || slot !in 0 until target.getMEFluidConfigSlotCount()) return false
@@ -83,7 +83,7 @@ object MEFluidConfigActions {
 		return true
 	}
 
-	@RpcAction("set_me_fluid_auto_pull")
+	@RPCAction("set_me_fluid_auto_pull")
 	fun setAutoPull(context: SyncActionContext, autoPull: Boolean): Boolean {
 		val target = context.holder as? MEFluidConfigActionTarget ?: return false
 		if (!target.supportsMEFluidConfigActions() || !target.isMEFluidStocking()) return false

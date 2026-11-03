@@ -4,8 +4,8 @@ import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.item.IComponentItem
 import com.gregtechceu.gtceu.api.sync_system.SyncActionContext
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcAction
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCAction
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry
 import com.gregtechceu.gtceu.common.data.GTDataComponents
 import com.gregtechceu.gtceu.common.item.behavior.ItemMagnetBehavior.Filter
 import com.gregtechceu.gtceu.common.item.behavior.ItemMagnetBehavior.MagnetComponent
@@ -20,10 +20,10 @@ object ItemMagnetBehaviorActions {
 	@JvmStatic
 	fun createSetMagnetFilterAction(stack: ItemStack, filter: Filter): SyncActionData {
 		check(stack.has(GTDataComponents.MAGNET)) { "Cannot configure an item without a magnet component." }
-		return RpcRegistry.create(ACTION, filter.ordinal, filter)
+		return RPCRegistry.create(ACTION, filter.ordinal, filter)
 	}
 
-	@RpcAction("set_magnet_filter")
+	@RPCAction("set_magnet_filter")
 	fun apply(context: SyncActionContext, filter: Filter): Boolean {
 		val stack = context.holder as? ItemStack ?: return false
 		val openedStack = context.openedStack ?: return false

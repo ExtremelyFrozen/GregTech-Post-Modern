@@ -1,6 +1,6 @@
 package com.gregtechceu.gtceu.api.sync_system
 
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry
 
 import net.minecraft.network.RegistryFriendlyByteBuf
 import net.minecraft.network.codec.StreamCodec
@@ -27,14 +27,14 @@ data class SyncActionData(val actionId: ResourceLocation, val sequence: Int, val
 				override fun decode(buffer: RegistryFriendlyByteBuf): SyncActionData {
 					val actionId = ResourceLocation.STREAM_CODEC.decode(buffer)
 					val sequence = buffer.readVarInt()
-					val payload = RpcRegistry.decode(actionId, buffer)
+					val payload = RPCRegistry.decode(actionId, buffer)
 					return SyncActionData(actionId, sequence, payload)
 				}
 
 				override fun encode(buffer: RegistryFriendlyByteBuf, value: SyncActionData) {
 					ResourceLocation.STREAM_CODEC.encode(buffer, value.actionId)
 					buffer.writeVarInt(value.sequence)
-					RpcRegistry.encode(value.actionId, buffer, value.payload)
+					RPCRegistry.encode(value.actionId, buffer, value.payload)
 				}
 			}
 	}

@@ -16,7 +16,7 @@ import com.gregtechceu.gtceu.api.machine.TieredEnergyMachine;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableFluidTank;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry;
 import com.gregtechceu.gtceu.common.data.GTBlocks;
 import com.gregtechceu.gtceu.common.machine.trait.AutoOutputTrait;
 import com.gregtechceu.gtceu.utils.GTUtil;
@@ -77,7 +77,7 @@ public class PumpMachine extends TieredEnergyMachine implements MachineUIProvide
     public static final int EXTRA_PUMP_RADIUS = 4;
     public static final int PUMP_SPEED_BASE = 80;
     static {
-        RpcRegistry.register(PumpMachineActions.INSTANCE);
+        RPCRegistry.register(PumpMachineActions.INSTANCE);
     }
 
     private final Set<BlockPos> forbiddenBlocks = new ObjectOpenHashSet<>();

@@ -3,8 +3,8 @@ package com.gregtechceu.gtceu.common.machine.multiblock.electric
 import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.sync_system.SyncActionContext
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcAction
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCAction
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry
 
 import net.minecraft.server.level.ServerPlayer
 
@@ -25,9 +25,9 @@ object MultiblockTankMachineActions {
 
 	/** Creates a request using the registered method parameter codecs. */
 	@JvmStatic
-	fun createClickMultiblockTankFluidSlotAction(shiftDown: Boolean): SyncActionData = RpcRegistry.create(ACTION, if (shiftDown) 1 else 0, shiftDown)
+	fun createClickMultiblockTankFluidSlotAction(shiftDown: Boolean): SyncActionData = RPCRegistry.create(ACTION, if (shiftDown) 1 else 0, shiftDown)
 
-	@RpcAction("click_multiblock_tank_fluid_slot")
+	@RPCAction("click_multiblock_tank_fluid_slot")
 	fun apply(context: SyncActionContext, shiftDown: Boolean): Boolean {
 		val target = context.holder as? MultiblockTankFluidSlotActionTarget ?: return false
 		target.clickMultiblockTankFluidSlot(context.player, shiftDown)

@@ -4,8 +4,8 @@ import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.machine.feature.FancyActionMachine
 import com.gregtechceu.gtceu.api.sync_system.SyncActionContext
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcAction
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCAction
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry
 
 import net.minecraft.server.level.ServerPlayer
 
@@ -26,9 +26,9 @@ object PumpHatchPartMachineActions {
 
 	/** Creates a request using the registered method parameter codecs. */
 	@JvmStatic
-	fun createClickPumpHatchFluidSlotAction(shiftDown: Boolean): SyncActionData = RpcRegistry.create(ACTION, if (shiftDown) 1 else 0, shiftDown)
+	fun createClickPumpHatchFluidSlotAction(shiftDown: Boolean): SyncActionData = RPCRegistry.create(ACTION, if (shiftDown) 1 else 0, shiftDown)
 
-	@RpcAction("click_pump_hatch_fluid_slot")
+	@RPCAction("click_pump_hatch_fluid_slot")
 	fun apply(context: SyncActionContext, shiftDown: Boolean): Boolean {
 		val target = context.holder as? PumpHatchFluidSlotActionTarget ?: return false
 		target.clickPumpHatchFluidSlot(context.player, shiftDown)

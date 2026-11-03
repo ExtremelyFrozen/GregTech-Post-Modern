@@ -8,8 +8,8 @@ import com.gregtechceu.gtceu.api.machine.MetaMachine
 import com.gregtechceu.gtceu.api.machine.feature.FancyActionMachine
 import com.gregtechceu.gtceu.api.sync_system.SyncActionContext
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcAction
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCAction
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry
 import com.gregtechceu.gtceu.common.item.behavior.CoverPlaceBehavior
 
 import net.minecraft.core.Direction
@@ -24,15 +24,15 @@ import net.minecraft.world.item.ItemStack
 object DirectionalCoverActions {
 
 	@JvmStatic
-	fun createPlaceCoverAction(side: Direction): SyncActionData = RpcRegistry.create(GTCEu.id("place_directional_cover"), side.get3DDataValue(), side)
+	fun createPlaceCoverAction(side: Direction): SyncActionData = RPCRegistry.create(GTCEu.id("place_directional_cover"), side.get3DDataValue(), side)
 
 	@JvmStatic
-	fun createRemoveCoverAction(side: Direction): SyncActionData = RpcRegistry.create(GTCEu.id("remove_directional_cover"), side.get3DDataValue(), side)
+	fun createRemoveCoverAction(side: Direction): SyncActionData = RPCRegistry.create(GTCEu.id("remove_directional_cover"), side.get3DDataValue(), side)
 
 	@JvmStatic
-	fun createOpenCoverAction(side: Direction): SyncActionData = RpcRegistry.create(GTCEu.id("open_directional_cover"), side.get3DDataValue(), side)
+	fun createOpenCoverAction(side: Direction): SyncActionData = RPCRegistry.create(GTCEu.id("open_directional_cover"), side.get3DDataValue(), side)
 
-	@RpcAction("place_directional_cover")
+	@RPCAction("place_directional_cover")
 	fun placeCover(context: SyncActionContext, side: Direction): Boolean {
 		val coverable = coverable(context) ?: return false
 		val player = context.player
@@ -55,7 +55,7 @@ object DirectionalCoverActions {
 		return true
 	}
 
-	@RpcAction("remove_directional_cover")
+	@RPCAction("remove_directional_cover")
 	fun removeCover(context: SyncActionContext, side: Direction): Boolean {
 		val coverable = coverable(context) ?: return false
 		val player = context.player
@@ -68,7 +68,7 @@ object DirectionalCoverActions {
 		return true
 	}
 
-	@RpcAction("open_directional_cover")
+	@RPCAction("open_directional_cover")
 	fun openCover(context: SyncActionContext, side: Direction): Boolean {
 		val coverable = coverable(context) ?: return false
 		val cover = coverable.getCoverAtSide(side) ?: return false

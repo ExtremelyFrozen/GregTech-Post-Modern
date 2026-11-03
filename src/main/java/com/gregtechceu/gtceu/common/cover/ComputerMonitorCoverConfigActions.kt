@@ -3,8 +3,8 @@ package com.gregtechceu.gtceu.common.cover
 import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.sync_system.SyncActionContext
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcAction
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCAction
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry
 
 import org.jetbrains.annotations.ApiStatus
 
@@ -29,9 +29,9 @@ object ComputerMonitorCoverConfigActions {
 
 	/** Creates a request using the registered method parameter codecs. */
 	@JvmStatic
-	fun createSetConfigAction(lines: List<String>, args: List<String>, updateInterval: Int): SyncActionData = RpcRegistry.create(ACTION, 0, lines.toList(), args.toList(), updateInterval)
+	fun createSetConfigAction(lines: List<String>, args: List<String>, updateInterval: Int): SyncActionData = RPCRegistry.create(ACTION, 0, lines.toList(), args.toList(), updateInterval)
 
-	@RpcAction("set_computer_monitor_cover_config")
+	@RPCAction("set_computer_monitor_cover_config")
 	fun apply(context: SyncActionContext, lines: List<String>, args: List<String>, updateInterval: Int): Boolean {
 		val target = context.holder as? ComputerMonitorCover ?: return false
 		require(updateInterval in 1..1200) { "Computer monitor update interval is out of range: $updateInterval" }

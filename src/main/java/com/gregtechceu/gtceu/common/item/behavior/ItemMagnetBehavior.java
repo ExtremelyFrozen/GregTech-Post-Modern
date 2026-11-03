@@ -21,7 +21,7 @@ import com.gregtechceu.gtceu.api.item.component.IAddInformation;
 import com.gregtechceu.gtceu.api.item.component.IInteractionItem;
 import com.gregtechceu.gtceu.api.item.component.IItemLifeCycle;
 import com.gregtechceu.gtceu.api.item.component.IItemUIFactory;
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry;
 import com.gregtechceu.gtceu.common.data.GTDataComponents;
 import com.gregtechceu.gtceu.common.data.GTItems;
 
@@ -77,7 +77,7 @@ public class ItemMagnetBehavior implements IInteractionItem, IItemLifeCycle, IAd
 
     static {
         NeoForge.EVENT_BUS.register(ItemMagnetBehavior.class);
-        RpcRegistry.register(ItemMagnetBehaviorActions.INSTANCE);
+        RPCRegistry.register(ItemMagnetBehaviorActions.INSTANCE);
     }
 
     @Override

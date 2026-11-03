@@ -11,4 +11,4 @@ package com.gregtechceu.gtceu.api.sync_system.rpc
  */
 @Target(AnnotationTarget.FUNCTION)
 @Retention(AnnotationRetention.RUNTIME)
-annotation class RpcAction(val value: String)
+annotation class RPCAction(val value: String)

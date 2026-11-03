@@ -3,8 +3,8 @@ package com.gregtechceu.gtceu.common.machine.multiblock.electric
 import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.sync_system.SyncActionContext
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcAction
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCAction
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry
 
 import net.minecraft.core.BlockPos
 
@@ -43,9 +43,9 @@ object CentralMonitorGroupTargetActions {
 
 	@JvmStatic
 	fun createSetGroupTargetAction(holderIncarnation: UUID, groupIdentity: UUID, expected: CentralMonitorGroupTargetState, requested: CentralMonitorGroupTargetState, sequence: Int): SyncActionData =
-		RpcRegistry.create(ACTION, sequence, holderIncarnation, groupIdentity, Optional.ofNullable(expected.targetPos), expected.dataSlot, Optional.ofNullable(requested.targetPos), requested.dataSlot)
+		RPCRegistry.create(ACTION, sequence, holderIncarnation, groupIdentity, Optional.ofNullable(expected.targetPos), expected.dataSlot, Optional.ofNullable(requested.targetPos), requested.dataSlot)
 
-	@RpcAction("set_central_monitor_group_target")
+	@RPCAction("set_central_monitor_group_target")
 	fun apply(context: SyncActionContext, holderIncarnation: UUID, groupIdentity: UUID, expectedPosition: Optional<BlockPos>, expectedSlot: Int, requestedPosition: Optional<BlockPos>, requestedSlot: Int): Boolean {
 		val target = context.holder as? CentralMonitorGroupTargetActionHost ?: return false
 		if (context.sequence() < 0 || target.getCentralMonitorActionIncarnation() != holderIncarnation) return false

@@ -6,7 +6,7 @@ import com.gregtechceu.gtceu.api.gui.factory.MachineUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyConfiguratorButton;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry;
 
 import net.minecraft.network.chat.Component;
 
@@ -22,7 +22,7 @@ import java.util.List;
 public class WorkingEnabledConfigurator extends FancyConfiguratorButton.Toggle {
 
     static {
-        RpcRegistry.register(WorkingEnabledConfiguratorActions.INSTANCE);
+        RPCRegistry.register(WorkingEnabledConfiguratorActions.INSTANCE);
     }
 
     /**

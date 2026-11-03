@@ -22,7 +22,7 @@ import com.gregtechceu.gtceu.api.sync_system.annotations.ServerFieldChangeListen
 import com.gregtechceu.gtceu.api.sync_system.annotations.ServerFieldNormalizer;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncBoth;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry;
 import com.gregtechceu.gtceu.utils.GTUtil;
 
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
@@ -42,7 +42,7 @@ public class CreativeEnergyContainerMachine extends TieredMachine
                                             CreativeEnergyActionTarget {
 
     static {
-        RpcRegistry.register(CreativeEnergyContainerMachineActions.INSTANCE);
+        RPCRegistry.register(CreativeEnergyContainerMachineActions.INSTANCE);
     }
 
     @SaveField

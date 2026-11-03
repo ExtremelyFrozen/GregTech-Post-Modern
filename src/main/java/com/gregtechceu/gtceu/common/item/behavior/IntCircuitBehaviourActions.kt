@@ -3,8 +3,8 @@ package com.gregtechceu.gtceu.common.item.behavior
 import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.sync_system.SyncActionContext
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcAction
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCAction
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry
 
 import net.minecraft.world.item.ItemStack
 
@@ -15,9 +15,9 @@ object IntCircuitBehaviourActions {
 
 	/** Creates a request using the registered method parameter codecs. */
 	@JvmStatic
-	fun createSetCircuitConfigurationAction(configuration: Int): SyncActionData = RpcRegistry.create(ACTION, configuration, configuration)
+	fun createSetCircuitConfigurationAction(configuration: Int): SyncActionData = RPCRegistry.create(ACTION, configuration, configuration)
 
-	@RpcAction("set_circuit_configuration")
+	@RPCAction("set_circuit_configuration")
 	fun apply(context: SyncActionContext, configuration: Int): Boolean {
 		val stack = context.holder as? ItemStack ?: return false
 		val openedStack = context.openedStack ?: return false

@@ -3,8 +3,8 @@ package com.gregtechceu.gtceu.common.machine.storage
 import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.sync_system.SyncActionContext
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcAction
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCAction
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry
 
 import net.minecraft.server.level.ServerPlayer
 import net.neoforged.neoforge.fluids.FluidStack
@@ -30,32 +30,32 @@ interface QuantumTankActionTarget {
 object QuantumTankMachineActions {
 
 	@JvmStatic
-	fun createClickQuantumTankFluidSlotAction(shiftDown: Boolean): SyncActionData = RpcRegistry.create(GTCEu.id("click_quantum_tank_fluid_slot"), if (shiftDown) 1 else 0, shiftDown)
+	fun createClickQuantumTankFluidSlotAction(shiftDown: Boolean): SyncActionData = RPCRegistry.create(GTCEu.id("click_quantum_tank_fluid_slot"), if (shiftDown) 1 else 0, shiftDown)
 
 	@JvmStatic
 	fun createSetQuantumTankLockedFluidAction(fluid: FluidStack): SyncActionData {
 		val locked = if (fluid.isEmpty) FluidStack.EMPTY else fluid.copyWithAmount(FluidType.BUCKET_VOLUME)
-		return RpcRegistry.create(GTCEu.id("set_quantum_tank_locked_fluid"), FluidStack.hashFluidAndComponents(locked) * 31 + locked.amount, locked)
+		return RPCRegistry.create(GTCEu.id("set_quantum_tank_locked_fluid"), FluidStack.hashFluidAndComponents(locked) * 31 + locked.amount, locked)
 	}
 
 	@JvmStatic
-	fun createSetQuantumTankLockedAction(locked: Boolean): SyncActionData = RpcRegistry.create(GTCEu.id("set_quantum_tank_locked"), if (locked) 1 else 0, locked)
+	fun createSetQuantumTankLockedAction(locked: Boolean): SyncActionData = RPCRegistry.create(GTCEu.id("set_quantum_tank_locked"), if (locked) 1 else 0, locked)
 
-	@RpcAction("click_quantum_tank_fluid_slot")
+	@RPCAction("click_quantum_tank_fluid_slot")
 	fun clickFluidSlot(context: SyncActionContext, shiftDown: Boolean): Boolean {
 		val target = context.holder as? QuantumTankActionTarget ?: return false
 		target.clickQuantumTankFluidSlot(context.player, shiftDown)
 		return true
 	}
 
-	@RpcAction("set_quantum_tank_locked_fluid")
+	@RPCAction("set_quantum_tank_locked_fluid")
 	fun setLockedFluid(context: SyncActionContext, fluid: FluidStack): Boolean {
 		val target = context.holder as? QuantumTankActionTarget ?: return false
 		target.setQuantumTankLockedFluid(fluid)
 		return true
 	}
 
-	@RpcAction("set_quantum_tank_locked")
+	@RPCAction("set_quantum_tank_locked")
 	fun setLocked(context: SyncActionContext, locked: Boolean): Boolean {
 		val target = context.holder as? QuantumTankActionTarget ?: return false
 		target.setQuantumTankLocked(locked)

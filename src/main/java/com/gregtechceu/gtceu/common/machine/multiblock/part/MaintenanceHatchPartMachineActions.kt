@@ -3,8 +3,8 @@ package com.gregtechceu.gtceu.common.machine.multiblock.part
 import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.sync_system.SyncActionContext
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcAction
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCAction
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry
 
 import net.minecraft.server.level.ServerPlayer
 
@@ -33,12 +33,12 @@ interface MaintenanceHatchActionTarget {
 object MaintenanceHatchPartMachineActions {
 
 	@JvmStatic
-	fun createAdjustMaintenanceDurationAction(direction: Int): SyncActionData = RpcRegistry.create(GTCEu.id("adjust_maintenance_duration_multiplier"), if (direction > 0) 1 else 0, direction)
+	fun createAdjustMaintenanceDurationAction(direction: Int): SyncActionData = RPCRegistry.create(GTCEu.id("adjust_maintenance_duration_multiplier"), if (direction > 0) 1 else 0, direction)
 
 	@JvmStatic
-	fun createFixMaintenanceProblemsAction(): SyncActionData = RpcRegistry.create(GTCEu.id("fix_maintenance_problems"), 0)
+	fun createFixMaintenanceProblemsAction(): SyncActionData = RPCRegistry.create(GTCEu.id("fix_maintenance_problems"), 0)
 
-	@RpcAction("adjust_maintenance_duration_multiplier")
+	@RPCAction("adjust_maintenance_duration_multiplier")
 	fun adjustDuration(context: SyncActionContext, direction: Int): Boolean {
 		val target = context.holder as? MaintenanceHatchActionTarget ?: return false
 		if (!target.supportsMaintenanceDurationAdjustment()) return false
@@ -47,7 +47,7 @@ object MaintenanceHatchPartMachineActions {
 		return true
 	}
 
-	@RpcAction("fix_maintenance_problems")
+	@RPCAction("fix_maintenance_problems")
 	fun fixProblems(context: SyncActionContext): Boolean {
 		val target = context.holder as? MaintenanceHatchActionTarget ?: return false
 		target.fixMaintenanceProblemsForAction(context.player)

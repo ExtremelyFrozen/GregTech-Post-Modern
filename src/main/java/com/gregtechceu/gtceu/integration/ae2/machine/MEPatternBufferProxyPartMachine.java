@@ -24,7 +24,7 @@ import com.gregtechceu.gtceu.api.sync_system.SyncActionContext;
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry;
 import com.gregtechceu.gtceu.common.data.GTDataComponents;
 import com.gregtechceu.gtceu.common.data.machines.GTAEMachines;
 import com.gregtechceu.gtceu.common.machine.owner.MachineOwner;
@@ -58,9 +58,9 @@ public class MEPatternBufferProxyPartMachine extends TieredIOPartMachine
                                              FancyPartUIProvider, MEPatternBufferProxyActionTarget {
 
     static {
-        RpcRegistry.register(CircuitConfiguratorActions.INSTANCE);
-        RpcRegistry.register(DirectionalCoverActions.INSTANCE);
-        RpcRegistry.register(MEPatternBufferProxyActions.INSTANCE);
+        RPCRegistry.register(CircuitConfiguratorActions.INSTANCE);
+        RPCRegistry.register(DirectionalCoverActions.INSTANCE);
+        RPCRegistry.register(MEPatternBufferProxyActions.INSTANCE);
     }
 
     @Getter
@@ -401,7 +401,7 @@ public class MEPatternBufferProxyPartMachine extends TieredIOPartMachine
     private void dispatchLinkedAction(ServerPlayer player, MEPatternBufferProxyOpeningIdentity opening,
                                       SyncActionData action, String description) {
         MEPatternBufferPartMachine linked = requireLinkedBuffer(opening);
-        if (!RpcRegistry.dispatch(
+        if (!RPCRegistry.dispatch(
                 SyncActionContext.machine(player, linked, action, opening.bufferPos()))) {
             throw new IllegalStateException("Pattern Buffer Proxy linked " + description + " action was rejected.");
         }

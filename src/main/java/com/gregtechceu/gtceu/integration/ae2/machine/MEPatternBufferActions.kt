@@ -4,8 +4,8 @@ import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.machine.feature.FancyActionMachine
 import com.gregtechceu.gtceu.api.sync_system.SyncActionContext
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcAction
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCAction
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry
 
 import net.minecraft.server.level.ServerPlayer
 
@@ -37,15 +37,15 @@ interface MEPatternBufferActionTarget : FancyActionMachine {
 object MEPatternBufferActions {
 
 	@JvmStatic
-	fun createSetNameAction(name: String): SyncActionData = RpcRegistry.create(GTCEu.id("set_me_pattern_buffer_name"), name.hashCode(), name)
+	fun createSetNameAction(name: String): SyncActionData = RPCRegistry.create(GTCEu.id("set_me_pattern_buffer_name"), name.hashCode(), name)
 
 	@JvmStatic
-	fun createRefundAllAction(): SyncActionData = RpcRegistry.create(GTCEu.id("refund_me_pattern_buffer"), 0)
+	fun createRefundAllAction(): SyncActionData = RPCRegistry.create(GTCEu.id("refund_me_pattern_buffer"), 0)
 
 	@JvmStatic
-	fun createClickShareTankAction(tankIndex: Int, shiftDown: Boolean): SyncActionData = RpcRegistry.create(GTCEu.id("click_me_pattern_buffer_share_tank"), tankIndex * 2 + if (shiftDown) 1 else 0, tankIndex, shiftDown)
+	fun createClickShareTankAction(tankIndex: Int, shiftDown: Boolean): SyncActionData = RPCRegistry.create(GTCEu.id("click_me_pattern_buffer_share_tank"), tankIndex * 2 + if (shiftDown) 1 else 0, tankIndex, shiftDown)
 
-	@RpcAction("set_me_pattern_buffer_name")
+	@RPCAction("set_me_pattern_buffer_name")
 	fun setName(context: SyncActionContext, name: String): Boolean {
 		val target = context.holder as? MEPatternBufferActionTarget ?: return false
 		if (!target.supportsMEPatternBufferActions()) return false
@@ -53,7 +53,7 @@ object MEPatternBufferActions {
 		return true
 	}
 
-	@RpcAction("refund_me_pattern_buffer")
+	@RPCAction("refund_me_pattern_buffer")
 	fun refundAll(context: SyncActionContext): Boolean {
 		val target = context.holder as? MEPatternBufferActionTarget ?: return false
 		if (!target.supportsMEPatternBufferActions()) return false
@@ -61,7 +61,7 @@ object MEPatternBufferActions {
 		return true
 	}
 
-	@RpcAction("click_me_pattern_buffer_share_tank")
+	@RPCAction("click_me_pattern_buffer_share_tank")
 	fun clickShareTank(context: SyncActionContext, tankIndex: Int, shiftDown: Boolean): Boolean {
 		val target = context.holder as? MEPatternBufferActionTarget ?: return false
 		if (!target.supportsMEPatternBufferActions() || tankIndex !in 0 until target.getMEPatternBufferShareTankCount()) return false

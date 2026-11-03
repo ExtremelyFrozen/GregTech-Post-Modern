@@ -3,8 +3,8 @@ package com.gregtechceu.gtceu.common.machine.storage
 import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.sync_system.SyncActionContext
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcAction
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCAction
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry
 
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.item.ItemStack
@@ -35,43 +35,43 @@ object QuantumChestMachineActions {
 	fun createClickQuantumChestImportSlotAction(carried: ItemStack, rightClick: Boolean): SyncActionData {
 		val item = carried.copy()
 		val sequence = ItemStack.hashItemAndComponents(item) * 31 + item.count
-		return RpcRegistry.create(GTCEu.id("click_quantum_chest_import_slot"), sequence * 31 + if (rightClick) 1 else 0, item, rightClick)
+		return RPCRegistry.create(GTCEu.id("click_quantum_chest_import_slot"), sequence * 31 + if (rightClick) 1 else 0, item, rightClick)
 	}
 
 	@JvmStatic
-	fun createExportQuantumChestItemAction(): SyncActionData = RpcRegistry.create(GTCEu.id("export_quantum_chest_item"), 0)
+	fun createExportQuantumChestItemAction(): SyncActionData = RPCRegistry.create(GTCEu.id("export_quantum_chest_item"), 0)
 
 	@JvmStatic
 	fun createSetQuantumChestLockedItemAction(item: ItemStack): SyncActionData {
 		val locked = if (item.isEmpty) ItemStack.EMPTY else item.copyWithCount(1)
-		return RpcRegistry.create(GTCEu.id("set_quantum_chest_locked_item"), ItemStack.hashItemAndComponents(locked), locked)
+		return RPCRegistry.create(GTCEu.id("set_quantum_chest_locked_item"), ItemStack.hashItemAndComponents(locked), locked)
 	}
 
 	@JvmStatic
-	fun createSetQuantumChestLockedAction(locked: Boolean): SyncActionData = RpcRegistry.create(GTCEu.id("set_quantum_chest_locked"), if (locked) 1 else 0, locked)
+	fun createSetQuantumChestLockedAction(locked: Boolean): SyncActionData = RPCRegistry.create(GTCEu.id("set_quantum_chest_locked"), if (locked) 1 else 0, locked)
 
-	@RpcAction("click_quantum_chest_import_slot")
+	@RPCAction("click_quantum_chest_import_slot")
 	fun clickImportSlot(context: SyncActionContext, item: ItemStack, rightClick: Boolean): Boolean {
 		val target = context.holder as? QuantumChestActionTarget ?: return false
 		target.clickQuantumChestImportSlot(context.player, item, rightClick)
 		return true
 	}
 
-	@RpcAction("export_quantum_chest_item")
+	@RPCAction("export_quantum_chest_item")
 	fun exportItem(context: SyncActionContext): Boolean {
 		val target = context.holder as? QuantumChestActionTarget ?: return false
 		target.exportQuantumChestItem(context.player)
 		return true
 	}
 
-	@RpcAction("set_quantum_chest_locked_item")
+	@RPCAction("set_quantum_chest_locked_item")
 	fun setLockedItem(context: SyncActionContext, item: ItemStack): Boolean {
 		val target = context.holder as? QuantumChestActionTarget ?: return false
 		target.setQuantumChestLockedItem(item)
 		return true
 	}
 
-	@RpcAction("set_quantum_chest_locked")
+	@RPCAction("set_quantum_chest_locked")
 	fun setLocked(context: SyncActionContext, locked: Boolean): Boolean {
 		val target = context.holder as? QuantumChestActionTarget ?: return false
 		target.setQuantumChestLocked(locked)

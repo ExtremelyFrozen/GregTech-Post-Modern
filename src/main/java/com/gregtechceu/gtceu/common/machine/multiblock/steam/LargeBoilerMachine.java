@@ -21,7 +21,7 @@ import com.gregtechceu.gtceu.api.recipe.modifier.ModifierFunction;
 import com.gregtechceu.gtceu.api.recipe.modifier.RecipeModifier;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry;
 import com.gregtechceu.gtceu.common.data.GTMaterials;
 import com.gregtechceu.gtceu.config.ConfigHolder;
 import com.gregtechceu.gtceu.utils.GTUtil;
@@ -58,7 +58,7 @@ public class LargeBoilerMachine extends WorkableMultiblockMachine
     private static final int MIN_THROTTLE = 25;
     private static final int MAX_THROTTLE = 100;
     static {
-        RpcRegistry.register(LargeBoilerMachineActions.INSTANCE);
+        RPCRegistry.register(LargeBoilerMachineActions.INSTANCE);
     }
 
     @Getter

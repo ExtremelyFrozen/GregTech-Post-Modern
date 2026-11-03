@@ -4,8 +4,8 @@ import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.capability.recipe.IO
 import com.gregtechceu.gtceu.api.sync_system.SyncActionContext
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcAction
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCAction
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry
 import com.gregtechceu.gtceu.common.cover.data.DistributionMode
 import com.gregtechceu.gtceu.common.cover.data.ManualIOMode
 
@@ -35,9 +35,9 @@ object ConveyorCoverConfigActions {
 
 	/** Creates a request using the registered method parameter codecs. */
 	@JvmStatic
-	fun createSetConfigAction(transferRate: Int, io: IO, distributionMode: DistributionMode, manualIOMode: ManualIOMode): SyncActionData = RpcRegistry.create(ACTION, 0, transferRate, io, distributionMode, manualIOMode)
+	fun createSetConfigAction(transferRate: Int, io: IO, distributionMode: DistributionMode, manualIOMode: ManualIOMode): SyncActionData = RPCRegistry.create(ACTION, 0, transferRate, io, distributionMode, manualIOMode)
 
-	@RpcAction("set_conveyor_cover_config")
+	@RPCAction("set_conveyor_cover_config")
 	fun apply(context: SyncActionContext, transferRate: Int, io: IO, distributionMode: DistributionMode, manualIOMode: ManualIOMode): Boolean {
 		val target = context.holder as? ConveyorCover ?: return false
 		require(transferRate > 0) { "Conveyor transfer rate must be positive: $transferRate" }

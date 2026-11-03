@@ -4,8 +4,8 @@ import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.item.IComponentItem
 import com.gregtechceu.gtceu.api.sync_system.SyncActionContext
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcAction
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCAction
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry
 import com.gregtechceu.gtceu.common.data.GTDataComponents
 import com.gregtechceu.gtceu.common.item.datacomponents.TextLineList
 import com.gregtechceu.gtceu.common.item.modules.TextModuleBehaviour
@@ -49,9 +49,9 @@ object CentralMonitorTextModuleActions {
 
 	@JvmStatic
 	fun createSetTextModuleConfigurationAction(holderIncarnation: UUID, groupIdentity: UUID, moduleSlotIncarnation: UUID, expectedConfigurationRevision: Long, expectedModule: ItemStack, requestedConfiguration: TextLineList, sequence: Int): SyncActionData =
-		RpcRegistry.create(ACTION, sequence, holderIncarnation, groupIdentity, moduleSlotIncarnation, expectedConfigurationRevision, captureExpectedModule(expectedModule), requestedConfiguration.lines.map { it.string }, requestedConfiguration.scale)
+		RPCRegistry.create(ACTION, sequence, holderIncarnation, groupIdentity, moduleSlotIncarnation, expectedConfigurationRevision, captureExpectedModule(expectedModule), requestedConfiguration.lines.map { it.string }, requestedConfiguration.scale)
 
-	@RpcAction("set_central_monitor_text_module_configuration")
+	@RPCAction("set_central_monitor_text_module_configuration")
 	fun apply(context: SyncActionContext, holderIncarnation: UUID, groupIdentity: UUID, moduleSlotIncarnation: UUID, expectedConfigurationRevision: Long, expectedModule: ItemStack, lines: List<String>, scale: Float): Boolean {
 		val target = context.holder as? CentralMonitorTextModuleActionHost ?: return false
 		if (context.sequence() < 0) return false

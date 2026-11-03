@@ -4,8 +4,8 @@ import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.machine.feature.FancyActionMachine
 import com.gregtechceu.gtceu.api.sync_system.SyncActionContext
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcAction
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCAction
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry
 
 import net.minecraft.server.level.ServerPlayer
 
@@ -31,9 +31,9 @@ object DualHatchPartMachineActions {
 
 	/** Creates a request using the registered method parameter codecs. */
 	@JvmStatic
-	fun createClickDualHatchFluidSlotAction(tankIndex: Int, shiftDown: Boolean): SyncActionData = RpcRegistry.create(ACTION, tankIndex * 2 + if (shiftDown) 1 else 0, tankIndex, shiftDown)
+	fun createClickDualHatchFluidSlotAction(tankIndex: Int, shiftDown: Boolean): SyncActionData = RPCRegistry.create(ACTION, tankIndex * 2 + if (shiftDown) 1 else 0, tankIndex, shiftDown)
 
-	@RpcAction("click_dual_hatch_fluid_slot")
+	@RPCAction("click_dual_hatch_fluid_slot")
 	fun apply(context: SyncActionContext, tankIndex: Int, shiftDown: Boolean): Boolean {
 		val target = context.holder as? DualHatchFluidSlotActionTarget ?: return false
 		if (tankIndex !in 0 until target.getFluidTankCount()) return false

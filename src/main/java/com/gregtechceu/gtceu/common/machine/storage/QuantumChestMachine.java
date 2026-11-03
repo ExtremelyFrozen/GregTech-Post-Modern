@@ -30,7 +30,7 @@ import com.gregtechceu.gtceu.api.machine.trait.MachineTraitType;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncBoth;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry;
 import com.gregtechceu.gtceu.api.transfer.fluid.IFluidHandlerModifiable;
 import com.gregtechceu.gtceu.api.transfer.item.CustomItemStackHandler;
 import com.gregtechceu.gtceu.common.data.GTDataComponents;
@@ -84,7 +84,7 @@ public class QuantumChestMachine extends TieredMachine implements IControllable,
     private static final int PAGE_HEIGHT = 63;
 
     static {
-        RpcRegistry.register(QuantumChestMachineActions.INSTANCE);
+        RPCRegistry.register(QuantumChestMachineActions.INSTANCE);
     }
 
     @SaveField

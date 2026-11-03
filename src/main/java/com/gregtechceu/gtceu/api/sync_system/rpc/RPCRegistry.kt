@@ -21,7 +21,7 @@ import java.util.Collections
  * Registers annotated action methods and shares their parameter schema between sender and receiver.
  * Reflection is confined to this communication boundary; business methods receive decoded values.
  */
-object RpcRegistry {
+object RPCRegistry {
 
 	private val actions = Collections.synchronizedMap(Object2ObjectOpenHashMap<ResourceLocation, Endpoint>())
 	private val owners = ReferenceOpenHashSet<Any>()
@@ -31,7 +31,7 @@ object RpcRegistry {
 	fun register(owner: Any): Unit = synchronized(actions) {
 		if (owner in owners) return
 		for (method in owner.javaClass.declaredMethods) {
-			val annotation = method.getAnnotation(RpcAction::class.java) ?: continue
+			val annotation = method.getAnnotation(RPCAction::class.java) ?: continue
 			val id = GTCEu.id(annotation.value)
 			val endpoint = Endpoint(owner, method)
 			require(actions.putIfAbsent(id, endpoint) == null) { "Duplicate RPC action: $id" }
@@ -95,7 +95,7 @@ object RpcRegistry {
 
 		fun invoke(context: SyncActionContext): Boolean {
 			var argumentIndex = 0
-			val arguments = Array<Any>(parameterTypes.size) { index ->
+			val arguments = Array(parameterTypes.size) { index ->
 				when (parameterTypes[index]) {
 					SyncActionContext::class.java -> context
 					ServerPlayer::class.java -> context.player

@@ -28,7 +28,7 @@ import com.gregtechceu.gtceu.api.machine.trait.MachineTraitType;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncBoth;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry;
 import com.gregtechceu.gtceu.api.transfer.fluid.CustomFluidTank;
 import com.gregtechceu.gtceu.api.transfer.fluid.IFluidHandlerModifiable;
 import com.gregtechceu.gtceu.common.machine.trait.AutoOutputTrait;
@@ -80,7 +80,7 @@ public class QuantumTankMachine extends TieredMachine implements IControllable,
     private static final int PAGE_HEIGHT = 63;
 
     static {
-        RpcRegistry.register(QuantumTankMachineActions.INSTANCE);
+        RPCRegistry.register(QuantumTankMachineActions.INSTANCE);
     }
 
     @SaveField

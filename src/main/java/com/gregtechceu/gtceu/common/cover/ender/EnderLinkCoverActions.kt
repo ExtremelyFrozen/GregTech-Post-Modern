@@ -5,8 +5,8 @@ import com.gregtechceu.gtceu.api.capability.recipe.IO
 import com.gregtechceu.gtceu.api.misc.virtualregistry.VirtualEntry
 import com.gregtechceu.gtceu.api.sync_system.SyncActionContext
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcAction
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCAction
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry
 import com.gregtechceu.gtceu.common.cover.data.ManualIOMode
 
 import net.minecraft.core.BlockPos
@@ -59,7 +59,7 @@ interface EnderLinkCoverActionTarget {
 object EnderLinkCoverActions {
 
 	@JvmStatic
-	fun createSetConfigAction(channelColor: String, permission: AbstractEnderLinkCover.Permissions, io: IO, manualIOMode: ManualIOMode, workingEnabled: Boolean): SyncActionData = RpcRegistry.create(
+	fun createSetConfigAction(channelColor: String, permission: AbstractEnderLinkCover.Permissions, io: IO, manualIOMode: ManualIOMode, workingEnabled: Boolean): SyncActionData = RPCRegistry.create(
 		GTCEu.id("set_ender_link_cover_config"),
 		0,
 		channelColor,
@@ -70,15 +70,15 @@ object EnderLinkCoverActions {
 	)
 
 	@JvmStatic
-	fun createSetDescriptionAction(channelName: String, description: String): SyncActionData = RpcRegistry.create(GTCEu.id("set_ender_link_channel_description"), 0, channelName, description)
+	fun createSetDescriptionAction(channelName: String, description: String): SyncActionData = RPCRegistry.create(GTCEu.id("set_ender_link_channel_description"), 0, channelName, description)
 
 	@JvmStatic
-	fun createRequestChannelsAction(): SyncActionData = RpcRegistry.create(GTCEu.id("request_ender_link_channels"), 0)
+	fun createRequestChannelsAction(): SyncActionData = RPCRegistry.create(GTCEu.id("request_ender_link_channels"), 0)
 
 	@JvmStatic
-	fun createClearDescriptionAction(channelName: String): SyncActionData = RpcRegistry.create(GTCEu.id("clear_ender_link_channel_description"), 0, channelName)
+	fun createClearDescriptionAction(channelName: String): SyncActionData = RPCRegistry.create(GTCEu.id("clear_ender_link_channel_description"), 0, channelName)
 
-	@RpcAction("set_ender_link_cover_config")
+	@RPCAction("set_ender_link_cover_config")
 	fun setConfig(context: SyncActionContext, channelColor: String, permission: AbstractEnderLinkCover.Permissions, io: IO, manualIOMode: ManualIOMode, workingEnabled: Boolean): Boolean {
 		val target = context.holder as? AbstractEnderLinkCover<*> ?: return false
 		require(isValidColorInput(channelColor)) { "Ender link cover color is invalid: $channelColor" }
@@ -92,7 +92,7 @@ object EnderLinkCoverActions {
 		return true
 	}
 
-	@RpcAction("set_ender_link_channel_description")
+	@RPCAction("set_ender_link_channel_description")
 	fun setDescription(context: SyncActionContext, channelName: String, description: String): Boolean {
 		val target = context.holder as? AbstractEnderLinkCover<*> ?: return false
 		val entry = checkNotNull(target.findEnderLinkActionChannel(channelName)) { "Ender link channel is missing: $channelName" }
@@ -101,14 +101,14 @@ object EnderLinkCoverActions {
 		return true
 	}
 
-	@RpcAction("request_ender_link_channels")
+	@RPCAction("request_ender_link_channels")
 	fun requestChannels(context: SyncActionContext): Boolean {
 		val target = context.holder as? AbstractEnderLinkCover<*> ?: return false
 		sendChannelList(context, target)
 		return true
 	}
 
-	@RpcAction("clear_ender_link_channel_description")
+	@RPCAction("clear_ender_link_channel_description")
 	fun clearDescription(context: SyncActionContext, channelName: String): Boolean {
 		val target = context.holder as? AbstractEnderLinkCover<*> ?: return false
 		require(isJavaNonBlank(channelName)) { "Ender link channel name is blank." }

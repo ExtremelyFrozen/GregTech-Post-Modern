@@ -4,8 +4,8 @@ import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.machine.feature.FancyActionMachine
 import com.gregtechceu.gtceu.api.sync_system.SyncActionContext
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcAction
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCAction
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry
 import com.gregtechceu.gtceu.common.item.behavior.IntCircuitBehaviour
 
 import net.minecraft.core.BlockPos
@@ -85,16 +85,16 @@ enum class MEPatternBufferProxyCoverOperation {
 object MEPatternBufferProxyActions {
 
 	@JvmStatic
-	fun createSetNameAction(opening: MEPatternBufferProxyOpeningIdentity, name: String): SyncActionData = RpcRegistry.create(GTCEu.id("set_me_pattern_buffer_proxy_name"), name.hashCode(), opening, name)
+	fun createSetNameAction(opening: MEPatternBufferProxyOpeningIdentity, name: String): SyncActionData = RPCRegistry.create(GTCEu.id("set_me_pattern_buffer_proxy_name"), name.hashCode(), opening, name)
 
 	@JvmStatic
-	fun createRefundAllAction(opening: MEPatternBufferProxyOpeningIdentity): SyncActionData = RpcRegistry.create(GTCEu.id("refund_me_pattern_buffer_proxy"), 0, opening)
+	fun createRefundAllAction(opening: MEPatternBufferProxyOpeningIdentity): SyncActionData = RPCRegistry.create(GTCEu.id("refund_me_pattern_buffer_proxy"), 0, opening)
 
 	@JvmStatic
-	fun createClickShareTankAction(opening: MEPatternBufferProxyOpeningIdentity, tankIndex: Int, shiftDown: Boolean): SyncActionData = RpcRegistry.create(GTCEu.id("click_me_pattern_buffer_proxy_share_tank"), tankIndex * 2 + if (shiftDown) 1 else 0, opening, tankIndex, shiftDown)
+	fun createClickShareTankAction(opening: MEPatternBufferProxyOpeningIdentity, tankIndex: Int, shiftDown: Boolean): SyncActionData = RPCRegistry.create(GTCEu.id("click_me_pattern_buffer_proxy_share_tank"), tankIndex * 2 + if (shiftDown) 1 else 0, opening, tankIndex, shiftDown)
 
 	@JvmStatic
-	fun createSetCircuitConfigurationAction(opening: MEPatternBufferProxyOpeningIdentity, configuration: Int): SyncActionData = RpcRegistry.create(GTCEu.id("set_me_pattern_buffer_proxy_circuit"), configuration, opening, configuration)
+	fun createSetCircuitConfigurationAction(opening: MEPatternBufferProxyOpeningIdentity, configuration: Int): SyncActionData = RPCRegistry.create(GTCEu.id("set_me_pattern_buffer_proxy_circuit"), configuration, opening, configuration)
 
 	@JvmStatic
 	fun createPlaceCoverAction(opening: MEPatternBufferProxyOpeningIdentity, side: Direction): SyncActionData = createCoverAction(opening, side, MEPatternBufferProxyCoverOperation.PLACE)
@@ -105,9 +105,9 @@ object MEPatternBufferProxyActions {
 	@JvmStatic
 	fun createOpenCoverAction(opening: MEPatternBufferProxyOpeningIdentity, side: Direction): SyncActionData = createCoverAction(opening, side, MEPatternBufferProxyCoverOperation.OPEN)
 
-	private fun createCoverAction(opening: MEPatternBufferProxyOpeningIdentity, side: Direction, operation: MEPatternBufferProxyCoverOperation): SyncActionData = RpcRegistry.create(GTCEu.id("configure_me_pattern_buffer_proxy_cover"), side.get3DDataValue(), opening, side, operation)
+	private fun createCoverAction(opening: MEPatternBufferProxyOpeningIdentity, side: Direction, operation: MEPatternBufferProxyCoverOperation): SyncActionData = RPCRegistry.create(GTCEu.id("configure_me_pattern_buffer_proxy_cover"), side.get3DDataValue(), opening, side, operation)
 
-	@RpcAction("set_me_pattern_buffer_proxy_name")
+	@RPCAction("set_me_pattern_buffer_proxy_name")
 	fun setName(context: SyncActionContext, opening: MEPatternBufferProxyOpeningIdentity, name: String): Boolean {
 		val target = context.holder as? MEPatternBufferProxyActionTarget ?: return false
 		if (!target.canExecuteMEPatternBufferProxyAction(context.player, opening)) return false
@@ -115,7 +115,7 @@ object MEPatternBufferProxyActions {
 		return true
 	}
 
-	@RpcAction("refund_me_pattern_buffer_proxy")
+	@RPCAction("refund_me_pattern_buffer_proxy")
 	fun refundAll(context: SyncActionContext, opening: MEPatternBufferProxyOpeningIdentity): Boolean {
 		val target = context.holder as? MEPatternBufferProxyActionTarget ?: return false
 		if (!target.canExecuteMEPatternBufferProxyAction(context.player, opening)) return false
@@ -123,7 +123,7 @@ object MEPatternBufferProxyActions {
 		return true
 	}
 
-	@RpcAction("click_me_pattern_buffer_proxy_share_tank")
+	@RPCAction("click_me_pattern_buffer_proxy_share_tank")
 	fun clickShareTank(context: SyncActionContext, opening: MEPatternBufferProxyOpeningIdentity, tankIndex: Int, shiftDown: Boolean): Boolean {
 		val target = context.holder as? MEPatternBufferProxyActionTarget ?: return false
 		if (!target.canExecuteMEPatternBufferProxyAction(context.player, opening)) return false
@@ -132,7 +132,7 @@ object MEPatternBufferProxyActions {
 		return true
 	}
 
-	@RpcAction("set_me_pattern_buffer_proxy_circuit")
+	@RPCAction("set_me_pattern_buffer_proxy_circuit")
 	fun setCircuit(context: SyncActionContext, opening: MEPatternBufferProxyOpeningIdentity, configuration: Int): Boolean {
 		val target = context.holder as? MEPatternBufferProxyActionTarget ?: return false
 		if (!target.canExecuteMEPatternBufferProxyAction(context.player, opening)) return false
@@ -141,7 +141,7 @@ object MEPatternBufferProxyActions {
 		return true
 	}
 
-	@RpcAction("configure_me_pattern_buffer_proxy_cover")
+	@RPCAction("configure_me_pattern_buffer_proxy_cover")
 	fun configureCover(context: SyncActionContext, opening: MEPatternBufferProxyOpeningIdentity, side: Direction, operation: MEPatternBufferProxyCoverOperation): Boolean {
 		val target = context.holder as? MEPatternBufferProxyActionTarget ?: return false
 		if (!target.canExecuteMEPatternBufferProxyAction(context.player, opening)) return false

@@ -23,7 +23,7 @@ import com.gregtechceu.gtceu.api.placeholder.PlaceholderContext;
 import com.gregtechceu.gtceu.api.placeholder.PlaceholderHandler;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry;
 import com.gregtechceu.gtceu.api.transfer.item.CustomItemStackHandler;
 import com.gregtechceu.gtceu.client.renderer.cover.CoverTextRenderer;
 import com.gregtechceu.gtceu.client.renderer.cover.IDynamicCoverRenderer;
@@ -75,7 +75,7 @@ public class ComputerMonitorCover extends CoverBehavior
     private static final int CONTENT_HEIGHT = 195;
 
     static {
-        RpcRegistry.register(ComputerMonitorCoverConfigActions.INSTANCE);
+        RPCRegistry.register(ComputerMonitorCoverConfigActions.INSTANCE);
     }
 
     private TickableSubscription subscription;

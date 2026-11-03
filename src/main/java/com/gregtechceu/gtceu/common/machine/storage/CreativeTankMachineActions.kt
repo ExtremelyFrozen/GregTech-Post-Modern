@@ -3,8 +3,8 @@ package com.gregtechceu.gtceu.common.machine.storage
 import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.sync_system.SyncActionContext
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcAction
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCAction
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry
 
 import net.neoforged.neoforge.fluids.FluidStack
 import net.neoforged.neoforge.fluids.FluidType
@@ -27,10 +27,10 @@ object CreativeTankMachineActions {
 	@JvmStatic
 	fun createSetFluidAction(fluid: FluidStack): SyncActionData {
 		val storedFluid = if (fluid.isEmpty) FluidStack.EMPTY else fluid.copyWithAmount(FluidType.BUCKET_VOLUME)
-		return RpcRegistry.create(ACTION, FluidStack.hashFluidAndComponents(storedFluid) * 31 + storedFluid.amount, storedFluid)
+		return RPCRegistry.create(ACTION, FluidStack.hashFluidAndComponents(storedFluid) * 31 + storedFluid.amount, storedFluid)
 	}
 
-	@RpcAction("set_creative_tank_fluid")
+	@RPCAction("set_creative_tank_fluid")
 	fun apply(context: SyncActionContext, fluid: FluidStack): Boolean {
 		val target = context.holder as? CreativeTankFluidActionTarget ?: return false
 		target.setCreativeTankFluid(fluid)

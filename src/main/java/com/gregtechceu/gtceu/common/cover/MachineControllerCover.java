@@ -20,7 +20,7 @@ import com.gregtechceu.gtceu.api.machine.MachineCoverContainer;
 import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry;
 import com.gregtechceu.gtceu.api.transfer.item.CustomItemStackHandler;
 import com.gregtechceu.gtceu.common.cover.data.ControllerMode;
 
@@ -51,7 +51,7 @@ public class MachineControllerCover extends CoverBehavior
                                     implements CoverUIProvider, MachineControllerCoverConfigActionTarget {
 
     static {
-        RpcRegistry.register(MachineControllerCoverConfigActions.INSTANCE);
+        RPCRegistry.register(MachineControllerCoverConfigActions.INSTANCE);
     }
 
     private @Nullable CustomItemStackHandler sideCoverSlot;

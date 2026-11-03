@@ -3,8 +3,8 @@ package com.gregtechceu.gtceu.common.cover
 import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.sync_system.SyncActionContext
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcAction
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCAction
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry
 import com.gregtechceu.gtceu.common.cover.data.ControllerMode
 
 import org.jetbrains.annotations.ApiStatus
@@ -37,9 +37,9 @@ object MachineControllerCoverConfigActions {
 	private val ACTION = GTCEu.id("set_machine_controller_cover_config")
 
 	@JvmStatic
-	fun createSetConfigAction(controllerMode: ControllerMode?, minRedstoneStrength: Int, inverted: Boolean, preventPowerFail: Boolean): SyncActionData = RpcRegistry.create(ACTION, 0, Optional.ofNullable(controllerMode), minRedstoneStrength, inverted, preventPowerFail)
+	fun createSetConfigAction(controllerMode: ControllerMode?, minRedstoneStrength: Int, inverted: Boolean, preventPowerFail: Boolean): SyncActionData = RPCRegistry.create(ACTION, 0, Optional.ofNullable(controllerMode), minRedstoneStrength, inverted, preventPowerFail)
 
-	@RpcAction("set_machine_controller_cover_config")
+	@RPCAction("set_machine_controller_cover_config")
 	fun apply(context: SyncActionContext, requestedMode: Optional<ControllerMode>, minRedstoneStrength: Int, inverted: Boolean, preventPowerFail: Boolean): Boolean {
 		val target = context.holder as? MachineControllerCover ?: return false
 		require(minRedstoneStrength in 1..15) { "Machine controller redstone strength is out of range: $minRedstoneStrength" }

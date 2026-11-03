@@ -4,8 +4,8 @@ import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.machine.feature.FancyActionMachine
 import com.gregtechceu.gtceu.api.sync_system.SyncActionContext
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcAction
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCAction
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry
 
 import net.minecraft.server.level.ServerPlayer
 
@@ -26,9 +26,9 @@ object BufferMachineActions {
 
 	/** Creates a request using the registered method parameter codecs. */
 	@JvmStatic
-	fun createClickFluidSlotAction(tankIndex: Int, shiftDown: Boolean): SyncActionData = RpcRegistry.create(ACTION, tankIndex * 2 + if (shiftDown) 1 else 0, tankIndex, shiftDown)
+	fun createClickFluidSlotAction(tankIndex: Int, shiftDown: Boolean): SyncActionData = RPCRegistry.create(ACTION, tankIndex * 2 + if (shiftDown) 1 else 0, tankIndex, shiftDown)
 
-	@RpcAction("click_buffer_fluid_slot")
+	@RPCAction("click_buffer_fluid_slot")
 	fun apply(context: SyncActionContext, tankIndex: Int, shiftDown: Boolean): Boolean {
 		val target = context.holder as? BufferFluidSlotActionTarget ?: return false
 		require(tankIndex >= 0) { "Buffer tank index must be non-negative: $tankIndex" }

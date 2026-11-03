@@ -12,7 +12,7 @@ import com.gregtechceu.gtceu.api.gui.factory.UICoverHolder;
 import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry;
 import com.gregtechceu.gtceu.api.transfer.fluid.IFluidHandlerModifiable;
 import com.gregtechceu.gtceu.common.cover.data.BucketMode;
 import com.gregtechceu.gtceu.common.cover.data.TransferMode;
@@ -36,7 +36,7 @@ public class FluidRegulatorCover extends PumpCover implements FluidRegulatorCove
     private static final int MAX_STACK_SIZE = 2_048_000_000; // Capacity of quantum tank IX
 
     static {
-        RpcRegistry.register(FluidRegulatorCoverConfigActions.INSTANCE);
+        RPCRegistry.register(FluidRegulatorCoverConfigActions.INSTANCE);
     }
 
     @SaveField

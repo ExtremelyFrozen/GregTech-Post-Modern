@@ -3,8 +3,8 @@ package com.gregtechceu.gtceu.api.machine.steam
 import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.sync_system.SyncActionContext
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcAction
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCAction
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry
 
 import net.minecraft.server.level.ServerPlayer
 
@@ -33,9 +33,9 @@ object SteamBoilerMachineActions {
 
 	/** Creates a request using the registered method parameter codecs. */
 	@JvmStatic
-	fun createClickSteamBoilerFluidSlotAction(fluidSlot: Int, shiftDown: Boolean): SyncActionData = RpcRegistry.create(ACTION, fluidSlot, fluidSlot, shiftDown)
+	fun createClickSteamBoilerFluidSlotAction(fluidSlot: Int, shiftDown: Boolean): SyncActionData = RPCRegistry.create(ACTION, fluidSlot, fluidSlot, shiftDown)
 
-	@RpcAction("click_steam_boiler_fluid_slot")
+	@RPCAction("click_steam_boiler_fluid_slot")
 	fun apply(context: SyncActionContext, fluidSlot: Int, shiftDown: Boolean): Boolean {
 		val target = context.holder as? SteamBoilerFluidSlotActionTarget ?: return false
 		require(fluidSlot in 0..2) { "Steam boiler fluid slot is out of range: $fluidSlot" }

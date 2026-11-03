@@ -3,8 +3,8 @@ package com.gregtechceu.gtceu.common.machine.storage
 import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.sync_system.SyncActionContext
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcAction
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCAction
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry
 
 import net.minecraft.world.item.ItemStack
 
@@ -26,10 +26,10 @@ object CreativeChestMachineActions {
 	@JvmStatic
 	fun createSetItemAction(item: ItemStack): SyncActionData {
 		val storedItem = if (item.isEmpty) ItemStack.EMPTY else item.copyWithCount(1)
-		return RpcRegistry.create(ACTION, ItemStack.hashItemAndComponents(storedItem), storedItem)
+		return RPCRegistry.create(ACTION, ItemStack.hashItemAndComponents(storedItem), storedItem)
 	}
 
-	@RpcAction("set_creative_chest_item")
+	@RPCAction("set_creative_chest_item")
 	fun apply(context: SyncActionContext, item: ItemStack): Boolean {
 		val target = context.holder as? CreativeChestItemActionTarget ?: return false
 		target.setCreativeChestItem(item)

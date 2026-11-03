@@ -4,8 +4,8 @@ import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.item.IComponentItem
 import com.gregtechceu.gtceu.api.sync_system.SyncActionContext
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcAction
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCAction
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry
 import com.gregtechceu.gtceu.common.data.GTDataComponents
 import com.gregtechceu.gtceu.common.item.modules.ImageModuleBehaviour
 
@@ -46,9 +46,9 @@ object CentralMonitorImageModuleActions {
 
 	@JvmStatic
 	fun createSetImageModuleUrlAction(holderIncarnation: UUID, groupIdentity: UUID, moduleSlotIncarnation: UUID, expectedModule: ItemStack, requestedUrl: String, sequence: Int): SyncActionData =
-		RpcRegistry.create(ACTION, sequence, holderIncarnation, groupIdentity, moduleSlotIncarnation, captureExpectedModule(expectedModule), requestedUrl)
+		RPCRegistry.create(ACTION, sequence, holderIncarnation, groupIdentity, moduleSlotIncarnation, captureExpectedModule(expectedModule), requestedUrl)
 
-	@RpcAction("set_central_monitor_image_module_url")
+	@RPCAction("set_central_monitor_image_module_url")
 	fun apply(context: SyncActionContext, holderIncarnation: UUID, groupIdentity: UUID, moduleSlotIncarnation: UUID, expectedModule: ItemStack, requestedUrl: String): Boolean {
 		val target = context.holder as? CentralMonitorImageModuleActionHost ?: return false
 		if (context.sequence() < 0) return false

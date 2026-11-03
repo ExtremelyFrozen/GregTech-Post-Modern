@@ -18,7 +18,7 @@ import com.gregtechceu.gtceu.api.machine.MachineCoverContainer;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.api.machine.feature.DirectionalAutoOutputMachine;
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData;
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry;
 import com.gregtechceu.gtceu.client.gui.fancy.DirectionalSceneFactory;
 import com.gregtechceu.gtceu.common.machine.trait.AutoOutputTrait;
 import com.gregtechceu.gtceu.data.lang.LangHandler;
@@ -170,7 +170,7 @@ public final class DirectionalConfigurator implements FancyUIProvider {
         this.actionSender = actionSender;
         this.openingValid = openingValid;
         this.coverActionRequests = coverActionRequests;
-        RpcRegistry.register(DirectionalCoverActions.INSTANCE);
+        RPCRegistry.register(DirectionalCoverActions.INSTANCE);
     }
 
     private static void requireValidOpening(BooleanSupplier openingValid) {

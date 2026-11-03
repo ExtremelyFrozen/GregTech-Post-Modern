@@ -17,7 +17,7 @@ import com.gregtechceu.gtceu.api.gui.factory.UICoverHolder;
 import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry;
 
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
@@ -45,7 +45,7 @@ public class AdvancedFluidDetectorCover extends FluidDetectorCover implements Co
     private static final int DEFAULT_MIN = 64;
     private static final int DEFAULT_MAX = 512;
     static {
-        RpcRegistry.register(AdvancedFluidDetectorConfigActions.INSTANCE);
+        RPCRegistry.register(AdvancedFluidDetectorConfigActions.INSTANCE);
     }
 
     @SaveField

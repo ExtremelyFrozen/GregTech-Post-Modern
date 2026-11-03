@@ -13,7 +13,7 @@ import com.gregtechceu.gtceu.api.gui.factory.MachineUIProvider;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableFluidTank;
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry;
 import com.gregtechceu.gtceu.common.data.GTMaterials;
 import com.gregtechceu.gtceu.config.ConfigHolder;
 import com.gregtechceu.gtceu.utils.GTUtil;
@@ -46,7 +46,7 @@ public class SteamHatchPartMachine extends FluidHatchPartMachine
     public static final boolean IS_STEEL = ConfigHolder.INSTANCE.machines.steelSteamMultiblocks;
 
     static {
-        RpcRegistry.register(SteamHatchPartMachineActions.INSTANCE);
+        RPCRegistry.register(SteamHatchPartMachineActions.INSTANCE);
     }
 
     public SteamHatchPartMachine(BlockEntityCreationInfo info) {

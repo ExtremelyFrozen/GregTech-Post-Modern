@@ -4,8 +4,8 @@ import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.capability.recipe.IO
 import com.gregtechceu.gtceu.api.sync_system.SyncActionContext
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcAction
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCAction
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry
 import com.gregtechceu.gtceu.common.cover.data.BucketMode
 import com.gregtechceu.gtceu.common.cover.data.ManualIOMode
 
@@ -38,9 +38,9 @@ object PumpCoverConfigActions {
 
 	/** Creates a request using the registered method parameter codecs. */
 	@JvmStatic
-	fun createSetConfigAction(transferRate: Int, io: IO, bucketMode: BucketMode, manualIOMode: ManualIOMode): SyncActionData = RpcRegistry.create(ACTION, 0, transferRate, io, bucketMode, manualIOMode)
+	fun createSetConfigAction(transferRate: Int, io: IO, bucketMode: BucketMode, manualIOMode: ManualIOMode): SyncActionData = RPCRegistry.create(ACTION, 0, transferRate, io, bucketMode, manualIOMode)
 
-	@RpcAction("set_pump_cover_config")
+	@RPCAction("set_pump_cover_config")
 	fun apply(context: SyncActionContext, transferRate: Int, io: IO, bucketMode: BucketMode, manualIOMode: ManualIOMode): Boolean {
 		val target = context.holder as? PumpCoverConfigActionTarget ?: return false
 		require(transferRate >= 0) { "Pump transfer rate must be non-negative: $transferRate" }

@@ -12,7 +12,7 @@ import com.gregtechceu.gtceu.api.gui.factory.CoverUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.UICoverHolder;
 import com.gregtechceu.gtceu.api.item.tool.GTToolType;
 import com.gregtechceu.gtceu.api.item.tool.GridHighlightTexture;
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry;
 import com.gregtechceu.gtceu.common.cover.ConveyorCover;
 import com.gregtechceu.gtceu.common.data.item.GTItemAbilities;
 import com.gregtechceu.gtceu.utils.ExtendedUseOnContext;
@@ -39,7 +39,7 @@ import java.util.Set;
 public class ItemVoidingCover extends ConveyorCover implements IControllable {
 
     static {
-        RpcRegistry.register(ItemVoidingCoverConfigActions.INSTANCE);
+        RPCRegistry.register(ItemVoidingCoverConfigActions.INSTANCE);
     }
 
     public ItemVoidingCover(CoverDefinition definition, ICoverable coverHolder, Direction attachedSide) {

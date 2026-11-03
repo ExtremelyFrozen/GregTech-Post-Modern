@@ -3,8 +3,8 @@ package com.gregtechceu.gtceu.common.machine.multiblock.electric
 import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.sync_system.SyncActionContext
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcAction
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCAction
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry
 
 import org.jetbrains.annotations.ApiStatus
 
@@ -26,12 +26,12 @@ interface LargeMinerModeActionTarget {
 object LargeMinerMachineActions {
 
 	@JvmStatic
-	fun createToggleSilkTouchAction(): SyncActionData = RpcRegistry.create(GTCEu.id("toggle_large_miner_silk_touch"), 0)
+	fun createToggleSilkTouchAction(): SyncActionData = RPCRegistry.create(GTCEu.id("toggle_large_miner_silk_touch"), 0)
 
 	@JvmStatic
-	fun createToggleChunkModeAction(): SyncActionData = RpcRegistry.create(GTCEu.id("toggle_large_miner_chunk_mode"), 0)
+	fun createToggleChunkModeAction(): SyncActionData = RPCRegistry.create(GTCEu.id("toggle_large_miner_chunk_mode"), 0)
 
-	@RpcAction("toggle_large_miner_silk_touch")
+	@RPCAction("toggle_large_miner_silk_touch")
 	fun toggleSilkTouch(context: SyncActionContext): Boolean {
 		val target = context.holder as? LargeMinerMachine ?: return false
 		if (target.isLargeMinerModeChangeBlocked()) return false
@@ -39,7 +39,7 @@ object LargeMinerMachineActions {
 		return true
 	}
 
-	@RpcAction("toggle_large_miner_chunk_mode")
+	@RPCAction("toggle_large_miner_chunk_mode")
 	fun toggleChunkMode(context: SyncActionContext): Boolean {
 		val target = context.holder as? LargeMinerMachine ?: return false
 		if (target.isLargeMinerModeChangeBlocked()) return false

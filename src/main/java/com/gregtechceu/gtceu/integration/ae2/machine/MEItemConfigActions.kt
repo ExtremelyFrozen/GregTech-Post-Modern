@@ -4,8 +4,8 @@ import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.machine.feature.FancyActionMachine
 import com.gregtechceu.gtceu.api.sync_system.SyncActionContext
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcAction
-import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCAction
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry
 
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.item.ItemStack
@@ -58,19 +58,19 @@ object MEItemConfigActions {
 	@JvmStatic
 	fun createSetConfigAction(slot: Int, item: ItemStack): SyncActionData {
 		val copied = item.copy()
-		return RpcRegistry.create(GTCEu.id("set_me_item_config"), slot * 31 + ItemStack.hashItemAndComponents(copied) * 31 + copied.count, slot, copied)
+		return RPCRegistry.create(GTCEu.id("set_me_item_config"), slot * 31 + ItemStack.hashItemAndComponents(copied) * 31 + copied.count, slot, copied)
 	}
 
 	@JvmStatic
 	fun createSetAmountAction(slot: Int, expectedItem: ItemStack, amount: Int): SyncActionData {
 		val normalized = expectedItem.copyWithCount(1)
-		return RpcRegistry.create(GTCEu.id("set_me_item_config_amount"), slot * 31 + ItemStack.hashItemAndComponents(normalized) * 31 + amount, slot, normalized, amount)
+		return RPCRegistry.create(GTCEu.id("set_me_item_config_amount"), slot * 31 + ItemStack.hashItemAndComponents(normalized) * 31 + amount, slot, normalized, amount)
 	}
 
 	@JvmStatic
-	fun createSetAutoPullAction(autoPull: Boolean): SyncActionData = RpcRegistry.create(GTCEu.id("set_me_item_auto_pull"), if (autoPull) 1 else 0, autoPull)
+	fun createSetAutoPullAction(autoPull: Boolean): SyncActionData = RPCRegistry.create(GTCEu.id("set_me_item_auto_pull"), if (autoPull) 1 else 0, autoPull)
 
-	@RpcAction("set_me_item_config")
+	@RPCAction("set_me_item_config")
 	fun setConfig(context: SyncActionContext, slot: Int, item: ItemStack): Boolean {
 		val target = context.holder as? MEItemConfigActionTarget ?: return false
 		if (!target.supportsMEItemConfigActions() || slot !in 0 until target.getMEItemConfigSlotCount()) return false
@@ -79,7 +79,7 @@ object MEItemConfigActions {
 		return true
 	}
 
-	@RpcAction("set_me_item_config_amount")
+	@RPCAction("set_me_item_config_amount")
 	fun setAmount(context: SyncActionContext, slot: Int, expectedItem: ItemStack, amount: Int): Boolean {
 		val target = context.holder as? MEItemConfigActionTarget ?: return false
 		if (!target.supportsMEItemConfigActions() || slot !in 0 until target.getMEItemConfigSlotCount()) return false
@@ -90,7 +90,7 @@ object MEItemConfigActions {
 		return true
 	}
 
-	@RpcAction("set_me_item_auto_pull")
+	@RPCAction("set_me_item_auto_pull")
 	fun setAutoPull(context: SyncActionContext, autoPull: Boolean): Boolean {
 		val target = context.holder as? MEItemConfigActionTarget ?: return false
 		if (!target.supportsMEItemConfigActions() || !target.isMEItemStocking()) return false
@@ -101,10 +101,10 @@ object MEItemConfigActions {
 	@JvmStatic
 	fun createPickupStockAction(slot: Int, expectedItem: ItemStack): SyncActionData {
 		val normalized = expectedItem.copyWithCount(1)
-		return RpcRegistry.create(GTCEu.id("pickup_me_item_config_stock"), slot * 31 + ItemStack.hashItemAndComponents(normalized), slot, normalized)
+		return RPCRegistry.create(GTCEu.id("pickup_me_item_config_stock"), slot * 31 + ItemStack.hashItemAndComponents(normalized), slot, normalized)
 	}
 
-	@RpcAction("pickup_me_item_config_stock")
+	@RPCAction("pickup_me_item_config_stock")
 	fun pickupStock(context: SyncActionContext, slot: Int, expectedItem: ItemStack): Boolean {
 		val target = context.holder as? MEItemConfigActionTarget ?: return false
 		if (!target.supportsMEItemConfigActions() || slot !in 0 until target.getMEItemConfigSlotCount()) return false
