@@ -12,9 +12,7 @@ import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.multiblock.part.TieredPartMachine;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableEnergyContainer;
-import com.gregtechceu.gtceu.api.sync_system.ClassSyncData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
-import com.gregtechceu.gtceu.api.sync_system.codecs.GridNodeHostCodec;
 import com.gregtechceu.gtceu.integration.ae2.machine.trait.GridNodeHostTrait;
 
 import net.minecraft.core.Direction;
@@ -22,7 +20,6 @@ import net.minecraft.world.entity.player.Player;
 
 public class HullMachine extends TieredPartMachine implements IMonitorComponent, FancyPartUIProvider {
 
-    @SaveField(nbtKey = "grid_node")
     private final Object gridNodeHost;
 
     @SaveField
@@ -81,13 +78,6 @@ public class HullMachine extends TieredPartMachine implements IMonitorComponent,
 
         private static Object attachToMachine(HullMachine machine) {
             return machine.attachTrait(new GridNodeHostTrait(machine));
-        }
-    }
-
-    static {
-        if (GTCEu.MODS.AE2.isLoaded()) {
-            ClassSyncData.getClassData(HullMachine.class).setCustomContextualCodecForField("gridNodeHost",
-                    GridNodeHostCodec.INSTANCE);
         }
     }
 

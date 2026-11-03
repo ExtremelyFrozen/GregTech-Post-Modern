@@ -31,6 +31,7 @@ import com.gregtechceu.gtceu.api.machine.trait.NotifiableFluidTank;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler;
 import com.gregtechceu.gtceu.api.recipe.handler.RecipeHandlerList;
 import com.gregtechceu.gtceu.api.recipe.ingredient.SizedIngredientExtensions;
+import com.gregtechceu.gtceu.api.sync_system.ContextualFieldCodec.Context;
 import com.gregtechceu.gtceu.api.sync_system.SyncActionData;
 import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
@@ -77,6 +78,9 @@ import appeng.crafting.pattern.EncodedPatternItem;
 import appeng.helpers.patternprovider.PatternContainer;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+import com.mojang.datafixers.util.Pair;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import it.unimi.dsi.fastutil.objects.*;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenCustomHashMap;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
@@ -90,6 +94,7 @@ import org.jetbrains.annotations.VisibleForTesting;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.BooleanSupplier;
@@ -766,6 +771,38 @@ public class MEPatternBufferPartMachine extends MEBusPartMachine
     }
 
     public class InternalSlot {
+
+        /** Decodes both inventories before replacing the live slot and invalidates its cached views once. */
+        public static Codec<InternalSlot> codec(Context<InternalSlot> context) {
+            return RecordCodecBuilder.create(instance -> instance.group(
+                    amountCodec(ItemStack.OPTIONAL_CODEC).listOf().fieldOf("items")
+                            .forGetter((InternalSlot slot) -> slot.itemInventory.object2LongEntrySet().stream()
+                                    .map(entry -> Pair.of(entry.getKey(), entry.getLongValue())).toList()),
+                    amountCodec(FluidStack.OPTIONAL_CODEC).listOf().fieldOf("fluids")
+                            .forGetter((InternalSlot slot) -> slot.fluidInventory.object2LongEntrySet().stream()
+                                    .map(entry -> Pair.of(entry.getKey(), entry.getLongValue())).toList()))
+                    .apply(instance, (items, fluids) -> {
+                        InternalSlot slot = Objects.requireNonNull(context.currentValue(),
+                                "Pattern buffer internal slot must be initialized");
+                        slot.itemInventory.clear();
+                        for (Pair<ItemStack, Long> item : items) {
+                            slot.itemInventory.put(item.getFirst(), item.getSecond().longValue());
+                        }
+                        slot.fluidInventory.clear();
+                        for (Pair<FluidStack, Long> fluid : fluids) {
+                            slot.fluidInventory.put(fluid.getFirst(), fluid.getSecond().longValue());
+                        }
+                        slot.onContentsChanged();
+                        return slot;
+                    }));
+        }
+
+        private static <T> Codec<Pair<T, Long>> amountCodec(Codec<T> stackCodec) {
+            return RecordCodecBuilder.create(instance -> instance.group(
+                    stackCodec.fieldOf("stack").forGetter(Pair<T, Long>::getFirst),
+                    Codec.LONG.fieldOf("amount").forGetter(Pair<T, Long>::getSecond))
+                    .apply(instance, Pair::of));
+        }
 
         @Getter
         @Setter

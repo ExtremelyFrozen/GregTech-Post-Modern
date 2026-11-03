@@ -1,10 +1,14 @@
 package com.gregtechceu.gtceu.integration.ae2.utils;
 
+import com.gregtechceu.gtceu.api.sync_system.ContextualFieldCodec.Context;
+
 import appeng.api.config.Actionable;
 import appeng.api.networking.security.IActionSource;
 import appeng.api.stacks.AEKey;
 import appeng.api.stacks.GenericStack;
 import appeng.api.storage.MEStorage;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import it.unimi.dsi.fastutil.objects.Object2LongLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
 
@@ -12,6 +16,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -20,6 +25,15 @@ import java.util.function.Consumer;
  * Provides methods for serialization and deserialization.
  */
 public class KeyStorage implements Iterable<Object2LongMap.Entry<AEKey>> {
+
+    /** Applies one decoded inventory atomically while retaining both publication listeners. */
+    public static Codec<KeyStorage> codec(Context<KeyStorage> context) {
+        return Change.CODEC.listOf().xmap(changes -> {
+            KeyStorage storage = Objects.requireNonNull(context.currentValue(), "Key storage must be initialized");
+            storage.replaceContents(changes);
+            return storage;
+        }, KeyStorage::snapshot);
+    }
 
     /**
      * Mutable authoritative storage retained for existing machine and persistence callers.
@@ -216,6 +230,11 @@ public class KeyStorage implements Iterable<Object2LongMap.Entry<AEKey>> {
      * One ordered positive write or zero-amount tombstone emitted by the storage.
      */
     public record Change(AEKey key, long amount) {
+
+        public static final Codec<Change> CODEC = RecordCodecBuilder.create(instance -> instance.group(
+                AEKey.CODEC.fieldOf("key").forGetter(Change::key),
+                Codec.LONG.fieldOf("amount").forGetter(Change::amount))
+                .apply(instance, Change::new));
 
         /**
          * Validates the operation without forbidding the delta tombstone value.

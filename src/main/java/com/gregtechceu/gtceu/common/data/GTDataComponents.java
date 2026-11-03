@@ -9,7 +9,6 @@ import com.gregtechceu.gtceu.api.item.datacomponents.*;
 import com.gregtechceu.gtceu.api.placeholder.PlaceholderRenderData;
 import com.gregtechceu.gtceu.api.registry.GTRegistries;
 import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
-import com.gregtechceu.gtceu.common.data.datacomponents.AE2GridNodeData;
 import com.gregtechceu.gtceu.common.data.datacomponents.AEInputConfigCopyData;
 import com.gregtechceu.gtceu.common.data.datacomponents.CapeData;
 import com.gregtechceu.gtceu.common.data.datacomponents.FluidProspectionCache;
@@ -278,10 +277,6 @@ public class GTDataComponents {
             .registerComponentType("transfer_item_handler", builder -> builder
                     .persistent(TransferData.ItemHandler.CODEC)
                     .networkSynchronized(TransferData.ItemHandler.STREAM_CODEC));
-    public static final DeferredHolder<DataComponentType<?>, DataComponentType<AE2GridNodeData>> AE2_GRID_NODE = DATA_COMPONENTS
-            .registerComponentType("ae2_grid_node", builder -> builder
-                    .persistent(AE2GridNodeData.CODEC)
-                    .networkSynchronized(AE2GridNodeData.STREAM_CODEC));
     public static final DeferredHolder<DataComponentType<?>, DataComponentType<CapeData.Registry>> CAPE_REGISTRY = DATA_COMPONENTS
             .registerComponentType("cape_registry", builder -> builder
                     .persistent(CapeData.Registry.CODEC)
