@@ -15,6 +15,7 @@ import com.gregtechceu.gtceu.api.fluids.store.FluidStorageKey;
 import com.gregtechceu.gtceu.api.fluids.store.FluidStorageKeys;
 import com.gregtechceu.gtceu.api.item.tool.MaterialToolTier;
 import com.gregtechceu.gtceu.api.registry.GTRegistries;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 import com.gregtechceu.gtceu.common.data.GTMaterials;
 import com.gregtechceu.gtceu.common.data.GTMedicalConditions;
 import com.gregtechceu.gtceu.utils.FormattingUtil;
@@ -34,7 +35,6 @@ import net.neoforged.neoforge.fluids.crafting.SizedFluidIngredient;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.mojang.serialization.Codec;
 import dev.latvian.mods.rhino.util.RemapPrefixForJS;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
@@ -52,8 +52,10 @@ import static com.gregtechceu.gtceu.utils.FormattingUtil.toEnglishName;
 
 public class Material {
 
-    public static final Codec<Material> CODEC = ResourceLocation.CODEC
-            .xmap(id -> GTRegistries.MATERIALS.getMaterial(id), Material::getResourceLocation);
+    static {
+        FieldCodecs.register(Material.class, ResourceLocation.CODEC
+                .xmap(id -> GTRegistries.MATERIALS.getMaterial(id), Material::getResourceLocation));
+    }
 
     /**
      * Basic Info of this Material.
