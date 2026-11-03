@@ -7,7 +7,7 @@ shadow = "9.4.1"
 spotless = "8.6.0"
 modDevGradle = "2.0.141"
 lombok = "9.5.0"
-kotlin-lombok = "2.1.20"
+kotlin = "2.4.21"
 jetbrains-annotations = "26.1.0"
 renderNurse = "0.0.26"
 mixin = "0.8.7"
@@ -20,6 +20,7 @@ neoForge                = { module = "net.neoforged:neoforge", version.ref = "ne
 testframework           = { module = "net.neoforged:testframework", version.ref = "neoForge" }
 jetbrains-annotations   = { module = "org.jetbrains:annotations", version.ref = "jetbrains-annotations" }
 zstd                    = { module = "com.github.luben:zstd-jni", version.ref = "zstd" }
+kotlin-stdlib           = { module = "org.jetbrains.kotlin:kotlin-stdlib", version.ref = "kotlin" }
 renderNurse             = { module = "net.neoforged:render-nurse", version.ref = "renderNurse" }
 mixin                   = { module = "org.spongepowered:mixin", version.ref = "mixin" }
 
@@ -28,4 +29,5 @@ modDevGradle            = { id = "net.neoforged.moddev", version.ref = "modDevGr
 shadow                  = { id = "com.gradleup.shadow", version.ref = "shadow" }
 spotless                = { id = "com.diffplug.spotless", version.ref = "spotless" }
 lombok                  = { id = "io.freefair.lombok", version.ref = "lombok" }
-kotlin-lombok           = { id = "org.jetbrains.kotlin.plugin.lombok", version.ref = "kotlin-lombok" }
+kotlin-jvm              = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-lombok           = { id = "org.jetbrains.kotlin.plugin.lombok", version.ref = "kotlin" }

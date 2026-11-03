@@ -6,8 +6,9 @@ dependencies {
     jarJar(api(libs.zstd.get()))
     additionalRuntimeClasspath(libs.zstd)
 
-    jarJar(forge.kotlinforforge.get())
-    api(forge.kotlinforforge)
+    jarJar(api(libs.kotlin.stdlib.get())) {
+        exclude group: 'org.jetbrains', module: 'annotations'
+    }
 
     jarJar(api(forge.ldlib2.get()))
 
@@ -116,6 +117,7 @@ dependencies {
         transitive = false
     }
     extraLocalRuntime(forge.observable)
+    extraLocalRuntime(forge.kotlinforforge)
     //////////////////////////
 
 }

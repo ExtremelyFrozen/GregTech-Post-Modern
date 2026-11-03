@@ -9,6 +9,8 @@ repositories {
             includeGroup("org.lwjgl")
             includeGroup("com.google.guava")
             includeGroup("io.netty")
+            includeGroup("org.jetbrains")
+            includeGroup("org.jetbrains.kotlin")
         }
     }
 
@@ -83,7 +85,7 @@ repositories {
         forRepository { maven { url = "https://maven.theillusivec4.top/" } }
         filter { includeGroup('top.theillusivec4.curios')}
     }
-    exclusiveContent { // KotlinForForge
+    exclusiveContent { // KotlinForForge, required by Observable
         forRepository { maven { url = "https://thedarkcolour.github.io/KotlinForForge/" } }
         filter { includeGroup("thedarkcolour") }
     }

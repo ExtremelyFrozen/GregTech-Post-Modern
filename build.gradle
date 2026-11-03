@@ -1,6 +1,7 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmDefaultMode
+
 plugins {
     id 'java-library'
-    id 'org.jetbrains.kotlin.jvm'
     id 'eclipse'
     id 'idea'
     id 'maven-publish'
@@ -9,6 +10,7 @@ plugins {
     //alias libs.plugins.shadow
     alias libs.plugins.spotless
     alias libs.plugins.lombok
+    alias libs.plugins.kotlin.jvm
     alias libs.plugins.kotlin.lombok
 }
 
@@ -20,6 +22,13 @@ boolean isCI = System.getenv("CI") != null
 
 java {
     toolchain.languageVersion = JavaLanguageVersion.of(21)
+}
+
+kotlin {
+    jvmToolchain(21)
+    compilerOptions {
+        jvmDefault = JvmDefaultMode.NO_COMPATIBILITY
+    }
 }
 
 sourceSets {
@@ -92,14 +101,12 @@ tasks.withType(JavaCompile).configureEach {
     options.compilerArgs << "-Xlint:-removal"
 }
 
-kotlin {
-    compilerOptions {
-        freeCompilerArgs.add("-Xjvm-default=all")
-    }
-}
-
 lombok {
     version = "1.18.38"
+}
+
+kotlinLombok {
+    lombokConfigurationFile(file('lombok.config'))
 }
 
 jacoco {
@@ -131,13 +138,4 @@ jacocoTestReport {
             fileTree(dir: it, exclude: '**/mixins/**')
         }))
     }
-}
-repositories {
-    mavenCentral()
-}
-dependencies {
-    testImplementation 'org.jetbrains.kotlin:kotlin-test'
-}
-kotlinLombok {
-    lombokConfigurationFile(file("lombok.config"))
 }
