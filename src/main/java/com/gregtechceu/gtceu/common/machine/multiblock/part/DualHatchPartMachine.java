@@ -6,7 +6,6 @@ import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTFluidSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIProvider;
 import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
@@ -22,11 +21,13 @@ import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CircuitConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.DirectionalConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.DistinctPartConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
+import com.gregtechceu.gtceu.api.machine.feature.FancyActionMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableFluidTank;
-import com.gregtechceu.gtceu.api.sync_system.SyncActionData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
-import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry;
+import com.gregtechceu.gtceu.api.sync_system.managed.ISyncManaged;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCSender;
 import com.gregtechceu.gtceu.common.data.GTMachines;
 import com.gregtechceu.gtceu.integration.xei.GTXEIHelper;
 import com.gregtechceu.gtceu.utils.GTTransferUtils;
@@ -59,17 +60,14 @@ import org.lwjgl.glfw.GLFW;
 
 import java.util.List;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 public class DualHatchPartMachine extends ItemBusPartMachine
                                   implements MachineUIProvider, FancyPartUIProvider,
-                                  DualHatchFluidSlotActionTarget {
+                                  FancyActionMachine {
 
     public static final int INITIAL_TANK_CAPACITY = 16 * FluidType.BUCKET_VOLUME;
-
-    static {
-        RPCRegistry.register(DualHatchPartMachineActions.INSTANCE);
-    }
 
     @SaveField
     public final NotifiableFluidTank tank;
@@ -225,14 +223,14 @@ public class DualHatchPartMachine extends ItemBusPartMachine
     }
 
     private UIElement createMainElement(Player player, MachineUIHolder holder) {
-        return createMainElement(player, holder, MachineUIHelper::sendAction,
+        return createMainElement(player, holder, (target, action) -> action.accept(target.getMachine()),
                 event -> player.level().isClientSide() &&
                         FluidUtil.getFluidHandler(player.containerMenu.getCarried()).isPresent(),
                 UIEvent::isShiftDown);
     }
 
     UIElement createMainElement(Player player, MachineUIHolder holder,
-                                BiConsumer<MachineUIHolder, SyncActionData> actionSender,
+                                BiConsumer<MachineUIHolder, Consumer<ISyncManaged>> actionSender,
                                 Predicate<UIEvent> actionGuard, Predicate<UIEvent> shiftDown) {
         int tanks = (int) Math.sqrt(getInventorySize());
         UIElement root = UITemplate.setBounds(new UIElement(), 0, 0,
@@ -268,7 +266,7 @@ public class DualHatchPartMachine extends ItemBusPartMachine
     }
 
     private GTFluidSlotElement createFluidSlot(MachineUIHolder holder, int tankIndex, int x, int y,
-                                               BiConsumer<MachineUIHolder, SyncActionData> actionSender,
+                                               BiConsumer<MachineUIHolder, Consumer<ISyncManaged>> actionSender,
                                                Predicate<UIEvent> actionGuard,
                                                Predicate<UIEvent> shiftDown) {
         GTFluidSlotElement fluidSlot = new GTFluidSlotElement()
@@ -280,9 +278,8 @@ public class DualHatchPartMachine extends ItemBusPartMachine
                 .setBackgroundTexture(GuiTextures.FLUID_SLOT);
         fluidSlot.addEventListener(UIEvents.MOUSE_DOWN, event -> {
             if (event.button == GLFW.GLFW_MOUSE_BUTTON_LEFT && actionGuard.test(event)) {
-                actionSender.accept(holder, DualHatchPartMachineActions.createClickDualHatchFluidSlotAction(
-                        tankIndex,
-                        shiftDown.test(event)));
+                boolean shifted = shiftDown.test(event);
+                actionSender.accept(holder, managed -> managed.rpcToServer("clickFluidSlot", tankIndex, shifted));
                 event.stopImmediatePropagation();
                 event.hasHandler = true;
             }
@@ -290,18 +287,10 @@ public class DualHatchPartMachine extends ItemBusPartMachine
         return UITemplate.setBounds(fluidSlot, x, y, 18, 18);
     }
 
-    @Override
+    @RPCMethod
     @ApiStatus.Internal
-    public int getFluidTankCount() {
-        return tank.getTanks();
-    }
-
-    @Override
-    @ApiStatus.Internal
-    public void clickFluidSlot(ServerPlayer player, int tankIndex, boolean shiftDown) {
-        if (tankIndex < 0 || tankIndex >= tank.getTanks()) {
-            throw new IllegalArgumentException("Invalid dual hatch fluid tank index: " + tankIndex);
-        }
+    public void clickFluidSlot(RPCSender sender, int tankIndex, boolean shiftDown) {
+        var player = sender.asPlayer();
         new FluidClickTarget(tank.getStorages()[tankIndex], true, io.support(IO.IN)).click(player, shiftDown);
     }
 

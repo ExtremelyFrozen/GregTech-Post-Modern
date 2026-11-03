@@ -9,7 +9,6 @@ import com.gregtechceu.gtceu.api.gui.element.GTButtonElement;
 import com.gregtechceu.gtceu.api.gui.element.GTComponentPanelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTImageElement;
 import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIProvider;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyPreviewPage;
@@ -24,7 +23,7 @@ import com.gregtechceu.gtceu.api.machine.property.GTMachineModelProperties;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
-import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
 import com.gregtechceu.gtceu.client.model.machine.MachineRenderState;
 import com.gregtechceu.gtceu.common.data.GTItems;
 import com.gregtechceu.gtceu.utils.ExtendedUseOnContext;
@@ -59,15 +58,11 @@ import java.util.function.DoubleSupplier;
 
 public class MaintenanceHatchPartMachine extends TieredPartMachine
                                          implements IMaintenanceMachine, MachineUIProvider,
-                                         FancyPartUIProvider, MaintenanceHatchActionTarget {
+                                         FancyPartUIProvider {
 
     private static final float MAX_DURATION_MULTIPLIER = 1.1f;
     private static final float MIN_DURATION_MULTIPLIER = 0.9f;
     private static final float DURATION_ACTION_AMOUNT = 0.01f;
-    static {
-        RPCRegistry.register(MaintenanceHatchPartMachineActions.INSTANCE);
-    }
-
     @Getter
     private final boolean isConfigurable;
     @SaveField
@@ -419,38 +414,29 @@ public class MaintenanceHatchPartMachine extends TieredPartMachine
     private void adjustDuration(Player player, MachineUIHolder holder, int direction) {
         adjustDurationMultiplier(direction);
         if (player.level().isClientSide()) {
-            MachineUIHelper.sendAction(holder,
-                    MaintenanceHatchPartMachineActions.createAdjustMaintenanceDurationAction(direction));
+            holder.getMachine().rpcToServer("adjustDurationMultiplier", direction);
         }
     }
 
     private void fixMaintenanceProblems(Player player, MachineUIHolder holder) {
         if (player.level().isClientSide()) {
-            MachineUIHelper.sendAction(holder, MaintenanceHatchPartMachineActions.createFixMaintenanceProblemsAction());
+            holder.getMachine().rpcToServer("fixMaintenanceProblemsForAction");
         } else if (player instanceof ServerPlayer serverPlayer) {
             fixMaintenanceProblems(serverPlayer);
         }
     }
 
-    @Override
-    @ApiStatus.Internal
-    public boolean supportsMaintenanceDurationAdjustment() {
-        return isConfigurable;
-    }
-
-    @Override
-    @ApiStatus.Internal
-    public void adjustMaintenanceDuration(int direction) {
-        adjustDurationMultiplier(direction);
-    }
-
-    @Override
+    @RPCMethod
     @ApiStatus.Internal
     public void fixMaintenanceProblemsForAction(@NotNull ServerPlayer player) {
         fixMaintenanceProblems(player);
     }
 
+    @RPCMethod
     private void adjustDurationMultiplier(int direction) {
+        if (!isConfigurable) {
+            return;
+        }
         setDurationMultiplier(Mth.clamp(durationMultiplier + direction * DURATION_ACTION_AMOUNT,
                 MIN_DURATION_MULTIPLIER, MAX_DURATION_MULTIPLIER));
     }

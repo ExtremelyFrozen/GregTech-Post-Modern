@@ -8,14 +8,14 @@ import com.gregtechceu.gtceu.api.gui.element.GTFluidSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTImageElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTToggleButtonElement;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIProvider;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.PumpHatch;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableFluidTank;
-import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCSender;
 import com.gregtechceu.gtceu.common.data.GTMaterials;
 import com.gregtechceu.gtceu.utils.GTUtil;
 
@@ -40,12 +40,7 @@ import net.neoforged.neoforge.fluids.FluidUtil;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 
 public class PumpHatchPartMachine extends FluidHatchPartMachine
-                                  implements MachineUIProvider, FancyPartUIProvider, PumpHatch,
-                                  PumpHatchFluidSlotActionTarget {
-
-    static {
-        RPCRegistry.register(PumpHatchPartMachineActions.INSTANCE);
-    }
+                                  implements MachineUIProvider, FancyPartUIProvider, PumpHatch {
 
     public PumpHatchPartMachine(BlockEntityCreationInfo info) {
         super(info, 0, IO.OUT, FluidType.BUCKET_VOLUME, 1);
@@ -147,8 +142,8 @@ public class PumpHatchPartMachine extends FluidHatchPartMachine
         fluidSlot.addEventListener(UIEvents.MOUSE_DOWN, event -> {
             if (event.button == 0 && player.level().isClientSide() &&
                     FluidUtil.getFluidHandler(player.containerMenu.getCarried()).isPresent()) {
-                MachineUIHelper.sendAction(holder,
-                        PumpHatchPartMachineActions.createClickPumpHatchFluidSlotAction(GTUtil.isShiftDown()));
+                boolean shiftDown = GTUtil.isShiftDown();
+                holder.getMachine().rpcToServer("clickPumpHatchFluidSlot", shiftDown);
                 event.stopImmediatePropagation();
                 event.hasHandler = true;
             }
@@ -163,8 +158,9 @@ public class PumpHatchPartMachine extends FluidHatchPartMachine
         }
     }
 
-    @Override
-    public void clickPumpHatchFluidSlot(ServerPlayer player, boolean shiftDown) {
+    @RPCMethod
+    public void clickPumpHatchFluidSlot(RPCSender sender, boolean shiftDown) {
+        var player = sender.asPlayer();
         new FluidClickTarget(tank.getStorages()[0], true, io.support(IO.IN)).click(player, shiftDown);
     }
 

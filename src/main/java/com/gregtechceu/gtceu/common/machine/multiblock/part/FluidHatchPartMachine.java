@@ -10,7 +10,6 @@ import com.gregtechceu.gtceu.api.gui.element.GTImageElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTPhantomFluidSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTToggleButtonElement;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIProvider;
 import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
@@ -25,15 +24,17 @@ import com.gregtechceu.gtceu.api.machine.TickableSubscription;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CircuitConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.DirectionalConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
+import com.gregtechceu.gtceu.api.machine.feature.FancyActionMachine;
 import com.gregtechceu.gtceu.api.machine.feature.IHasCircuitSlot;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.machine.multiblock.part.TieredIOPartMachine;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableFluidTank;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler;
-import com.gregtechceu.gtceu.api.sync_system.SyncActionData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
-import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry;
+import com.gregtechceu.gtceu.api.sync_system.managed.ISyncManaged;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCSender;
 import com.gregtechceu.gtceu.common.data.GTMachines;
 import com.gregtechceu.gtceu.common.item.behavior.IntCircuitBehaviour;
 import com.gregtechceu.gtceu.config.ConfigHolder;
@@ -78,6 +79,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.BooleanSupplier;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
@@ -87,15 +89,11 @@ import javax.annotation.ParametersAreNonnullByDefault;
 @MethodsReturnNonnullByDefault
 public class FluidHatchPartMachine extends TieredIOPartMachine
                                    implements IHasCircuitSlot, IPaintable, MachineUIProvider,
-                                   FluidHatchFluidSlotActionTarget {
+                                   FancyActionMachine {
 
     public static final int INITIAL_TANK_CAPACITY_1X = 8 * FluidType.BUCKET_VOLUME;
     public static final int INITIAL_TANK_CAPACITY_4X = 2 * FluidType.BUCKET_VOLUME;
     public static final int INITIAL_TANK_CAPACITY_9X = FluidType.BUCKET_VOLUME;
-
-    static {
-        RPCRegistry.register(FluidHatchPartMachineActions.INSTANCE);
-    }
 
     @SaveField
     public final NotifiableFluidTank tank;
@@ -365,13 +363,13 @@ public class FluidHatchPartMachine extends TieredIOPartMachine
     }
 
     private UIElement createMainElement(Player player, MachineUIHolder holder) {
-        return createMainElement(player, holder, MachineUIHelper::sendAction,
+        return createMainElement(player, holder, (target, action) -> action.accept(target.getMachine()),
                 () -> player.level().isClientSide() && holder.getMachine() == this,
                 UIEvent::isShiftDown);
     }
 
     UIElement createMainElement(Player player, MachineUIHolder holder,
-                                BiConsumer<MachineUIHolder, SyncActionData> actionSender,
+                                BiConsumer<MachineUIHolder, Consumer<ISyncManaged>> actionSender,
                                 BooleanSupplier canSendAction, Predicate<UIEvent> shiftDown) {
         requireHatchHolder(holder);
         if (slots == 1) {
@@ -396,7 +394,7 @@ public class FluidHatchPartMachine extends TieredIOPartMachine
 
     private UIElement createSingleSlotElement(
                                               Player player, MachineUIHolder holder,
-                                              BiConsumer<MachineUIHolder, SyncActionData> actionSender,
+                                              BiConsumer<MachineUIHolder, Consumer<ISyncManaged>> actionSender,
                                               BooleanSupplier canSendAction, Predicate<UIEvent> shiftDown,
                                               Supplier<Optional<FluidStack>> selectedLockedFluid) {
         UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, 89, 63);
@@ -475,7 +473,7 @@ public class FluidHatchPartMachine extends TieredIOPartMachine
 
     private GTPhantomFluidSlotElement createLockedFluidSlot(
                                                             MachineUIHolder holder,
-                                                            BiConsumer<MachineUIHolder, SyncActionData> actionSender,
+                                                            BiConsumer<MachineUIHolder, Consumer<ISyncManaged>> actionSender,
                                                             BooleanSupplier canSendAction,
                                                             Supplier<Optional<FluidStack>> selectedLockedFluid) {
         GTPhantomFluidSlotElement slot = new GTPhantomFluidSlotElement(
@@ -483,7 +481,7 @@ public class FluidHatchPartMachine extends TieredIOPartMachine
                 fluid -> {
                     if (canSendAction.getAsBoolean()) {
                         actionSender.accept(holder,
-                                FluidHatchPartMachineActions.createSetLockedFluidAction(fluid));
+                                createSetLockedFluidAction(fluid));
                     }
                 },
                 () -> 1) {
@@ -504,7 +502,7 @@ public class FluidHatchPartMachine extends TieredIOPartMachine
                             event.button == GLFW.GLFW_MOUSE_BUTTON_RIGHT)) {
                 selectedLockedFluid.get().ifPresent(fluid -> {
                     actionSender.accept(holder,
-                            FluidHatchPartMachineActions.createSetLockedFluidAction(fluid));
+                            createSetLockedFluidAction(fluid));
                     event.stopImmediatePropagation();
                     event.hasHandler = true;
                 });
@@ -515,16 +513,17 @@ public class FluidHatchPartMachine extends TieredIOPartMachine
 
     private void sendSetLockedAction(
                                      MachineUIHolder holder,
-                                     BiConsumer<MachineUIHolder, SyncActionData> actionSender,
+                                     BiConsumer<MachineUIHolder, Consumer<ISyncManaged>> actionSender,
                                      BooleanSupplier canSendAction, boolean locked) {
         if (canSendAction.getAsBoolean()) {
-            actionSender.accept(holder, FluidHatchPartMachineActions.createSetLockedAction(locked));
+            actionSender.accept(holder,
+                    managed -> managed.rpcToServer("setFluidHatchLocked", locked));
         }
     }
 
     private UIElement createMultiSlotElement(
                                              Player player, MachineUIHolder holder,
-                                             BiConsumer<MachineUIHolder, SyncActionData> actionSender,
+                                             BiConsumer<MachineUIHolder, Consumer<ISyncManaged>> actionSender,
                                              BooleanSupplier canSendAction,
                                              Predicate<UIEvent> shiftDown) {
         int rowSize = getTankRowSize();
@@ -549,7 +548,7 @@ public class FluidHatchPartMachine extends TieredIOPartMachine
     private GTFluidSlotElement createFluidSlot(
                                                Player player, MachineUIHolder holder, int tankIndex, int x,
                                                int y,
-                                               BiConsumer<MachineUIHolder, SyncActionData> actionSender,
+                                               BiConsumer<MachineUIHolder, Consumer<ISyncManaged>> actionSender,
                                                BooleanSupplier canSendAction,
                                                Predicate<UIEvent> shiftDown) {
         GTFluidSlotElement fluidSlot = new GTFluidSlotElement()
@@ -562,8 +561,8 @@ public class FluidHatchPartMachine extends TieredIOPartMachine
         fluidSlot.addEventListener(UIEvents.MOUSE_DOWN, event -> {
             if (event.button == GLFW.GLFW_MOUSE_BUTTON_LEFT && canSendAction.getAsBoolean() &&
                     FluidUtil.getFluidHandler(player.containerMenu.getCarried()).isPresent()) {
-                actionSender.accept(holder, FluidHatchPartMachineActions.createClickFluidSlotAction(
-                        tankIndex, shiftDown.test(event)));
+                boolean shifted = shiftDown.test(event);
+                actionSender.accept(holder, managed -> managed.rpcToServer("clickFluidHatchSlot", tankIndex, shifted));
                 event.stopImmediatePropagation();
                 event.hasHandler = true;
             }
@@ -571,36 +570,31 @@ public class FluidHatchPartMachine extends TieredIOPartMachine
         return UITemplate.setBounds(fluidSlot, x, y, 18, 18);
     }
 
-    @Override
     @ApiStatus.Internal
     public boolean supportsFluidHatchActions() {
         return supportsGenericPage();
     }
 
-    @Override
     @ApiStatus.Internal
     public boolean supportsFluidHatchLocking() {
         return slots == 1 && io.support(IO.OUT);
     }
 
-    @Override
-    @ApiStatus.Internal
-    public int getFluidHatchTankCount() {
-        return tank.getTanks();
+    private static Consumer<ISyncManaged> createSetLockedFluidAction(FluidStack fluid) {
+        FluidStack lockedFluid = fluid.isEmpty() ? FluidStack.EMPTY : fluid.copyWithAmount(1);
+        return managed -> managed.rpcToServer("setFluidHatchLockedFluid", lockedFluid);
     }
 
-    @Override
+    @RPCMethod
     @ApiStatus.Internal
-    public void clickFluidHatchSlot(ServerPlayer player, int tankIndex, boolean shiftDown) {
+    public void clickFluidHatchSlot(RPCSender sender, int tankIndex, boolean shiftDown) {
+        var player = sender.asPlayer();
         requireFluidHatchActions();
-        if (tankIndex < 0 || tankIndex >= tank.getTanks()) {
-            throw new IllegalArgumentException("Invalid fluid hatch tank index: " + tankIndex);
-        }
         new FluidClickTarget(tank.getStorages()[tankIndex], true, io.support(IO.IN))
                 .click(player, shiftDown);
     }
 
-    @Override
+    @RPCMethod
     @ApiStatus.Internal
     public void setFluidHatchLockedFluid(FluidStack fluid) {
         requireFluidHatchLocking();
@@ -614,7 +608,7 @@ public class FluidHatchPartMachine extends TieredIOPartMachine
         }
     }
 
-    @Override
+    @RPCMethod
     @ApiStatus.Internal
     public void setFluidHatchLocked(boolean locked) {
         requireFluidHatchLocking();

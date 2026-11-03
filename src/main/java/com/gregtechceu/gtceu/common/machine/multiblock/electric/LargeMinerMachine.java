@@ -14,7 +14,6 @@ import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTComponentPanelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolderContext;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIProvider;
@@ -33,9 +32,9 @@ import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMultiPart;
 import com.gregtechceu.gtceu.api.machine.multiblock.WorkableElectricMultiblockMachine;
 import com.gregtechceu.gtceu.api.misc.EnergyContainerList;
-import com.gregtechceu.gtceu.api.sync_system.SyncActionData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
-import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry;
+import com.gregtechceu.gtceu.api.sync_system.managed.ISyncManaged;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
 import com.gregtechceu.gtceu.api.transfer.fluid.FluidHandlerList;
 import com.gregtechceu.gtceu.common.data.GTBlocks;
 import com.gregtechceu.gtceu.common.data.GTMaterials;
@@ -71,18 +70,15 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Consumer;
 
 import static com.gregtechceu.gtceu.common.data.GTMaterials.DrillingFluid;
 
 public class LargeMinerMachine extends WorkableElectricMultiblockMachine
                                implements IMiner, IControllable, IDataInfoProvider, MachineUIProvider,
-                               FancyActionMachine, LargeMinerModeActionTarget {
+                               FancyActionMachine {
 
     public static final int CHUNK_LENGTH = 16;
-    static {
-        RPCRegistry.register(LargeMinerMachineActions.INSTANCE);
-    }
-
     @Getter
     private final int tier;
     @Nullable
@@ -348,37 +344,38 @@ public class LargeMinerMachine extends WorkableElectricMultiblockMachine
         }
     }
 
-    SyncActionData resolveLargeMinerDisplayAction(MachineUIHolder holder, String componentData) {
+    Consumer<ISyncManaged> resolveLargeMinerDisplayAction(MachineUIHolder holder, String componentData) {
         requireMatchingHolder(holder);
         return switch (componentData) {
-            case "silk_touch" -> LargeMinerMachineActions.createToggleSilkTouchAction();
-            case "chunk_mode" -> LargeMinerMachineActions.createToggleChunkModeAction();
+            case "silk_touch" -> managed -> managed.rpcToServer("toggleLargeMinerSilkTouch");
+            case "chunk_mode" -> managed -> managed.rpcToServer("toggleLargeMinerChunkMode");
             default -> throw new IllegalArgumentException("Unknown Large Miner display action: " + componentData);
         };
     }
 
     private void handleDisplayClick(Player player, MachineUIHolder holder, String componentData) {
-        SyncActionData action = resolveLargeMinerDisplayAction(holder, componentData);
+        Consumer<ISyncManaged> action = resolveLargeMinerDisplayAction(holder, componentData);
         if (player.level().isClientSide()) {
-            MachineUIHelper.sendAction(holder, action);
+            action.accept(holder.getMachine());
         }
     }
 
-    @Override
-    public boolean isLargeMinerModeChangeBlocked() {
-        return getRecipeLogic().isWorking();
-    }
-
-    @Override
+    @RPCMethod
     public void toggleLargeMinerSilkTouch() {
         LargeMinerLogic logic = getRecipeLogic();
+        if (logic.isWorking()) {
+            return;
+        }
         logic.setSilkTouchMode(!logic.isSilkTouchMode());
         refreshDisplaySnapshot();
     }
 
-    @Override
+    @RPCMethod
     public void toggleLargeMinerChunkMode() {
         LargeMinerLogic logic = getRecipeLogic();
+        if (logic.isWorking()) {
+            return;
+        }
         logic.setChunkMode(!logic.isChunkMode());
         refreshDisplaySnapshot();
     }

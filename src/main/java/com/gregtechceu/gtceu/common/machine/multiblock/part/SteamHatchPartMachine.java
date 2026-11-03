@@ -7,13 +7,13 @@ import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTFluidSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTImageElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIProvider;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableFluidTank;
-import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCSender;
 import com.gregtechceu.gtceu.common.data.GTMaterials;
 import com.gregtechceu.gtceu.config.ConfigHolder;
 import com.gregtechceu.gtceu.utils.GTUtil;
@@ -39,15 +39,10 @@ import net.neoforged.neoforge.fluids.FluidUtil;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 
 public class SteamHatchPartMachine extends FluidHatchPartMachine
-                                   implements MachineUIProvider, FancyPartUIProvider,
-                                   SteamHatchFluidSlotActionTarget {
+                                   implements MachineUIProvider, FancyPartUIProvider {
 
     public static final int INITIAL_TANK_CAPACITY = 64 * FluidType.BUCKET_VOLUME;
     public static final boolean IS_STEEL = ConfigHolder.INSTANCE.machines.steelSteamMultiblocks;
-
-    static {
-        RPCRegistry.register(SteamHatchPartMachineActions.INSTANCE);
-    }
 
     public SteamHatchPartMachine(BlockEntityCreationInfo info) {
         super(info, 0, IO.IN, SteamHatchPartMachine.INITIAL_TANK_CAPACITY, 1);
@@ -148,8 +143,8 @@ public class SteamHatchPartMachine extends FluidHatchPartMachine
         fluidSlot.addEventListener(UIEvents.MOUSE_DOWN, event -> {
             if (event.button == 0 && player.level().isClientSide() &&
                     FluidUtil.getFluidHandler(player.containerMenu.getCarried()).isPresent()) {
-                MachineUIHelper.sendAction(holder,
-                        SteamHatchPartMachineActions.createClickSteamHatchFluidSlotAction(GTUtil.isShiftDown()));
+                boolean shiftDown = GTUtil.isShiftDown();
+                holder.getMachine().rpcToServer("clickSteamHatchFluidSlot", shiftDown);
                 event.stopImmediatePropagation();
                 event.hasHandler = true;
             }
@@ -157,8 +152,9 @@ public class SteamHatchPartMachine extends FluidHatchPartMachine
         return UITemplate.setBounds(fluidSlot, 90, 35, 18, 18);
     }
 
-    @Override
-    public void clickSteamHatchFluidSlot(ServerPlayer player, boolean shiftDown) {
+    @RPCMethod
+    public void clickSteamHatchFluidSlot(RPCSender sender, boolean shiftDown) {
+        var player = sender.asPlayer();
         new FluidClickTarget(tank.getStorages()[0], true, true).click(player, shiftDown);
     }
 
