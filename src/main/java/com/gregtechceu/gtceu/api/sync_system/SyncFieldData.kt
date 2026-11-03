@@ -2,6 +2,7 @@ package com.gregtechceu.gtceu.api.sync_system
 
 import com.gregtechceu.gtceu.GTCEu
 
+import net.minecraft.core.HolderLookup
 import net.minecraft.core.component.DataComponentMap
 import net.minecraft.core.component.DataComponentType
 import net.minecraft.core.component.TypedDataComponent
@@ -38,6 +39,17 @@ class SyncFieldData(fields: Map<ResourceLocation, @JvmSuppressWildcards JsonElem
 
 	operator fun get(key: ResourceLocation): JsonElement? = fields[key]
 
+
+	fun <T> read(key: ResourceLocation, codec: Codec<T>): T? {
+		val value = fields[key]?.takeUnless { it.isJsonNull } ?: return null
+		return codec.parse(JsonOps.INSTANCE, value).getOrThrow()
+	}
+
+	fun <T> read(key: ResourceLocation, codec: Codec<T>, registries: HolderLookup.Provider): T? {
+		val value = fields[key]?.takeUnless { it.isJsonNull } ?: return null
+		return codec.parse(registries.createSerializationContext(JsonOps.INSTANCE), value).getOrThrow()
+	}
+
 	fun toJson(): JsonElement = CODEC.encodeStart(JsonOps.INSTANCE, this).getOrThrow()
 
 	fun toComponentMap(componentType: DataComponentType<SyncFieldData>): DataComponentMap {
@@ -67,6 +79,23 @@ class SyncFieldData(fields: Map<ResourceLocation, @JvmSuppressWildcards JsonElem
 			fields[key] = value.toJson()
 			return this
 		}
+
+
+		fun putAll(data: SyncFieldData): Builder = apply { fields.putAll(data.fields) }
+
+		fun remove(key: ResourceLocation): Builder = apply { fields.remove(key) }
+
+		fun put(key: ResourceLocation, value: String): Builder = put(key, Codec.STRING, value)
+
+		fun put(key: ResourceLocation, value: Boolean): Builder = put(key, Codec.BOOL, value)
+
+		fun put(key: ResourceLocation, value: Int): Builder = put(key, Codec.INT, value)
+
+		fun put(key: ResourceLocation, value: Long): Builder = put(key, Codec.LONG, value)
+
+		fun <T> put(key: ResourceLocation, codec: Codec<T>, value: T): Builder = put(key, codec.encodeStart(JsonOps.INSTANCE, value).getOrThrow())
+
+		fun <T> put(key: ResourceLocation, codec: Codec<T>, value: T, registries: HolderLookup.Provider): Builder = put(key, codec.encodeStart(registries.createSerializationContext(JsonOps.INSTANCE), value).getOrThrow())
 
 		fun build(): SyncFieldData = if (fields.isEmpty()) EMPTY else SyncFieldData(fields)
 	}
