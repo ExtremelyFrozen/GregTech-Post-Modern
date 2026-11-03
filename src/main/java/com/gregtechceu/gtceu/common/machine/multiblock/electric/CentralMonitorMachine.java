@@ -28,6 +28,7 @@ import com.gregtechceu.gtceu.api.multiblock.util.RelativeDirection;
 import com.gregtechceu.gtceu.api.sync_system.annotations.RerenderOnChanged;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry;
 import com.gregtechceu.gtceu.common.data.GTBlocks;
 import com.gregtechceu.gtceu.common.data.GTDataComponents;
 import com.gregtechceu.gtceu.common.data.GTMachines;
@@ -72,10 +73,10 @@ public class CentralMonitorMachine extends WorkableElectricMultiblockMachine
                                    CentralMonitorImageModuleActionHost, CentralMonitorTextModuleActionHost {
 
     static {
-        CentralMonitorMembershipActions.initialize();
-        CentralMonitorGroupTargetActions.initialize();
-        CentralMonitorImageModuleActions.initialize();
-        CentralMonitorTextModuleActions.initialize();
+        RpcRegistry.register(CentralMonitorMembershipActions.INSTANCE);
+        RpcRegistry.register(CentralMonitorGroupTargetActions.INSTANCE);
+        RpcRegistry.register(CentralMonitorImageModuleActions.INSTANCE);
+        RpcRegistry.register(CentralMonitorTextModuleActions.INSTANCE);
     }
 
     private static final String MONITOR_GROUPS_SYNC_FIELD = "monitorGroups";
