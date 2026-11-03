@@ -2,7 +2,6 @@ package com.gregtechceu.gtceu.api.multiblock.structurepredicate
 
 import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState
-import com.gregtechceu.gtceu.api.multiblock.structurepredicate.PatternObservation
 
 import net.minecraft.world.level.block.state.BlockState
 
@@ -13,7 +12,7 @@ enum class AnyPredicate : StructurePredicate {
 	;
 
 	override fun type(): StructurePredicateType<*> = TYPE
-	override fun observeCandidate(state: BlockState): PatternObservation = PatternObservation.of(true)
+	override fun observeCandidate(candidateState: BlockState): PatternObservation = PatternObservation.of(true)
 	override fun test(multiblockState: MultiblockState, mutateCount: Boolean): Boolean = true
 
 	companion object {

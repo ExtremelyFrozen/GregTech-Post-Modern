@@ -28,10 +28,10 @@ data class BlockStatePredicate(val block: Block, val properties: Map<String, Str
 	}
 	override fun type(): StructurePredicateType<*> = TYPE
 	override fun candidateStates(): ObjectList<BlockState> = ObjectList.of(preview())
-	override fun observeCandidate(state: BlockState): PatternObservation = PatternObservation.of(
-		state.block == block && properties.all { (name, value) ->
+	override fun observeCandidate(candidateState: BlockState): PatternObservation = PatternObservation.of(
+		candidateState.block == block && properties.all { (name, value) ->
 			val property = block.stateDefinition.getProperty(name)
-			property != null && state.getValue(property).toString().equals(value, true)
+			property != null && candidateState.getValue(property).toString().equals(value, true)
 		},
 	)
 	override fun candidates(): ObjectList<MultiblockBlockInfo> = ObjectList.of(MultiblockBlockInfo(preview()))

@@ -32,9 +32,9 @@ data class AbilityPredicate(val abilities: ObjectList<PartAbility>, val range: O
 	constructor(abilities: ObjectList<PartAbility>) : this(abilities, Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty())
 
 	override fun type(): StructurePredicateType<*> = TYPE
-	override fun observeCandidate(state: BlockState): PatternObservation {
-		val block = state.block as? MetaMachineBlock
-		return observe(state, block?.definition?.tier, block != null)
+	override fun observeCandidate(candidateState: BlockState): PatternObservation {
+		val block = candidateState.block as? MetaMachineBlock
+		return observe(candidateState, block?.definition?.tier, block != null)
 	}
 	override fun observePosition(state: MultiblockState): PatternObservation {
 		val machine = MetaMachine.getMachine(state.world, state.pos)

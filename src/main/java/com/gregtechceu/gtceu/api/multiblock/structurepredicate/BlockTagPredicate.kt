@@ -25,7 +25,7 @@ class BlockTagPredicate(val tag: TagKey<Block>) : StructurePredicate {
 		}
 	}
 	override fun type(): StructurePredicateType<*> = TYPE
-	override fun observeCandidate(state: BlockState): PatternObservation = PatternObservation.of(state.`is`(tag))
+	override fun observeCandidate(candidateState: BlockState): PatternObservation = PatternObservation.of(candidateState.`is`(tag))
 	override fun candidates(): ObjectList<MultiblockBlockInfo> = blocks.get().stream().map(::MultiblockBlockInfo).collect(ObjectImmutableList.toList())
 	override fun blockCandidates(): ObjectList<Block> = blocks.get()
 	override fun test(multiblockState: MultiblockState, mutateCount: Boolean): Boolean = observeCandidate(multiblockState.blockState).matched
