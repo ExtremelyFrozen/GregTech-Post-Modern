@@ -12,6 +12,7 @@ import com.gregtechceu.gtceu.api.gui.factory.UICoverHolder;
 import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry;
 import com.gregtechceu.gtceu.api.transfer.fluid.IFluidHandlerModifiable;
 import com.gregtechceu.gtceu.common.cover.data.BucketMode;
 import com.gregtechceu.gtceu.common.cover.data.VoidingMode;
@@ -36,7 +37,7 @@ public class AdvancedFluidVoidingCover extends FluidVoidingCover
                                        implements AdvancedFluidVoidingCoverConfigActionTarget {
 
     static {
-        AdvancedFluidVoidingCoverConfigActions.initialize();
+        RpcRegistry.register(AdvancedFluidVoidingCoverConfigActions.INSTANCE);
     }
 
     @SaveField

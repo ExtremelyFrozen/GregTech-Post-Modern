@@ -16,6 +16,7 @@ import com.gregtechceu.gtceu.api.gui.factory.UICoverHolder;
 import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry;
 import com.gregtechceu.gtceu.utils.GTMath;
 
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
@@ -43,7 +44,7 @@ public class AdvancedEnergyDetectorCover extends EnergyDetectorCover implements 
     private static final BigInteger LONG_MAX_VALUE = BigInteger.valueOf(Long.MAX_VALUE);
 
     static {
-        AdvancedEnergyDetectorConfigActions.initialize();
+        RpcRegistry.register(AdvancedEnergyDetectorConfigActions.INSTANCE);
     }
 
     @SaveField

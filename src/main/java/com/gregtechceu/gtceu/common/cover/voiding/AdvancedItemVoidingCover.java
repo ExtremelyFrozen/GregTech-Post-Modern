@@ -12,6 +12,7 @@ import com.gregtechceu.gtceu.api.gui.factory.UICoverHolder;
 import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry;
 import com.gregtechceu.gtceu.common.cover.data.VoidingMode;
 
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
@@ -34,7 +35,7 @@ public class AdvancedItemVoidingCover extends ItemVoidingCover
                                       implements AdvancedItemVoidingCoverConfigActionTarget {
 
     static {
-        AdvancedItemVoidingCoverConfigActions.initialize();
+        RpcRegistry.register(AdvancedItemVoidingCoverConfigActions.INSTANCE);
     }
 
     @SaveField

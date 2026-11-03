@@ -10,6 +10,7 @@ import com.gregtechceu.gtceu.api.gui.factory.CoverUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.UICoverHolder;
 import com.gregtechceu.gtceu.api.item.tool.GTToolType;
 import com.gregtechceu.gtceu.api.item.tool.GridHighlightTexture;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry;
 import com.gregtechceu.gtceu.api.transfer.fluid.IFluidHandlerModifiable;
 import com.gregtechceu.gtceu.common.cover.PumpCover;
 import com.gregtechceu.gtceu.common.data.item.GTItemAbilities;
@@ -41,7 +42,7 @@ import java.util.Set;
 public class FluidVoidingCover extends PumpCover implements FluidVoidingWorkingEnabledActionTarget {
 
     static {
-        FluidVoidingCoverConfigActions.initialize();
+        RpcRegistry.register(FluidVoidingCoverConfigActions.INSTANCE);
     }
 
     public FluidVoidingCover(CoverDefinition definition, ICoverable coverHolder, Direction attachedSide) {
