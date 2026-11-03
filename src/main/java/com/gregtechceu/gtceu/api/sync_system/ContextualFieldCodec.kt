@@ -1,25 +1,41 @@
 package com.gregtechceu.gtceu.api.sync_system
 
+import com.gregtechceu.gtceu.api.sync_system.managed.ISyncManaged
+
 import net.minecraft.core.HolderLookup
 
+import com.mojang.serialization.Codec
+import com.mojang.serialization.Dynamic
+import com.mojang.serialization.JsonOps
 import com.google.gson.JsonElement
+
+/**
+ * Supplies a value Codec for a field that must retain its owning object or existing runtime instance.
+ * The context is scoped to a single save or synchronization operation on the owning game thread.
+ * Codec composition controls the data shape; this interface never selects a storage format.
+ */
 interface ContextualFieldCodec<T> {
-	fun serializeField(value: T, context: Context<T>): JsonElement
+	/** Decoding may update the existing instance in [Context.currentValue] after the payload has decoded. */
+	fun codec(context: Context<T>): Codec<T> = Codec.PASSTHROUGH.xmap(
+		{ value -> requireNotNull(deserializeField(value.convert(JsonOps.INSTANCE).value, context)) },
+		{ value -> Dynamic(JsonOps.INSTANCE, serializeField(value, context)) },
+	)
 
-	fun deserializeField(value: JsonElement, context: Context<T>): T?
+	fun serializeField(value: T, context: Context<T>): JsonElement = codec(context)
+		.encodeStart(context.lookup.createSerializationContext(JsonOps.INSTANCE), value).getOrThrow()
 
-	fun shouldSyncField(value: T, context: Context<T>, fullSync: Boolean, manuallyDirty: Boolean): Boolean = fullSync || manuallyDirty
+	fun deserializeField(value: JsonElement, context: Context<T>): T? = codec(context)
+		.parse(context.lookup.createSerializationContext(JsonOps.INSTANCE), value).getOrThrow()
+
+	fun shouldSyncField(value: T, context: Context<T>, fullSync: Boolean, manuallyDirty: Boolean): Boolean {
+		if (!context.isClientSync || value !is ISyncManaged) return fullSync || manuallyDirty
+		if (fullSync || manuallyDirty) {
+			value.getSyncDataHolder().resyncAllFields()
+			return true
+		}
+		return value.getSyncDataHolder().scanAndMarkChanges(context.lookup)
+	}
 
 	@JvmRecord
-	data class Context<T>(
-		val holder: Any,
-		val type: TypeDeclaration,
-		val currentValue: T?,
-		val fieldName: String,
-		val isClientSync: Boolean,
-		val isClientFullSyncUpdate: Boolean,
-		val lookup: HolderLookup.Provider,
-		val parseExplicitNull: Boolean = false,
-		val notifyUnchangedOnFullSync: Boolean = true,
-	)
+	data class Context<T>(val holder: Any, val type: TypeDeclaration, val currentValue: T?, val fieldName: String, val isClientSync: Boolean, val isClientFullSyncUpdate: Boolean, val lookup: HolderLookup.Provider, val parseExplicitNull: Boolean = false, val notifyUnchangedOnFullSync: Boolean = true)
 }
