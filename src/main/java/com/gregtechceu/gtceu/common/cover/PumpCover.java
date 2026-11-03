@@ -16,7 +16,6 @@ import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTEnumSelectorElement;
 import com.gregtechceu.gtceu.api.gui.element.GTIntInputElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
-import com.gregtechceu.gtceu.api.gui.factory.CoverUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.CoverUIProvider;
 import com.gregtechceu.gtceu.api.gui.factory.UICoverHolder;
 import com.gregtechceu.gtceu.api.machine.ConditionalSubscriptionHandler;
@@ -24,7 +23,7 @@ import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.RerenderOnChanged;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
-import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
 import com.gregtechceu.gtceu.api.transfer.fluid.FluidHandlerDelegate;
 import com.gregtechceu.gtceu.api.transfer.fluid.IFluidHandlerModifiable;
 import com.gregtechceu.gtceu.api.transfer.fluid.ModifiableFluidHandlerWrapper;
@@ -59,14 +58,10 @@ import java.util.Arrays;
 import java.util.List;
 
 public class PumpCover extends CoverBehavior
-                       implements IIOCover, CoverUIProvider, IControllable, PumpCoverConfigActionTarget {
+                       implements IIOCover, CoverUIProvider, IControllable {
 
     // .5b 2b 8b
     public static final Int2IntFunction PUMP_SCALING = tier -> 64 * (int) Math.pow(4, Math.min(tier - 1, GTValues.IV));
-
-    static {
-        RPCRegistry.register(PumpCoverConfigActions.INSTANCE);
-    }
 
     public final int tier;
     public final int maxFluidTransferRate;
@@ -120,7 +115,6 @@ public class PumpCover extends CoverBehavior
         this(definition, coverHolder, attachedSide, tier, PUMP_SCALING.applyAsInt(tier));
     }
 
-    @Override
     public int getMaxFluidTransferRate() {
         return maxFluidTransferRate;
     }
@@ -147,7 +141,6 @@ public class PumpCover extends CoverBehavior
         return super.canAttach() && getOwnFluidHandler() != null;
     }
 
-    @Override
     public void setIo(IO io) {
         if (io == IO.IN || io == IO.OUT) {
             if (this.io != io) {
@@ -196,7 +189,6 @@ public class PumpCover extends CoverBehavior
     // ***** Transfer Logic *****//
     //////////////////////////////////////
 
-    @Override
     public void setTransferRate(int milliBucketsPerTick) {
         int clamped = Math.min(Math.max(milliBucketsPerTick, 0), maxFluidTransferRate);
         if (this.transferRate != clamped) {
@@ -205,7 +197,6 @@ public class PumpCover extends CoverBehavior
         }
     }
 
-    @Override
     public void setBucketMode(BucketMode bucketMode) {
         var oldMultiplier = this.bucketMode.multiplier;
         var newMultiplier = bucketMode.multiplier;
@@ -219,7 +210,6 @@ public class PumpCover extends CoverBehavior
         configureTransferRateInput(oldMultiplier, newMultiplier);
     }
 
-    @Override
     public void setManualIOMode(ManualIOMode manualIOMode) {
         if (this.manualIOMode != manualIOMode) {
             this.manualIOMode = manualIOMode;
@@ -413,10 +403,19 @@ public class PumpCover extends CoverBehavior
         sendConfigAction(player, holder);
     }
 
+    @RPCMethod
+    public boolean configurePump(int transferRate, IO io, BucketMode bucketMode, ManualIOMode manualIOMode) {
+        setTransferRate(transferRate);
+        setIo(io);
+        setBucketMode(bucketMode);
+        setManualIOMode(manualIOMode);
+        return true;
+    }
+
     private void sendConfigAction(Player player, UICoverHolder holder) {
         if (player.level().isClientSide()) {
-            CoverUIHelper.sendAction(holder, PumpCoverConfigActions.createSetConfigAction(getTransferRate(), getIo(),
-                    getBucketMode(), getManualIOMode()));
+            holder.getCover().rpcToServer("configurePump", getTransferRate(), getIo(), getBucketMode(),
+                    getManualIOMode());
         }
     }
 

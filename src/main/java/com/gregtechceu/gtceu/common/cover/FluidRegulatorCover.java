@@ -7,12 +7,11 @@ import com.gregtechceu.gtceu.api.cover.filter.FluidFilter;
 import com.gregtechceu.gtceu.api.cover.filter.SimpleFluidFilter;
 import com.gregtechceu.gtceu.api.gui.element.GTEnumSelectorElement;
 import com.gregtechceu.gtceu.api.gui.element.GTIntInputElement;
-import com.gregtechceu.gtceu.api.gui.factory.CoverUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.UICoverHolder;
 import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
-import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
 import com.gregtechceu.gtceu.api.transfer.fluid.IFluidHandlerModifiable;
 import com.gregtechceu.gtceu.common.cover.data.BucketMode;
 import com.gregtechceu.gtceu.common.cover.data.TransferMode;
@@ -31,13 +30,9 @@ import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class FluidRegulatorCover extends PumpCover implements FluidRegulatorCoverConfigActionTarget {
+public class FluidRegulatorCover extends PumpCover {
 
     private static final int MAX_STACK_SIZE = 2_048_000_000; // Capacity of quantum tank IX
-
-    static {
-        RPCRegistry.register(FluidRegulatorCoverConfigActions.INSTANCE);
-    }
 
     @SaveField
     @SyncToClient
@@ -158,7 +153,6 @@ public class FluidRegulatorCover extends PumpCover implements FluidRegulatorCove
         return platformTransferLimit - fluidLeftToTransfer;
     }
 
-    @Override
     public void setTransferBucketMode(BucketMode transferBucketMode) {
         var oldMultiplier = this.transferBucketMode.multiplier;
         var newMultiplier = transferBucketMode.multiplier;
@@ -172,7 +166,6 @@ public class FluidRegulatorCover extends PumpCover implements FluidRegulatorCove
         configureTransferBucketModeInput(oldMultiplier, newMultiplier);
     }
 
-    @Override
     public void setTransferMode(TransferMode transferMode) {
         if (this.transferMode == transferMode) {
             configureTransferSizeInput();
@@ -242,7 +235,6 @@ public class FluidRegulatorCover extends PumpCover implements FluidRegulatorCove
         setGlobalTransferLimit((int) Math.min(transferLimit, MAX_STACK_SIZE));
     }
 
-    @Override
     public void setGlobalTransferLimit(int transferLimit) {
         int clamped = Math.min(Math.max(transferLimit, 0), MAX_STACK_SIZE);
         if (this.globalTransferLimit != clamped) {
@@ -297,10 +289,17 @@ public class FluidRegulatorCover extends PumpCover implements FluidRegulatorCove
         sendConfigAction(player, holder);
     }
 
+    @RPCMethod
+    public void configureFluidRegulator(TransferMode transferMode, int transferLimit, BucketMode transferBucketMode) {
+        setTransferMode(transferMode);
+        setGlobalTransferLimit(transferLimit);
+        setTransferBucketMode(transferBucketMode);
+    }
+
     private void sendConfigAction(Player player, UICoverHolder holder) {
         if (player.level().isClientSide()) {
-            CoverUIHelper.sendAction(holder, FluidRegulatorCoverConfigActions.createSetConfigAction(getTransferMode(),
-                    getGlobalTransferLimit(), getTransferBucketMode()));
+            holder.getCover().rpcToServer("configureFluidRegulator", getTransferMode(), getGlobalTransferLimit(),
+                    getTransferBucketMode());
         }
     }
 

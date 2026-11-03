@@ -10,7 +10,6 @@ import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTEnumSelectorElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
-import com.gregtechceu.gtceu.api.gui.factory.CoverUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.CoverUIProvider;
 import com.gregtechceu.gtceu.api.gui.factory.UICoverHolder;
 import com.gregtechceu.gtceu.api.machine.MachineCoverContainer;
@@ -18,7 +17,7 @@ import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
-import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
 import com.gregtechceu.gtceu.api.transfer.item.ItemHandlerDelegate;
 import com.gregtechceu.gtceu.common.cover.data.FilterMode;
 import com.gregtechceu.gtceu.common.cover.data.ManualIOMode;
@@ -40,11 +39,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class ItemFilterCover extends CoverBehavior
-                             implements CoverUIProvider, ItemFilterCoverConfigActionTarget {
-
-    static {
-        RPCRegistry.register(ItemFilterCoverConfigActions.INSTANCE);
-    }
+                             implements CoverUIProvider {
 
     protected ItemFilter itemFilter;
     @SaveField
@@ -71,13 +66,11 @@ public class ItemFilterCover extends CoverBehavior
         return itemFilter;
     }
 
-    @Override
     public void setFilterMode(FilterMode filterMode) {
         this.filterMode = filterMode;
         syncDataHolder.markClientSyncFieldDirty("filterMode");
     }
 
-    @Override
     public void setAllowFlow(ManualIOMode allowFlow) {
         this.allowFlow = allowFlow;
     }
@@ -144,10 +137,15 @@ public class ItemFilterCover extends CoverBehavior
         sendConfigAction(player, holder);
     }
 
+    @RPCMethod
+    public void configureItemFilter(FilterMode filterMode, ManualIOMode manualIOMode) {
+        setFilterMode(filterMode);
+        setAllowFlow(manualIOMode);
+    }
+
     private void sendConfigAction(Player player, UICoverHolder holder) {
         if (player.level().isClientSide()) {
-            CoverUIHelper.sendAction(holder,
-                    ItemFilterCoverConfigActions.createSetConfigAction(getFilterMode(), getAllowFlow()));
+            holder.getCover().rpcToServer("configureItemFilter", getFilterMode(), getAllowFlow());
         }
     }
 

@@ -9,13 +9,12 @@ import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTEnumSelectorElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
-import com.gregtechceu.gtceu.api.gui.factory.CoverUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.CoverUIProvider;
 import com.gregtechceu.gtceu.api.gui.factory.UICoverHolder;
 import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
-import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
 import com.gregtechceu.gtceu.api.transfer.fluid.FluidHandlerDelegate;
 import com.gregtechceu.gtceu.api.transfer.fluid.IFluidHandlerModifiable;
 import com.gregtechceu.gtceu.common.cover.data.FilterMode;
@@ -37,11 +36,7 @@ import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
 
 public class FluidFilterCover extends CoverBehavior
-                              implements CoverUIProvider, FluidFilterCoverConfigActionTarget {
-
-    static {
-        RPCRegistry.register(FluidFilterCoverConfigActions.INSTANCE);
-    }
+                              implements CoverUIProvider {
 
     protected FluidFilter fluidFilter;
     @SaveField
@@ -57,13 +52,11 @@ public class FluidFilterCover extends CoverBehavior
         super(definition, coverHolder, attachedSide);
     }
 
-    @Override
     public void setFilterMode(FilterMode filterMode) {
         this.filterMode = filterMode;
         syncDataHolder.markClientSyncFieldDirty("filterMode");
     }
 
-    @Override
     public void setAllowFlow(ManualIOMode allowFlow) {
         this.allowFlow = allowFlow;
     }
@@ -134,10 +127,15 @@ public class FluidFilterCover extends CoverBehavior
         sendConfigAction(player, holder);
     }
 
+    @RPCMethod
+    public void configureFluidFilter(FilterMode filterMode, ManualIOMode manualIOMode) {
+        setFilterMode(filterMode);
+        setAllowFlow(manualIOMode);
+    }
+
     private void sendConfigAction(Player player, UICoverHolder holder) {
         if (player.level().isClientSide()) {
-            CoverUIHelper.sendAction(holder,
-                    FluidFilterCoverConfigActions.createSetConfigAction(getFilterMode(), getAllowFlow()));
+            holder.getCover().rpcToServer("configureFluidFilter", getFilterMode(), getAllowFlow());
         }
     }
 

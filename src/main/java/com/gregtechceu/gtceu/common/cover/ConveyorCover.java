@@ -16,7 +16,6 @@ import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTEnumSelectorElement;
 import com.gregtechceu.gtceu.api.gui.element.GTIntInputElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
-import com.gregtechceu.gtceu.api.gui.factory.CoverUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.CoverUIProvider;
 import com.gregtechceu.gtceu.api.gui.factory.UICoverHolder;
 import com.gregtechceu.gtceu.api.machine.ConditionalSubscriptionHandler;
@@ -24,7 +23,7 @@ import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.RerenderOnChanged;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
-import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
 import com.gregtechceu.gtceu.api.transfer.item.ItemHandlerDelegate;
 import com.gregtechceu.gtceu.common.blockentity.ItemPipeBlockEntity;
 import com.gregtechceu.gtceu.common.cover.data.DistributionMode;
@@ -62,15 +61,10 @@ import java.util.List;
 import java.util.Map;
 
 public class ConveyorCover extends CoverBehavior
-                           implements IIOCover, CoverUIProvider, IControllable,
-                           ConveyorCoverConfigActionTarget {
+                           implements IIOCover, CoverUIProvider, IControllable {
 
     // 8 32 128 512 1024
     public static final Int2IntFunction CONVEYOR_SCALING = tier -> 2 * (int) Math.pow(4, Math.min(tier, GTValues.LuV));
-    static {
-        RPCRegistry.register(ConveyorCoverConfigActions.INSTANCE);
-    }
-
     public final int tier;
     public final int maxItemTransferRate;
     @SaveField
@@ -136,7 +130,6 @@ public class ConveyorCover extends CoverBehavior
                 .orElse(null);
     }
 
-    @Override
     public void setDistributionMode(DistributionMode mode) {
         if (distributionMode != mode) {
             distributionMode = mode;
@@ -153,7 +146,6 @@ public class ConveyorCover extends CoverBehavior
         return super.canAttach() && getOwnItemHandler() != null;
     }
 
-    @Override
     public void setTransferRate(int transferRate) {
         int clamped = Math.clamp(transferRate, 1, maxItemTransferRate);
         if (this.transferRate != clamped) {
@@ -162,7 +154,6 @@ public class ConveyorCover extends CoverBehavior
         }
     }
 
-    @Override
     public void setIo(IO io) {
         if (io == IO.IN || io == IO.OUT) {
             if (this.io != io) {
@@ -173,7 +164,6 @@ public class ConveyorCover extends CoverBehavior
         subscriptionHandler.updateSubscription();
     }
 
-    @Override
     public void setManualIOMode(ManualIOMode manualIOMode) {
         if (this.manualIOMode != manualIOMode) {
             this.manualIOMode = manualIOMode;
@@ -528,10 +518,19 @@ public class ConveyorCover extends CoverBehavior
         sendConfigAction(player, holder);
     }
 
+    @RPCMethod
+    public void configureConveyor(int transferRate, IO io, DistributionMode distributionMode,
+                                  ManualIOMode manualIOMode) {
+        setTransferRate(transferRate);
+        setIo(io);
+        setDistributionMode(distributionMode);
+        setManualIOMode(manualIOMode);
+    }
+
     private void sendConfigAction(Player player, UICoverHolder holder) {
         if (player.level().isClientSide()) {
-            CoverUIHelper.sendAction(holder, ConveyorCoverConfigActions.createSetConfigAction(getTransferRate(),
-                    getIo(), getDistributionMode(), getManualIOMode()));
+            holder.getCover().rpcToServer("configureConveyor", getTransferRate(), getIo(), getDistributionMode(),
+                    getManualIOMode());
         }
     }
 

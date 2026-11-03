@@ -12,7 +12,6 @@ import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
 import com.gregtechceu.gtceu.api.gui.element.GTTextFieldElement;
-import com.gregtechceu.gtceu.api.gui.factory.CoverUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.CoverUIProvider;
 import com.gregtechceu.gtceu.api.gui.factory.UICoverHolder;
 import com.gregtechceu.gtceu.api.machine.TickableSubscription;
@@ -23,7 +22,7 @@ import com.gregtechceu.gtceu.api.placeholder.PlaceholderContext;
 import com.gregtechceu.gtceu.api.placeholder.PlaceholderHandler;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
-import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
 import com.gregtechceu.gtceu.api.transfer.item.CustomItemStackHandler;
 import com.gregtechceu.gtceu.client.renderer.cover.CoverTextRenderer;
 import com.gregtechceu.gtceu.client.renderer.cover.IDynamicCoverRenderer;
@@ -62,7 +61,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
 @ParametersAreNonnullByDefault
 public class ComputerMonitorCover extends CoverBehavior
                                   implements CoverUIProvider, IDataStickInteractable,
-                                  IPlaceholderInfoProviderCover, ComputerMonitorCoverConfigActionTarget {
+                                  IPlaceholderInfoProviderCover {
 
     private static final int FORMAT_LINE_COUNT = 8;
     private static final int TEXT_FIELD_WIDTH = 160;
@@ -73,10 +72,6 @@ public class ComputerMonitorCover extends CoverBehavior
     private static final int UPDATE_INTERVAL_MAX = 60 * 20;
     private static final int ROOT_WIDTH = 390;
     private static final int CONTENT_HEIGHT = 195;
-
-    static {
-        RPCRegistry.register(ComputerMonitorCoverConfigActions.INSTANCE);
-    }
 
     private TickableSubscription subscription;
     private final CoverTextRenderer renderer;
@@ -314,10 +309,17 @@ public class ComputerMonitorCover extends CoverBehavior
         sendConfigAction(player, holder);
     }
 
+    @RPCMethod
+    public void configureComputerMonitor(List<String> lines, List<String> args, int updateInterval) {
+        replaceFormatStringLines(lines);
+        replaceFormatStringArgs(args);
+        setUpdateInterval(updateInterval);
+    }
+
     private void sendConfigAction(Player player, UICoverHolder holder) {
         if (player.level().isClientSide()) {
-            CoverUIHelper.sendAction(holder, ComputerMonitorCoverConfigActions.createSetConfigAction(
-                    formatStringLines, formatStringArgs, getUpdateInterval()));
+            holder.getCover().rpcToServer("configureComputerMonitor", new ArrayList<>(formatStringLines),
+                    new ArrayList<>(formatStringArgs), getUpdateInterval());
         }
     }
 
@@ -407,21 +409,18 @@ public class ComputerMonitorCover extends CoverBehavior
         return InteractionResult.sidedSuccess(player.level().isClientSide);
     }
 
-    @Override
     public void replaceFormatStringLines(List<String> lines) {
         formatStringLines.clear();
         formatStringLines.addAll(lines);
         ensureListSize(formatStringLines, FORMAT_LINE_COUNT);
     }
 
-    @Override
     public void replaceFormatStringArgs(List<String> args) {
         formatStringArgs.clear();
         formatStringArgs.addAll(args);
         ensureListSize(formatStringArgs, FORMAT_LINE_COUNT);
     }
 
-    @Override
     public void setUpdateInterval(int updateInterval) {
         this.updateInterval = updateInterval;
     }

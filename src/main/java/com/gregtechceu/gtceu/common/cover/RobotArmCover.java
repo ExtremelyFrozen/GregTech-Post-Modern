@@ -8,12 +8,11 @@ import com.gregtechceu.gtceu.api.cover.filter.ItemFilter;
 import com.gregtechceu.gtceu.api.cover.filter.SimpleItemFilter;
 import com.gregtechceu.gtceu.api.gui.element.GTEnumSelectorElement;
 import com.gregtechceu.gtceu.api.gui.element.GTIntInputElement;
-import com.gregtechceu.gtceu.api.gui.factory.CoverUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.UICoverHolder;
 import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
-import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
 import com.gregtechceu.gtceu.common.cover.data.TransferMode;
 import com.gregtechceu.gtceu.common.pipelike.item.ItemNetHandler;
 
@@ -34,10 +33,6 @@ import java.util.Iterator;
 import java.util.Map;
 
 public class RobotArmCover extends ConveyorCover {
-
-    static {
-        RPCRegistry.register(RobotArmCoverConfigActions.INSTANCE);
-    }
 
     @SaveField
     @SyncToClient
@@ -243,10 +238,15 @@ public class RobotArmCover extends ConveyorCover {
         sendConfigAction(player, holder);
     }
 
+    @RPCMethod
+    public void configureRobotArm(TransferMode transferMode, int transferLimit) {
+        setTransferMode(transferMode);
+        setGlobalTransferLimit(transferLimit);
+    }
+
     private void sendConfigAction(Player player, UICoverHolder holder) {
         if (player.level().isClientSide()) {
-            CoverUIHelper.sendAction(holder, RobotArmCoverConfigActions.createSetConfigAction(getTransferMode(),
-                    getGlobalTransferLimit()));
+            holder.getCover().rpcToServer("configureRobotArm", getTransferMode(), getGlobalTransferLimit());
         }
     }
 

@@ -13,14 +13,13 @@ import com.gregtechceu.gtceu.api.gui.element.GTIntInputElement;
 import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTToggleButtonElement;
-import com.gregtechceu.gtceu.api.gui.factory.CoverUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.CoverUIProvider;
 import com.gregtechceu.gtceu.api.gui.factory.UICoverHolder;
 import com.gregtechceu.gtceu.api.machine.MachineCoverContainer;
 import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
-import com.gregtechceu.gtceu.api.sync_system.rpc.RPCRegistry;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
 import com.gregtechceu.gtceu.api.transfer.item.CustomItemStackHandler;
 import com.gregtechceu.gtceu.common.cover.data.ControllerMode;
 
@@ -45,14 +44,11 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class MachineControllerCover extends CoverBehavior
-                                    implements CoverUIProvider, MachineControllerCoverConfigActionTarget {
-
-    static {
-        RPCRegistry.register(MachineControllerCoverConfigActions.INSTANCE);
-    }
+                                    implements CoverUIProvider {
 
     private @Nullable CustomItemStackHandler sideCoverSlot;
     private @Nullable GTButtonElement modeButton;
@@ -372,11 +368,21 @@ public class MachineControllerCover extends CoverBehavior
         sendConfigAction(player, holder);
     }
 
+    @RPCMethod
+    public boolean configureMachineController(Optional<ControllerMode> requestedMode, int minRedstoneStrength,
+                                              boolean inverted, boolean preventPowerFail) {
+        ControllerMode mode = requestedMode.orElse(null);
+        setControllerMode(mode);
+        setMinRedstoneStrength(minRedstoneStrength);
+        setInverted(inverted);
+        setPreventPowerFail(preventPowerFail);
+        return true;
+    }
+
     private void sendConfigAction(Player player, UICoverHolder holder) {
         if (player.level().isClientSide()) {
-            CoverUIHelper.sendAction(holder, MachineControllerCoverConfigActions.createSetConfigAction(
-                    getControllerMode(),
-                    getMinRedstoneStrength(), isInverted(), preventPowerFail()));
+            holder.getCover().rpcToServer("configureMachineController", Optional.ofNullable(getControllerMode()),
+                    getMinRedstoneStrength(), isInverted(), preventPowerFail());
         }
     }
 
