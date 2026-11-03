@@ -25,6 +25,7 @@ import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.ServerFieldChangeListener;
 import com.gregtechceu.gtceu.api.sync_system.annotations.ServerFieldNormalizer;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncBoth;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry;
 import com.gregtechceu.gtceu.common.data.GTDataComponents;
 import com.gregtechceu.gtceu.utils.ExtendedUseOnContext;
 
@@ -50,7 +51,7 @@ public class CreativeChestMachine extends QuantumChestMachine
     private static final int PAGE_WIDTH = 176;
     private static final int PAGE_HEIGHT = 131;
     static {
-        CreativeChestMachineActions.initialize();
+        RpcRegistry.register(CreativeChestMachineActions.INSTANCE);
     }
 
     @Getter

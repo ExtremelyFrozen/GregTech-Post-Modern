@@ -14,6 +14,7 @@ import com.gregtechceu.gtceu.api.machine.trait.NotifiableFluidTank;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry;
 import com.gregtechceu.gtceu.common.machine.trait.AutoOutputTrait;
 import com.gregtechceu.gtceu.utils.GTUtil;
 
@@ -41,7 +42,7 @@ public class BufferMachine extends TieredMachine implements FancyUIMachine, Buff
     public static final int TANK_SIZE = 64000;
 
     static {
-        BufferMachineActions.initialize();
+        RpcRegistry.register(BufferMachineActions.INSTANCE);
     }
 
     @SaveField
