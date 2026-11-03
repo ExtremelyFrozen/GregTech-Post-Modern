@@ -50,6 +50,7 @@ import java.util.HashMap
 import java.util.LinkedHashMap
 import java.util.LinkedHashSet
 import java.util.UUID
+import java.util.Optional
 import java.util.function.Supplier
 import java.util.stream.IntStream
 import java.util.stream.LongStream
@@ -85,6 +86,7 @@ object FieldCodecs {
 	@JvmStatic
 	@Nullable
 	fun get(type: Type): Codec<*>? {
+		if (type is WildcardType) return get(type.upperBounds.single())
 		val normalized = if (type is Class<*> && type.isPrimitive) PRIMITIVE_TO_BOXED[type] ?: type else type
 		return TYPE_CACHE.computeIfAbsent(normalized, FieldCodecs::generateOrGetCodec)
 	}
@@ -149,6 +151,10 @@ object FieldCodecs {
 		var registered = REGISTERED[type]
 		if (registered != null) return registered
 
+		if (type is ParameterizedType && type.rawType == Optional::class.java) {
+			return get(type.actualTypeArguments[0])?.optionalFieldOf("value")?.codec()
+		}
+
 		if (type is ParameterizedType) {
 			val raw = type.rawType as Class<*>
 			if (List::class.java.isAssignableFrom(raw)) return makeListCodec(type)
@@ -165,6 +171,7 @@ object FieldCodecs {
 
 		registered = REGISTERED[clazz]
 		if (registered != null) return registered
+		(ownedValue(clazz, "CODEC") as? Codec<*>)?.let { return it }
 
 		if (clazz.isArray) return makeArrayCodec(clazz.componentType)
 		if (clazz.isEnum) return makeEnumCodec(clazz)
