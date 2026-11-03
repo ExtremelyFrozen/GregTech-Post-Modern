@@ -5,6 +5,10 @@ import com.gregtechceu.gtceu.api.recipe.category.GTRecipeCategory;
 import com.gregtechceu.gtceu.api.recipe.chance.logic.ChanceLogic;
 import com.gregtechceu.gtceu.api.recipe.content.Content;
 import com.gregtechceu.gtceu.api.recipe.content.ContentModifier;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
+import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
+import com.gregtechceu.gtceu.api.sync_system.managed.ISyncAnnotated;
+import com.gregtechceu.gtceu.common.data.GTRecipeTypes;
 
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.component.DataComponentMap;
@@ -15,6 +19,10 @@ import net.minecraft.world.item.crafting.RecipeInput;
 import net.minecraft.world.item.crafting.RecipeSerializer;
 import net.minecraft.world.level.Level;
 
+import com.google.common.reflect.TypeToken;
+import com.mojang.serialization.Codec;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
 import lombok.Getter;
 import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
@@ -22,33 +30,76 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
-public class GTRecipe implements Recipe<RecipeInput> {
+public class GTRecipe implements Recipe<RecipeInput>, ISyncAnnotated {
 
-    public final GTRecipeType recipeType;
+    public static final Codec<GTRecipe> CODEC = FieldCodecs.createCodec(GTRecipe::new);
+
+    static {
+        FieldCodecs.register(new TypeToken<Map<RecipeCapability<?>, List<Content>>>() {}.getType(),
+                RecipeCapability.CODEC);
+        FieldCodecs.register(new TypeToken<Map<RecipeCapability<?>, ChanceLogic>>() {}.getType(),
+                GTRecipeSerializer.CHANCE_LOGIC_MAP_CODEC);
+        FieldCodecs.register(RecipeCondition.class, RecipeCondition.CODEC);
+        FieldCodecs.register(DataComponentMap.class, DataComponentMap.CODEC);
+        FieldCodecs.register(GTRecipe.class, CODEC);
+    }
+
+    @SaveField
+    public GTRecipeType recipeType;
+    @SaveField
     @Getter
     @Setter
+    @Nullable
     public ResourceLocation id;
+    @SaveField
     public final Map<RecipeCapability<?>, List<Content>> inputs;
+    @SaveField
     public final Map<RecipeCapability<?>, List<Content>> outputs;
+    @SaveField
     public final Map<RecipeCapability<?>, List<Content>> tickInputs;
+    @SaveField
     public final Map<RecipeCapability<?>, List<Content>> tickOutputs;
 
+    @SaveField
     public final Map<RecipeCapability<?>, ChanceLogic> inputChanceLogics;
+    @SaveField
     public final Map<RecipeCapability<?>, ChanceLogic> outputChanceLogics;
+    @SaveField
     public final Map<RecipeCapability<?>, ChanceLogic> tickInputChanceLogics;
+    @SaveField
     public final Map<RecipeCapability<?>, ChanceLogic> tickOutputChanceLogics;
 
+    @SaveField
     public final List<RecipeCondition<?>> conditions;
+    @SaveField
     @NotNull
     public DataComponentMap data;
+    @SaveField
     public int tier;
+    @SaveField
     public int duration;
+    @SaveField
     public int parallels = 1;
+    @SaveField
     public int subtickParallels = 1;
+    @SaveField
     public int batchParallels = 1;
+    @SaveField
     public int ocLevel = 0;
-    public final GTRecipeCategory recipeCategory;
+    @SaveField
+    public GTRecipeCategory recipeCategory;
+    @SaveField
     public int groupColor = -1;
+
+    public GTRecipe() {
+        this(GTRecipeTypes.DUMMY_RECIPES, null,
+                new Reference2ObjectOpenHashMap<>(), new Reference2ObjectOpenHashMap<>(),
+                new Reference2ObjectOpenHashMap<>(), new Reference2ObjectOpenHashMap<>(),
+                new Reference2ObjectOpenHashMap<>(), new Reference2ObjectOpenHashMap<>(),
+                new Reference2ObjectOpenHashMap<>(), new Reference2ObjectOpenHashMap<>(),
+                new ObjectArrayList<>(), DataComponentMap.EMPTY,
+                0, 0, GTRecipeCategory.DEFAULT, -1);
+    }
 
     public long getInputEUt() {
         return calculateEUt(tickInputs);

@@ -56,6 +56,7 @@ import java.util.stream.IntStream
 import java.util.stream.LongStream
 
 import com.gregtechceu.gtceu.api.sync_system.serialization.Types
+import com.gregtechceu.gtceu.api.sync_system.serialization.SyncCodec
 import net.minecraft.network.RegistryFriendlyByteBuf
 import net.minecraft.network.codec.ByteBufCodecs
 import net.minecraft.network.codec.StreamCodec
@@ -65,11 +66,11 @@ import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap
 
 object FieldCodecs {
 	private val STREAM_CODECS: MutableMap<Type, StreamCodec<RegistryFriendlyByteBuf, *>?> = Object2ObjectOpenHashMap()
-	private val REGISTERED: MutableMap<Type, Codec<*>> = Reference2ReferenceOpenHashMap()
-	private val REGISTERED_SUPPLIERS: MutableMap<Class<*>, Supplier<Codec<*>>> = Reference2ReferenceOpenHashMap()
-	private val TYPE_CACHE: MutableMap<Type, Codec<*>?> = Reference2ReferenceOpenHashMap()
-	private val CONTEXTUAL_REGISTERED: MutableMap<Type, ContextualFieldCodec<*>> = Reference2ReferenceOpenHashMap()
-	private val CONTEXTUAL_TYPE_CACHE: MutableMap<Type, ContextualFieldCodec<*>?> = Reference2ReferenceOpenHashMap()
+	private val REGISTERED: MutableMap<Type, Codec<*>> = Object2ObjectOpenHashMap()
+	private val REGISTERED_SUPPLIERS: MutableMap<Class<*>, Supplier<Codec<*>>> = Object2ObjectOpenHashMap()
+	private val TYPE_CACHE: MutableMap<Type, Codec<*>?> = Object2ObjectOpenHashMap()
+	private val CONTEXTUAL_REGISTERED: MutableMap<Type, ContextualFieldCodec<*>> = Object2ObjectOpenHashMap()
+	private val CONTEXTUAL_TYPE_CACHE: MutableMap<Type, ContextualFieldCodec<*>?> = Object2ObjectOpenHashMap()
 
 	private val PRIMITIVE_TO_BOXED: Map<Type, Type> = mapOf(
 		Boolean::class.javaPrimitiveType!! to java.lang.Boolean::class.java,
@@ -96,6 +97,13 @@ object FieldCodecs {
 		REGISTERED.putIfAbsent(type, codec)
 		TYPE_CACHE.remove(type)
 	}
+
+	/** Creates a value through the supplied factory, then restores its annotated saved fields. */
+	@JvmStatic
+	fun <T : Any> createCodec(factory: Supplier<T>): Codec<T> = SyncCodec(factory)
+
+	@JvmStatic
+	fun <T : Any> createStreamCodec(factory: Supplier<T>): StreamCodec<RegistryFriendlyByteBuf, T> = ByteBufCodecs.fromCodecWithRegistries(createCodec(factory))
 
 	@JvmStatic
 	fun registerSupplier(type: Class<*>, supplier: Supplier<Codec<*>>) {
