@@ -31,7 +31,7 @@ public final class MachineTraitHolder {
                         context.parseExplicitNull(), context.isClientFullSyncUpdate(), false);
                 return holder;
             }, holder -> holder.serializeSyncFieldData(context.lookup(), context.isClientSync(),
-                    context.isClientFullSyncUpdate()));
+                    context.isClientFullSyncUpdate(), context.readOnly()));
         }
 
         @Override
@@ -159,12 +159,14 @@ public final class MachineTraitHolder {
         return Optional.ofNullable(getTrait(type));
     }
 
-    public SyncFieldData serializeSyncFieldData(HolderLookup.Provider lookup, boolean isClientSync, boolean fullSync) {
+    public SyncFieldData serializeSyncFieldData(HolderLookup.Provider lookup, boolean isClientSync, boolean fullSync,
+                                                boolean readOnly) {
         SyncFieldData.Builder builder = SyncFieldData.builder();
         if (isClientSync) {
             for (int i = 0; i < traits.size(); i++) {
-                SyncFieldData traitData = traits.get(i).getSyncDataHolder()
-                        .serializeToFieldData(lookup, true, fullSync);
+                var storage = traits.get(i).getSyncDataHolder();
+                SyncFieldData traitData = readOnly ? storage.getClientData(lookup) :
+                        storage.serializeToFieldData(lookup, true, fullSync);
                 if (fullSync || !traitData.isEmpty()) {
                     builder.put(SyncFieldData.key(Integer.toString(i)), traitData);
                 }

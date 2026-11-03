@@ -238,7 +238,7 @@ object FieldCodecs {
 
 	private fun <T> nestedContext(parent: ContextualFieldCodec.Context<*>, type: Type, currentValue: T?, fieldName: String): ContextualFieldCodec.Context<T> = ContextualFieldCodec.Context(
 		parent.holder, TypeDeclaration(type), currentValue, fieldName, parent.isClientSync, parent.isClientFullSyncUpdate,
-		parent.lookup, parent.parseExplicitNull, parent.notifyUnchangedOnFullSync,
+		parent.lookup, parent.parseExplicitNull, parent.notifyUnchangedOnFullSync, parent.readOnly,
 	)
 
 	private fun <T> sequenceCodec(element: (Int) -> Codec<T>): Codec<List<T>> = object : Codec<List<T>> {

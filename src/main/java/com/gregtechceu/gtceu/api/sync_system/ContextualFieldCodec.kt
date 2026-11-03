@@ -25,5 +25,16 @@ interface ContextualFieldCodec<T> {
 	}
 
 	@JvmRecord
-	data class Context<T>(val holder: Any, val type: TypeDeclaration, val currentValue: T?, val fieldName: String, val isClientSync: Boolean, val isClientFullSyncUpdate: Boolean, val lookup: HolderLookup.Provider, val parseExplicitNull: Boolean = false, val notifyUnchangedOnFullSync: Boolean = true)
+	data class Context<T>(
+		val holder: Any,
+		val type: TypeDeclaration,
+		val currentValue: T?,
+		val fieldName: String,
+		val isClientSync: Boolean,
+		val isClientFullSyncUpdate: Boolean,
+		val lookup: HolderLookup.Provider,
+		val parseExplicitNull: Boolean = false,
+		val notifyUnchangedOnFullSync: Boolean = true,
+		val readOnly: Boolean = false,
+	)
 }

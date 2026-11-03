@@ -59,7 +59,13 @@ interface ISyncManaged {
 					value.getSyncDataHolder().deserializeFieldData(context.lookup, data, context.isClientSync, true, context.isClientFullSyncUpdate, false)
 					value
 				},
-				{ value -> value.getSyncDataHolder().serializeToFieldData(context.lookup, context.isClientSync, context.isClientFullSyncUpdate) },
+				{ value ->
+					if (context.isClientSync && context.readOnly) {
+						value.getSyncDataHolder().getClientData(context.lookup)
+					} else {
+						value.getSyncDataHolder().serializeToFieldData(context.lookup, context.isClientSync, context.isClientFullSyncUpdate)
+					}
+				},
 			)
 		}
 	}

@@ -7,9 +7,11 @@ import net.minecraft.core.HolderLookup
 import net.minecraft.core.RegistryAccess
 
 import com.mojang.serialization.Dynamic
+import it.unimi.dsi.fastutil.objects.ObjectArrayList
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet
 import it.unimi.dsi.fastutil.objects.ObjectSet
 import it.unimi.dsi.fastutil.objects.Reference2ReferenceOpenHashMap
+import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet
 import org.jetbrains.annotations.Nullable
 
 import java.lang.invoke.MethodHandle
@@ -34,9 +36,40 @@ data class ServerFieldUpdateResult(val accepted: Boolean, val changed: Boolean, 
 class SyncDataHolder(private val holder: ISyncManaged) {
 	private val syncData: ClassSyncData = ClassSyncData.getClassData(holder.javaClass)
 	private val cachedClientValues: MutableMap<FieldSyncData, Any?> = Reference2ReferenceOpenHashMap()
-	private val cachedServerValues: MutableMap<FieldSyncData, Any?> = Reference2ReferenceOpenHashMap()
+	private val cachedClientData: MutableMap<FieldSyncData, Any?> = Reference2ReferenceOpenHashMap()
+	private val cachedServerData: MutableMap<FieldSyncData, Any?> = Reference2ReferenceOpenHashMap()
 	private val dirtySyncFields: ObjectSet<String> = ObjectOpenHashSet()
 	private val authoritativeClientFields: ObjectSet<FieldSyncData> = ObjectOpenHashSet()
+	private val rpcChildren: MutableList<ISyncManaged?> = ObjectArrayList()
+
+	/** Returns the same ordered managed receivers used by LDLib2's root storage RPC lookup. */
+	fun getManaged(): List<ISyncManaged> {
+		val result = ObjectArrayList<ISyncManaged>()
+		val seen = ReferenceOpenHashSet<ISyncManaged>()
+		fun collect(value: ISyncManaged) {
+			if (!seen.add(value)) return
+			result.add(value)
+			val storage = value.getSyncDataHolder()
+			for (child in storage.rpcChildren) if (child != null) collect(child)
+			for (field in storage.syncData.getManagedFields()) {
+				val child = field.handle.get(value)
+				if (child is ISyncManaged) collect(child)
+			}
+		}
+		collect(holder)
+		return result
+	}
+
+	/** Attaches a child in the same construction order on both sides. Call on the owning game thread. */
+	fun attachRPC(child: ISyncManaged) {
+		rpcChildren.add(child)
+	}
+
+	/** Detaches an object without changing the addresses of the remaining children. */
+	fun detachRPC(child: ISyncManaged) {
+		val index = rpcChildren.indexOfFirst { it === child }
+		if (index >= 0) rpcChildren[index] = null
+	}
 
 	@field:Nullable
 	private var pendingClientChanges: SyncFieldData? = null
@@ -45,9 +78,6 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 	init {
 		for (field in syncData.getClientSyncFields()) {
 			cachedClientValues[field] = field.handle.get(holder)
-		}
-		for (field in syncData.getServerUpdateFields()) {
-			cachedServerValues[field] = field.handle.get(holder)
 		}
 	}
 
@@ -89,14 +119,25 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 		return builder.build()
 	}
 
+	/** Reads menu data without consuming changes waiting for world tracking clients. */
+	fun getClientData(registries: HolderLookup.Provider): SyncFieldData {
+		val builder = SyncFieldData.builder()
+		for (field in syncData.getClientSyncFields()) {
+			builder.put(field.componentKey, FieldSyncHandler.serializeFieldData(registries, holder, field, true, fullSync = true, readOnly = true))
+		}
+		return builder.build()
+	}
+
 	fun serializeFullClientSyncData(registries: HolderLookup.Provider): SyncFieldData {
 		val builder = SyncFieldData.builder()
 		for (field in syncData.getClientSyncFields()) {
-			builder.put(field.componentKey, FieldSyncHandler.serializeFieldData(registries, holder, field, true, fullSync = true))
+			val encoded = FieldSyncHandler.serializeFieldData(registries, holder, field, true, fullSync = true)
+			builder.put(field.componentKey, encoded)
+			cachedClientData[field] = encoded?.value
 			val currentValue = field.handle.get(holder)
 			cachedClientValues[field] = currentValue
 			if (field.hasSyncBoth) {
-				cachedServerValues[field] = currentValue
+				cachedServerData[field] = encoded?.value
 			}
 		}
 		resyncAll = false
@@ -159,15 +200,23 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 			val currentValue = field.handle.get(holder)
 			val previousValue = cachedClientValues[field]
 			val manuallyDirty = dirtySyncFields.contains(field.fieldName)
-			val changed = fullSync ||
-				manuallyDirty ||
-				currentValue != previousValue ||
-				shouldSyncContextualField(registries, field, currentValue, fullSync, manuallyDirty)
-			if (changed) {
-				changes.put(field.componentKey, FieldSyncHandler.serializeFieldData(registries, holder, field, true, fullSync))
-				cachedClientValues[field] = currentValue
-				hasChanges = true
+			val container = currentValue is Map<*, *> || currentValue is Collection<*> || field.handle.varType().isArray
+			val encoded = if (field.contextualCodec != null && !container) {
+				if (!fullSync && !manuallyDirty && currentValue == previousValue &&
+					!shouldSyncContextualField(registries, field, currentValue, fullSync, manuallyDirty)
+				) {
+					continue
+				}
+				FieldSyncHandler.serializeFieldData(registries, holder, field, true, fullSync)
+			} else {
+				val value = FieldSyncHandler.serializeFieldData(registries, holder, field, true, fullSync = true, readOnly = true)
+				if (!fullSync && !manuallyDirty && value?.value == cachedClientData[field]) continue
+				value
 			}
+			changes.put(field.componentKey, encoded)
+			cachedClientValues[field] = currentValue
+			cachedClientData[field] = encoded?.value
+			hasChanges = true
 		}
 
 		resyncAll = false
@@ -217,16 +266,10 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 		val changes = SyncFieldData.builder()
 		val fields = syncData.getOrderedServerUpdateFields()
 		for (field in fields) {
-			val currentValue = field.handle.get(holder)
-			val previousValue = cachedServerValues[field]
-			if (currentValue == previousValue) {
-				continue
-			}
-			changes.put(
-				field.componentKey,
-				FieldSyncHandler.encodeDetachedServerCandidate(registries, holder, field),
-			)
-			cachedServerValues[field] = currentValue
+			val encoded = FieldSyncHandler.encodeDetachedServerCandidate(registries, holder, field)
+			if (encoded?.value == cachedServerData[field]) continue
+			changes.put(field.componentKey, encoded)
+			cachedServerData[field] = encoded?.value
 		}
 
 		return changes.build()
@@ -281,8 +324,9 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 			if (readingClientFields) {
 				val currentValue = field.handle.get(holder)
 				cachedClientValues[field] = currentValue
+				cachedClientData[field] = savedValue?.value
 				if (field.hasSyncBoth) {
-					cachedServerValues[field] = currentValue
+					cachedServerData[field] = savedValue?.value
 				}
 				if (shouldNotifyClientField(
 						field,
@@ -393,8 +437,9 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 			)
 			val currentValue = field.handle.get(holder)
 			cachedClientValues[field] = currentValue
+			cachedClientData[field] = value?.value
 			if (field.hasSyncBoth) {
-				cachedServerValues[field] = currentValue
+				cachedServerData[field] = value?.value
 			}
 			if (shouldNotifyClientField(field, previousValue, currentValue, fullSync, notifyUnchangedOnFullSync)) {
 				changedClientFields.add(field)

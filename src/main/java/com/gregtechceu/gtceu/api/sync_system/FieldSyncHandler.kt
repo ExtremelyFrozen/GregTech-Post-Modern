@@ -14,10 +14,10 @@ import java.lang.invoke.VarHandle
 @ApiStatus.Internal
 object FieldSyncHandler {
 	@JvmStatic
-	fun serializeFieldData(registries: HolderLookup.Provider, holder: Any, field: FieldSyncData, writeClientFields: Boolean, fullSync: Boolean): Dynamic<*>? {
+	fun serializeFieldData(registries: HolderLookup.Provider, holder: Any, field: FieldSyncData, writeClientFields: Boolean, fullSync: Boolean, readOnly: Boolean = false): Dynamic<*>? {
 		val value = field.handle.get(holder) ?: return null
 		val ops = registries.createSerializationContext(NbtOps.INSTANCE)
-		return Dynamic(ops, codec(registries, holder, field, value, writeClientFields, fullSync).encodeStart(ops, value).getOrThrow())
+		return Dynamic(ops, codec(registries, holder, field, value, writeClientFields, fullSync, readOnly = readOnly).encodeStart(ops, value).getOrThrow())
 	}
 
 	@JvmStatic
@@ -52,9 +52,9 @@ object FieldSyncHandler {
 	}
 
 	@Suppress("UNCHECKED_CAST")
-	private fun codec(registries: HolderLookup.Provider, holder: Any, field: FieldSyncData, current: Any?, clientSync: Boolean, fullSync: Boolean, parseExplicitNull: Boolean = false, notifyUnchangedOnFullSync: Boolean = true): Codec<Any> {
+	private fun codec(registries: HolderLookup.Provider, holder: Any, field: FieldSyncData, current: Any?, clientSync: Boolean, fullSync: Boolean, parseExplicitNull: Boolean = false, notifyUnchangedOnFullSync: Boolean = true, readOnly: Boolean = false): Codec<Any> {
 		val contextual = field.contextualCodec as ContextualFieldCodec<Any>?
-		return contextual?.codec(ContextualFieldCodec.Context(holder, field.type, current, field.fieldName, clientSync, fullSync, registries, parseExplicitNull, notifyUnchangedOnFullSync))
+		return contextual?.codec(ContextualFieldCodec.Context(holder, field.type, current, field.fieldName, clientSync, fullSync, registries, parseExplicitNull, notifyUnchangedOnFullSync, readOnly))
 			?: ordinaryCodec(field)
 	}
 
