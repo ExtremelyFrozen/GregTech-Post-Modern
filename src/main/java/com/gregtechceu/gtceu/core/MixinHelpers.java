@@ -373,8 +373,6 @@ public class MixinHelpers {
         });
     }
 
-    public static void postKJSVeinEvents(RegistryAccess.Frozen registries) {}
-
     public static void addFluidTexture(Material material, FluidStorage.FluidEntry value) {
         IClientFluidTypeExtensions extensions = IClientFluidTypeExtensions.of(value.getFluid().get());
         if (extensions instanceof GTClientFluidTypeExtensions gtExtensions && value.getBuilder() != null) {

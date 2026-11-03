@@ -39,9 +39,6 @@ public class GTRecipe implements Recipe<RecipeInput> {
     public final Map<RecipeCapability<?>, ChanceLogic> tickOutputChanceLogics;
 
     public final List<RecipeCondition<?>> conditions;
-    // for KubeJS. actual type is List<IngredientAction>.
-    // Must be List<?> to not cause crashes without KubeJS.
-    public final List<?> ingredientActions;
     @NotNull
     public DataComponentMap data;
     public int tier;
@@ -71,7 +68,6 @@ public class GTRecipe implements Recipe<RecipeInput> {
                     Map<RecipeCapability<?>, ChanceLogic> tickInputChanceLogics,
                     Map<RecipeCapability<?>, ChanceLogic> tickOutputChanceLogics,
                     List<RecipeCondition<?>> conditions,
-                    List<?> ingredientActions,
                     @NotNull DataComponentMap data,
                     int tier,
                     int duration,
@@ -79,27 +75,7 @@ public class GTRecipe implements Recipe<RecipeInput> {
                     int groupColor) {
         this(recipeType, null, inputs, outputs, tickInputs, tickOutputs,
                 inputChanceLogics, outputChanceLogics, tickInputChanceLogics, tickOutputChanceLogics,
-                conditions, ingredientActions, data, tier, duration, recipeCategory, groupColor);
-    }
-
-    public GTRecipe(GTRecipeType recipeType,
-                    Map<RecipeCapability<?>, List<Content>> inputs,
-                    Map<RecipeCapability<?>, List<Content>> outputs,
-                    Map<RecipeCapability<?>, List<Content>> tickInputs,
-                    Map<RecipeCapability<?>, List<Content>> tickOutputs,
-                    Map<RecipeCapability<?>, ChanceLogic> inputChanceLogics,
-                    Map<RecipeCapability<?>, ChanceLogic> outputChanceLogics,
-                    Map<RecipeCapability<?>, ChanceLogic> tickInputChanceLogics,
-                    Map<RecipeCapability<?>, ChanceLogic> tickOutputChanceLogics,
-                    List<RecipeCondition<?>> conditions,
-                    @NotNull DataComponentMap data,
-                    int tier,
-                    int duration,
-                    @NotNull GTRecipeCategory recipeCategory,
-                    int groupColor) {
-        this(recipeType, null, inputs, outputs, tickInputs, tickOutputs,
-                inputChanceLogics, outputChanceLogics, tickInputChanceLogics, tickOutputChanceLogics,
-                conditions, List.of(), data, tier, duration, recipeCategory, groupColor);
+                conditions, data, tier, duration, recipeCategory, groupColor);
     }
 
     public GTRecipe(GTRecipeType recipeType,
@@ -113,7 +89,6 @@ public class GTRecipe implements Recipe<RecipeInput> {
                     Map<RecipeCapability<?>, ChanceLogic> tickInputChanceLogics,
                     Map<RecipeCapability<?>, ChanceLogic> tickOutputChanceLogics,
                     List<RecipeCondition<?>> conditions,
-                    List<?> ingredientActions,
                     @NotNull DataComponentMap data,
                     int tier,
                     int duration,
@@ -132,7 +107,6 @@ public class GTRecipe implements Recipe<RecipeInput> {
         this.tickOutputChanceLogics = tickOutputChanceLogics;
 
         this.conditions = conditions;
-        this.ingredientActions = ingredientActions;
         this.data = data;
         this.tier = tier;
         this.duration = duration;
@@ -155,7 +129,7 @@ public class GTRecipe implements Recipe<RecipeInput> {
                 new HashMap<>(inputChanceLogics), new HashMap<>(outputChanceLogics),
                 new HashMap<>(tickInputChanceLogics), new HashMap<>(tickOutputChanceLogics),
                 new ArrayList<>(conditions),
-                new ArrayList<>(ingredientActions), RecipeData.copy(data), tier, duration, recipeCategory, groupColor);
+                RecipeData.copy(data), tier, duration, recipeCategory, groupColor);
         if (modifyDuration) {
             copied.duration = modifier.apply(this.duration);
         }

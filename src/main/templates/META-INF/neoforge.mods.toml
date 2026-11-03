@@ -61,13 +61,6 @@ enumExtensions = "META-INF/enum_extensions.json"
         curseforge = "configuration"
 
 [[dependencies.${mod_id}]]
-    modId = "kubejs"
-    type = "optional"
-    versionRange = "[${kjs_version},)"
-    ordering = "AFTER"
-    side = "BOTH"
-
-[[dependencies.${mod_id}]]
     modId = "jei"
     type = "optional"
     versionRange = "[${jei_version},)"

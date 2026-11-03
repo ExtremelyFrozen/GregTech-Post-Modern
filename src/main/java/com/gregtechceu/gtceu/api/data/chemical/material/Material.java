@@ -35,7 +35,6 @@ import net.neoforged.neoforge.fluids.crafting.SizedFluidIngredient;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import dev.latvian.mods.rhino.util.RemapPrefixForJS;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import lombok.Getter;
@@ -54,7 +53,7 @@ public class Material {
 
     static {
         FieldCodecs.register(Material.class, ResourceLocation.CODEC
-                .xmap(id -> GTRegistries.MATERIALS.getMaterial(id), Material::getResourceLocation));
+                .xmap(GTRegistries.MATERIALS::getMaterial, Material::getResourceLocation));
     }
 
     /**
@@ -590,7 +589,6 @@ public class Material {
     }
 
     @SuppressWarnings("UnusedReturnValue")
-    @RemapPrefixForJS("kjs$")
     public static class Builder {
 
         private final MaterialInfo materialInfo;

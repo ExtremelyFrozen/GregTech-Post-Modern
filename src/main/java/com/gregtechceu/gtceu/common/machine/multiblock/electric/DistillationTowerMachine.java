@@ -411,7 +411,6 @@ public class DistillationTowerMachine extends WorkableElectricMultiblockMachine
                 recipe.tickInputs, cm.applyContents(recipe.tickOutputs), recipe.inputChanceLogics,
                 recipe.outputChanceLogics,
                 recipe.tickInputChanceLogics, recipe.tickOutputChanceLogics, recipe.conditions,
-                recipe.ingredientActions,
                 RecipeData.copy(recipe.data), recipe.tier, recipe.duration, recipe.recipeCategory, recipe.groupColor);
     }
 

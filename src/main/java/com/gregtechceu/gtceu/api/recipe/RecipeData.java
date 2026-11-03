@@ -23,7 +23,7 @@ import java.util.function.Consumer;
  * Recipe data stored as a typed data component instead of runtime NBT.
  *
  * <p>
- * The open keyed map preserves the existing recipe JSON and KubeJS data surface while keeping recipe runtime and
+ * The open keyed map preserves the existing recipe JSON data surface while keeping recipe runtime and
  * network payloads on {@link DataComponentMap}.
  * </p>
  */

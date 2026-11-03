@@ -36,9 +36,6 @@ dependencies {
     compileOnly(variantOf(forge.create) { classifier("slim") })
     compileOnly(forge.flywheel.forge.api)
 
-    // KJS
-    compileOnly(forge.bundles.kjs)
-
     // Rendering / Optimizations
     compileOnly(forge.sodium)
     compileOnly(forge.iris)
@@ -97,8 +94,6 @@ dependencies {
     extraLocalRuntime(forge.curios)
 //    extraLocalRuntime(forge.worldstripper)
     localRuntime(forge.cc.tweaked.forge.impl)
-
-    extraLocalRuntime(forge.bundles.kjs)
 
     extraLocalRuntime(forge.ftblibrary)
     extraLocalRuntime(forge.ftbteams)

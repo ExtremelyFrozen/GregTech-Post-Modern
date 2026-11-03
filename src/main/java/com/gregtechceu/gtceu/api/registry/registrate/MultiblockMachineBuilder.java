@@ -20,7 +20,6 @@ import net.minecraft.world.level.ItemLike;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
 
-import dev.latvian.mods.rhino.util.HideFromJS;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 import lombok.experimental.Tolerate;
@@ -121,7 +120,6 @@ public class MultiblockMachineBuilder<DEFINITION extends MultiblockMachineDefini
     }
 
     @Override
-    @HideFromJS
     public DEFINITION register() {
         var definition = super.register();
         definition.setGenerator(generator);

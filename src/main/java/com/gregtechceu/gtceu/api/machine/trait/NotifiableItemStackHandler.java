@@ -1,10 +1,8 @@
 package com.gregtechceu.gtceu.api.machine.trait;
 
-import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.capability.recipe.IO;
 import com.gregtechceu.gtceu.api.capability.recipe.ItemRecipeCapability;
 import com.gregtechceu.gtceu.api.capability.recipe.RecipeCapability;
-import com.gregtechceu.gtceu.api.recipe.DummyCraftingInput;
 import com.gregtechceu.gtceu.api.recipe.GTRecipe;
 import com.gregtechceu.gtceu.api.recipe.ingredient.IntProviderIngredient;
 import com.gregtechceu.gtceu.api.recipe.ingredient.SizedIngredientExtensions;
@@ -18,7 +16,6 @@ import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.common.crafting.SizedIngredient;
 import net.neoforged.neoforge.items.IItemHandlerModifiable;
 
-import dev.latvian.mods.kubejs.recipe.ingredientaction.IngredientActionHolder;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -152,8 +149,7 @@ public class NotifiableItemStackHandler extends NotifiableRecipeHandlerTrait<Siz
                 if (io == IO.IN) {
                     if (current.isEmpty()) continue;
                     if (ingredient.ingredient().test(current)) {
-                        var extracted = getActioned(storage, slot, recipe.ingredientActions);
-                        if (extracted == null) extracted = storage.extractItem(slot, Math.min(count, amount), simulate);
+                        var extracted = storage.extractItem(slot, Math.min(count, amount), simulate);
                         if (!extracted.isEmpty()) {
                             changed = true;
                             visited[slot] = extracted.copyWithCount(count - extracted.getCount());
@@ -165,8 +161,7 @@ public class NotifiableItemStackHandler extends NotifiableRecipeHandlerTrait<Siz
                     // Only try this slot if not visited or if visited with the same type of item
                     if (visited[slot] == null || ItemStack.isSameItemSameComponents(visited[slot], output)) {
                         if (count < output.getMaxStackSize() && count < storage.getSlotLimit(slot)) {
-                            var remainder = getActioned(storage, slot, recipe.ingredientActions);
-                            if (remainder == null) remainder = storage.insertItem(slot, output, simulate);
+                            var remainder = storage.insertItem(slot, output, simulate);
                             if (remainder.getCount() < amount) {
                                 changed = true;
                                 visited[slot] = output.copyWithCount(count + amount - remainder.getCount());
@@ -191,14 +186,6 @@ public class NotifiableItemStackHandler extends NotifiableRecipeHandlerTrait<Siz
         if (changed && !simulate) listener.run();
 
         return left;
-    }
-
-    private static @Nullable ItemStack getActioned(CustomItemStackHandler storage, int index, List<?> actions) {
-        if (!GTCEu.MODS.KUBEJS.isLoaded()) return null;
-        // noinspection unchecked
-        var actioned = KJSCallWrapper.applyIngredientAction(storage, index, (List<IngredientActionHolder>) actions);
-        if (!actioned.isEmpty()) return actioned;
-        return null;
     }
 
     @Override
@@ -327,25 +314,5 @@ public class NotifiableItemStackHandler extends NotifiableRecipeHandlerTrait<Siz
     @Override
     public void onMachineDestroyed() {
         if (shouldDropInventoryInWorld) dropInventoryInWorld();
-    }
-
-    public static class KJSCallWrapper {
-
-        public static ItemStack applyIngredientAction(CustomItemStackHandler storage, int index,
-                                                      List<IngredientActionHolder> ingredientActions) {
-            var stack = storage.getStackInSlot(index);
-            if (stack.isEmpty()) {
-                return ItemStack.EMPTY;
-            }
-
-            DummyCraftingInput container = new DummyCraftingInput(storage);
-            for (var action : ingredientActions) {
-                if (action.filter().checkFilter(index, stack)) {
-                    return action.action().transform(stack.copy(), index, container);
-                }
-            }
-
-            return ItemStack.EMPTY;
-        }
     }
 }

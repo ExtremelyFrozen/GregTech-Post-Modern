@@ -54,7 +54,7 @@ public class GTDynamicDataPack implements PackResources {
     private final PackLocationInfo info;
 
     static {
-        SERVER_DOMAINS.addAll(Sets.newHashSet(GTCEu.MOD_ID, "minecraft", "neoforge", "c", "kubejs"));
+        SERVER_DOMAINS.addAll(Sets.newHashSet(GTCEu.MOD_ID, "minecraft", "neoforge", "c"));
     }
 
     public GTDynamicDataPack(PackLocationInfo info) {

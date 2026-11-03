@@ -6,8 +6,6 @@ configuration = "3.1.1-neoforge"
 jei = "19.25.1.328"
 emi = "1.1.23+1.21.1"
 ae2 = "19.2.8"
-kubejs = "2101.7.2-build.336"
-rhino = "2101.2.7-build.81"
 create = "6.0.8-168"
 ponder = "1.0.64"
 flywheel = "1.0.5"
@@ -56,8 +54,6 @@ jei-neoforge-impl   = { module = "mezz.jei:jei-1.21.1-neoforge", version.ref = "
 emi                 = { module = "dev.emi:emi-neoforge", version.ref = "emi" }
 
 ae2                 = { module = "org.appliedenergistics:appliedenergistics2", version.ref = "ae2" }
-kubejs              = { module = "dev.latvian.mods:kubejs-neoforge", version.ref = "kubejs" }
-rhino               = { module = "dev.latvian.mods:rhino", version.ref = "rhino" }
 create              = { module = "com.simibubi.create:create-1.21.1", version.ref = "create" }
 ponder              = { module = "net.createmod.ponder:Ponder-NeoForge-1.21.1", version.ref = "ponder"}
 flywheel-forge-api  = { module = "dev.engine-room.flywheel:flywheel-neoforge-api-1.21.1", version.ref = "flywheel"}
@@ -103,4 +99,3 @@ kotlinforforge      = { module = "thedarkcolour:kotlinforforge-neoforge", versio
 
 [bundles]
 jei = ["jei-common-api", "jei-neoforge-api", "jei-neoforge-impl"]
-kjs = ["kubejs", "rhino"]

@@ -99,9 +99,7 @@ public abstract class RecipeCapability<T> {
         return copyWithModifier((T) content, modifier);
     }
 
-    /**
-     * used for recipe builder via KubeJs.
-     */
+    /** Converts a recipe builder input to this capability's content type. */
     public T of(Object o) {
         return serializer.of(o);
     }

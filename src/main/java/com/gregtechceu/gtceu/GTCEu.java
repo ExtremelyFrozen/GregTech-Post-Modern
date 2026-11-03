@@ -175,7 +175,6 @@ public class GTCEu {
 
         EMI(GTValues.MODID_EMI),
         JEI(GTValues.MODID_JEI),
-        KUBEJS(GTValues.MODID_KUBEJS),
         IRIS(GTValues.MODID_IRIS),
         SODIUM(GTValues.MODID_SODIUM),
         AE2(GTValues.MODID_APPENG),

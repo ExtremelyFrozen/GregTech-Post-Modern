@@ -46,13 +46,6 @@ repositories {
         forRepository { maven { url = "https://repo.repsy.io/mvn/toma/public" } }
         filter { includeGroup("dev.toma.configuration")}
     }
-    exclusiveContent { // KubeJS and Rhino
-        forRepository { maven { url = "https://maven.latvian.dev/releases" } }
-        filter {
-            includeGroup("dev.latvian.mods")
-            includeGroup("dev.latvian.apps")
-        }
-    }
     exclusiveContent { // FTB mods
         forRepository { maven { url = "https://maven.ftb.dev/releases/" } }
         filter { includeGroup("dev.ftb.mods") }
@@ -99,10 +92,6 @@ repositories {
     exclusiveContent { // CC: Tweaked
         forRepository { maven { url = "https://maven.squiddev.cc" } }
         filter { includeGroup("cc.tweaked") }
-    }
-    exclusiveContent { // This one lib that KJS 1.21 uses for whatever reason?
-        forRepository { maven { url = "https://jitpack.io/" } }
-        filter { includeGroup("com.github.rtyley") }
     }
     exclusiveContent { // Xaero's
         forRepository { maven { url = "https://chocolateminecraft.com/maven/" } }

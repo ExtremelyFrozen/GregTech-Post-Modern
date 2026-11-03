@@ -46,7 +46,6 @@ var generateModMetadata = tasks.register("generateModMetadata", ProcessResources
             loader_version      : libs.versions.loader.get(),
             neo_version         : neoVersion,
             configuration_version : configurationVersion,
-            kjs_version         : forge.versions.kubejs.get().split("\\.")[0], // only specify major version of kjs
             ldlib2_version      : forge.versions.ldlib2.get(),
             jei_version         : forge.versions.jei.get(),
             emi_version         : forge.versions.emi.get(),
