@@ -39,7 +39,7 @@ data class SyncActionContext(val player: ServerPlayer, val holder: Any, val acti
 	/**
 	 * Returns the component payload that action handlers must validate before use.
 	 */
-	fun payload(): DataComponentMap = action.payload
+	fun payload(): DataComponentMap = action.payload as DataComponentMap
 
 	override fun toString(): String = "SyncActionContext[player=$player, holder=$holder, action=$action, pos=$pos, side=$side, hand=$hand, openedStack=$openedStack]"
 

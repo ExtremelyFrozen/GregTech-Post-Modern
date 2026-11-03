@@ -54,7 +54,16 @@ import java.util.function.Supplier
 import java.util.stream.IntStream
 import java.util.stream.LongStream
 
+import com.gregtechceu.gtceu.api.sync_system.serialization.Types
+import net.minecraft.network.RegistryFriendlyByteBuf
+import net.minecraft.network.codec.ByteBufCodecs
+import net.minecraft.network.codec.StreamCodec
+import java.lang.reflect.Modifier
+import java.lang.reflect.WildcardType
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap
+
 object FieldCodecs {
+	private val STREAM_CODECS: MutableMap<Type, StreamCodec<RegistryFriendlyByteBuf, *>?> = Object2ObjectOpenHashMap()
 	private val REGISTERED: MutableMap<Type, Codec<*>> = Reference2ReferenceOpenHashMap()
 	private val REGISTERED_SUPPLIERS: MutableMap<Class<*>, Supplier<Codec<*>>> = Reference2ReferenceOpenHashMap()
 	private val TYPE_CACHE: MutableMap<Type, Codec<*>?> = Reference2ReferenceOpenHashMap()
@@ -494,6 +503,54 @@ object FieldCodecs {
 	}
 
 	private fun <T> resourceLocationReferenceCodec(write: (T) -> ResourceLocation, read: (ResourceLocation) -> T): Codec<T> = ResourceLocation.CODEC.xmap(read, write)
+
+	@Suppress("UNCHECKED_CAST") // Native ByteBuf codecs also accept the registry-aware ByteBuf subtype.
+	@JvmStatic
+	fun getStream(type: Type): StreamCodec<RegistryFriendlyByteBuf, *>? {
+		if (type is WildcardType) return getStream(type.upperBounds.single())
+		val normalized = if (type is Class<*> && type.isPrimitive) PRIMITIVE_TO_BOXED[type] ?: type else type
+		return synchronized(STREAM_CODECS) {
+			if (STREAM_CODECS.containsKey(normalized)) return@synchronized STREAM_CODECS[normalized]
+			val codec = when (normalized) {
+				Boolean::class.javaObjectType -> ByteBufCodecs.BOOL
+
+				Byte::class.javaObjectType -> ByteBufCodecs.BYTE
+
+				Short::class.javaObjectType -> ByteBufCodecs.SHORT
+
+				Int::class.javaObjectType -> ByteBufCodecs.VAR_INT
+
+				Long::class.javaObjectType -> ByteBufCodecs.VAR_LONG
+
+				Float::class.javaObjectType -> ByteBufCodecs.FLOAT
+
+				Double::class.javaObjectType -> ByteBufCodecs.DOUBLE
+
+				String::class.java -> ByteBufCodecs.STRING_UTF8
+
+				UUID::class.java -> UUIDUtil.STREAM_CODEC
+
+				ResourceLocation::class.java -> ResourceLocation.STREAM_CODEC
+
+				BlockPos::class.java -> BlockPos.STREAM_CODEC
+
+				ItemStack::class.java -> ItemStack.OPTIONAL_STREAM_CODEC
+
+				FluidStack::class.java -> FluidStack.OPTIONAL_STREAM_CODEC
+
+				else -> Types.raw(normalized)?.let { ownedValue(it, "STREAM_CODEC") as? StreamCodec<*, *> }
+					?: ((Types.raw(normalized)?.let { ownedValue(it, "CODEC") as? Codec<*> }) ?: get(normalized))?.let { ByteBufCodecs.fromCodecWithRegistries(it) }
+			}
+			(codec as StreamCodec<RegistryFriendlyByteBuf, *>?).also { STREAM_CODECS[normalized] = it }
+		}
+	}
+
+	private fun ownedValue(type: Class<*>, name: String): Any? = try {
+		val field = type.getField(name)
+		if (Modifier.isStatic(field.modifiers)) field.get(null) else null
+	} catch (_: NoSuchFieldException) {
+		null
+	}
 
 	init {
 		register(Integer::class.java, Codec.INT)

@@ -1,6 +1,7 @@
 package com.gregtechceu.gtceu.api.sync_system
 
 import com.gregtechceu.gtceu.GTCEu
+import com.gregtechceu.gtceu.api.sync_system.rpc.RpcRegistry
 
 import net.minecraft.resources.ResourceLocation
 
@@ -28,6 +29,7 @@ open class SyncActionDispatcherRegistry : SyncActionDispatcher {
 
 	override fun dispatch(context: SyncActionContext): Boolean {
 		val actionId = context.actionId()
+		if (RpcRegistry.contains(actionId)) return RpcRegistry.dispatch(context)
 		val handler = handlers[actionId]
 		if (handler == null) {
 			GTCEu.LOGGER.warn(
