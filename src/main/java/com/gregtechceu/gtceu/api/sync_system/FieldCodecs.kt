@@ -61,6 +61,8 @@ import net.minecraft.network.RegistryFriendlyByteBuf
 import net.minecraft.network.codec.ByteBufCodecs
 import net.minecraft.network.codec.StreamCodec
 import java.lang.reflect.Modifier
+import java.lang.invoke.MethodHandles
+import java.lang.invoke.MethodType
 import java.lang.reflect.WildcardType
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap
 
@@ -132,6 +134,7 @@ object FieldCodecs {
 
 		val declaration = TypeDeclaration(type)
 		val clazz = declaration.classValue ?: return null
+		ownedContextualCodec(clazz)?.let { return it }
 		registered = CONTEXTUAL_REGISTERED[clazz]
 		if (registered != null) return registered
 		if (clazz.isArray) return makeContextualArrayCodec(clazz.componentType)
@@ -565,6 +568,18 @@ object FieldCodecs {
 		if (Modifier.isStatic(field.modifiers)) field.get(null) else null
 	} catch (_: NoSuchFieldException) {
 		null
+	}
+
+	private fun ownedContextualCodec(type: Class<*>): ContextualFieldCodec<*>? {
+		val handle = try {
+			MethodHandles.publicLookup().findStatic(type, "codec", MethodType.methodType(Codec::class.java, ContextualFieldCodec.Context::class.java))
+		} catch (_: NoSuchMethodException) {
+			return ownedValue(type, "CODEC") as? ContextualFieldCodec<*>
+		}
+		return object : ContextualFieldCodec<Any> {
+			@Suppress("UNCHECKED_CAST")
+			override fun codec(context: ContextualFieldCodec.Context<Any>): Codec<Any> = handle.invoke(context) as Codec<Any>
+		}
 	}
 
 	init {
