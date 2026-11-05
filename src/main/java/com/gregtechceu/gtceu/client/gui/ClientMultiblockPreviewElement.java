@@ -95,6 +95,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
     private final boolean showAvailability;
     private int materialViewportWidth;
     private int materialDetailViewportWidth;
+    private float sceneAspect;
     private final Object2ObjectMap<BlockPos, StructurePreview.Cell> sceneCells = new Object2ObjectLinkedOpenHashMap<>();
     private final ObjectList<BlockPos> loadedPositions = new ObjectArrayList<>();
     private final ObjectList<BlockPos> hatchPositions = new ObjectArrayList<>();
@@ -126,6 +127,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
 
         int detailHeight = showAvailability ? MATERIAL_DETAIL_HEIGHT : 0;
         int sceneHeight = height - MATERIAL_BAR_HEIGHT - detailHeight;
+        sceneAspect = (float) width / sceneHeight;
         scene = new GTSceneElement(0, 0, width, sceneHeight);
         scene.setAllowXEILookup(false);
         scene.setRenderFacing(false);
@@ -228,6 +230,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         materialViewportWidth = width - 74;
         materialDetailViewportWidth = width - 8;
         int sceneHeight = height - MATERIAL_BAR_HEIGHT - (showAvailability ? MATERIAL_DETAIL_HEIGHT : 0);
+        sceneAspect = (float) width / sceneHeight;
         scene.getLayout().width(width).height(sceneHeight);
         if (materialDetails != null) materialDetails.getLayout().top(sceneHeight).width(width - 4);
         materialViewport.getLayout().top(height - MATERIAL_BAR_HEIGHT + 3).width(materialViewportWidth);
@@ -238,6 +241,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         layerButton.getLayout().left(width - 20);
         hatchButton.getLayout().left(width - 20);
         diagnosticLabel.getLayout().top((float) sceneHeight / 2 - 10).width(width - 16);
+        rebuildRenderedCore(true);
         rebuildMaterials();
     }
 
@@ -325,6 +329,19 @@ public final class ClientMultiblockPreviewElement extends UIElement {
                 .map(cell -> SCENE_ORIGIN.offset(cell.relativePos()))
                 .collect(ObjectImmutableList.toList());
         scene.setRenderedCore(rendered, new PreviewCellRenderHook(), resetCamera);
+        if (resetCamera && !rendered.isEmpty()) {
+            var center = scene.getCenter();
+            double radiusSquared = 0;
+            for (BlockPos pos : rendered) {
+                double x = Math.abs(pos.getX() + 0.5 - center.x) + 0.5;
+                double y = Math.abs(pos.getY() + 0.5 - center.y) + 0.5;
+                double z = Math.abs(pos.getZ() + 0.5 - center.z) + 0.5;
+                radiusSquared = Math.max(radiusSquared, x * x + y * y + z * z);
+            }
+            double halfFov = Math.atan(Math.tan(Math.toRadians(scene.getRenderer().getFov() / 2)) *
+                    Math.min(1, sceneAspect));
+            scene.setZoom((float) (Math.sqrt(radiusSquared) / Math.sin(halfFov) * 1.1));
+        }
         renderedViewRevision = state.getViewRevision();
     }
 
