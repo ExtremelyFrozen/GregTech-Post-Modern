@@ -6,7 +6,6 @@ import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTProgressBarElement;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
-import com.gregtechceu.gtceu.api.machine.feature.ITieredMachine;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableEnergyContainer;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
@@ -20,7 +19,7 @@ import lombok.Getter;
 
 import java.util.function.Function;
 
-public class TieredEnergyMachine extends TieredMachine implements ITieredMachine {
+public class TieredEnergyMachine extends TieredMachine {
 
     @SaveField
     @SyncToClient

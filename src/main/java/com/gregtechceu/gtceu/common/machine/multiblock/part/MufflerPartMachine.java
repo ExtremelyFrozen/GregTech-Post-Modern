@@ -9,12 +9,8 @@ import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyPreviewPage;
-import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
 import com.gregtechceu.gtceu.api.machine.TickableSubscription;
-import com.gregtechceu.gtceu.api.machine.feature.IUIMachine;
 import com.gregtechceu.gtceu.api.machine.feature.IWorkLogicMachine;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IWorkableMultiController;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.machine.multiblock.part.TieredPartMachine;
@@ -49,8 +45,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-public class MufflerPartMachine extends TieredPartMachine
-                                implements IUIMachine, FancyPartUIProvider {
+public class MufflerPartMachine extends TieredPartMachine {
 
     @Getter
     private final int recoveryChance;
@@ -181,10 +176,6 @@ public class MufflerPartMachine extends TieredPartMachine
     //////////////////////////////////////
     // ********** GUI ***********//
     //////////////////////////////////////
-    @Override
-    public boolean canCreateUI(Player player, MachineUIHolder holder) {
-        return holder.getMachine() == this;
-    }
 
     @Override
     public UI createUI(Player player, MachineUIHolder holder) {
@@ -211,10 +202,6 @@ public class MufflerPartMachine extends TieredPartMachine
     }
 
     /** Creates the holder-scoped default preview used by a surrounding multiblock controller. */
-    @Override
-    public IFancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
-        return new FancyPreviewPage(this, player, holder, null);
-    }
 
     private GTLabelElement createTitleLabel(int rootWidth) {
         GTLabelElement label = new GTLabelElement(10, 5, rootWidth - 20, 10,

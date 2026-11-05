@@ -10,25 +10,17 @@ import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
-import com.gregtechceu.gtceu.api.gui.fancy.IFancyTooltip;
-import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
-import com.gregtechceu.gtceu.api.gui.fancy.TabsWidget;
-import com.gregtechceu.gtceu.api.gui.fancy.TooltipsPanel;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CombinedDirectionalFancyConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableFluidTank;
 import com.gregtechceu.gtceu.api.recipe.GTRecipe;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
 import com.gregtechceu.gtceu.api.transfer.fluid.CustomFluidTank;
-import com.gregtechceu.gtceu.common.data.machines.GTAEMachines;
 import com.gregtechceu.gtceu.integration.ae2.utils.KeyStorage;
 import com.gregtechceu.gtceu.utils.GTMath;
 
-import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
@@ -40,7 +32,6 @@ import com.lowdragmc.lowdraglib2.integration.xei.IngredientIO;
 
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.entity.player.Player;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.crafting.SizedFluidIngredient;
 
@@ -54,8 +45,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
 
 @MethodsReturnNonnullByDefault
 @ParametersAreNonnullByDefault
-public class MEOutputHatchPartMachine extends MEHatchPartMachine
-                                      implements FancyPartUIProvider {
+public class MEOutputHatchPartMachine extends MEHatchPartMachine {
 
     private static final int PAGE_WIDTH = 170;
     private static final int PAGE_HEIGHT = 74;
@@ -115,51 +105,7 @@ public class MEOutputHatchPartMachine extends MEHatchPartMachine
     // ********** GUI ***********//
     ///////////////////////////////
 
-    @Override
-    public boolean canCreateUI(Player player, MachineUIHolder holder) {
-        return holder.getMachine() == this &&
-                holder.getMachineDefinitionId().equals(GTAEMachines.FLUID_EXPORT_HATCH_ME.getId()) &&
-                getDefinition() == GTAEMachines.FLUID_EXPORT_HATCH_ME;
-    }
-
-    @Override
-    public UI createUI(Player player, MachineUIHolder holder) {
-        IFancyUIProvider page = createPage(player, holder);
-        return UI.of(new FancyMachineUIWidget(page, player.getInventory(), holder,
-                page.getPageWidth(), page.getPageHeight()));
-    }
-
     /** Creates one opening-scoped page after validating the exact fluid output hatch holder and definition. */
-    IFancyUIProvider createPage(Player player, MachineUIHolder holder) {
-        return new MEFluidOutputHatchFancyPage(player, holder);
-    }
-
-    @Override
-    public IFancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
-        return createPage(player, holder);
-    }
-
-    private UIElement createMainElement() {
-        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
-        root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
-
-        GTLabelElement status = new GTLabelElement(5, 0, 160, 10, networkStatus()) {
-
-            @Override
-            public void screenTick() {
-                setValue(MEOutputHatchPartMachine.this.networkStatus());
-                super.screenTick();
-            }
-        };
-        status.setId("me_network_status");
-        root.addChild(status);
-        GTLabelElement title = new GTLabelElement(5, 10, 160, 10,
-                Component.translatable("gtpm.gui.waiting_list"));
-        title.setId("me_output_waiting_list_label");
-        root.addChild(title);
-        root.addChild(createWaitingList());
-        return root;
-    }
 
     private UIElement createWaitingList() {
         var view = new VirtualScrollerView<KeyStorage.Entry>() {
@@ -343,73 +289,44 @@ public class MEOutputHatchPartMachine extends MEHatchPartMachine
     }
 
     /** One opening-scoped Fancy page shared by standalone and contextual part navigation. */
-    private final class MEFluidOutputHatchFancyPage implements IFancyUIProvider {
 
-        private final Player player;
-        private final MachineUIHolder holder;
-        private final CombinedDirectionalFancyConfigurator directionalPage;
+    @Override
+    public UIElement createUIWidget(FancyMachineUIWidget shell) {
+        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
+        root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
 
-        private MEFluidOutputHatchFancyPage(Player player, MachineUIHolder holder) {
-            this.player = player;
-            this.holder = holder;
-            directionalPage = new CombinedDirectionalFancyConfigurator(
-                    MEOutputHatchPartMachine.this, player, holder);
-        }
+        GTLabelElement status = new GTLabelElement(5, 0, 160, 10, networkStatus()) {
 
-        @Override
-        public UIElement createUIWidget(FancyMachineUIWidget shell) {
-            return createMainElement();
-        }
-
-        @Override
-        public IGuiTexture getTabIcon() {
-            return GuiTextures.itemStack(getDefinition().getItem());
-        }
-
-        @Override
-        public Component getTitle() {
-            return Component.translatable(getDefinition().getDescriptionId());
-        }
-
-        @Override
-        public int getPageWidth() {
-            return PAGE_WIDTH;
-        }
-
-        @Override
-        public int getPageHeight() {
-            return PAGE_HEIGHT;
-        }
-
-        @Override
-        public void attachSideTabs(TabsWidget tabs) {
-            tabs.attachSubTab(directionalPage);
-        }
-
-        @Override
-        public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
-            configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
-                    MEOutputHatchPartMachine.this, holder));
-        }
-
-        @Override
-        public void attachTooltips(TooltipsPanel tooltipsPanel) {
-            tooltipsPanel.attachTooltips(MEOutputHatchPartMachine.this);
-            for (var trait : getTraitHolder().getAllTraits()) {
-                if (trait instanceof IFancyTooltip tooltip) {
-                    tooltipsPanel.attachTooltips(tooltip);
-                }
+            @Override
+            public void screenTick() {
+                setValue(MEOutputHatchPartMachine.this.networkStatus());
+                super.screenTick();
             }
-        }
+        };
+        status.setId("me_network_status");
+        root.addChild(status);
+        GTLabelElement title = new GTLabelElement(5, 10, 160, 10,
+                Component.translatable("gtpm.gui.waiting_list"));
+        title.setId("me_output_waiting_list_label");
+        root.addChild(title);
+        root.addChild(createWaitingList());
+        return root;
+    }
 
-        @Override
-        public List<Component> getTabTooltips() {
-            return List.of(Component.translatable(getDefinition().getDescriptionId()));
-        }
+    @Override
+    public int getPageWidth() {
+        return PAGE_WIDTH;
+    }
 
-        @Override
-        public PageGroupingData getPageGroupingData() {
-            return new PageGroupingData("gtpm.multiblock.page_switcher.io.export", 2);
-        }
+    @Override
+    public int getPageHeight() {
+        return PAGE_HEIGHT;
+    }
+
+    @Override
+    public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
+        MachineUIHolder holder = configuratorPanel.getHolder();
+        configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
+                MEOutputHatchPartMachine.this, holder));
     }
 }

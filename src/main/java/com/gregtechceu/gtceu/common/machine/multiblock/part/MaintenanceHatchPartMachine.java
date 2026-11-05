@@ -10,13 +10,10 @@ import com.gregtechceu.gtceu.api.gui.element.GTComponentPanelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTImageElement;
 import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyPreviewPage;
-import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.TooltipsPanel;
 import com.gregtechceu.gtceu.api.item.tool.GTToolType;
 import com.gregtechceu.gtceu.api.item.tool.ToolHelper;
 import com.gregtechceu.gtceu.api.machine.TickableSubscription;
-import com.gregtechceu.gtceu.api.machine.feature.IUIMachine;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMaintenanceMachine;
 import com.gregtechceu.gtceu.api.machine.multiblock.part.TieredPartMachine;
 import com.gregtechceu.gtceu.api.machine.property.GTMachineModelProperties;
@@ -57,8 +54,7 @@ import java.util.List;
 import java.util.function.DoubleSupplier;
 
 public class MaintenanceHatchPartMachine extends TieredPartMachine
-                                         implements IMaintenanceMachine, IUIMachine,
-                                         FancyPartUIProvider {
+                                         implements IMaintenanceMachine {
 
     private static final float MAX_DURATION_MULTIPLIER = 1.1f;
     private static final float MIN_DURATION_MULTIPLIER = 0.9f;
@@ -333,10 +329,6 @@ public class MaintenanceHatchPartMachine extends TieredPartMachine
     //////////////////////////////////////
     // ******** GUI *********//
     //////////////////////////////////////
-    @Override
-    public boolean canCreateUI(Player player, MachineUIHolder holder) {
-        return holder.getMachine() == this;
-    }
 
     @Override
     public UI createUI(Player player, MachineUIHolder holder) {
@@ -355,12 +347,6 @@ public class MaintenanceHatchPartMachine extends TieredPartMachine
         root.addChild(createDuctTapeSlot(rootWidth));
         root.addChild(createMaintenanceButton(player, holder, rootWidth));
         return UI.of(root);
-    }
-
-    @Override
-    public IFancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
-        return new FancyPreviewPage(this, player, holder, null,
-                this::attachMaintenanceTooltips);
     }
 
     private GTComponentPanelElement createDurationPanel(Player player, MachineUIHolder holder) {
@@ -453,5 +439,10 @@ public class MaintenanceHatchPartMachine extends TieredPartMachine
             }
         }
         return true;
+    }
+
+    @Override
+    public void attachTooltips(TooltipsPanel panel) {
+        attachMaintenanceTooltips(panel);
     }
 }

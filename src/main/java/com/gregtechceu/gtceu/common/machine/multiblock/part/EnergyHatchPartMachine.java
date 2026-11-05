@@ -3,17 +3,12 @@ package com.gregtechceu.gtceu.common.machine.multiblock.part;
 import com.gregtechceu.gtceu.api.GTValues;
 import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo;
 import com.gregtechceu.gtceu.api.capability.recipe.IO;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyPreviewPage;
-import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.multiblock.part.TieredIOPartMachine;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableEnergyContainer;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.common.machine.trait.EnvironmentalExplosionTrait;
 
 import net.minecraft.MethodsReturnNonnullByDefault;
-import net.minecraft.world.entity.player.Player;
 
 import lombok.Getter;
 
@@ -21,7 +16,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-public class EnergyHatchPartMachine extends TieredIOPartMachine implements FancyPartUIProvider {
+public class EnergyHatchPartMachine extends TieredIOPartMachine {
 
     @SaveField
     public final NotifiableEnergyContainer energyContainer;
@@ -53,19 +48,6 @@ public class EnergyHatchPartMachine extends TieredIOPartMachine implements Fancy
             container.setCapabilityValidator(s -> s == null || s == getFrontFacing());
         }
         return container;
-    }
-
-    @Override
-    public IFancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
-        return new FancyPreviewPage(this, player, holder, switch (io) {
-            case IN -> new IFancyUIProvider.PageGroupingData(
-                    "gtpm.multiblock.page_switcher.io.import", 1);
-            case OUT -> new IFancyUIProvider.PageGroupingData(
-                    "gtpm.multiblock.page_switcher.io.export", 2);
-            case BOTH -> new IFancyUIProvider.PageGroupingData(
-                    "gtpm.multiblock.page_switcher.io.both", 3);
-            case NONE -> null;
-        });
     }
 
     @Override

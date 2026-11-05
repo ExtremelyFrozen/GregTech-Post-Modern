@@ -1,6 +1,5 @@
 package com.gregtechceu.gtceu.common.machine.multiblock.generator;
 
-import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.GTValues;
 import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo;
 import com.gregtechceu.gtceu.api.capability.recipe.IO;
@@ -11,23 +10,15 @@ import com.gregtechceu.gtceu.api.gui.element.GTComponentPanelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolderContext;
 import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyTooltip;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
-import com.gregtechceu.gtceu.api.gui.fancy.TabsWidget;
 import com.gregtechceu.gtceu.api.gui.fancy.TooltipsPanel;
-import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.ConditionalSubscriptionHandler;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CombinedDirectionalFancyConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.VoidingModeConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
-import com.gregtechceu.gtceu.api.machine.feature.FancyActionMachine;
-import com.gregtechceu.gtceu.api.machine.feature.ITieredMachine;
-import com.gregtechceu.gtceu.api.machine.feature.IUIMachine;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMaintenanceMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMultiPart;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockDisplayText;
@@ -45,7 +36,6 @@ import com.gregtechceu.gtceu.data.recipe.builder.GTRecipeBuilder;
 import com.gregtechceu.gtceu.utils.FormattingUtil;
 import com.gregtechceu.gtceu.utils.GTMath;
 
-import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
@@ -55,9 +45,9 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
-import net.minecraft.world.entity.player.Player;
 import net.neoforged.neoforge.fluids.FluidStack;
 
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import lombok.AccessLevel;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
@@ -67,9 +57,10 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-public class LargeCombustionEngineMachine extends WorkableElectricMultiblockMachine
-                                          implements ITieredMachine, IUIMachine,
-                                          FancyActionMachine {
+public class LargeCombustionEngineMachine extends WorkableElectricMultiblockMachine {
+
+    private static final int PAGE_WIDTH = 190;
+    private static final int PAGE_HEIGHT = 125;
 
     private static final FluidStack OXYGEN_STACK = GTMaterials.Oxygen.getFluid(1);
     private static final FluidStack LIQUID_OXYGEN_STACK = GTMaterials.Oxygen.getFluid(FluidStorageKeys.LIQUID, 4);
@@ -342,150 +333,74 @@ public class LargeCombustionEngineMachine extends WorkableElectricMultiblockMach
     }
 
     @Override
-    public boolean canCreateUI(Player player, MachineUIHolder holder) {
-        return holder.getMachine() == this;
+    public UIElement createUIWidget(FancyMachineUIWidget shell) {
+        MachineUIHolder holder = shell.getHolder(this);
+
+        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
+        root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
+
+        GTScrollerViewElement screen = new GTScrollerViewElement(4, 4, 182, 117);
+        screen.style(style -> style.backgroundTexture(getScreenTexture()));
+        screen.viewPort(viewPort -> viewPort
+                .layout(layout -> layout.paddingAll(0))
+                .style(style -> style.backgroundTexture(getScreenTexture())));
+        screen.scrollerStyle(style -> style
+                .mode(ScrollerMode.VERTICAL)
+                .verticalScrollDisplay(ScrollDisplay.AUTO)
+                .horizontalScrollDisplay(ScrollDisplay.NEVER));
+
+        GTLabelElement title = new GTLabelElement(4, 5, 174, 10,
+                getBlockState().getBlock().getDescriptionId(), true);
+        title.textStyle(style -> style
+                .textColor(0x404040)
+                .textShadow(false)
+                .textAlignHorizontal(Horizontal.LEFT)
+                .textAlignVertical(Vertical.CENTER));
+        screen.addScrollViewChild(title);
+        screen.addScrollViewChild(new GTComponentPanelElement(4, 17,
+                LargeCombustionEngineMachine.this::addDisplayText)
+                .setMaxWidthLimit(200)
+                .clickHandler(LargeCombustionEngineMachine.this::handleDisplayClick));
+        root.addChild(screen);
+        return root;
     }
 
     @Override
-    public UI createUI(Player player, MachineUIHolder holder) {
-        requireMatchingHolder(holder);
-        LargeCombustionEngineFancyPage page = new LargeCombustionEngineFancyPage(player, holder);
-        return UI.of(new FancyMachineUIWidget(page, player.getInventory(), holder,
-                page.getPageWidth(), page.getPageHeight()));
+    public int getPageWidth() {
+        return PAGE_WIDTH;
     }
 
-    private void requireMatchingHolder(MachineUIHolder holder) {
-        if (holder.getMachine() != this) {
-            GTCEu.LOGGER.error("Large Combustion Engine UI holder no longer resolves controller at {}",
-                    getBlockPos());
-            throw new IllegalArgumentException(
-                    "Large Combustion Engine UI holder must resolve the opened controller.");
-        }
+    @Override
+    public int getPageHeight() {
+        return PAGE_HEIGHT;
     }
 
-    private final class LargeCombustionEngineFancyPage implements IFancyUIProvider {
+    @Override
+    public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
+        MachineUIHolder holder = configuratorPanel.getHolder();
+        VoidingModeConfigurator.attachConfigurators(
+                configuratorPanel, LargeCombustionEngineMachine.this);
+        configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
+                LargeCombustionEngineMachine.this, holder));
+    }
 
-        private static final int PAGE_WIDTH = 190;
-        private static final int PAGE_HEIGHT = 125;
-
-        private final MachineUIHolder holder;
-        private final CombinedDirectionalFancyConfigurator directionalPage;
-        private final List<IFancyUIProvider> partPages;
-
-        private LargeCombustionEngineFancyPage(Player player, MachineUIHolder holder) {
-            requireMatchingHolder(holder);
-            this.holder = holder;
-            directionalPage = new CombinedDirectionalFancyConfigurator(LargeCombustionEngineMachine.this,
-                    player, holder);
-
-            List<IFancyUIProvider> pages = new ArrayList<>();
-            for (IMultiPart part : getParts()) {
-                if (!(part instanceof FancyPartUIProvider pageProvider)) {
-                    GTCEu.LOGGER.error("Large Combustion Engine part {} has no LDLib2 Fancy page",
-                            part.self().getDefinition().getId());
-                    throw new IllegalStateException("Large Combustion Engine part has no LDLib2 Fancy page: " +
-                            part.self().getDefinition().getId());
-                }
-                pages.add(pageProvider.createFancyPage(
-                        player, new MachineUIHolderContext(player, part.self())));
+    @Override
+    public void attachTooltips(TooltipsPanel tooltipsPanel) {
+        for (IMultiPart part : getParts()) {
+            if (part instanceof IMaintenanceMachine maintenanceMachine) {
+                maintenanceMachine.attachMaintenanceTooltips(tooltipsPanel);
             }
-            partPages = List.copyOf(pages);
         }
+        tooltipsPanel.attachTooltips(new IFancyTooltip.Basic(
+                () -> GuiTextures.INDICATOR_NO_STEAM.get(false),
+                () -> List.of(Component.translatable("gtpm.multiblock.large_combustion_engine.obstructed")
+                        .setStyle(Style.EMPTY.withColor(ChatFormatting.RED))),
+                LargeCombustionEngineMachine.this::isIntakeObstructionSnapshot,
+                () -> null));
+    }
 
-        @Override
-        public UIElement createUIWidget(FancyMachineUIWidget shell) {
-            if (holder.getMachine() != LargeCombustionEngineMachine.this) {
-                GTCEu.LOGGER.error("Large Combustion Engine page holder changed after opening at {}",
-                        getBlockPos());
-                throw new IllegalStateException(
-                        "Large Combustion Engine page holder no longer resolves its controller.");
-            }
-
-            UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
-            root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
-
-            GTScrollerViewElement screen = new GTScrollerViewElement(4, 4, 182, 117);
-            screen.style(style -> style.backgroundTexture(getScreenTexture()));
-            screen.viewPort(viewPort -> viewPort
-                    .layout(layout -> layout.paddingAll(0))
-                    .style(style -> style.backgroundTexture(getScreenTexture())));
-            screen.scrollerStyle(style -> style
-                    .mode(ScrollerMode.VERTICAL)
-                    .verticalScrollDisplay(ScrollDisplay.AUTO)
-                    .horizontalScrollDisplay(ScrollDisplay.NEVER));
-
-            GTLabelElement title = new GTLabelElement(4, 5, 174, 10,
-                    getBlockState().getBlock().getDescriptionId(), true);
-            title.textStyle(style -> style
-                    .textColor(0x404040)
-                    .textShadow(false)
-                    .textAlignHorizontal(Horizontal.LEFT)
-                    .textAlignVertical(Vertical.CENTER));
-            screen.addScrollViewChild(title);
-            screen.addScrollViewChild(new GTComponentPanelElement(4, 17,
-                    LargeCombustionEngineMachine.this::addDisplayText)
-                    .setMaxWidthLimit(200)
-                    .clickHandler(LargeCombustionEngineMachine.this::handleDisplayClick));
-            root.addChild(screen);
-            return root;
-        }
-
-        @Override
-        public IGuiTexture getTabIcon() {
-            return GuiTextures.itemStack(getDefinition().getItem());
-        }
-
-        @Override
-        public Component getTitle() {
-            return Component.translatable(getDefinition().getDescriptionId());
-        }
-
-        @Override
-        public int getPageWidth() {
-            return PAGE_WIDTH;
-        }
-
-        @Override
-        public int getPageHeight() {
-            return PAGE_HEIGHT;
-        }
-
-        @Override
-        public void attachSideTabs(TabsWidget tabs) {
-            tabs.attachSubTab(directionalPage);
-        }
-
-        @Override
-        public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
-            VoidingModeConfigurator.attachConfigurators(
-                    configuratorPanel, LargeCombustionEngineMachine.this);
-            configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
-                    LargeCombustionEngineMachine.this, holder));
-        }
-
-        @Override
-        public void attachTooltips(TooltipsPanel tooltipsPanel) {
-            for (IMultiPart part : getParts()) {
-                if (part instanceof IMaintenanceMachine maintenanceMachine) {
-                    maintenanceMachine.attachMaintenanceTooltips(tooltipsPanel);
-                }
-            }
-            tooltipsPanel.attachTooltips(new IFancyTooltip.Basic(
-                    () -> GuiTextures.INDICATOR_NO_STEAM.get(false),
-                    () -> List.of(Component.translatable("gtpm.multiblock.large_combustion_engine.obstructed")
-                            .setStyle(Style.EMPTY.withColor(ChatFormatting.RED))),
-                    LargeCombustionEngineMachine.this::isIntakeObstructionSnapshot,
-                    () -> null));
-        }
-
-        @Override
-        public List<IFancyUIProvider> getSubTabs() {
-            return partPages;
-        }
-
-        @Override
-        public List<Component> getTabTooltips() {
-            return List.of(Component.translatable(getDefinition().getDescriptionId()));
-        }
+    @Override
+    public List<IFancyUIProvider> getSubTabs() {
+        return new ObjectArrayList<>(getParts());
     }
 }

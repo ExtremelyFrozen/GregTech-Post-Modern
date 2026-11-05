@@ -12,7 +12,6 @@ import com.gregtechceu.gtceu.api.gui.element.GTIntInputElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolderContext;
 import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
@@ -28,7 +27,6 @@ import com.gregtechceu.gtceu.api.item.component.IMonitorModuleItem;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CombinedDirectionalFancyConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.VoidingModeConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMaintenanceMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMultiPart;
 import com.gregtechceu.gtceu.common.item.modules.ImageModuleBehaviour;
@@ -51,6 +49,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.items.IItemHandler;
 
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 
@@ -142,17 +141,7 @@ final class CentralMonitorElement extends UIElement implements IFancyUIProvider 
         this.groupIdentitySupplier = groupIdentitySupplier;
         requireOpeningMachine();
         directionalPage = new CombinedDirectionalFancyConfigurator(machine, player, holder);
-        List<IFancyUIProvider> pages = new ArrayList<>();
-        for (IMultiPart part : machine.getParts()) {
-            if (!(part instanceof FancyPartUIProvider pageProvider)) {
-                GTCEu.LOGGER.error("Central Monitor part {} has no LDLib2 Fancy page",
-                        part.self().getDefinition().getId());
-                throw new IllegalStateException("Central Monitor part has no LDLib2 Fancy page: " +
-                        part.self().getDefinition().getId());
-            }
-            pages.add(pageProvider.createFancyPage(player, new MachineUIHolderContext(player, part.self())));
-        }
-        partPages = List.copyOf(pages);
+        partPages = new ObjectArrayList<>(machine.getParts());
 
         UITemplate.setBounds(this, 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
         style(style -> style

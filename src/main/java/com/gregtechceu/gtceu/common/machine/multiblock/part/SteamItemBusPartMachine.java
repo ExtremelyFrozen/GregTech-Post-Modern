@@ -8,10 +8,7 @@ import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTToggleButtonElement;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
 import com.gregtechceu.gtceu.api.machine.MachineDefinition;
-import com.gregtechceu.gtceu.api.machine.feature.IUIMachine;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.SteamItemBus;
 import com.gregtechceu.gtceu.common.data.GTMachines;
 import com.gregtechceu.gtceu.config.ConfigHolder;
@@ -26,18 +23,13 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.state.BlockState;
 
 public class SteamItemBusPartMachine extends ItemBusPartMachine
-                                     implements IUIMachine, FancyPartUIProvider, SteamItemBus {
+                                     implements SteamItemBus {
 
     private final String autoTooltipKey;
 
     public SteamItemBusPartMachine(BlockEntityCreationInfo info, IO io) {
         super(info, 1, io);
         autoTooltipKey = io == IO.IN ? "gtpm.gui.item_auto_input.tooltip" : "gtpm.gui.item_auto_output.tooltip";
-    }
-
-    @Override
-    public boolean canCreateUI(Player player, MachineUIHolder holder) {
-        return holder.getMachine() == this;
     }
 
     @Override
@@ -72,18 +64,10 @@ public class SteamItemBusPartMachine extends ItemBusPartMachine
     /**
      * Allows the steam-specific standalone screen to reuse the ordinary Item Bus body in a controller context.
      */
-    @Override
-    protected boolean supportsGenericPage() {
-        return true;
-    }
 
     /**
      * Creates a holder-scoped Item Bus page for one surrounding steam multiblock UI opening.
      */
-    @Override
-    public IFancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
-        return createPage(player, holder);
-    }
 
     private GTLabelElement createTitleLabel(int rootWidth) {
         GTLabelElement label = new GTLabelElement(10, 5, rootWidth - 20, 10,

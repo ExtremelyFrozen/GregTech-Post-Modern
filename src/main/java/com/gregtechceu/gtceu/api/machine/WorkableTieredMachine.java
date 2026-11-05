@@ -8,6 +8,7 @@ import com.gregtechceu.gtceu.api.machine.feature.*;
 import com.gregtechceu.gtceu.api.machine.trait.*;
 import com.gregtechceu.gtceu.api.recipe.GTRecipeType;
 import com.gregtechceu.gtceu.api.recipe.handler.RecipeHandlerList;
+import com.gregtechceu.gtceu.api.recipe.ui.GTRecipeTypeUI.RecipeHolder;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.ServerFieldChangeListener;
 import com.gregtechceu.gtceu.api.sync_system.annotations.ServerFieldNormalizer;
@@ -17,7 +18,14 @@ import com.gregtechceu.gtceu.common.machine.trait.CleanroomReceiverTrait;
 import com.gregtechceu.gtceu.utils.GTUtil;
 import com.gregtechceu.gtceu.utils.ISubscription;
 
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+
+import net.minecraft.core.component.DataComponentMap;
+
+import com.google.common.collect.Table;
+import com.google.common.collect.Tables;
 import it.unimi.dsi.fastutil.ints.Int2IntFunction;
+import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
 import lombok.Getter;
 import lombok.Setter;
 import org.jetbrains.annotations.ApiStatus;
@@ -239,5 +247,27 @@ public abstract class WorkableTieredMachine extends TieredEnergyMachine implemen
         if (!keepSubscribing()) {
             recipeLogic.updateTickSubscription();
         }
+    }
+
+    public void bindRecipeElements(UIElement root) {
+        this.getRecipeType().getRecipeUI().bindRecipeUI(root,
+                new RecipeHolder(this.getRecipeLogic()::getProgressPercent,
+                        createRecipeStorages(),
+                        DataComponentMap.EMPTY,
+                        Collections.emptyList(),
+                        false,
+                        false));
+    }
+
+    public Table<IO, RecipeCapability<?>, Object> createRecipeStorages() {
+        Table<IO, RecipeCapability<?>, Object> storages = Tables.newCustomTable(new EnumMap<>(IO.class),
+                Object2ObjectLinkedOpenHashMap::new);
+        storages.put(IO.IN, ItemRecipeCapability.CAP, this.importItems.storage);
+        storages.put(IO.OUT, ItemRecipeCapability.CAP, this.exportItems.storage);
+        storages.put(IO.IN, FluidRecipeCapability.CAP, this.importFluids);
+        storages.put(IO.OUT, FluidRecipeCapability.CAP, this.exportFluids);
+        storages.put(IO.IN, CWURecipeCapability.CAP, this.importComputation);
+        storages.put(IO.OUT, CWURecipeCapability.CAP, this.exportComputation);
+        return storages;
     }
 }

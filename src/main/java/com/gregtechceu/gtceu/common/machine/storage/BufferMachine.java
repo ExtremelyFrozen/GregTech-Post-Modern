@@ -8,7 +8,6 @@ import com.gregtechceu.gtceu.api.gui.element.GTFluidSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
 import com.gregtechceu.gtceu.api.machine.TieredMachine;
-import com.gregtechceu.gtceu.api.machine.feature.FancyActionMachine;
 import com.gregtechceu.gtceu.api.machine.feature.IFancyUIMachine;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableFluidTank;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler;
@@ -38,7 +37,7 @@ import org.lwjgl.glfw.GLFW;
 
 import java.util.List;
 
-public class BufferMachine extends TieredMachine implements IFancyUIMachine, FancyActionMachine {
+public class BufferMachine extends TieredMachine implements IFancyUIMachine {
 
     public static final int TANK_SIZE = 64000;
 

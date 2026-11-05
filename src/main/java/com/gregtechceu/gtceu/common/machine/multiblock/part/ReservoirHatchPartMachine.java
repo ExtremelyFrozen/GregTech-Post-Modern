@@ -3,13 +3,9 @@ package com.gregtechceu.gtceu.common.machine.multiblock.part;
 import com.gregtechceu.gtceu.api.GTValues;
 import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo;
 import com.gregtechceu.gtceu.api.capability.recipe.IO;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableFluidTank;
 import com.gregtechceu.gtceu.api.transfer.fluid.CustomFluidTank;
 
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.material.Fluids;
 import net.neoforged.neoforge.fluids.FluidStack;
 
@@ -17,7 +13,7 @@ import com.mojang.serialization.Codec;
 
 import java.util.Collections;
 
-public class ReservoirHatchPartMachine extends FluidHatchPartMachine implements FancyPartUIProvider {
+public class ReservoirHatchPartMachine extends FluidHatchPartMachine {
 
     protected InfiniteWaterTank waterTank;
 
@@ -28,16 +24,8 @@ public class ReservoirHatchPartMachine extends FluidHatchPartMachine implements 
     }
 
     /** Reservoir definitions always reuse their compatible generic fluid hatch page. */
-    @Override
-    protected boolean supportsGenericPage() {
-        return true;
-    }
 
     /** Reuses the reservoir-compatible generic page for one controller UI opening. */
-    @Override
-    public IFancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
-        return createPage(player, holder);
-    }
 
     //////////////////////////////////
     // ****** Initialization ****** //

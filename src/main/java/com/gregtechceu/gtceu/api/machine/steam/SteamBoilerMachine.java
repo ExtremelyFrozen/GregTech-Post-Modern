@@ -317,11 +317,6 @@ public abstract class SteamBoilerMachine extends SteamWorkableMachine
     //////////////////////////////////////
 
     @Override
-    public boolean canCreateUI(Player player, MachineUIHolder holder) {
-        return holder.getMachine() == this;
-    }
-
-    @Override
     public UI createUI(Player player, MachineUIHolder holder) {
         UIElement root = createRoot(player, holder);
         addAdditionalWidgets(root, player, holder);

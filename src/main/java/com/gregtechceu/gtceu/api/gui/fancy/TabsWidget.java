@@ -4,6 +4,7 @@ import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTButtonElement;
 import com.gregtechceu.gtceu.api.gui.element.GTImageElement;
+import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
@@ -13,8 +14,11 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -34,6 +38,11 @@ public class TabsWidget extends UIElement {
     private static final int TAB_ICON_SIZE = 16;
 
     private final Consumer<IFancyUIProvider> onTabClick;
+    @Getter
+    private final Player player;
+    @Getter
+    @Setter
+    private MachineUIHolder holder;
     private final boolean vertical;
     private final List<IFancyUIProvider> subTabs = new ArrayList<>();
     private final Map<IFancyUIProvider, Map<ResourceLocation, IFancyUIProvider>> subTabCache = new IdentityHashMap<>();
@@ -49,9 +58,12 @@ public class TabsWidget extends UIElement {
             .getSubTexture(1 / 3f, 0.5f, 1 / 3f, 0.5f);
     private IGuiTexture tabPressedTexture = tabHoverTexture;
 
-    public TabsWidget(Consumer<IFancyUIProvider> onTabClick, int x, int y, int width, int height,
+    public TabsWidget(Consumer<IFancyUIProvider> onTabClick, Player player, MachineUIHolder holder,
+                      int x, int y, int width, int height,
                       boolean vertical) {
         this.onTabClick = onTabClick;
+        this.player = player;
+        this.holder = holder;
         this.vertical = vertical;
         UITemplate.setBounds(this, x, y, width, height);
         style(style -> style.overflowVisible(true));

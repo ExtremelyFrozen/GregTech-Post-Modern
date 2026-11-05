@@ -13,16 +13,9 @@ import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
-import com.gregtechceu.gtceu.api.gui.fancy.IFancyTooltip;
-import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
-import com.gregtechceu.gtceu.api.gui.fancy.TabsWidget;
-import com.gregtechceu.gtceu.api.gui.fancy.TooltipsPanel;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CombinedDirectionalFancyConfigurator;
 import com.gregtechceu.gtceu.api.machine.feature.IDataInfoProvider;
 import com.gregtechceu.gtceu.api.machine.feature.IRecipeLogicMachine;
-import com.gregtechceu.gtceu.api.machine.feature.IUIMachine;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.machine.multiblock.part.TieredPartMachine;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler;
@@ -35,14 +28,12 @@ import com.gregtechceu.gtceu.common.machine.multiblock.electric.research.DataBan
 import com.gregtechceu.gtceu.utils.ItemStackHashStrategy;
 import com.gregtechceu.gtceu.utils.ResearchManager;
 
-import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.items.IItemHandler;
 
@@ -58,8 +49,7 @@ import java.util.List;
 import java.util.Set;
 
 public class DataAccessHatchMachine extends TieredPartMachine
-                                    implements IUIMachine, FancyPartUIProvider,
-                                    IDataAccessMachine, IDataInfoProvider, IMonitorComponent {
+                                    implements IDataAccessMachine, IDataInfoProvider, IMonitorComponent {
 
     private final Set<GTRecipeDefinition> recipeDefinitions;
     @Getter
@@ -108,50 +98,7 @@ public class DataAccessHatchMachine extends TieredPartMachine
                 (stack.has(GTDataComponents.RESEARCH_ITEM) || stack.has(GTDataComponents.MONITOR_TARGET));
     }
 
-    @Override
-    public boolean canCreateUI(Player player, MachineUIHolder holder) {
-        return holder.getMachine() == this && !isCreative;
-    }
-
-    @Override
-    public UI createUI(Player player, MachineUIHolder holder) {
-        int rowSize = (int) Math.sqrt(getInventorySize());
-        int rootWidth = 176;
-        int rootHeight = 18 + 18 * rowSize + 94;
-
-        UIElement root = new UIElement();
-        UITemplate.setBounds(root, 0, 0, rootWidth, rootHeight);
-        root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));
-        root.addChild(createTitleLabel(rootWidth));
-        root.addChild(UITemplate.bindPlayerInventory(player.getInventory(), GuiTextures.SLOT, 7,
-                18 + 18 * rowSize + 12, true));
-
-        for (int y = 0; y < rowSize; y++) {
-            for (int x = 0; x < rowSize; x++) {
-                int index = y * rowSize + x;
-                root.addChild(createDataSlot(index, 88 - rowSize * 9 + x * 18, 18 + y * 18));
-            }
-        }
-        return UI.of(root);
-    }
-
     /** Creates one holder-scoped inventory page for a surrounding multiblock controller. */
-    @Override
-    public IFancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
-        if (isCreative) {
-            throw new IllegalStateException(
-                    "Creative Data Access Hatch is excluded from controller contextual pages.");
-        }
-        requireMatchingHolder(holder);
-        return new DataAccessHatchPage(player, holder);
-    }
-
-    private void requireMatchingHolder(MachineUIHolder holder) {
-        if (holder.getMachine() != this) {
-            throw new IllegalArgumentException(
-                    "Data Access Hatch contextual page holder must resolve the opened hatch.");
-        }
-    }
 
     private UIElement createContextualMainElement() {
         int rowSize = (int) Math.sqrt(getInventorySize());
@@ -187,66 +134,6 @@ public class DataAccessHatchMachine extends TieredPartMachine
     }
 
     /** Keeps contextual inventory state and actions scoped to one validated menu opening. */
-    private final class DataAccessHatchPage implements IFancyUIProvider {
-
-        private final MachineUIHolder holder;
-        private final CombinedDirectionalFancyConfigurator directionalPage;
-
-        private DataAccessHatchPage(Player player, MachineUIHolder holder) {
-            requireMatchingHolder(holder);
-            this.holder = holder;
-            this.directionalPage = new CombinedDirectionalFancyConfigurator(
-                    DataAccessHatchMachine.this, player, holder);
-        }
-
-        @Override
-        public UIElement createUIWidget(FancyMachineUIWidget shell) {
-            if (holder.getMachine() != DataAccessHatchMachine.this) {
-                throw new IllegalStateException(
-                        "Data Access Hatch contextual page holder no longer resolves its opened hatch.");
-            }
-            return createContextualMainElement();
-        }
-
-        @Override
-        public IGuiTexture getTabIcon() {
-            return GuiTextures.itemStack(getDefinition().getItem());
-        }
-
-        @Override
-        public Component getTitle() {
-            return Component.translatable(getDefinition().getDescriptionId());
-        }
-
-        @Override
-        public int getPageWidth() {
-            return (int) Math.sqrt(getInventorySize()) * 18;
-        }
-
-        @Override
-        public int getPageHeight() {
-            return getPageWidth();
-        }
-
-        @Override
-        public void attachSideTabs(TabsWidget tabs) {
-            tabs.attachSubTab(directionalPage);
-        }
-
-        @Override
-        public void attachTooltips(TooltipsPanel tooltipsPanel) {
-            tooltipsPanel.attachTooltips(DataAccessHatchMachine.this);
-            getTraitHolder().getAllTraits().stream()
-                    .filter(IFancyTooltip.class::isInstance)
-                    .map(IFancyTooltip.class::cast)
-                    .forEach(tooltipsPanel::attachTooltips);
-        }
-
-        @Override
-        public List<Component> getTabTooltips() {
-            return List.of(Component.translatable(getDefinition().getDescriptionId()));
-        }
-    }
 
     protected int getInventorySize() {
         return switch (getTier()) {
@@ -342,5 +229,22 @@ public class DataAccessHatchMachine extends TieredPartMachine
                 recipeLogicMachine.getRecipeLogic().onRecipeHandlerChanged();
             }
         }
+    }
+
+    @Override
+    public UIElement createUIWidget(FancyMachineUIWidget shell) {
+        MachineUIHolder holder = shell.getHolder(this);
+
+        return createContextualMainElement();
+    }
+
+    @Override
+    public int getPageWidth() {
+        return (int) Math.sqrt(getInventorySize()) * 18;
+    }
+
+    @Override
+    public int getPageHeight() {
+        return getPageWidth();
     }
 }

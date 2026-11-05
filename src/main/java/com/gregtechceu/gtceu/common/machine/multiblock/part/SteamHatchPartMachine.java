@@ -8,9 +8,6 @@ import com.gregtechceu.gtceu.api.gui.element.GTFluidSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTImageElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
-import com.gregtechceu.gtceu.api.machine.feature.IUIMachine;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableFluidTank;
 import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
 import com.gregtechceu.gtceu.api.sync_system.rpc.RPCSender;
@@ -38,8 +35,7 @@ import net.neoforged.neoforge.fluids.FluidType;
 import net.neoforged.neoforge.fluids.FluidUtil;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 
-public class SteamHatchPartMachine extends FluidHatchPartMachine
-                                   implements IUIMachine, FancyPartUIProvider {
+public class SteamHatchPartMachine extends FluidHatchPartMachine {
 
     public static final int INITIAL_TANK_CAPACITY = 64 * FluidType.BUCKET_VOLUME;
     public static final boolean IS_STEEL = ConfigHolder.INSTANCE.machines.steelSteamMultiblocks;
@@ -52,11 +48,6 @@ public class SteamHatchPartMachine extends FluidHatchPartMachine
     protected NotifiableFluidTank createTank(int initialCapacity, int slots) {
         return super.createTank(initialCapacity, slots)
                 .setFilter(fluidStack -> fluidStack.getFluid().is(GTMaterials.Steam.getFluidTag()));
-    }
-
-    @Override
-    public boolean canCreateUI(Player player, MachineUIHolder holder) {
-        return holder.getMachine() == this;
     }
 
     @Override
@@ -77,18 +68,10 @@ public class SteamHatchPartMachine extends FluidHatchPartMachine
     /**
      * Allows the steam-specific standalone screen to reuse the ordinary Fluid Hatch body in a controller context.
      */
-    @Override
-    protected boolean supportsGenericPage() {
-        return true;
-    }
 
     /**
      * Creates a holder-scoped Fluid Hatch page for one surrounding steam multiblock UI opening.
      */
-    @Override
-    public IFancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
-        return createPage(player, holder);
-    }
 
     private GTLabelElement createTitleLabel() {
         GTLabelElement label = new GTLabelElement(6, 6, 164, 10,

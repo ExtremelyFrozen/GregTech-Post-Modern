@@ -12,22 +12,14 @@ import com.gregtechceu.gtceu.api.gui.element.GTComponentPanelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolderContext;
 import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
-import com.gregtechceu.gtceu.api.gui.fancy.TabsWidget;
 import com.gregtechceu.gtceu.api.gui.fancy.TooltipsPanel;
-import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.ConditionalSubscriptionHandler;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CombinedDirectionalFancyConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.VoidingModeConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
-import com.gregtechceu.gtceu.api.machine.feature.FancyActionMachine;
 import com.gregtechceu.gtceu.api.machine.feature.IDataInfoProvider;
-import com.gregtechceu.gtceu.api.machine.feature.IUIMachine;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.IDisplayUIMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMaintenanceMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMultiPart;
 import com.gregtechceu.gtceu.api.machine.multiblock.CleanroomType;
@@ -52,7 +44,6 @@ import com.gregtechceu.gtceu.data.pattern.StructurePatternResolver;
 import com.gregtechceu.gtceu.data.recipe.CustomTags;
 import com.gregtechceu.gtceu.utils.GTUtil;
 
-import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
@@ -66,7 +57,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.Style;
 import net.minecraft.util.Mth;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 
@@ -74,6 +64,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMaps;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import lombok.AccessLevel;
 import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
@@ -83,8 +74,10 @@ import java.util.*;
 import static com.gregtechceu.gtceu.api.multiblock.util.RelativeDirection.*;
 
 public class CleanroomMachine extends WorkableElectricMultiblockMachine
-                              implements IDisplayUIMachine, IDataInfoProvider, IUIMachine,
-                              FancyActionMachine {
+                              implements IDataInfoProvider {
+
+    private static final int PAGE_WIDTH = 190;
+    private static final int PAGE_HEIGHT = 125;
 
     public static final int CLEAN_AMOUNT_THRESHOLD = 95;
     public static final int MIN_CLEAN_AMOUNT = 0;
@@ -528,140 +521,6 @@ public class CleanroomMachine extends WorkableElectricMultiblockMachine
                         int progress, int duration, int progressPercent,
                         boolean clean, int cleanAmount, int width, int height, int depth) {}
 
-    @Override
-    public boolean canCreateUI(Player player, MachineUIHolder holder) {
-        return holder.getMachine() == this;
-    }
-
-    @Override
-    public UI createUI(Player player, MachineUIHolder holder) {
-        IFancyUIProvider page = createPage(player, holder);
-        return UI.of(new FancyMachineUIWidget(page, player.getInventory(), holder,
-                page.getPageWidth(), page.getPageHeight()));
-    }
-
-    IFancyUIProvider createPage(Player player, MachineUIHolder holder) {
-        requireMatchingHolder(holder);
-        return new CleanroomFancyPage(player, holder);
-    }
-
-    private void requireMatchingHolder(MachineUIHolder holder) {
-        if (holder.getMachine() != this) {
-            throw new IllegalArgumentException("Cleanroom UI holder must resolve the opened controller.");
-        }
-    }
-
-    private final class CleanroomFancyPage implements IFancyUIProvider {
-
-        private static final int PAGE_WIDTH = 190;
-        private static final int PAGE_HEIGHT = 125;
-
-        private final MachineUIHolder holder;
-        private final CombinedDirectionalFancyConfigurator directionalPage;
-        private final List<IFancyUIProvider> partPages;
-
-        private CleanroomFancyPage(Player player, MachineUIHolder holder) {
-            requireMatchingHolder(holder);
-            this.holder = holder;
-            this.directionalPage = new CombinedDirectionalFancyConfigurator(CleanroomMachine.this, player, holder);
-
-            List<IFancyUIProvider> pages = new ArrayList<>();
-            for (IMultiPart part : getParts()) {
-                if (!(part instanceof FancyPartUIProvider pageProvider)) {
-                    throw new IllegalStateException("Cleanroom part has no LDLib2 Fancy page: " +
-                            part.self().getDefinition().getId());
-                }
-                MachineUIHolder partHolder = new MachineUIHolderContext(player, part.self());
-                pages.add(pageProvider.createFancyPage(player, partHolder));
-            }
-            this.partPages = List.copyOf(pages);
-        }
-
-        @Override
-        public UIElement createUIWidget(FancyMachineUIWidget shell) {
-            if (holder.getMachine() != CleanroomMachine.this) {
-                throw new IllegalStateException("Cleanroom page holder no longer resolves its controller.");
-            }
-
-            UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
-            UITemplate.setBackgroundTexture(root, GuiTextures.BACKGROUND_INVERSE);
-
-            GTScrollerViewElement screen = new GTScrollerViewElement(4, 4, 182, 117);
-            UITemplate.setBackgroundTexture(screen, getScreenTexture());
-            screen.viewPort.layout(layout -> layout.paddingAll(0));
-            UITemplate.setBackgroundTexture(screen.viewPort, getScreenTexture());
-            screen.scrollerStyle(style -> style
-                    .mode(ScrollerMode.VERTICAL)
-                    .verticalScrollDisplay(ScrollDisplay.AUTO)
-                    .horizontalScrollDisplay(ScrollDisplay.NEVER));
-
-            GTLabelElement title = new GTLabelElement(4, 5, 174, 10,
-                    getBlockState().getBlock().getDescriptionId(), true);
-            title.textStyle(style -> style
-                    .textColor(0x404040)
-                    .textShadow(false)
-                    .textAlignHorizontal(Horizontal.LEFT)
-                    .textAlignVertical(Vertical.CENTER));
-            screen.addScrollViewChild(title);
-            screen.addScrollViewChild(new GTComponentPanelElement(4, 17, CleanroomMachine.this::addDisplayText)
-                    .setMaxWidthLimit(200)
-                    .clickHandler(CleanroomMachine.this::handleDisplayClick));
-            root.addChild(screen);
-            return root;
-        }
-
-        @Override
-        public IGuiTexture getTabIcon() {
-            return GuiTextures.itemStack(getDefinition().getItem());
-        }
-
-        @Override
-        public Component getTitle() {
-            return Component.translatable(getDefinition().getDescriptionId());
-        }
-
-        @Override
-        public int getPageWidth() {
-            return PAGE_WIDTH;
-        }
-
-        @Override
-        public int getPageHeight() {
-            return PAGE_HEIGHT;
-        }
-
-        @Override
-        public void attachSideTabs(TabsWidget tabs) {
-            tabs.attachSubTab(directionalPage);
-        }
-
-        @Override
-        public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
-            VoidingModeConfigurator.attachConfigurators(configuratorPanel, CleanroomMachine.this);
-            configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
-                    CleanroomMachine.this, holder));
-        }
-
-        @Override
-        public void attachTooltips(TooltipsPanel tooltipsPanel) {
-            for (IMultiPart part : getParts()) {
-                if (part instanceof IMaintenanceMachine maintenanceMachine) {
-                    maintenanceMachine.attachMaintenanceTooltips(tooltipsPanel);
-                }
-            }
-        }
-
-        @Override
-        public List<IFancyUIProvider> getSubTabs() {
-            return partPages;
-        }
-
-        @Override
-        public List<Component> getTabTooltips() {
-            return List.of(Component.translatable(getDefinition().getDescriptionId()));
-        }
-    }
-
     /**
      * Adjust the cleanroom's clean amount
      *
@@ -698,4 +557,67 @@ public class CleanroomMachine extends WorkableElectricMultiblockMachine
 
     @Override
     public void setWorkingEnabled(boolean ignored) {}
+
+    @Override
+    public UIElement createUIWidget(FancyMachineUIWidget shell) {
+        MachineUIHolder holder = shell.getHolder(this);
+
+        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
+        UITemplate.setBackgroundTexture(root, GuiTextures.BACKGROUND_INVERSE);
+
+        GTScrollerViewElement screen = new GTScrollerViewElement(4, 4, 182, 117);
+        UITemplate.setBackgroundTexture(screen, getScreenTexture());
+        screen.viewPort.layout(layout -> layout.paddingAll(0));
+        UITemplate.setBackgroundTexture(screen.viewPort, getScreenTexture());
+        screen.scrollerStyle(style -> style
+                .mode(ScrollerMode.VERTICAL)
+                .verticalScrollDisplay(ScrollDisplay.AUTO)
+                .horizontalScrollDisplay(ScrollDisplay.NEVER));
+
+        GTLabelElement title = new GTLabelElement(4, 5, 174, 10,
+                getBlockState().getBlock().getDescriptionId(), true);
+        title.textStyle(style -> style
+                .textColor(0x404040)
+                .textShadow(false)
+                .textAlignHorizontal(Horizontal.LEFT)
+                .textAlignVertical(Vertical.CENTER));
+        screen.addScrollViewChild(title);
+        screen.addScrollViewChild(new GTComponentPanelElement(4, 17, CleanroomMachine.this::addDisplayText)
+                .setMaxWidthLimit(200)
+                .clickHandler(CleanroomMachine.this::handleDisplayClick));
+        root.addChild(screen);
+        return root;
+    }
+
+    @Override
+    public int getPageWidth() {
+        return PAGE_WIDTH;
+    }
+
+    @Override
+    public int getPageHeight() {
+        return PAGE_HEIGHT;
+    }
+
+    @Override
+    public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
+        MachineUIHolder holder = configuratorPanel.getHolder();
+        VoidingModeConfigurator.attachConfigurators(configuratorPanel, CleanroomMachine.this);
+        configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
+                CleanroomMachine.this, holder));
+    }
+
+    @Override
+    public void attachTooltips(TooltipsPanel tooltipsPanel) {
+        for (IMultiPart part : getParts()) {
+            if (part instanceof IMaintenanceMachine maintenanceMachine) {
+                maintenanceMachine.attachMaintenanceTooltips(tooltipsPanel);
+            }
+        }
+    }
+
+    @Override
+    public List<IFancyUIProvider> getSubTabs() {
+        return new ObjectArrayList<>(getParts());
+    }
 }

@@ -11,19 +11,13 @@ import com.gregtechceu.gtceu.api.gui.element.GTComponentPanelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolderContext;
 import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
-import com.gregtechceu.gtceu.api.gui.fancy.TabsWidget;
 import com.gregtechceu.gtceu.api.gui.fancy.TooltipsPanel;
-import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.ConditionalSubscriptionHandler;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CombinedDirectionalFancyConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
-import com.gregtechceu.gtceu.api.machine.feature.FancyActionMachine;
-import com.gregtechceu.gtceu.api.machine.feature.IUIMachine;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
+import com.gregtechceu.gtceu.api.machine.feature.IFancyUIMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IDisplayUIMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMaintenanceMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMultiPart;
@@ -39,7 +33,6 @@ import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
 import com.gregtechceu.gtceu.config.ConfigHolder;
 import com.gregtechceu.gtceu.utils.FormattingUtil;
 
-import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
@@ -52,13 +45,13 @@ import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 import net.minecraft.util.Mth;
-import net.minecraft.world.entity.player.Player;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMaps;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
 
@@ -71,8 +64,10 @@ import java.util.Map;
 import java.util.stream.LongStream;
 
 public class PowerSubstationMachine extends WorkableMultiblockMachine
-                                    implements IEnergyInfoProvider, IDisplayUIMachine, IUIMachine,
-                                    FancyActionMachine {
+                                    implements IEnergyInfoProvider, IDisplayUIMachine, IFancyUIMachine {
+
+    private static final int PAGE_WIDTH = 190;
+    private static final int PAGE_HEIGHT = 125;
 
     // Structure Constants
     public static final int MAX_BATTERY_LAYERS = 18;
@@ -422,138 +417,6 @@ public class PowerSubstationMachine extends WorkableMultiblockMachine
         return true;
     }
 
-    @Override
-    public boolean canCreateUI(Player player, MachineUIHolder holder) {
-        return holder.getMachine() == this;
-    }
-
-    @Override
-    public UI createUI(Player player, MachineUIHolder holder) {
-        requireMatchingHolder(holder);
-        PowerSubstationFancyPage page = new PowerSubstationFancyPage(player, holder);
-        return UI.of(new FancyMachineUIWidget(page, player.getInventory(), holder,
-                page.getPageWidth(), page.getPageHeight()));
-    }
-
-    private void requireMatchingHolder(MachineUIHolder holder) {
-        if (holder.getMachine() != this) {
-            throw new IllegalArgumentException("Power Substation UI holder must resolve the opened controller.");
-        }
-    }
-
-    private final class PowerSubstationFancyPage implements IFancyUIProvider {
-
-        private static final int PAGE_WIDTH = 190;
-        private static final int PAGE_HEIGHT = 125;
-
-        private final MachineUIHolder holder;
-        private final CombinedDirectionalFancyConfigurator directionalPage;
-        private final List<IFancyUIProvider> partPages;
-
-        private PowerSubstationFancyPage(Player player, MachineUIHolder holder) {
-            requireMatchingHolder(holder);
-            this.holder = holder;
-            this.directionalPage = new CombinedDirectionalFancyConfigurator(PowerSubstationMachine.this,
-                    player, holder);
-
-            List<IFancyUIProvider> pages = new ArrayList<>();
-            for (IMultiPart part : getParts()) {
-                if (!(part instanceof FancyPartUIProvider pageProvider)) {
-                    throw new IllegalStateException("Power Substation part has no LDLib2 Fancy page: " +
-                            part.self().getDefinition().getId());
-                }
-                MachineUIHolder partHolder = new MachineUIHolderContext(player, part.self());
-                pages.add(pageProvider.createFancyPage(player, partHolder));
-            }
-            this.partPages = List.copyOf(pages);
-        }
-
-        @Override
-        public UIElement createUIWidget(FancyMachineUIWidget shell) {
-            if (holder.getMachine() != PowerSubstationMachine.this) {
-                throw new IllegalStateException("Power Substation page holder no longer resolves its controller.");
-            }
-
-            UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
-            root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
-
-            GTScrollerViewElement screen = new GTScrollerViewElement(4, 4, 182, 117);
-            screen.style(style -> style.backgroundTexture(getScreenTexture()));
-            screen.viewPort(viewPort -> viewPort
-                    .layout(layout -> layout.paddingAll(0))
-                    .style(style -> style.backgroundTexture(getScreenTexture())));
-            screen.scrollerStyle(style -> style
-                    .mode(ScrollerMode.VERTICAL)
-                    .verticalScrollDisplay(ScrollDisplay.AUTO)
-                    .horizontalScrollDisplay(ScrollDisplay.NEVER));
-
-            GTLabelElement title = new GTLabelElement(4, 5, 174, 10,
-                    getBlockState().getBlock().getDescriptionId(), true);
-            title.textStyle(style -> style
-                    .textColor(0x404040)
-                    .textShadow(false)
-                    .textAlignHorizontal(Horizontal.LEFT)
-                    .textAlignVertical(Vertical.CENTER));
-            screen.addScrollViewChild(title);
-            screen.addScrollViewChild(new GTComponentPanelElement(4, 17,
-                    PowerSubstationMachine.this::addDisplayText)
-                    .setMaxWidthLimit(150)
-                    .clickHandler(PowerSubstationMachine.this::handleDisplayClick));
-            root.addChild(screen);
-            return root;
-        }
-
-        @Override
-        public IGuiTexture getTabIcon() {
-            return GuiTextures.itemStack(getDefinition().getItem());
-        }
-
-        @Override
-        public Component getTitle() {
-            return Component.translatable(getDefinition().getDescriptionId());
-        }
-
-        @Override
-        public int getPageWidth() {
-            return PAGE_WIDTH;
-        }
-
-        @Override
-        public int getPageHeight() {
-            return PAGE_HEIGHT;
-        }
-
-        @Override
-        public void attachSideTabs(TabsWidget tabs) {
-            tabs.attachSubTab(directionalPage);
-        }
-
-        @Override
-        public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
-            configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
-                    PowerSubstationMachine.this, holder));
-        }
-
-        @Override
-        public void attachTooltips(TooltipsPanel tooltipsPanel) {
-            for (IMultiPart part : getParts()) {
-                if (part instanceof IMaintenanceMachine maintenanceMachine) {
-                    maintenanceMachine.attachMaintenanceTooltips(tooltipsPanel);
-                }
-            }
-        }
-
-        @Override
-        public List<IFancyUIProvider> getSubTabs() {
-            return partPages;
-        }
-
-        @Override
-        public List<Component> getTabTooltips() {
-            return List.of(Component.translatable(getDefinition().getDescriptionId()));
-        }
-    }
-
     public static class PowerStationEnergyBank extends MachineTrait {
 
         public static final MachineTraitType<PowerStationEnergyBank> TYPE = new MachineTraitType<>(
@@ -768,5 +631,69 @@ public class PowerSubstationMachine extends WorkableMultiblockMachine
             amount++;
             return this;
         }
+    }
+
+    @Override
+    public UIElement createUIWidget(FancyMachineUIWidget shell) {
+        MachineUIHolder holder = shell.getHolder(this);
+
+        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
+        root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
+
+        GTScrollerViewElement screen = new GTScrollerViewElement(4, 4, 182, 117);
+        screen.style(style -> style.backgroundTexture(getScreenTexture()));
+        screen.viewPort(viewPort -> viewPort
+                .layout(layout -> layout.paddingAll(0))
+                .style(style -> style.backgroundTexture(getScreenTexture())));
+        screen.scrollerStyle(style -> style
+                .mode(ScrollerMode.VERTICAL)
+                .verticalScrollDisplay(ScrollDisplay.AUTO)
+                .horizontalScrollDisplay(ScrollDisplay.NEVER));
+
+        GTLabelElement title = new GTLabelElement(4, 5, 174, 10,
+                getBlockState().getBlock().getDescriptionId(), true);
+        title.textStyle(style -> style
+                .textColor(0x404040)
+                .textShadow(false)
+                .textAlignHorizontal(Horizontal.LEFT)
+                .textAlignVertical(Vertical.CENTER));
+        screen.addScrollViewChild(title);
+        screen.addScrollViewChild(new GTComponentPanelElement(4, 17,
+                PowerSubstationMachine.this::addDisplayText)
+                .setMaxWidthLimit(150)
+                .clickHandler(PowerSubstationMachine.this::handleDisplayClick));
+        root.addChild(screen);
+        return root;
+    }
+
+    @Override
+    public int getPageWidth() {
+        return PAGE_WIDTH;
+    }
+
+    @Override
+    public int getPageHeight() {
+        return PAGE_HEIGHT;
+    }
+
+    @Override
+    public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
+        MachineUIHolder holder = configuratorPanel.getHolder();
+        configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
+                PowerSubstationMachine.this, holder));
+    }
+
+    @Override
+    public void attachTooltips(TooltipsPanel tooltipsPanel) {
+        for (IMultiPart part : getParts()) {
+            if (part instanceof IMaintenanceMachine maintenanceMachine) {
+                maintenanceMachine.attachMaintenanceTooltips(tooltipsPanel);
+            }
+        }
+    }
+
+    @Override
+    public List<IFancyUIProvider> getSubTabs() {
+        return new ObjectArrayList<>(getParts());
     }
 }

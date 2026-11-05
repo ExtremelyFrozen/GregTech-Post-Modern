@@ -14,12 +14,8 @@ import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyConfiguratorButton;
-import com.gregtechceu.gtceu.api.gui.fancy.IFancyTooltip;
-import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
-import com.gregtechceu.gtceu.api.gui.fancy.TooltipsPanel;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.item.datacomponents.CreativeMachineInfo;
-import com.gregtechceu.gtceu.api.machine.feature.IUIMachine;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.ServerFieldChangeListener;
 import com.gregtechceu.gtceu.api.sync_system.annotations.ServerFieldNormalizer;
@@ -28,7 +24,6 @@ import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
 import com.gregtechceu.gtceu.common.data.GTDataComponents;
 import com.gregtechceu.gtceu.utils.ExtendedUseOnContext;
 
-import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
@@ -44,8 +39,7 @@ import lombok.Getter;
 
 import java.util.List;
 
-public class CreativeChestMachine extends QuantumChestMachine
-                                  implements IUIMachine {
+public class CreativeChestMachine extends QuantumChestMachine {
 
     private static final int PAGE_WIDTH = 176;
     private static final int PAGE_HEIGHT = 131;
@@ -132,31 +126,6 @@ public class CreativeChestMachine extends QuantumChestMachine
             return InteractionResult.SUCCESS;
         }
         return super.onUseWithItem(context);
-    }
-
-    @Override
-    public boolean canCreateUI(Player player, MachineUIHolder holder) {
-        return holder.getMachine() == this;
-    }
-
-    @Override
-    public UI createUI(Player player, MachineUIHolder holder) {
-        return UI.of(new FancyMachineUIWidget(new CreativeChestPage(player, holder),
-                player.getInventory(), holder, PAGE_WIDTH, PAGE_HEIGHT));
-    }
-
-    private UIElement createUIWidget(Player player, MachineUIHolder holder) {
-        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
-        root.addChild(createStoredItemSlot(player, holder));
-        root.addChild(createLabel(7, 9, 162, 10, "gtpm.creative.chest.item"));
-        root.addChild(new GTImageElement(7, 48, 154, 14, GuiTextures.DISPLAY));
-        root.addChild(createItemsPerCycleField());
-        root.addChild(createLabel(7, 28, 162, 10, "gtpm.creative.chest.ipc"));
-        root.addChild(new GTImageElement(7, 85, 154, 14, GuiTextures.DISPLAY));
-        root.addChild(createTicksPerCycleField());
-        root.addChild(createLabel(7, 65, 162, 10, "gtpm.creative.chest.tpc"));
-        root.addChild(createActivityButton());
-        return root;
     }
 
     private GTPhantomItemSlotElement createStoredItemSlot(Player player, MachineUIHolder holder) {
@@ -315,61 +284,6 @@ public class CreativeChestMachine extends QuantumChestMachine
         }
     }
 
-    private final class CreativeChestPage implements IFancyUIProvider {
-
-        private final Player player;
-        private final MachineUIHolder holder;
-
-        private CreativeChestPage(Player player, MachineUIHolder holder) {
-            this.player = player;
-            this.holder = holder;
-        }
-
-        @Override
-        public UIElement createUIWidget(FancyMachineUIWidget shell) {
-            return CreativeChestMachine.this.createUIWidget(player, holder);
-        }
-
-        @Override
-        public IGuiTexture getTabIcon() {
-            return GuiTextures.itemStack(getDefinition().getItem());
-        }
-
-        @Override
-        public Component getTitle() {
-            return Component.translatable(getDefinition().getDescriptionId());
-        }
-
-        @Override
-        public int getPageWidth() {
-            return PAGE_WIDTH;
-        }
-
-        @Override
-        public int getPageHeight() {
-            return PAGE_HEIGHT;
-        }
-
-        @Override
-        public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
-            configuratorPanel.attachConfigurators(createWorkingEnabledConfigurator());
-        }
-
-        @Override
-        public void attachTooltips(TooltipsPanel tooltipsPanel) {
-            tooltipsPanel.attachTooltips(CreativeChestMachine.this);
-            getTraitHolder().getAllTraits().stream()
-                    .filter(IFancyTooltip.class::isInstance)
-                    .map(IFancyTooltip.class::cast)
-                    .forEach(tooltipsPanel::attachTooltips);
-        }
-
-        @Override
-        public List<Component> getTabTooltips() {
-            return List.of(Component.translatable(getDefinition().getDescriptionId()));
-        }
-    }
-
     @Override
     protected void applyImplicitComponents(DataComponentInput componentInput) {
         super.applyImplicitComponents(componentInput);
@@ -423,5 +337,37 @@ public class CreativeChestMachine extends QuantumChestMachine
         public int getSlotLimit(int slot) {
             return 1;
         }
+    }
+
+    @Override
+    public UIElement createUIWidget(FancyMachineUIWidget shell) {
+        Player player = shell.getOpeningPlayer();
+        MachineUIHolder holder = shell.getHolder(this);
+        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
+        root.addChild(createStoredItemSlot(player, holder));
+        root.addChild(createLabel(7, 9, 162, 10, "gtpm.creative.chest.item"));
+        root.addChild(new GTImageElement(7, 48, 154, 14, GuiTextures.DISPLAY));
+        root.addChild(createItemsPerCycleField());
+        root.addChild(createLabel(7, 28, 162, 10, "gtpm.creative.chest.ipc"));
+        root.addChild(new GTImageElement(7, 85, 154, 14, GuiTextures.DISPLAY));
+        root.addChild(createTicksPerCycleField());
+        root.addChild(createLabel(7, 65, 162, 10, "gtpm.creative.chest.tpc"));
+        root.addChild(createActivityButton());
+        return root;
+    }
+
+    @Override
+    public int getPageWidth() {
+        return PAGE_WIDTH;
+    }
+
+    @Override
+    public int getPageHeight() {
+        return PAGE_HEIGHT;
+    }
+
+    @Override
+    public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
+        configuratorPanel.attachConfigurators(createWorkingEnabledConfigurator());
     }
 }

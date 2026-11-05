@@ -14,12 +14,8 @@ import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyConfiguratorButton;
-import com.gregtechceu.gtceu.api.gui.fancy.IFancyTooltip;
-import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
-import com.gregtechceu.gtceu.api.gui.fancy.TooltipsPanel;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.item.datacomponents.CreativeMachineInfo;
-import com.gregtechceu.gtceu.api.machine.feature.IUIMachine;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.ServerFieldChangeListener;
 import com.gregtechceu.gtceu.api.sync_system.annotations.ServerFieldNormalizer;
@@ -29,7 +25,6 @@ import com.gregtechceu.gtceu.api.transfer.fluid.CustomFluidTank;
 import com.gregtechceu.gtceu.common.data.GTDataComponents;
 import com.gregtechceu.gtceu.utils.ExtendedUseOnContext;
 
-import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
@@ -50,8 +45,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
-public class CreativeTankMachine extends QuantumTankMachine
-                                 implements IUIMachine {
+public class CreativeTankMachine extends QuantumTankMachine {
 
     private static final int PAGE_WIDTH = 176;
     private static final int PAGE_HEIGHT = 131;
@@ -175,31 +169,6 @@ public class CreativeTankMachine extends QuantumTankMachine
             return InteractionResult.PASS;
         }
         return super.onUse(context);
-    }
-
-    @Override
-    public boolean canCreateUI(Player player, MachineUIHolder holder) {
-        return holder.getMachine() == this;
-    }
-
-    @Override
-    public UI createUI(Player player, MachineUIHolder holder) {
-        return UI.of(new FancyMachineUIWidget(new CreativeTankPage(player, holder),
-                player.getInventory(), holder, PAGE_WIDTH, PAGE_HEIGHT));
-    }
-
-    private UIElement createUIWidget(Player player, MachineUIHolder holder) {
-        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
-        root.addChild(createStoredFluidSlot(player, holder));
-        root.addChild(createLabel(7, 9, 162, 10, "gtpm.creative.tank.fluid"));
-        root.addChild(new GTImageElement(7, 45, 154, 14, GuiTextures.DISPLAY));
-        root.addChild(createMillibucketsPerCycleField());
-        root.addChild(createLabel(7, 28, 162, 10, "gtpm.creative.tank.mbpc"));
-        root.addChild(new GTImageElement(7, 82, 154, 14, GuiTextures.DISPLAY));
-        root.addChild(createTicksPerCycleField());
-        root.addChild(createLabel(7, 65, 162, 10, "gtpm.creative.tank.tpc"));
-        root.addChild(createActivityButton());
-        return root;
     }
 
     private GTPhantomFluidSlotElement createStoredFluidSlot(Player player, MachineUIHolder holder) {
@@ -379,61 +348,6 @@ public class CreativeTankMachine extends QuantumTankMachine
         components.set(GTDataComponents.CREATIVE_MACHINE_INFO, new CreativeMachineInfo(mBPerCycle, ticksPerCycle));
     }
 
-    private final class CreativeTankPage implements IFancyUIProvider {
-
-        private final Player player;
-        private final MachineUIHolder holder;
-
-        private CreativeTankPage(Player player, MachineUIHolder holder) {
-            this.player = player;
-            this.holder = holder;
-        }
-
-        @Override
-        public UIElement createUIWidget(FancyMachineUIWidget shell) {
-            return CreativeTankMachine.this.createUIWidget(player, holder);
-        }
-
-        @Override
-        public IGuiTexture getTabIcon() {
-            return GuiTextures.itemStack(getDefinition().getItem());
-        }
-
-        @Override
-        public Component getTitle() {
-            return Component.translatable(getDefinition().getDescriptionId());
-        }
-
-        @Override
-        public int getPageWidth() {
-            return PAGE_WIDTH;
-        }
-
-        @Override
-        public int getPageHeight() {
-            return PAGE_HEIGHT;
-        }
-
-        @Override
-        public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
-            configuratorPanel.attachConfigurators(createWorkingEnabledConfigurator());
-        }
-
-        @Override
-        public void attachTooltips(TooltipsPanel tooltipsPanel) {
-            tooltipsPanel.attachTooltips(CreativeTankMachine.this);
-            getTraitHolder().getAllTraits().stream()
-                    .filter(IFancyTooltip.class::isInstance)
-                    .map(IFancyTooltip.class::cast)
-                    .forEach(tooltipsPanel::attachTooltips);
-        }
-
-        @Override
-        public List<Component> getTabTooltips() {
-            return List.of(Component.translatable(getDefinition().getDescriptionId()));
-        }
-    }
-
     private class InfiniteCache extends FluidCache {
 
         public InfiniteCache() {
@@ -478,5 +392,37 @@ public class CreativeTankMachine extends QuantumTankMachine
         public int getTankCapacity(int tank) {
             return FluidType.BUCKET_VOLUME;
         }
+    }
+
+    @Override
+    public UIElement createUIWidget(FancyMachineUIWidget shell) {
+        Player player = shell.getOpeningPlayer();
+        MachineUIHolder holder = shell.getHolder(this);
+        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
+        root.addChild(createStoredFluidSlot(player, holder));
+        root.addChild(createLabel(7, 9, 162, 10, "gtpm.creative.tank.fluid"));
+        root.addChild(new GTImageElement(7, 45, 154, 14, GuiTextures.DISPLAY));
+        root.addChild(createMillibucketsPerCycleField());
+        root.addChild(createLabel(7, 28, 162, 10, "gtpm.creative.tank.mbpc"));
+        root.addChild(new GTImageElement(7, 82, 154, 14, GuiTextures.DISPLAY));
+        root.addChild(createTicksPerCycleField());
+        root.addChild(createLabel(7, 65, 162, 10, "gtpm.creative.tank.tpc"));
+        root.addChild(createActivityButton());
+        return root;
+    }
+
+    @Override
+    public int getPageWidth() {
+        return PAGE_WIDTH;
+    }
+
+    @Override
+    public int getPageHeight() {
+        return PAGE_HEIGHT;
+    }
+
+    @Override
+    public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
+        configuratorPanel.attachConfigurators(createWorkingEnabledConfigurator());
     }
 }

@@ -5,20 +5,15 @@ import com.gregtechceu.gtceu.api.GTValues;
 import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo;
 import com.gregtechceu.gtceu.api.capability.IMonitorComponent;
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyPreviewPage;
-import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.multiblock.part.TieredPartMachine;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableEnergyContainer;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.integration.ae2.machine.trait.GridNodeHostTrait;
 
 import net.minecraft.core.Direction;
-import net.minecraft.world.entity.player.Player;
 
-public class HullMachine extends TieredPartMachine implements IMonitorComponent, FancyPartUIProvider {
+public class HullMachine extends TieredPartMachine implements IMonitorComponent {
 
     private final Object gridNodeHost;
 
@@ -63,11 +58,6 @@ public class HullMachine extends TieredPartMachine implements IMonitorComponent,
                 connectedBlockEntity.init();
             }
         }
-    }
-
-    @Override
-    public IFancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
-        return new FancyPreviewPage(this, player, holder, null);
     }
 
     //////////////////////////////////////

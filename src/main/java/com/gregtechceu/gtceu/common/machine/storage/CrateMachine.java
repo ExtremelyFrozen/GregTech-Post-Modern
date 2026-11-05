@@ -56,11 +56,6 @@ public class CrateMachine extends MetaMachine implements IUIMachine {
     }
 
     @Override
-    public boolean canCreateUI(Player player, MachineUIHolder holder) {
-        return holder.getMachine() == this;
-    }
-
-    @Override
     public UI createUI(Player player, MachineUIHolder holder) {
         int xOffset = inventorySize >= 90 ? 162 : 0;
         int yOverflow = xOffset > 0 ? 18 : 9;

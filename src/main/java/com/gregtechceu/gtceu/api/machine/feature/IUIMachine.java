@@ -23,7 +23,7 @@ import net.minecraft.world.level.block.state.BlockState;
  * <p>
  * This provider lets machine business code depend on {@link MachineUIHolder} instead of an LDLib2 menu holder.
  */
-public interface IUIMachine {
+public interface IUIMachine extends IMachineFeature {
 
     /** Registry-aware block state codec shared by the common machine opening header and detached machine views. */
     StreamCodec<RegistryFriendlyByteBuf, BlockState> BLOCK_STATE_CODEC = ByteBufCodecs
@@ -62,7 +62,9 @@ public interface IUIMachine {
     /**
      * Returns whether this machine should use LDLib2 for the provided holder context.
      */
-    boolean canCreateUI(Player player, MachineUIHolder holder);
+    default boolean canCreateUI(Player player, MachineUIHolder holder) {
+        return true;
+    }
 
     /**
      * Builds the LDLib2 machine UI tree for the provided player and opened machine identity.

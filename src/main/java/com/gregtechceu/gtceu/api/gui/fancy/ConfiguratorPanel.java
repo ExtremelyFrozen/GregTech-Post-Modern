@@ -13,8 +13,11 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.HoverTooltips;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 
@@ -32,7 +35,11 @@ public class ConfiguratorPanel extends UIElement {
     private static final int EXPANDED_GAP = 2;
 
     private final List<Tab> tabs = new ArrayList<>();
-    private final MachineUIHolder holder;
+    @Getter
+    private final Player player;
+    @Getter
+    @Setter
+    private MachineUIHolder holder;
     private int x;
     private int y;
     private int border = 4;
@@ -41,7 +48,8 @@ public class ConfiguratorPanel extends UIElement {
     @Nullable
     private Tab expanded;
 
-    public ConfiguratorPanel(MachineUIHolder holder, int x, int y) {
+    public ConfiguratorPanel(Player player, MachineUIHolder holder, int x, int y) {
+        this.player = player;
         this.holder = holder;
         this.x = x;
         this.y = y;
@@ -52,10 +60,6 @@ public class ConfiguratorPanel extends UIElement {
     /**
      * Returns the machine holder captured when the owning Fancy screen opened.
      */
-    public MachineUIHolder getHolder() {
-        return holder;
-    }
-
     public void clear() {
         clearAllChildren();
         tabs.clear();

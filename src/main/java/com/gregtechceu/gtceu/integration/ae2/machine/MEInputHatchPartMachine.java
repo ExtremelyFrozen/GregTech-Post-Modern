@@ -1,5 +1,6 @@
 package com.gregtechceu.gtceu.integration.ae2.machine;
 
+import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo;
 import com.gregtechceu.gtceu.api.capability.recipe.IO;
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
@@ -11,19 +12,12 @@ import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
-import com.gregtechceu.gtceu.api.gui.fancy.IFancyTooltip;
-import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
 import com.gregtechceu.gtceu.api.gui.fancy.TabsWidget;
-import com.gregtechceu.gtceu.api.gui.fancy.TooltipsPanel;
-import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.AutoStockingConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CircuitFancyConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CombinedDirectionalFancyConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
-import com.gregtechceu.gtceu.api.machine.feature.FancyActionMachine;
 import com.gregtechceu.gtceu.api.machine.feature.IDataStickInteractable;
-import com.gregtechceu.gtceu.api.machine.feature.IHasCircuitSlot;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableFluidTank;
 import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
 import com.gregtechceu.gtceu.common.data.GTDataComponents;
@@ -38,7 +32,6 @@ import com.gregtechceu.gtceu.integration.ae2.slot.ExportOnlyAESlot;
 import com.gregtechceu.gtceu.utils.FormattingUtil;
 import com.gregtechceu.gtceu.utils.GTMath;
 
-import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
@@ -73,8 +66,7 @@ import java.util.List;
  * ME fluid import hatch with a configuration page built from its synchronized slots.
  */
 public class MEInputHatchPartMachine extends MEHatchPartMachine
-                                     implements IDataStickInteractable, IHasCircuitSlot,
-                                     FancyPartUIProvider, FancyActionMachine {
+                                     implements IDataStickInteractable {
 
     /** Authoritative sixteen-slot fluid request and stock inventory. */
     protected ExportOnlyAEFluidList aeFluidHandler;
@@ -164,27 +156,7 @@ public class MEInputHatchPartMachine extends MEHatchPartMachine
         return aeFluidHandler.getInventory()[index];
     }
 
-    @Override
-    public boolean canCreateUI(Player player, MachineUIHolder holder) {
-        return holder.getMachine() == this;
-    }
-
-    @Override
-    public UI createUI(Player player, MachineUIHolder holder) {
-        IFancyUIProvider page = createPage(player, holder);
-        return UI.of(new FancyMachineUIWidget(page, player.getInventory(), holder,
-                page.getPageWidth(), page.getPageHeight()));
-    }
-
     /** Creates one standalone opening-scoped page after validating the exact holder and definition. */
-    IFancyUIProvider createPage(Player player, MachineUIHolder holder) {
-        return new MEFluidHatchFancyPage(player, holder);
-    }
-
-    @Override
-    public IFancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
-        return createPage(player, holder);
-    }
 
     ////////////////////////////////
     // ******* Interaction *******//
@@ -244,12 +216,6 @@ public class MEInputHatchPartMachine extends MEHatchPartMachine
             this.aeFluidHandler.getInventory()[i].setConfig(i < stacks.size() ? stacks.get(i) : null);
         }
         circuitInventory.setStackInSlot(0, IntCircuitBehaviour.stack(data.ghostCircuit()));
-    }
-
-    @Override
-    @ApiStatus.Internal
-    public boolean supportsFluidHatchActions() {
-        return getDefinition() == GTAEMachines.FLUID_IMPORT_HATCH_ME;
     }
 
     @ApiStatus.Internal
@@ -320,87 +286,6 @@ public class MEInputHatchPartMachine extends MEHatchPartMachine
     }
 
     /** One opening-scoped Fancy home page shared by standalone and contextual part navigation. */
-    private final class MEFluidHatchFancyPage implements IFancyUIProvider {
-
-        private final Player player;
-        private final MachineUIHolder holder;
-        @Nullable
-        private final CombinedDirectionalFancyConfigurator directionalPage;
-
-        private MEFluidHatchFancyPage(Player player, MachineUIHolder holder) {
-            this.player = player;
-            this.holder = holder;
-            this.directionalPage = isMEFluidStocking() ? null :
-                    new CombinedDirectionalFancyConfigurator(MEInputHatchPartMachine.this, player, holder);
-        }
-
-        @Override
-        public UIElement createUIWidget(FancyMachineUIWidget shell) {
-            return new FluidConfig(player);
-        }
-
-        @Override
-        public IGuiTexture getTabIcon() {
-            return GuiTextures.itemStack(getDefinition().getItem());
-        }
-
-        @Override
-        public Component getTitle() {
-            return Component.translatable(getDefinition().getDescriptionId());
-        }
-
-        @Override
-        public int getPageWidth() {
-            return 150;
-        }
-
-        @Override
-        public int getPageHeight() {
-            return 88;
-        }
-
-        @Override
-        public void attachSideTabs(TabsWidget tabs) {
-            if (directionalPage != null) {
-                tabs.attachSubTab(directionalPage);
-            }
-        }
-
-        @Override
-        public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
-            configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
-                    MEInputHatchPartMachine.this, holder));
-            if (isCircuitSlotEnabled()) {
-                configuratorPanel.attachConfigurators(new CircuitFancyConfigurator(
-                        MEInputHatchPartMachine.this, holder));
-            }
-            if (MEInputHatchPartMachine.this instanceof MEStockingHatchPartMachine stockingHatch) {
-                configuratorPanel.attachConfigurators(
-                        new MEFluidAutoPullConfigurator(stockingHatch, holder),
-                        new AutoStockingConfigurator(stockingHatch, holder));
-            }
-        }
-
-        @Override
-        public void attachTooltips(TooltipsPanel tooltipsPanel) {
-            tooltipsPanel.attachTooltips(MEInputHatchPartMachine.this);
-            for (var trait : getTraitHolder().getAllTraits()) {
-                if (trait instanceof IFancyTooltip tooltip) {
-                    tooltipsPanel.attachTooltips(tooltip);
-                }
-            }
-        }
-
-        @Override
-        public List<Component> getTabTooltips() {
-            return List.of(Component.translatable(getDefinition().getDescriptionId()));
-        }
-
-        @Override
-        public PageGroupingData getPageGroupingData() {
-            return new PageGroupingData("gtpm.multiblock.page_switcher.io.import", 1);
-        }
-    }
 
     public final class FluidConfig extends UIElement {
 
@@ -680,5 +565,43 @@ public class MEInputHatchPartMachine extends MEHatchPartMachine
                 }
             }
         }
+    }
+
+    @Override
+    public UIElement createUIWidget(FancyMachineUIWidget shell) {
+        Player player = shell.getOpeningPlayer();
+        return new FluidConfig(player);
+    }
+
+    @Override
+    public int getPageWidth() {
+        return 150;
+    }
+
+    @Override
+    public int getPageHeight() {
+        return 88;
+    }
+
+    @Override
+    public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
+        MachineUIHolder holder = configuratorPanel.getHolder();
+        configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
+                MEInputHatchPartMachine.this, holder));
+        if (isCircuitSlotEnabled()) {
+            configuratorPanel.attachConfigurators(new CircuitFancyConfigurator(
+                    MEInputHatchPartMachine.this, holder));
+        }
+        if (MEInputHatchPartMachine.this instanceof MEStockingHatchPartMachine stockingHatch) {
+            configuratorPanel.attachConfigurators(
+                    new MEFluidAutoPullConfigurator(stockingHatch, holder),
+                    new AutoStockingConfigurator(stockingHatch, holder));
+        }
+    }
+
+    @Override
+    public void attachSideTabs(TabsWidget tabs) {
+        if (!isMEFluidStocking()) tabs.attachCachedSubTab(GTCEu.id("directional"),
+                () -> new CombinedDirectionalFancyConfigurator(this, tabs.getPlayer(), tabs.getHolder()));
     }
 }

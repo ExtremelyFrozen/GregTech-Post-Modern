@@ -177,11 +177,6 @@ public class SimpleSteamMachine extends SteamWorkableMachine implements IUIMachi
     //////////////////////////////////////
 
     @Override
-    public boolean canCreateUI(Player player, MachineUIHolder holder) {
-        return holder.getMachine() == this;
-    }
-
-    @Override
     public UI createUI(Player player, MachineUIHolder holder) {
         var storages = Tables.newCustomTable(new EnumMap<>(IO.class), LinkedHashMap<RecipeCapability<?>, Object>::new);
         storages.put(IO.IN, ItemRecipeCapability.CAP, importItems.storage);

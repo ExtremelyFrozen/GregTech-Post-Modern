@@ -9,9 +9,6 @@ import com.gregtechceu.gtceu.api.gui.element.GTImageElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTToggleButtonElement;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
-import com.gregtechceu.gtceu.api.machine.feature.IUIMachine;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.PumpHatch;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableFluidTank;
 import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
@@ -40,7 +37,7 @@ import net.neoforged.neoforge.fluids.FluidUtil;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 
 public class PumpHatchPartMachine extends FluidHatchPartMachine
-                                  implements IUIMachine, FancyPartUIProvider, PumpHatch {
+                                  implements PumpHatch {
 
     public PumpHatchPartMachine(BlockEntityCreationInfo info) {
         super(info, 0, IO.OUT, FluidType.BUCKET_VOLUME, 1);
@@ -50,11 +47,6 @@ public class PumpHatchPartMachine extends FluidHatchPartMachine
     protected NotifiableFluidTank createTank(int initialCapacity, int slots) {
         return super.createTank(initialCapacity, slots)
                 .setFilter(fluidStack -> fluidStack.getFluid().is(GTMaterials.Water.getFluidTag()));
-    }
-
-    @Override
-    public boolean canCreateUI(Player player, MachineUIHolder holder) {
-        return holder.getMachine() == this;
     }
 
     @Override
@@ -70,16 +62,6 @@ public class PumpHatchPartMachine extends FluidHatchPartMachine
         root.addChild(createWorkingEnabledToggle());
         root.addChild(UITemplate.bindPlayerInventory(player.getInventory(), GuiTextures.SLOT, 7, 84, true));
         return UI.of(root);
-    }
-
-    @Override
-    protected boolean supportsGenericPage() {
-        return true;
-    }
-
-    @Override
-    public IFancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
-        return createPage(player, holder);
     }
 
     GTToggleButtonElement createWorkingEnabledToggle() {

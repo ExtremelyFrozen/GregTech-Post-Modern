@@ -9,14 +9,7 @@ import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
-import com.gregtechceu.gtceu.api.gui.fancy.IFancyTooltip;
-import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
-import com.gregtechceu.gtceu.api.gui.fancy.TabsWidget;
-import com.gregtechceu.gtceu.api.gui.fancy.TooltipsPanel;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CombinedDirectionalFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.feature.IUIMachine;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.machine.multiblock.part.MultiblockPartMachine;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler;
@@ -33,8 +26,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 
 import net.minecraft.core.Direction;
-import net.minecraft.network.chat.Component;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.common.crafting.SizedIngredient;
 
@@ -43,8 +34,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
-public class ObjectHolderMachine extends MultiblockPartMachine
-                                 implements IUIMachine, FancyPartUIProvider {
+public class ObjectHolderMachine extends MultiblockPartMachine {
 
     private static final int SLOT_LOCKED_OVERLAY_COLOR = 0x80404040;
     private static final int UI_WIDTH = 176;
@@ -97,29 +87,7 @@ public class ObjectHolderMachine extends MultiblockPartMachine
         return stackInSlot;
     }
 
-    @Override
-    public boolean canCreateUI(Player player, MachineUIHolder holder) {
-        return holder.getMachine() == this;
-    }
-
-    @Override
-    public UI createUI(Player player, MachineUIHolder holder) {
-        requireMatchingHolder(holder);
-        UIElement root = new UIElement();
-        UITemplate.setBounds(root, 0, 0, UI_WIDTH, STANDALONE_UI_HEIGHT);
-        UITemplate.setBackgroundTexture(root, GuiTextures.BACKGROUND);
-        root.addChild(createTitleLabel());
-        addObjectHolderBody(root);
-        root.addChild(UITemplate.bindPlayerInventory(player.getInventory(), GuiTextures.SLOT, 7, 84, true));
-        return UI.of(root);
-    }
-
     /** Creates a new holder-scoped page for one surrounding multiblock UI opening. */
-    @Override
-    public IFancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
-        requireMatchingHolder(holder);
-        return new ObjectHolderPage(player, holder);
-    }
 
     private UIElement createContextualBody() {
         UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, UI_WIDTH, CONTEXTUAL_PAGE_HEIGHT);
@@ -133,12 +101,6 @@ public class ObjectHolderMachine extends MultiblockPartMachine
         root.addChild(createLockedOverlay(79, 36));
         root.addChild(createItemSlot(dataItemHandler, 15, 36, GuiTextures.DATA_ORB_OVERLAY));
         root.addChild(createLockedOverlay(15, 36));
-    }
-
-    private void requireMatchingHolder(MachineUIHolder holder) {
-        if (holder.getMachine() != this) {
-            throw new IllegalArgumentException("Object Holder page holder must resolve the opened machine.");
-        }
     }
 
     private GTLabelElement createTitleLabel() {
@@ -169,64 +131,6 @@ public class ObjectHolderMachine extends MultiblockPartMachine
     }
 
     /** Owns the contextual Object Holder page state for exactly one menu opening. */
-    private final class ObjectHolderPage implements IFancyUIProvider {
-
-        private final MachineUIHolder holder;
-        private final CombinedDirectionalFancyConfigurator directionalPage;
-
-        private ObjectHolderPage(Player player, MachineUIHolder holder) {
-            requireMatchingHolder(holder);
-            this.holder = holder;
-            directionalPage = new CombinedDirectionalFancyConfigurator(ObjectHolderMachine.this, player, holder);
-        }
-
-        @Override
-        public UIElement createUIWidget(FancyMachineUIWidget shell) {
-            if (holder.getMachine() != ObjectHolderMachine.this) {
-                throw new IllegalStateException("Object Holder page holder no longer resolves its opened machine.");
-            }
-            return createContextualBody();
-        }
-
-        @Override
-        public IGuiTexture getTabIcon() {
-            return GuiTextures.itemStack(getDefinition().getItem());
-        }
-
-        @Override
-        public Component getTitle() {
-            return Component.translatable(getDefinition().getDescriptionId());
-        }
-
-        @Override
-        public int getPageWidth() {
-            return UI_WIDTH;
-        }
-
-        @Override
-        public int getPageHeight() {
-            return CONTEXTUAL_PAGE_HEIGHT;
-        }
-
-        @Override
-        public void attachSideTabs(TabsWidget tabs) {
-            tabs.attachSubTab(directionalPage);
-        }
-
-        @Override
-        public void attachTooltips(TooltipsPanel tooltipsPanel) {
-            tooltipsPanel.attachTooltips(ObjectHolderMachine.this);
-            getTraitHolder().getAllTraits().stream()
-                    .filter(IFancyTooltip.class::isInstance)
-                    .map(IFancyTooltip.class::cast)
-                    .forEach(tooltipsPanel::attachTooltips);
-        }
-
-        @Override
-        public List<Component> getTabTooltips() {
-            return List.of(getTitle());
-        }
-    }
 
     @Override
     public void setFrontFacing(Direction frontFacing) {
@@ -327,5 +231,22 @@ public class ObjectHolderMachine extends MultiblockPartMachine
         public int getSlotLimit(int slot) {
             return 1;
         }
+    }
+
+    @Override
+    public UIElement createUIWidget(FancyMachineUIWidget shell) {
+        MachineUIHolder holder = shell.getHolder(this);
+
+        return createContextualBody();
+    }
+
+    @Override
+    public int getPageWidth() {
+        return UI_WIDTH;
+    }
+
+    @Override
+    public int getPageHeight() {
+        return CONTEXTUAL_PAGE_HEIGHT;
     }
 }

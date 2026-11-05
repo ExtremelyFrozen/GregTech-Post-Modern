@@ -1,7 +1,6 @@
 package com.gregtechceu.gtceu.common.machine.multiblock.electric;
 
 import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo;
-import com.gregtechceu.gtceu.api.capability.IControllable;
 import com.gregtechceu.gtceu.api.capability.IEnergyContainer;
 import com.gregtechceu.gtceu.api.capability.recipe.EURecipeCapability;
 import com.gregtechceu.gtceu.api.capability.recipe.IO;
@@ -11,22 +10,14 @@ import com.gregtechceu.gtceu.api.gui.element.GTComponentPanelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolderContext;
 import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
-import com.gregtechceu.gtceu.api.gui.fancy.TabsWidget;
-import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.ConditionalSubscriptionHandler;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.BatchModeConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CombinedDirectionalFancyConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.VoidingModeConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
-import com.gregtechceu.gtceu.api.machine.feature.FancyActionMachine;
-import com.gregtechceu.gtceu.api.machine.feature.IUIMachine;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.IDisplayUIMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMultiPart;
 import com.gregtechceu.gtceu.api.machine.multiblock.PartAbility;
 import com.gregtechceu.gtceu.api.machine.multiblock.WorkableElectricMultiblockMachine;
@@ -38,7 +29,6 @@ import com.gregtechceu.gtceu.config.ConfigHolder;
 import com.gregtechceu.gtceu.utils.FormattingUtil;
 import com.gregtechceu.gtceu.utils.GTUtil;
 
-import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
@@ -47,10 +37,10 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.entity.player.Player;
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMaps;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -63,9 +53,10 @@ import static com.gregtechceu.gtceu.api.multiblock.structurepredicate.PatternPre
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-public class ActiveTransformerMachine extends WorkableElectricMultiblockMachine
-                                      implements IControllable, IDisplayUIMachine, IUIMachine,
-                                      FancyActionMachine {
+public class ActiveTransformerMachine extends WorkableElectricMultiblockMachine {
+
+    private static final int PAGE_WIDTH = 190;
+    private static final int PAGE_HEIGHT = 125;
 
     private EnergyContainerList powerOutput;
     private EnergyContainerList powerInput;
@@ -276,129 +267,61 @@ public class ActiveTransformerMachine extends WorkableElectricMultiblockMachine
                         boolean dangerEnabled) {}
 
     @Override
-    public boolean canCreateUI(Player player, MachineUIHolder holder) {
-        return holder.getMachine() == this;
+    public UIElement createUIWidget(FancyMachineUIWidget shell) {
+        MachineUIHolder holder = shell.getHolder(this);
+
+        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
+        root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
+
+        GTScrollerViewElement screen = new GTScrollerViewElement(4, 4, 182, 117);
+        screen.style(style -> style.backgroundTexture(getScreenTexture()));
+        screen.viewPort(viewPort -> viewPort
+                .layout(layout -> layout.paddingAll(0))
+                .style(style -> style.backgroundTexture(getScreenTexture())));
+        screen.scrollerStyle(style -> style
+                .mode(ScrollerMode.VERTICAL)
+                .verticalScrollDisplay(ScrollDisplay.AUTO)
+                .horizontalScrollDisplay(ScrollDisplay.NEVER));
+
+        GTLabelElement title = new GTLabelElement(4, 5, 174, 10,
+                getBlockState().getBlock().getDescriptionId(), true);
+        title.textStyle(style -> style
+                .textColor(0x404040)
+                .textShadow(false)
+                .textAlignHorizontal(Horizontal.LEFT)
+                .textAlignVertical(Vertical.CENTER));
+        screen.addScrollViewChild(title);
+        screen.addScrollViewChild(new GTComponentPanelElement(4, 17,
+                ActiveTransformerMachine.this::addDisplayText)
+                .setMaxWidthLimit(150)
+                .clickHandler(ActiveTransformerMachine.this::handleDisplayClick));
+        root.addChild(screen);
+        return root;
     }
 
     @Override
-    public UI createUI(Player player, MachineUIHolder holder) {
-        requireMatchingHolder(holder);
-        ActiveTransformerFancyPage page = new ActiveTransformerFancyPage(player, holder);
-        return UI.of(new FancyMachineUIWidget(page, player.getInventory(), holder,
-                page.getPageWidth(), page.getPageHeight()));
+    public int getPageWidth() {
+        return PAGE_WIDTH;
     }
 
-    private void requireMatchingHolder(MachineUIHolder holder) {
-        if (holder.getMachine() != this) {
-            throw new IllegalArgumentException("Active Transformer UI holder must resolve the opened controller.");
-        }
+    @Override
+    public int getPageHeight() {
+        return PAGE_HEIGHT;
     }
 
-    private final class ActiveTransformerFancyPage implements IFancyUIProvider {
+    @Override
+    public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
+        MachineUIHolder holder = configuratorPanel.getHolder();
+        VoidingModeConfigurator.attachConfigurators(
+                configuratorPanel, ActiveTransformerMachine.this);
+        BatchModeConfigurator.attachConfigurators(
+                configuratorPanel, ActiveTransformerMachine.this);
+        configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
+                ActiveTransformerMachine.this, holder));
+    }
 
-        private static final int PAGE_WIDTH = 190;
-        private static final int PAGE_HEIGHT = 125;
-
-        private final MachineUIHolder holder;
-        private final CombinedDirectionalFancyConfigurator directionalPage;
-        private final List<IFancyUIProvider> partPages;
-
-        private ActiveTransformerFancyPage(Player player, MachineUIHolder holder) {
-            requireMatchingHolder(holder);
-            this.holder = holder;
-            this.directionalPage = new CombinedDirectionalFancyConfigurator(ActiveTransformerMachine.this,
-                    player, holder);
-
-            List<IFancyUIProvider> pages = new ArrayList<>();
-            for (IMultiPart part : getParts()) {
-                if (!(part instanceof FancyPartUIProvider pageProvider)) {
-                    throw new IllegalStateException("Active Transformer part has no LDLib2 Fancy page: " +
-                            part.self().getDefinition().getId());
-                }
-                MachineUIHolder partHolder = new MachineUIHolderContext(player, part.self());
-                pages.add(pageProvider.createFancyPage(player, partHolder));
-            }
-            this.partPages = List.copyOf(pages);
-        }
-
-        @Override
-        public UIElement createUIWidget(FancyMachineUIWidget shell) {
-            if (holder.getMachine() != ActiveTransformerMachine.this) {
-                throw new IllegalStateException("Active Transformer page holder no longer resolves its controller.");
-            }
-
-            UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
-            root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
-
-            GTScrollerViewElement screen = new GTScrollerViewElement(4, 4, 182, 117);
-            screen.style(style -> style.backgroundTexture(getScreenTexture()));
-            screen.viewPort(viewPort -> viewPort
-                    .layout(layout -> layout.paddingAll(0))
-                    .style(style -> style.backgroundTexture(getScreenTexture())));
-            screen.scrollerStyle(style -> style
-                    .mode(ScrollerMode.VERTICAL)
-                    .verticalScrollDisplay(ScrollDisplay.AUTO)
-                    .horizontalScrollDisplay(ScrollDisplay.NEVER));
-
-            GTLabelElement title = new GTLabelElement(4, 5, 174, 10,
-                    getBlockState().getBlock().getDescriptionId(), true);
-            title.textStyle(style -> style
-                    .textColor(0x404040)
-                    .textShadow(false)
-                    .textAlignHorizontal(Horizontal.LEFT)
-                    .textAlignVertical(Vertical.CENTER));
-            screen.addScrollViewChild(title);
-            screen.addScrollViewChild(new GTComponentPanelElement(4, 17,
-                    ActiveTransformerMachine.this::addDisplayText)
-                    .setMaxWidthLimit(150)
-                    .clickHandler(ActiveTransformerMachine.this::handleDisplayClick));
-            root.addChild(screen);
-            return root;
-        }
-
-        @Override
-        public IGuiTexture getTabIcon() {
-            return GuiTextures.itemStack(getDefinition().getItem());
-        }
-
-        @Override
-        public Component getTitle() {
-            return Component.translatable(getDefinition().getDescriptionId());
-        }
-
-        @Override
-        public int getPageWidth() {
-            return PAGE_WIDTH;
-        }
-
-        @Override
-        public int getPageHeight() {
-            return PAGE_HEIGHT;
-        }
-
-        @Override
-        public void attachSideTabs(TabsWidget tabs) {
-            tabs.attachSubTab(directionalPage);
-        }
-
-        @Override
-        public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
-            VoidingModeConfigurator.attachConfigurators(
-                    configuratorPanel, ActiveTransformerMachine.this);
-            BatchModeConfigurator.attachConfigurators(
-                    configuratorPanel, ActiveTransformerMachine.this);
-            configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
-                    ActiveTransformerMachine.this, holder));
-        }
-
-        @Override
-        public List<IFancyUIProvider> getSubTabs() {
-            return partPages;
-        }
-
-        @Override
-        public List<Component> getTabTooltips() {
-            return List.of(Component.translatable(getDefinition().getDescriptionId()));
-        }
+    @Override
+    public List<IFancyUIProvider> getSubTabs() {
+        return new ObjectArrayList<>(getParts());
     }
 }

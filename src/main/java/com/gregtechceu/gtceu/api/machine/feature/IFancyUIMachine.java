@@ -1,7 +1,10 @@
 package com.gregtechceu.gtceu.api.machine.feature;
 
+import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.capability.IControllable;
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
+import com.gregtechceu.gtceu.api.gui.UITemplate;
+import com.gregtechceu.gtceu.api.gui.element.GTImageElement;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
@@ -20,13 +23,19 @@ import com.gregtechceu.gtceu.api.machine.fancyconfigurator.VoidingModeConfigurat
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.BatchModeMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.DistinctPart;
+import com.gregtechceu.gtceu.client.gui.fancy.PreviewScene;
 import com.gregtechceu.gtceu.common.machine.trait.AutoOutputTrait;
 
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.world.entity.player.Player;
+import net.neoforged.api.distmarker.Dist;
+
+import com.tterrag.registrate.util.RegistrateDistExecutor;
 
 import java.util.List;
 
@@ -36,8 +45,7 @@ import java.util.List;
  * <p>
  * This interface defines the machine-owned page contract used by the LDLib2 Fancy shell.
  */
-public interface IFancyUIMachine extends IMachineFeature, FancyActionMachine, IUIMachine,
-                                 IFancyUIProvider {
+public interface IFancyUIMachine extends IUIMachine, IFancyUIProvider {
 
     /**
      * Builds the machine's concrete LDLib2 Fancy page body.
@@ -47,30 +55,50 @@ public interface IFancyUIMachine extends IMachineFeature, FancyActionMachine, IU
      * silently preserve the old {@code SceneWidget} preview path.
      */
     @Override
-    UIElement createUIWidget(FancyMachineUIWidget shell);
+    default UIElement createUIWidget(FancyMachineUIWidget widget) {
+        var editableUI = self().getDefinition().getEditableUI();
+        if (editableUI != null) return editableUI.createUI(getUIResourceManager(), self()).rootElement;
+
+        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0,
+                100, 100);
+        if (self().isRemote()) {
+            root.addChild(new GTImageElement(26, 60, 48, 16, GuiTextures.SCENE));
+            RegistrateDistExecutor.unsafeRunWhenOn(Dist.CLIENT,
+                    () -> () -> root.addChild(PreviewScene.createScene(
+                            self(), 100, 100)));
+        }
+        return root;
+    }
 
     /**
      * Accepts the opened machine holder only while it still resolves to this machine instance.
      */
     @Override
-    default boolean canCreateUI(Player player, MachineUIHolder holder) {
-        return holder.getMachine() == self();
+    default int getPageWidth() {
+        var editableUI = self().getDefinition().getEditableUI();
+        return editableUI == null ? 100 : editableUI.getSize(getUIResourceManager()).width();
     }
 
     /**
      * Wraps this machine page provider in the shared LDLib2 Fancy shell.
      */
     @Override
-    default UI createUI(Player player, MachineUIHolder holder) {
-        return UI.of(new FancyMachineUIWidget(this, player.getInventory(), holder, getPageWidth(),
-                getPageHeight(), createContextualSubTabs(player, holder)));
+    default int getPageHeight() {
+        var editableUI = self().getDefinition().getEditableUI();
+        return editableUI == null ? 100 : editableUI.getSize(getUIResourceManager()).height();
     }
 
     /**
      * Creates side pages that must capture the player and validated holder for this particular menu opening.
      */
-    default List<IFancyUIProvider> createContextualSubTabs(Player player, MachineUIHolder holder) {
-        return List.of(new CombinedDirectionalFancyConfigurator(self(), player, holder));
+    @Override
+    default UI createUI(Player player, MachineUIHolder holder) {
+        return UI.of(new FancyMachineUIWidget(this, player.getInventory(), holder, getPageWidth(), getPageHeight()));
+    }
+
+    default ResourceManager getUIResourceManager() {
+        return self().isRemote() ? Minecraft.getInstance().getResourceManager() :
+                self().getLevel().getServer().getResourceManager();
     }
 
     /**
@@ -88,8 +116,11 @@ public interface IFancyUIMachine extends IMachineFeature, FancyActionMachine, IU
     default void attachSideTabs(TabsWidget tabs) {
         if (this instanceof IRecipeLogicMachine recipeLogicMachine &&
                 recipeLogicMachine.getRecipeTypes().length > 1) {
-            tabs.attachSubTab(new MachineModeFancyConfigurator(recipeLogicMachine));
+            tabs.attachCachedSubTab(GTCEu.id("machine_mode"),
+                    () -> new MachineModeFancyConfigurator(recipeLogicMachine));
         }
+        tabs.attachCachedSubTab(GTCEu.id("directional"),
+                () -> new CombinedDirectionalFancyConfigurator(self(), tabs.getPlayer(), tabs.getHolder()));
     }
 
     /**

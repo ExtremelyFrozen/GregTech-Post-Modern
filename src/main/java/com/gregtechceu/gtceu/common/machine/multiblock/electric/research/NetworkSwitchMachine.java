@@ -2,7 +2,6 @@ package com.gregtechceu.gtceu.common.machine.multiblock.electric.research;
 
 import com.gregtechceu.gtceu.api.GTValues;
 import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo;
-import com.gregtechceu.gtceu.api.capability.IControllable;
 import com.gregtechceu.gtceu.api.capability.recipe.EURecipeCapability;
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
@@ -10,22 +9,15 @@ import com.gregtechceu.gtceu.api.gui.element.GTComponentPanelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolderContext;
 import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
-import com.gregtechceu.gtceu.api.gui.fancy.TabsWidget;
 import com.gregtechceu.gtceu.api.gui.fancy.TooltipsPanel;
-import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.ConditionalSubscriptionHandler;
 import com.gregtechceu.gtceu.api.machine.TickableSubscription;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.BatchModeConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CombinedDirectionalFancyConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.VoidingModeConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
-import com.gregtechceu.gtceu.api.machine.feature.FancyActionMachine;
-import com.gregtechceu.gtceu.api.machine.feature.IUIMachine;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMaintenanceMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMultiPart;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockDisplayText;
@@ -36,7 +28,6 @@ import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
 import com.gregtechceu.gtceu.common.computation.ComputationNetworkManager;
 import com.gregtechceu.gtceu.common.machine.multiblock.part.OpticalComputationHatchMachine;
 
-import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
@@ -45,8 +36,8 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.entity.player.Player;
 
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import lombok.AccessLevel;
 import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
@@ -54,8 +45,10 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
-public class NetworkSwitchMachine extends WorkableElectricMultiblockMachine
-                                  implements IControllable, IUIMachine, FancyActionMachine {
+public class NetworkSwitchMachine extends WorkableElectricMultiblockMachine {
+
+    private static final int PAGE_WIDTH = 190;
+    private static final int PAGE_HEIGHT = 125;
 
     public static final int EUT_PER_HATCH = GTValues.VA[GTValues.IV];
 
@@ -291,135 +284,68 @@ public class NetworkSwitchMachine extends WorkableElectricMultiblockMachine
                         int energyUsage, int maxCWUt, int usedCWUt) {}
 
     @Override
-    public boolean canCreateUI(Player player, MachineUIHolder holder) {
-        return holder.getMachine() == this;
+    public UIElement createUIWidget(FancyMachineUIWidget shell) {
+        MachineUIHolder holder = shell.getHolder(this);
+
+        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
+        root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
+
+        GTScrollerViewElement screen = new GTScrollerViewElement(4, 4, 182, 117);
+        screen.style(style -> style.backgroundTexture(getScreenTexture()));
+        screen.viewPort(viewPort -> viewPort
+                .layout(layout -> layout.paddingAll(0))
+                .style(style -> style.backgroundTexture(getScreenTexture())));
+        screen.scrollerStyle(style -> style
+                .mode(ScrollerMode.VERTICAL)
+                .verticalScrollDisplay(ScrollDisplay.AUTO)
+                .horizontalScrollDisplay(ScrollDisplay.NEVER));
+
+        GTLabelElement title = new GTLabelElement(4, 5, 174, 10,
+                getBlockState().getBlock().getDescriptionId(), true);
+        title.textStyle(style -> style
+                .textColor(0x404040)
+                .textShadow(false)
+                .textAlignHorizontal(Horizontal.LEFT)
+                .textAlignVertical(Vertical.CENTER));
+        screen.addScrollViewChild(title);
+        screen.addScrollViewChild(new GTComponentPanelElement(4, 17,
+                NetworkSwitchMachine.this::addDisplayText)
+                .setMaxWidthLimit(200)
+                .clickHandler(NetworkSwitchMachine.this::handleDisplayClick));
+        root.addChild(screen);
+        return root;
     }
 
     @Override
-    public UI createUI(Player player, MachineUIHolder holder) {
-        requireMatchingHolder(holder);
-        NetworkSwitchFancyPage page = new NetworkSwitchFancyPage(player, holder);
-        return UI.of(new FancyMachineUIWidget(page, player.getInventory(), holder,
-                page.getPageWidth(), page.getPageHeight()));
+    public int getPageWidth() {
+        return PAGE_WIDTH;
     }
 
-    private void requireMatchingHolder(MachineUIHolder holder) {
-        if (holder.getMachine() != this) {
-            throw new IllegalArgumentException("Network Switch UI holder must resolve the opened controller.");
+    @Override
+    public int getPageHeight() {
+        return PAGE_HEIGHT;
+    }
+
+    @Override
+    public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
+        MachineUIHolder holder = configuratorPanel.getHolder();
+        VoidingModeConfigurator.attachConfigurators(configuratorPanel, NetworkSwitchMachine.this);
+        BatchModeConfigurator.attachConfigurators(configuratorPanel, NetworkSwitchMachine.this);
+        configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
+                NetworkSwitchMachine.this, holder));
+    }
+
+    @Override
+    public void attachTooltips(TooltipsPanel tooltipsPanel) {
+        for (IMultiPart part : getParts()) {
+            if (part instanceof IMaintenanceMachine maintenanceMachine) {
+                maintenanceMachine.attachMaintenanceTooltips(tooltipsPanel);
+            }
         }
     }
 
-    private final class NetworkSwitchFancyPage implements IFancyUIProvider {
-
-        private static final int PAGE_WIDTH = 190;
-        private static final int PAGE_HEIGHT = 125;
-
-        private final MachineUIHolder holder;
-        private final CombinedDirectionalFancyConfigurator directionalPage;
-        private final List<IFancyUIProvider> partPages;
-
-        private NetworkSwitchFancyPage(Player player, MachineUIHolder holder) {
-            requireMatchingHolder(holder);
-            this.holder = holder;
-            this.directionalPage = new CombinedDirectionalFancyConfigurator(NetworkSwitchMachine.this, player, holder);
-
-            List<IFancyUIProvider> pages = new ArrayList<>();
-            for (IMultiPart part : getParts()) {
-                if (!(part instanceof FancyPartUIProvider pageProvider)) {
-                    throw new IllegalStateException("Network Switch part has no LDLib2 Fancy page: " +
-                            part.self().getDefinition().getId());
-                }
-                MachineUIHolder partHolder = new MachineUIHolderContext(player, part.self());
-                pages.add(pageProvider.createFancyPage(player, partHolder));
-            }
-            this.partPages = List.copyOf(pages);
-        }
-
-        @Override
-        public UIElement createUIWidget(FancyMachineUIWidget shell) {
-            if (holder.getMachine() != NetworkSwitchMachine.this) {
-                throw new IllegalStateException("Network Switch page holder no longer resolves its controller.");
-            }
-
-            UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
-            root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
-
-            GTScrollerViewElement screen = new GTScrollerViewElement(4, 4, 182, 117);
-            screen.style(style -> style.backgroundTexture(getScreenTexture()));
-            screen.viewPort(viewPort -> viewPort
-                    .layout(layout -> layout.paddingAll(0))
-                    .style(style -> style.backgroundTexture(getScreenTexture())));
-            screen.scrollerStyle(style -> style
-                    .mode(ScrollerMode.VERTICAL)
-                    .verticalScrollDisplay(ScrollDisplay.AUTO)
-                    .horizontalScrollDisplay(ScrollDisplay.NEVER));
-
-            GTLabelElement title = new GTLabelElement(4, 5, 174, 10,
-                    getBlockState().getBlock().getDescriptionId(), true);
-            title.textStyle(style -> style
-                    .textColor(0x404040)
-                    .textShadow(false)
-                    .textAlignHorizontal(Horizontal.LEFT)
-                    .textAlignVertical(Vertical.CENTER));
-            screen.addScrollViewChild(title);
-            screen.addScrollViewChild(new GTComponentPanelElement(4, 17,
-                    NetworkSwitchMachine.this::addDisplayText)
-                    .setMaxWidthLimit(200)
-                    .clickHandler(NetworkSwitchMachine.this::handleDisplayClick));
-            root.addChild(screen);
-            return root;
-        }
-
-        @Override
-        public IGuiTexture getTabIcon() {
-            return GuiTextures.itemStack(getDefinition().getItem());
-        }
-
-        @Override
-        public Component getTitle() {
-            return Component.translatable(getDefinition().getDescriptionId());
-        }
-
-        @Override
-        public int getPageWidth() {
-            return PAGE_WIDTH;
-        }
-
-        @Override
-        public int getPageHeight() {
-            return PAGE_HEIGHT;
-        }
-
-        @Override
-        public void attachSideTabs(TabsWidget tabs) {
-            tabs.attachSubTab(directionalPage);
-        }
-
-        @Override
-        public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
-            VoidingModeConfigurator.attachConfigurators(configuratorPanel, NetworkSwitchMachine.this);
-            BatchModeConfigurator.attachConfigurators(configuratorPanel, NetworkSwitchMachine.this);
-            configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
-                    NetworkSwitchMachine.this, holder));
-        }
-
-        @Override
-        public void attachTooltips(TooltipsPanel tooltipsPanel) {
-            for (IMultiPart part : getParts()) {
-                if (part instanceof IMaintenanceMachine maintenanceMachine) {
-                    maintenanceMachine.attachMaintenanceTooltips(tooltipsPanel);
-                }
-            }
-        }
-
-        @Override
-        public List<IFancyUIProvider> getSubTabs() {
-            return partPages;
-        }
-
-        @Override
-        public List<Component> getTabTooltips() {
-            return List.of(Component.translatable(getDefinition().getDescriptionId()));
-        }
+    @Override
+    public List<IFancyUIProvider> getSubTabs() {
+        return new ObjectArrayList<>(getParts());
     }
 }

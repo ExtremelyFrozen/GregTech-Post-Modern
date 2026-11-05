@@ -2,10 +2,6 @@ package com.gregtechceu.gtceu.common.machine.multiblock.part;
 
 import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo;
 import com.gregtechceu.gtceu.api.capability.recipe.IO;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyPreviewPage;
-import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.machine.multiblock.part.MultiblockPartMachine;
 import com.gregtechceu.gtceu.api.machine.trait.MultiblockComputationPortTrait;
@@ -13,12 +9,11 @@ import com.gregtechceu.gtceu.api.machine.trait.NotifiableComputationContainer;
 import com.gregtechceu.gtceu.common.computation.ComputationNetworkManager;
 
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.entity.player.Player;
 
 import lombok.Getter;
 import org.jetbrains.annotations.MustBeInvokedByOverriders;
 
-public class OpticalComputationHatchMachine extends MultiblockPartMachine implements FancyPartUIProvider {
+public class OpticalComputationHatchMachine extends MultiblockPartMachine {
 
     @Getter
     private final boolean transmitter;
@@ -35,10 +30,6 @@ public class OpticalComputationHatchMachine extends MultiblockPartMachine implem
     }
 
     /** Creates the holder-scoped default preview used by a surrounding multiblock controller. */
-    @Override
-    public IFancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
-        return new FancyPreviewPage(this, player, holder, null);
-    }
 
     @Override
     public boolean canShared(MultiblockControllerMachine controller, String structureName) {

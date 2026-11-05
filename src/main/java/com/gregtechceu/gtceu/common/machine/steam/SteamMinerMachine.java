@@ -145,11 +145,6 @@ public class SteamMinerMachine extends SteamWorkableMachine implements IControll
     //////////////////////////////////////
 
     @Override
-    public boolean canCreateUI(Player player, MachineUIHolder holder) {
-        return holder.getMachine() == this;
-    }
-
-    @Override
     public UI createUI(Player player, MachineUIHolder holder) {
         int rowSize = (int) Math.sqrt(inventorySize);
 

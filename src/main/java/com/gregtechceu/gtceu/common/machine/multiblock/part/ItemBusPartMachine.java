@@ -1,7 +1,6 @@
 package com.gregtechceu.gtceu.common.machine.multiblock.part;
 
 import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo;
-import com.gregtechceu.gtceu.api.blockentity.IPaintable;
 import com.gregtechceu.gtceu.api.capability.recipe.IO;
 import com.gregtechceu.gtceu.api.cover.filter.FilterHandler;
 import com.gregtechceu.gtceu.api.cover.filter.FilterHandlers;
@@ -12,20 +11,12 @@ import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
-import com.gregtechceu.gtceu.api.gui.fancy.IFancyTooltip;
-import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
-import com.gregtechceu.gtceu.api.gui.fancy.TabsWidget;
-import com.gregtechceu.gtceu.api.gui.fancy.TooltipsPanel;
-import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.MachineDefinition;
 import com.gregtechceu.gtceu.api.machine.TickableSubscription;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CircuitFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CombinedDirectionalFancyConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.DistinctPartConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
-import com.gregtechceu.gtceu.api.machine.feature.FancyActionMachine;
 import com.gregtechceu.gtceu.api.machine.feature.IHasCircuitSlot;
-import com.gregtechceu.gtceu.api.machine.feature.IUIMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IDistinctPart;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.machine.multiblock.part.TieredIOPartMachine;
@@ -43,14 +34,12 @@ import com.gregtechceu.gtceu.utils.ExtendedUseOnContext;
 import com.gregtechceu.gtceu.utils.GTTransferUtils;
 import com.gregtechceu.gtceu.utils.ISubscription;
 
-import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
@@ -59,11 +48,8 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.List;
-
 public class ItemBusPartMachine extends TieredIOPartMachine
-                                implements IDistinctPart, IHasCircuitSlot, IPaintable, FancyActionMachine,
-                                IUIMachine {
+                                implements IDistinctPart, IHasCircuitSlot {
 
     @Getter
     @SaveField
@@ -299,38 +285,9 @@ public class ItemBusPartMachine extends TieredIOPartMachine
     // ********** GUI ***********//
     //////////////////////////////////////
 
-    @Override
-    public boolean canCreateUI(Player player, MachineUIHolder holder) {
-        return holder.getMachine() == this && supportsGenericPage();
-    }
-
-    @Override
-    public UI createUI(Player player, MachineUIHolder holder) {
-        IFancyUIProvider page = createPage(player, holder);
-        return UI.of(new FancyMachineUIWidget(page, player.getInventory(), holder,
-                page.getPageWidth(), page.getPageHeight()));
-    }
-
-    IFancyUIProvider createPage(Player player, MachineUIHolder holder) {
-        requireBusHolder(holder);
-        if (!supportsGenericPage()) {
-            throw new IllegalStateException("Item Bus definition requires its specialized UI provider.");
-        }
-        return new ItemBusPage(player, holder);
-    }
-
-    private void requireBusHolder(MachineUIHolder holder) {
-        if (holder.getMachine() != this) {
-            throw new IllegalArgumentException("Item Bus page holder must resolve the opened machine.");
-        }
-    }
-
     /**
      * Determines whether this definition may reuse the generic holder-scoped LDLib2 Item Bus page.
      */
-    protected boolean supportsGenericPage() {
-        return getClass() == ItemBusPartMachine.class;
-    }
 
     int getInventoryPageWidth() {
         return 18 * getRowSize() + 16;
@@ -338,19 +295,6 @@ public class ItemBusPartMachine extends TieredIOPartMachine
 
     int getInventoryPageHeight() {
         return 18 * getColumnSize() + 16;
-    }
-
-    @Nullable
-    IFancyUIProvider.PageGroupingData getPageGroupingData() {
-        return switch (io) {
-            case IN -> new IFancyUIProvider.PageGroupingData(
-                    "gtpm.multiblock.page_switcher.io.import", 1);
-            case OUT -> new IFancyUIProvider.PageGroupingData(
-                    "gtpm.multiblock.page_switcher.io.export", 2);
-            case BOTH -> new IFancyUIProvider.PageGroupingData(
-                    "gtpm.multiblock.page_switcher.io.both", 3);
-            case NONE -> null;
-        };
     }
 
     private int getRowSize() {
@@ -361,7 +305,23 @@ public class ItemBusPartMachine extends TieredIOPartMachine
         return getInventorySize() == 8 ? 2 : (int) Math.sqrt(getInventorySize());
     }
 
-    private UIElement createMainElement() {
+    private GTItemSlotElement createInventorySlot(int index, int x, int y) {
+        GTItemSlotElement slot = new GTItemSlotElement(getInventory().storage, index)
+                .setCanPutItems(io.support(IO.IN))
+                .setCanTakeItems(true)
+                .setBackgroundTexture(GuiTextures.SLOT)
+                .setIngredientIO(io.support(IO.IN) ? GTXEIHelper.input() : GTXEIHelper.output());
+        return UITemplate.setBounds(slot, x, y, 18, 18);
+    }
+
+    /**
+     * Captures the validated opening-scoped holder for all Item Bus page actions and contextual tabs.
+     */
+
+    @Override
+    public UIElement createUIWidget(FancyMachineUIWidget shell) {
+        MachineUIHolder holder = shell.getHolder(this);
+
         int rowSize = getRowSize();
         int columnSize = getColumnSize();
         UIElement root = UITemplate.setBounds(new UIElement(), 0, 0,
@@ -387,94 +347,28 @@ public class ItemBusPartMachine extends TieredIOPartMachine
         return root;
     }
 
-    private GTItemSlotElement createInventorySlot(int index, int x, int y) {
-        GTItemSlotElement slot = new GTItemSlotElement(getInventory().storage, index)
-                .setCanPutItems(io.support(IO.IN))
-                .setCanTakeItems(true)
-                .setBackgroundTexture(GuiTextures.SLOT)
-                .setIngredientIO(io.support(IO.IN) ? GTXEIHelper.input() : GTXEIHelper.output());
-        return UITemplate.setBounds(slot, x, y, 18, 18);
+    @Override
+    public int getPageWidth() {
+        return ItemBusPartMachine.this.getInventoryPageWidth();
     }
 
-    /**
-     * Captures the validated opening-scoped holder for all Item Bus page actions and contextual tabs.
-     */
-    private final class ItemBusPage implements IFancyUIProvider {
+    @Override
+    public int getPageHeight() {
+        return ItemBusPartMachine.this.getInventoryPageHeight();
+    }
 
-        private final MachineUIHolder holder;
-        private final CombinedDirectionalFancyConfigurator directionalPage;
-
-        private ItemBusPage(Player player, MachineUIHolder holder) {
-            requireBusHolder(holder);
-            this.holder = holder;
-            this.directionalPage = new CombinedDirectionalFancyConfigurator(ItemBusPartMachine.this, player, holder);
+    @Override
+    public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
+        MachineUIHolder holder = configuratorPanel.getHolder();
+        configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
+                ItemBusPartMachine.this, holder));
+        if (io != IO.IN) {
+            return;
         }
-
-        @Override
-        public UIElement createUIWidget(FancyMachineUIWidget shell) {
-            if (holder.getMachine() != ItemBusPartMachine.this) {
-                throw new IllegalStateException("Item Bus page holder no longer resolves its opened machine.");
-            }
-            return createMainElement();
-        }
-
-        @Override
-        public IGuiTexture getTabIcon() {
-            return GuiTextures.itemStack(getDefinition().getItem());
-        }
-
-        @Override
-        public Component getTitle() {
-            return Component.translatable(getDefinition().getDescriptionId());
-        }
-
-        @Override
-        public int getPageWidth() {
-            return ItemBusPartMachine.this.getInventoryPageWidth();
-        }
-
-        @Override
-        public int getPageHeight() {
-            return ItemBusPartMachine.this.getInventoryPageHeight();
-        }
-
-        @Override
-        public void attachSideTabs(TabsWidget tabs) {
-            tabs.attachSubTab(directionalPage);
-        }
-
-        @Override
-        public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
-            configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
+        DistinctPartConfigurator.attachConfigurators(configuratorPanel, ItemBusPartMachine.this);
+        if (isHasCircuitSlot() && isCircuitSlotEnabled()) {
+            configuratorPanel.attachConfigurators(new CircuitFancyConfigurator(
                     ItemBusPartMachine.this, holder));
-            if (io != IO.IN) {
-                return;
-            }
-            DistinctPartConfigurator.attachConfigurators(configuratorPanel, ItemBusPartMachine.this);
-            if (isHasCircuitSlot() && isCircuitSlotEnabled()) {
-                configuratorPanel.attachConfigurators(new CircuitFancyConfigurator(
-                        ItemBusPartMachine.this, holder));
-            }
-        }
-
-        @Override
-        public void attachTooltips(TooltipsPanel tooltipsPanel) {
-            tooltipsPanel.attachTooltips(ItemBusPartMachine.this);
-            getTraitHolder().getAllTraits().stream()
-                    .filter(IFancyTooltip.class::isInstance)
-                    .map(IFancyTooltip.class::cast)
-                    .forEach(tooltipsPanel::attachTooltips);
-        }
-
-        @Override
-        public List<Component> getTabTooltips() {
-            return List.of(Component.translatable(getDefinition().getDescriptionId()));
-        }
-
-        @Override
-        @Nullable
-        public IFancyUIProvider.PageGroupingData getPageGroupingData() {
-            return ItemBusPartMachine.this.getPageGroupingData();
         }
     }
 }

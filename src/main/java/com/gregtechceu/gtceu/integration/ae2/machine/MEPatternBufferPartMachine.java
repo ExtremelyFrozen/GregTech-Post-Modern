@@ -6,23 +6,15 @@ import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
-import com.gregtechceu.gtceu.api.gui.fancy.IFancyTooltip;
-import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
-import com.gregtechceu.gtceu.api.gui.fancy.TabsWidget;
-import com.gregtechceu.gtceu.api.gui.fancy.TooltipsPanel;
-import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.gui.util.FluidContainerSlotInteraction;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
 import com.gregtechceu.gtceu.api.machine.TickableSubscription;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.ButtonConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CircuitFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CombinedDirectionalFancyConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.FancyInvConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.FancyTankConfigurator;
-import com.gregtechceu.gtceu.api.machine.feature.FancyActionMachine;
 import com.gregtechceu.gtceu.api.machine.feature.IDataStickInteractable;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableFluidTank;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler;
@@ -43,7 +35,6 @@ import com.gregtechceu.gtceu.utils.FluidStackHashStrategy;
 import com.gregtechceu.gtceu.utils.GTMath;
 import com.gregtechceu.gtceu.utils.ItemStackHashStrategy;
 
-import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 
 import net.minecraft.core.BlockPos;
@@ -93,8 +84,7 @@ import java.util.stream.Collectors;
 
 @ExtensionMethod(SizedIngredientExtensions.class)
 public class MEPatternBufferPartMachine extends MEBusPartMachine
-                                        implements ICraftingProvider, PatternContainer, IDataStickInteractable,
-                                        FancyPartUIProvider, FancyActionMachine {
+                                        implements ICraftingProvider, PatternContainer, IDataStickInteractable {
 
     protected static final int MAX_PATTERN_COUNT = 27;
 
@@ -298,26 +288,6 @@ public class MEPatternBufferPartMachine extends MEBusPartMachine
     //////////////////////////////////////
     // ********** GUI ***********//
     //////////////////////////////////////
-    @Override
-    public boolean canCreateUI(Player player, MachineUIHolder holder) {
-        return holder.getMachine() == this;
-    }
-
-    @Override
-    public UI createUI(Player player, MachineUIHolder holder) {
-        IFancyUIProvider page = createPage(player, holder);
-        return UI.of(new FancyMachineUIWidget(page, player.getInventory(), holder,
-                page.getPageWidth(), page.getPageHeight()));
-    }
-
-    IFancyUIProvider createPage(Player player, MachineUIHolder holder) {
-        return new MEPatternBufferFancyPage(player, holder);
-    }
-
-    @Override
-    public IFancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
-        return createPage(player, holder);
-    }
 
     public int getPageWidth() {
         return MEPatternBufferPageElement.WIDTH;
@@ -351,99 +321,6 @@ public class MEPatternBufferPartMachine extends MEBusPartMachine
     /**
      * Owns one menu opening's page-local state, holder, actions, and directional subpage.
      */
-    private final class MEPatternBufferFancyPage implements IFancyUIProvider {
-
-        private final Player player;
-        private final MachineUIHolder holder;
-        private final CombinedDirectionalFancyConfigurator directionalPage;
-
-        private MEPatternBufferFancyPage(Player player, MachineUIHolder holder) {
-            this.player = player;
-            this.holder = holder;
-            directionalPage = new CombinedDirectionalFancyConfigurator(MEPatternBufferPartMachine.this, player, holder);
-        }
-
-        @Override
-        public UIElement createUIWidget(FancyMachineUIWidget shell) {
-            return new MEPatternBufferPageElement(MEPatternBufferPartMachine.this, player.level(), holder);
-        }
-
-        @Override
-        public IGuiTexture getTabIcon() {
-            return GuiTextures.itemStack(getDefinition().getItem());
-        }
-
-        @Override
-        public Component getTitle() {
-            return Component.translatable(getDefinition().getDescriptionId());
-        }
-
-        @Override
-        public int getPageWidth() {
-            return MEPatternBufferPartMachine.this.getPageWidth();
-        }
-
-        @Override
-        public int getPageHeight() {
-            return MEPatternBufferPartMachine.this.getPageHeight();
-        }
-
-        @Override
-        public void attachSideTabs(TabsWidget tabs) {
-            tabs.attachSubTab(directionalPage);
-        }
-
-        @Override
-        public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
-            configuratorPanel.attachConfigurators(new ButtonConfigurator(
-                    GuiTextures.group(GuiTextures.BUTTON, GuiTextures.REFUND_OVERLAY), event -> {
-                        if (player.level().isClientSide()) {
-                            rpcToServer("refundMEPatternBufferContents");
-                        }
-                    }).setTooltips(List.of(Component.translatable("gui.gtpm.refund_all.desc"))));
-            if (isHasCircuitSlot() && isCircuitSlotEnabled()) {
-                configuratorPanel.attachConfigurators(new CircuitFancyConfigurator(
-                        MEPatternBufferPartMachine.this, holder));
-            }
-            configuratorPanel.attachConfigurators(new FancyInvConfigurator(
-                    shareInventory.storage, Component.translatable("gui.gtpm.share_inventory.title"), () -> true)
-                    .setTooltips(List.of(
-                            Component.translatable("gui.gtpm.share_inventory.desc.0"),
-                            Component.translatable("gui.gtpm.share_inventory.desc.1"))));
-            configuratorPanel.attachConfigurators(new FancyTankConfigurator(
-                    shareTank.getStorages(), Component.translatable("gui.gtpm.share_tank.title"))
-                    .setTankClickHandler((tankIndex, event) -> {
-                        if (!player.level().isClientSide() ||
-                                FluidUtil.getFluidHandler(player.containerMenu.getCarried()).isEmpty()) {
-                            return false;
-                        }
-                        rpcToServer("clickMEPatternBufferShareTank", tankIndex, event.isShiftDown());
-                        return true;
-                    })
-                    .setTooltips(List.of(
-                            Component.translatable("gui.gtpm.share_tank.desc.0"),
-                            Component.translatable("gui.gtpm.share_inventory.desc.1"))));
-        }
-
-        @Override
-        public void attachTooltips(TooltipsPanel tooltipsPanel) {
-            tooltipsPanel.attachTooltips(MEPatternBufferPartMachine.this);
-            getTraitHolder().getAllTraits().stream()
-                    .filter(IFancyTooltip.class::isInstance)
-                    .map(IFancyTooltip.class::cast)
-                    .forEach(tooltipsPanel::attachTooltips);
-        }
-
-        @Override
-        public List<Component> getTabTooltips() {
-            return List.of(Component.translatable(getDefinition().getDescriptionId()));
-        }
-
-        @Override
-        public PageGroupingData getPageGroupingData() {
-            return new PageGroupingData("gtpm.multiblock.page_switcher.io.import", 1);
-        }
-    }
 
     @Override
     public List<IPatternDetails> getAvailablePatterns() {
@@ -806,5 +683,46 @@ public class MEPatternBufferPartMachine extends MEBusPartMachine
             if (changed) onContentsChanged();
             return left;
         }
+    }
+
+    @Override
+    public UIElement createUIWidget(FancyMachineUIWidget shell) {
+        Player player = shell.getOpeningPlayer();
+        MachineUIHolder holder = shell.getHolder(this);
+        return new MEPatternBufferPageElement(MEPatternBufferPartMachine.this, player.level(), holder);
+    }
+
+    @Override
+    public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
+        Player player = configuratorPanel.getPlayer();
+        MachineUIHolder holder = configuratorPanel.getHolder();
+        configuratorPanel.attachConfigurators(new ButtonConfigurator(
+                GuiTextures.group(GuiTextures.BUTTON, GuiTextures.REFUND_OVERLAY), event -> {
+                    if (player.level().isClientSide()) {
+                        rpcToServer("refundMEPatternBufferContents");
+                    }
+                }).setTooltips(List.of(Component.translatable("gui.gtpm.refund_all.desc"))));
+        if (isHasCircuitSlot() && isCircuitSlotEnabled()) {
+            configuratorPanel.attachConfigurators(new CircuitFancyConfigurator(
+                    MEPatternBufferPartMachine.this, holder));
+        }
+        configuratorPanel.attachConfigurators(new FancyInvConfigurator(
+                shareInventory.storage, Component.translatable("gui.gtpm.share_inventory.title"), () -> true)
+                .setTooltips(List.of(
+                        Component.translatable("gui.gtpm.share_inventory.desc.0"),
+                        Component.translatable("gui.gtpm.share_inventory.desc.1"))));
+        configuratorPanel.attachConfigurators(new FancyTankConfigurator(
+                shareTank.getStorages(), Component.translatable("gui.gtpm.share_tank.title"))
+                .setTankClickHandler((tankIndex, event) -> {
+                    if (!player.level().isClientSide() ||
+                            FluidUtil.getFluidHandler(player.containerMenu.getCarried()).isEmpty()) {
+                        return false;
+                    }
+                    rpcToServer("clickMEPatternBufferShareTank", tankIndex, event.isShiftDown());
+                    return true;
+                })
+                .setTooltips(List.of(
+                        Component.translatable("gui.gtpm.share_tank.desc.0"),
+                        Component.translatable("gui.gtpm.share_inventory.desc.1"))));
     }
 }

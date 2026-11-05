@@ -1,7 +1,6 @@
 package com.gregtechceu.gtceu.common.machine.multiblock.part;
 
 import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo;
-import com.gregtechceu.gtceu.api.blockentity.IPaintable;
 import com.gregtechceu.gtceu.api.capability.recipe.IO;
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
@@ -13,19 +12,11 @@ import com.gregtechceu.gtceu.api.gui.element.GTToggleButtonElement;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
-import com.gregtechceu.gtceu.api.gui.fancy.IFancyTooltip;
-import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
-import com.gregtechceu.gtceu.api.gui.fancy.TabsWidget;
-import com.gregtechceu.gtceu.api.gui.fancy.TooltipsPanel;
-import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.MachineDefinition;
 import com.gregtechceu.gtceu.api.machine.TickableSubscription;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CircuitFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CombinedDirectionalFancyConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
-import com.gregtechceu.gtceu.api.machine.feature.FancyActionMachine;
 import com.gregtechceu.gtceu.api.machine.feature.IHasCircuitSlot;
-import com.gregtechceu.gtceu.api.machine.feature.IUIMachine;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.machine.multiblock.part.TieredIOPartMachine;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableFluidTank;
@@ -43,7 +34,6 @@ import com.gregtechceu.gtceu.utils.ExtendedUseOnContext;
 import com.gregtechceu.gtceu.utils.GTTransferUtils;
 import com.gregtechceu.gtceu.utils.ISubscription;
 
-import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
@@ -75,7 +65,6 @@ import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.BooleanSupplier;
@@ -88,8 +77,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 public class FluidHatchPartMachine extends TieredIOPartMachine
-                                   implements IHasCircuitSlot, IPaintable, IUIMachine,
-                                   FancyActionMachine {
+                                   implements IHasCircuitSlot {
 
     public static final int INITIAL_TANK_CAPACITY_1X = 8 * FluidType.BUCKET_VOLUME;
     public static final int INITIAL_TANK_CAPACITY_4X = 2 * FluidType.BUCKET_VOLUME;
@@ -290,44 +278,7 @@ public class FluidHatchPartMachine extends TieredIOPartMachine
     // ********** GUI ***********//
     //////////////////////////////////////
 
-    @Override
-    public boolean canCreateUI(Player player, MachineUIHolder holder) {
-        return holder.getMachine() == this && supportsGenericPage();
-    }
-
-    @Override
-    public UI createUI(Player player, MachineUIHolder holder) {
-        IFancyUIProvider page = createPage(player, holder);
-        return UI.of(new FancyMachineUIWidget(page, player.getInventory(), holder,
-                page.getPageWidth(), page.getPageHeight()));
-    }
-
-    IFancyUIProvider createPage(Player player, MachineUIHolder holder) {
-        requireHatchHolder(holder);
-        if (!supportsGenericPage()) {
-            throw new IllegalStateException("Fluid hatch definition requires its specialized UI provider.");
-        }
-        return new FluidHatchPage(player, holder);
-    }
-
-    private void requireHatchHolder(MachineUIHolder holder) {
-        if (holder.getMachine() != this) {
-            throw new IllegalArgumentException("Fluid hatch page holder must resolve the opened machine.");
-        }
-    }
-
     /** Determines whether this definition may reuse the generic holder-scoped LDLib2 fluid hatch page. */
-    protected boolean supportsGenericPage() {
-        MachineDefinition definition = getDefinition();
-        return containsDefinition(definition, GTMachines.FLUID_IMPORT_HATCH) ||
-                containsDefinition(definition, GTMachines.FLUID_IMPORT_HATCH_4X) ||
-                containsDefinition(definition, GTMachines.FLUID_IMPORT_HATCH_9X) ||
-                containsDefinition(definition, GTMachines.FLUID_EXPORT_HATCH) ||
-                containsDefinition(definition, GTMachines.FLUID_EXPORT_HATCH_4X) ||
-                containsDefinition(definition, GTMachines.FLUID_EXPORT_HATCH_9X) ||
-                containsDefinition(definition, GTMachines.FLUID_PASSTHROUGH_HATCH) ||
-                definition == GTMachines.RESERVOIR_HATCH;
-    }
 
     private static boolean containsDefinition(MachineDefinition definition, MachineDefinition[] definitions) {
         for (MachineDefinition candidate : definitions) {
@@ -338,7 +289,7 @@ public class FluidHatchPartMachine extends TieredIOPartMachine
         return false;
     }
 
-    private int getPageWidth() {
+    public int getPageWidth() {
         if (slots == 1) {
             return 89;
         }
@@ -346,7 +297,7 @@ public class FluidHatchPartMachine extends TieredIOPartMachine
         return 18 * rowSize + 16;
     }
 
-    private int getPageHeight() {
+    public int getPageHeight() {
         if (slots == 1) {
             return 63;
         }
@@ -362,16 +313,9 @@ public class FluidHatchPartMachine extends TieredIOPartMachine
         return slots == 8 ? 2 : (int) Math.sqrt(slots);
     }
 
-    private UIElement createMainElement(Player player, MachineUIHolder holder) {
-        return createMainElement(player, holder, (target, action) -> action.accept(target.getMachine()),
-                () -> player.level().isClientSide() && holder.getMachine() == this,
-                UIEvent::isShiftDown);
-    }
-
     UIElement createMainElement(Player player, MachineUIHolder holder,
                                 BiConsumer<MachineUIHolder, Consumer<ISyncManaged>> actionSender,
                                 BooleanSupplier canSendAction, Predicate<UIEvent> shiftDown) {
-        requireHatchHolder(holder);
         if (slots == 1) {
             return createSingleSlotElement(player, holder, actionSender, canSendAction, shiftDown,
                     () -> getSelectedLockedFluid(player));
@@ -571,11 +515,6 @@ public class FluidHatchPartMachine extends TieredIOPartMachine
     }
 
     @ApiStatus.Internal
-    public boolean supportsFluidHatchActions() {
-        return supportsGenericPage();
-    }
-
-    @ApiStatus.Internal
     public boolean supportsFluidHatchLocking() {
         return slots == 1 && io.support(IO.OUT);
     }
@@ -589,7 +528,7 @@ public class FluidHatchPartMachine extends TieredIOPartMachine
     @ApiStatus.Internal
     public void clickFluidHatchSlot(RPCSender sender, int tankIndex, boolean shiftDown) {
         var player = sender.asPlayer();
-        requireFluidHatchActions();
+
         new FluidClickTarget(tank.getStorages()[tankIndex], true, io.support(IO.IN))
                 .click(player, shiftDown);
     }
@@ -615,14 +554,7 @@ public class FluidHatchPartMachine extends TieredIOPartMachine
         tank.setLocked(locked);
     }
 
-    private void requireFluidHatchActions() {
-        if (!supportsFluidHatchActions()) {
-            throw new IllegalStateException("Fluid hatch definition requires specialized action handling.");
-        }
-    }
-
     private void requireFluidHatchLocking() {
-        requireFluidHatchActions();
         if (!supportsFluidHatchLocking()) {
             throw new IllegalStateException("Fluid hatch does not expose locked-fluid controls.");
         }
@@ -737,94 +669,29 @@ public class FluidHatchPartMachine extends TieredIOPartMachine
     /**
      * Adapts this legacy multipart Fancy page to a holder-scoped LDLib2 Fancy provider.
      */
-    private final class FluidHatchPage implements IFancyUIProvider {
-
-        private final Player player;
-        private final MachineUIHolder holder;
-        private final CombinedDirectionalFancyConfigurator directionalPage;
-
-        private FluidHatchPage(Player player, MachineUIHolder holder) {
-            requireHatchHolder(holder);
-            this.player = player;
-            this.holder = holder;
-            this.directionalPage = new CombinedDirectionalFancyConfigurator(
-                    FluidHatchPartMachine.this, player, holder);
-        }
-
-        @Override
-        public UIElement createUIWidget(FancyMachineUIWidget shell) {
-            if (holder.getMachine() != FluidHatchPartMachine.this) {
-                throw new IllegalStateException("Fluid hatch page holder no longer resolves its opened machine.");
-            }
-            return createMainElement(player, holder);
-        }
-
-        @Override
-        public IGuiTexture getTabIcon() {
-            return GuiTextures.itemStack(getDefinition().getItem());
-        }
-
-        @Override
-        public Component getTitle() {
-            return Component.translatable(getDefinition().getDescriptionId());
-        }
-
-        @Override
-        public int getPageWidth() {
-            return FluidHatchPartMachine.this.getPageWidth();
-        }
-
-        @Override
-        public int getPageHeight() {
-            return FluidHatchPartMachine.this.getPageHeight();
-        }
-
-        @Override
-        public void attachSideTabs(TabsWidget tabs) {
-            tabs.attachSubTab(directionalPage);
-        }
-
-        @Override
-        public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
-            configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
-                    FluidHatchPartMachine.this, holder));
-            if (isCircuitSlotEnabled() && io.support(IO.IN)) {
-                configuratorPanel.attachConfigurators(new CircuitFancyConfigurator(
-                        FluidHatchPartMachine.this, holder));
-            }
-        }
-
-        @Override
-        public void attachTooltips(TooltipsPanel tooltipsPanel) {
-            tooltipsPanel.attachTooltips(FluidHatchPartMachine.this);
-            for (var trait : getTraitHolder().getAllTraits()) {
-                if (trait instanceof IFancyTooltip tooltip) {
-                    tooltipsPanel.attachTooltips(tooltip);
-                }
-            }
-        }
-
-        @Override
-        public List<Component> getTabTooltips() {
-            return List.of(Component.translatable(getDefinition().getDescriptionId()));
-        }
-
-        @Override
-        @Nullable
-        public IFancyUIProvider.PageGroupingData getPageGroupingData() {
-            return switch (io) {
-                case IN -> new IFancyUIProvider.PageGroupingData(
-                        "gtpm.multiblock.page_switcher.io.import", 1);
-                case OUT -> new IFancyUIProvider.PageGroupingData(
-                        "gtpm.multiblock.page_switcher.io.export", 2);
-                case BOTH -> new IFancyUIProvider.PageGroupingData(
-                        "gtpm.multiblock.page_switcher.io.both", 3);
-                case NONE -> null;
-            };
-        }
-    }
 
     public String getFormattedFluidAmount(FluidStack fluidStack) {
         return String.format("%,d", fluidStack.isEmpty() ? 0 : fluidStack.getAmount());
+    }
+
+    @Override
+    public UIElement createUIWidget(FancyMachineUIWidget shell) {
+        Player player = shell.getOpeningPlayer();
+        MachineUIHolder holder = shell.getHolder(this);
+
+        return createMainElement(player, holder, (target, action) -> action.accept(target.getMachine()),
+                () -> player.level().isClientSide() && holder.getMachine() == this,
+                UIEvent::isShiftDown);
+    }
+
+    @Override
+    public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
+        MachineUIHolder holder = configuratorPanel.getHolder();
+        configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
+                FluidHatchPartMachine.this, holder));
+        if (isCircuitSlotEnabled() && io.support(IO.IN)) {
+            configuratorPanel.attachConfigurators(new CircuitFancyConfigurator(
+                    FluidHatchPartMachine.this, holder));
+        }
     }
 }

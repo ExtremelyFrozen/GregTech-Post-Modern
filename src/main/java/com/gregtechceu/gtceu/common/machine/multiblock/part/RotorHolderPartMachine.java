@@ -11,14 +11,9 @@ import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyTooltip;
-import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
-import com.gregtechceu.gtceu.api.gui.fancy.TabsWidget;
 import com.gregtechceu.gtceu.api.gui.fancy.TooltipsPanel;
-import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.TickableSubscription;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CombinedDirectionalFancyConfigurator;
 import com.gregtechceu.gtceu.api.machine.feature.ITieredMachine;
-import com.gregtechceu.gtceu.api.machine.feature.IUIMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.*;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.machine.multiblock.part.TieredPartMachine;
@@ -42,7 +37,6 @@ import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 
 import lombok.Getter;
@@ -56,8 +50,7 @@ import static com.gregtechceu.gtceu.api.machine.property.GTMachineModelPropertie
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-public class RotorHolderPartMachine extends TieredPartMachine
-                                    implements IUIMachine, FancyPartUIProvider {
+public class RotorHolderPartMachine extends TieredPartMachine {
 
     public static final int SPEED_INCREMENT = 1;
     public static final int SPEED_DECREMENT = 3;
@@ -245,24 +238,10 @@ public class RotorHolderPartMachine extends TieredPartMachine
     //////////////////////////////////////
     // ********** GUI ***********//
     //////////////////////////////////////
-    @Override
-    public boolean canCreateUI(Player player, MachineUIHolder holder) {
-        return holder.getMachine() == this;
-    }
-
-    @Override
-    public UI createUI(Player player, MachineUIHolder holder) {
-        requireMatchingHolder(holder);
-        return UI.of(createRotorPage());
-    }
 
     /**
      * Creates a new holder-scoped Rotor Holder page for one surrounding multiblock UI opening.
      */
-    @Override
-    public IFancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
-        return new RotorHolderPage(player, holder);
-    }
 
     private UIElement createRotorPage() {
         UIElement root = new UIElement();
@@ -275,12 +254,6 @@ public class RotorHolderPartMachine extends TieredPartMachine
         root.addChild(createRotorSlot());
         root.addChild(createRotorLockedOverlay());
         return root;
-    }
-
-    private void requireMatchingHolder(MachineUIHolder holder) {
-        if (holder.getMachine() != this) {
-            throw new IllegalArgumentException("Rotor Holder page holder must resolve the opened machine.");
-        }
     }
 
     private GTItemSlotElement createRotorSlot() {
@@ -304,61 +277,6 @@ public class RotorHolderPartMachine extends TieredPartMachine
     /**
      * Owns the contextual Rotor Holder page state for exactly one menu opening.
      */
-    private final class RotorHolderPage implements IFancyUIProvider {
-
-        private final MachineUIHolder holder;
-        private final CombinedDirectionalFancyConfigurator directionalPage;
-
-        private RotorHolderPage(Player player, MachineUIHolder holder) {
-            requireMatchingHolder(holder);
-            this.holder = holder;
-            this.directionalPage = new CombinedDirectionalFancyConfigurator(RotorHolderPartMachine.this, player,
-                    holder);
-        }
-
-        @Override
-        public UIElement createUIWidget(FancyMachineUIWidget shell) {
-            if (holder.getMachine() != RotorHolderPartMachine.this) {
-                throw new IllegalStateException("Rotor Holder page holder no longer resolves its opened machine.");
-            }
-            return createRotorPage();
-        }
-
-        @Override
-        public IGuiTexture getTabIcon() {
-            return GuiTextures.itemStack(getDefinition().getItem());
-        }
-
-        @Override
-        public Component getTitle() {
-            return Component.translatable(getDefinition().getDescriptionId());
-        }
-
-        @Override
-        public int getPageWidth() {
-            return PAGE_WIDTH;
-        }
-
-        @Override
-        public int getPageHeight() {
-            return PAGE_HEIGHT;
-        }
-
-        @Override
-        public void attachSideTabs(TabsWidget tabs) {
-            tabs.attachSubTab(directionalPage);
-        }
-
-        @Override
-        public void attachTooltips(TooltipsPanel tooltipsPanel) {
-            tooltipsPanel.attachTooltips(createRotorObstructionTooltip());
-        }
-
-        @Override
-        public List<Component> getTabTooltips() {
-            return List.of(getTitle());
-        }
-    }
 
     //////////////////////////////////////
     // ****** RECIPE LOGIC *******//
@@ -504,5 +422,27 @@ public class RotorHolderPartMachine extends TieredPartMachine
             }
         }
         return true;
+    }
+
+    @Override
+    public UIElement createUIWidget(FancyMachineUIWidget shell) {
+        MachineUIHolder holder = shell.getHolder(this);
+
+        return createRotorPage();
+    }
+
+    @Override
+    public int getPageWidth() {
+        return PAGE_WIDTH;
+    }
+
+    @Override
+    public int getPageHeight() {
+        return PAGE_HEIGHT;
+    }
+
+    @Override
+    public void attachTooltips(TooltipsPanel tooltipsPanel) {
+        tooltipsPanel.attachTooltips(createRotorObstructionTooltip());
     }
 }

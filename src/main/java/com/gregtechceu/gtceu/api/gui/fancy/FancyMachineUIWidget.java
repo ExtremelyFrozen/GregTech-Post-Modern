@@ -3,6 +3,8 @@ package com.gregtechceu.gtceu.api.gui.fancy;
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
+import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolderContext;
+import com.gregtechceu.gtceu.api.machine.MetaMachine;
 
 import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerScreen;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
@@ -11,6 +13,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 
+import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
 import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
 
@@ -39,11 +42,16 @@ public class FancyMachineUIWidget extends UIElement {
      */
     @Getter
     private final Player openingPlayer;
+    @Getter
     private final MachineUIHolder holder;
+    private final Map<MetaMachine, MachineUIHolder> machineHolders = new Reference2ObjectOpenHashMap<>();
     private final UIElement pageContainer;
     private final TitleBarWidget titleBar;
+    @Getter
     private final TabsWidget sideTabsElement;
+    @Getter
     private final ConfiguratorPanel configuratorPanel;
+    @Getter
     private final TooltipsPanel tooltipsPanel;
     private final PageSwitcher pageSwitcher;
     /**
@@ -93,9 +101,9 @@ public class FancyMachineUIWidget extends UIElement {
         }
 
         this.titleBar = new TitleBarWidget(width, event -> navigateBack(), event -> openPageSwitcher());
-        this.sideTabsElement = new TabsWidget(this::navigate, -20, 0, 24, height, true);
+        this.sideTabsElement = new TabsWidget(this::navigate, inventory.player, holder, -20, 0, 24, height, true);
         this.tooltipsPanel = new TooltipsPanel(width + 2, 2);
-        this.configuratorPanel = new ConfiguratorPanel(holder, -26, height);
+        this.configuratorPanel = new ConfiguratorPanel(inventory.player, holder, -26, height);
         this.pageSwitcher = new PageSwitcher(this::switchPage);
         addChildren(titleBar, sideTabsElement, tooltipsPanel, configuratorPanel);
 
@@ -105,26 +113,12 @@ public class FancyMachineUIWidget extends UIElement {
     /**
      * Returns the machine holder captured when this LDLib2 Fancy screen was opened.
      */
-    public MachineUIHolder getHolder() {
-        return holder;
-    }
-
-    public ConfiguratorPanel getConfiguratorPanel() {
-        return configuratorPanel;
-    }
-
-    public TooltipsPanel getTooltipsPanel() {
-        return tooltipsPanel;
-    }
-
-    public TabsWidget getSideTabsElement() {
-        return sideTabsElement;
+    public MachineUIHolder getHolder(MetaMachine machine) {
+        return machine == holder.getMachine() ? holder :
+                machineHolders.computeIfAbsent(machine, key -> new MachineUIHolderContext(openingPlayer, key));
     }
 
     public FancyMachineUIWidget setBorder(int border) {
-        if (border < 0) {
-            throw new IllegalArgumentException("border must be non-negative");
-        }
         this.border = border;
         setupFancyUI(currentPage, currentPage.hasPlayerInventory());
         return this;
@@ -230,6 +224,7 @@ public class FancyMachineUIWidget extends UIElement {
         UITemplate.setBounds(page, (contentWidth - pageWidth) / 2, (contentHeight - pageHeight) / 2,
                 pageWidth, pageHeight);
 
+        configuratorPanel.setHolder(fancyUI instanceof MetaMachine machine ? getHolder(machine) : holder);
         fancyUI.attachConfigurators(configuratorPanel);
         configuratorPanel.moveTo(-26, rootHeight - configuratorPanel.getPanelContentHeight() - border);
         fancyUI.attachTooltips(tooltipsPanel);
@@ -271,6 +266,7 @@ public class FancyMachineUIWidget extends UIElement {
     }
 
     protected void setupSideTabs(IFancyUIProvider homePage) {
+        sideTabsElement.setHolder(homePage instanceof MetaMachine machine ? getHolder(machine) : holder);
         sideTabsElement.setMainTab(homePage);
         sideTabsElement.clearSubTabs();
         homePage.attachSideTabs(sideTabsElement);

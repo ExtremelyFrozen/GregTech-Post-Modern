@@ -4,13 +4,9 @@ import com.gregtechceu.gtceu.api.GTValues;
 import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo;
 import com.gregtechceu.gtceu.api.capability.recipe.IO;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyPreviewPage;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
-import com.gregtechceu.gtceu.api.machine.feature.FancyActionMachine;
 import com.gregtechceu.gtceu.api.machine.feature.IDataStickInteractable;
-import com.gregtechceu.gtceu.api.machine.feature.IUIMachine;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.multiblock.part.TieredIOPartMachine;
 import com.gregtechceu.gtceu.api.recipe.handler.RecipeHandlerList;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
@@ -32,8 +28,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 public class MEPatternBufferProxyPartMachine extends TieredIOPartMachine
-                                             implements IDataStickInteractable, IUIMachine,
-                                             FancyPartUIProvider, FancyActionMachine {
+                                             implements IDataStickInteractable {
 
     @Getter
     private final ProxySlotRecipeHandler proxySlotRecipeHandler;
@@ -123,12 +118,6 @@ public class MEPatternBufferProxyPartMachine extends TieredIOPartMachine
     }
 
     /** Creates the proxy-local preview used by a surrounding multiblock without opening its linked buffer. */
-    @Override
-    public IFancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
-        return new FancyPreviewPage(this, player, holder,
-                new IFancyUIProvider.PageGroupingData(
-                        "gtpm.multiblock.page_switcher.io.import", 1));
-    }
 
     @Override
     public void onMachineDestroyed() {
@@ -144,5 +133,10 @@ public class MEPatternBufferProxyPartMachine extends TieredIOPartMachine
             return InteractionResult.SUCCESS;
         }
         return InteractionResult.PASS;
+    }
+
+    @Override
+    public IFancyUIProvider.PageGroupingData getPageGroupingData() {
+        return new IFancyUIProvider.PageGroupingData("gtpm.multiblock.page_switcher.io.import", 1);
     }
 }

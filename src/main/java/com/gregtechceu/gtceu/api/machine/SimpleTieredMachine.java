@@ -13,8 +13,8 @@ import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.AutoOutputConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CircuitFancyConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
+import com.gregtechceu.gtceu.api.machine.feature.IFancyUIMachine;
 import com.gregtechceu.gtceu.api.machine.feature.IHasCircuitSlot;
-import com.gregtechceu.gtceu.api.machine.feature.RecipeFancyUIMachine;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler;
 import com.gregtechceu.gtceu.api.recipe.GTRecipeType;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
@@ -40,7 +40,7 @@ import java.util.function.BiFunction;
  * All simple single machines are implemented here.
  */
 public class SimpleTieredMachine extends WorkableTieredMachine
-                                 implements RecipeFancyUIMachine, IHasCircuitSlot {
+                                 implements IFancyUIMachine, IHasCircuitSlot {
 
     @Getter
     @SaveField
@@ -138,11 +138,6 @@ public class SimpleTieredMachine extends WorkableTieredMachine
     //////////////////////////////////////
 
     @Override
-    public SimpleTieredMachine getRecipeMachine() {
-        return this;
-    }
-
-    @Override
     public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
         configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
                 this, configuratorPanel.getHolder()));
@@ -163,7 +158,7 @@ public class SimpleTieredMachine extends WorkableTieredMachine
                             throw new IllegalArgumentException("Simple machine XML cannot bind " +
                                     machine.getClass().getName());
                         }
-                        tieredMachine.bindRecipeElements(root, tieredMachine);
+                        tieredMachine.bindRecipeElements(root);
                         tieredMachine.bindBatterySlot(MachineUIXmlTemplates.requireElement(root,
                                 MachineUIXmlTemplates.BATTERY_SLOT_ID, GTItemSlotElement.class));
                     }));

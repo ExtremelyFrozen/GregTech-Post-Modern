@@ -128,11 +128,6 @@ public class CreativeComputationProviderMachine extends MetaMachine
     }
 
     @Override
-    public boolean canCreateUI(Player player, MachineUIHolder holder) {
-        return holder.getMachine() == this;
-    }
-
-    @Override
     public UI createUI(Player player, MachineUIHolder holder) {
         UIElement root = new UIElement();
         UITemplate.setBounds(root, 0, 0, 140, 95);

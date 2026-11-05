@@ -9,23 +9,12 @@ import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyPreviewPage;
-import com.gregtechceu.gtceu.api.gui.fancy.IFancyTooltip;
-import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
-import com.gregtechceu.gtceu.api.gui.fancy.TabsWidget;
-import com.gregtechceu.gtceu.api.gui.fancy.TooltipsPanel;
-import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.MachineDefinition;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CircuitFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CombinedDirectionalFancyConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.DistinctPartConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
-import com.gregtechceu.gtceu.api.machine.feature.FancyActionMachine;
-import com.gregtechceu.gtceu.api.machine.feature.IUIMachine;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableFluidTank;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
-import com.gregtechceu.gtceu.api.sync_system.managed.ISyncManaged;
 import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
 import com.gregtechceu.gtceu.api.sync_system.rpc.RPCSender;
 import com.gregtechceu.gtceu.common.data.GTMachines;
@@ -33,13 +22,10 @@ import com.gregtechceu.gtceu.integration.xei.GTXEIHelper;
 import com.gregtechceu.gtceu.utils.GTTransferUtils;
 import com.gregtechceu.gtceu.utils.ISubscription;
 
-import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
-import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
@@ -58,14 +44,7 @@ import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 
-import java.util.List;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
-import java.util.function.Predicate;
-
-public class DualHatchPartMachine extends ItemBusPartMachine
-                                  implements IUIMachine, FancyPartUIProvider,
-                                  FancyActionMachine {
+public class DualHatchPartMachine extends ItemBusPartMachine {
 
     public static final int INITIAL_TANK_CAPACITY = 16 * FluidType.BUCKET_VOLUME;
 
@@ -191,24 +170,7 @@ public class DualHatchPartMachine extends ItemBusPartMachine
     // ********** GUI ***********//
     ///////////////////////////////
 
-    @Override
-    public boolean canCreateUI(Player player, MachineUIHolder holder) {
-        return holder.getMachine() == this;
-    }
-
-    @Override
-    public UI createUI(Player player, MachineUIHolder holder) {
-        int pageWidth = getInventoryPageWidth();
-        int pageHeight = getInventoryPageHeight();
-        return UI.of(new FancyMachineUIWidget(new DualHatchPage(player, holder),
-                player.getInventory(), holder, pageWidth, pageHeight));
-    }
-
     /** Creates the preview-style page used when a multiblock controller exposes this hatch. */
-    @Override
-    public IFancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
-        return new DualHatchContextualPreviewPage(player, holder);
-    }
 
     @Override
     int getInventoryPageWidth() {
@@ -222,16 +184,10 @@ public class DualHatchPartMachine extends ItemBusPartMachine
         return 18 * tanks + 16;
     }
 
-    private UIElement createMainElement(Player player, MachineUIHolder holder) {
-        return createMainElement(player, holder, (target, action) -> action.accept(target.getMachine()),
-                event -> player.level().isClientSide() &&
-                        FluidUtil.getFluidHandler(player.containerMenu.getCarried()).isPresent(),
-                UIEvent::isShiftDown);
-    }
+    @Override
+    public UIElement createUIWidget(FancyMachineUIWidget widget) {
+        Player player = widget.getOpeningPlayer();
 
-    UIElement createMainElement(Player player, MachineUIHolder holder,
-                                BiConsumer<MachineUIHolder, Consumer<ISyncManaged>> actionSender,
-                                Predicate<UIEvent> actionGuard, Predicate<UIEvent> shiftDown) {
         int tanks = (int) Math.sqrt(getInventorySize());
         UIElement root = UITemplate.setBounds(new UIElement(), 0, 0,
                 getInventoryPageWidth(), getInventoryPageHeight());
@@ -248,8 +204,7 @@ public class DualHatchPartMachine extends ItemBusPartMachine
 
         index = 0;
         for (int y = 0; y < tanks; y++) {
-            container.addChild(createFluidSlot(holder, index++, 4 + tanks * 18, 4 + y * 18,
-                    actionSender, actionGuard, shiftDown));
+            container.addChild(createFluidSlot(player, index++, 4 + tanks * 18, 4 + y * 18));
         }
 
         root.addChild(container);
@@ -265,10 +220,7 @@ public class DualHatchPartMachine extends ItemBusPartMachine
         return UITemplate.setBounds(slotElement, x, y, 18, 18);
     }
 
-    private GTFluidSlotElement createFluidSlot(MachineUIHolder holder, int tankIndex, int x, int y,
-                                               BiConsumer<MachineUIHolder, Consumer<ISyncManaged>> actionSender,
-                                               Predicate<UIEvent> actionGuard,
-                                               Predicate<UIEvent> shiftDown) {
+    private GTFluidSlotElement createFluidSlot(Player player, int tankIndex, int x, int y) {
         GTFluidSlotElement fluidSlot = new GTFluidSlotElement()
                 .setFluidTank(tank.getStorages()[tankIndex], 0)
                 .setShowAmount(true)
@@ -277,9 +229,10 @@ public class DualHatchPartMachine extends ItemBusPartMachine
                 .setIngredientIO(GTXEIHelper.none())
                 .setBackgroundTexture(GuiTextures.FLUID_SLOT);
         fluidSlot.addEventListener(UIEvents.MOUSE_DOWN, event -> {
-            if (event.button == GLFW.GLFW_MOUSE_BUTTON_LEFT && actionGuard.test(event)) {
-                boolean shifted = shiftDown.test(event);
-                actionSender.accept(holder, managed -> managed.rpcToServer("clickFluidSlot", tankIndex, shifted));
+            if (event.button == GLFW.GLFW_MOUSE_BUTTON_LEFT && player.level().isClientSide() &&
+                    FluidUtil.getFluidHandler(player.containerMenu.getCarried()).isPresent()) {
+
+                rpcToServer("clickFluidSlot", tankIndex, event.isShiftDown());
                 event.stopImmediatePropagation();
                 event.hasHandler = true;
             }
@@ -399,8 +352,8 @@ public class DualHatchPartMachine extends ItemBusPartMachine
         return remainingStack.copy();
     }
 
-    private void attachConfigurators(ConfiguratorPanel configuratorPanel,
-                                     MachineUIHolder holder) {
+    public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
+        MachineUIHolder holder = configuratorPanel.getHolder();
         configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
                 this, holder));
         if (io != IO.IN) {
@@ -413,160 +366,10 @@ public class DualHatchPartMachine extends ItemBusPartMachine
         }
     }
 
-    private void attachTooltips(TooltipsPanel tooltipsPanel) {
-        tooltipsPanel.attachTooltips(this);
-        getTraitHolder().getAllTraits().stream()
-                .filter(IFancyTooltip.class::isInstance)
-                .map(IFancyTooltip.class::cast)
-                .forEach(tooltipsPanel::attachTooltips);
-    }
-
-    @Nullable
-    private IFancyUIProvider.PageGroupingData createPageGroupingData() {
-        return switch (io) {
-            case IN -> new IFancyUIProvider.PageGroupingData(
-                    "gtpm.multiblock.page_switcher.io.import", 1);
-            case OUT -> new IFancyUIProvider.PageGroupingData(
-                    "gtpm.multiblock.page_switcher.io.export", 2);
-            case BOTH -> new IFancyUIProvider.PageGroupingData(
-                    "gtpm.multiblock.page_switcher.io.both", 3);
-            case NONE -> null;
-        };
-    }
-
     /** Keeps the legacy controller page as a preview while retaining Dual Hatch controls and grouping. */
-    private final class DualHatchContextualPreviewPage implements IFancyUIProvider {
-
-        private final MachineUIHolder holder;
-        private final FancyPreviewPage previewPage;
-
-        private DualHatchContextualPreviewPage(Player player, MachineUIHolder holder) {
-            this.holder = holder;
-            this.previewPage = new FancyPreviewPage(DualHatchPartMachine.this, player, holder,
-                    createPageGroupingData());
-        }
-
-        @Override
-        public UIElement createUIWidget(FancyMachineUIWidget shell) {
-            return previewPage.createUIWidget(shell);
-        }
-
-        @Override
-        public IGuiTexture getTabIcon() {
-            return previewPage.getTabIcon();
-        }
-
-        @Override
-        public Component getTitle() {
-            return previewPage.getTitle();
-        }
-
-        @Override
-        public int getPageWidth() {
-            return previewPage.getPageWidth();
-        }
-
-        @Override
-        public int getPageHeight() {
-            return previewPage.getPageHeight();
-        }
-
-        @Override
-        public void attachSideTabs(TabsWidget tabs) {
-            previewPage.attachSideTabs(tabs);
-        }
-
-        @Override
-        public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
-            DualHatchPartMachine.this.attachConfigurators(configuratorPanel, holder);
-        }
-
-        @Override
-        public void attachTooltips(TooltipsPanel tooltipsPanel) {
-            DualHatchPartMachine.this.attachTooltips(tooltipsPanel);
-        }
-
-        @Override
-        public List<Component> getTabTooltips() {
-            return previewPage.getTabTooltips();
-        }
-
-        @Override
-        @Nullable
-        public IFancyUIProvider.PageGroupingData getPageGroupingData() {
-            return previewPage.getPageGroupingData();
-        }
-    }
 
     /**
      * Adapts the inherited legacy Fancy machine metadata to an LDLib2 page without making the machine implement two
      * incompatible Fancy provider contracts.
      */
-    private final class DualHatchPage implements IFancyUIProvider {
-
-        private final Player player;
-        private final MachineUIHolder holder;
-        private final CombinedDirectionalFancyConfigurator directionalPage;
-
-        /**
-         * Captures the player and validated machine holder used by page-local GT sync actions.
-         */
-        private DualHatchPage(Player player, MachineUIHolder holder) {
-            this.player = player;
-            this.holder = holder;
-            this.directionalPage = new CombinedDirectionalFancyConfigurator(
-                    DualHatchPartMachine.this, player, holder);
-        }
-
-        @Override
-        public UIElement createUIWidget(FancyMachineUIWidget shell) {
-            return createMainElement(player, holder);
-        }
-
-        @Override
-        public IGuiTexture getTabIcon() {
-            return GuiTextures.itemStack(getDefinition().getItem());
-        }
-
-        @Override
-        public Component getTitle() {
-            return Component.translatable(getDefinition().getDescriptionId());
-        }
-
-        @Override
-        public int getPageWidth() {
-            return DualHatchPartMachine.this.getInventoryPageWidth();
-        }
-
-        @Override
-        public int getPageHeight() {
-            return DualHatchPartMachine.this.getInventoryPageHeight();
-        }
-
-        @Override
-        public void attachSideTabs(TabsWidget tabs) {
-            tabs.attachSubTab(directionalPage);
-        }
-
-        @Override
-        public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
-            DualHatchPartMachine.this.attachConfigurators(configuratorPanel, holder);
-        }
-
-        @Override
-        public void attachTooltips(TooltipsPanel tooltipsPanel) {
-            DualHatchPartMachine.this.attachTooltips(tooltipsPanel);
-        }
-
-        @Override
-        public List<Component> getTabTooltips() {
-            return List.of(Component.translatable(getDefinition().getDescriptionId()));
-        }
-
-        @Override
-        @Nullable
-        public IFancyUIProvider.PageGroupingData getPageGroupingData() {
-            return createPageGroupingData();
-        }
-    }
 }

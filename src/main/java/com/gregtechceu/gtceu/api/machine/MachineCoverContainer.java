@@ -14,7 +14,6 @@ import com.gregtechceu.gtceu.api.sync_system.SyncDataHolder;
 import com.gregtechceu.gtceu.api.sync_system.annotations.RerenderOnChanged;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
-import com.gregtechceu.gtceu.api.sync_system.managed.ISyncManaged;
 import com.gregtechceu.gtceu.api.transfer.fluid.IFluidHandlerModifiable;
 import com.gregtechceu.gtceu.utils.GTUtil;
 
@@ -34,7 +33,7 @@ import java.util.ArrayList;
 import java.util.Set;
 
 public class MachineCoverContainer extends MachineTrait
-                                   implements IFrontFacingTrait, IRenderingTrait, ICoverable, ISyncManaged {
+                                   implements IFrontFacingTrait, IRenderingTrait, ICoverable {
 
     public static final MachineTraitType<MachineCoverContainer> TYPE = new MachineTraitType<>(
             MachineCoverContainer.class);

@@ -10,22 +10,14 @@ import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
-import com.gregtechceu.gtceu.api.gui.fancy.IFancyTooltip;
-import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
-import com.gregtechceu.gtceu.api.gui.fancy.TabsWidget;
-import com.gregtechceu.gtceu.api.gui.fancy.TooltipsPanel;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CombinedDirectionalFancyConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
 import com.gregtechceu.gtceu.api.transfer.item.CustomItemStackHandler;
-import com.gregtechceu.gtceu.common.data.machines.GTAEMachines;
 import com.gregtechceu.gtceu.integration.ae2.utils.KeyStorage;
 
-import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
@@ -36,7 +28,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.elements.VirtualScrollerView;
 import com.lowdragmc.lowdraglib2.integration.xei.IngredientIO;
 
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 
 import appeng.api.config.Actionable;
@@ -50,8 +41,7 @@ import java.util.List;
 /**
  * The Output Bus that can directly send its contents to ME storage network.
  */
-public class MEOutputBusPartMachine extends MEBusPartMachine
-                                    implements FancyPartUIProvider {
+public class MEOutputBusPartMachine extends MEBusPartMachine {
 
     private static final int PAGE_WIDTH = 170;
     private static final int PAGE_HEIGHT = 74;
@@ -114,53 +104,9 @@ public class MEOutputBusPartMachine extends MEBusPartMachine
 
     ///////////////////////////////
 
-    @Override
-    public boolean canCreateUI(Player player, MachineUIHolder holder) {
-        return holder.getMachine() == this &&
-                holder.getMachineDefinitionId().equals(GTAEMachines.ITEM_EXPORT_BUS_ME.getId()) &&
-                getDefinition() == GTAEMachines.ITEM_EXPORT_BUS_ME;
-    }
-
-    @Override
-    public UI createUI(Player player, MachineUIHolder holder) {
-        IFancyUIProvider page = createPage(player, holder);
-        return UI.of(new FancyMachineUIWidget(page, player.getInventory(), holder,
-                page.getPageWidth(), page.getPageHeight()));
-    }
-
     /**
      * Creates one opening-scoped page after validating the exact item output bus holder and definition.
      */
-    IFancyUIProvider createPage(Player player, MachineUIHolder holder) {
-        return new MEItemOutputBusFancyPage(player, holder);
-    }
-
-    @Override
-    public IFancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
-        return createPage(player, holder);
-    }
-
-    private UIElement createMainElement() {
-        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
-        root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
-
-        GTLabelElement status = new GTLabelElement(5, 0, 160, 10, networkStatus()) {
-
-            @Override
-            public void screenTick() {
-                setValue(MEOutputBusPartMachine.this.networkStatus());
-                super.screenTick();
-            }
-        };
-        status.setId("me_network_status");
-        root.addChild(status);
-        GTLabelElement title = new GTLabelElement(5, 10, 160, 10,
-                Component.translatable("gtpm.gui.waiting_list"));
-        title.setId("me_output_waiting_list_label");
-        root.addChild(title);
-        root.addChild(createWaitingList());
-        return root;
-    }
 
     private UIElement createWaitingList() {
         var view = new VirtualScrollerView<KeyStorage.Entry>() {
@@ -300,72 +246,44 @@ public class MEOutputBusPartMachine extends MEBusPartMachine
     /**
      * One opening-scoped Fancy page shared by standalone and contextual part navigation.
      */
-    private final class MEItemOutputBusFancyPage implements IFancyUIProvider {
 
-        private final Player player;
-        private final MachineUIHolder holder;
-        private final CombinedDirectionalFancyConfigurator directionalPage;
+    @Override
+    public UIElement createUIWidget(FancyMachineUIWidget shell) {
+        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
+        root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
 
-        private MEItemOutputBusFancyPage(Player player, MachineUIHolder holder) {
-            this.player = player;
-            this.holder = holder;
-            directionalPage = new CombinedDirectionalFancyConfigurator(MEOutputBusPartMachine.this, player, holder);
-        }
+        GTLabelElement status = new GTLabelElement(5, 0, 160, 10, networkStatus()) {
 
-        @Override
-        public UIElement createUIWidget(FancyMachineUIWidget shell) {
-            return createMainElement();
-        }
-
-        @Override
-        public IGuiTexture getTabIcon() {
-            return GuiTextures.itemStack(getDefinition().getItem());
-        }
-
-        @Override
-        public Component getTitle() {
-            return Component.translatable(getDefinition().getDescriptionId());
-        }
-
-        @Override
-        public int getPageWidth() {
-            return PAGE_WIDTH;
-        }
-
-        @Override
-        public int getPageHeight() {
-            return PAGE_HEIGHT;
-        }
-
-        @Override
-        public void attachSideTabs(TabsWidget tabs) {
-            tabs.attachSubTab(directionalPage);
-        }
-
-        @Override
-        public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
-            configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
-                    MEOutputBusPartMachine.this, holder));
-        }
-
-        @Override
-        public void attachTooltips(TooltipsPanel tooltipsPanel) {
-            tooltipsPanel.attachTooltips(MEOutputBusPartMachine.this);
-            for (var trait : getTraitHolder().getAllTraits()) {
-                if (trait instanceof IFancyTooltip tooltip) {
-                    tooltipsPanel.attachTooltips(tooltip);
-                }
+            @Override
+            public void screenTick() {
+                setValue(MEOutputBusPartMachine.this.networkStatus());
+                super.screenTick();
             }
-        }
+        };
+        status.setId("me_network_status");
+        root.addChild(status);
+        GTLabelElement title = new GTLabelElement(5, 10, 160, 10,
+                Component.translatable("gtpm.gui.waiting_list"));
+        title.setId("me_output_waiting_list_label");
+        root.addChild(title);
+        root.addChild(createWaitingList());
+        return root;
+    }
 
-        @Override
-        public List<Component> getTabTooltips() {
-            return List.of(Component.translatable(getDefinition().getDescriptionId()));
-        }
+    @Override
+    public int getPageWidth() {
+        return PAGE_WIDTH;
+    }
 
-        @Override
-        public PageGroupingData getPageGroupingData() {
-            return new PageGroupingData("gtpm.multiblock.page_switcher.io.export", 2);
-        }
+    @Override
+    public int getPageHeight() {
+        return PAGE_HEIGHT;
+    }
+
+    @Override
+    public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
+        MachineUIHolder holder = configuratorPanel.getHolder();
+        configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
+                MEOutputBusPartMachine.this, holder));
     }
 }
