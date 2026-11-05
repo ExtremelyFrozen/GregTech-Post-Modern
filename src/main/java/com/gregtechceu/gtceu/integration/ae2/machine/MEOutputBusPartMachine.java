@@ -7,7 +7,6 @@ import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTImageElement;
 import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
@@ -282,8 +281,7 @@ public class MEOutputBusPartMachine extends MEBusPartMachine {
 
     @Override
     public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
-        MachineUIHolder holder = configuratorPanel.getHolder();
         configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
-                MEOutputBusPartMachine.this, holder));
+                MEOutputBusPartMachine.this));
     }
 }

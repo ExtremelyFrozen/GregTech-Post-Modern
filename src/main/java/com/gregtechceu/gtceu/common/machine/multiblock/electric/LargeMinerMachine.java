@@ -16,7 +16,6 @@ import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
-import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
 import com.gregtechceu.gtceu.api.machine.ConditionalSubscriptionHandler;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.VoidingModeConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
@@ -54,7 +53,6 @@ import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMaps;
-import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import lombok.AccessLevel;
 import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
@@ -432,25 +430,9 @@ public class LargeMinerMachine extends WorkableElectricMultiblockMachine
     }
 
     @Override
-    public int getPageWidth() {
-        return PAGE_WIDTH;
-    }
-
-    @Override
-    public int getPageHeight() {
-        return PAGE_HEIGHT;
-    }
-
-    @Override
     public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
-        MachineUIHolder holder = configuratorPanel.getHolder();
         VoidingModeConfigurator.attachConfigurators(configuratorPanel, LargeMinerMachine.this);
         configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
-                LargeMinerMachine.this, holder));
-    }
-
-    @Override
-    public List<IFancyUIProvider> getSubTabs() {
-        return new ObjectArrayList<>(getParts());
+                LargeMinerMachine.this));
     }
 }

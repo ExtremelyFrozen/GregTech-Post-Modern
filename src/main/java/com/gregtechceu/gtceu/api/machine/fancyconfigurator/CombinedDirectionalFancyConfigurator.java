@@ -9,14 +9,12 @@ import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTToggleButtonElement;
 import com.gregtechceu.gtceu.api.gui.factory.CoverUIHelper;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.MachineCoverContainer;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.api.machine.feature.DirectionalAutoOutputMachine;
-import com.gregtechceu.gtceu.api.sync_system.managed.ISyncManaged;
 import com.gregtechceu.gtceu.client.gui.fancy.DirectionalSceneFactory;
 import com.gregtechceu.gtceu.common.machine.trait.AutoOutputTrait;
 import com.gregtechceu.gtceu.data.lang.LangHandler;
@@ -37,16 +35,9 @@ import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.List;
-import java.util.function.BiConsumer;
-import java.util.function.BooleanSupplier;
-import java.util.function.Consumer;
 
 /**
- * LDLib2 Fancy side page that composes directional machine controls around one shared scene.
- *
- * <p>
- * The provider owns its page-specific machine holder so direct machine pages and future nested part pages cannot
- * accidentally send actions through the Fancy shell's root holder.
+ * Fancy side page that composes directional machine controls around one shared scene.
  */
 public final class CombinedDirectionalFancyConfigurator implements IFancyUIProvider {
 
@@ -88,10 +79,6 @@ public final class CombinedDirectionalFancyConfigurator implements IFancyUIProvi
     private final MachineCoverContainer coverContainer;
     @Nullable
     private final DirectionalAutoOutputMachine output;
-    private final MachineUIHolder pageHolder;
-    private final BiConsumer<MachineUIHolder, Consumer<ISyncManaged>> actionSender;
-    private final BooleanSupplier openingValid;
-    private final CoverActionRequests coverActionRequests;
 
     @Nullable
     private Direction selectedSide;
@@ -102,79 +89,11 @@ public final class CombinedDirectionalFancyConfigurator implements IFancyUIProvi
         AUTO,
     }
 
-    /**
-     * Creates the three allowlisted cover commands rendered by a directional page.
-     */
-    public interface CoverActionRequests {
-
-        /** Creates a request to place or replace a cover on the selected side. */
-        Consumer<ISyncManaged> createPlaceCoverAction(Direction side);
-
-        /** Creates a request to remove the cover on the selected side. */
-        Consumer<ISyncManaged> createRemoveCoverAction(Direction side);
-
-        /** Creates a request to open the cover UI on the selected side. */
-        Consumer<ISyncManaged> createOpenCoverAction(Direction side);
-    }
-
-    private static final CoverActionRequests DIRECT_COVER_ACTIONS = new CoverActionRequests() {
-
-        @Override
-        public Consumer<ISyncManaged> createPlaceCoverAction(Direction side) {
-            return managed -> ((MetaMachine) managed).getCoverContainer().rpcToServer("placeDirectionalCover", side);
-        }
-
-        @Override
-        public Consumer<ISyncManaged> createRemoveCoverAction(Direction side) {
-            return managed -> ((MetaMachine) managed).getCoverContainer().rpcToServer("removeDirectionalCover", side);
-        }
-
-        @Override
-        public Consumer<ISyncManaged> createOpenCoverAction(Direction side) {
-            return managed -> ((MetaMachine) managed).getCoverContainer().rpcToServer("openDirectionalCover", side);
-        }
-    };
-
-    /**
-     * Creates a cover-capable directional page and discovers optional auto-output controls from the machine.
-     *
-     * @param machine    machine rendered and configured by this page
-     * @param player     player whose cursor and cover permissions drive the page controls
-     * @param pageHolder stable holder used for every machine action sent by the page
-     */
-    public CombinedDirectionalFancyConfigurator(MetaMachine machine, Player player, MachineUIHolder pageHolder) {
-        this(machine, player, pageHolder, (target, action) -> action.accept(target.getMachine()),
-                () -> pageHolder.getMachine() == machine, DIRECT_COVER_ACTIONS);
-    }
-
-    CombinedDirectionalFancyConfigurator(MetaMachine machine, Player player, MachineUIHolder pageHolder,
-                                         BiConsumer<MachineUIHolder, Consumer<ISyncManaged>> actionSender) {
-        this(machine, player, pageHolder, actionSender,
-                () -> pageHolder.getMachine() == machine, DIRECT_COVER_ACTIONS);
-    }
-
-    /**
-     * Creates a directional page whose holder validity and cover actions belong to a caller-owned opening.
-     */
-    public CombinedDirectionalFancyConfigurator(MetaMachine machine, Player player, MachineUIHolder pageHolder,
-                                                BiConsumer<MachineUIHolder, Consumer<ISyncManaged>> actionSender,
-                                                BooleanSupplier openingValid,
-                                                CoverActionRequests coverActionRequests) {
-        requireValidOpening(openingValid);
+    public CombinedDirectionalFancyConfigurator(MetaMachine machine, Player player) {
         this.machine = machine;
         this.player = player;
         this.coverContainer = machine.getCoverContainer();
         this.output = findDirectionalOutput(machine);
-        this.pageHolder = pageHolder;
-        this.actionSender = actionSender;
-        this.openingValid = openingValid;
-        this.coverActionRequests = coverActionRequests;
-    }
-
-    private static void requireValidOpening(BooleanSupplier openingValid) {
-        if (!openingValid.getAsBoolean()) {
-            throw new IllegalArgumentException("Directional page requires a valid configured-machine opening.");
-        }
     }
 
     private static @Nullable DirectionalAutoOutputMachine findDirectionalOutput(MetaMachine machine) {
@@ -188,10 +107,6 @@ public final class CombinedDirectionalFancyConfigurator implements IFancyUIProvi
 
     @Override
     public UIElement createUIWidget(FancyMachineUIWidget shell) {
-        if (!openingValid.getAsBoolean()) {
-            throw new IllegalStateException("Directional page no longer resolves its opened machine context.");
-        }
-
         UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
 
@@ -265,7 +180,6 @@ public final class CombinedDirectionalFancyConfigurator implements IFancyUIProvi
         if (side == null || !supportsItemOutput() || !canChangeSyncedFields()) {
             return false;
         }
-        DirectionalAutoOutputMachine output = requireOutput();
         if (output.getItemOutputDirection() == side) {
             output.setAllowAutoOutputItems(!output.isAutoOutputItems());
         } else {
@@ -284,7 +198,6 @@ public final class CombinedDirectionalFancyConfigurator implements IFancyUIProvi
         if (side == null || !supportsFluidOutput() || !canChangeSyncedFields()) {
             return false;
         }
-        DirectionalAutoOutputMachine output = requireOutput();
         if (output.getFluidOutputDirection() == side) {
             output.setAllowAutoOutputFluids(!output.isAutoOutputFluids());
         } else {
@@ -300,20 +213,19 @@ public final class CombinedDirectionalFancyConfigurator implements IFancyUIProvi
 
     void setAllowItemInputFromOutputSide(boolean allow) {
         if (canChangeSyncedFields()) {
-            requireOutput().setAllowItemInputFromOutputSide(allow);
+            output.setAllowItemInputFromOutputSide(allow);
             machine.sendServerSyncChanges();
         }
     }
 
     void setAllowFluidInputFromOutputSide(boolean allow) {
         if (canChangeSyncedFields()) {
-            requireOutput().setAllowFluidInputFromOutputSide(allow);
+            output.setAllowFluidInputFromOutputSide(allow);
             machine.sendServerSyncChanges();
         }
     }
 
     OutputMode getItemOutputMode() {
-        DirectionalAutoOutputMachine output = this.output;
         Direction side = selectedSide;
         if (output == null || side == null || output.getItemOutputDirection() != side) {
             return OutputMode.OFF;
@@ -322,7 +234,6 @@ public final class CombinedDirectionalFancyConfigurator implements IFancyUIProvi
     }
 
     OutputMode getFluidOutputMode() {
-        DirectionalAutoOutputMachine output = this.output;
         Direction side = selectedSide;
         if (output == null || side == null || output.getFluidOutputDirection() != side) {
             return OutputMode.OFF;
@@ -331,7 +242,6 @@ public final class CombinedDirectionalFancyConfigurator implements IFancyUIProvi
     }
 
     private UIElement createItemControls() {
-        DirectionalAutoOutputMachine output = requireOutput();
         UIElement controls = UITemplate.setBounds(new UIElement(), 6,
                 PAGE_HEIGHT - SCENE_MARGIN - CONTROL_SIZE, CONTROL_GROUP_WIDTH, CONTROL_SIZE);
         controls.addChild(new ItemOutputModeButton());
@@ -344,7 +254,6 @@ public final class CombinedDirectionalFancyConfigurator implements IFancyUIProvi
     }
 
     private UIElement createFluidControls() {
-        DirectionalAutoOutputMachine output = requireOutput();
         int y = PAGE_HEIGHT - SCENE_MARGIN - CONTROL_SIZE;
         if (output.supportsAutoOutputItems()) {
             y -= CONTROL_SIZE + CONTROL_ROW_GAP;
@@ -372,32 +281,16 @@ public final class CombinedDirectionalFancyConfigurator implements IFancyUIProvi
         return controls;
     }
 
-    private void sendAction(Consumer<ISyncManaged> action) {
-        if (openingValid.getAsBoolean()) {
-            actionSender.accept(pageHolder, action);
-        }
-    }
-
     private boolean canChangeSyncedFields() {
-        return machine.isRemote() && openingValid.getAsBoolean();
+        return machine.isRemote();
     }
 
     private boolean supportsItemOutput() {
-        DirectionalAutoOutputMachine output = this.output;
         return output != null && output.supportsAutoOutputItems();
     }
 
     private boolean supportsFluidOutput() {
-        DirectionalAutoOutputMachine output = this.output;
         return output != null && output.supportsAutoOutputFluids();
-    }
-
-    private DirectionalAutoOutputMachine requireOutput() {
-        DirectionalAutoOutputMachine output = this.output;
-        if (output == null) {
-            throw new IllegalStateException("Cover-only directional page has no auto-output controls.");
-        }
-        return output;
     }
 
     private @Nullable CoverBehavior getSelectedCover() {
@@ -406,7 +299,6 @@ public final class CombinedDirectionalFancyConfigurator implements IFancyUIProvi
     }
 
     private List<Component> getItemModeTooltips() {
-        DirectionalAutoOutputMachine output = requireOutput();
         Direction side = selectedSide;
         if (side == null) {
             return List.copyOf(LangHandler.getMultiLang("gtpm.gui.item_auto_output.unselected"));
@@ -427,7 +319,6 @@ public final class CombinedDirectionalFancyConfigurator implements IFancyUIProvi
     }
 
     private List<Component> getFluidModeTooltips() {
-        DirectionalAutoOutputMachine output = requireOutput();
         Direction side = selectedSide;
         if (side == null) {
             return List.copyOf(LangHandler.getMultiLang("gtpm.gui.fluid_auto_output.unselected"));
@@ -509,7 +400,6 @@ public final class CombinedDirectionalFancyConfigurator implements IFancyUIProvi
         }
 
         private void refreshVisibility() {
-            DirectionalAutoOutputMachine output = requireOutput();
             setVisible(output.isAutoOutputItems() && output.getItemOutputDirection() != null);
         }
     }
@@ -533,7 +423,6 @@ public final class CombinedDirectionalFancyConfigurator implements IFancyUIProvi
         }
 
         private void refreshVisibility() {
-            DirectionalAutoOutputMachine output = requireOutput();
             setVisible(output.isAutoOutputFluids() && output.getFluidOutputDirection() != null);
         }
     }
@@ -555,7 +444,7 @@ public final class CombinedDirectionalFancyConfigurator implements IFancyUIProvi
 
         private void refreshState() {
             CoverBehavior cover = getSelectedCover();
-            boolean configurable = openingValid.getAsBoolean() && cover != null &&
+            boolean configurable = cover != null &&
                     CoverUIHelper.canOpen(cover, player);
             setVisible(configurable);
             setActive(configurable);
@@ -580,7 +469,7 @@ public final class CombinedDirectionalFancyConfigurator implements IFancyUIProvi
 
         private void refreshState() {
             Direction side = selectedSide;
-            boolean active = openingValid.getAsBoolean() && side != null;
+            boolean active = side != null;
             setVisible(active);
             setActive(active);
             CoverBehavior cover = getSelectedCover();
@@ -608,10 +497,8 @@ public final class CombinedDirectionalFancyConfigurator implements IFancyUIProvi
                 event.button != GLFW.GLFW_MOUSE_BUTTON_RIGHT)) {
             return;
         }
-        Consumer<ISyncManaged> action = player.containerMenu.getCarried().isEmpty() && getSelectedCover() != null ?
-                coverActionRequests.createRemoveCoverAction(side) :
-                coverActionRequests.createPlaceCoverAction(side);
-        sendAction(action);
+        coverContainer.rpcToServer(player.containerMenu.getCarried().isEmpty() && getSelectedCover() != null ?
+                "removeDirectionalCover" : "placeDirectionalCover", side);
         event.stopImmediatePropagation();
         event.hasHandler = true;
     }
@@ -622,7 +509,7 @@ public final class CombinedDirectionalFancyConfigurator implements IFancyUIProvi
         if (side == null || cover == null || !CoverUIHelper.canOpen(cover, player)) {
             return;
         }
-        sendAction(coverActionRequests.createOpenCoverAction(side));
+        coverContainer.rpcToServer("openDirectionalCover", side);
         event.stopImmediatePropagation();
         event.hasHandler = true;
     }

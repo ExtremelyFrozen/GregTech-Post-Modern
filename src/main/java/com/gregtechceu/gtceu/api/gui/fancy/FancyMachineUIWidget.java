@@ -115,7 +115,7 @@ public class FancyMachineUIWidget extends UIElement {
      */
     public MachineUIHolder getHolder(MetaMachine machine) {
         return machine == holder.getMachine() ? holder :
-                machineHolders.computeIfAbsent(machine, key -> new MachineUIHolderContext(openingPlayer, key));
+                machineHolders.computeIfAbsent(machine, key -> new MachineUIHolderContext(key));
     }
 
     public FancyMachineUIWidget setBorder(int border) {

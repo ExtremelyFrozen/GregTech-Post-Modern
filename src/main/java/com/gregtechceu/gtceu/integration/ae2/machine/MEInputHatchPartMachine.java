@@ -22,7 +22,6 @@ import com.gregtechceu.gtceu.api.machine.trait.NotifiableFluidTank;
 import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
 import com.gregtechceu.gtceu.common.data.GTDataComponents;
 import com.gregtechceu.gtceu.common.data.datacomponents.AEInputConfigCopyData;
-import com.gregtechceu.gtceu.common.data.machines.GTAEMachines;
 import com.gregtechceu.gtceu.common.item.behavior.IntCircuitBehaviour;
 import com.gregtechceu.gtceu.core.mixins.FluidStackAccessor;
 import com.gregtechceu.gtceu.integration.ae2.gui.fancy.MEFluidAutoPullConfigurator;
@@ -587,10 +586,10 @@ public class MEInputHatchPartMachine extends MEHatchPartMachine
     public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
         MachineUIHolder holder = configuratorPanel.getHolder();
         configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
-                MEInputHatchPartMachine.this, holder));
+                MEInputHatchPartMachine.this));
         if (isCircuitSlotEnabled()) {
             configuratorPanel.attachConfigurators(new CircuitFancyConfigurator(
-                    MEInputHatchPartMachine.this, holder));
+                    MEInputHatchPartMachine.this));
         }
         if (MEInputHatchPartMachine.this instanceof MEStockingHatchPartMachine stockingHatch) {
             configuratorPanel.attachConfigurators(
@@ -602,6 +601,6 @@ public class MEInputHatchPartMachine extends MEHatchPartMachine
     @Override
     public void attachSideTabs(TabsWidget tabs) {
         if (!isMEFluidStocking()) tabs.attachCachedSubTab(GTCEu.id("directional"),
-                () -> new CombinedDirectionalFancyConfigurator(this, tabs.getPlayer(), tabs.getHolder()));
+                () -> new CombinedDirectionalFancyConfigurator(this, tabs.getPlayer()));
     }
 }

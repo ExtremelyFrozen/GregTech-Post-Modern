@@ -140,11 +140,11 @@ public class SimpleTieredMachine extends WorkableTieredMachine
     @Override
     public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
         configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
-                this, configuratorPanel.getHolder()));
+                this));
         AutoOutputConfigurator.attachConfigurators(configuratorPanel, autoOutput);
         if (isCircuitSlotEnabled()) {
             configuratorPanel.attachConfigurators(new CircuitFancyConfigurator(
-                    this, configuratorPanel.getHolder()));
+                    this));
         }
     }
 

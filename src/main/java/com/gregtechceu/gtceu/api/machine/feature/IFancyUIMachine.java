@@ -120,7 +120,7 @@ public interface IFancyUIMachine extends IUIMachine, IFancyUIProvider {
                     () -> new MachineModeFancyConfigurator(recipeLogicMachine));
         }
         tabs.attachCachedSubTab(GTCEu.id("directional"),
-                () -> new CombinedDirectionalFancyConfigurator(self(), tabs.getPlayer(), tabs.getHolder()));
+                () -> new CombinedDirectionalFancyConfigurator(self(), tabs.getPlayer()));
     }
 
     /**
@@ -135,16 +135,14 @@ public interface IFancyUIMachine extends IUIMachine, IFancyUIProvider {
             BatchModeConfigurator.attachConfigurators(configuratorPanel, batchModeMachine);
         }
         if (this instanceof IControllable controllable) {
-            configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(controllable,
-                    configuratorPanel.getHolder()));
+            configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(controllable));
         }
         AutoOutputTrait autoOutputTrait = self().getTrait(AutoOutputTrait.TYPE);
         if (autoOutputTrait != null) {
             AutoOutputConfigurator.attachConfigurators(configuratorPanel, autoOutputTrait);
         }
         if (this instanceof IHasCircuitSlot circuitHolder && circuitHolder.isCircuitSlotEnabled()) {
-            configuratorPanel.attachConfigurators(new CircuitFancyConfigurator(circuitHolder,
-                    configuratorPanel.getHolder()));
+            configuratorPanel.attachConfigurators(new CircuitFancyConfigurator(circuitHolder));
         }
         if (this instanceof DistinctPart distinctPart) {
             DistinctPartConfigurator.attachConfigurators(configuratorPanel, distinctPart);

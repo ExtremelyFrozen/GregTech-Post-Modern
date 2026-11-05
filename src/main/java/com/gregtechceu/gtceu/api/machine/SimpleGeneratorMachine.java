@@ -125,7 +125,7 @@ public class SimpleGeneratorMachine extends WorkableTieredMachine
     @Override
     public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
         configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
-                this, configuratorPanel.getHolder()));
+                this));
     }
 
     @SuppressWarnings("UnstableApiUsage")

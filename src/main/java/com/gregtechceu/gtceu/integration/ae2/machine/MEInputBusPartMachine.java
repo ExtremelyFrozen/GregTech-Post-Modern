@@ -610,11 +610,11 @@ public class MEInputBusPartMachine extends MEBusPartMachine
     public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
         MachineUIHolder holder = configuratorPanel.getHolder();
         configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
-                MEInputBusPartMachine.this, holder));
+                MEInputBusPartMachine.this));
         DistinctPartConfigurator.attachConfigurators(configuratorPanel, MEInputBusPartMachine.this);
         if (isHasCircuitSlot() && isCircuitSlotEnabled()) {
             configuratorPanel.attachConfigurators(new CircuitFancyConfigurator(
-                    MEInputBusPartMachine.this, holder));
+                    MEInputBusPartMachine.this));
         }
         if (MEInputBusPartMachine.this instanceof MEStockingBusPartMachine stockingBus) {
             configuratorPanel.attachConfigurators(
@@ -626,6 +626,6 @@ public class MEInputBusPartMachine extends MEBusPartMachine
     @Override
     public void attachSideTabs(TabsWidget tabs) {
         if (!isMEItemStocking()) tabs.attachCachedSubTab(GTCEu.id("directional"),
-                () -> new CombinedDirectionalFancyConfigurator(this, tabs.getPlayer(), tabs.getHolder()));
+                () -> new CombinedDirectionalFancyConfigurator(this, tabs.getPlayer()));
     }
 }

@@ -695,7 +695,7 @@ public class MEPatternBufferPartMachine extends MEBusPartMachine
     @Override
     public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
         Player player = configuratorPanel.getPlayer();
-        MachineUIHolder holder = configuratorPanel.getHolder();
+
         configuratorPanel.attachConfigurators(new ButtonConfigurator(
                 GuiTextures.group(GuiTextures.BUTTON, GuiTextures.REFUND_OVERLAY), event -> {
                     if (player.level().isClientSide()) {
@@ -704,10 +704,10 @@ public class MEPatternBufferPartMachine extends MEBusPartMachine
                 }).setTooltips(List.of(Component.translatable("gui.gtpm.refund_all.desc"))));
         if (isHasCircuitSlot() && isCircuitSlotEnabled()) {
             configuratorPanel.attachConfigurators(new CircuitFancyConfigurator(
-                    MEPatternBufferPartMachine.this, holder));
+                    MEPatternBufferPartMachine.this));
         }
         configuratorPanel.attachConfigurators(new FancyInvConfigurator(
-                shareInventory.storage, Component.translatable("gui.gtpm.share_inventory.title"), () -> true)
+                shareInventory.storage, Component.translatable("gui.gtpm.share_inventory.title"))
                 .setTooltips(List.of(
                         Component.translatable("gui.gtpm.share_inventory.desc.0"),
                         Component.translatable("gui.gtpm.share_inventory.desc.1"))));

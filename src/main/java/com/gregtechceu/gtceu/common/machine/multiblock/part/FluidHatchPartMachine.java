@@ -9,7 +9,6 @@ import com.gregtechceu.gtceu.api.gui.element.GTImageElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTPhantomFluidSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTToggleButtonElement;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
 import com.gregtechceu.gtceu.api.machine.MachineDefinition;
@@ -23,7 +22,6 @@ import com.gregtechceu.gtceu.api.machine.trait.NotifiableFluidTank;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
-import com.gregtechceu.gtceu.api.sync_system.managed.ISyncManaged;
 import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
 import com.gregtechceu.gtceu.api.sync_system.rpc.RPCSender;
 import com.gregtechceu.gtceu.common.data.GTMachines;
@@ -37,7 +35,6 @@ import com.gregtechceu.gtceu.utils.ISubscription;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
-import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 
 import net.minecraft.MethodsReturnNonnullByDefault;
@@ -66,11 +63,6 @@ import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.Optional;
-import java.util.function.BiConsumer;
-import java.util.function.BooleanSupplier;
-import java.util.function.Consumer;
-import java.util.function.Predicate;
-import java.util.function.Supplier;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 
@@ -313,16 +305,6 @@ public class FluidHatchPartMachine extends TieredIOPartMachine
         return slots == 8 ? 2 : (int) Math.sqrt(slots);
     }
 
-    UIElement createMainElement(Player player, MachineUIHolder holder,
-                                BiConsumer<MachineUIHolder, Consumer<ISyncManaged>> actionSender,
-                                BooleanSupplier canSendAction, Predicate<UIEvent> shiftDown) {
-        if (slots == 1) {
-            return createSingleSlotElement(player, holder, actionSender, canSendAction, shiftDown,
-                    () -> getSelectedLockedFluid(player));
-        }
-        return createMultiSlotElement(player, holder, actionSender, canSendAction, shiftDown);
-    }
-
     private static Optional<FluidStack> getSelectedLockedFluid(Player player) {
         ItemStack carried = player.containerMenu.getCarried();
         if (carried.isEmpty()) {
@@ -336,23 +318,20 @@ public class FluidHatchPartMachine extends TieredIOPartMachine
                 .orElse(FluidStack.EMPTY));
     }
 
-    private UIElement createSingleSlotElement(
-                                              Player player, MachineUIHolder holder,
-                                              BiConsumer<MachineUIHolder, Consumer<ISyncManaged>> actionSender,
-                                              BooleanSupplier canSendAction, Predicate<UIEvent> shiftDown,
-                                              Supplier<Optional<FluidStack>> selectedLockedFluid) {
+    private UIElement createSingleSlotGUI(Player player) {
         UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, 89, 63);
         UITemplate.setBackgroundTexture(root, GuiTextures.BACKGROUND_INVERSE);
         root.addChild(new GTImageElement(4, 4, 81, 55, GuiTextures.DISPLAY));
 
-        GTFluidSlotElement fluidSlot = createFluidSlot(player, holder, 0, 67, 22,
-                actionSender, canSendAction, shiftDown);
+        GTFluidSlotElement fluidSlot = createFluidSlot(player, 0, 67, 22);
         root.addChild(fluidSlot);
         if (supportsFluidHatchLocking()) {
-            root.addChild(createLockedFluidSlot(holder, actionSender, canSendAction, selectedLockedFluid));
+            root.addChild(createLockedFluidSlot(player));
             root.addChild(new GTToggleButtonElement(7, 40, 18, 18,
                     GuiTextures.BUTTON_LOCK, tank::isLocked,
-                    locked -> sendSetLockedAction(holder, actionSender, canSendAction, locked))
+                    locked -> {
+                        if (isRemote()) rpcToServer("setFluidHatchLocked", locked);
+                    })
                     .setTooltipText("gtpm.gui.fluid_lock.tooltip")
                     .setShouldUseBaseBackground());
         }
@@ -415,17 +394,12 @@ public class FluidHatchPartMachine extends TieredIOPartMachine
         return (fluid.isEmpty() ? tank.getLockedFluid().getFluid() : fluid).getHoverName();
     }
 
-    private GTPhantomFluidSlotElement createLockedFluidSlot(
-                                                            MachineUIHolder holder,
-                                                            BiConsumer<MachineUIHolder, Consumer<ISyncManaged>> actionSender,
-                                                            BooleanSupplier canSendAction,
-                                                            Supplier<Optional<FluidStack>> selectedLockedFluid) {
+    private GTPhantomFluidSlotElement createLockedFluidSlot(Player player) {
         GTPhantomFluidSlotElement slot = new GTPhantomFluidSlotElement(
                 () -> tank.getLockedFluid().getFluid(),
                 fluid -> {
-                    if (canSendAction.getAsBoolean()) {
-                        actionSender.accept(holder,
-                                createSetLockedFluidAction(fluid));
+                    if (isRemote()) {
+                        rpcToServer("setFluidHatchLockedFluid", fluid);
                     }
                 },
                 () -> 1) {
@@ -441,12 +415,11 @@ public class FluidHatchPartMachine extends TieredIOPartMachine
         slot.setShowAmount(false);
         UITemplate.setBounds(slot, 67, 40, 18, 18);
         slot.addEventListener(UIEvents.MOUSE_DOWN, event -> {
-            if (canSendAction.getAsBoolean() &&
+            if (isRemote() &&
                     (event.button == GLFW.GLFW_MOUSE_BUTTON_LEFT ||
                             event.button == GLFW.GLFW_MOUSE_BUTTON_RIGHT)) {
-                selectedLockedFluid.get().ifPresent(fluid -> {
-                    actionSender.accept(holder,
-                            createSetLockedFluidAction(fluid));
+                getSelectedLockedFluid(player).ifPresent(fluid -> {
+                    rpcToServer("setFluidHatchLockedFluid", fluid);
                     event.stopImmediatePropagation();
                     event.hasHandler = true;
                 });
@@ -455,21 +428,7 @@ public class FluidHatchPartMachine extends TieredIOPartMachine
         return slot;
     }
 
-    private void sendSetLockedAction(
-                                     MachineUIHolder holder,
-                                     BiConsumer<MachineUIHolder, Consumer<ISyncManaged>> actionSender,
-                                     BooleanSupplier canSendAction, boolean locked) {
-        if (canSendAction.getAsBoolean()) {
-            actionSender.accept(holder,
-                    managed -> managed.rpcToServer("setFluidHatchLocked", locked));
-        }
-    }
-
-    private UIElement createMultiSlotElement(
-                                             Player player, MachineUIHolder holder,
-                                             BiConsumer<MachineUIHolder, Consumer<ISyncManaged>> actionSender,
-                                             BooleanSupplier canSendAction,
-                                             Predicate<UIEvent> shiftDown) {
+    private UIElement createMultiSlotGUI(Player player) {
         int rowSize = getTankRowSize();
         int columnSize = getTankColumnSize();
         UIElement root = UITemplate.setBounds(new UIElement(), 0, 0,
@@ -481,20 +440,15 @@ public class FluidHatchPartMachine extends TieredIOPartMachine
         int index = 0;
         for (int y = 0; y < columnSize; y++) {
             for (int x = 0; x < rowSize; x++) {
-                container.addChild(createFluidSlot(player, holder, index++,
-                        4 + x * 18, 4 + y * 18, actionSender, canSendAction, shiftDown));
+                container.addChild(createFluidSlot(player, index++,
+                        4 + x * 18, 4 + y * 18));
             }
         }
         root.addChild(container);
         return root;
     }
 
-    private GTFluidSlotElement createFluidSlot(
-                                               Player player, MachineUIHolder holder, int tankIndex, int x,
-                                               int y,
-                                               BiConsumer<MachineUIHolder, Consumer<ISyncManaged>> actionSender,
-                                               BooleanSupplier canSendAction,
-                                               Predicate<UIEvent> shiftDown) {
+    private GTFluidSlotElement createFluidSlot(Player player, int tankIndex, int x, int y) {
         GTFluidSlotElement fluidSlot = new GTFluidSlotElement()
                 .setFluidTank(tank.getStorages()[tankIndex], 0)
                 .setShowAmount(true)
@@ -503,10 +457,10 @@ public class FluidHatchPartMachine extends TieredIOPartMachine
                 .setIngredientIO(io.support(IO.IN) ? GTXEIHelper.input() : GTXEIHelper.output())
                 .setBackgroundTexture(GuiTextures.FLUID_SLOT);
         fluidSlot.addEventListener(UIEvents.MOUSE_DOWN, event -> {
-            if (event.button == GLFW.GLFW_MOUSE_BUTTON_LEFT && canSendAction.getAsBoolean() &&
+            if (event.button == GLFW.GLFW_MOUSE_BUTTON_LEFT && isRemote() &&
                     FluidUtil.getFluidHandler(player.containerMenu.getCarried()).isPresent()) {
-                boolean shifted = shiftDown.test(event);
-                actionSender.accept(holder, managed -> managed.rpcToServer("clickFluidHatchSlot", tankIndex, shifted));
+
+                rpcToServer("clickFluidHatchSlot", tankIndex, event.isShiftDown());
                 event.stopImmediatePropagation();
                 event.hasHandler = true;
             }
@@ -517,11 +471,6 @@ public class FluidHatchPartMachine extends TieredIOPartMachine
     @ApiStatus.Internal
     public boolean supportsFluidHatchLocking() {
         return slots == 1 && io.support(IO.OUT);
-    }
-
-    private static Consumer<ISyncManaged> createSetLockedFluidAction(FluidStack fluid) {
-        FluidStack lockedFluid = fluid.isEmpty() ? FluidStack.EMPTY : fluid.copyWithAmount(1);
-        return managed -> managed.rpcToServer("setFluidHatchLockedFluid", lockedFluid);
     }
 
     @RPCMethod
@@ -536,7 +485,6 @@ public class FluidHatchPartMachine extends TieredIOPartMachine
     @RPCMethod
     @ApiStatus.Internal
     public void setFluidHatchLockedFluid(FluidStack fluid) {
-        requireFluidHatchLocking();
         if (!tank.getFluidInTank(0).isEmpty()) {
             return;
         }
@@ -550,14 +498,7 @@ public class FluidHatchPartMachine extends TieredIOPartMachine
     @RPCMethod
     @ApiStatus.Internal
     public void setFluidHatchLocked(boolean locked) {
-        requireFluidHatchLocking();
         tank.setLocked(locked);
-    }
-
-    private void requireFluidHatchLocking() {
-        if (!supportsFluidHatchLocking()) {
-            throw new IllegalStateException("Fluid hatch does not expose locked-fluid controls.");
-        }
     }
 
     private record FluidClickTarget(IFluidHandler fluidTank, boolean allowClickFilled,
@@ -675,23 +616,18 @@ public class FluidHatchPartMachine extends TieredIOPartMachine
     }
 
     @Override
-    public UIElement createUIWidget(FancyMachineUIWidget shell) {
-        Player player = shell.getOpeningPlayer();
-        MachineUIHolder holder = shell.getHolder(this);
-
-        return createMainElement(player, holder, (target, action) -> action.accept(target.getMachine()),
-                () -> player.level().isClientSide() && holder.getMachine() == this,
-                UIEvent::isShiftDown);
+    public UIElement createUIWidget(FancyMachineUIWidget widget) {
+        return slots == 1 ? createSingleSlotGUI(widget.getOpeningPlayer()) :
+                createMultiSlotGUI(widget.getOpeningPlayer());
     }
 
     @Override
     public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
-        MachineUIHolder holder = configuratorPanel.getHolder();
         configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
-                FluidHatchPartMachine.this, holder));
+                FluidHatchPartMachine.this));
         if (isCircuitSlotEnabled() && io.support(IO.IN)) {
             configuratorPanel.attachConfigurators(new CircuitFancyConfigurator(
-                    FluidHatchPartMachine.this, holder));
+                    FluidHatchPartMachine.this));
         }
     }
 }

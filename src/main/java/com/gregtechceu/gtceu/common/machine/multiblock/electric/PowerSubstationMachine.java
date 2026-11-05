@@ -10,7 +10,6 @@ import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTComponentPanelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
@@ -487,7 +486,6 @@ public class PowerSubstationMachine extends WorkableMultiblockMachine
          * @return Amount filled into storage
          */
         public long fill(long amount) {
-            if (amount < 0) throw new IllegalArgumentException("Amount cannot be negative!");
             if (storage.length == 0) return 0;
 
             // ensure index
@@ -520,7 +518,6 @@ public class PowerSubstationMachine extends WorkableMultiblockMachine
          * @return Amount drained from storage
          */
         public long drain(long amount) {
-            if (amount < 0) throw new IllegalArgumentException("Amount cannot be negative!");
             if (storage.length == 0) return 0;
 
             // ensure index
@@ -635,8 +632,6 @@ public class PowerSubstationMachine extends WorkableMultiblockMachine
 
     @Override
     public UIElement createUIWidget(FancyMachineUIWidget shell) {
-        MachineUIHolder holder = shell.getHolder(this);
-
         UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
 
@@ -678,9 +673,8 @@ public class PowerSubstationMachine extends WorkableMultiblockMachine
 
     @Override
     public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
-        MachineUIHolder holder = configuratorPanel.getHolder();
         configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
-                PowerSubstationMachine.this, holder));
+                PowerSubstationMachine.this));
     }
 
     @Override

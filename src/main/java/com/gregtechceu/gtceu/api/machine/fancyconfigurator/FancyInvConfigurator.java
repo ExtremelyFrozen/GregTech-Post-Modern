@@ -14,30 +14,20 @@ import net.minecraft.network.chat.Component;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.function.BooleanSupplier;
 
 /**
- * LDLib2 Fancy configurator for displaying a small item inventory grid.
+ * Fancy configurator for displaying a small item inventory grid.
  */
 public class FancyInvConfigurator implements IFancyConfigurator {
 
     private final CustomItemStackHandler inventory;
     private final Component title;
-    private final BooleanSupplier openingValid;
+
     private List<Component> tooltips = Collections.emptyList();
 
     public FancyInvConfigurator(CustomItemStackHandler inventory, Component title) {
-        this(inventory, title, () -> true);
-    }
-
-    /**
-     * Creates an inventory configurator whose server slots reject interactions after its opening becomes stale.
-     */
-    public FancyInvConfigurator(CustomItemStackHandler inventory, Component title,
-                                BooleanSupplier openingValid) {
         this.inventory = inventory;
         this.title = title;
-        this.openingValid = openingValid;
     }
 
     @Override
@@ -87,8 +77,7 @@ public class FancyInvConfigurator implements IFancyConfigurator {
                 GTItemSlotElement slot = new GTItemSlotElement(inventory, index++);
                 UITemplate.setBounds(slot, 4 + x * 18, 4 + y * 18, 18, 18);
                 slot.setBackgroundTexture(GuiTextures.SLOT)
-                        .setCanPlace(stack -> openingValid.getAsBoolean())
-                        .setCanTake(player -> openingValid.getAsBoolean());
+                        .setCanPutItems(true).setCanTakeItems(true);
                 slot.setIngredientIO(GTXEIHelper.input());
                 container.addChild(slot);
             }

@@ -140,7 +140,7 @@ final class CentralMonitorElement extends UIElement implements IFancyUIProvider 
         this.actionSender = actionSender;
         this.groupIdentitySupplier = groupIdentitySupplier;
         requireOpeningMachine();
-        directionalPage = new CombinedDirectionalFancyConfigurator(machine, player, holder);
+        directionalPage = new CombinedDirectionalFancyConfigurator(machine, player);
         partPages = new ObjectArrayList<>(machine.getParts());
 
         UITemplate.setBounds(this, 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
@@ -275,7 +275,7 @@ final class CentralMonitorElement extends UIElement implements IFancyUIProvider 
     @Override
     public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
         VoidingModeConfigurator.attachConfigurators(configuratorPanel, machine);
-        configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(machine, holder));
+        configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(machine));
     }
 
     @Override

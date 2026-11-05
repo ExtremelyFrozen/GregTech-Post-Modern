@@ -9,11 +9,9 @@ import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTComponentPanelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyTooltip;
-import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
 import com.gregtechceu.gtceu.api.gui.fancy.TooltipsPanel;
 import com.gregtechceu.gtceu.api.machine.ConditionalSubscriptionHandler;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
@@ -47,7 +45,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
 import net.neoforged.neoforge.fluids.FluidStack;
 
-import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import lombok.AccessLevel;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
@@ -334,8 +331,6 @@ public class LargeCombustionEngineMachine extends WorkableElectricMultiblockMach
 
     @Override
     public UIElement createUIWidget(FancyMachineUIWidget shell) {
-        MachineUIHolder holder = shell.getHolder(this);
-
         UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
 
@@ -366,22 +361,11 @@ public class LargeCombustionEngineMachine extends WorkableElectricMultiblockMach
     }
 
     @Override
-    public int getPageWidth() {
-        return PAGE_WIDTH;
-    }
-
-    @Override
-    public int getPageHeight() {
-        return PAGE_HEIGHT;
-    }
-
-    @Override
     public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
-        MachineUIHolder holder = configuratorPanel.getHolder();
         VoidingModeConfigurator.attachConfigurators(
                 configuratorPanel, LargeCombustionEngineMachine.this);
         configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
-                LargeCombustionEngineMachine.this, holder));
+                LargeCombustionEngineMachine.this));
     }
 
     @Override
@@ -397,10 +381,5 @@ public class LargeCombustionEngineMachine extends WorkableElectricMultiblockMach
                         .setStyle(Style.EMPTY.withColor(ChatFormatting.RED))),
                 LargeCombustionEngineMachine.this::isIntakeObstructionSnapshot,
                 () -> null));
-    }
-
-    @Override
-    public List<IFancyUIProvider> getSubTabs() {
-        return new ObjectArrayList<>(getParts());
     }
 }

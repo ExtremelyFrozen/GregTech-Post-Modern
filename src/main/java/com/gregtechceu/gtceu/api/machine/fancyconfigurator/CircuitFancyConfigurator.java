@@ -5,14 +5,13 @@ import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTButtonElement;
 import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyConfigurator;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyCustomMiddleClickAction;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyCustomMouseWheelAction;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
+import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.api.machine.feature.IHasCircuitSlot;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler;
-import com.gregtechceu.gtceu.api.sync_system.managed.ISyncManaged;
 import com.gregtechceu.gtceu.common.item.behavior.IntCircuitBehaviour;
 import com.gregtechceu.gtceu.config.ConfigHolder;
 import com.gregtechceu.gtceu.data.lang.LangHandler;
@@ -28,13 +27,9 @@ import net.minecraft.world.item.Items;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.BiConsumer;
-import java.util.function.BooleanSupplier;
-import java.util.function.Consumer;
-import java.util.function.IntFunction;
 
 /**
- * LDLib2 Fancy configurator for machine programmed-circuit slots.
+ * Fancy configurator for machine programmed-circuit slots.
  *
  * <p>
  * The configurator keeps the client-visible circuit slot responsive locally, then sends GTM machine actions for the
@@ -50,37 +45,9 @@ public class CircuitFancyConfigurator implements IFancyConfigurator, IFancyCusto
     private static final int NO_CONFIG = -1;
 
     private final IHasCircuitSlot circuitMachine;
-    private final MachineUIHolder holder;
-    private final BiConsumer<MachineUIHolder, Consumer<ISyncManaged>> actionSender;
-    private final BooleanSupplier openingValid;
-    private final IntFunction<Consumer<ISyncManaged>> actionFactory;
 
-    /**
-     * Creates a circuit configurator bound to the machine circuit inventory and opened UI holder.
-     *
-     * @param circuitMachine machine feature that owns the configurable circuit slot.
-     * @param holder         opened machine UI holder used to send GTM machine actions.
-     */
-    public CircuitFancyConfigurator(IHasCircuitSlot circuitMachine, MachineUIHolder holder) {
-        this(circuitMachine, holder, (target, action) -> action.accept(target.getMachine()), () -> true,
-                configuration -> managed -> managed.rpcToServer("configureCircuit", configuration));
-    }
-
-    /**
-     * Creates a circuit configurator whose authoritative action and slot validity belong to its caller's opening.
-     */
-    public CircuitFancyConfigurator(IHasCircuitSlot circuitMachine, MachineUIHolder holder,
-                                    BiConsumer<MachineUIHolder, Consumer<ISyncManaged>> actionSender,
-                                    BooleanSupplier openingValid,
-                                    IntFunction<Consumer<ISyncManaged>> actionFactory) {
-        if (!hasUsableCircuitSlot(circuitMachine)) {
-            throw new IllegalArgumentException("Circuit Fancy configurator requires an enabled circuit slot.");
-        }
+    public CircuitFancyConfigurator(IHasCircuitSlot circuitMachine) {
         this.circuitMachine = circuitMachine;
-        this.holder = holder;
-        this.actionSender = actionSender;
-        this.openingValid = openingValid;
-        this.actionFactory = actionFactory;
     }
 
     @Override
@@ -90,7 +57,7 @@ public class CircuitFancyConfigurator implements IFancyConfigurator, IFancyCusto
 
     @Override
     public IGuiTexture getIcon() {
-        ItemStack circuitStack = circuitInventory().getStackInSlot(SELECTED_SLOT);
+        ItemStack circuitStack = circuitMachine.getCircuitInventory().getStackInSlot(SELECTED_SLOT);
         if (IntCircuitBehaviour.isIntegratedCircuit(circuitStack)) {
             return GuiTextures.itemStack(circuitStack);
         }
@@ -123,10 +90,11 @@ public class CircuitFancyConfigurator implements IFancyConfigurator, IFancyCusto
 
         int selectedSlotX = (WIDTH - SLOT_SIZE) / 2;
         boolean canModifySlot = !ConfigHolder.INSTANCE.machines.ghostCircuit;
-        GTItemSlotElement selectedSlot = new GTItemSlotElement(circuitInventory().storage, SELECTED_SLOT);
+        GTItemSlotElement selectedSlot = new GTItemSlotElement(circuitMachine.getCircuitInventory().storage,
+                SELECTED_SLOT);
         selectedSlot.setBackgroundTexture(GuiTextures.group(GuiTextures.SLOT, GuiTextures.INT_CIRCUIT_OVERLAY))
-                .setCanPlace(stack -> canModifySlot && openingValid.getAsBoolean())
-                .setCanTake(player -> canModifySlot && openingValid.getAsBoolean());
+                .setCanPlace(stack -> canModifySlot)
+                .setCanTake(player -> canModifySlot);
         UITemplate.setBounds(selectedSlot, selectedSlotX, 20, SLOT_SIZE, SLOT_SIZE);
         root.addChild(selectedSlot);
 
@@ -164,7 +132,7 @@ public class CircuitFancyConfigurator implements IFancyConfigurator, IFancyCusto
             return false;
         }
         if (!ConfigHolder.INSTANCE.machines.ghostCircuit &&
-                circuitInventory().getStackInSlot(SELECTED_SLOT).isEmpty()) {
+                circuitMachine.getCircuitInventory().getStackInSlot(SELECTED_SLOT).isEmpty()) {
             return false;
         }
 
@@ -187,35 +155,25 @@ public class CircuitFancyConfigurator implements IFancyConfigurator, IFancyCusto
     }
 
     private void setCircuitButtonConfiguration(int configuration) {
-        if (!openingValid.getAsBoolean()) {
-            return;
-        }
-        if (writeCircuitButtonConfiguration(circuitInventory(), configuration)) {
-            sendActionIfRemote(configuration);
+        if (writeCircuitButtonConfiguration(circuitMachine.getCircuitInventory(), configuration)) {
+            sendCircuitConfiguration(configuration);
         }
     }
 
     private void setMachineCircuitConfiguration(int configuration) {
-        if (!openingValid.getAsBoolean()) {
-            return;
-        }
-        writeMachineCircuitConfiguration(circuitInventory(), configuration);
-        sendActionIfRemote(configuration);
+        writeMachineCircuitConfiguration(circuitMachine.getCircuitInventory(), configuration);
+        sendCircuitConfiguration(configuration);
     }
 
-    private void sendActionIfRemote(int configuration) {
-        var machine = holder.getMachine();
-        if (machine != null && machine.isRemote() && openingValid.getAsBoolean()) {
-            actionSender.accept(holder, actionFactory.apply(configuration));
+    private void sendCircuitConfiguration(int configuration) {
+        var machine = (MetaMachine) circuitMachine;
+        if (machine.isRemote()) {
+            machine.rpcToServer("configureCircuit", configuration);
         }
-    }
-
-    private NotifiableItemStackHandler circuitInventory() {
-        return circuitMachine.getCircuitInventory();
     }
 
     private int getNextValue(boolean increment) {
-        ItemStack currentStack = circuitInventory().getStackInSlot(SELECTED_SLOT);
+        ItemStack currentStack = circuitMachine.getCircuitInventory().getStackInSlot(SELECTED_SLOT);
         int currentValue = IntCircuitBehaviour.getCircuitConfiguration(currentStack);
         if (increment) {
             if (currentValue == IntCircuitBehaviour.CIRCUIT_MAX) {
@@ -237,7 +195,6 @@ public class CircuitFancyConfigurator implements IFancyConfigurator, IFancyCusto
 
     private static boolean writeCircuitButtonConfiguration(NotifiableItemStackHandler circuitInventory,
                                                            int configuration) {
-        validateCircuitConfiguration(configuration);
         ItemStack stack = circuitInventory.getStackInSlot(SELECTED_SLOT).copy();
         if (IntCircuitBehaviour.isIntegratedCircuit(stack)) {
             IntCircuitBehaviour.setCircuitConfiguration(stack, configuration);
@@ -265,31 +222,6 @@ public class CircuitFancyConfigurator implements IFancyConfigurator, IFancyCusto
         if (ConfigHolder.INSTANCE.machines.ghostCircuit ||
                 !circuitInventory.getStackInSlot(SELECTED_SLOT).isEmpty()) {
             circuitInventory.setStackInSlot(SELECTED_SLOT, IntCircuitBehaviour.stack(configuration));
-        }
-    }
-
-    private static boolean hasUsableCircuitSlot(IHasCircuitSlot circuitHolder) {
-        return circuitHolder.isCircuitSlotEnabled() && circuitHolder.getCircuitInventory().getSlots() > SELECTED_SLOT;
-    }
-
-    private static boolean isValidCircuitConfiguration(int configuration) {
-        return configuration >= 0 && configuration <= IntCircuitBehaviour.CIRCUIT_MAX;
-    }
-
-    private static boolean isValidActionConfiguration(int configuration) {
-        return configuration == NO_CONFIG || isValidCircuitConfiguration(configuration);
-    }
-
-    private static void validateCircuitConfiguration(int configuration) {
-        if (!isValidCircuitConfiguration(configuration)) {
-            throw new IllegalArgumentException("Circuit configuration is out of range: " + configuration);
-        }
-    }
-
-    private static void validateActionConfiguration(int configuration) {
-        if (!isValidActionConfiguration(configuration)) {
-            throw new IllegalArgumentException("Machine circuit action configuration is out of range: " +
-                    configuration);
         }
     }
 }

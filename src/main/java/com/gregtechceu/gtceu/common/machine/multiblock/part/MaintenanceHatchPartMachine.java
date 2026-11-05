@@ -332,9 +332,6 @@ public class MaintenanceHatchPartMachine extends TieredPartMachine
 
     @Override
     public UI createUI(Player player, MachineUIHolder holder) {
-        if (holder.getMachine() != this) {
-            throw new IllegalArgumentException("Maintenance Hatch UI holder must resolve the opened part.");
-        }
         int rootWidth = isConfigurable ? 150 : 8 + 18;
         int rootHeight = isConfigurable ? 70 : 8 + 20 + 18;
         UIElement root = new UIElement();

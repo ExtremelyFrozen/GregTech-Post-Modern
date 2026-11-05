@@ -8,7 +8,6 @@ import com.gregtechceu.gtceu.api.cover.filter.ItemFilter;
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
 import com.gregtechceu.gtceu.api.machine.MachineDefinition;
@@ -320,8 +319,6 @@ public class ItemBusPartMachine extends TieredIOPartMachine
 
     @Override
     public UIElement createUIWidget(FancyMachineUIWidget shell) {
-        MachineUIHolder holder = shell.getHolder(this);
-
         int rowSize = getRowSize();
         int columnSize = getColumnSize();
         UIElement root = UITemplate.setBounds(new UIElement(), 0, 0,
@@ -359,16 +356,15 @@ public class ItemBusPartMachine extends TieredIOPartMachine
 
     @Override
     public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
-        MachineUIHolder holder = configuratorPanel.getHolder();
         configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
-                ItemBusPartMachine.this, holder));
+                ItemBusPartMachine.this));
         if (io != IO.IN) {
             return;
         }
         DistinctPartConfigurator.attachConfigurators(configuratorPanel, ItemBusPartMachine.this);
         if (isHasCircuitSlot() && isCircuitSlotEnabled()) {
             configuratorPanel.attachConfigurators(new CircuitFancyConfigurator(
-                    ItemBusPartMachine.this, holder));
+                    ItemBusPartMachine.this));
         }
     }
 }
