@@ -1092,16 +1092,14 @@ import it.unimi.dsi.fastutil.shorts.ShortSortedSets;
 
 import java.lang.reflect.Type;
 import java.util.Collection;
-import java.util.Map;
-import java.util.Set;
 import java.util.function.BiFunction;
 
 /** Explicit fastutil factories; unchecked casts stay at this erased container boundary. */
 @SuppressWarnings({ "rawtypes", "unchecked" })
 public final class FastutilCollections {
 
-    private static final Map<Class<?>, BiFunction<Type, Object, Construction>> FACTORIES = new Object2ObjectOpenHashMap<>();
-    private static final Set<Class<?>> READ_ONLY = new ObjectOpenHashSet<>();
+    private static final Object2ObjectOpenHashMap<Class<?>, BiFunction<Type, Object, Construction>> FACTORIES = new Object2ObjectOpenHashMap<>();
+    private static final ObjectOpenHashSet<Class<?>> READ_ONLY = new ObjectOpenHashSet<>();
 
     static {
         registerBoolean();
@@ -1837,10 +1835,10 @@ public final class FastutilCollections {
     }
 
     private static void registerBoolean() {
-        register(BooleanCollection.class, (type, current) -> new Construction(() -> new BooleanArrayList()));
-        register(BooleanList.class, (type, current) -> new Construction(() -> new BooleanArrayList()));
-        register(BooleanSet.class, (type, current) -> new Construction(() -> new BooleanOpenHashSet()));
-        register(BooleanBigList.class, (type, current) -> new Construction(() -> new BooleanBigArrayBigList()));
+        register(BooleanCollection.class, (type, current) -> new Construction(BooleanArrayList::new));
+        register(BooleanList.class, (type, current) -> new Construction(BooleanArrayList::new));
+        register(BooleanSet.class, (type, current) -> new Construction(BooleanOpenHashSet::new));
+        register(BooleanBigList.class, (type, current) -> new Construction(BooleanBigArrayBigList::new));
         register(BooleanArrayList.class, (type, current) -> new Construction(
                 () -> current == null ? new BooleanArrayList() : ((BooleanArrayList) current).clone()));
         register(BooleanArraySet.class, (type, current) -> new Construction(
@@ -1850,52 +1848,52 @@ public final class FastutilCollections {
         register(BooleanBigArrayBigList.class, (type, current) -> new Construction(
                 () -> current == null ? new BooleanBigArrayBigList() : ((BooleanBigArrayBigList) current).clone()));
         register(BooleanCollections.unmodifiable(new BooleanArrayList()).getClass(),
-                (type, current) -> new Construction(() -> new BooleanArrayList(),
+                (type, current) -> new Construction(BooleanArrayList::new,
                         decoded -> BooleanCollections.unmodifiable((BooleanCollection) decoded)));
         register(BooleanCollections.unmodifiable(new BooleanArrayList()).getClass(),
-                (type, current) -> new Construction(() -> new BooleanArrayList(),
+                (type, current) -> new Construction(BooleanArrayList::new,
                         decoded -> BooleanCollections.unmodifiable((BooleanCollection) decoded)));
         register(BooleanCollections.synchronize(new BooleanArrayList()).getClass(),
-                (type, current) -> new Construction(() -> new BooleanArrayList(),
+                (type, current) -> new Construction(BooleanArrayList::new,
                         decoded -> BooleanCollections.synchronize((BooleanCollection) decoded)));
-        register(BooleanLists.UnmodifiableList.class, (type, current) -> new Construction(() -> new BooleanArrayList(),
+        register(BooleanLists.UnmodifiableList.class, (type, current) -> new Construction(BooleanArrayList::new,
                 decoded -> BooleanLists.unmodifiable((BooleanList) decoded)));
-        register(BooleanLists.EmptyList.class, (type, current) -> new Construction(() -> new BooleanArrayList(),
+        register(BooleanLists.EmptyList.class, (type, current) -> new Construction(BooleanArrayList::new,
                 decoded -> BooleanLists.unmodifiable((BooleanList) decoded)));
-        register(BooleanLists.Singleton.class, (type, current) -> new Construction(() -> new BooleanArrayList(),
+        register(BooleanLists.Singleton.class, (type, current) -> new Construction(BooleanArrayList::new,
                 decoded -> BooleanLists.unmodifiable((BooleanList) decoded)));
-        register(BooleanLists.SynchronizedList.class, (type, current) -> new Construction(() -> new BooleanArrayList(),
+        register(BooleanLists.SynchronizedList.class, (type, current) -> new Construction(BooleanArrayList::new,
                 decoded -> BooleanLists.synchronize((BooleanList) decoded)));
         register(BooleanLists.UnmodifiableRandomAccessList.class,
-                (type, current) -> new Construction(() -> new BooleanArrayList(),
+                (type, current) -> new Construction(BooleanArrayList::new,
                         decoded -> BooleanLists.unmodifiable((BooleanList) decoded)));
         register(BooleanLists.SynchronizedRandomAccessList.class,
-                (type, current) -> new Construction(() -> new BooleanArrayList(),
+                (type, current) -> new Construction(BooleanArrayList::new,
                         decoded -> BooleanLists.synchronize((BooleanList) decoded)));
-        register(BooleanSets.UnmodifiableSet.class, (type, current) -> new Construction(() -> new BooleanOpenHashSet(),
+        register(BooleanSets.UnmodifiableSet.class, (type, current) -> new Construction(BooleanOpenHashSet::new,
                 decoded -> BooleanSets.unmodifiable((BooleanSet) decoded)));
-        register(BooleanSets.EmptySet.class, (type, current) -> new Construction(() -> new BooleanOpenHashSet(),
+        register(BooleanSets.EmptySet.class, (type, current) -> new Construction(BooleanOpenHashSet::new,
                 decoded -> BooleanSets.unmodifiable((BooleanSet) decoded)));
-        register(BooleanSets.Singleton.class, (type, current) -> new Construction(() -> new BooleanOpenHashSet(),
+        register(BooleanSets.Singleton.class, (type, current) -> new Construction(BooleanOpenHashSet::new,
                 decoded -> BooleanSets.unmodifiable((BooleanSet) decoded)));
-        register(BooleanSets.SynchronizedSet.class, (type, current) -> new Construction(() -> new BooleanOpenHashSet(),
+        register(BooleanSets.SynchronizedSet.class, (type, current) -> new Construction(BooleanOpenHashSet::new,
                 decoded -> BooleanSets.synchronize((BooleanSet) decoded)));
         register(BooleanBigLists.UnmodifiableBigList.class,
-                (type, current) -> new Construction(() -> new BooleanBigArrayBigList(),
+                (type, current) -> new Construction(BooleanBigArrayBigList::new,
                         decoded -> BooleanBigLists.unmodifiable((BooleanBigList) decoded)));
         register(BooleanBigLists.EmptyBigList.class,
-                (type, current) -> new Construction(() -> new BooleanBigArrayBigList(),
+                (type, current) -> new Construction(BooleanBigArrayBigList::new,
                         decoded -> BooleanBigLists.unmodifiable((BooleanBigList) decoded)));
         register(BooleanBigLists.Singleton.class,
-                (type, current) -> new Construction(() -> new BooleanBigArrayBigList(),
+                (type, current) -> new Construction(BooleanBigArrayBigList::new,
                         decoded -> BooleanBigLists.unmodifiable((BooleanBigList) decoded)));
         register(BooleanBigLists.SynchronizedBigList.class,
-                (type, current) -> new Construction(() -> new BooleanBigArrayBigList(),
+                (type, current) -> new Construction(BooleanBigArrayBigList::new,
                         decoded -> BooleanBigLists.synchronize((BooleanBigList) decoded)));
-        register(BooleanImmutableList.class, (type, current) -> new Construction(() -> new BooleanArrayList(),
+        register(BooleanImmutableList.class, (type, current) -> new Construction(BooleanArrayList::new,
                 decoded -> new BooleanImmutableList((Collection) decoded)));
         register(new BooleanImmutableList(new boolean[] { false, true }).subList(0, 1).getClass(),
-                (type, current) -> new Construction(() -> new BooleanArrayList(),
+                (type, current) -> new Construction(BooleanArrayList::new,
                         decoded -> new BooleanImmutableList((Collection) decoded)));
     }
 
@@ -2570,12 +2568,12 @@ public final class FastutilCollections {
             if (current != null) result.defaultReturnValue(((Byte2ReferenceMap) current).defaultReturnValue());
             return result;
         }, decoded -> Byte2ReferenceMaps.synchronize((Byte2ReferenceMap) decoded)));
-        register(ByteCollection.class, (type, current) -> new Construction(() -> new ByteArrayList()));
-        register(ByteList.class, (type, current) -> new Construction(() -> new ByteArrayList()));
-        register(ByteSet.class, (type, current) -> new Construction(() -> new ByteOpenHashSet()));
+        register(ByteCollection.class, (type, current) -> new Construction(ByteArrayList::new));
+        register(ByteList.class, (type, current) -> new Construction(ByteArrayList::new));
+        register(ByteSet.class, (type, current) -> new Construction(ByteOpenHashSet::new));
         register(ByteSortedSet.class, (type, current) -> new Construction(() -> current == null ? new ByteRBTreeSet() :
                 new ByteRBTreeSet(((ByteSortedSet) current).comparator())));
-        register(ByteBigList.class, (type, current) -> new Construction(() -> new ByteBigArrayBigList()));
+        register(ByteBigList.class, (type, current) -> new Construction(ByteBigArrayBigList::new));
         register(ByteArrayList.class, (type, current) -> new Construction(
                 () -> current == null ? new ByteArrayList() : ((ByteArrayList) current).clone()));
         register(ByteArraySet.class, (type, current) -> new Construction(
@@ -2595,35 +2593,35 @@ public final class FastutilCollections {
         register(ByteLinkedOpenCustomHashSet.class,
                 (type, current) -> new Construction(() -> ((ByteLinkedOpenCustomHashSet) current).clone()));
         register(ByteCollections.unmodifiable(new ByteArrayList()).getClass(),
-                (type, current) -> new Construction(() -> new ByteArrayList(),
+                (type, current) -> new Construction(ByteArrayList::new,
                         decoded -> ByteCollections.unmodifiable((ByteCollection) decoded)));
         register(ByteCollections.unmodifiable(new ByteArrayList()).getClass(),
-                (type, current) -> new Construction(() -> new ByteArrayList(),
+                (type, current) -> new Construction(ByteArrayList::new,
                         decoded -> ByteCollections.unmodifiable((ByteCollection) decoded)));
         register(ByteCollections.synchronize(new ByteArrayList()).getClass(),
-                (type, current) -> new Construction(() -> new ByteArrayList(),
+                (type, current) -> new Construction(ByteArrayList::new,
                         decoded -> ByteCollections.synchronize((ByteCollection) decoded)));
-        register(ByteLists.UnmodifiableList.class, (type, current) -> new Construction(() -> new ByteArrayList(),
+        register(ByteLists.UnmodifiableList.class, (type, current) -> new Construction(ByteArrayList::new,
                 decoded -> ByteLists.unmodifiable((ByteList) decoded)));
-        register(ByteLists.EmptyList.class, (type, current) -> new Construction(() -> new ByteArrayList(),
+        register(ByteLists.EmptyList.class, (type, current) -> new Construction(ByteArrayList::new,
                 decoded -> ByteLists.unmodifiable((ByteList) decoded)));
-        register(ByteLists.Singleton.class, (type, current) -> new Construction(() -> new ByteArrayList(),
+        register(ByteLists.Singleton.class, (type, current) -> new Construction(ByteArrayList::new,
                 decoded -> ByteLists.unmodifiable((ByteList) decoded)));
-        register(ByteLists.SynchronizedList.class, (type, current) -> new Construction(() -> new ByteArrayList(),
+        register(ByteLists.SynchronizedList.class, (type, current) -> new Construction(ByteArrayList::new,
                 decoded -> ByteLists.synchronize((ByteList) decoded)));
         register(ByteLists.UnmodifiableRandomAccessList.class,
-                (type, current) -> new Construction(() -> new ByteArrayList(),
+                (type, current) -> new Construction(ByteArrayList::new,
                         decoded -> ByteLists.unmodifiable((ByteList) decoded)));
         register(ByteLists.SynchronizedRandomAccessList.class,
-                (type, current) -> new Construction(() -> new ByteArrayList(),
+                (type, current) -> new Construction(ByteArrayList::new,
                         decoded -> ByteLists.synchronize((ByteList) decoded)));
-        register(ByteSets.UnmodifiableSet.class, (type, current) -> new Construction(() -> new ByteOpenHashSet(),
+        register(ByteSets.UnmodifiableSet.class, (type, current) -> new Construction(ByteOpenHashSet::new,
                 decoded -> ByteSets.unmodifiable((ByteSet) decoded)));
-        register(ByteSets.EmptySet.class, (type, current) -> new Construction(() -> new ByteOpenHashSet(),
+        register(ByteSets.EmptySet.class, (type, current) -> new Construction(ByteOpenHashSet::new,
                 decoded -> ByteSets.unmodifiable((ByteSet) decoded)));
-        register(ByteSets.Singleton.class, (type, current) -> new Construction(() -> new ByteOpenHashSet(),
+        register(ByteSets.Singleton.class, (type, current) -> new Construction(ByteOpenHashSet::new,
                 decoded -> ByteSets.unmodifiable((ByteSet) decoded)));
-        register(ByteSets.SynchronizedSet.class, (type, current) -> new Construction(() -> new ByteOpenHashSet(),
+        register(ByteSets.SynchronizedSet.class, (type, current) -> new Construction(ByteOpenHashSet::new,
                 decoded -> ByteSets.synchronize((ByteSet) decoded)));
         register(ByteSortedSets.UnmodifiableSortedSet.class,
                 (type, current) -> new Construction(
@@ -2642,21 +2640,21 @@ public final class FastutilCollections {
                         () -> new ByteRBTreeSet(current == null ? null : ((ByteSortedSet) current).comparator()),
                         decoded -> ByteSortedSets.synchronize((ByteSortedSet) decoded)));
         register(ByteBigLists.UnmodifiableBigList.class,
-                (type, current) -> new Construction(() -> new ByteBigArrayBigList(),
+                (type, current) -> new Construction(ByteBigArrayBigList::new,
                         decoded -> ByteBigLists.unmodifiable((ByteBigList) decoded)));
-        register(ByteBigLists.EmptyBigList.class, (type, current) -> new Construction(() -> new ByteBigArrayBigList(),
+        register(ByteBigLists.EmptyBigList.class, (type, current) -> new Construction(ByteBigArrayBigList::new,
                 decoded -> ByteBigLists.unmodifiable((ByteBigList) decoded)));
-        register(ByteBigLists.Singleton.class, (type, current) -> new Construction(() -> new ByteBigArrayBigList(),
+        register(ByteBigLists.Singleton.class, (type, current) -> new Construction(ByteBigArrayBigList::new,
                 decoded -> ByteBigLists.unmodifiable((ByteBigList) decoded)));
         register(ByteBigLists.SynchronizedBigList.class,
-                (type, current) -> new Construction(() -> new ByteBigArrayBigList(),
+                (type, current) -> new Construction(ByteBigArrayBigList::new,
                         decoded -> ByteBigLists.synchronize((ByteBigList) decoded)));
-        register(ByteImmutableList.class, (type, current) -> new Construction(() -> new ByteArrayList(),
+        register(ByteImmutableList.class, (type, current) -> new Construction(ByteArrayList::new,
                 decoded -> new ByteImmutableList((Collection) decoded)));
         register(new ByteImmutableList(new byte[] { 0, 1 }).subList(0, 1).getClass(),
-                (type, current) -> new Construction(() -> new ByteArrayList(),
+                (type, current) -> new Construction(ByteArrayList::new,
                         decoded -> new ByteImmutableList((Collection) decoded)));
-        register(ByteMappedBigList.class, (type, current) -> new Construction(() -> new ByteBigArrayBigList(),
+        register(ByteMappedBigList.class, (type, current) -> new Construction(ByteBigArrayBigList::new,
                 decoded -> updateMapped((BigList) current, (BigList) decoded)));
     }
 
@@ -3331,12 +3329,12 @@ public final class FastutilCollections {
             if (current != null) result.defaultReturnValue(((Short2ReferenceMap) current).defaultReturnValue());
             return result;
         }, decoded -> Short2ReferenceMaps.synchronize((Short2ReferenceMap) decoded)));
-        register(ShortCollection.class, (type, current) -> new Construction(() -> new ShortArrayList()));
-        register(ShortList.class, (type, current) -> new Construction(() -> new ShortArrayList()));
-        register(ShortSet.class, (type, current) -> new Construction(() -> new ShortOpenHashSet()));
+        register(ShortCollection.class, (type, current) -> new Construction(ShortArrayList::new));
+        register(ShortList.class, (type, current) -> new Construction(ShortArrayList::new));
+        register(ShortSet.class, (type, current) -> new Construction(ShortOpenHashSet::new));
         register(ShortSortedSet.class, (type, current) -> new Construction(() -> current == null ?
                 new ShortRBTreeSet() : new ShortRBTreeSet(((ShortSortedSet) current).comparator())));
-        register(ShortBigList.class, (type, current) -> new Construction(() -> new ShortBigArrayBigList()));
+        register(ShortBigList.class, (type, current) -> new Construction(ShortBigArrayBigList::new));
         register(ShortArrayList.class, (type, current) -> new Construction(
                 () -> current == null ? new ShortArrayList() : ((ShortArrayList) current).clone()));
         register(ShortArraySet.class, (type, current) -> new Construction(
@@ -3356,35 +3354,35 @@ public final class FastutilCollections {
         register(ShortLinkedOpenCustomHashSet.class,
                 (type, current) -> new Construction(() -> ((ShortLinkedOpenCustomHashSet) current).clone()));
         register(ShortCollections.unmodifiable(new ShortArrayList()).getClass(),
-                (type, current) -> new Construction(() -> new ShortArrayList(),
+                (type, current) -> new Construction(ShortArrayList::new,
                         decoded -> ShortCollections.unmodifiable((ShortCollection) decoded)));
         register(ShortCollections.unmodifiable(new ShortArrayList()).getClass(),
-                (type, current) -> new Construction(() -> new ShortArrayList(),
+                (type, current) -> new Construction(ShortArrayList::new,
                         decoded -> ShortCollections.unmodifiable((ShortCollection) decoded)));
         register(ShortCollections.synchronize(new ShortArrayList()).getClass(),
-                (type, current) -> new Construction(() -> new ShortArrayList(),
+                (type, current) -> new Construction(ShortArrayList::new,
                         decoded -> ShortCollections.synchronize((ShortCollection) decoded)));
-        register(ShortLists.UnmodifiableList.class, (type, current) -> new Construction(() -> new ShortArrayList(),
+        register(ShortLists.UnmodifiableList.class, (type, current) -> new Construction(ShortArrayList::new,
                 decoded -> ShortLists.unmodifiable((ShortList) decoded)));
-        register(ShortLists.EmptyList.class, (type, current) -> new Construction(() -> new ShortArrayList(),
+        register(ShortLists.EmptyList.class, (type, current) -> new Construction(ShortArrayList::new,
                 decoded -> ShortLists.unmodifiable((ShortList) decoded)));
-        register(ShortLists.Singleton.class, (type, current) -> new Construction(() -> new ShortArrayList(),
+        register(ShortLists.Singleton.class, (type, current) -> new Construction(ShortArrayList::new,
                 decoded -> ShortLists.unmodifiable((ShortList) decoded)));
-        register(ShortLists.SynchronizedList.class, (type, current) -> new Construction(() -> new ShortArrayList(),
+        register(ShortLists.SynchronizedList.class, (type, current) -> new Construction(ShortArrayList::new,
                 decoded -> ShortLists.synchronize((ShortList) decoded)));
         register(ShortLists.UnmodifiableRandomAccessList.class,
-                (type, current) -> new Construction(() -> new ShortArrayList(),
+                (type, current) -> new Construction(ShortArrayList::new,
                         decoded -> ShortLists.unmodifiable((ShortList) decoded)));
         register(ShortLists.SynchronizedRandomAccessList.class,
-                (type, current) -> new Construction(() -> new ShortArrayList(),
+                (type, current) -> new Construction(ShortArrayList::new,
                         decoded -> ShortLists.synchronize((ShortList) decoded)));
-        register(ShortSets.UnmodifiableSet.class, (type, current) -> new Construction(() -> new ShortOpenHashSet(),
+        register(ShortSets.UnmodifiableSet.class, (type, current) -> new Construction(ShortOpenHashSet::new,
                 decoded -> ShortSets.unmodifiable((ShortSet) decoded)));
-        register(ShortSets.EmptySet.class, (type, current) -> new Construction(() -> new ShortOpenHashSet(),
+        register(ShortSets.EmptySet.class, (type, current) -> new Construction(ShortOpenHashSet::new,
                 decoded -> ShortSets.unmodifiable((ShortSet) decoded)));
-        register(ShortSets.Singleton.class, (type, current) -> new Construction(() -> new ShortOpenHashSet(),
+        register(ShortSets.Singleton.class, (type, current) -> new Construction(ShortOpenHashSet::new,
                 decoded -> ShortSets.unmodifiable((ShortSet) decoded)));
-        register(ShortSets.SynchronizedSet.class, (type, current) -> new Construction(() -> new ShortOpenHashSet(),
+        register(ShortSets.SynchronizedSet.class, (type, current) -> new Construction(ShortOpenHashSet::new,
                 decoded -> ShortSets.synchronize((ShortSet) decoded)));
         register(ShortSortedSets.UnmodifiableSortedSet.class,
                 (type, current) -> new Construction(
@@ -3403,21 +3401,21 @@ public final class FastutilCollections {
                         () -> new ShortRBTreeSet(current == null ? null : ((ShortSortedSet) current).comparator()),
                         decoded -> ShortSortedSets.synchronize((ShortSortedSet) decoded)));
         register(ShortBigLists.UnmodifiableBigList.class,
-                (type, current) -> new Construction(() -> new ShortBigArrayBigList(),
+                (type, current) -> new Construction(ShortBigArrayBigList::new,
                         decoded -> ShortBigLists.unmodifiable((ShortBigList) decoded)));
-        register(ShortBigLists.EmptyBigList.class, (type, current) -> new Construction(() -> new ShortBigArrayBigList(),
+        register(ShortBigLists.EmptyBigList.class, (type, current) -> new Construction(ShortBigArrayBigList::new,
                 decoded -> ShortBigLists.unmodifiable((ShortBigList) decoded)));
-        register(ShortBigLists.Singleton.class, (type, current) -> new Construction(() -> new ShortBigArrayBigList(),
+        register(ShortBigLists.Singleton.class, (type, current) -> new Construction(ShortBigArrayBigList::new,
                 decoded -> ShortBigLists.unmodifiable((ShortBigList) decoded)));
         register(ShortBigLists.SynchronizedBigList.class,
-                (type, current) -> new Construction(() -> new ShortBigArrayBigList(),
+                (type, current) -> new Construction(ShortBigArrayBigList::new,
                         decoded -> ShortBigLists.synchronize((ShortBigList) decoded)));
-        register(ShortImmutableList.class, (type, current) -> new Construction(() -> new ShortArrayList(),
+        register(ShortImmutableList.class, (type, current) -> new Construction(ShortArrayList::new,
                 decoded -> new ShortImmutableList((Collection) decoded)));
         register(new ShortImmutableList(new short[] { 0, 1 }).subList(0, 1).getClass(),
-                (type, current) -> new Construction(() -> new ShortArrayList(),
+                (type, current) -> new Construction(ShortArrayList::new,
                         decoded -> new ShortImmutableList((Collection) decoded)));
-        register(ShortMappedBigList.class, (type, current) -> new Construction(() -> new ShortBigArrayBigList(),
+        register(ShortMappedBigList.class, (type, current) -> new Construction(ShortBigArrayBigList::new,
                 decoded -> updateMapped((BigList) current, (BigList) decoded)));
     }
 
@@ -4092,12 +4090,12 @@ public final class FastutilCollections {
             if (current != null) result.defaultReturnValue(((Char2ReferenceMap) current).defaultReturnValue());
             return result;
         }, decoded -> Char2ReferenceMaps.synchronize((Char2ReferenceMap) decoded)));
-        register(CharCollection.class, (type, current) -> new Construction(() -> new CharArrayList()));
-        register(CharList.class, (type, current) -> new Construction(() -> new CharArrayList()));
-        register(CharSet.class, (type, current) -> new Construction(() -> new CharOpenHashSet()));
+        register(CharCollection.class, (type, current) -> new Construction(CharArrayList::new));
+        register(CharList.class, (type, current) -> new Construction(CharArrayList::new));
+        register(CharSet.class, (type, current) -> new Construction(CharOpenHashSet::new));
         register(CharSortedSet.class, (type, current) -> new Construction(() -> current == null ? new CharRBTreeSet() :
                 new CharRBTreeSet(((CharSortedSet) current).comparator())));
-        register(CharBigList.class, (type, current) -> new Construction(() -> new CharBigArrayBigList()));
+        register(CharBigList.class, (type, current) -> new Construction(CharBigArrayBigList::new));
         register(CharArrayList.class, (type, current) -> new Construction(
                 () -> current == null ? new CharArrayList() : ((CharArrayList) current).clone()));
         register(CharArraySet.class, (type, current) -> new Construction(
@@ -4117,35 +4115,35 @@ public final class FastutilCollections {
         register(CharLinkedOpenCustomHashSet.class,
                 (type, current) -> new Construction(() -> ((CharLinkedOpenCustomHashSet) current).clone()));
         register(CharCollections.unmodifiable(new CharArrayList()).getClass(),
-                (type, current) -> new Construction(() -> new CharArrayList(),
+                (type, current) -> new Construction(CharArrayList::new,
                         decoded -> CharCollections.unmodifiable((CharCollection) decoded)));
         register(CharCollections.unmodifiable(new CharArrayList()).getClass(),
-                (type, current) -> new Construction(() -> new CharArrayList(),
+                (type, current) -> new Construction(CharArrayList::new,
                         decoded -> CharCollections.unmodifiable((CharCollection) decoded)));
         register(CharCollections.synchronize(new CharArrayList()).getClass(),
-                (type, current) -> new Construction(() -> new CharArrayList(),
+                (type, current) -> new Construction(CharArrayList::new,
                         decoded -> CharCollections.synchronize((CharCollection) decoded)));
-        register(CharLists.UnmodifiableList.class, (type, current) -> new Construction(() -> new CharArrayList(),
+        register(CharLists.UnmodifiableList.class, (type, current) -> new Construction(CharArrayList::new,
                 decoded -> CharLists.unmodifiable((CharList) decoded)));
-        register(CharLists.EmptyList.class, (type, current) -> new Construction(() -> new CharArrayList(),
+        register(CharLists.EmptyList.class, (type, current) -> new Construction(CharArrayList::new,
                 decoded -> CharLists.unmodifiable((CharList) decoded)));
-        register(CharLists.Singleton.class, (type, current) -> new Construction(() -> new CharArrayList(),
+        register(CharLists.Singleton.class, (type, current) -> new Construction(CharArrayList::new,
                 decoded -> CharLists.unmodifiable((CharList) decoded)));
-        register(CharLists.SynchronizedList.class, (type, current) -> new Construction(() -> new CharArrayList(),
+        register(CharLists.SynchronizedList.class, (type, current) -> new Construction(CharArrayList::new,
                 decoded -> CharLists.synchronize((CharList) decoded)));
         register(CharLists.UnmodifiableRandomAccessList.class,
-                (type, current) -> new Construction(() -> new CharArrayList(),
+                (type, current) -> new Construction(CharArrayList::new,
                         decoded -> CharLists.unmodifiable((CharList) decoded)));
         register(CharLists.SynchronizedRandomAccessList.class,
-                (type, current) -> new Construction(() -> new CharArrayList(),
+                (type, current) -> new Construction(CharArrayList::new,
                         decoded -> CharLists.synchronize((CharList) decoded)));
-        register(CharSets.UnmodifiableSet.class, (type, current) -> new Construction(() -> new CharOpenHashSet(),
+        register(CharSets.UnmodifiableSet.class, (type, current) -> new Construction(CharOpenHashSet::new,
                 decoded -> CharSets.unmodifiable((CharSet) decoded)));
-        register(CharSets.EmptySet.class, (type, current) -> new Construction(() -> new CharOpenHashSet(),
+        register(CharSets.EmptySet.class, (type, current) -> new Construction(CharOpenHashSet::new,
                 decoded -> CharSets.unmodifiable((CharSet) decoded)));
-        register(CharSets.Singleton.class, (type, current) -> new Construction(() -> new CharOpenHashSet(),
+        register(CharSets.Singleton.class, (type, current) -> new Construction(CharOpenHashSet::new,
                 decoded -> CharSets.unmodifiable((CharSet) decoded)));
-        register(CharSets.SynchronizedSet.class, (type, current) -> new Construction(() -> new CharOpenHashSet(),
+        register(CharSets.SynchronizedSet.class, (type, current) -> new Construction(CharOpenHashSet::new,
                 decoded -> CharSets.synchronize((CharSet) decoded)));
         register(CharSortedSets.UnmodifiableSortedSet.class,
                 (type, current) -> new Construction(
@@ -4164,21 +4162,21 @@ public final class FastutilCollections {
                         () -> new CharRBTreeSet(current == null ? null : ((CharSortedSet) current).comparator()),
                         decoded -> CharSortedSets.synchronize((CharSortedSet) decoded)));
         register(CharBigLists.UnmodifiableBigList.class,
-                (type, current) -> new Construction(() -> new CharBigArrayBigList(),
+                (type, current) -> new Construction(CharBigArrayBigList::new,
                         decoded -> CharBigLists.unmodifiable((CharBigList) decoded)));
-        register(CharBigLists.EmptyBigList.class, (type, current) -> new Construction(() -> new CharBigArrayBigList(),
+        register(CharBigLists.EmptyBigList.class, (type, current) -> new Construction(CharBigArrayBigList::new,
                 decoded -> CharBigLists.unmodifiable((CharBigList) decoded)));
-        register(CharBigLists.Singleton.class, (type, current) -> new Construction(() -> new CharBigArrayBigList(),
+        register(CharBigLists.Singleton.class, (type, current) -> new Construction(CharBigArrayBigList::new,
                 decoded -> CharBigLists.unmodifiable((CharBigList) decoded)));
         register(CharBigLists.SynchronizedBigList.class,
-                (type, current) -> new Construction(() -> new CharBigArrayBigList(),
+                (type, current) -> new Construction(CharBigArrayBigList::new,
                         decoded -> CharBigLists.synchronize((CharBigList) decoded)));
-        register(CharImmutableList.class, (type, current) -> new Construction(() -> new CharArrayList(),
+        register(CharImmutableList.class, (type, current) -> new Construction(CharArrayList::new,
                 decoded -> new CharImmutableList((Collection) decoded)));
         register(new CharImmutableList(new char[] { 0, 1 }).subList(0, 1).getClass(),
-                (type, current) -> new Construction(() -> new CharArrayList(),
+                (type, current) -> new Construction(CharArrayList::new,
                         decoded -> new CharImmutableList((Collection) decoded)));
-        register(CharMappedBigList.class, (type, current) -> new Construction(() -> new CharBigArrayBigList(),
+        register(CharMappedBigList.class, (type, current) -> new Construction(CharBigArrayBigList::new,
                 decoded -> updateMapped((BigList) current, (BigList) decoded)));
     }
 
@@ -4853,12 +4851,12 @@ public final class FastutilCollections {
             if (current != null) result.defaultReturnValue(((Int2ReferenceMap) current).defaultReturnValue());
             return result;
         }, decoded -> Int2ReferenceMaps.synchronize((Int2ReferenceMap) decoded)));
-        register(IntCollection.class, (type, current) -> new Construction(() -> new IntArrayList()));
-        register(IntList.class, (type, current) -> new Construction(() -> new IntArrayList()));
-        register(IntSet.class, (type, current) -> new Construction(() -> new IntOpenHashSet()));
+        register(IntCollection.class, (type, current) -> new Construction(IntArrayList::new));
+        register(IntList.class, (type, current) -> new Construction(IntArrayList::new));
+        register(IntSet.class, (type, current) -> new Construction(IntOpenHashSet::new));
         register(IntSortedSet.class, (type, current) -> new Construction(
                 () -> current == null ? new IntRBTreeSet() : new IntRBTreeSet(((IntSortedSet) current).comparator())));
-        register(IntBigList.class, (type, current) -> new Construction(() -> new IntBigArrayBigList()));
+        register(IntBigList.class, (type, current) -> new Construction(IntBigArrayBigList::new));
         register(IntArrayList.class, (type, current) -> new Construction(
                 () -> current == null ? new IntArrayList() : ((IntArrayList) current).clone()));
         register(IntArraySet.class, (type, current) -> new Construction(
@@ -4878,35 +4876,35 @@ public final class FastutilCollections {
         register(IntLinkedOpenCustomHashSet.class,
                 (type, current) -> new Construction(() -> ((IntLinkedOpenCustomHashSet) current).clone()));
         register(IntCollections.unmodifiable(new IntArrayList()).getClass(),
-                (type, current) -> new Construction(() -> new IntArrayList(),
+                (type, current) -> new Construction(IntArrayList::new,
                         decoded -> IntCollections.unmodifiable((IntCollection) decoded)));
         register(IntCollections.unmodifiable(new IntArrayList()).getClass(),
-                (type, current) -> new Construction(() -> new IntArrayList(),
+                (type, current) -> new Construction(IntArrayList::new,
                         decoded -> IntCollections.unmodifiable((IntCollection) decoded)));
         register(IntCollections.synchronize(new IntArrayList()).getClass(),
-                (type, current) -> new Construction(() -> new IntArrayList(),
+                (type, current) -> new Construction(IntArrayList::new,
                         decoded -> IntCollections.synchronize((IntCollection) decoded)));
-        register(IntLists.UnmodifiableList.class, (type, current) -> new Construction(() -> new IntArrayList(),
+        register(IntLists.UnmodifiableList.class, (type, current) -> new Construction(IntArrayList::new,
                 decoded -> IntLists.unmodifiable((IntList) decoded)));
-        register(IntLists.EmptyList.class, (type, current) -> new Construction(() -> new IntArrayList(),
+        register(IntLists.EmptyList.class, (type, current) -> new Construction(IntArrayList::new,
                 decoded -> IntLists.unmodifiable((IntList) decoded)));
-        register(IntLists.Singleton.class, (type, current) -> new Construction(() -> new IntArrayList(),
+        register(IntLists.Singleton.class, (type, current) -> new Construction(IntArrayList::new,
                 decoded -> IntLists.unmodifiable((IntList) decoded)));
-        register(IntLists.SynchronizedList.class, (type, current) -> new Construction(() -> new IntArrayList(),
+        register(IntLists.SynchronizedList.class, (type, current) -> new Construction(IntArrayList::new,
                 decoded -> IntLists.synchronize((IntList) decoded)));
         register(IntLists.UnmodifiableRandomAccessList.class,
-                (type, current) -> new Construction(() -> new IntArrayList(),
+                (type, current) -> new Construction(IntArrayList::new,
                         decoded -> IntLists.unmodifiable((IntList) decoded)));
         register(IntLists.SynchronizedRandomAccessList.class,
-                (type, current) -> new Construction(() -> new IntArrayList(),
+                (type, current) -> new Construction(IntArrayList::new,
                         decoded -> IntLists.synchronize((IntList) decoded)));
-        register(IntSets.UnmodifiableSet.class, (type, current) -> new Construction(() -> new IntOpenHashSet(),
+        register(IntSets.UnmodifiableSet.class, (type, current) -> new Construction(IntOpenHashSet::new,
                 decoded -> IntSets.unmodifiable((IntSet) decoded)));
-        register(IntSets.EmptySet.class, (type, current) -> new Construction(() -> new IntOpenHashSet(),
+        register(IntSets.EmptySet.class, (type, current) -> new Construction(IntOpenHashSet::new,
                 decoded -> IntSets.unmodifiable((IntSet) decoded)));
-        register(IntSets.Singleton.class, (type, current) -> new Construction(() -> new IntOpenHashSet(),
+        register(IntSets.Singleton.class, (type, current) -> new Construction(IntOpenHashSet::new,
                 decoded -> IntSets.unmodifiable((IntSet) decoded)));
-        register(IntSets.SynchronizedSet.class, (type, current) -> new Construction(() -> new IntOpenHashSet(),
+        register(IntSets.SynchronizedSet.class, (type, current) -> new Construction(IntOpenHashSet::new,
                 decoded -> IntSets.synchronize((IntSet) decoded)));
         register(IntSortedSets.UnmodifiableSortedSet.class,
                 (type, current) -> new Construction(
@@ -4925,21 +4923,21 @@ public final class FastutilCollections {
                         () -> new IntRBTreeSet(current == null ? null : ((IntSortedSet) current).comparator()),
                         decoded -> IntSortedSets.synchronize((IntSortedSet) decoded)));
         register(IntBigLists.UnmodifiableBigList.class,
-                (type, current) -> new Construction(() -> new IntBigArrayBigList(),
+                (type, current) -> new Construction(IntBigArrayBigList::new,
                         decoded -> IntBigLists.unmodifiable((IntBigList) decoded)));
-        register(IntBigLists.EmptyBigList.class, (type, current) -> new Construction(() -> new IntBigArrayBigList(),
+        register(IntBigLists.EmptyBigList.class, (type, current) -> new Construction(IntBigArrayBigList::new,
                 decoded -> IntBigLists.unmodifiable((IntBigList) decoded)));
-        register(IntBigLists.Singleton.class, (type, current) -> new Construction(() -> new IntBigArrayBigList(),
+        register(IntBigLists.Singleton.class, (type, current) -> new Construction(IntBigArrayBigList::new,
                 decoded -> IntBigLists.unmodifiable((IntBigList) decoded)));
         register(IntBigLists.SynchronizedBigList.class,
-                (type, current) -> new Construction(() -> new IntBigArrayBigList(),
+                (type, current) -> new Construction(IntBigArrayBigList::new,
                         decoded -> IntBigLists.synchronize((IntBigList) decoded)));
-        register(IntImmutableList.class, (type, current) -> new Construction(() -> new IntArrayList(),
+        register(IntImmutableList.class, (type, current) -> new Construction(IntArrayList::new,
                 decoded -> new IntImmutableList((Collection) decoded)));
         register(new IntImmutableList(new int[] { 0, 1 }).subList(0, 1).getClass(),
-                (type, current) -> new Construction(() -> new IntArrayList(),
+                (type, current) -> new Construction(IntArrayList::new,
                         decoded -> new IntImmutableList((Collection) decoded)));
-        register(IntMappedBigList.class, (type, current) -> new Construction(() -> new IntBigArrayBigList(),
+        register(IntMappedBigList.class, (type, current) -> new Construction(IntBigArrayBigList::new,
                 decoded -> updateMapped((BigList) current, (BigList) decoded)));
     }
 
@@ -5614,12 +5612,12 @@ public final class FastutilCollections {
             if (current != null) result.defaultReturnValue(((Long2ReferenceMap) current).defaultReturnValue());
             return result;
         }, decoded -> Long2ReferenceMaps.synchronize((Long2ReferenceMap) decoded)));
-        register(LongCollection.class, (type, current) -> new Construction(() -> new LongArrayList()));
-        register(LongList.class, (type, current) -> new Construction(() -> new LongArrayList()));
-        register(LongSet.class, (type, current) -> new Construction(() -> new LongOpenHashSet()));
+        register(LongCollection.class, (type, current) -> new Construction(LongArrayList::new));
+        register(LongList.class, (type, current) -> new Construction(LongArrayList::new));
+        register(LongSet.class, (type, current) -> new Construction(LongOpenHashSet::new));
         register(LongSortedSet.class, (type, current) -> new Construction(() -> current == null ? new LongRBTreeSet() :
                 new LongRBTreeSet(((LongSortedSet) current).comparator())));
-        register(LongBigList.class, (type, current) -> new Construction(() -> new LongBigArrayBigList()));
+        register(LongBigList.class, (type, current) -> new Construction(LongBigArrayBigList::new));
         register(LongArrayList.class, (type, current) -> new Construction(
                 () -> current == null ? new LongArrayList() : ((LongArrayList) current).clone()));
         register(LongArraySet.class, (type, current) -> new Construction(
@@ -5639,35 +5637,35 @@ public final class FastutilCollections {
         register(LongLinkedOpenCustomHashSet.class,
                 (type, current) -> new Construction(() -> ((LongLinkedOpenCustomHashSet) current).clone()));
         register(LongCollections.unmodifiable(new LongArrayList()).getClass(),
-                (type, current) -> new Construction(() -> new LongArrayList(),
+                (type, current) -> new Construction(LongArrayList::new,
                         decoded -> LongCollections.unmodifiable((LongCollection) decoded)));
         register(LongCollections.unmodifiable(new LongArrayList()).getClass(),
-                (type, current) -> new Construction(() -> new LongArrayList(),
+                (type, current) -> new Construction(LongArrayList::new,
                         decoded -> LongCollections.unmodifiable((LongCollection) decoded)));
         register(LongCollections.synchronize(new LongArrayList()).getClass(),
-                (type, current) -> new Construction(() -> new LongArrayList(),
+                (type, current) -> new Construction(LongArrayList::new,
                         decoded -> LongCollections.synchronize((LongCollection) decoded)));
-        register(LongLists.UnmodifiableList.class, (type, current) -> new Construction(() -> new LongArrayList(),
+        register(LongLists.UnmodifiableList.class, (type, current) -> new Construction(LongArrayList::new,
                 decoded -> LongLists.unmodifiable((LongList) decoded)));
-        register(LongLists.EmptyList.class, (type, current) -> new Construction(() -> new LongArrayList(),
+        register(LongLists.EmptyList.class, (type, current) -> new Construction(LongArrayList::new,
                 decoded -> LongLists.unmodifiable((LongList) decoded)));
-        register(LongLists.Singleton.class, (type, current) -> new Construction(() -> new LongArrayList(),
+        register(LongLists.Singleton.class, (type, current) -> new Construction(LongArrayList::new,
                 decoded -> LongLists.unmodifiable((LongList) decoded)));
-        register(LongLists.SynchronizedList.class, (type, current) -> new Construction(() -> new LongArrayList(),
+        register(LongLists.SynchronizedList.class, (type, current) -> new Construction(LongArrayList::new,
                 decoded -> LongLists.synchronize((LongList) decoded)));
         register(LongLists.UnmodifiableRandomAccessList.class,
-                (type, current) -> new Construction(() -> new LongArrayList(),
+                (type, current) -> new Construction(LongArrayList::new,
                         decoded -> LongLists.unmodifiable((LongList) decoded)));
         register(LongLists.SynchronizedRandomAccessList.class,
-                (type, current) -> new Construction(() -> new LongArrayList(),
+                (type, current) -> new Construction(LongArrayList::new,
                         decoded -> LongLists.synchronize((LongList) decoded)));
-        register(LongSets.UnmodifiableSet.class, (type, current) -> new Construction(() -> new LongOpenHashSet(),
+        register(LongSets.UnmodifiableSet.class, (type, current) -> new Construction(LongOpenHashSet::new,
                 decoded -> LongSets.unmodifiable((LongSet) decoded)));
-        register(LongSets.EmptySet.class, (type, current) -> new Construction(() -> new LongOpenHashSet(),
+        register(LongSets.EmptySet.class, (type, current) -> new Construction(LongOpenHashSet::new,
                 decoded -> LongSets.unmodifiable((LongSet) decoded)));
-        register(LongSets.Singleton.class, (type, current) -> new Construction(() -> new LongOpenHashSet(),
+        register(LongSets.Singleton.class, (type, current) -> new Construction(LongOpenHashSet::new,
                 decoded -> LongSets.unmodifiable((LongSet) decoded)));
-        register(LongSets.SynchronizedSet.class, (type, current) -> new Construction(() -> new LongOpenHashSet(),
+        register(LongSets.SynchronizedSet.class, (type, current) -> new Construction(LongOpenHashSet::new,
                 decoded -> LongSets.synchronize((LongSet) decoded)));
         register(LongSortedSets.UnmodifiableSortedSet.class,
                 (type, current) -> new Construction(
@@ -5686,21 +5684,21 @@ public final class FastutilCollections {
                         () -> new LongRBTreeSet(current == null ? null : ((LongSortedSet) current).comparator()),
                         decoded -> LongSortedSets.synchronize((LongSortedSet) decoded)));
         register(LongBigLists.UnmodifiableBigList.class,
-                (type, current) -> new Construction(() -> new LongBigArrayBigList(),
+                (type, current) -> new Construction(LongBigArrayBigList::new,
                         decoded -> LongBigLists.unmodifiable((LongBigList) decoded)));
-        register(LongBigLists.EmptyBigList.class, (type, current) -> new Construction(() -> new LongBigArrayBigList(),
+        register(LongBigLists.EmptyBigList.class, (type, current) -> new Construction(LongBigArrayBigList::new,
                 decoded -> LongBigLists.unmodifiable((LongBigList) decoded)));
-        register(LongBigLists.Singleton.class, (type, current) -> new Construction(() -> new LongBigArrayBigList(),
+        register(LongBigLists.Singleton.class, (type, current) -> new Construction(LongBigArrayBigList::new,
                 decoded -> LongBigLists.unmodifiable((LongBigList) decoded)));
         register(LongBigLists.SynchronizedBigList.class,
-                (type, current) -> new Construction(() -> new LongBigArrayBigList(),
+                (type, current) -> new Construction(LongBigArrayBigList::new,
                         decoded -> LongBigLists.synchronize((LongBigList) decoded)));
-        register(LongImmutableList.class, (type, current) -> new Construction(() -> new LongArrayList(),
+        register(LongImmutableList.class, (type, current) -> new Construction(LongArrayList::new,
                 decoded -> new LongImmutableList((Collection) decoded)));
         register(new LongImmutableList(new long[] { 0, 1 }).subList(0, 1).getClass(),
-                (type, current) -> new Construction(() -> new LongArrayList(),
+                (type, current) -> new Construction(LongArrayList::new,
                         decoded -> new LongImmutableList((Collection) decoded)));
-        register(LongMappedBigList.class, (type, current) -> new Construction(() -> new LongBigArrayBigList(),
+        register(LongMappedBigList.class, (type, current) -> new Construction(LongBigArrayBigList::new,
                 decoded -> updateMapped((BigList) current, (BigList) decoded)));
     }
 
@@ -6375,12 +6373,12 @@ public final class FastutilCollections {
             if (current != null) result.defaultReturnValue(((Float2ReferenceMap) current).defaultReturnValue());
             return result;
         }, decoded -> Float2ReferenceMaps.synchronize((Float2ReferenceMap) decoded)));
-        register(FloatCollection.class, (type, current) -> new Construction(() -> new FloatArrayList()));
-        register(FloatList.class, (type, current) -> new Construction(() -> new FloatArrayList()));
-        register(FloatSet.class, (type, current) -> new Construction(() -> new FloatOpenHashSet()));
+        register(FloatCollection.class, (type, current) -> new Construction(FloatArrayList::new));
+        register(FloatList.class, (type, current) -> new Construction(FloatArrayList::new));
+        register(FloatSet.class, (type, current) -> new Construction(FloatOpenHashSet::new));
         register(FloatSortedSet.class, (type, current) -> new Construction(() -> current == null ?
                 new FloatRBTreeSet() : new FloatRBTreeSet(((FloatSortedSet) current).comparator())));
-        register(FloatBigList.class, (type, current) -> new Construction(() -> new FloatBigArrayBigList()));
+        register(FloatBigList.class, (type, current) -> new Construction(FloatBigArrayBigList::new));
         register(FloatArrayList.class, (type, current) -> new Construction(
                 () -> current == null ? new FloatArrayList() : ((FloatArrayList) current).clone()));
         register(FloatArraySet.class, (type, current) -> new Construction(
@@ -6400,35 +6398,35 @@ public final class FastutilCollections {
         register(FloatLinkedOpenCustomHashSet.class,
                 (type, current) -> new Construction(() -> ((FloatLinkedOpenCustomHashSet) current).clone()));
         register(FloatCollections.unmodifiable(new FloatArrayList()).getClass(),
-                (type, current) -> new Construction(() -> new FloatArrayList(),
+                (type, current) -> new Construction(FloatArrayList::new,
                         decoded -> FloatCollections.unmodifiable((FloatCollection) decoded)));
         register(FloatCollections.unmodifiable(new FloatArrayList()).getClass(),
-                (type, current) -> new Construction(() -> new FloatArrayList(),
+                (type, current) -> new Construction(FloatArrayList::new,
                         decoded -> FloatCollections.unmodifiable((FloatCollection) decoded)));
         register(FloatCollections.synchronize(new FloatArrayList()).getClass(),
-                (type, current) -> new Construction(() -> new FloatArrayList(),
+                (type, current) -> new Construction(FloatArrayList::new,
                         decoded -> FloatCollections.synchronize((FloatCollection) decoded)));
-        register(FloatLists.UnmodifiableList.class, (type, current) -> new Construction(() -> new FloatArrayList(),
+        register(FloatLists.UnmodifiableList.class, (type, current) -> new Construction(FloatArrayList::new,
                 decoded -> FloatLists.unmodifiable((FloatList) decoded)));
-        register(FloatLists.EmptyList.class, (type, current) -> new Construction(() -> new FloatArrayList(),
+        register(FloatLists.EmptyList.class, (type, current) -> new Construction(FloatArrayList::new,
                 decoded -> FloatLists.unmodifiable((FloatList) decoded)));
-        register(FloatLists.Singleton.class, (type, current) -> new Construction(() -> new FloatArrayList(),
+        register(FloatLists.Singleton.class, (type, current) -> new Construction(FloatArrayList::new,
                 decoded -> FloatLists.unmodifiable((FloatList) decoded)));
-        register(FloatLists.SynchronizedList.class, (type, current) -> new Construction(() -> new FloatArrayList(),
+        register(FloatLists.SynchronizedList.class, (type, current) -> new Construction(FloatArrayList::new,
                 decoded -> FloatLists.synchronize((FloatList) decoded)));
         register(FloatLists.UnmodifiableRandomAccessList.class,
-                (type, current) -> new Construction(() -> new FloatArrayList(),
+                (type, current) -> new Construction(FloatArrayList::new,
                         decoded -> FloatLists.unmodifiable((FloatList) decoded)));
         register(FloatLists.SynchronizedRandomAccessList.class,
-                (type, current) -> new Construction(() -> new FloatArrayList(),
+                (type, current) -> new Construction(FloatArrayList::new,
                         decoded -> FloatLists.synchronize((FloatList) decoded)));
-        register(FloatSets.UnmodifiableSet.class, (type, current) -> new Construction(() -> new FloatOpenHashSet(),
+        register(FloatSets.UnmodifiableSet.class, (type, current) -> new Construction(FloatOpenHashSet::new,
                 decoded -> FloatSets.unmodifiable((FloatSet) decoded)));
-        register(FloatSets.EmptySet.class, (type, current) -> new Construction(() -> new FloatOpenHashSet(),
+        register(FloatSets.EmptySet.class, (type, current) -> new Construction(FloatOpenHashSet::new,
                 decoded -> FloatSets.unmodifiable((FloatSet) decoded)));
-        register(FloatSets.Singleton.class, (type, current) -> new Construction(() -> new FloatOpenHashSet(),
+        register(FloatSets.Singleton.class, (type, current) -> new Construction(FloatOpenHashSet::new,
                 decoded -> FloatSets.unmodifiable((FloatSet) decoded)));
-        register(FloatSets.SynchronizedSet.class, (type, current) -> new Construction(() -> new FloatOpenHashSet(),
+        register(FloatSets.SynchronizedSet.class, (type, current) -> new Construction(FloatOpenHashSet::new,
                 decoded -> FloatSets.synchronize((FloatSet) decoded)));
         register(FloatSortedSets.UnmodifiableSortedSet.class,
                 (type, current) -> new Construction(
@@ -6447,21 +6445,21 @@ public final class FastutilCollections {
                         () -> new FloatRBTreeSet(current == null ? null : ((FloatSortedSet) current).comparator()),
                         decoded -> FloatSortedSets.synchronize((FloatSortedSet) decoded)));
         register(FloatBigLists.UnmodifiableBigList.class,
-                (type, current) -> new Construction(() -> new FloatBigArrayBigList(),
+                (type, current) -> new Construction(FloatBigArrayBigList::new,
                         decoded -> FloatBigLists.unmodifiable((FloatBigList) decoded)));
-        register(FloatBigLists.EmptyBigList.class, (type, current) -> new Construction(() -> new FloatBigArrayBigList(),
+        register(FloatBigLists.EmptyBigList.class, (type, current) -> new Construction(FloatBigArrayBigList::new,
                 decoded -> FloatBigLists.unmodifiable((FloatBigList) decoded)));
-        register(FloatBigLists.Singleton.class, (type, current) -> new Construction(() -> new FloatBigArrayBigList(),
+        register(FloatBigLists.Singleton.class, (type, current) -> new Construction(FloatBigArrayBigList::new,
                 decoded -> FloatBigLists.unmodifiable((FloatBigList) decoded)));
         register(FloatBigLists.SynchronizedBigList.class,
-                (type, current) -> new Construction(() -> new FloatBigArrayBigList(),
+                (type, current) -> new Construction(FloatBigArrayBigList::new,
                         decoded -> FloatBigLists.synchronize((FloatBigList) decoded)));
-        register(FloatImmutableList.class, (type, current) -> new Construction(() -> new FloatArrayList(),
+        register(FloatImmutableList.class, (type, current) -> new Construction(FloatArrayList::new,
                 decoded -> new FloatImmutableList((Collection) decoded)));
         register(new FloatImmutableList(new float[] { 0, 1 }).subList(0, 1).getClass(),
-                (type, current) -> new Construction(() -> new FloatArrayList(),
+                (type, current) -> new Construction(FloatArrayList::new,
                         decoded -> new FloatImmutableList((Collection) decoded)));
-        register(FloatMappedBigList.class, (type, current) -> new Construction(() -> new FloatBigArrayBigList(),
+        register(FloatMappedBigList.class, (type, current) -> new Construction(FloatBigArrayBigList::new,
                 decoded -> updateMapped((BigList) current, (BigList) decoded)));
     }
 
@@ -7136,12 +7134,12 @@ public final class FastutilCollections {
             if (current != null) result.defaultReturnValue(((Double2ReferenceMap) current).defaultReturnValue());
             return result;
         }, decoded -> Double2ReferenceMaps.synchronize((Double2ReferenceMap) decoded)));
-        register(DoubleCollection.class, (type, current) -> new Construction(() -> new DoubleArrayList()));
-        register(DoubleList.class, (type, current) -> new Construction(() -> new DoubleArrayList()));
-        register(DoubleSet.class, (type, current) -> new Construction(() -> new DoubleOpenHashSet()));
+        register(DoubleCollection.class, (type, current) -> new Construction(DoubleArrayList::new));
+        register(DoubleList.class, (type, current) -> new Construction(DoubleArrayList::new));
+        register(DoubleSet.class, (type, current) -> new Construction(DoubleOpenHashSet::new));
         register(DoubleSortedSet.class, (type, current) -> new Construction(() -> current == null ?
                 new DoubleRBTreeSet() : new DoubleRBTreeSet(((DoubleSortedSet) current).comparator())));
-        register(DoubleBigList.class, (type, current) -> new Construction(() -> new DoubleBigArrayBigList()));
+        register(DoubleBigList.class, (type, current) -> new Construction(DoubleBigArrayBigList::new));
         register(DoubleArrayList.class, (type, current) -> new Construction(
                 () -> current == null ? new DoubleArrayList() : ((DoubleArrayList) current).clone()));
         register(DoubleArraySet.class, (type, current) -> new Construction(
@@ -7161,35 +7159,35 @@ public final class FastutilCollections {
         register(DoubleLinkedOpenCustomHashSet.class,
                 (type, current) -> new Construction(() -> ((DoubleLinkedOpenCustomHashSet) current).clone()));
         register(DoubleCollections.unmodifiable(new DoubleArrayList()).getClass(),
-                (type, current) -> new Construction(() -> new DoubleArrayList(),
+                (type, current) -> new Construction(DoubleArrayList::new,
                         decoded -> DoubleCollections.unmodifiable((DoubleCollection) decoded)));
         register(DoubleCollections.unmodifiable(new DoubleArrayList()).getClass(),
-                (type, current) -> new Construction(() -> new DoubleArrayList(),
+                (type, current) -> new Construction(DoubleArrayList::new,
                         decoded -> DoubleCollections.unmodifiable((DoubleCollection) decoded)));
         register(DoubleCollections.synchronize(new DoubleArrayList()).getClass(),
-                (type, current) -> new Construction(() -> new DoubleArrayList(),
+                (type, current) -> new Construction(DoubleArrayList::new,
                         decoded -> DoubleCollections.synchronize((DoubleCollection) decoded)));
-        register(DoubleLists.UnmodifiableList.class, (type, current) -> new Construction(() -> new DoubleArrayList(),
+        register(DoubleLists.UnmodifiableList.class, (type, current) -> new Construction(DoubleArrayList::new,
                 decoded -> DoubleLists.unmodifiable((DoubleList) decoded)));
-        register(DoubleLists.EmptyList.class, (type, current) -> new Construction(() -> new DoubleArrayList(),
+        register(DoubleLists.EmptyList.class, (type, current) -> new Construction(DoubleArrayList::new,
                 decoded -> DoubleLists.unmodifiable((DoubleList) decoded)));
-        register(DoubleLists.Singleton.class, (type, current) -> new Construction(() -> new DoubleArrayList(),
+        register(DoubleLists.Singleton.class, (type, current) -> new Construction(DoubleArrayList::new,
                 decoded -> DoubleLists.unmodifiable((DoubleList) decoded)));
-        register(DoubleLists.SynchronizedList.class, (type, current) -> new Construction(() -> new DoubleArrayList(),
+        register(DoubleLists.SynchronizedList.class, (type, current) -> new Construction(DoubleArrayList::new,
                 decoded -> DoubleLists.synchronize((DoubleList) decoded)));
         register(DoubleLists.UnmodifiableRandomAccessList.class,
-                (type, current) -> new Construction(() -> new DoubleArrayList(),
+                (type, current) -> new Construction(DoubleArrayList::new,
                         decoded -> DoubleLists.unmodifiable((DoubleList) decoded)));
         register(DoubleLists.SynchronizedRandomAccessList.class,
-                (type, current) -> new Construction(() -> new DoubleArrayList(),
+                (type, current) -> new Construction(DoubleArrayList::new,
                         decoded -> DoubleLists.synchronize((DoubleList) decoded)));
-        register(DoubleSets.UnmodifiableSet.class, (type, current) -> new Construction(() -> new DoubleOpenHashSet(),
+        register(DoubleSets.UnmodifiableSet.class, (type, current) -> new Construction(DoubleOpenHashSet::new,
                 decoded -> DoubleSets.unmodifiable((DoubleSet) decoded)));
-        register(DoubleSets.EmptySet.class, (type, current) -> new Construction(() -> new DoubleOpenHashSet(),
+        register(DoubleSets.EmptySet.class, (type, current) -> new Construction(DoubleOpenHashSet::new,
                 decoded -> DoubleSets.unmodifiable((DoubleSet) decoded)));
-        register(DoubleSets.Singleton.class, (type, current) -> new Construction(() -> new DoubleOpenHashSet(),
+        register(DoubleSets.Singleton.class, (type, current) -> new Construction(DoubleOpenHashSet::new,
                 decoded -> DoubleSets.unmodifiable((DoubleSet) decoded)));
-        register(DoubleSets.SynchronizedSet.class, (type, current) -> new Construction(() -> new DoubleOpenHashSet(),
+        register(DoubleSets.SynchronizedSet.class, (type, current) -> new Construction(DoubleOpenHashSet::new,
                 decoded -> DoubleSets.synchronize((DoubleSet) decoded)));
         register(DoubleSortedSets.UnmodifiableSortedSet.class,
                 (type, current) -> new Construction(
@@ -7208,22 +7206,22 @@ public final class FastutilCollections {
                         () -> new DoubleRBTreeSet(current == null ? null : ((DoubleSortedSet) current).comparator()),
                         decoded -> DoubleSortedSets.synchronize((DoubleSortedSet) decoded)));
         register(DoubleBigLists.UnmodifiableBigList.class,
-                (type, current) -> new Construction(() -> new DoubleBigArrayBigList(),
+                (type, current) -> new Construction(DoubleBigArrayBigList::new,
                         decoded -> DoubleBigLists.unmodifiable((DoubleBigList) decoded)));
         register(DoubleBigLists.EmptyBigList.class,
-                (type, current) -> new Construction(() -> new DoubleBigArrayBigList(),
+                (type, current) -> new Construction(DoubleBigArrayBigList::new,
                         decoded -> DoubleBigLists.unmodifiable((DoubleBigList) decoded)));
-        register(DoubleBigLists.Singleton.class, (type, current) -> new Construction(() -> new DoubleBigArrayBigList(),
+        register(DoubleBigLists.Singleton.class, (type, current) -> new Construction(DoubleBigArrayBigList::new,
                 decoded -> DoubleBigLists.unmodifiable((DoubleBigList) decoded)));
         register(DoubleBigLists.SynchronizedBigList.class,
-                (type, current) -> new Construction(() -> new DoubleBigArrayBigList(),
+                (type, current) -> new Construction(DoubleBigArrayBigList::new,
                         decoded -> DoubleBigLists.synchronize((DoubleBigList) decoded)));
-        register(DoubleImmutableList.class, (type, current) -> new Construction(() -> new DoubleArrayList(),
+        register(DoubleImmutableList.class, (type, current) -> new Construction(DoubleArrayList::new,
                 decoded -> new DoubleImmutableList((Collection) decoded)));
         register(new DoubleImmutableList(new double[] { 0, 1 }).subList(0, 1).getClass(),
-                (type, current) -> new Construction(() -> new DoubleArrayList(),
+                (type, current) -> new Construction(DoubleArrayList::new,
                         decoded -> new DoubleImmutableList((Collection) decoded)));
-        register(DoubleMappedBigList.class, (type, current) -> new Construction(() -> new DoubleBigArrayBigList(),
+        register(DoubleMappedBigList.class, (type, current) -> new Construction(DoubleBigArrayBigList::new,
                 decoded -> updateMapped((BigList) current, (BigList) decoded)));
     }
 
@@ -7918,12 +7916,12 @@ public final class FastutilCollections {
             if (current != null) result.defaultReturnValue(((Object2ReferenceMap) current).defaultReturnValue());
             return result;
         }, decoded -> Object2ReferenceMaps.synchronize((Object2ReferenceMap) decoded)));
-        register(ObjectCollection.class, (type, current) -> new Construction(() -> new ObjectArrayList()));
-        register(ObjectList.class, (type, current) -> new Construction(() -> new ObjectArrayList()));
-        register(ObjectSet.class, (type, current) -> new Construction(() -> new ObjectOpenHashSet()));
+        register(ObjectCollection.class, (type, current) -> new Construction(ObjectArrayList::new));
+        register(ObjectList.class, (type, current) -> new Construction(ObjectArrayList::new));
+        register(ObjectSet.class, (type, current) -> new Construction(ObjectOpenHashSet::new));
         register(ObjectSortedSet.class, (type, current) -> new Construction(() -> current == null ?
                 new ObjectRBTreeSet() : new ObjectRBTreeSet(((ObjectSortedSet) current).comparator())));
-        register(ObjectBigList.class, (type, current) -> new Construction(() -> new ObjectBigArrayBigList()));
+        register(ObjectBigList.class, (type, current) -> new Construction(ObjectBigArrayBigList::new));
         register(ObjectArrayList.class, (type, current) -> new Construction(
                 () -> current == null ? new ObjectArrayList() : ((ObjectArrayList) current).clone()));
         register(ObjectArraySet.class, (type, current) -> new Construction(
@@ -7943,35 +7941,35 @@ public final class FastutilCollections {
         register(ObjectLinkedOpenCustomHashSet.class,
                 (type, current) -> new Construction(() -> ((ObjectLinkedOpenCustomHashSet) current).clone()));
         register(ObjectCollections.unmodifiable(new ObjectArrayList()).getClass(),
-                (type, current) -> new Construction(() -> new ObjectArrayList(),
+                (type, current) -> new Construction(ObjectArrayList::new,
                         decoded -> ObjectCollections.unmodifiable((ObjectCollection) decoded)));
         register(ObjectCollections.unmodifiable(new ObjectArrayList()).getClass(),
-                (type, current) -> new Construction(() -> new ObjectArrayList(),
+                (type, current) -> new Construction(ObjectArrayList::new,
                         decoded -> ObjectCollections.unmodifiable((ObjectCollection) decoded)));
         register(ObjectCollections.synchronize(new ObjectArrayList()).getClass(),
-                (type, current) -> new Construction(() -> new ObjectArrayList(),
+                (type, current) -> new Construction(ObjectArrayList::new,
                         decoded -> ObjectCollections.synchronize((ObjectCollection) decoded)));
-        register(ObjectLists.UnmodifiableList.class, (type, current) -> new Construction(() -> new ObjectArrayList(),
+        register(ObjectLists.UnmodifiableList.class, (type, current) -> new Construction(ObjectArrayList::new,
                 decoded -> ObjectLists.unmodifiable((ObjectList) decoded)));
-        register(ObjectLists.EmptyList.class, (type, current) -> new Construction(() -> new ObjectArrayList(),
+        register(ObjectLists.EmptyList.class, (type, current) -> new Construction(ObjectArrayList::new,
                 decoded -> ObjectLists.unmodifiable((ObjectList) decoded)));
-        register(ObjectLists.Singleton.class, (type, current) -> new Construction(() -> new ObjectArrayList(),
+        register(ObjectLists.Singleton.class, (type, current) -> new Construction(ObjectArrayList::new,
                 decoded -> ObjectLists.unmodifiable((ObjectList) decoded)));
-        register(ObjectLists.SynchronizedList.class, (type, current) -> new Construction(() -> new ObjectArrayList(),
+        register(ObjectLists.SynchronizedList.class, (type, current) -> new Construction(ObjectArrayList::new,
                 decoded -> ObjectLists.synchronize((ObjectList) decoded)));
         register(ObjectLists.UnmodifiableRandomAccessList.class,
-                (type, current) -> new Construction(() -> new ObjectArrayList(),
+                (type, current) -> new Construction(ObjectArrayList::new,
                         decoded -> ObjectLists.unmodifiable((ObjectList) decoded)));
         register(ObjectLists.SynchronizedRandomAccessList.class,
-                (type, current) -> new Construction(() -> new ObjectArrayList(),
+                (type, current) -> new Construction(ObjectArrayList::new,
                         decoded -> ObjectLists.synchronize((ObjectList) decoded)));
-        register(ObjectSets.UnmodifiableSet.class, (type, current) -> new Construction(() -> new ObjectOpenHashSet(),
+        register(ObjectSets.UnmodifiableSet.class, (type, current) -> new Construction(ObjectOpenHashSet::new,
                 decoded -> ObjectSets.unmodifiable((ObjectSet) decoded)));
-        register(ObjectSets.EmptySet.class, (type, current) -> new Construction(() -> new ObjectOpenHashSet(),
+        register(ObjectSets.EmptySet.class, (type, current) -> new Construction(ObjectOpenHashSet::new,
                 decoded -> ObjectSets.unmodifiable((ObjectSet) decoded)));
-        register(ObjectSets.Singleton.class, (type, current) -> new Construction(() -> new ObjectOpenHashSet(),
+        register(ObjectSets.Singleton.class, (type, current) -> new Construction(ObjectOpenHashSet::new,
                 decoded -> ObjectSets.unmodifiable((ObjectSet) decoded)));
-        register(ObjectSets.SynchronizedSet.class, (type, current) -> new Construction(() -> new ObjectOpenHashSet(),
+        register(ObjectSets.SynchronizedSet.class, (type, current) -> new Construction(ObjectOpenHashSet::new,
                 decoded -> ObjectSets.synchronize((ObjectSet) decoded)));
         register(ObjectSortedSets.UnmodifiableSortedSet.class,
                 (type, current) -> new Construction(
@@ -7990,20 +7988,20 @@ public final class FastutilCollections {
                         () -> new ObjectRBTreeSet(current == null ? null : ((ObjectSortedSet) current).comparator()),
                         decoded -> ObjectSortedSets.synchronize((ObjectSortedSet) decoded)));
         register(ObjectBigLists.UnmodifiableBigList.class,
-                (type, current) -> new Construction(() -> new ObjectBigArrayBigList(),
+                (type, current) -> new Construction(ObjectBigArrayBigList::new,
                         decoded -> ObjectBigLists.unmodifiable((ObjectBigList) decoded)));
         register(ObjectBigLists.EmptyBigList.class,
-                (type, current) -> new Construction(() -> new ObjectBigArrayBigList(),
+                (type, current) -> new Construction(ObjectBigArrayBigList::new,
                         decoded -> ObjectBigLists.unmodifiable((ObjectBigList) decoded)));
-        register(ObjectBigLists.Singleton.class, (type, current) -> new Construction(() -> new ObjectBigArrayBigList(),
+        register(ObjectBigLists.Singleton.class, (type, current) -> new Construction(ObjectBigArrayBigList::new,
                 decoded -> ObjectBigLists.unmodifiable((ObjectBigList) decoded)));
         register(ObjectBigLists.SynchronizedBigList.class,
-                (type, current) -> new Construction(() -> new ObjectBigArrayBigList(),
+                (type, current) -> new Construction(ObjectBigArrayBigList::new,
                         decoded -> ObjectBigLists.synchronize((ObjectBigList) decoded)));
-        register(ObjectImmutableList.class, (type, current) -> new Construction(() -> new ObjectArrayList(),
+        register(ObjectImmutableList.class, (type, current) -> new Construction(ObjectArrayList::new,
                 decoded -> new ObjectImmutableList((Collection) decoded)));
         register(new ObjectImmutableList(new Object[] { null, null }).subList(0, 1).getClass(),
-                (type, current) -> new Construction(() -> new ObjectArrayList(),
+                (type, current) -> new Construction(ObjectArrayList::new,
                         decoded -> new ObjectImmutableList((Collection) decoded)));
     }
 
@@ -8593,11 +8591,11 @@ public final class FastutilCollections {
             if (current != null) result.defaultReturnValue(((Reference2ReferenceMap) current).defaultReturnValue());
             return result;
         }, decoded -> Reference2ReferenceMaps.synchronize((Reference2ReferenceMap) decoded)));
-        register(ReferenceCollection.class, (type, current) -> new Construction(() -> new ReferenceArrayList()));
-        register(ReferenceList.class, (type, current) -> new Construction(() -> new ReferenceArrayList()));
-        register(ReferenceSet.class, (type, current) -> new Construction(() -> new ReferenceOpenHashSet()));
-        register(ReferenceSortedSet.class, (type, current) -> new Construction(() -> new ReferenceLinkedOpenHashSet()));
-        register(ReferenceBigList.class, (type, current) -> new Construction(() -> new ReferenceBigArrayBigList()));
+        register(ReferenceCollection.class, (type, current) -> new Construction(ReferenceArrayList::new));
+        register(ReferenceList.class, (type, current) -> new Construction(ReferenceArrayList::new));
+        register(ReferenceSet.class, (type, current) -> new Construction(ReferenceOpenHashSet::new));
+        register(ReferenceSortedSet.class, (type, current) -> new Construction(ReferenceLinkedOpenHashSet::new));
+        register(ReferenceBigList.class, (type, current) -> new Construction(ReferenceBigArrayBigList::new));
         register(ReferenceArrayList.class, (type, current) -> new Construction(
                 () -> current == null ? new ReferenceArrayList() : ((ReferenceArrayList) current).clone()));
         register(ReferenceArraySet.class, (type, current) -> new Construction(
@@ -8609,68 +8607,68 @@ public final class FastutilCollections {
         register(ReferenceBigArrayBigList.class, (type, current) -> new Construction(
                 () -> current == null ? new ReferenceBigArrayBigList() : ((ReferenceBigArrayBigList) current).clone()));
         register(ReferenceCollections.unmodifiable(new ReferenceArrayList()).getClass(),
-                (type, current) -> new Construction(() -> new ReferenceArrayList(),
+                (type, current) -> new Construction(ReferenceArrayList::new,
                         decoded -> ReferenceCollections.unmodifiable((ReferenceCollection) decoded)));
         register(ReferenceCollections.unmodifiable(new ReferenceArrayList()).getClass(),
-                (type, current) -> new Construction(() -> new ReferenceArrayList(),
+                (type, current) -> new Construction(ReferenceArrayList::new,
                         decoded -> ReferenceCollections.unmodifiable((ReferenceCollection) decoded)));
         register(ReferenceCollections.synchronize(new ReferenceArrayList()).getClass(),
-                (type, current) -> new Construction(() -> new ReferenceArrayList(),
+                (type, current) -> new Construction(ReferenceArrayList::new,
                         decoded -> ReferenceCollections.synchronize((ReferenceCollection) decoded)));
         register(ReferenceLists.UnmodifiableList.class,
-                (type, current) -> new Construction(() -> new ReferenceArrayList(),
+                (type, current) -> new Construction(ReferenceArrayList::new,
                         decoded -> ReferenceLists.unmodifiable((ReferenceList) decoded)));
-        register(ReferenceLists.EmptyList.class, (type, current) -> new Construction(() -> new ReferenceArrayList(),
+        register(ReferenceLists.EmptyList.class, (type, current) -> new Construction(ReferenceArrayList::new,
                 decoded -> ReferenceLists.unmodifiable((ReferenceList) decoded)));
-        register(ReferenceLists.Singleton.class, (type, current) -> new Construction(() -> new ReferenceArrayList(),
+        register(ReferenceLists.Singleton.class, (type, current) -> new Construction(ReferenceArrayList::new,
                 decoded -> ReferenceLists.unmodifiable((ReferenceList) decoded)));
         register(ReferenceLists.SynchronizedList.class,
-                (type, current) -> new Construction(() -> new ReferenceArrayList(),
+                (type, current) -> new Construction(ReferenceArrayList::new,
                         decoded -> ReferenceLists.synchronize((ReferenceList) decoded)));
         register(ReferenceLists.UnmodifiableRandomAccessList.class,
-                (type, current) -> new Construction(() -> new ReferenceArrayList(),
+                (type, current) -> new Construction(ReferenceArrayList::new,
                         decoded -> ReferenceLists.unmodifiable((ReferenceList) decoded)));
         register(ReferenceLists.SynchronizedRandomAccessList.class,
-                (type, current) -> new Construction(() -> new ReferenceArrayList(),
+                (type, current) -> new Construction(ReferenceArrayList::new,
                         decoded -> ReferenceLists.synchronize((ReferenceList) decoded)));
         register(ReferenceSets.UnmodifiableSet.class,
-                (type, current) -> new Construction(() -> new ReferenceOpenHashSet(),
+                (type, current) -> new Construction(ReferenceOpenHashSet::new,
                         decoded -> ReferenceSets.unmodifiable((ReferenceSet) decoded)));
-        register(ReferenceSets.EmptySet.class, (type, current) -> new Construction(() -> new ReferenceOpenHashSet(),
+        register(ReferenceSets.EmptySet.class, (type, current) -> new Construction(ReferenceOpenHashSet::new,
                 decoded -> ReferenceSets.unmodifiable((ReferenceSet) decoded)));
-        register(ReferenceSets.Singleton.class, (type, current) -> new Construction(() -> new ReferenceOpenHashSet(),
+        register(ReferenceSets.Singleton.class, (type, current) -> new Construction(ReferenceOpenHashSet::new,
                 decoded -> ReferenceSets.unmodifiable((ReferenceSet) decoded)));
         register(ReferenceSets.SynchronizedSet.class,
-                (type, current) -> new Construction(() -> new ReferenceOpenHashSet(),
+                (type, current) -> new Construction(ReferenceOpenHashSet::new,
                         decoded -> ReferenceSets.synchronize((ReferenceSet) decoded)));
         register(ReferenceSortedSets.UnmodifiableSortedSet.class,
-                (type, current) -> new Construction(() -> new ReferenceLinkedOpenHashSet(),
+                (type, current) -> new Construction(ReferenceLinkedOpenHashSet::new,
                         decoded -> ReferenceSortedSets.unmodifiable((ReferenceSortedSet) decoded)));
         register(ReferenceSortedSets.EmptySet.class,
-                (type, current) -> new Construction(() -> new ReferenceLinkedOpenHashSet(),
+                (type, current) -> new Construction(ReferenceLinkedOpenHashSet::new,
                         decoded -> ReferenceSortedSets.unmodifiable((ReferenceSortedSet) decoded)));
         register(ReferenceSortedSets.Singleton.class,
-                (type, current) -> new Construction(() -> new ReferenceLinkedOpenHashSet(),
+                (type, current) -> new Construction(ReferenceLinkedOpenHashSet::new,
                         decoded -> ReferenceSortedSets.unmodifiable((ReferenceSortedSet) decoded)));
         register(ReferenceSortedSets.SynchronizedSortedSet.class,
-                (type, current) -> new Construction(() -> new ReferenceLinkedOpenHashSet(),
+                (type, current) -> new Construction(ReferenceLinkedOpenHashSet::new,
                         decoded -> ReferenceSortedSets.synchronize((ReferenceSortedSet) decoded)));
         register(ReferenceBigLists.UnmodifiableBigList.class,
-                (type, current) -> new Construction(() -> new ReferenceBigArrayBigList(),
+                (type, current) -> new Construction(ReferenceBigArrayBigList::new,
                         decoded -> ReferenceBigLists.unmodifiable((ReferenceBigList) decoded)));
         register(ReferenceBigLists.EmptyBigList.class,
-                (type, current) -> new Construction(() -> new ReferenceBigArrayBigList(),
+                (type, current) -> new Construction(ReferenceBigArrayBigList::new,
                         decoded -> ReferenceBigLists.unmodifiable((ReferenceBigList) decoded)));
         register(ReferenceBigLists.Singleton.class,
-                (type, current) -> new Construction(() -> new ReferenceBigArrayBigList(),
+                (type, current) -> new Construction(ReferenceBigArrayBigList::new,
                         decoded -> ReferenceBigLists.unmodifiable((ReferenceBigList) decoded)));
         register(ReferenceBigLists.SynchronizedBigList.class,
-                (type, current) -> new Construction(() -> new ReferenceBigArrayBigList(),
+                (type, current) -> new Construction(ReferenceBigArrayBigList::new,
                         decoded -> ReferenceBigLists.synchronize((ReferenceBigList) decoded)));
-        register(ReferenceImmutableList.class, (type, current) -> new Construction(() -> new ReferenceArrayList(),
+        register(ReferenceImmutableList.class, (type, current) -> new Construction(ReferenceArrayList::new,
                 decoded -> new ReferenceImmutableList((Collection) decoded)));
         register(new ReferenceImmutableList(new Object[] { null, null }).subList(0, 1).getClass(),
-                (type, current) -> new Construction(() -> new ReferenceArrayList(),
+                (type, current) -> new Construction(ReferenceArrayList::new,
                         decoded -> new ReferenceImmutableList((Collection) decoded)));
     }
 }
