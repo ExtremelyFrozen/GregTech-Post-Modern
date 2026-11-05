@@ -3,6 +3,7 @@ package com.gregtechceu.gtceu.api.multiblock.structurepredicate
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition
 import com.gregtechceu.gtceu.api.multiblock.MultiblockBlockInfo
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState
+import com.gregtechceu.gtceu.api.multiblock.pattern.layout.PatternLayout
 
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.BlockState
@@ -22,7 +23,7 @@ interface AlternativePredicate : StructurePredicate {
 	fun alternatives(state: MultiblockState?): ObjectList<StructurePredicate>
 
 	/** Supplies definition-aware branches without creating or inspecting a world. */
-	fun previewAlternatives(definition: MultiblockMachineDefinition): ObjectList<StructurePredicate> = alternatives(null)
+	fun previewAlternatives(definition: MultiblockMachineDefinition, layout: PatternLayout?): ObjectList<StructurePredicate> = alternatives(null)
 
 	override fun observeCandidate(candidateState: BlockState): PatternObservation {
 		for (child in alternatives(null)) child.observeCandidate(candidateState).let { if (it.matched) return it }
@@ -59,6 +60,6 @@ interface AlternativePredicate : StructurePredicate {
 	}
 	override fun candidates(): ObjectList<MultiblockBlockInfo> = alternatives(null).stream().flatMap { it.candidates().stream() }.collect(ObjectImmutableList.toList())
 	override fun blockCandidates(): ObjectList<Block> = alternatives(null).stream().flatMap { it.blockCandidates().stream() }.collect(ObjectImmutableList.toList())
-	override fun previewChoices(definition: MultiblockMachineDefinition): ObjectList<StructurePreviewChoice> = previewAlternatives(definition).stream().flatMap { it.previewChoices(definition).stream() }.collect(ObjectImmutableList.toList())
+	override fun previewChoices(definition: MultiblockMachineDefinition): ObjectList<StructurePreviewChoice> = previewAlternatives(definition, null).stream().flatMap { it.previewChoices(definition).stream() }.collect(ObjectImmutableList.toList())
 	override fun hasAir(): Boolean = alternatives(null).any { it.hasAir() }
 }

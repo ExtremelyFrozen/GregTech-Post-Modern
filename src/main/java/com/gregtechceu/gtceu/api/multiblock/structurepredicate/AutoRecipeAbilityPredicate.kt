@@ -7,6 +7,7 @@ import com.gregtechceu.gtceu.api.capability.recipe.ItemRecipeCapability
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition
 import com.gregtechceu.gtceu.api.machine.multiblock.PartAbility
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState
+import com.gregtechceu.gtceu.api.multiblock.pattern.layout.PatternLayout
 import com.gregtechceu.gtceu.api.recipe.GTRecipeType
 
 import com.mojang.serialization.Codec
@@ -26,7 +27,7 @@ data class AutoRecipeAbilityPredicate(val checkEnergyIn: Boolean, val checkEnerg
 		val controller = state.controller ?: error("Auto recipe ability predicates require a multiblock controller")
 		return collect(controller.definition.recipeTypes)
 	}
-	override fun previewAlternatives(definition: MultiblockMachineDefinition): ObjectList<StructurePredicate> = collect(definition.recipeTypes)
+	override fun previewAlternatives(definition: MultiblockMachineDefinition, layout: PatternLayout?): ObjectList<StructurePredicate> = collect(definition.recipeTypes)
 
 	private fun collect(types: Array<GTRecipeType>): ObjectList<StructurePredicate> {
 		val result = ObjectArrayList<StructurePredicate>()
