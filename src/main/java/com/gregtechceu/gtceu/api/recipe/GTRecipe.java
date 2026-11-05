@@ -39,7 +39,6 @@ public class GTRecipe implements Recipe<RecipeInput>, ISyncAnnotated {
                 RecipeCapability.CODEC);
         FieldCodecs.register(new TypeToken<Map<RecipeCapability<?>, ChanceLogic>>() {}.getType(),
                 GTRecipeSerializer.CHANCE_LOGIC_MAP_CODEC);
-        FieldCodecs.register(RecipeCondition.class, RecipeCondition.CODEC);
         FieldCodecs.register(DataComponentMap.class, DataComponentMap.CODEC);
         FieldCodecs.register(GTRecipe.class, CODEC);
     }

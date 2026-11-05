@@ -4,6 +4,7 @@ import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.element.GTPhantomItemSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTToggleButtonElement;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 import com.gregtechceu.gtceu.common.data.GTDataComponents;
 
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
@@ -29,6 +30,10 @@ public class SimpleItemFilter implements ItemFilter {
             Codec.BOOL.fieldOf("ignore_components").forGetter(val -> val.ignoreNbt),
             ItemStack.OPTIONAL_CODEC.listOf().fieldOf("matches").forGetter(val -> Arrays.stream(val.matches).toList()))
             .apply(instance, SimpleItemFilter::new));
+
+    static {
+        FieldCodecs.register(SimpleItemFilter.class, CODEC);
+    }
 
     @Getter
     protected boolean isBlackList;

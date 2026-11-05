@@ -8,6 +8,7 @@ import com.gregtechceu.gtceu.api.data.worldgen.generator.VeinGenerator;
 import com.gregtechceu.gtceu.api.data.worldgen.ores.OreBlockPlacer;
 import com.gregtechceu.gtceu.api.data.worldgen.ores.OreVeinUtil;
 import com.gregtechceu.gtceu.api.registry.GTRegistries;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 import com.gregtechceu.gtceu.common.data.GTWorldgen;
 import com.gregtechceu.gtceu.utils.GTUtil;
 import com.gregtechceu.gtceu.utils.WeightedEntry;
@@ -317,6 +318,10 @@ public class VeinedVeinGenerator extends VeinGenerator {
                 BLOCK_ENTRY_CODEC.fieldOf("block").forGetter(x -> x.block),
                 Codec.INT.fieldOf("weight").forGetter(x -> x.weight))
                 .apply(instance, VeinBlockDefinition::new));
+
+        static {
+            FieldCodecs.register(VeinBlockDefinition.class, CODEC);
+        }
 
         public VeinBlockDefinition(Material block, int weight) {
             this(Either.right(block), weight);

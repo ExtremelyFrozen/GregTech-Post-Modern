@@ -4,6 +4,7 @@ import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition
 import com.gregtechceu.gtceu.api.multiblock.MultiblockBlockInfo
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState
 import com.gregtechceu.gtceu.api.multiblock.pattern.match.PatternDiagnostic
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs
 
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.level.block.Block
@@ -81,6 +82,10 @@ interface StructurePredicate {
 	companion object {
 		@JvmField
 		val CODEC: Codec<StructurePredicate> = typeCodec().dispatch("type", StructurePredicate::type) { it.codec }
+
+		init {
+			FieldCodecs.register(StructurePredicate::class.java, CODEC)
+		}
 
 		private fun typeCodec(): Codec<StructurePredicateType<*>> = ResourceLocation.CODEC.comapFlatMap(
 			{ id ->

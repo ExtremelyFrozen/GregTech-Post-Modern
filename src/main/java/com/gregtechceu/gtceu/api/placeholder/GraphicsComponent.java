@@ -1,5 +1,6 @@
 package com.gregtechceu.gtceu.api.placeholder;
 
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 import com.gregtechceu.gtceu.client.renderer.monitor.IMonitorRenderer;
 import com.gregtechceu.gtceu.common.machine.multiblock.electric.CentralMonitorMachine;
 import com.gregtechceu.gtceu.common.machine.multiblock.electric.monitor.MonitorGroup;
@@ -25,6 +26,10 @@ public record GraphicsComponent(float x, float y, float x2, float y2, String ren
             Codec.STRING.fieldOf("rendererId").forGetter(GraphicsComponent::rendererId),
             DataComponentMap.CODEC.fieldOf("renderData").forGetter(GraphicsComponent::renderData)
     ).apply(instance, GraphicsComponent::new));
+
+    static {
+        FieldCodecs.register(GraphicsComponent.class, CODEC);
+    }
     // spotless:on
 
     public GraphicsComponent(double x, double y, double x2, double y2, String rendererId, DataComponentMap renderData) {

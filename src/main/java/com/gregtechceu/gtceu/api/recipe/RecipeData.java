@@ -1,5 +1,6 @@
 package com.gregtechceu.gtceu.api.recipe;
 
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 import com.gregtechceu.gtceu.common.data.GTRecipeDataComponents;
 
 import net.minecraft.core.component.DataComponentMap;
@@ -56,6 +57,11 @@ public record RecipeData(Map<String, JsonElement> values) {
             }
         }
     };
+
+    static {
+        FieldCodecs.register(RecipeData.class, CODEC);
+        FieldCodecs.registerStream(RecipeData.class, STREAM_CODEC);
+    }
 
     public RecipeData {
         values = Map.copyOf(values);

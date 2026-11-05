@@ -7,6 +7,7 @@ import com.gregtechceu.gtceu.api.data.worldgen.generator.VeinGenerator;
 import com.gregtechceu.gtceu.api.data.worldgen.ores.OreBlockPlacer;
 import com.gregtechceu.gtceu.api.data.worldgen.ores.OreVeinUtil;
 import com.gregtechceu.gtceu.api.registry.GTRegistries;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 import com.gregtechceu.gtceu.utils.GTUtil;
 import com.gregtechceu.gtceu.utils.WeightedEntry;
 
@@ -186,6 +187,10 @@ public class DikeVeinGenerator extends VeinGenerator {
                         Codec.INT.fieldOf("min_y").orElse(320).forGetter(x -> x.minY),
                         Codec.INT.fieldOf("max_y").orElse(-64).forGetter(x -> x.maxY))
                 .apply(instance, DikeBlockDefinition::new));
+
+    static {
+        FieldCodecs.register(DikeBlockDefinition.class, CODEC);
+    }
 
         // spotless:on
         public DikeBlockDefinition(Material block, int weight, int minY, int maxY) {

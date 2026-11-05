@@ -4,6 +4,7 @@ import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.misc.virtualregistry.entries.VirtualItemStorage;
 import com.gregtechceu.gtceu.api.misc.virtualregistry.entries.VirtualRedstone;
 import com.gregtechceu.gtceu.api.misc.virtualregistry.entries.VirtualTank;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 
 import net.minecraft.resources.ResourceLocation;
 
@@ -24,6 +25,10 @@ public final class EntryTypes<T extends VirtualEntry> {
         EntryTypes<?> type = TYPES.get(id);
         return type == null ? DataResult.error(() -> "Unknown virtual entry type: " + id) : DataResult.success(type);
     }, EntryTypes::getId);
+
+    static {
+        FieldCodecs.register(EntryTypes.class, CODEC);
+    }
 
     public static final EntryTypes<VirtualTank> ENDER_FLUID = addEntryType(GTCEu.id("ender_fluid"), VirtualTank::new);
     public static final EntryTypes<VirtualItemStorage> ENDER_ITEM = addEntryType(GTCEu.id("ender_item"),

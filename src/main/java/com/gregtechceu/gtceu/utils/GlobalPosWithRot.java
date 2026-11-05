@@ -1,5 +1,7 @@
 package com.gregtechceu.gtceu.utils;
 
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.Registries;
@@ -25,5 +27,10 @@ public record GlobalPosWithRot(BlockPos pos, Direction side, ResourceKey<Level> 
             ResourceKey.streamCodec(Registries.DIMENSION), GlobalPosWithRot::dimension,
             GlobalPosWithRot::new
     );
+
+    static {
+        FieldCodecs.register(GlobalPosWithRot.class, CODEC);
+        FieldCodecs.registerStream(GlobalPosWithRot.class, STREAM_CODEC);
+    }
     // spotless:on
 }

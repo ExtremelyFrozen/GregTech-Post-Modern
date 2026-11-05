@@ -6,6 +6,7 @@ import com.gregtechceu.gtceu.api.gui.element.GTButtonElement;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.recipe.GTRecipeType;
 import com.gregtechceu.gtceu.api.recipe.content.Content;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 import com.gregtechceu.gtceu.common.data.GTDataComponents;
 import com.gregtechceu.gtceu.common.data.GTRecipeTypes;
 import com.gregtechceu.gtceu.utils.ItemStackHashStrategy;
@@ -131,6 +132,10 @@ public class SmartItemFilter implements ItemFilter {
         SIFTER("sifter", GTRecipeTypes.SIFTER_RECIPES);
 
         public static final Codec<SmartFilteringMode> CODEC = StringRepresentable.fromEnum(SmartFilteringMode::values);
+
+        static {
+            FieldCodecs.register(SmartFilteringMode.class, CODEC);
+        }
         private static final SmartFilteringMode[] VALUES = values();
         private final String name;
         private final GTRecipeType recipeType;

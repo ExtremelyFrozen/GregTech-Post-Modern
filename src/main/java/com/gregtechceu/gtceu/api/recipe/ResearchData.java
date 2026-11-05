@@ -1,5 +1,7 @@
 package com.gregtechceu.gtceu.api.recipe;
 
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
+
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.world.item.ItemStack;
 
@@ -17,6 +19,10 @@ public final class ResearchData implements Iterable<ResearchData.ResearchEntry> 
 
     public static final Codec<ResearchData> CODEC = ResearchEntry.CODEC.listOf().xmap(ResearchData::new,
             data -> data.entries);
+
+    static {
+        FieldCodecs.register(ResearchData.class, CODEC);
+    }
 
     private final List<ResearchEntry> entries;
 
@@ -65,6 +71,10 @@ public final class ResearchData implements Iterable<ResearchData.ResearchEntry> 
                 Codec.STRING.fieldOf("research_id").forGetter(val -> val.researchId),
                 ItemStack.CODEC.fieldOf("data_item").forGetter(val -> val.dataItem))
                 .apply(instance, ResearchEntry::new));
+
+        static {
+            FieldCodecs.register(ResearchEntry.class, CODEC);
+        }
 
         public static ResearchEntry fromNetwork(RegistryFriendlyByteBuf buf) {
             String researchId = buf.readUtf();
