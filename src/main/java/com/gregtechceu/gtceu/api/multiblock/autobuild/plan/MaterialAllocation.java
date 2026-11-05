@@ -32,23 +32,23 @@ import static com.gregtechceu.gtceu.api.multiblock.autobuild.plan.BatchPlanner.*
 import static com.gregtechceu.gtceu.api.multiblock.autobuild.plan.CandidateExpansion.*;
 import static com.gregtechceu.gtceu.api.multiblock.autobuild.plan.PlanAssembly.*;
 
-final class MaterialAllocation {
+public final class MaterialAllocation {
 
-    final ObjectList<Object2LongMap<MaterialKey>> remaining;
-    final ObjectList<Object2LongMap<MaterialKey>> allocated;
+    public final ObjectList<Object2LongMap<MaterialKey>> remaining;
+    public final ObjectList<Object2LongMap<MaterialKey>> allocated;
     @Getter
-    final ObjectList<MaterialSource.Availability> availability;
-    final LongList sourceFingerprints;
-    final ObjectList<BuildProblem> structureProblems;
-    final boolean unlimited;
-    final Object2ObjectMap<BlockPos, BlockState> virtualWorld = new Object2ObjectOpenHashMap<>();
+    public final ObjectList<MaterialSource.Availability> availability;
+    public final LongList sourceFingerprints;
+    public final ObjectList<BuildProblem> structureProblems;
+    public final boolean unlimited;
+    public final Object2ObjectMap<BlockPos, BlockState> virtualWorld = new Object2ObjectOpenHashMap<>();
 
-    MaterialAllocation(ObjectList<Object2LongMap<MaterialKey>> remaining,
-                       ObjectList<Object2LongMap<MaterialKey>> allocated,
-                       ObjectList<MaterialSource.Availability> availability,
-                       LongList sourceFingerprints,
-                       ObjectList<BuildProblem> structureProblems,
-                       boolean unlimited) {
+    public MaterialAllocation(ObjectList<Object2LongMap<MaterialKey>> remaining,
+                              ObjectList<Object2LongMap<MaterialKey>> allocated,
+                              ObjectList<MaterialSource.Availability> availability,
+                              LongList sourceFingerprints,
+                              ObjectList<BuildProblem> structureProblems,
+                              boolean unlimited) {
         this.remaining = remaining;
         this.allocated = allocated;
         this.availability = availability;
@@ -57,12 +57,12 @@ final class MaterialAllocation {
         this.unlimited = unlimited;
     }
 
-    static MaterialAllocation create(ObjectList<MaterialRequest.Result> sources,
-                                     ObjectCollection<MaterialKey> keys,
-                                     ResolutionContext context,
-                                     ObjectList<BuildProblem> problems,
-                                     boolean hasBuild,
-                                     boolean requireME) {
+    public static MaterialAllocation create(ObjectList<MaterialRequest.Result> sources,
+                                            ObjectCollection<MaterialKey> keys,
+                                            ResolutionContext context,
+                                            ObjectList<BuildProblem> problems,
+                                            boolean hasBuild,
+                                            boolean requireME) {
         boolean creative = context.player() != null && context.player().isCreative();
         if (!hasBuild || context.unlimitedMaterials() || creative && !requireME) {
             return new MaterialAllocation(ObjectList.of(), ObjectList.of(), ObjectList.of(), LongList.of(),
@@ -110,7 +110,7 @@ final class MaterialAllocation {
     private record ProblemIdentity(BuildProblem.Type type, @Nullable BlockPos pos) {}
 
     @Nullable
-    PlannedCell commitStructure(ObjectList<PlannedCell> cells) {
+    public PlannedCell commitStructure(ObjectList<PlannedCell> cells) {
         if (unlimited) return null;
         ObjectList<Object2LongMap<MaterialKey>> working = copyRemaining();
         ObjectArrayList<Object2LongMap<MaterialKey>> stagedAllocations = new ObjectArrayList<>(
@@ -143,17 +143,17 @@ final class MaterialAllocation {
         return null;
     }
 
-    ObjectList<BuildProblem> structureProblems() {
+    public ObjectList<BuildProblem> structureProblems() {
         return structureProblems;
     }
 
-    LongList sourceFingerprints() {
+    public LongList sourceFingerprints() {
         return sourceFingerprints;
     }
 
-    Object2ObjectMap<MaterialKey, BatchResolution.MaterialAllocation> resolveAllocations(
-                                                                                         ObjectList<StructurePlan> demolitions,
-                                                                                         ObjectList<StructurePlan> builds) {
+    public Object2ObjectMap<MaterialKey, BatchResolution.MaterialAllocation> resolveAllocations(
+                                                                                                ObjectList<StructurePlan> demolitions,
+                                                                                                ObjectList<StructurePlan> builds) {
         Object2LongMap<MaterialKey> required = new Object2LongLinkedOpenHashMap<>();
         for (StructurePlan plan : concat(demolitions, builds)) {
             plan.materials().object2LongEntrySet()
@@ -177,7 +177,7 @@ final class MaterialAllocation {
         return Object2ObjectMaps.unmodifiable(result);
     }
 
-    ObjectList<Object2LongMap<MaterialKey>> copyRemaining() {
+    public ObjectList<Object2LongMap<MaterialKey>> copyRemaining() {
         ObjectArrayList<Object2LongMap<MaterialKey>> copy = new ObjectArrayList<>(remaining.size());
         for (Object2LongMap<MaterialKey> source : remaining) {
             copy.add(new Object2LongLinkedOpenHashMap<>(source));
@@ -185,14 +185,14 @@ final class MaterialAllocation {
         return copy;
     }
 
-    ObjectList<UnresolvedCell> applyVirtualWorld(ObjectList<UnresolvedCell> cells) {
+    public ObjectList<UnresolvedCell> applyVirtualWorld(ObjectList<UnresolvedCell> cells) {
         return cells.stream()
                 .map(cell -> virtualWorld.containsKey(cell.relativePos()) ?
                         cell.withObservedState(virtualWorld.get(cell.relativePos())) : cell)
                 .collect(ObjectImmutableList.toList());
     }
 
-    void applyPlan(StructurePlan plan) {
+    public void applyPlan(StructurePlan plan) {
         if (!plan.valid()) return;
         for (PlannedCell cell : plan.cells()) {
             switch (cell.action()) {

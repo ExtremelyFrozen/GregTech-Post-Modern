@@ -41,36 +41,36 @@ import static com.gregtechceu.gtceu.api.multiblock.autobuild.plan.BatchPlanner.*
 import static com.gregtechceu.gtceu.api.multiblock.autobuild.plan.CandidateExpansion.*;
 import static com.gregtechceu.gtceu.api.multiblock.autobuild.plan.StructurePlanner.*;
 
-final class CandidateSearch {
+public final class CandidateSearch {
 
-    final boolean noHatchMode;
-    final MaterialAllocation materials;
-    final boolean consumeMaterials;
-    final boolean canonical;
-    final PropertyBindings properties = new PropertyBindings();
-    final Reference2IntMap<Object> globalCounts = new Reference2IntOpenHashMap<>();
-    final Int2ObjectMap<Reference2IntMap<Object>> layerCounts = new Int2ObjectOpenHashMap<>();
-    final Reference2ObjectOpenHashMap<Object, ConstraintLimit> limits = new Reference2ObjectOpenHashMap<>();
-    final Int2ObjectMap<Reference2ObjectOpenHashMap<Object, ConstraintLimit>> layerLimits = new Int2ObjectOpenHashMap<>();
-    final Object2ObjectMap<SearchState, SelectionScore> visitedStates = new Object2ObjectOpenHashMap<>();
-    ObjectList<ConstraintLimit> orderedLimits = ObjectList.of();
-    ObjectList<LayerLimit> orderedLayerLimits = ObjectList.of();
-    ObjectList<MaterialKey> budgetKeys = ObjectList.of();
+    public final boolean noHatchMode;
+    public final MaterialAllocation materials;
+    public final boolean consumeMaterials;
+    public final boolean canonical;
+    public final PropertyBindings properties = new PropertyBindings();
+    public final Reference2IntMap<Object> globalCounts = new Reference2IntOpenHashMap<>();
+    public final Int2ObjectMap<Reference2IntMap<Object>> layerCounts = new Int2ObjectOpenHashMap<>();
+    public final Reference2ObjectOpenHashMap<Object, ConstraintLimit> limits = new Reference2ObjectOpenHashMap<>();
+    public final Int2ObjectMap<Reference2ObjectOpenHashMap<Object, ConstraintLimit>> layerLimits = new Int2ObjectOpenHashMap<>();
+    public final Object2ObjectMap<SearchState, SelectionScore> visitedStates = new Object2ObjectOpenHashMap<>();
+    public ObjectList<ConstraintLimit> orderedLimits = ObjectList.of();
+    public ObjectList<LayerLimit> orderedLayerLimits = ObjectList.of();
+    public ObjectList<MaterialKey> budgetKeys = ObjectList.of();
     @Nullable
-    SelectionScore bestScore;
-    int @Nullable [][] bestGroupCounts;
+    public SelectionScore bestScore;
+    public int @Nullable [][] bestGroupCounts;
 
-    CandidateSearch(boolean noHatchMode, MaterialAllocation materials,
-                    boolean consumeMaterials, boolean canonical) {
+    public CandidateSearch(boolean noHatchMode, MaterialAllocation materials,
+                           boolean consumeMaterials, boolean canonical) {
         this.noHatchMode = noHatchMode;
         this.materials = materials;
         this.consumeMaterials = consumeMaterials;
         this.canonical = canonical;
     }
 
-    ObjectList<SelectedCell> solve(ObjectList<UnresolvedCell> cells,
-                                   ObjectList<ConstraintLimit> requirements,
-                                   ObjectList<BuildProblem> problems) {
+    public ObjectList<SelectedCell> solve(ObjectList<UnresolvedCell> cells,
+                                          ObjectList<ConstraintLimit> requirements,
+                                          ObjectList<BuildProblem> problems) {
         ReferenceSet<Object> excludedLimits = noHatchMode ? new ReferenceOpenHashSet<>() : ReferenceSets.emptySet();
         if (noHatchMode) cells = filterHatches(cells, excludedLimits);
         registerLimits(cells, requirements, excludedLimits);
@@ -114,8 +114,8 @@ final class CandidateSearch {
         }).collect(ObjectImmutableList.toList());
     }
 
-    int[] projectAssignments(ObjectList<UnresolvedCell> cells, ObjectList<VariableGroup> groups,
-                             int[][] selectedCounts) {
+    public int[] projectAssignments(ObjectList<UnresolvedCell> cells, ObjectList<VariableGroup> groups,
+                                    int[][] selectedCounts) {
         int[] groupByCell = new int[cells.size()];
         Arrays.fill(groupByCell, -1);
         int[][] remainingCounts = copyCounts(selectedCounts);
@@ -163,8 +163,8 @@ final class CandidateSearch {
         return assignments;
     }
 
-    void registerLimits(ObjectList<UnresolvedCell> cells, ObjectList<ConstraintLimit> requirements,
-                        ReferenceSet<Object> excludedLimits) {
+    public void registerLimits(ObjectList<UnresolvedCell> cells, ObjectList<ConstraintLimit> requirements,
+                               ReferenceSet<Object> excludedLimits) {
         ObjectLinkedOpenHashSet<MaterialKey> encounteredKeys = new ObjectLinkedOpenHashSet<>();
         for (UnresolvedCell cell : cells) {
             for (ResolvedCandidate candidate : cell.candidates()) {
@@ -195,7 +195,7 @@ final class CandidateSearch {
         budgetKeys = new ObjectImmutableList<>(encounteredKeys);
     }
 
-    ObjectList<VariableGroup> groupCells(ObjectList<UnresolvedCell> cells) {
+    public ObjectList<VariableGroup> groupCells(ObjectList<UnresolvedCell> cells) {
         Object2ObjectLinkedOpenHashMap<GroupKey, IntArrayList> grouped = new Object2ObjectLinkedOpenHashMap<>();
         for (int index = 0; index < cells.size(); index++) {
             UnresolvedCell cell = cells.get(index);
@@ -222,8 +222,8 @@ final class CandidateSearch {
         return new ObjectImmutableList<>(result);
     }
 
-    boolean search(ObjectList<VariableGroup> groups, int groupIndex, SearchBudget budget,
-                   SelectionScore score, int[][] groupCounts) {
+    public boolean search(ObjectList<VariableGroup> groups, int groupIndex, SearchBudget budget,
+                          SelectionScore score, int[][] groupCounts) {
         if (!canStillSatisfy(groups, groupIndex) || !canBeatBest(groups, groupIndex, budget, score)) {
             return false;
         }
@@ -249,8 +249,8 @@ final class CandidateSearch {
                 group.cellIndices().size());
     }
 
-    boolean searchGreedyGroup(ObjectList<VariableGroup> groups, int groupIndex, SearchBudget budget,
-                              SelectionScore score, int[][] groupCounts) {
+    public boolean searchGreedyGroup(ObjectList<VariableGroup> groups, int groupIndex, SearchBudget budget,
+                                     SelectionScore score, int[][] groupCounts) {
         VariableGroup group = groups.get(groupIndex);
         UnresolvedCell cell = group.representative();
         ObjectArrayList<AppliedCandidate> applied = new ObjectArrayList<>(group.cellIndices().size());
@@ -272,9 +272,9 @@ final class CandidateSearch {
         return found;
     }
 
-    boolean enumerateGroup(ObjectList<VariableGroup> groups, int groupIndex, SearchBudget budget,
-                           SelectionScore score, int[][] groupCounts, IntList candidateOrder,
-                           int candidateCursor, int remainingCells) {
+    public boolean enumerateGroup(ObjectList<VariableGroup> groups, int groupIndex, SearchBudget budget,
+                                  SelectionScore score, int[][] groupCounts, IntList candidateOrder,
+                                  int candidateCursor, int remainingCells) {
         if (remainingCells == 0) {
             return search(groups, groupIndex + 1, budget, score, groupCounts);
         }
@@ -336,8 +336,8 @@ final class CandidateSearch {
         return found;
     }
 
-    int availableCells(UnresolvedCell cell, IntList candidateOrder, int candidateCursor,
-                       int remainingCells, @Nullable Object key) {
+    public int availableCells(UnresolvedCell cell, IntList candidateOrder, int candidateCursor,
+                              int remainingCells, @Nullable Object key) {
         int available = 0;
         for (int cursor = candidateCursor; cursor < candidateOrder.size(); cursor++) {
             ResolvedCandidate candidate = cell.candidates().get(candidateOrder.getInt(cursor));
@@ -350,7 +350,7 @@ final class CandidateSearch {
         return available;
     }
 
-    IntList orderedCandidates(UnresolvedCell cell, SearchBudget budget) {
+    public IntList orderedCandidates(UnresolvedCell cell, SearchBudget budget) {
         IntList candidates = new IntArrayList();
         for (int index = 0; index < cell.candidates().size(); index++) {
             ResolvedCandidate candidate = cell.candidates().get(index);
@@ -394,8 +394,8 @@ final class CandidateSearch {
         return candidates;
     }
 
-    AppliedCandidate applyCandidate(UnresolvedCell cell, ResolvedCandidate candidate,
-                                    int count, SearchBudget budget) {
+    public AppliedCandidate applyCandidate(UnresolvedCell cell, ResolvedCandidate candidate,
+                                           int count, SearchBudget budget) {
         if (count == 0) {
             return new AppliedCandidate(candidate, 0, BudgetUse.EMPTY, SelectionScore.ZERO);
         }
@@ -411,15 +411,15 @@ final class CandidateSearch {
         return new AppliedCandidate(candidate, count, budgetUse, score);
     }
 
-    void undoCandidate(UnresolvedCell cell, AppliedCandidate applied, SearchBudget budget) {
+    public void undoCandidate(UnresolvedCell cell, AppliedCandidate applied, SearchBudget budget) {
         if (applied.count() == 0) return;
         budget.restore(applied.candidate().materialKey(), applied.budgetUse());
         increment(cell.layer(), applied.candidate(), -applied.count());
         properties.add(applied.candidate().observation().properties(), -applied.count());
     }
 
-    void undoApplied(UnresolvedCell cell, ObjectList<AppliedCandidate> applied, SearchBudget budget,
-                     int[] counts) {
+    public void undoApplied(UnresolvedCell cell, ObjectList<AppliedCandidate> applied, SearchBudget budget,
+                            int[] counts) {
         for (int index = applied.size() - 1; index >= 0; index--) {
             AppliedCandidate candidate = applied.get(index);
             int candidateIndex = cell.candidates().indexOf(candidate.candidate());
@@ -428,7 +428,7 @@ final class CandidateSearch {
         }
     }
 
-    long previewPenalty(ResolvedCandidate candidate, int count) {
+    public long previewPenalty(ResolvedCandidate candidate, int count) {
         if (!canonical) return 0;
         long penalty = 0;
         for (int offset = 0; offset < count; offset++) {
@@ -445,8 +445,8 @@ final class CandidateSearch {
         return penalty;
     }
 
-    boolean canBeatBest(ObjectList<VariableGroup> groups, int groupIndex, SearchBudget budget,
-                        SelectionScore score) {
+    public boolean canBeatBest(ObjectList<VariableGroup> groups, int groupIndex, SearchBudget budget,
+                               SelectionScore score) {
         if (bestScore == null) return true;
         SelectionScore optimistic = score;
         for (int index = groupIndex; index < groups.size(); index++) {
@@ -464,15 +464,15 @@ final class CandidateSearch {
         return optimistic.compareTo(bestScore) < 0;
     }
 
-    SelectionScore optimisticCandidateScore(UnresolvedCell cell, ResolvedCandidate candidate,
-                                            SearchBudget budget) {
+    public SelectionScore optimisticCandidateScore(UnresolvedCell cell, ResolvedCandidate candidate,
+                                                   SearchBudget budget) {
         long sourceCost = willPlace(cell, candidate) && !budget.unlimited ?
                 budget.rank(candidate.materialKey()) : 0;
         return new SelectionScore(modificationCost(cell, candidate), sourceCost,
                 canonical ? previewPriority(candidate) : 0, candidate.order());
     }
 
-    long modificationCost(UnresolvedCell cell, ResolvedCandidate candidate) {
+    public long modificationCost(UnresolvedCell cell, ResolvedCandidate candidate) {
         if (!consumeMaterials || candidate.any() || exactObserved(cell, candidate) ||
                 cell.relativePos().equals(BlockPos.ZERO)) {
             return 0;
@@ -483,7 +483,7 @@ final class CandidateSearch {
         return 1;
     }
 
-    int requiredPriority(UnresolvedCell cell, ResolvedCandidate candidate) {
+    public int requiredPriority(UnresolvedCell cell, ResolvedCandidate candidate) {
         boolean contributes = false;
         for (ConstraintLimit limit : candidate.limits()) {
             if (limit.min() >= 0 && globalCounts.getInt(limit.key()) < limit.min() ||
@@ -494,24 +494,24 @@ final class CandidateSearch {
         return contributes ? 0 : 1;
     }
 
-    int previewPriority(ResolvedCandidate candidate) {
+    public int previewPriority(ResolvedCandidate candidate) {
         for (ConstraintLimit limit : candidate.limits()) {
             if (limit.previewCount() >= 0 && globalCounts.getInt(limit.key()) < limit.previewCount()) return 0;
         }
         return 1;
     }
 
-    boolean exactObserved(UnresolvedCell cell, ResolvedCandidate candidate) {
+    public boolean exactObserved(UnresolvedCell cell, ResolvedCandidate candidate) {
         return cell.observedState() != null && matchesCandidateDomain(cell, candidate, cell.observedState());
     }
 
-    boolean willPlace(UnresolvedCell cell, ResolvedCandidate candidate) {
+    public boolean willPlace(UnresolvedCell cell, ResolvedCandidate candidate) {
         return consumeMaterials && candidate.materialKey() != null && !candidate.state().isAir() &&
                 !cell.relativePos().equals(BlockPos.ZERO) && !exactObserved(cell, candidate) &&
                 !canUpdateDirection(cell, candidate);
     }
 
-    boolean withinMaximums(int layer, ResolvedCandidate candidate) {
+    public boolean withinMaximums(int layer, ResolvedCandidate candidate) {
         for (ConstraintLimit limit : candidate.limits()) {
             if (limit.max() >= 0 && (long) globalCounts.getInt(limit.key()) + 1 > limit.max()) return false;
             if (limit.layerMax() >= 0 &&
@@ -521,7 +521,7 @@ final class CandidateSearch {
         return true;
     }
 
-    void increment(int layer, ResolvedCandidate candidate, int amount) {
+    public void increment(int layer, ResolvedCandidate candidate, int amount) {
         for (ConstraintLimit limit : candidate.limits()) {
             globalCounts.mergeInt(limit.key(), amount, Integer::sum);
             layerCounts.computeIfAbsent(layer, ignored -> new Reference2IntOpenHashMap<>())
@@ -529,7 +529,7 @@ final class CandidateSearch {
         }
     }
 
-    boolean minimumsSatisfied() {
+    public boolean minimumsSatisfied() {
         for (ConstraintLimit limit : limits.values()) {
             if (limit.min() >= 0 && globalCounts.getInt(limit.key()) < limit.min()) {
                 return false;
@@ -545,7 +545,7 @@ final class CandidateSearch {
         return true;
     }
 
-    boolean canStillSatisfy(ObjectList<VariableGroup> groups, int groupIndex) {
+    public boolean canStillSatisfy(ObjectList<VariableGroup> groups, int groupIndex) {
         for (int index = groupIndex; index < groups.size(); index++) {
             VariableGroup group = groups.get(index);
             UnresolvedCell cell = group.representative();
@@ -578,7 +578,7 @@ final class CandidateSearch {
         return true;
     }
 
-    int candidateCapacity(int layer, ResolvedCandidate candidate, int maximum) {
+    public int candidateCapacity(int layer, ResolvedCandidate candidate, int maximum) {
         int capacity = maximum;
         for (ConstraintLimit limit : candidate.limits()) {
             if (limit.max() >= 0) {
@@ -591,8 +591,8 @@ final class CandidateSearch {
         return Math.max(0, capacity);
     }
 
-    int remainingContributors(ObjectList<VariableGroup> groups, int groupIndex, Object key,
-                              @Nullable Integer requiredLayer) {
+    public int remainingContributors(ObjectList<VariableGroup> groups, int groupIndex, Object key,
+                                     @Nullable Integer requiredLayer) {
         int remaining = 0;
         for (int index = groupIndex; index < groups.size(); index++) {
             VariableGroup group = groups.get(index);
@@ -606,12 +606,12 @@ final class CandidateSearch {
         return remaining;
     }
 
-    int layerCount(int layer, Object key) {
+    public int layerCount(int layer, Object key) {
         var counts = layerCounts.get(layer);
         return counts == null ? 0 : counts.getInt(key);
     }
 
-    SearchState stateKey(int groupIndex, int candidateCursor, int remainingCells, SearchBudget budget) {
+    public SearchState stateKey(int groupIndex, int candidateCursor, int remainingCells, SearchBudget budget) {
         IntList global = new IntImmutableList(orderedLimits.stream()
                 .mapToInt(limit -> limit.max() >= 0 ? globalCounts.getInt(limit.key()) :
                         Math.min(globalCounts.getInt(limit.key()),
@@ -625,7 +625,7 @@ final class CandidateSearch {
                 budget.values(budgetKeys), properties.values());
     }
 
-    static int[][] copyCounts(int[][] source) {
+    public static int[][] copyCounts(int[][] source) {
         int[][] copy = new int[source.length][];
         for (int index = 0; index < source.length; index++) {
             copy[index] = source[index].clone();

@@ -24,13 +24,13 @@ import java.util.Objects;
 import static com.gregtechceu.gtceu.api.multiblock.autobuild.plan.BatchPlanner.*;
 import static com.gregtechceu.gtceu.api.multiblock.autobuild.plan.CandidateExpansion.*;
 
-final class StructurePlanner {
+public final class StructurePlanner {
 
-    static StructurePlan resolveStructure(MultiblockMachineDefinition definition,
-                                          PendingStructure pending,
-                                          BuildPolicy sharedOptions,
-                                          ResolutionContext context,
-                                          MaterialAllocation materials) {
+    public static StructurePlan resolveStructure(MultiblockMachineDefinition definition,
+                                                 PendingStructure pending,
+                                                 BuildPolicy sharedOptions,
+                                                 ResolutionContext context,
+                                                 MaterialAllocation materials) {
         ObjectArrayList<BuildProblem> problems = new ObjectArrayList<>(pending.problems());
         if (!problems.isEmpty()) {
             return new StructurePlan(pending.options().structureName(), pending.options().mode(),
@@ -94,9 +94,9 @@ final class StructurePlanner {
         return result;
     }
 
-    static CellAction resolveAction(MultiblockMachineDefinition definition, StructureOperation mode,
-                                    UnresolvedCell cell, ResolvedCandidate candidate,
-                                    @Nullable BlockState observed, ResolutionContext context) {
+    public static CellAction resolveAction(MultiblockMachineDefinition definition, StructureOperation mode,
+                                           UnresolvedCell cell, ResolvedCandidate candidate,
+                                           @Nullable BlockState observed, ResolutionContext context) {
         if (candidate.any()) return CellAction.IGNORE_ANY;
         boolean controllerCell = cell.relativePos().equals(BlockPos.ZERO) &&
                 candidate.state().is(definition.getBlock());
@@ -122,7 +122,7 @@ final class StructurePlanner {
         return CellAction.PLACE;
     }
 
-    static boolean matchesCandidateState(UnresolvedCell cell, BlockState observed) {
+    public static boolean matchesCandidateState(UnresolvedCell cell, BlockState observed) {
         for (ResolvedCandidate candidate : cell.candidates()) {
             if (candidate.any() || candidate.state().isAir()) continue;
             if (observed.equals(candidate.state())) {
@@ -132,14 +132,14 @@ final class StructurePlanner {
         return false;
     }
 
-    static boolean matchesCandidateDomain(UnresolvedCell cell, ResolvedCandidate candidate,
-                                          BlockState observed) {
+    public static boolean matchesCandidateDomain(UnresolvedCell cell, ResolvedCandidate candidate,
+                                                 BlockState observed) {
         return observed.equals(candidate.state()) &&
                 (cell.requiredDirection() == null ||
                         MultiBlockPattern.matchesDirectionalState(observed, cell.requiredDirection()));
     }
 
-    static boolean canUpdateDirection(UnresolvedCell cell, ResolvedCandidate candidate) {
+    public static boolean canUpdateDirection(UnresolvedCell cell, ResolvedCandidate candidate) {
         BlockState observed = cell.observedState();
         Direction requiredDirection = cell.requiredDirection();
         if (observed == null || requiredDirection == null || !observed.is(candidate.state().getBlock())) {

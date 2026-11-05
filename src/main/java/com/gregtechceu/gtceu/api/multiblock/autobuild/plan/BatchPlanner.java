@@ -52,8 +52,8 @@ import static com.gregtechceu.gtceu.api.multiblock.autobuild.plan.StructurePlann
  */
 public final class BatchPlanner {
 
-    static final Direction CANONICAL_FRONT = Direction.NORTH;
-    static final Direction CANONICAL_UP = Direction.NORTH;
+    public static final Direction CANONICAL_FRONT = Direction.NORTH;
+    public static final Direction CANONICAL_UP = Direction.NORTH;
 
     private static final ConcurrentMap<CanonicalKey, BatchPlan> CANONICAL_PLANS = new ConcurrentHashMap<>();
 
@@ -297,7 +297,7 @@ public final class BatchPlanner {
         return hasME;
     }
 
-    static boolean isStrictAEProblem(BuildProblem.Type type) {
+    public static boolean isStrictAEProblem(BuildProblem.Type type) {
         return switch (type) {
             case ME_UNAVAILABLE, AE_NOT_INSTALLED, AE_NOT_LINKED, AE_LINKED_DIMENSION_MISSING, AE_WRONG_DIMENSION, AE_ACCESS_POINT_MISSING, AE_ACCESS_POINT_INACTIVE, AE_OUT_OF_RANGE, AE_GRID_UNAVAILABLE -> true;
             default -> false;
@@ -323,22 +323,22 @@ public final class BatchPlanner {
         }
     }
 
-    static BuildProblem problem(BuildProblem.Type type, @Nullable BlockPos pos,
-                                String translationKey, Object... args) {
+    public static BuildProblem problem(BuildProblem.Type type, @Nullable BlockPos pos,
+                                       String translationKey, Object... args) {
         return new BuildProblem(type, pos, Component.translatable(translationKey, args));
     }
 
-    static String position(@Nullable BlockPos pos) {
+    public static String position(@Nullable BlockPos pos) {
         return pos == null ? "?" : pos.toShortString();
     }
 
-    record ResolutionContext(@Nullable MultiblockControllerMachine controller,
-                             @Nullable ServerPlayer player, @Nullable Level level, BlockPos origin,
-                             Direction frontFacing, Direction upwardsFacing, boolean canonical,
-                             boolean unlimitedMaterials) {
+    public record ResolutionContext(@Nullable MultiblockControllerMachine controller,
+                                    @Nullable ServerPlayer player, @Nullable Level level, BlockPos origin,
+                                    Direction frontFacing, Direction upwardsFacing, boolean canonical,
+                                    boolean unlimitedMaterials) {
 
         @Nullable
-        BlockPos worldPos() {
+        public BlockPos worldPos() {
             return canonical ? null : origin;
         }
     }
@@ -346,7 +346,7 @@ public final class BatchPlanner {
     private record CanonicalKey(MultiblockMachineDefinition definition, ObjectList<StructureRequest> structures,
                                 BuildPolicy policy, long generation) {}
 
-    record PendingStructure(StructureRequest options, IntList repetitions,
-                            ObjectList<UnresolvedCell> cells, ObjectList<ConstraintLimit> requirements,
-                            ObjectList<BuildProblem> problems) {}
+    public record PendingStructure(StructureRequest options, IntList repetitions,
+                                   ObjectList<UnresolvedCell> cells, ObjectList<ConstraintLimit> requirements,
+                                   ObjectList<BuildProblem> problems) {}
 }

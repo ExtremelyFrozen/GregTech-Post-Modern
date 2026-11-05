@@ -48,11 +48,11 @@ import java.util.function.Function;
 
 import static com.gregtechceu.gtceu.api.multiblock.autobuild.plan.BatchPlanner.*;
 
-final class CandidateExpansion {
+public final class CandidateExpansion {
 
-    static Object2ObjectMap<String, ObjectList<ResourceLocation>> tierChoicesForPredicates(
-                                                                                           MultiblockMachineDefinition definition,
-                                                                                           ObjectList<PatternPredicate> predicates) {
+    public static Object2ObjectMap<String, ObjectList<ResourceLocation>> tierChoicesForPredicates(
+                                                                                                  MultiblockMachineDefinition definition,
+                                                                                                  ObjectList<PatternPredicate> predicates) {
         ObjectList<BuildProblem> problems = new ObjectArrayList<>();
         ObjectList<ResolvedCandidate> candidates = new ObjectArrayList<>();
         ConstraintIds ids = new ConstraintIds();
@@ -86,13 +86,13 @@ final class CandidateExpansion {
         return Object2ObjectMaps.unmodifiable(result);
     }
 
-    static ObjectList<UnresolvedCell> expandStructure(MultiblockMachineDefinition definition,
-                                                      MultiBlockPattern pattern,
-                                                      StructureRequest options,
-                                                      ResolutionContext context,
-                                                      ConstraintIds constraintIds,
-                                                      ObjectList<ConstraintLimit> requirements,
-                                                      ObjectList<BuildProblem> problems) {
+    public static ObjectList<UnresolvedCell> expandStructure(MultiblockMachineDefinition definition,
+                                                             MultiBlockPattern pattern,
+                                                             StructureRequest options,
+                                                             ResolutionContext context,
+                                                             ConstraintIds constraintIds,
+                                                             ObjectList<ConstraintLimit> requirements,
+                                                             ObjectList<BuildProblem> problems) {
         ObjectList<UnresolvedCell> cells = new ObjectArrayList<>();
         PatternLayout layout;
         try {
@@ -149,14 +149,14 @@ final class CandidateExpansion {
         return cells;
     }
 
-    static ObjectList<ResolvedCandidate> resolveCandidates(MultiblockMachineDefinition definition,
-                                                           PatternPredicate predicate,
-                                                           Direction frontFacing,
-                                                           Direction upwardsFacing,
-                                                           boolean flipped,
-                                                           ConstraintIds constraintIds,
-                                                           ObjectList<BuildProblem> problems,
-                                                           @Nullable BlockPos pos) {
+    public static ObjectList<ResolvedCandidate> resolveCandidates(MultiblockMachineDefinition definition,
+                                                                  PatternPredicate predicate,
+                                                                  Direction frontFacing,
+                                                                  Direction upwardsFacing,
+                                                                  boolean flipped,
+                                                                  ConstraintIds constraintIds,
+                                                                  ObjectList<BuildProblem> problems,
+                                                                  @Nullable BlockPos pos) {
         if (predicate.isAny()) {
             return ObjectArrayList.of(ResolvedCandidate.wildcard());
         }
@@ -201,9 +201,9 @@ final class CandidateExpansion {
         return result;
     }
 
-    static void addSimpleCandidates(Object2ObjectMap<BlockState, CandidateAccumulator> result,
-                                    PredicateRule simple, CandidateOrder order, ConstraintIds constraintIds,
-                                    @Nullable Direction direction) {
+    public static void addSimpleCandidates(Object2ObjectMap<BlockState, CandidateAccumulator> result,
+                                           PredicateRule simple, CandidateOrder order, ConstraintIds constraintIds,
+                                           @Nullable Direction direction) {
         if (simple.isAny()) return;
         ConstraintLimit limit = ConstraintLimit.fromSimple(simple, constraintIds.id(simple));
         if (simple.isAir()) {
@@ -224,9 +224,9 @@ final class CandidateExpansion {
         }
     }
 
-    static ObjectList<StructureChoice> structureChoices(StructurePredicate predicate,
-                                                        MultiblockMachineDefinition definition,
-                                                        ConstraintIds constraintIds) {
+    public static ObjectList<StructureChoice> structureChoices(StructurePredicate predicate,
+                                                               MultiblockMachineDefinition definition,
+                                                               ConstraintIds constraintIds) {
         if (predicate instanceof RestrictedPredicate restricted) {
             ConstraintLimit limit = ConstraintLimit.fromStructure(new StructurePreviewConstraint(restricted,
                     restricted.minCount(), restricted.maxCount(), restricted.minCountByLayer(),
@@ -251,11 +251,11 @@ final class CandidateExpansion {
         return result;
     }
 
-    static void addCandidate(Object2ObjectMap<BlockState, CandidateAccumulator> result,
-                             MultiblockBlockInfo blockInfo,
-                             ObjectList<ConstraintLimit> limits, boolean hatch,
-                             int order, @Nullable Direction direction,
-                             Function<BlockState, PatternObservation> observer) {
+    public static void addCandidate(Object2ObjectMap<BlockState, CandidateAccumulator> result,
+                                    MultiblockBlockInfo blockInfo,
+                                    ObjectList<ConstraintLimit> limits, boolean hatch,
+                                    int order, @Nullable Direction direction,
+                                    Function<BlockState, PatternObservation> observer) {
         BlockState state = blockInfo.getBlockState();
         if (direction != null && !state.isAir()) {
             state = MultiBlockPattern.applyDirectionalState(state, direction);
@@ -282,25 +282,25 @@ final class CandidateExpansion {
         }
     }
 
-    static @Nullable Direction resolveDirection(PatternPredicate predicate, Direction frontFacing,
-                                                Direction upwardsFacing, boolean flipped) {
+    public static @Nullable Direction resolveDirection(PatternPredicate predicate, Direction frontFacing,
+                                                       Direction upwardsFacing, boolean flipped) {
         if (predicate.relativeDirection != null) {
             return predicate.relativeDirection.getRelative(frontFacing, upwardsFacing, flipped);
         }
         return predicate.fixedDirection;
     }
 
-    static @Nullable MaterialKey materialKey(ItemStack stack) {
+    public static @Nullable MaterialKey materialKey(ItemStack stack) {
         return stack.isEmpty() || stack.is(Items.AIR) ? null : MaterialKey.of(stack);
     }
 
-    static boolean isHatch(Block block) {
+    public static boolean isHatch(Block block) {
         return PartAbility.values().stream().anyMatch(ability -> ability.isApplicable(block));
     }
 
-    static void validateTierChoices(MultiblockMachineDefinition definition, StructureRequest options,
-                                    ObjectList<UnresolvedCell> cells,
-                                    ObjectList<BuildProblem> problems, @Nullable BlockPos pos) {
+    public static void validateTierChoices(MultiblockMachineDefinition definition, StructureRequest options,
+                                           ObjectList<UnresolvedCell> cells,
+                                           ObjectList<BuildProblem> problems, @Nullable BlockPos pos) {
         Object2ObjectMap<String, ResourceLocation> selections = new Object2ObjectLinkedOpenHashMap<>(
                 options.tierChoices());
 
@@ -345,40 +345,40 @@ final class CandidateExpansion {
         }
     }
 
-    record UnresolvedCell(String structureName, PatternCellKey cellKey, BlockPos relativePos,
-                          @Nullable BlockPos worldPos, @Nullable BlockState observedState, int layer,
-                          PatternPredicate predicate,
-                          ObjectList<ResolvedCandidate> candidates, @Nullable Direction requiredDirection) {
+    public record UnresolvedCell(String structureName, PatternCellKey cellKey, BlockPos relativePos,
+                                 @Nullable BlockPos worldPos, @Nullable BlockState observedState, int layer,
+                                 PatternPredicate predicate,
+                                 ObjectList<ResolvedCandidate> candidates, @Nullable Direction requiredDirection) {
 
-        UnresolvedCell withCandidates(ObjectList<ResolvedCandidate> replacement) {
+        public UnresolvedCell withCandidates(ObjectList<ResolvedCandidate> replacement) {
             return new UnresolvedCell(structureName, cellKey, relativePos, worldPos, observedState, layer, predicate,
                     new ObjectImmutableList<>(replacement), requiredDirection);
         }
 
-        UnresolvedCell withObservedState(@Nullable BlockState observed) {
+        public UnresolvedCell withObservedState(@Nullable BlockState observed) {
             return new UnresolvedCell(structureName, cellKey, relativePos, worldPos, observed, layer, predicate,
                     candidates, requiredDirection);
         }
     }
 
-    record ResolvedCandidate(BlockState state, PlannedBlockInfo blockInfo, ObjectList<ConstraintLimit> limits,
-                             boolean hatch, ObjectList<String> tierGroups, int order,
-                             @Nullable MaterialKey materialKey, boolean any,
-                             PatternObservation observation) {
+    public record ResolvedCandidate(BlockState state, PlannedBlockInfo blockInfo, ObjectList<ConstraintLimit> limits,
+                                    boolean hatch, ObjectList<String> tierGroups, int order,
+                                    @Nullable MaterialKey materialKey, boolean any,
+                                    PatternObservation observation) {
 
-        static ResolvedCandidate wildcard() {
+        public static ResolvedCandidate wildcard() {
             return new ResolvedCandidate(Blocks.AIR.defaultBlockState(),
                     PlannedBlockInfo.from(Blocks.AIR.defaultBlockState()),
                     new ObjectArrayList<>(), false, ObjectList.of(), 0, null, true, PatternObservation.of(true));
         }
     }
 
-    record CandidateAccumulator(PlannedBlockInfo blockInfo, ObjectList<ConstraintLimit> limits, boolean hatch,
-                                int order, PatternObservation observation) {}
+    public record CandidateAccumulator(PlannedBlockInfo blockInfo, ObjectList<ConstraintLimit> limits, boolean hatch,
+                                       int order, PatternObservation observation) {}
 
-    record StructureChoice(ObjectList<MultiblockBlockInfo> candidates, ObjectList<ConstraintLimit> limits,
-                           boolean hatch,
-                           Function<BlockState, PatternObservation> observer) {
+    public record StructureChoice(ObjectList<MultiblockBlockInfo> candidates, ObjectList<ConstraintLimit> limits,
+                                  boolean hatch,
+                                  Function<BlockState, PatternObservation> observer) {
 
         private StructureChoice withLimit(ConstraintLimit limit) {
             ObjectArrayList<ConstraintLimit> result = new ObjectArrayList<>(limits.size() + 1);
@@ -388,8 +388,8 @@ final class CandidateExpansion {
         }
     }
 
-    record ConstraintLimit(Object key, String id, int min, int max, int layerMin, int layerMax,
-                           int previewCount) {
+    public record ConstraintLimit(Object key, String id, int min, int max, int layerMin, int layerMax,
+                                  int previewCount) {
 
         private static ConstraintLimit fromSimple(PredicateRule predicate, String id) {
             return new ConstraintLimit(predicate, id, predicate.minCount, predicate.maxCount,
@@ -404,7 +404,7 @@ final class CandidateExpansion {
         }
     }
 
-    static final class ConstraintIds {
+    public static final class ConstraintIds {
 
         private final Reference2ObjectOpenHashMap<Object, String> ids = new Reference2ObjectOpenHashMap<>();
         // Runtime structure matching shares counters between value-equal predicates as well.
@@ -415,7 +415,7 @@ final class CandidateExpansion {
         }
     }
 
-    static final class CandidateOrder {
+    public static final class CandidateOrder {
 
         private int next;
 
@@ -424,5 +424,5 @@ final class CandidateExpansion {
         }
     }
 
-    record SelectedCell(UnresolvedCell cell, ResolvedCandidate candidate) {}
+    public record SelectedCell(UnresolvedCell cell, ResolvedCandidate candidate) {}
 }

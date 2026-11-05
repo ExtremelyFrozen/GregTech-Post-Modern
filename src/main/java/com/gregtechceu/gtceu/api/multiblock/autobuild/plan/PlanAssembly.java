@@ -10,13 +10,13 @@ import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectList;
 
-final class PlanAssembly {
+public final class PlanAssembly {
 
-    static final long FINGERPRINT_OFFSET = 0xcbf29ce484222325L;
+    public static final long FINGERPRINT_OFFSET = 0xcbf29ce484222325L;
     private static final long FINGERPRINT_PRIME = 0x100000001b3L;
 
-    static Object2ObjectLinkedOpenHashMap<BlockPos, MergedPlanCell> mergeCells(ObjectList<StructurePlan> demolitions,
-                                                                               ObjectList<StructurePlan> builds) {
+    public static Object2ObjectLinkedOpenHashMap<BlockPos, MergedPlanCell> mergeCells(ObjectList<StructurePlan> demolitions,
+                                                                                      ObjectList<StructurePlan> builds) {
         Object2ObjectLinkedOpenHashMap<BlockPos, ObjectArrayList<PlannedCell>> grouped = new Object2ObjectLinkedOpenHashMap<>();
         for (StructurePlan plan : concat(demolitions, builds)) {
             for (PlannedCell cell : plan.cells()) {
@@ -35,15 +35,15 @@ final class PlanAssembly {
         return result;
     }
 
-    static ObjectList<StructurePlan> concat(ObjectList<StructurePlan> first,
-                                            ObjectList<StructurePlan> second) {
+    public static ObjectList<StructurePlan> concat(ObjectList<StructurePlan> first,
+                                                   ObjectList<StructurePlan> second) {
         ObjectArrayList<StructurePlan> result = new ObjectArrayList<>(first.size() + second.size());
         result.addAll(first);
         result.addAll(second);
         return result;
     }
 
-    static boolean compatible(ObjectList<PlannedCell> contributors) {
+    public static boolean compatible(ObjectList<PlannedCell> contributors) {
         PlannedCell first = null;
         for (PlannedCell other : contributors) {
             if (other.action() == CellAction.IGNORE_ANY) continue;
@@ -60,12 +60,12 @@ final class PlanAssembly {
         return true;
     }
 
-    static long fingerprint(
-                            ObjectList<StructurePlan> demolitions,
-                            ObjectList<StructurePlan> builds,
-                            Object2ObjectMap<BlockPos, MergedPlanCell> merged,
-                            LongList sourceFingerprints,
-                            Object2ObjectMap<MaterialKey, BatchResolution.MaterialAllocation> allocations) {
+    public static long fingerprint(
+                                   ObjectList<StructurePlan> demolitions,
+                                   ObjectList<StructurePlan> builds,
+                                   Object2ObjectMap<BlockPos, MergedPlanCell> merged,
+                                   LongList sourceFingerprints,
+                                   Object2ObjectMap<MaterialKey, BatchResolution.MaterialAllocation> allocations) {
         long value = FINGERPRINT_OFFSET;
         for (StructurePlan structure : concat(demolitions, builds)) {
             value = hash(value, structure.structureName().hashCode());
@@ -102,7 +102,7 @@ final class PlanAssembly {
         return value;
     }
 
-    static long hash(long current, long value) {
+    public static long hash(long current, long value) {
         return (current ^ value) * FINGERPRINT_PRIME;
     }
 }
