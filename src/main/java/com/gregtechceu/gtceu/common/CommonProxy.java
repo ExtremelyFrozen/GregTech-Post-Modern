@@ -141,14 +141,12 @@ import net.neoforged.fml.event.lifecycle.FMLLoadCompleteEvent;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.capabilities.Capabilities.FluidHandler;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
-import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.common.crafting.DataComponentIngredient;
 import net.neoforged.neoforge.common.crafting.IntersectionIngredient;
 import net.neoforged.neoforge.common.crafting.SizedIngredient;
 import net.neoforged.neoforge.energy.IEnergyStorage;
 import net.neoforged.neoforge.event.AddPackFindersEvent;
 import net.neoforged.neoforge.event.BlockEntityTypeAddBlocksEvent;
-import net.neoforged.neoforge.event.server.ServerStartedEvent;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.wrappers.FluidBucketWrapper;
 import net.neoforged.neoforge.fluids.crafting.CompoundFluidIngredient;
@@ -183,7 +181,6 @@ public class CommonProxy {
     public static void init(final IEventBus modBus) {
         CommonProxy.modBus = modBus;
         modBus.register(CommonProxy.class);
-        NeoForge.EVENT_BUS.addListener(CommonProxy::onServerStarted);
         modBus.addListener(AlloyBlastPropertyAddition::addAlloyBlastProperties);
 
         if (GTCEu.MODS.AE2.isLoaded()) {
@@ -437,10 +434,6 @@ public class CommonProxy {
     @SubscribeEvent
     public static void loadComplete(FMLLoadCompleteEvent event) {
         event.enqueueWork(StructurePatternRegistry::reloadAllPatternsAsync);
-    }
-
-    private static void onServerStarted(ServerStartedEvent event) {
-        StructurePatternRegistry.reloadAllPatternsAsync();
     }
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
