@@ -7,18 +7,8 @@ import com.gregtechceu.gtceu.api.item.ComponentItem;
 import com.gregtechceu.gtceu.api.machine.multiblock.WorkableMultiblockMachine;
 import com.gregtechceu.gtceu.api.machine.trait.RecipeLogic;
 import com.gregtechceu.gtceu.api.machine.trait.WorkLogic;
-import com.gregtechceu.gtceu.api.multiblock.pattern.dsl.PatternBuilder;
-import com.gregtechceu.gtceu.api.multiblock.pattern.match.MultiBlockPattern;
-import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternDirection;
-import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternNode;
-import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternRepeatDirection;
-import com.gregtechceu.gtceu.api.multiblock.util.RelativeDirection;
-import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
 import com.gregtechceu.gtceu.common.data.GTBlocks;
 import com.gregtechceu.gtceu.common.item.behavior.LighterBehavior;
-import com.gregtechceu.gtceu.data.pattern.StructurePatternKey;
-import com.gregtechceu.gtceu.data.pattern.StructurePatternResolver;
-import com.gregtechceu.gtceu.data.recipe.CustomTags;
 import com.gregtechceu.gtceu.utils.ExtendedUseOnContext;
 
 import net.minecraft.core.BlockPos;
@@ -30,7 +20,6 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Blocks;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.neoforge.common.ItemAbilities;
@@ -40,25 +29,9 @@ import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 
 import java.util.*;
 
-import static com.gregtechceu.gtceu.api.multiblock.util.RelativeDirection.*;
-
 public class CharcoalPileIgniterMachine extends WorkableMultiblockMachine implements IWorkable {
 
-    private static final int MIN_RADIUS = 1;
-    private static final int MIN_DEPTH = 2;
-    private static final int MAX_HEIGHT = 5;
     private final Collection<BlockPos> logPos = new ObjectOpenHashSet<>();
-
-    @SyncToClient
-    private int lDist = 0;
-    @SyncToClient
-    private int rDist = 0;
-    @SyncToClient
-    private int bDist = 0;
-    @SyncToClient
-    private int fDist = 0;
-    @SyncToClient
-    private int hDist = 0;
 
     private boolean hasAir = false;
 
@@ -102,159 +75,6 @@ public class CharcoalPileIgniterMachine extends WorkableMultiblockMachine implem
 
     @Override
     public void setWorkingEnabled(boolean isWorkingAllowed) {}
-
-    @Override
-    public MultiBlockPattern getPattern(String structureName) {
-        if (!DEFAULT_STRUCTURE.equals(structureName)) {
-            return super.getPattern(structureName);
-        }
-        updateDimensions();
-
-        if (lDist < MIN_RADIUS) lDist = MIN_RADIUS;
-        if (rDist < MIN_RADIUS) rDist = MIN_RADIUS;
-        if (fDist < MIN_RADIUS) fDist = MIN_RADIUS;
-        if (bDist < MIN_RADIUS) bDist = MIN_RADIUS;
-        if (hDist < MIN_DEPTH) hDist = MIN_DEPTH;
-
-        if (this.getFrontFacing().getAxis() == Direction.Axis.X) {
-            int tmp = lDist;
-            lDist = rDist;
-            rDist = tmp;
-        }
-
-        StringBuilder[] floorLayer = new StringBuilder[fDist + bDist + 1];
-        List<StringBuilder[]> wallLayers = new ArrayList<>();
-        StringBuilder[] ceilingLayer = new StringBuilder[fDist + bDist + 1];
-
-        for (int i = 0; i < floorLayer.length; i++) {
-            floorLayer[i] = new StringBuilder(lDist + rDist + 1);
-            ceilingLayer[i] = new StringBuilder(lDist + rDist + 1);
-        }
-
-        for (int i = 0; i < hDist - 1; i++) {
-            wallLayers.add(new StringBuilder[fDist + bDist + 1]);
-            for (int j = 0; j < fDist + bDist + 1; j++) {
-                var s = new StringBuilder(lDist + rDist + 3);
-                wallLayers.get(i)[j] = s;
-            }
-        }
-
-        for (int i = 0; i < lDist + rDist + 1; i++) {
-            for (int j = 0; j < fDist + bDist + 1; j++) {
-                if (i == 0 || i == lDist + rDist || j == 0 || j == fDist + bDist) { // all edges
-                    floorLayer[j].append('A'); // floor edge
-                    for (int k = 0; k < hDist - 1; k++) {
-                        if ((i == 0 || i == lDist + rDist) && (j == 0 || j == fDist + bDist)) {
-                            wallLayers.get(k)[j].append('A');
-                        } else {
-                            wallLayers.get(k)[j].append('W'); // walls
-                        }
-                    }
-                    ceilingLayer[j].append('A'); // ceiling edge
-                } else { // not edges
-                    floorLayer[j].append('B');
-                    for (int k = 0; k < hDist - 1; k++) {
-                        wallLayers.get(k)[j].append('L'); // log or air
-                    }
-                    if (i == lDist && j == fDist) { // very center
-                        ceilingLayer[j].append('~'); // controller
-                    } else {
-                        ceilingLayer[j].append('W'); // grass top
-                    }
-                }
-            }
-        }
-
-        String[] f = new String[bDist + fDist + 1];
-        for (int i = 0; i < floorLayer.length; i++) {
-            f[i] = floorLayer[i].toString();
-        }
-        String[] m = new String[bDist + fDist + 1];
-        for (int i = 0; i < wallLayers.get(0).length; i++) {
-            m[i] = wallLayers.get(0)[i].toString();
-        }
-        String[] c = new String[bDist + fDist + 1];
-        for (int i = 0; i < ceilingLayer.length; i++) {
-            c[i] = ceilingLayer[i].toString();
-        }
-
-        MultiBlockPattern baseline = PatternBuilder.start(this.getDefinition(), LEFT, FRONT, UP)
-                .aisle("~")
-                .build();
-        return StructurePatternResolver.rebuildRuntimePattern(
-                this.getDefinition(),
-                StructurePatternKey.main(this.getDefinition().getId()),
-                baseline,
-                List.of(
-                        PatternNode.Fixed.fromSlices(f),
-                        new PatternNode.Repeat("walls", PatternDirection.FRONT, PatternRepeatDirection.POSITIVE,
-                                wallLayers.size(), wallLayers.size(), PatternNode.Fixed.fromSlices(m)),
-                        PatternNode.Fixed.fromSlices(c)));
-    }
-
-    public void updateDimensions() {
-        Level level = getLevel();
-        if (level == null) return;
-        Direction front = getFrontFacing();
-        Direction back = front.getOpposite();
-        Direction left = RelativeDirection.LEFT.getRelative(front, getUpwardsFacing(), false);
-        Direction right = RelativeDirection.RIGHT.getRelative(front, getUpwardsFacing(), false);
-
-        BlockPos down = getBlockPos().relative(Direction.DOWN);
-
-        BlockPos.MutableBlockPos lPos = down.mutable();
-        BlockPos.MutableBlockPos rPos = down.mutable();
-        BlockPos.MutableBlockPos fPos = down.mutable();
-        BlockPos.MutableBlockPos bPos = down.mutable();
-        BlockPos.MutableBlockPos hPos = getBlockPos().mutable();
-
-        int lDist = 0;
-        int rDist = 0;
-        int bDist = 0;
-        int fDist = 0;
-        int hDist = 0;
-
-        for (int i = 1; i <= MAX_HEIGHT; i++) {
-            if (lDist != 0 && rDist != 0 && hDist != 0) break;
-            if (lDist == 0 && isBlockWall(level, lPos, left)) lDist = i;
-            if (rDist == 0 && isBlockWall(level, rPos, right)) rDist = i;
-            if (bDist == 0 && isBlockWall(level, bPos, back)) bDist = i;
-            if (fDist == 0 && isBlockWall(level, fPos, front)) fDist = i;
-            if (hDist == 0 && isBlockFloor(level, hPos)) hDist = i;
-        }
-
-        if (Math.abs(lDist - rDist) > 1 || Math.abs(bDist - fDist) > 1) {
-            this.isFormed = false;
-            return;
-        }
-
-        if (lDist < MIN_RADIUS || rDist < MIN_RADIUS || fDist < MIN_RADIUS || bDist < MIN_RADIUS || hDist < MIN_DEPTH) {
-            this.isFormed = false;
-            return;
-        }
-
-        this.lDist = lDist;
-        this.rDist = rDist;
-        this.fDist = fDist;
-        this.bDist = bDist;
-        this.hDist = hDist;
-
-        if (!isRemote()) {
-            syncDataHolder.markClientSyncFieldDirty("lDist");
-            syncDataHolder.markClientSyncFieldDirty("rDist");
-            syncDataHolder.markClientSyncFieldDirty("fDist");
-            syncDataHolder.markClientSyncFieldDirty("bDist");
-            syncDataHolder.markClientSyncFieldDirty("hDist");
-        }
-    }
-
-    private static boolean isBlockWall(Level level, BlockPos.MutableBlockPos pos, Direction direction) {
-        return level.getBlockState(pos.move(direction)).is(CustomTags.CHARCOAL_PILE_IGNITER_WALLS);
-    }
-
-    private static boolean isBlockFloor(Level level, BlockPos.MutableBlockPos pos) {
-        return level.getBlockState(pos.move(Direction.DOWN)).is(Blocks.BRICKS);
-    }
 
     @Override
     @OnlyIn(Dist.CLIENT)

@@ -12,8 +12,169 @@
 	"origin": {
 		"token": "controller"
 	},
-	"parameters": {},
-	"fragments": {},
+	"parameters": {
+		"width": {
+			"type": "integer",
+			"min": 3,
+			"max": 11
+		},
+		"depth": {
+			"type": "integer",
+			"min": 3,
+			"max": 11
+		},
+		"height": {
+			"type": "integer",
+			"min": 3,
+			"max": 6
+		}
+	},
+	"fragments": {
+		"row": {
+			"parameters": {
+				"B": "token",
+				"I": "token",
+				"C": "token"
+			},
+			"body": {
+				"type": "sequence",
+				"axis": "width",
+				"children": [
+					{
+						"type": "fixed",
+						"layers": [["B"]]
+					},
+					{
+						"type": "repeat",
+						"id": "left_interior",
+						"axis": "width",
+						"direction": "positive",
+						"min": 0,
+						"max": 4,
+						"count": {
+							"parameter": "width",
+							"offset": -3,
+							"divisor": 2
+						},
+						"body": {
+							"type": "fixed",
+							"layers": [["I"]]
+						}
+					},
+					{
+						"type": "fixed",
+						"layers": [["C"]]
+					},
+					{
+						"type": "repeat",
+						"id": "right_interior",
+						"axis": "width",
+						"direction": "positive",
+						"min": 0,
+						"max": 4,
+						"count": {
+							"parameter": "width",
+							"offset": -2,
+							"divisor": 2
+						},
+						"body": {
+							"type": "fixed",
+							"layers": [["I"]]
+						}
+					},
+					{
+						"type": "fixed",
+						"layers": [["B"]]
+					}
+				]
+			}
+		},
+		"plane": {
+			"parameters": {
+				"B": "token",
+				"E": "token",
+				"I": "token",
+				"C": "token"
+			},
+			"body": {
+				"type": "sequence",
+				"axis": "depth",
+				"children": [
+					{
+						"type": "fragment",
+						"id": "row",
+						"bindings": {
+							"B": "B",
+							"I": "E",
+							"C": "E"
+						}
+					},
+					{
+						"type": "repeat",
+						"id": "front_interior",
+						"axis": "depth",
+						"direction": "positive",
+						"min": 0,
+						"max": 4,
+						"count": {
+							"parameter": "depth",
+							"offset": -3,
+							"divisor": 2
+						},
+						"body": {
+							"type": "fragment",
+							"id": "row",
+							"bindings": {
+								"B": "E",
+								"I": "I",
+								"C": "I"
+							}
+						}
+					},
+					{
+						"type": "fragment",
+						"id": "row",
+						"bindings": {
+							"B": "E",
+							"I": "I",
+							"C": "C"
+						}
+					},
+					{
+						"type": "repeat",
+						"id": "back_interior",
+						"axis": "depth",
+						"direction": "positive",
+						"min": 0,
+						"max": 4,
+						"count": {
+							"parameter": "depth",
+							"offset": -2,
+							"divisor": 2
+						},
+						"body": {
+							"type": "fragment",
+							"id": "row",
+							"bindings": {
+								"B": "E",
+								"I": "I",
+								"C": "I"
+							}
+						}
+					},
+					{
+						"type": "fragment",
+						"id": "row",
+						"bindings": {
+							"B": "B",
+							"I": "E",
+							"C": "E"
+						}
+					}
+				]
+			}
+		}
+	},
 	"predicates": {
 		"A": {
 			"type": "gtpm:any"
@@ -32,27 +193,50 @@
 	},
 	"body": {
 		"type": "sequence",
-		"axis": "depth",
+		"axis": "height",
 		"children": [
 			{
-				"type": "fixed",
-				"layers": [["AAAAA", "ABBAA", "ABBAA", "AAAAA", "AAAAA"]]
-			},
-			{
-				"type": "repeat",
-				"id": "unit_1",
-				"axis": "depth",
-				"direction": "positive",
-				"min": 1,
-				"max": 4,
-				"body": {
-					"type": "fixed",
-					"layers": [["AWWWA", "WLLLW", "WLLLW", "WLLLW", "AWWWA"]]
+				"type": "fragment",
+				"id": "plane",
+				"bindings": {
+					"B": "A",
+					"E": "A",
+					"I": "B",
+					"C": "B"
 				}
 			},
 			{
-				"type": "fixed",
-				"layers": [["AAAAA", "AWWWA", "AW~WA", "AWWWA", "AAAAA"]]
+				"type": "repeat",
+				"id": "walls",
+				"axis": "height",
+				"direction": "positive",
+				"min": 1,
+				"max": 4,
+				"count": {
+					"parameter": "height",
+					"offset": -2,
+					"divisor": 1
+				},
+				"body": {
+					"type": "fragment",
+					"id": "plane",
+					"bindings": {
+						"B": "A",
+						"E": "W",
+						"I": "L",
+						"C": "L"
+					}
+				}
+			},
+			{
+				"type": "fragment",
+				"id": "plane",
+				"bindings": {
+					"B": "A",
+					"E": "A",
+					"I": "W",
+					"C": "~"
+				}
 			}
 		]
 	},
