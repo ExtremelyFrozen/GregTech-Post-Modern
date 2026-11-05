@@ -8,6 +8,7 @@ import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.BuildPolicy;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.StructureOperation;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.StructureRequest;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.BatchPlanner;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
@@ -48,6 +49,11 @@ public record TerminalMachine(BuildPolicy sharedOptions,
                             .fieldOf("structures")
                             .forGetter(TerminalMachine::structures))
                     .apply(instance, TerminalMachine::new));
+
+    static {
+        FieldCodecs.registerStream(TerminalMachine.class, STREAM_CODEC);
+        FieldCodecs.register(TerminalMachine.class, CODEC);
+    }
 
     /** Creates the first-use machine, selecting main and its explicitly declared dependencies. */
     public static TerminalMachine defaults(MultiblockMachineDefinition definition) {

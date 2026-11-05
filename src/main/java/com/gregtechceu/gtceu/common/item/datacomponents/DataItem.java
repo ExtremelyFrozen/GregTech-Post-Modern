@@ -1,5 +1,7 @@
 package com.gregtechceu.gtceu.common.item.datacomponents;
 
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
+
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.util.ExtraCodecs;
@@ -21,6 +23,11 @@ public record DataItem(boolean requireDataBank, int capacity) {
             ByteBufCodecs.VAR_INT, DataItem::capacity,
             DataItem::new
     );
+
+    static {
+        FieldCodecs.register(DataItem.class, CODEC);
+        FieldCodecs.registerStream(DataItem.class, STREAM_CODEC);
+    }
     // spotless:on
 
     public DataItem {

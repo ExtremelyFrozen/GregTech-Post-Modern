@@ -9,6 +9,7 @@ import com.gregtechceu.gtceu.api.item.datacomponents.AoESymmetrical
 import com.gregtechceu.gtceu.api.item.tool.ToolHelper.getAoEDefinition
 import com.gregtechceu.gtceu.api.item.tool.behavior.IToolUIBehavior
 import com.gregtechceu.gtceu.api.item.tool.behavior.ToolBehaviorType
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs
 import com.gregtechceu.gtceu.common.data.GTDataComponents
 import com.gregtechceu.gtceu.common.data.GTToolBehaviors
 
@@ -18,6 +19,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical
 
+import net.minecraft.network.RegistryFriendlyByteBuf
 import net.minecraft.network.codec.StreamCodec
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.entity.player.Player
@@ -120,5 +122,10 @@ open class AOEConfigUIBehavior : IToolUIBehavior<AOEConfigUIBehavior> {
 
 		@JvmField
 		val STREAM_CODEC: StreamCodec<ByteBuf, AOEConfigUIBehavior> = StreamCodec.unit(INSTANCE)
+
+		init {
+			FieldCodecs.register(AOEConfigUIBehavior::class.java, CODEC)
+			FieldCodecs.registerStream(AOEConfigUIBehavior::class.java, STREAM_CODEC.cast<RegistryFriendlyByteBuf>())
+		}
 	}
 }

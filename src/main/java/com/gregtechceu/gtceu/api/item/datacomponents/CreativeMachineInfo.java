@@ -1,5 +1,7 @@
 package com.gregtechceu.gtceu.api.item.datacomponents;
 
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
+
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.util.ExtraCodecs;
@@ -20,4 +22,9 @@ public record CreativeMachineInfo(int outputPerCycle, int ticksPerCycle) {
             ByteBufCodecs.VAR_INT, CreativeMachineInfo::outputPerCycle,
             ByteBufCodecs.VAR_INT, CreativeMachineInfo::ticksPerCycle,
             CreativeMachineInfo::new);
+
+    static {
+        FieldCodecs.register(CreativeMachineInfo.class, CODEC);
+        FieldCodecs.registerStream(CreativeMachineInfo.class, STREAM_CODEC);
+    }
 }

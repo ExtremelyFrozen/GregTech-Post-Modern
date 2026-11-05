@@ -2,6 +2,7 @@ package com.gregtechceu.gtceu.common.item.tool.behavior;
 
 import com.gregtechceu.gtceu.api.item.tool.behavior.IToolBehavior;
 import com.gregtechceu.gtceu.api.item.tool.behavior.ToolBehaviorType;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 import com.gregtechceu.gtceu.common.data.GTToolBehaviors;
 
 import net.minecraft.network.chat.Component;
@@ -22,6 +23,11 @@ public class DisableShieldBehavior implements IToolBehavior<DisableShieldBehavio
     public static final DisableShieldBehavior INSTANCE = new DisableShieldBehavior();
     public static final Codec<DisableShieldBehavior> CODEC = Codec.unit(INSTANCE);
     public static final StreamCodec<ByteBuf, DisableShieldBehavior> STREAM_CODEC = StreamCodec.unit(INSTANCE);
+
+    static {
+        FieldCodecs.register(DisableShieldBehavior.class, CODEC);
+        FieldCodecs.registerStream(DisableShieldBehavior.class, STREAM_CODEC);
+    }
 
     protected DisableShieldBehavior() {/**/}
 

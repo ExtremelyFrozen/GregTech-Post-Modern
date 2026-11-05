@@ -1,5 +1,6 @@
 package com.gregtechceu.gtceu.common.item.datacomponents;
 
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
 
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -26,6 +27,11 @@ public record MachineConfigCopyData(String source, List<ItemStack> itemsToPaste,
             SyncFieldData.STREAM_CODEC, MachineConfigCopyData::config,
             MachineConfigCopyData::new
     );
+
+    static {
+        FieldCodecs.register(MachineConfigCopyData.class, CODEC);
+        FieldCodecs.registerStream(MachineConfigCopyData.class, STREAM_CODEC);
+    }
     // spotless:on
 
     public MachineConfigCopyData {

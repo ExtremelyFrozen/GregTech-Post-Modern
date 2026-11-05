@@ -1,6 +1,7 @@
 package com.gregtechceu.gtceu.api.item.datacomponents;
 
 import com.gregtechceu.gtceu.api.item.armor.ArmorUtils;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 import com.gregtechceu.gtceu.utils.codec.StreamCodecUtils;
 
 import net.minecraft.network.codec.ByteBufCodecs;
@@ -60,6 +61,11 @@ public record GTArmor(
             ByteBufCodecs.BYTE, GTArmor::boostedJumpTimer,
             ByteBufCodecs.BYTE, GTArmor::consumerTicks,
             GTArmor::new);
+
+    static {
+        FieldCodecs.register(GTArmor.class, CODEC);
+        FieldCodecs.registerStream(GTArmor.class, STREAM_CODEC);
+    }
 
     public static final GTArmor EMPTY = new GTArmor();
 

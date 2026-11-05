@@ -4,6 +4,7 @@ import com.gregtechceu.gtceu.api.item.tool.ToolHelper;
 import com.gregtechceu.gtceu.api.item.tool.behavior.IToolBehavior;
 import com.gregtechceu.gtceu.api.item.tool.behavior.ToolBehaviorType;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 import com.gregtechceu.gtceu.common.data.GTToolBehaviors;
 import com.gregtechceu.gtceu.common.data.item.GTItemAbilities;
 import com.gregtechceu.gtceu.common.item.tool.rotation.CustomBlockRotations;
@@ -44,6 +45,11 @@ public class BlockRotatingBehavior implements IToolBehavior<BlockRotatingBehavio
     public static final BlockRotatingBehavior INSTANCE = new BlockRotatingBehavior();
     public static final Codec<BlockRotatingBehavior> CODEC = Codec.unit(INSTANCE);
     public static final StreamCodec<ByteBuf, BlockRotatingBehavior> STREAM_CODEC = StreamCodec.unit(INSTANCE);
+
+    static {
+        FieldCodecs.register(BlockRotatingBehavior.class, CODEC);
+        FieldCodecs.registerStream(BlockRotatingBehavior.class, STREAM_CODEC);
+    }
 
     protected BlockRotatingBehavior() {}
 

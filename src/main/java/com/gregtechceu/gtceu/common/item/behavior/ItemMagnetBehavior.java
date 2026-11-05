@@ -20,6 +20,7 @@ import com.gregtechceu.gtceu.api.item.component.IAddInformation;
 import com.gregtechceu.gtceu.api.item.component.IInteractionItem;
 import com.gregtechceu.gtceu.api.item.component.IItemLifeCycle;
 import com.gregtechceu.gtceu.api.item.component.IItemUIFactory;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 import com.gregtechceu.gtceu.common.data.GTDataComponents;
 import com.gregtechceu.gtceu.common.data.GTItems;
 
@@ -367,6 +368,10 @@ public class ItemMagnetBehavior implements IInteractionItem, IItemLifeCycle, IAd
 
         public static final Codec<Filter> CODEC = StringRepresentable.fromEnum(Filter::values);
 
+        static {
+            FieldCodecs.register(Filter.class, CODEC);
+        }
+
         public final ItemEntry<ComponentItem> item;
         public final String name;
 
@@ -436,6 +441,11 @@ public class ItemMagnetBehavior implements IInteractionItem, IItemLifeCycle, IAd
                 ByteBufCodecs.BOOL, MagnetComponent::active,
                 ByteBufCodecs.VAR_INT, c -> c.filterType().ordinal(),
                 (active, ordinal) -> new MagnetComponent(active, Filter.get(ordinal)));
+
+        static {
+            FieldCodecs.register(MagnetComponent.class, CODEC);
+            FieldCodecs.registerStream(MagnetComponent.class, STREAM_CODEC);
+        }
 
         public static final MagnetComponent EMPTY = new MagnetComponent(false, Filter.SIMPLE);
     }

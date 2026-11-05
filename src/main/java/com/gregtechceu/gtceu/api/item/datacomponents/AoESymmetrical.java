@@ -1,5 +1,7 @@
 package com.gregtechceu.gtceu.api.item.datacomponents;
 
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
+
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.util.ExtraCodecs;
@@ -29,6 +31,11 @@ public record AoESymmetrical(int maxColumn, int maxRow, int maxLayer, int column
             ByteBufCodecs.VAR_INT, AoESymmetrical::row,
             ByteBufCodecs.VAR_INT, AoESymmetrical::layer,
             AoESymmetrical::new);
+
+    static {
+        FieldCodecs.register(AoESymmetrical.class, CODEC);
+        FieldCodecs.registerStream(AoESymmetrical.class, STREAM_CODEC);
+    }
 
     public static final AoESymmetrical ZERO = new AoESymmetrical(0, 0, 0, 0, 0, 0);
 

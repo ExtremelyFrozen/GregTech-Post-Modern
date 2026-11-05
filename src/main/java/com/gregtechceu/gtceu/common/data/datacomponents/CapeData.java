@@ -1,5 +1,7 @@
 package com.gregtechceu.gtceu.common.data.datacomponents;
 
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
+
 import net.minecraft.core.UUIDUtil;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
@@ -41,6 +43,11 @@ public final class CapeData {
                 UNLOCKED_CAPES_STREAM_CODEC, Registry::unlockedCapes,
                 CURRENT_CAPES_STREAM_CODEC, Registry::currentCapes,
                 Registry::new);
+
+        static {
+            FieldCodecs.register(Registry.class, CODEC);
+            FieldCodecs.registerStream(Registry.class, STREAM_CODEC);
+        }
 
         public Registry {
             unlockedCapes = copyUnlockedCapes(unlockedCapes);

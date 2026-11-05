@@ -1,5 +1,6 @@
 package com.gregtechceu.gtceu.api.item.datacomponents;
 
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 import com.gregtechceu.gtceu.utils.codec.CodecUtils;
 
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -28,6 +29,11 @@ public record LargeFluidContent(@With FluidStack stored, @With long amount) {
             FluidStack.OPTIONAL_STREAM_CODEC, LargeFluidContent::stored,
             ByteBufCodecs.VAR_LONG, LargeFluidContent::amount,
             LargeFluidContent::new);
+
+    static {
+        FieldCodecs.register(LargeFluidContent.class, CODEC);
+        FieldCodecs.registerStream(LargeFluidContent.class, STREAM_CODEC);
+    }
     // spotless:on
 
     public static final LargeFluidContent EMPTY = new LargeFluidContent(FluidStack.EMPTY, 0);

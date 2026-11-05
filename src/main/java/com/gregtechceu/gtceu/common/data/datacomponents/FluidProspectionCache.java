@@ -2,6 +2,7 @@ package com.gregtechceu.gtceu.common.data.datacomponents;
 
 import com.gregtechceu.gtceu.api.data.worldgen.ores.GeneratedVeinMetadata;
 import com.gregtechceu.gtceu.api.gui.misc.ProspectorMode;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -24,6 +25,11 @@ public record FluidProspectionCache(List<Entry> entries) {
     public static final StreamCodec<RegistryFriendlyByteBuf, FluidProspectionCache> STREAM_CODEC = Entry.STREAM_CODEC
             .apply(ByteBufCodecs.list())
             .map(FluidProspectionCache::new, FluidProspectionCache::entries);
+
+    static {
+        FieldCodecs.register(FluidProspectionCache.class, CODEC);
+        FieldCodecs.registerStream(FluidProspectionCache.class, STREAM_CODEC);
+    }
 
     public FluidProspectionCache {
         entries = List.copyOf(entries);
@@ -57,5 +63,10 @@ public record FluidProspectionCache(List<Entry> entries) {
                 ProspectorMode.FluidInfo.STREAM_CODEC.encode(buffer, value.fluid);
             }
         };
+
+        static {
+            FieldCodecs.register(Entry.class, CODEC);
+            FieldCodecs.registerStream(Entry.class, STREAM_CODEC);
+        }
     }
 }

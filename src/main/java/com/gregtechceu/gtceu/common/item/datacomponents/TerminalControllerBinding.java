@@ -1,5 +1,7 @@
 package com.gregtechceu.gtceu.common.item.datacomponents;
 
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.codec.StreamCodec;
@@ -28,6 +30,11 @@ public record TerminalControllerBinding(BlockPos position, ResourceKey<Level> di
             ResourceKey.streamCodec(Registries.DIMENSION), TerminalControllerBinding::dimension,
             ResourceLocation.STREAM_CODEC, TerminalControllerBinding::definitionId,
             TerminalControllerBinding::new);
+
+    static {
+        FieldCodecs.register(TerminalControllerBinding.class, CODEC);
+        FieldCodecs.registerStream(TerminalControllerBinding.class, STREAM_CODEC);
+    }
 
     public TerminalControllerBinding {
         position = position.immutable();

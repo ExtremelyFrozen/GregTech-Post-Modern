@@ -1,6 +1,7 @@
 package com.gregtechceu.gtceu.common.item.datacomponents;
 
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.StructureOperation;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 
 import net.minecraft.resources.ResourceLocation;
 
@@ -45,6 +46,10 @@ public record TerminalStructure(boolean selected, StructureOperation mode, IntLi
                             .fieldOf("choices")
                             .forGetter(TerminalStructure::choices))
                     .apply(instance, TerminalStructure::new));
+
+    static {
+        FieldCodecs.register(TerminalStructure.class, CODEC);
+    }
 
     public TerminalStructure withSelected(boolean value) {
         return new TerminalStructure(value, mode, repetitions, flipMode, tierChoices, choices);

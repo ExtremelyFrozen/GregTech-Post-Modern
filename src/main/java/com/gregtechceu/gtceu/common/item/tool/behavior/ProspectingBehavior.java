@@ -3,6 +3,7 @@ package com.gregtechceu.gtceu.common.item.tool.behavior;
 import com.gregtechceu.gtceu.api.item.IGTTool;
 import com.gregtechceu.gtceu.api.item.tool.behavior.IToolBehavior;
 import com.gregtechceu.gtceu.api.item.tool.behavior.ToolBehaviorType;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 import com.gregtechceu.gtceu.common.data.GTToolBehaviors;
 import com.gregtechceu.gtceu.utils.GTUtil;
 
@@ -30,6 +31,11 @@ public class ProspectingBehavior implements IToolBehavior<ProspectingBehavior> {
     public static final ProspectingBehavior INSTANCE = new ProspectingBehavior();
     public static final Codec<ProspectingBehavior> CODEC = Codec.unit(INSTANCE);
     public static final StreamCodec<ByteBuf, ProspectingBehavior> STREAM_CODEC = StreamCodec.unit(INSTANCE);
+
+    static {
+        FieldCodecs.register(ProspectingBehavior.class, CODEC);
+        FieldCodecs.registerStream(ProspectingBehavior.class, STREAM_CODEC);
+    }
 
     @Override
     public @NotNull InteractionResult onItemUse(UseOnContext context) {

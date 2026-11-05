@@ -1,5 +1,7 @@
 package com.gregtechceu.gtceu.common.item.datacomponents;
 
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
+
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 
@@ -19,6 +21,11 @@ public record FormatStringList(@With List<String> lines) {
     public static final StreamCodec<ByteBuf, FormatStringList> STREAM_CODEC = ByteBufCodecs.STRING_UTF8
             .apply(ByteBufCodecs.list())
             .map(FormatStringList::new, FormatStringList::lines);
+
+    static {
+        FieldCodecs.register(FormatStringList.class, CODEC);
+        FieldCodecs.registerStream(FormatStringList.class, STREAM_CODEC);
+    }
 
     public static final FormatStringList EMPTY = new FormatStringList(Collections.emptyList());
 

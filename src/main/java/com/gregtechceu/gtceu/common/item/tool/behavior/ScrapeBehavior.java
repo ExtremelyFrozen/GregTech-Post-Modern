@@ -4,6 +4,7 @@ import com.gregtechceu.gtceu.api.item.datacomponents.AoESymmetrical;
 import com.gregtechceu.gtceu.api.item.tool.ToolHelper;
 import com.gregtechceu.gtceu.api.item.tool.behavior.IToolBehavior;
 import com.gregtechceu.gtceu.api.item.tool.behavior.ToolBehaviorType;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 import com.gregtechceu.gtceu.common.data.GTToolBehaviors;
 
 import net.minecraft.core.BlockPos;
@@ -35,6 +36,11 @@ public class ScrapeBehavior implements IToolBehavior<ScrapeBehavior> {
     public static final ScrapeBehavior INSTANCE = new ScrapeBehavior();
     public static final Codec<ScrapeBehavior> CODEC = Codec.unit(INSTANCE);
     public static final StreamCodec<ByteBuf, ScrapeBehavior> STREAM_CODEC = StreamCodec.unit(INSTANCE);
+
+    static {
+        FieldCodecs.register(ScrapeBehavior.class, CODEC);
+        FieldCodecs.registerStream(ScrapeBehavior.class, STREAM_CODEC);
+    }
 
     protected ScrapeBehavior() {/**/}
 
