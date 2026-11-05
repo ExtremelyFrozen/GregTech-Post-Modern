@@ -23,11 +23,6 @@ import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMultiPart;
 import com.gregtechceu.gtceu.api.machine.multiblock.CleanroomType;
 import com.gregtechceu.gtceu.api.machine.multiblock.WorkableElectricMultiblockMachine;
 import com.gregtechceu.gtceu.api.misc.EnergyContainerList;
-import com.gregtechceu.gtceu.api.multiblock.pattern.dsl.PatternBuilder;
-import com.gregtechceu.gtceu.api.multiblock.pattern.match.MultiBlockPattern;
-import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternDirection;
-import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternNode;
-import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternRepeatDirection;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
 import com.gregtechceu.gtceu.common.data.GTBlocks;
@@ -37,8 +32,6 @@ import com.gregtechceu.gtceu.common.machine.multiblock.part.DiodePartMachine;
 import com.gregtechceu.gtceu.common.machine.trait.CleanroomLogic;
 import com.gregtechceu.gtceu.common.machine.trait.CleanroomProviderTrait;
 import com.gregtechceu.gtceu.common.machine.trait.CleanroomReceiverTrait;
-import com.gregtechceu.gtceu.data.pattern.StructurePatternKey;
-import com.gregtechceu.gtceu.data.pattern.StructurePatternResolver;
 import com.gregtechceu.gtceu.data.recipe.CustomTags;
 import com.gregtechceu.gtceu.utils.GTUtil;
 
@@ -67,8 +60,6 @@ import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
-
-import static com.gregtechceu.gtceu.api.multiblock.util.RelativeDirection.*;
 
 public class CleanroomMachine extends WorkableElectricMultiblockMachine
                               implements IDataInfoProvider {
@@ -136,6 +127,14 @@ public class CleanroomMachine extends WorkableElectricMultiblockMachine
     public void formStructure(String structureName) {
         super.formStructure(structureName);
         if (!DEFAULT_STRUCTURE.equals(structureName)) return;
+        var facts = getMultiblockState(DEFAULT_STRUCTURE).getFacts();
+        int width = facts.getInt("pattern.width");
+        int depth = facts.getInt("pattern.depth");
+        lDist = (width - 1) / 2;
+        rDist = width - lDist - 1;
+        fDist = (depth - 1) / 2;
+        bDist = depth - fDist - 1;
+        hDist = facts.getInt("pattern.height") - 1;
         initializeAbilities();
         IFilterType filterType = getMultiblockState(DEFAULT_STRUCTURE).getFacts().get("FilterType");
         if (filterType != null) {
@@ -333,98 +332,6 @@ public class CleanroomMachine extends WorkableElectricMultiblockMachine
                                 Direction direction) {
         var state = world.getBlockState(pos.move(direction));
         return state == getCasingState() || state == getGlassState() || state.is(CustomTags.CLEANROOM_FLOORS);
-    }
-
-    @Override
-    public MultiBlockPattern getPattern(String structureName) {
-        if (!DEFAULT_STRUCTURE.equals(structureName)) {
-            return super.getPattern(structureName);
-        }
-        // return the default structure, even if there is no valid size found
-        // this means auto-build will still work, and prevents terminal crashes.
-        if (getLevel() != null) updateStructureDimensions();
-
-        // these can sometimes get set to 0 when loading the game, breaking JEI
-        if (lDist < MIN_RADIUS) lDist = MIN_RADIUS;
-        if (rDist < MIN_RADIUS) rDist = MIN_RADIUS;
-        if (bDist < MIN_RADIUS) bDist = MIN_RADIUS;
-        if (fDist < MIN_RADIUS) fDist = MIN_RADIUS;
-        if (hDist < MIN_DEPTH) hDist = MIN_DEPTH;
-
-        if (this.getFrontFacing() == Direction.EAST || this.getFrontFacing() == Direction.WEST) {
-            int tmp = lDist;
-            lDist = rDist;
-            rDist = tmp;
-        }
-
-        StringBuilder[] floorLayer = new StringBuilder[fDist + bDist + 1];
-        List<StringBuilder[]> wallLayers = new ArrayList<>();
-        StringBuilder[] ceilingLayer = new StringBuilder[fDist + bDist + 1];
-
-        for (int i = 0; i < floorLayer.length; i++) {
-            floorLayer[i] = new StringBuilder(lDist + rDist + 1);
-            ceilingLayer[i] = new StringBuilder(lDist + rDist + 1);
-        }
-
-        for (int i = 0; i < hDist - 1; i++) {
-            wallLayers.add(new StringBuilder[fDist + bDist + 1]);
-            for (int j = 0; j < fDist + bDist + 1; j++) {
-                var s = new StringBuilder(lDist + rDist + 1);
-                wallLayers.get(i)[j] = s;
-            }
-        }
-
-        for (int i = 0; i < lDist + rDist + 1; i++) {
-            for (int j = 0; j < fDist + bDist + 1; j++) {
-                if (i == 0 || i == lDist + rDist || j == 0 || j == fDist + bDist) { // all edges
-                    floorLayer[j].append('A'); // floor edge
-                    for (int k = 0; k < hDist - 1; k++) {
-                        wallLayers.get(k)[j].append('W'); // walls
-                    }
-                    ceilingLayer[j].append('D'); // ceiling edge
-                } else { // not edges
-                    if (i == lDist && j == fDist) { // very center
-                        floorLayer[j].append('K');
-                    } else {
-                        floorLayer[j].append('E'); // floor valid blocks
-                    }
-                    for (int k = 0; k < hDist - 1; k++) {
-                        wallLayers.get(k)[j].append('I');
-                    }
-                    if (i == lDist && j == fDist) { // very center
-                        ceilingLayer[j].append('~'); // controller
-                    } else {
-                        ceilingLayer[j].append('F'); // filter
-                    }
-                }
-            }
-        }
-
-        String[] f = new String[bDist + fDist + 1];
-        for (int i = 0; i < floorLayer.length; i++) {
-            f[i] = floorLayer[i].toString();
-        }
-        String[] m = new String[bDist + fDist + 1];
-        for (int i = 0; i < wallLayers.get(0).length; i++) {
-            m[i] = wallLayers.get(0)[i].toString();
-        }
-        String[] c = new String[bDist + fDist + 1];
-        for (int i = 0; i < ceilingLayer.length; i++) {
-            c[i] = ceilingLayer[i].toString();
-        }
-
-        MultiBlockPattern baseline = PatternBuilder.start(this.getDefinition(), LEFT, FRONT, UP)
-                .aisle("~")
-                .build();
-        return StructurePatternResolver.rebuildRuntimePattern(
-                this.getDefinition(),
-                StructurePatternKey.main(this.getDefinition().getId()),
-                baseline,
-                List.of(
-                        PatternNode.Fixed.fromSlices(f),
-                        new PatternNode.Repeat("walls", PatternDirection.FRONT, PatternRepeatDirection.POSITIVE,
-                                wallLayers.size(), wallLayers.size(), PatternNode.Fixed.fromSlices(m)),
-                        PatternNode.Fixed.fromSlices(c)));
     }
 
     // protected to allow easy addition of addon "cleanrooms"

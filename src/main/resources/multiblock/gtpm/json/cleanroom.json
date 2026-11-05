@@ -12,8 +12,168 @@
 	"origin": {
 		"token": "controller"
 	},
-	"parameters": {},
-	"fragments": {},
+	"parameters": {
+		"width": {
+			"type": "integer",
+			"min": 5,
+			"max": 15
+		},
+		"depth": {
+			"type": "integer",
+			"min": 5,
+			"max": 15
+		},
+		"height": {
+			"type": "integer",
+			"min": 5,
+			"max": 15
+		}
+	},
+	"fragments": {
+		"row": {
+			"parameters": {
+				"B": "token",
+				"I": "token",
+				"C": "token"
+			},
+			"body": {
+				"type": "sequence",
+				"axis": "width",
+				"children": [
+					{
+						"type": "fixed",
+						"layers": [["B"]]
+					},
+					{
+						"type": "repeat",
+						"id": "left_interior",
+						"axis": "width",
+						"direction": "positive",
+						"min": 1,
+						"max": 6,
+						"count": {
+							"parameter": "width",
+							"offset": -3,
+							"divisor": 2
+						},
+						"body": {
+							"type": "fixed",
+							"layers": [["I"]]
+						}
+					},
+					{
+						"type": "fixed",
+						"layers": [["C"]]
+					},
+					{
+						"type": "repeat",
+						"id": "right_interior",
+						"axis": "width",
+						"direction": "positive",
+						"min": 1,
+						"max": 6,
+						"count": {
+							"parameter": "width",
+							"offset": -2,
+							"divisor": 2
+						},
+						"body": {
+							"type": "fixed",
+							"layers": [["I"]]
+						}
+					},
+					{
+						"type": "fixed",
+						"layers": [["B"]]
+					}
+				]
+			}
+		},
+		"plane": {
+			"parameters": {
+				"B": "token",
+				"I": "token",
+				"C": "token"
+			},
+			"body": {
+				"type": "sequence",
+				"axis": "depth",
+				"children": [
+					{
+						"type": "fragment",
+						"id": "row",
+						"bindings": {
+							"B": "B",
+							"I": "B",
+							"C": "B"
+						}
+					},
+					{
+						"type": "repeat",
+						"id": "front_interior",
+						"axis": "depth",
+						"direction": "positive",
+						"min": 1,
+						"max": 6,
+						"count": {
+							"parameter": "depth",
+							"offset": -3,
+							"divisor": 2
+						},
+						"body": {
+							"type": "fragment",
+							"id": "row",
+							"bindings": {
+								"B": "B",
+								"I": "I",
+								"C": "I"
+							}
+						}
+					},
+					{
+						"type": "fragment",
+						"id": "row",
+						"bindings": {
+							"B": "B",
+							"I": "I",
+							"C": "C"
+						}
+					},
+					{
+						"type": "repeat",
+						"id": "back_interior",
+						"axis": "depth",
+						"direction": "positive",
+						"min": 1,
+						"max": 6,
+						"count": {
+							"parameter": "depth",
+							"offset": -2,
+							"divisor": 2
+						},
+						"body": {
+							"type": "fragment",
+							"id": "row",
+							"bindings": {
+								"B": "B",
+								"I": "I",
+								"C": "I"
+							}
+						}
+					},
+					{
+						"type": "fragment",
+						"id": "row",
+						"bindings": {
+							"B": "B",
+							"I": "B",
+							"C": "B"
+						}
+					}
+				]
+			}
+		}
+	},
 	"predicates": {
 		"A": {
 			"type": "gtpm:cleanroom_base",
@@ -45,7 +205,10 @@
 			"predicates": [
 				{
 					"type": "gtpm:block",
-					"ids": ["gtpm:plascrete", "gtpm:cleanroom_glass"]
+					"ids": [
+						"gtpm:plascrete",
+						"gtpm:cleanroom_glass"
+					]
 				},
 				{
 					"type": "gtpm:block_tag",
@@ -56,27 +219,47 @@
 	},
 	"body": {
 		"type": "sequence",
-		"axis": "depth",
+		"axis": "height",
 		"children": [
 			{
-				"type": "fixed",
-				"layers": [["AAAAA", "AEEEA", "AEEEA", "AEEEA", "AAAAA"]]
-			},
-			{
-				"type": "repeat",
-				"id": "unit_1",
-				"axis": "depth",
-				"direction": "positive",
-				"min": 3,
-				"max": 13,
-				"body": {
-					"type": "fixed",
-					"layers": [["WWWWW", "WIIIW", "WIIIW", "WIIIW", "WWWWW"]]
+				"type": "fragment",
+				"id": "plane",
+				"bindings": {
+					"B": "A",
+					"I": "E",
+					"C": "K"
 				}
 			},
 			{
-				"type": "fixed",
-				"layers": [["DDDDD", "DFFFD", "DF~FD", "DFFFD", "DDDDD"]]
+				"type": "repeat",
+				"id": "walls",
+				"axis": "height",
+				"direction": "positive",
+				"min": 3,
+				"max": 13,
+				"count": {
+					"parameter": "height",
+					"offset": -2,
+					"divisor": 1
+				},
+				"body": {
+					"type": "fragment",
+					"id": "plane",
+					"bindings": {
+						"B": "W",
+						"I": "I",
+						"C": "I"
+					}
+				}
+			},
+			{
+				"type": "fragment",
+				"id": "plane",
+				"bindings": {
+					"B": "D",
+					"I": "F",
+					"C": "~"
+				}
 			}
 		]
 	},
