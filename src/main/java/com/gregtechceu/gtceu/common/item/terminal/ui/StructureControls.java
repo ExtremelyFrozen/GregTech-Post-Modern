@@ -1,5 +1,6 @@
 package com.gregtechceu.gtceu.common.item.terminal.ui;
 
+import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTButtonElement;
@@ -49,7 +50,7 @@ public final class StructureControls extends UIElement {
     private final MultiblockPreviewPanel preview;
     private final Consumer<TerminalChange> update;
     private final ObjectList<Control> controls = new ObjectArrayList<>();
-    private final boolean showME;
+    private final boolean terminal;
     private final ObjectList<Selection> selections = new ObjectArrayList<>();
     private int contentWidth;
     private TerminalMachine machine;
@@ -62,7 +63,7 @@ public final class StructureControls extends UIElement {
     private boolean worldVisible;
 
     public StructureControls(int x, int y, int width, int height, MultiblockMachineDefinition definition,
-                             TerminalMachine machine, MultiblockPreviewPanel preview, boolean showME,
+                             TerminalMachine machine, MultiblockPreviewPanel preview, boolean terminal,
                              Consumer<TerminalChange> update) {
         UITemplate.setBounds(this, x, y, width, height);
         getStyle().backgroundTexture(GuiTextures.BACKGROUND_INVERSE);
@@ -70,7 +71,7 @@ public final class StructureControls extends UIElement {
         this.definition = definition;
         this.machine = machine;
         this.preview = preview;
-        this.showME = showME;
+        this.terminal = terminal;
         this.update = update;
         contentWidth = width - 8;
         rebuild();
@@ -110,10 +111,14 @@ public final class StructureControls extends UIElement {
         visibilityButton = null;
         addChild(label(5, 4, contentWidth, text("title")));
         var shared = machine.sharedOptions();
-        int toggleWidth = (contentWidth - (showME ? 4 : 2)) / (showME ? 3 : 2);
-        toggle(4, 17, toggleWidth, text("replace"), shared.replaceMode(),
-                TerminalChange.sharedReplace(!shared.replaceMode()));
-        toggle(6 + toggleWidth, 17, toggleWidth, text("casings"), shared.noHatchMode(),
+        boolean showME = terminal && GTCEu.MODS.AE2.isLoaded();
+        int toggleCount = terminal ? (showME ? 3 : 2) : 1;
+        int toggleWidth = (contentWidth - (toggleCount - 1) * 2) / toggleCount;
+        if (terminal) {
+            toggle(4, 17, toggleWidth, text("replace"), shared.replaceMode(),
+                    TerminalChange.sharedReplace(!shared.replaceMode()));
+        }
+        toggle(terminal ? 6 + toggleWidth : 4, 17, toggleWidth, text("casings"), shared.noHatchMode(),
                 TerminalChange.sharedNoHatch(!shared.noHatchMode()));
         if (showME) {
             toggle(8 + toggleWidth * 2, 17, toggleWidth, text("me"), shared.useME(),
@@ -163,11 +168,14 @@ public final class StructureControls extends UIElement {
             });
             addChild(visibilityButton);
         }
-        action(this, 4, 77, half, text("mode." + structure.mode().name().toLowerCase(Locale.ROOT)),
-                TerminalChange.structureMode(name, structure.mode() == StructureOperation.BUILD ?
-                        StructureOperation.DEMOLISH : StructureOperation.BUILD),
-                !required);
-        action(this, 6 + half, 77, half, text("flip", onOff(structure.flipMode())),
+        if (terminal) {
+            action(this, 4, 77, half, text("mode." + structure.mode().name().toLowerCase(Locale.ROOT)),
+                    TerminalChange.structureMode(name, structure.mode() == StructureOperation.BUILD ?
+                            StructureOperation.DEMOLISH : StructureOperation.BUILD),
+                    !required);
+        }
+        action(this, terminal ? 6 + half : 4, 77, terminal ? half : contentWidth,
+                text("flip", onOff(structure.flipMode())),
                 TerminalChange.structureFlip(name, !structure.flipMode()), definition.isAllowFlip());
         for (var repetition : definition.getPattern(name).getRepeatDescriptors()) {
             if (repetition.minimum() == repetition.maximum()) continue;
@@ -199,9 +207,8 @@ public final class StructureControls extends UIElement {
             String group = entry.getKey();
             var choices = entry.getValue();
             ResourceLocation selected = structure.tierChoices().getOrDefault(group, choices.getFirst());
-            selections.add(new Selection(Component.translatable(group.startsWith("ability/") ?
-                    "gtpm.multiblock.ability." + group.substring("ability/".length()) :
-                    "gtpm.multiblock.category." + group), BuiltInRegistries.BLOCK.get(selected).getName(),
+            selections.add(new Selection(Component.translatable("gtpm.multiblock.category." + group),
+                    BuiltInRegistries.BLOCK.get(selected).getName(),
                     () -> choices.stream().map(id -> new Value(BuiltInRegistries.BLOCK.get(id).getName(),
                             BuiltInRegistries.BLOCK.get(id).asItem().getDefaultInstance(),
                             TerminalChange.tier(name, group, id), id.equals(selected)))

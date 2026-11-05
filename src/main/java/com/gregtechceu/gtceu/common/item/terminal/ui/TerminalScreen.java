@@ -110,8 +110,7 @@ public final class TerminalScreen extends UIElement {
         preview = new MultiblockPreviewPanel(180, 176, state.preview(), true);
         preview.layout(layout -> layout.left(4).top(20));
         addChild(preview);
-        configuration = new StructureControls(188, 20, 108, 132, definition, state.machine(), preview,
-                GTCEu.MODS.AE2.isLoaded(),
+        configuration = new StructureControls(188, 20, 108, 132, definition, state.machine(), preview, true,
                 this::requestAction);
         addChild(configuration);
         if (player.level().isClientSide && definition.isRenderWorldPreview()) {
