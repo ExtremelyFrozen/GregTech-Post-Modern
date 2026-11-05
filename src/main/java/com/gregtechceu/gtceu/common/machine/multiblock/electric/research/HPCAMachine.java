@@ -14,19 +14,13 @@ import com.gregtechceu.gtceu.api.gui.element.GTImageElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTProgressBarElement;
 import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
-import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
 import com.gregtechceu.gtceu.api.gui.fancy.TooltipsPanel;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.gui.texture.ProgressTexture;
 import com.gregtechceu.gtceu.api.gui.util.TimedProgressSupplier;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.api.machine.TickableSubscription;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.BatchModeConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.VoidingModeConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMaintenanceMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMultiPart;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockDisplayText;
@@ -893,8 +887,6 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
 
     @Override
     public UIElement createUIWidget(FancyMachineUIWidget shell) {
-        MachineUIHolder holder = shell.getHolder(this);
-
         gatherClientComponentGrid();
 
         UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
@@ -933,35 +925,11 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
     }
 
     @Override
-    public int getPageWidth() {
-        return PAGE_WIDTH;
-    }
-
-    @Override
-    public int getPageHeight() {
-        return PAGE_HEIGHT;
-    }
-
-    @Override
-    public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
-        MachineUIHolder holder = configuratorPanel.getHolder();
-        VoidingModeConfigurator.attachConfigurators(configuratorPanel, HPCAMachine.this);
-        BatchModeConfigurator.attachConfigurators(configuratorPanel, HPCAMachine.this);
-        configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
-                HPCAMachine.this, holder));
-    }
-
-    @Override
     public void attachTooltips(TooltipsPanel tooltipsPanel) {
         for (IMultiPart part : getParts()) {
             if (part instanceof IMaintenanceMachine maintenanceMachine) {
                 maintenanceMachine.attachMaintenanceTooltips(tooltipsPanel);
             }
         }
-    }
-
-    @Override
-    public List<IFancyUIProvider> getSubTabs() {
-        return new ObjectArrayList<>(getParts());
     }
 }

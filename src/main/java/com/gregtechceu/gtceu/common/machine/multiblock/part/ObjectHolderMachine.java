@@ -6,8 +6,6 @@ import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTImageElement;
 import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
-import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
@@ -20,10 +18,7 @@ import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
 import com.gregtechceu.gtceu.api.transfer.item.CustomItemStackHandler;
 import com.gregtechceu.gtceu.common.data.GTDataComponents;
 
-import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
-import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
-import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 
 import net.minecraft.core.Direction;
 import net.minecraft.world.item.ItemStack;
@@ -38,8 +33,7 @@ public class ObjectHolderMachine extends MultiblockPartMachine {
 
     private static final int SLOT_LOCKED_OVERLAY_COLOR = 0x80404040;
     private static final int UI_WIDTH = 176;
-    private static final int STANDALONE_UI_HEIGHT = 166;
-    private static final int CONTEXTUAL_PAGE_HEIGHT = 84;
+    private static final int PAGE_HEIGHT = 84;
 
     @SaveField
     private final ObjectInputHandler inputItemHandler;
@@ -87,31 +81,15 @@ public class ObjectHolderMachine extends MultiblockPartMachine {
         return stackInSlot;
     }
 
-    /** Creates a new holder-scoped page for one surrounding multiblock UI opening. */
-
-    private UIElement createContextualBody() {
-        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, UI_WIDTH, CONTEXTUAL_PAGE_HEIGHT);
-        addObjectHolderBody(root);
-        return root;
-    }
-
-    private void addObjectHolderBody(UIElement root) {
+    @Override
+    public UIElement createUIWidget(FancyMachineUIWidget widget) {
+        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, UI_WIDTH, PAGE_HEIGHT);
         root.addChild(new GTImageElement(46, 15, 84, 60, GuiTextures.PROGRESS_BAR_RESEARCH_STATION_BASE));
         root.addChild(createItemSlot(inputItemHandler, 79, 36, GuiTextures.RESEARCH_STATION_OVERLAY));
         root.addChild(createLockedOverlay(79, 36));
         root.addChild(createItemSlot(dataItemHandler, 15, 36, GuiTextures.DATA_ORB_OVERLAY));
         root.addChild(createLockedOverlay(15, 36));
-    }
-
-    private GTLabelElement createTitleLabel() {
-        GTLabelElement label = new GTLabelElement(10, 5, 156, 10,
-                getBlockState().getBlock().getDescriptionId(), true);
-        label.textStyle(style -> style
-                .textColor(0x404040)
-                .textShadow(false)
-                .textAlignHorizontal(Horizontal.LEFT)
-                .textAlignVertical(Vertical.CENTER));
-        return label;
+        return root;
     }
 
     private GTItemSlotElement createItemSlot(NotifiableItemStackHandler handler, int x, int y,
@@ -129,8 +107,6 @@ public class ObjectHolderMachine extends MultiblockPartMachine {
         return new GTImageElement(slotX + 1, slotY + 1, 16, 16, GuiTextures.colorRect(SLOT_LOCKED_OVERLAY_COLOR))
                 .setVisibleSupplier(this::isLocked);
     }
-
-    /** Owns the contextual Object Holder page state for exactly one menu opening. */
 
     @Override
     public void setFrontFacing(Direction frontFacing) {
@@ -234,19 +210,12 @@ public class ObjectHolderMachine extends MultiblockPartMachine {
     }
 
     @Override
-    public UIElement createUIWidget(FancyMachineUIWidget shell) {
-        MachineUIHolder holder = shell.getHolder(this);
-
-        return createContextualBody();
-    }
-
-    @Override
     public int getPageWidth() {
         return UI_WIDTH;
     }
 
     @Override
     public int getPageHeight() {
-        return CONTEXTUAL_PAGE_HEIGHT;
+        return PAGE_HEIGHT;
     }
 }

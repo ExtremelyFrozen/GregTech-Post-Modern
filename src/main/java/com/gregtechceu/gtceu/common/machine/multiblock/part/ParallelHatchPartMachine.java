@@ -4,7 +4,6 @@ import com.gregtechceu.gtceu.api.GTValues;
 import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTIntInputElement;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
 import com.gregtechceu.gtceu.api.machine.feature.IRecipeLogicMachine;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
@@ -14,7 +13,6 @@ import com.gregtechceu.gtceu.api.sync_system.annotations.ServerFieldChangeListen
 import com.gregtechceu.gtceu.api.sync_system.annotations.ServerFieldNormalizer;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncBoth;
 
-import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 
 import net.minecraft.util.Mth;
@@ -67,9 +65,8 @@ public class ParallelHatchPartMachine extends TieredPartMachine {
         }
     }
 
-    /** Creates a new holder-scoped page for one surrounding multiblock UI opening. */
-
-    private UIElement createParallelInput() {
+    @Override
+    public UIElement createUIWidget(FancyMachineUIWidget widget) {
         UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
         root.addChild(new GTIntInputElement(0, 0, PAGE_WIDTH, PAGE_HEIGHT, this::getCurrentParallel,
                 this::setCurrentParallelAndSync)
@@ -83,18 +80,9 @@ public class ParallelHatchPartMachine extends TieredPartMachine {
         sendServerSyncChanges();
     }
 
-    /** Owns the contextual Parallel Hatch page state for exactly one menu opening. */
-
     @Override
     public boolean canShared(MultiblockControllerMachine controller, String structureName) {
         return false;
-    }
-
-    @Override
-    public UIElement createUIWidget(FancyMachineUIWidget shell) {
-        MachineUIHolder holder = shell.getHolder(this);
-
-        return createParallelInput();
     }
 
     @Override

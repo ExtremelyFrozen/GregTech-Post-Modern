@@ -10,8 +10,6 @@ import com.gregtechceu.gtceu.api.capability.recipe.ItemRecipeCapability;
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
-import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.feature.IDataInfoProvider;
@@ -29,8 +27,6 @@ import com.gregtechceu.gtceu.utils.ItemStackHashStrategy;
 import com.gregtechceu.gtceu.utils.ResearchManager;
 
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
-import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
-import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -98,9 +94,8 @@ public class DataAccessHatchMachine extends TieredPartMachine
                 (stack.has(GTDataComponents.RESEARCH_ITEM) || stack.has(GTDataComponents.MONITOR_TARGET));
     }
 
-    /** Creates one holder-scoped inventory page for a surrounding multiblock controller. */
-
-    private UIElement createContextualMainElement() {
+    @Override
+    public UIElement createUIWidget(FancyMachineUIWidget widget) {
         int rowSize = (int) Math.sqrt(getInventorySize());
         int pageSize = rowSize * 18;
         UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, pageSize, pageSize);
@@ -113,17 +108,6 @@ public class DataAccessHatchMachine extends TieredPartMachine
         return root;
     }
 
-    private GTLabelElement createTitleLabel(int rootWidth) {
-        GTLabelElement label = new GTLabelElement(10, 5, rootWidth - 20, 10,
-                getBlockState().getBlock().getDescriptionId(), true);
-        label.textStyle(style -> style
-                .textColor(0x404040)
-                .textShadow(false)
-                .textAlignHorizontal(Horizontal.LEFT)
-                .textAlignVertical(Vertical.CENTER));
-        return label;
-    }
-
     private GTItemSlotElement createDataSlot(int index, int x, int y) {
         GTItemSlotElement slot = new GTItemSlotElement(importItems, index)
                 .setBackgroundTexture(GuiTextures.SLOT)
@@ -132,8 +116,6 @@ public class DataAccessHatchMachine extends TieredPartMachine
         UITemplate.setBounds(slot, x, y, 18, 18);
         return slot;
     }
-
-    /** Keeps contextual inventory state and actions scoped to one validated menu opening. */
 
     protected int getInventorySize() {
         return switch (getTier()) {
@@ -229,13 +211,6 @@ public class DataAccessHatchMachine extends TieredPartMachine
                 recipeLogicMachine.getRecipeLogic().onRecipeHandlerChanged();
             }
         }
-    }
-
-    @Override
-    public UIElement createUIWidget(FancyMachineUIWidget shell) {
-        MachineUIHolder holder = shell.getHolder(this);
-
-        return createContextualMainElement();
     }
 
     @Override

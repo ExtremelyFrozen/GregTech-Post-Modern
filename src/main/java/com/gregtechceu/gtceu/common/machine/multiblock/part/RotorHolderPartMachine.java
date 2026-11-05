@@ -8,7 +8,6 @@ import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTImageElement;
 import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyTooltip;
 import com.gregtechceu.gtceu.api.gui.fancy.TooltipsPanel;
@@ -28,7 +27,6 @@ import com.gregtechceu.gtceu.common.item.behavior.TurbineRotorBehaviour;
 import com.gregtechceu.gtceu.utils.ExtendedUseOnContext;
 import com.gregtechceu.gtceu.utils.ISubscription;
 
-import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 
 import net.minecraft.ChatFormatting;
@@ -239,11 +237,8 @@ public class RotorHolderPartMachine extends TieredPartMachine {
     // ********** GUI ***********//
     //////////////////////////////////////
 
-    /**
-     * Creates a new holder-scoped Rotor Holder page for one surrounding multiblock UI opening.
-     */
-
-    private UIElement createRotorPage() {
+    @Override
+    public UIElement createUIWidget(FancyMachineUIWidget widget) {
         UIElement root = new UIElement();
         UITemplate.setBounds(root, 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
 
@@ -273,10 +268,6 @@ public class RotorHolderPartMachine extends TieredPartMachine {
     private boolean isRotorSlotBlocked() {
         return rotorSpeed != 0;
     }
-
-    /**
-     * Owns the contextual Rotor Holder page state for exactly one menu opening.
-     */
 
     //////////////////////////////////////
     // ****** RECIPE LOGIC *******//
@@ -422,13 +413,6 @@ public class RotorHolderPartMachine extends TieredPartMachine {
             }
         }
         return true;
-    }
-
-    @Override
-    public UIElement createUIWidget(FancyMachineUIWidget shell) {
-        MachineUIHolder holder = shell.getHolder(this);
-
-        return createRotorPage();
     }
 
     @Override

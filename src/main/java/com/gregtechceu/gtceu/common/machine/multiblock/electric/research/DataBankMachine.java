@@ -11,16 +11,10 @@ import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTComponentPanelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
-import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
 import com.gregtechceu.gtceu.api.gui.fancy.TooltipsPanel;
 import com.gregtechceu.gtceu.api.machine.ConditionalSubscriptionHandler;
 import com.gregtechceu.gtceu.api.machine.TickableSubscription;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.BatchModeConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.VoidingModeConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMaintenanceMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMultiPart;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockDisplayText;
@@ -43,7 +37,6 @@ import net.minecraft.resources.ResourceLocation;
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMaps;
-import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import lombok.AccessLevel;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
@@ -352,8 +345,6 @@ public class DataBankMachine extends WorkableElectricMultiblockMachine
 
     @Override
     public UIElement createUIWidget(FancyMachineUIWidget shell) {
-        MachineUIHolder holder = shell.getHolder(this);
-
         UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
         UITemplate.setBackgroundTexture(root, GuiTextures.BACKGROUND_INVERSE);
 
@@ -382,35 +373,11 @@ public class DataBankMachine extends WorkableElectricMultiblockMachine
     }
 
     @Override
-    public int getPageWidth() {
-        return PAGE_WIDTH;
-    }
-
-    @Override
-    public int getPageHeight() {
-        return PAGE_HEIGHT;
-    }
-
-    @Override
-    public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
-        MachineUIHolder holder = configuratorPanel.getHolder();
-        VoidingModeConfigurator.attachConfigurators(configuratorPanel, DataBankMachine.this);
-        BatchModeConfigurator.attachConfigurators(configuratorPanel, DataBankMachine.this);
-        configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
-                DataBankMachine.this, holder));
-    }
-
-    @Override
     public void attachTooltips(TooltipsPanel tooltipsPanel) {
         for (IMultiPart part : getParts()) {
             if (part instanceof IMaintenanceMachine maintenanceMachine) {
                 maintenanceMachine.attachMaintenanceTooltips(tooltipsPanel);
             }
         }
-    }
-
-    @Override
-    public List<IFancyUIProvider> getSubTabs() {
-        return new ObjectArrayList<>(getParts());
     }
 }
