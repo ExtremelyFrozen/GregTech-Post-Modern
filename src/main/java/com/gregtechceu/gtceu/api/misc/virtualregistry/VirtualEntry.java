@@ -1,6 +1,8 @@
 package com.gregtechceu.gtceu.api.misc.virtualregistry;
 
+import com.gregtechceu.gtceu.api.sync_system.ContextualFieldCodec;
 import com.gregtechceu.gtceu.api.sync_system.ContextualFieldCodec.Context;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 import com.gregtechceu.gtceu.api.sync_system.SyncDataHolder;
 import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
@@ -40,6 +42,12 @@ public abstract class VirtualEntry implements ISyncManaged {
                     value);
         }
     };
+
+    static {
+        ContextualFieldCodec<VirtualEntry> codec = VirtualEntry::codec;
+        FieldCodecs.registerContextual(VirtualEntry.class, codec);
+        FieldCodecs.registerStream(VirtualEntry.class, STREAM_CODEC);
+    }
 
     @Setter
     @NotNull

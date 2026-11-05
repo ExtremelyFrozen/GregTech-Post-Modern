@@ -3,6 +3,7 @@ package com.gregtechceu.gtceu.api.machine.trait;
 import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.api.sync_system.ContextualFieldCodec;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
 
 import net.minecraft.core.HolderLookup;
@@ -41,6 +42,10 @@ public final class MachineTraitHolder {
                     holder.scanAndMarkClientChanges(context.lookup(), fullSync || manuallyDirty);
         }
     };
+
+    static {
+        FieldCodecs.registerContextual(MachineTraitHolder.class, CODEC);
+    }
 
     private final MetaMachine machine;
     private final List<MachineTrait> traits;

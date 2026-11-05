@@ -7,7 +7,11 @@ import com.gregtechceu.gtceu.api.item.tool.GTToolType;
 import com.gregtechceu.gtceu.api.item.tool.GridHighlightTexture;
 import com.gregtechceu.gtceu.api.item.tool.IToolGridHighlight;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
+import com.gregtechceu.gtceu.api.registry.GTRegistries;
+import com.gregtechceu.gtceu.api.sync_system.ContextualFieldCodec;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 import com.gregtechceu.gtceu.api.sync_system.SyncDataHolder;
+import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
 import com.gregtechceu.gtceu.api.sync_system.managed.ISyncManaged;
@@ -27,6 +31,8 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.items.IItemHandlerModifiable;
 
 import com.mojang.datafixers.util.Pair;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import lombok.Getter;
 import org.jetbrains.annotations.MustBeInvokedByOverriders;
 import org.jetbrains.annotations.Nullable;
@@ -41,6 +47,34 @@ import java.util.function.Supplier;
  * Cover filters out interaction and logic of meta tile entity
  */
 public abstract class CoverBehavior implements ISyncManaged, IToolGridHighlight, ICopyable {
+
+    /** Restores a cover from its registered definition and side while retaining incremental managed field data. */
+    public static final ContextualFieldCodec<CoverBehavior> CODEC = context -> RecordCodecBuilder
+            .create(instance -> instance.group(
+                    Codec.intRange(0, 5).fieldOf("side")
+                            .forGetter((CoverBehavior cover) -> cover.attachedSide.get3DDataValue()),
+                    GTRegistries.COVERS.byNameCodec().fieldOf("coverType")
+                            .forGetter(cover -> cover.coverDefinition),
+                    SyncFieldData.CODEC.fieldOf("data").forGetter(cover -> {
+                        var storage = cover.getSyncDataHolder();
+                        return context.isClientSync() && context.readOnly() ? storage.getClientData(context.lookup()) :
+                                storage.serializeToFieldData(context.lookup(), context.isClientSync(),
+                                        context.isClientFullSyncUpdate());
+                    }))
+                    .apply(instance, (side, definition, data) -> {
+                        Direction attachedSide = Direction.from3DDataValue(side);
+                        CoverBehavior current = context.currentValue();
+                        CoverBehavior cover = current != null && current.coverDefinition == definition &&
+                                current.attachedSide == attachedSide ? current :
+                                        definition.createCoverBehavior((ICoverable) context.holder(), attachedSide);
+                        cover.getSyncDataHolder().deserializeFieldData(context.lookup(), data,
+                                context.isClientSync(), true, context.isClientFullSyncUpdate(), false);
+                        return cover;
+                    }));
+
+    static {
+        FieldCodecs.registerContextual(CoverBehavior.class, CODEC);
+    }
 
     @Getter
     protected final SyncDataHolder syncDataHolder = new SyncDataHolder(this);

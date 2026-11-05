@@ -2,6 +2,7 @@ package com.gregtechceu.gtceu.api.transfer.item;
 
 import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.sync_system.ContextualFieldCodec;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.NonNullList;
@@ -20,6 +21,11 @@ import org.jetbrains.annotations.NotNull;
 import java.util.function.Predicate;
 
 public class CustomItemStackHandler extends ItemStackHandler implements NonMutatingItemCapacity {
+
+    static {
+        ContextualFieldCodec<CustomItemStackHandler> codec = CustomItemStackHandler::codec;
+        FieldCodecs.registerContextual(CustomItemStackHandler.class, codec);
+    }
 
     @Getter
     @Setter

@@ -1,6 +1,7 @@
 package com.gregtechceu.gtceu.api.transfer.fluid;
 
 import com.gregtechceu.gtceu.api.sync_system.ContextualFieldCodec;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.templates.FluidTank;
@@ -13,6 +14,11 @@ import org.jetbrains.annotations.NotNull;
 import java.util.function.Predicate;
 
 public class CustomFluidTank extends FluidTank implements IFluidHandlerModifiable {
+
+    static {
+        ContextualFieldCodec<CustomFluidTank> codec = CustomFluidTank::codec;
+        FieldCodecs.registerContextual(CustomFluidTank.class, codec);
+    }
 
     @Getter
     @Setter

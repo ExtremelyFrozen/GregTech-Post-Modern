@@ -1,5 +1,6 @@
 package com.gregtechceu.gtceu.integration.ae2.utils;
 
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 import com.gregtechceu.gtceu.api.sync_system.SyncDataHolder;
 import com.gregtechceu.gtceu.api.sync_system.annotations.ClientFieldChangeListener;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
@@ -22,6 +23,11 @@ import java.util.Iterator;
 
 /** Ordered ME contents shared directly by the machine and its UI. */
 public class KeyStorage implements Iterable<Object2LongMap.Entry<AEKey>>, ISyncManaged {
+
+    static {
+        FieldCodecs.register(AEKey.class, AEKey.CODEC);
+        FieldCodecs.registerStream(AEKey.class, AEKey.STREAM_CODEC);
+    }
 
     @SaveField
     @SyncToClient

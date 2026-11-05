@@ -1,6 +1,7 @@
 package com.gregtechceu.gtceu.api.transfer.fluid;
 
 import com.gregtechceu.gtceu.api.sync_system.ContextualFieldCodec;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
@@ -15,6 +16,11 @@ import java.util.List;
 import java.util.function.Predicate;
 
 public class FluidHandlerList implements IFluidHandlerModifiable {
+
+    static {
+        ContextualFieldCodec<FluidHandlerList> codec = FluidHandlerList::codec;
+        FieldCodecs.registerContextual(FluidHandlerList.class, codec);
+    }
 
     public final IFluidHandler[] handlers;
 

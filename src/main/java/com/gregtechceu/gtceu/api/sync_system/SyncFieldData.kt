@@ -95,6 +95,11 @@ class SyncFieldData(fields: Map<ResourceLocation, @JvmSuppressWildcards Optional
 		@JvmField
 		val STREAM_CODEC: StreamCodec<RegistryFriendlyByteBuf, SyncFieldData> = ByteBufCodecs.fromCodecWithRegistries(CODEC)
 
+		init {
+			FieldCodecs.register(SyncFieldData::class.java, CODEC)
+			FieldCodecs.registerStream(SyncFieldData::class.java, STREAM_CODEC)
+		}
+
 		@JvmStatic
 		fun builder(): Builder = Builder()
 

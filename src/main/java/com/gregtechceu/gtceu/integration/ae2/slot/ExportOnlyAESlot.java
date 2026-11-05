@@ -1,6 +1,8 @@
 package com.gregtechceu.gtceu.integration.ae2.slot;
 
+import com.gregtechceu.gtceu.api.sync_system.ContextualFieldCodec;
 import com.gregtechceu.gtceu.api.sync_system.ContextualFieldCodec.Context;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 
 import appeng.api.stacks.GenericStack;
 import com.mojang.serialization.Codec;
@@ -16,6 +18,11 @@ import java.util.Optional;
  * An export only slot to hold {@link appeng.api.stacks.GenericStack}
  */
 public abstract class ExportOnlyAESlot implements IConfigurableSlot {
+
+    static {
+        ContextualFieldCodec<ExportOnlyAESlot> codec = ExportOnlyAESlot::codec;
+        FieldCodecs.registerContextual(ExportOnlyAESlot.class, codec);
+    }
 
     /** Replaces a complete decoded slot state without exposing a half-updated state to its listener. */
     public static <T extends ExportOnlyAESlot> Codec<T> codec(Context<T> context) {

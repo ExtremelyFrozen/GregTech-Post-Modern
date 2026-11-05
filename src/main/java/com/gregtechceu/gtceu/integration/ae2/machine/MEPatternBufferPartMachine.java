@@ -20,7 +20,9 @@ import com.gregtechceu.gtceu.api.machine.trait.NotifiableFluidTank;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler;
 import com.gregtechceu.gtceu.api.recipe.handler.RecipeHandlerList;
 import com.gregtechceu.gtceu.api.recipe.ingredient.SizedIngredientExtensions;
+import com.gregtechceu.gtceu.api.sync_system.ContextualFieldCodec;
 import com.gregtechceu.gtceu.api.sync_system.ContextualFieldCodec.Context;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
 import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
@@ -434,6 +436,11 @@ public class MEPatternBufferPartMachine extends MEBusPartMachine
     }
 
     public class InternalSlot {
+
+        static {
+            ContextualFieldCodec<InternalSlot> codec = InternalSlot::codec;
+            FieldCodecs.registerContextual(InternalSlot.class, codec);
+        }
 
         /** Decodes both inventories before replacing the live slot and invalidates its cached views once. */
         public static Codec<InternalSlot> codec(Context<InternalSlot> context) {
