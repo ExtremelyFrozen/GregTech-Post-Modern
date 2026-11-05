@@ -36,6 +36,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectMaps;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
 import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet;
@@ -239,7 +240,7 @@ final class CandidateExpansion {
         if (predicate instanceof RestrictedPredicate restricted) {
             ConstraintLimit limit = ConstraintLimit.fromStructure(new StructurePreviewConstraint(restricted,
                     restricted.minCount(), restricted.maxCount(), restricted.minCountByLayer(),
-                    restricted.maxCountByLayer(), restricted.previewCount()), constraintIds.id(restricted));
+                    restricted.maxCountByLayer(), restricted.previewCount()), constraintIds);
             return structureChoices(restricted.predicate(), definition, constraintIds).stream()
                     .map(choice -> choice.withLimit(limit))
                     .collect(ObjectImmutableList.toList());
@@ -254,7 +255,7 @@ final class CandidateExpansion {
         ObjectArrayList<StructureChoice> result = new ObjectArrayList<>();
         for (StructurePreviewChoice choice : predicate.previewChoices(definition)) {
             ObjectList<ConstraintLimit> limits = choice.constraints().stream()
-                    .map(constraint -> ConstraintLimit.fromStructure(constraint, constraintIds.id(constraint.key())))
+                    .map(constraint -> ConstraintLimit.fromStructure(constraint, constraintIds))
                     .collect(ObjectImmutableList.toList());
             result.add(new StructureChoice(choice.candidates(), limits, hatch,
                     abilityGroup == null ? ObjectList.of() : ObjectList.of(abilityGroup), choice.observer()));
@@ -420,8 +421,9 @@ final class CandidateExpansion {
                     predicate.minLayerCount, predicate.maxLayerCount, predicate.previewCount);
         }
 
-        private static ConstraintLimit fromStructure(StructurePreviewConstraint constraint, String id) {
-            return new ConstraintLimit(constraint.key(), id, constraint.minCount().orElse(-1),
+        private static ConstraintLimit fromStructure(StructurePreviewConstraint constraint, ConstraintIds ids) {
+            StructurePredicate key = ids.predicates.computeIfAbsent(constraint.key(), Function.identity());
+            return new ConstraintLimit(key, ids.id(key), constraint.minCount().orElse(-1),
                     constraint.maxCount().orElse(-1), constraint.minCountByLayer().orElse(-1),
                     constraint.maxCountByLayer().orElse(-1), constraint.previewCount().orElse(-1));
         }
@@ -430,6 +432,8 @@ final class CandidateExpansion {
     static final class ConstraintIds {
 
         private final Reference2ObjectOpenHashMap<Object, String> ids = new Reference2ObjectOpenHashMap<>();
+        // Runtime structure matching shares counters between value-equal predicates as well.
+        private final Object2ObjectMap<StructurePredicate, StructurePredicate> predicates = new Object2ObjectOpenHashMap<>();
 
         private String id(Object key) {
             return ids.computeIfAbsent(key, ignored -> "constraint_" + ids.size());
