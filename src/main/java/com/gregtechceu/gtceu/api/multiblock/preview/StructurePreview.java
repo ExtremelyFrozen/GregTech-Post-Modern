@@ -12,6 +12,7 @@ import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.PatternCellKey;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.PlannedBlockInfo;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.PlannedCell;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.StructurePlan;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -86,6 +87,10 @@ public record StructurePreview(ResourceLocation definitionId, String fingerprint
             writeList(buffer, value.diagnostics, Diagnostic.STREAM_CODEC);
         }
     };
+
+    static {
+        FieldCodecs.registerStream(StructurePreview.class, STREAM_CODEC);
+    }
 
     /**
      * Projects a canonical XEI plan whose material availability is intentionally unknown.

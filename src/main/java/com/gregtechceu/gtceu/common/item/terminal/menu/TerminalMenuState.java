@@ -22,6 +22,10 @@ public record TerminalMenuState(ResourceLocation definitionId, long acknowledged
     public static final StreamCodec<RegistryFriendlyByteBuf, TerminalMenuState> STREAM_CODEC = StreamCodec
             .of(TerminalMenuState::encode, TerminalMenuState::decode);
 
+    static {
+        FieldCodecs.registerStream(TerminalMenuState.class, STREAM_CODEC);
+    }
+
     public static final ContextualFieldCodec<TerminalMenuState> CODEC = new ContextualFieldCodec<>() {
 
         @Override
@@ -34,6 +38,10 @@ public record TerminalMenuState(ResourceLocation definitionId, long acknowledged
             return true;
         }
     };
+
+    static {
+        FieldCodecs.registerContextual(TerminalMenuState.class, CODEC);
+    }
 
     private static void encode(RegistryFriendlyByteBuf buffer, TerminalMenuState value) {
         buffer.writeResourceLocation(value.definitionId);

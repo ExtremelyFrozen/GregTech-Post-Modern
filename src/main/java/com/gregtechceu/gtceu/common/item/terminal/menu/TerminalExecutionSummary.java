@@ -3,6 +3,7 @@ package com.gregtechceu.gtceu.common.item.terminal.menu;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.BatchResult;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.BatchStatus;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.StructureOperation;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
@@ -17,6 +18,10 @@ public record TerminalExecutionSummary(BatchStatus status, int placed, int remov
 
     public static final StreamCodec<RegistryFriendlyByteBuf, TerminalExecutionSummary> STREAM_CODEC = StreamCodec
             .of(TerminalExecutionSummary::encode, TerminalExecutionSummary::decode);
+
+    static {
+        FieldCodecs.registerStream(TerminalExecutionSummary.class, STREAM_CODEC);
+    }
 
     public static TerminalExecutionSummary from(BatchResult result) {
         return new TerminalExecutionSummary(result.status(), result.placed(), result.removed(),

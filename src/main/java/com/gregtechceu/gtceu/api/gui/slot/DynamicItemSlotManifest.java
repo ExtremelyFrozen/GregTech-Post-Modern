@@ -1,5 +1,7 @@
 package com.gregtechceu.gtceu.api.gui.slot;
 
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
+
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 
@@ -77,6 +79,10 @@ public record DynamicItemSlotManifest(long previousEpoch, long epoch, UUID manif
             }
         }
     };
+
+    static {
+        FieldCodecs.registerStream(DynamicItemSlotManifest.class, STREAM_CODEC);
+    }
 
     public DynamicItemSlotManifest {
         validateHeader(previousEpoch, epoch, manifestNonce, sourceRevision, baseSlotCount);

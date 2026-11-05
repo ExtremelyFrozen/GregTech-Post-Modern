@@ -1,5 +1,7 @@
 package com.gregtechceu.gtceu.api.gui.slot;
 
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
+
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 
@@ -33,4 +35,8 @@ public record DynamicItemSlotDefinition(UUID targetId, UUID targetIncarnation, i
             buffer.writeVarInt(value.slotCount());
         }
     };
+
+    static {
+        FieldCodecs.registerStream(DynamicItemSlotDefinition.class, STREAM_CODEC);
+    }
 }

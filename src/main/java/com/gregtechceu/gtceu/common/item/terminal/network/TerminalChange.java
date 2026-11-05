@@ -6,6 +6,7 @@ import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.StructureOperation;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.StructureRequest;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.BatchPlanner;
 import com.gregtechceu.gtceu.api.multiblock.pattern.match.MultiBlockPattern;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 import com.gregtechceu.gtceu.common.item.datacomponents.TerminalMachine;
 import com.gregtechceu.gtceu.common.item.datacomponents.TerminalStructure;
 
@@ -28,6 +29,10 @@ public record TerminalChange(Type type, @Nullable String structureName, int repe
 
     public static final StreamCodec<RegistryFriendlyByteBuf, TerminalChange> STREAM_CODEC = StreamCodec
             .of(TerminalChange::encode, TerminalChange::decode);
+
+    static {
+        FieldCodecs.registerStream(TerminalChange.class, STREAM_CODEC);
+    }
 
     public static TerminalChange sharedReplace(boolean value) {
         return booleanUpdate(Type.SHARED_REPLACE, null, value);

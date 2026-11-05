@@ -4,6 +4,7 @@ import com.gregtechceu.gtceu.api.capability.IMonitorComponent;
 import com.gregtechceu.gtceu.api.item.ComponentItem;
 import com.gregtechceu.gtceu.api.item.component.IItemComponent;
 import com.gregtechceu.gtceu.api.item.component.IMonitorModuleItem;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 import com.gregtechceu.gtceu.client.renderer.machine.DynamicRender;
 import com.gregtechceu.gtceu.client.renderer.machine.DynamicRenderType;
 import com.gregtechceu.gtceu.client.util.RenderUtil;
@@ -25,6 +26,10 @@ public class CentralMonitorRender extends DynamicRender<CentralMonitorMachine, C
 
     // spotless:off
     public static final Codec<CentralMonitorRender> CODEC = Codec.unit(CentralMonitorRender::new);
+
+    static {
+        FieldCodecs.register(CentralMonitorRender.class, CODEC);
+    }
     public static final DynamicRenderType<CentralMonitorMachine, CentralMonitorRender> TYPE = new DynamicRenderType<CentralMonitorMachine, CentralMonitorRender>(MapCodec.unit(CentralMonitorRender::new));
     // spotless:on
     private static final float SCREEN_OFFSET_Z = 0.01f;

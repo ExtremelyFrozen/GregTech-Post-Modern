@@ -1,5 +1,7 @@
 package com.gregtechceu.gtceu.api.gui.slot;
 
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
+
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 
@@ -50,6 +52,10 @@ public record DynamicItemSlotBinding(UUID bindingId, UUID targetId, UUID targetI
             buffer.writeBoolean(value.present());
         }
     };
+
+    static {
+        FieldCodecs.registerStream(DynamicItemSlotBinding.class, STREAM_CODEC);
+    }
 
     /**
      * Returns whether this reserved range is a removed lifecycle tombstone.
