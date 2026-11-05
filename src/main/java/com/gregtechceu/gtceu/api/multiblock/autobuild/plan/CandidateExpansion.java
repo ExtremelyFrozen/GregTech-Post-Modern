@@ -44,7 +44,6 @@ import it.unimi.dsi.fastutil.objects.ObjectList;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
 import org.jspecify.annotations.Nullable;
 
-import java.util.Comparator;
 import java.util.function.Function;
 
 import static com.gregtechceu.gtceu.api.multiblock.autobuild.plan.BatchPlanner.*;
@@ -173,22 +172,14 @@ final class CandidateExpansion {
         for (StructurePredicate structurePredicate : predicate.structurePatternPredicates) {
             ObjectList<StructureChoice> choices = structureChoices(structurePredicate, definition, constraintIds);
             for (StructureChoice choice : choices) {
-                ObjectList<MultiblockBlockInfo> stableCandidates = choice.tierGroups().isEmpty() ?
-                        new ObjectImmutableList<>(choice.candidates()) : choice.candidates().stream()
-                                .sorted(Comparator
-                                        .comparing((MultiblockBlockInfo info) -> BuiltInRegistries.BLOCK
-                                                .getKey(info.getBlockState().getBlock()).toString())
-                                        .thenComparing(info -> info.getBlockState().toString())
-                                        .thenComparing(info -> info.getItemStackForm().toString()))
-                                .collect(ObjectImmutableList.toList());
-                for (MultiblockBlockInfo blockInfo : stableCandidates) {
-                    addCandidate(candidates, blockInfo, choice.limits(), choice.hatch(), choice.tierGroups(),
+                for (MultiblockBlockInfo blockInfo : choice.candidates()) {
+                    addCandidate(candidates, blockInfo, choice.limits(), choice.hatch(),
                             order.next(), direction, choice.observer());
                 }
             }
         }
         if (predicate.hasAir() && candidates.keySet().stream().noneMatch(BlockState::isAir)) {
-            addCandidate(candidates, MultiblockBlockInfo.EMPTY, ObjectList.of(), false, ObjectList.of(), order.next(),
+            addCandidate(candidates, MultiblockBlockInfo.EMPTY, ObjectList.of(), false, order.next(),
                     direction, state -> PatternObservation.of(state.isAir()));
         }
 
@@ -198,11 +189,10 @@ final class CandidateExpansion {
             BlockState state = blockInfo.blockState();
             MaterialKey materialKey = materialKey(blockInfo.itemStack());
             String category = BlockCategories.getCategory(state.getBlock());
-            ObjectList<String> tierGroups = mergeTierGroups(candidate.tierGroups(),
-                    category == null ? ObjectList.of() : ObjectList.of(category));
             result.add(new ResolvedCandidate(state, blockInfo, candidate.limits(),
                     candidate.hatch() || isHatch(state.getBlock()),
-                    tierGroups, candidate.order(), materialKey, false, candidate.observation()));
+                    category == null ? ObjectList.of() : ObjectList.of(category),
+                    candidate.order(), materialKey, false, candidate.observation()));
         }
         if (result.isEmpty()) {
             problems.add(problem(BuildProblem.Type.UNSUPPORTED, pos,
@@ -217,7 +207,7 @@ final class CandidateExpansion {
         if (simple.isAny()) return;
         ConstraintLimit limit = ConstraintLimit.fromSimple(simple, constraintIds.id(simple));
         if (simple.isAir()) {
-            addCandidate(result, MultiblockBlockInfo.EMPTY, ObjectList.of(limit), false, ObjectList.of(), order.next(),
+            addCandidate(result, MultiblockBlockInfo.EMPTY, ObjectList.of(limit), false, order.next(),
                     direction, state -> PatternObservation.of(state.isAir()));
             return;
         }
@@ -229,7 +219,7 @@ final class CandidateExpansion {
                     (representative.getBlockState().equals(state) || simple.getPreviewStates() == null &&
                             representative.getBlockState().getBlock() == state.getBlock()) ?
                                     representative : new MultiblockBlockInfo(state);
-            addCandidate(result, info, ObjectList.of(limit), isHatch(state.getBlock()), ObjectList.of(),
+            addCandidate(result, info, ObjectList.of(limit), isHatch(state.getBlock()),
                     order.next(), direction, observer);
         }
     }
@@ -250,28 +240,21 @@ final class CandidateExpansion {
                     .flatMap(child -> structureChoices(child, definition, constraintIds).stream())
                     .collect(ObjectImmutableList.toList());
         }
-        String abilityGroup = abilityGroup(predicate);
         boolean hatch = predicate instanceof AbilityPredicate;
         ObjectArrayList<StructureChoice> result = new ObjectArrayList<>();
         for (StructurePreviewChoice choice : predicate.previewChoices(definition)) {
             ObjectList<ConstraintLimit> limits = choice.constraints().stream()
                     .map(constraint -> ConstraintLimit.fromStructure(constraint, constraintIds))
                     .collect(ObjectImmutableList.toList());
-            result.add(new StructureChoice(choice.candidates(), limits, hatch,
-                    abilityGroup == null ? ObjectList.of() : ObjectList.of(abilityGroup), choice.observer()));
+            result.add(new StructureChoice(choice.candidates(), limits, hatch, choice.observer()));
         }
         return result;
-    }
-
-    static @Nullable String abilityGroup(StructurePredicate predicate) {
-        return predicate instanceof AbilityPredicate abilityPredicate && abilityPredicate.abilities().size() == 1 ?
-                "ability/" + abilityPredicate.abilities().getFirst().getName() : null;
     }
 
     static void addCandidate(Object2ObjectMap<BlockState, CandidateAccumulator> result,
                              MultiblockBlockInfo blockInfo,
                              ObjectList<ConstraintLimit> limits, boolean hatch,
-                             ObjectList<String> tierGroups, int order, @Nullable Direction direction,
+                             int order, @Nullable Direction direction,
                              Function<BlockState, PatternObservation> observer) {
         BlockState state = blockInfo.getBlockState();
         if (direction != null && !state.isAir()) {
@@ -284,7 +267,7 @@ final class CandidateExpansion {
         CandidateAccumulator existing = result.get(planned.blockState());
         if (existing == null) {
             result.put(planned.blockState(), new CandidateAccumulator(planned, new ObjectArrayList<>(limits), hatch,
-                    tierGroups, order, observation));
+                    order, observation));
             return;
         }
         for (ConstraintLimit limit : limits) {
@@ -292,19 +275,11 @@ final class CandidateExpansion {
                 existing.limits().add(limit);
             }
         }
-        ObjectList<String> mergedGroups = mergeTierGroups(existing.tierGroups(), tierGroups);
-        if (hatch && !existing.hatch() || !mergedGroups.equals(existing.tierGroups())) {
+        if (hatch && !existing.hatch()) {
             result.put(planned.blockState(), new CandidateAccumulator(existing.blockInfo(), existing.limits(),
-                    existing.hatch() || hatch, mergedGroups,
+                    true,
                     existing.order(), existing.observation()));
         }
-    }
-
-    static ObjectList<String> mergeTierGroups(ObjectList<String> first,
-                                              ObjectList<String> second) {
-        ObjectLinkedOpenHashSet<String> result = new ObjectLinkedOpenHashSet<>(first);
-        result.addAll(second);
-        return new ObjectImmutableList<>(result);
     }
 
     static @Nullable Direction resolveDirection(PatternPredicate predicate, Direction frontFacing,
@@ -399,17 +374,17 @@ final class CandidateExpansion {
     }
 
     record CandidateAccumulator(PlannedBlockInfo blockInfo, ObjectList<ConstraintLimit> limits, boolean hatch,
-                                ObjectList<String> tierGroups, int order, PatternObservation observation) {}
+                                int order, PatternObservation observation) {}
 
     record StructureChoice(ObjectList<MultiblockBlockInfo> candidates, ObjectList<ConstraintLimit> limits,
-                           boolean hatch, ObjectList<String> tierGroups,
+                           boolean hatch,
                            Function<BlockState, PatternObservation> observer) {
 
         private StructureChoice withLimit(ConstraintLimit limit) {
             ObjectArrayList<ConstraintLimit> result = new ObjectArrayList<>(limits.size() + 1);
             result.addAll(limits);
             result.add(limit);
-            return new StructureChoice(candidates, result, hatch, tierGroups, observer);
+            return new StructureChoice(candidates, result, hatch, observer);
         }
     }
 

@@ -11,6 +11,7 @@ import com.gregtechceu.gtceu.api.multiblock.MultiblockBlockInfo
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState
 import com.gregtechceu.gtceu.api.multiblock.util.RelativeDirection
 
+import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.BlockState
 
@@ -79,6 +80,7 @@ data class AbilityPredicate(val abilities: ObjectList<PartAbility>, val range: O
 		val limits = range.orElse(null)
 		(if (limits == null) ability.allBlocks else ability.getBlockRange(limits.min, limits.max)).stream()
 	}.filter { block -> !allowedTiers.isPresent || (block is MetaMachineBlock && allowedTiers.get().contains(block.definition.tier)) }
+		.sorted(compareBy<Block> { (it as? MetaMachineBlock)?.definition?.tier ?: 0 }.thenBy { BuiltInRegistries.BLOCK.getKey(it) })
 		.collect(ObjectImmutableList.toList())
 
 	data class TierRange(val min: Int, val max: Int)
