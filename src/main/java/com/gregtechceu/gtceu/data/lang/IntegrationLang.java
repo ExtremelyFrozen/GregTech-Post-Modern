@@ -24,8 +24,6 @@ public class IntegrationLang {
      */
     private static void initRecipeViewerLang(RegistrateLangProvider provider) {
         provider.add("gtpm.jei.multiblock_info", "Multiblock Info");
-        provider.add("gtpm.multiblock.preview.material.selected", "Material: %s");
-        provider.add("gtpm.multiblock.preview.material.none", "No materials required");
         provider.add("gtpm.multiblock.preview.material.required", "Required: %s");
         provider.add("gtpm.multiblock.preview.material.structure", "  %s: %s");
         provider.add("gtpm.multiblock.preview.material.me", "ME available: %s; allocated: %s");
@@ -34,8 +32,6 @@ public class IntegrationLang {
         provider.add("gtpm.multiblock.preview.material.unlimited", "Materials are unlimited for this plan");
         provider.add("gtpm.multiblock.preview.material.availability_unknown",
                 "Availability is unknown in recipe previews");
-        provider.add("gtpm.multiblock.preview.demolition_count", "D:%s");
-        provider.add("gtpm.multiblock.preview.tooltip.demolition_count", "Demolition targets: %s");
         provider.add("gtpm.multiblock.preview.tooltip.previous_materials", "Previous materials");
         provider.add("gtpm.multiblock.preview.tooltip.next_materials", "Next materials");
         provider.add("gtpm.multiblock.preview.cell.position", "Relative position: %s, %s, %s");

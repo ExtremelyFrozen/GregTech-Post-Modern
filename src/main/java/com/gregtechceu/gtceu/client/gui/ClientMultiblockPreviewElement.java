@@ -73,7 +73,6 @@ public final class ClientMultiblockPreviewElement extends UIElement {
 
     private static final BlockPos SCENE_ORIGIN = new BlockPos(0, 64, 0);
     private static final int MATERIAL_BAR_HEIGHT = 24;
-    private static final int MATERIAL_DETAIL_HEIGHT = 34;
 
     private final PreviewVisibility state;
     private MultiblockPreviewLevel previewLevel;
@@ -85,21 +84,16 @@ public final class ClientMultiblockPreviewElement extends UIElement {
     private final GTButtonElement previousMaterials;
     private final GTButtonElement nextMaterials;
     private final ObjectList<GTItemSlotElement> materialSlots = new ObjectArrayList<>();
-    @Nullable
-    private final UIElement materialDetails;
     private final GTButtonElement focusButton;
     private final GTButtonElement layerButton;
     private final GTButtonElement hatchButton;
     private final GTLabelElement diagnosticLabel;
-    private final GTLabelElement demolitionLabel;
     private final boolean showAvailability;
     private int materialViewportWidth;
-    private int materialDetailViewportWidth;
     private float sceneAspect;
     private final Object2ObjectMap<BlockPos, StructurePreview.Cell> sceneCells = new Object2ObjectLinkedOpenHashMap<>();
     private final ObjectList<BlockPos> loadedPositions = new ObjectArrayList<>();
     private final ObjectList<BlockPos> hatchPositions = new ObjectArrayList<>();
-    private int selectedMaterialIndex;
     private int materialPage;
     private long renderedViewRevision;
     private @Nullable BlockState cameraControllerState;
@@ -109,8 +103,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
                                           boolean showAvailability) {
         this.state = state;
         this.showAvailability = showAvailability;
-        materialViewportWidth = width - 74;
-        materialDetailViewportWidth = width - 8;
+        materialViewportWidth = width - 36;
         layout(layout -> {
             layout.positionType(TaffyPosition.ABSOLUTE);
             layout.width(width);
@@ -125,8 +118,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         sourceLevel = clientLevel;
         previewLevel = new MultiblockPreviewLevel(clientLevel);
 
-        int detailHeight = showAvailability ? MATERIAL_DETAIL_HEIGHT : 0;
-        int sceneHeight = height - MATERIAL_BAR_HEIGHT - detailHeight;
+        int sceneHeight = height - MATERIAL_BAR_HEIGHT;
         sceneAspect = (float) width / sceneHeight;
         scene = new GTSceneElement(0, 0, width, sceneHeight);
         scene.setAllowXEILookup(false);
@@ -137,29 +129,11 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         scene.addEventListener(UIEvents.HOVER_TOOLTIPS, this::addCellTooltips);
         addChild(scene);
 
-        if (showAvailability) {
-            materialDetails = new UIElement();
-            materialDetails.layout(layout -> layout.positionType(TaffyPosition.ABSOLUTE)
-                    .left(2).top(sceneHeight).width(width - 4).height(detailHeight));
-            materialDetails.getStyle().backgroundTexture(GuiTextures.BACKGROUND_INVERSE);
-            materialDetails.setOverflowVisible(false);
-            addChild(materialDetails);
-        } else {
-            materialDetails = null;
-        }
-
-        demolitionLabel = new GTLabelElement(2, height - MATERIAL_BAR_HEIGHT + 5, 38, 10, Component.empty());
-        demolitionLabel.textStyle(style -> style.adaptiveWidth(false).adaptiveHeight(false).fontSize(8)
-                .textColor(0xffa02020).textShadow(false).textWrap(TextWrap.HIDE));
-        demolitionLabel.style(style -> style.tooltips(
-                Component.translatable("gtpm.multiblock.preview.tooltip.demolition_count", 0)));
-        addChild(demolitionLabel);
-
         materialViewport = new UIElement();
         materialViewport.layout(layout -> layout.positionType(TaffyPosition.ABSOLUTE)
-                .left(56).top(height - MATERIAL_BAR_HEIGHT + 3).width(materialViewportWidth).height(18));
+                .left(18).top(height - MATERIAL_BAR_HEIGHT + 3).width(materialViewportWidth).height(18));
         materialViewport.setOverflowVisible(false);
-        previousMaterials = navigationButton(40, height - MATERIAL_BAR_HEIGHT + 3,
+        previousMaterials = navigationButton(2, height - MATERIAL_BAR_HEIGHT + 3,
                 "gtpm.multiblock.preview.tooltip.previous_materials");
         previousMaterials.getLayout().width(14);
         previousMaterials.setText(Component.literal("<"));
@@ -227,16 +201,13 @@ public final class ClientMultiblockPreviewElement extends UIElement {
 
     public void resize(int width, int height) {
         getLayout().width(width).height(height);
-        materialViewportWidth = width - 74;
-        materialDetailViewportWidth = width - 8;
-        int sceneHeight = height - MATERIAL_BAR_HEIGHT - (showAvailability ? MATERIAL_DETAIL_HEIGHT : 0);
+        materialViewportWidth = width - 36;
+        int sceneHeight = height - MATERIAL_BAR_HEIGHT;
         sceneAspect = (float) width / sceneHeight;
         scene.getLayout().width(width).height(sceneHeight);
-        if (materialDetails != null) materialDetails.getLayout().top(sceneHeight).width(width - 4);
         materialViewport.getLayout().top(height - MATERIAL_BAR_HEIGHT + 3).width(materialViewportWidth);
         previousMaterials.getLayout().top(height - MATERIAL_BAR_HEIGHT + 3);
         nextMaterials.getLayout().left(width - 16).top(height - MATERIAL_BAR_HEIGHT + 3);
-        demolitionLabel.getLayout().top(height - MATERIAL_BAR_HEIGHT + 5);
         focusButton.getLayout().left(width - 20);
         layerButton.getLayout().left(width - 20);
         hatchButton.getLayout().left(width - 20);
@@ -264,7 +235,6 @@ public final class ClientMultiblockPreviewElement extends UIElement {
                 scene.createScene(previewLevel);
                 scene.setRenderedCore(ObjectList.of(), new PreviewCellRenderHook(), resetCamera);
                 rebuildMaterials();
-                updateDemolitionText();
                 updateNavigationText();
                 updateDiagnosticText();
                 return;
@@ -291,7 +261,6 @@ public final class ClientMultiblockPreviewElement extends UIElement {
             }
             rebuildRenderedCore(resetCamera);
             rebuildMaterials();
-            updateDemolitionText();
             updateNavigationText();
             updateDiagnosticText();
         });
@@ -361,12 +330,9 @@ public final class ClientMultiblockPreviewElement extends UIElement {
                         .collect(ObjectImmutableList.toList()))
                 .collect(ObjectImmutableList.toList());
         if (displayStacks.isEmpty()) {
-            selectedMaterialIndex = 0;
             updateMaterialPage();
-            rebuildMaterialDetails();
             return;
         }
-        selectedMaterialIndex = Math.min(selectedMaterialIndex, displayStacks.size() - 1);
         CycleItemEntryHandler itemHandler = CycleItemEntryHandler.createFromStacks(displayStacks);
         for (int index = 0; index < displayStacks.size(); index++) {
             GTItemSlotElement slot = getSlot(index, itemHandler);
@@ -374,7 +340,6 @@ public final class ClientMultiblockPreviewElement extends UIElement {
             materialSlots.add(slot);
         }
         updateMaterialPage();
-        rebuildMaterialDetails();
     }
 
     private GTItemSlotElement getSlot(int slotIndex, CycleItemEntryHandler itemHandler) {
@@ -393,10 +358,6 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         slot.setItemCountDecorationXOffset(ClientMultiblockPreviewElement::countDecorationOffset);
         slot.setOnAddedTooltips((element, tooltips) -> addMaterialTooltips(
                 state.getPreview().materials().get(slotIndex), tooltips));
-        slot.addEventListener(UIEvents.MOUSE_DOWN, event -> {
-            selectedMaterialIndex = slotIndex;
-            rebuildMaterialDetails();
-        });
         slot.xeiRecipeIngredient();
         return slot;
     }
@@ -413,42 +374,6 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         materialViewport.getLayout().width(perPage * 18);
         previousMaterials.setActive(materialPage > 0);
         nextMaterials.setActive(materialPage < lastPage);
-    }
-
-    private void rebuildMaterialDetails() {
-        @Nullable
-        UIElement details = materialDetails;
-        if (details == null) return;
-        details.clearAllChildren();
-        ObjectList<StructurePreview.Material> materials = state.getPreview().materials();
-        ObjectList<Component> lines = new ObjectArrayList<>();
-        if (materials.isEmpty()) {
-            lines.add(Component.translatable("gtpm.multiblock.preview.material.none"));
-        } else {
-            selectedMaterialIndex = Math.min(selectedMaterialIndex, materials.size() - 1);
-            StructurePreview.Material material = materials.get(selectedMaterialIndex);
-            lines.add(Component.translatable("gtpm.multiblock.preview.material.selected",
-                    material.candidates().getFirst().getHoverName()));
-            lines.add(Component.translatable("gtpm.multiblock.preview.material.required", material.required()));
-            if (state.getPreview().availabilityKnown()) {
-                lines.add(Component.translatable(material.unlimited() ?
-                        "gtpm.multiblock.preview.material.unlimited" :
-                        "gtpm.multiblock.preview.material.missing", material.missing()));
-            } else {
-                lines.add(Component.translatable("gtpm.multiblock.preview.material.availability_unknown"));
-            }
-        }
-        for (int index = 0; index < lines.size(); index++) {
-            GTLabelElement label = new GTLabelElement(2, 2 + index * 10, materialDetailViewportWidth, 10,
-                    lines.get(index));
-            label.textStyle(style -> style.adaptiveWidth(false).adaptiveHeight(false).fontSize(8)
-                    .textColor(0xff404040).textShadow(false).textWrap(TextWrap.HIDE));
-            label.getStyle().tooltips(lines.get(index));
-            details.addChild(label);
-        }
-        ObjectList<Component> tooltips = new ObjectArrayList<>();
-        if (!materials.isEmpty()) addMaterialTooltips(materials.get(selectedMaterialIndex), tooltips);
-        details.getStyle().tooltips(tooltips.toArray(Component[]::new));
     }
 
     private void addMaterialTooltips(StructurePreview.Material material, List<Component> tooltips) {
@@ -542,16 +467,6 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         diagnosticLabel.setText(diagnostics.isEmpty() ? Component.empty() :
                 Component.translatable("gtpm.multiblock.preview.diagnostic",
                         diagnosticDescription(diagnostics.getFirst())));
-    }
-
-    private void updateDemolitionText() {
-        long count = state.getPreview().cells().stream()
-                .filter(StructurePreview.Cell::demolitionTarget)
-                .count();
-        demolitionLabel.setText(Component.translatable(
-                "gtpm.multiblock.preview.demolition_count", count));
-        demolitionLabel.style(style -> style.tooltips(Component.translatable(
-                "gtpm.multiblock.preview.tooltip.demolition_count", count)));
     }
 
     private static Component diagnosticDescription(StructurePreview.Diagnostic diagnostic) {
