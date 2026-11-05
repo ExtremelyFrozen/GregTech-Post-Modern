@@ -33,6 +33,11 @@ public interface HeldItemUIProvider {
      * and validate action payloads server-side.
      */
     default boolean isUIStillValid(Player player, HeldItemUIHolder holder) {
+        var sync = holder.getSyncHolder();
+        if (sync != null) {
+            return ItemStack.isSameItem(holder.getHeld(), holder.getOpenedStack()) &&
+                    (player.level().isClientSide || holder.getHeld() == sync.getStack());
+        }
         return ItemStack.matches(holder.getHeld(), holder.getOpenedStack());
     }
 

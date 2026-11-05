@@ -217,8 +217,8 @@ public class GTDataComponents {
                     builder -> builder.persistent(TerminalControllerBinding.CODEC)
                             .networkSynchronized(TerminalControllerBinding.STREAM_CODEC));
 
-    public static final DeferredHolder<DataComponentType<?>, DataComponentType<SyncFieldData>> BLOCK_ITEM_DATA = DATA_COMPONENTS
-            .registerComponentType("block_item_data", builder -> builder.persistent(SyncFieldData.CODEC)
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<SyncFieldData>> ITEM_DATA = DATA_COMPONENTS
+            .registerComponentType("item_data", builder -> builder.persistent(SyncFieldData.CODEC)
                     .networkSynchronized(SyncFieldData.STREAM_CODEC));
     public static final DeferredHolder<DataComponentType<?>, DataComponentType<FluidProspectionCache>> FLUID_PROSPECTION_CACHE = DATA_COMPONENTS
             .registerComponentType("fluid_prospection_cache", builder -> builder

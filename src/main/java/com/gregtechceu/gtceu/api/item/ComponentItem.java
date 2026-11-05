@@ -6,6 +6,8 @@ import com.gregtechceu.gtceu.api.gui.factory.HeldItemUIHolder;
 import com.gregtechceu.gtceu.api.gui.factory.HeldItemUIProvider;
 import com.gregtechceu.gtceu.api.item.capability.ElectricItem;
 import com.gregtechceu.gtceu.api.item.component.*;
+import com.gregtechceu.gtceu.api.sync_system.managed.ItemSyncHolder;
+import com.gregtechceu.gtceu.api.sync_system.managed.SyncItem;
 
 import com.lowdragmc.lowdraglib2.client.renderer.IItemRendererProvider;
 import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
@@ -14,6 +16,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.NonNullList;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.InteractionHand;
@@ -44,7 +47,7 @@ import java.util.List;
 
 public class ComponentItem extends Item
                            implements HeldItemUIProvider, IItemRendererProvider,
-                           IComponentItem {
+                           IComponentItem, SyncItem {
 
     @Getter
     protected List<IItemComponent> components;
@@ -64,6 +67,17 @@ public class ComponentItem extends Item
         for (IItemComponent component : components) {
             component.onAttached(this);
         }
+    }
+
+    @Nullable
+    @Override
+    public ItemSyncHolder createSyncHolder(ItemStack stack, RegistryAccess registries) {
+        for (IItemComponent component : components) {
+            if (component instanceof SyncItem syncItem) {
+                return syncItem.createSyncHolder(stack, registries);
+            }
+        }
+        return null;
     }
 
     public void fillItemCategory(CreativeModeTab category, NonNullList<ItemStack> items) {
