@@ -1,9 +1,9 @@
 {
 	"machine": "gtpm:distillation_tower",
 	"axes": {
-		"depth": "front",
-		"height": "up",
-		"width": "left"
+		"depth": "up",
+		"height": "back",
+		"width": "right"
 	},
 	"orientation": {
 		"allowMirror": false,
