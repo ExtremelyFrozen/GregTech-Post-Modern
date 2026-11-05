@@ -15,6 +15,9 @@ interface ContextualFieldCodec<T> {
 	/** Decoding may update the existing instance in [Context.currentValue] after the payload has decoded. */
 	fun codec(context: Context<T>): Codec<T>
 
+	/** Immutable values encode their complete contents and only change when the field is replaced. */
+	fun isImmutable(): Boolean = false
+
 	fun shouldSyncField(value: T, context: Context<T>, fullSync: Boolean, manuallyDirty: Boolean): Boolean {
 		if (!context.isClientSync || value !is ISyncManaged) return fullSync || manuallyDirty
 		if (fullSync || manuallyDirty) {

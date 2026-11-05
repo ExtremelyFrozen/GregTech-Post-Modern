@@ -4,10 +4,12 @@ package com.gregtechceu.gtceu.api.sync_system
 
 import com.gregtechceu.gtceu.api.sync_system.managed.ISyncManaged
 import com.gregtechceu.gtceu.api.sync_system.serialization.CollectionCodecs
+import com.gregtechceu.gtceu.api.sync_system.serialization.StreamFieldCodec
 import com.gregtechceu.gtceu.api.sync_system.serialization.SyncCodec
 import com.gregtechceu.gtceu.api.sync_system.serialization.Types
 
 import net.minecraft.core.BlockPos
+import net.minecraft.core.RegistryAccess
 import net.minecraft.core.UUIDUtil
 import net.minecraft.network.RegistryFriendlyByteBuf
 import net.minecraft.network.chat.Component
@@ -88,6 +90,10 @@ object FieldCodecs {
 
 	@JvmStatic
 	fun <T : Any> createStreamCodec(factory: Supplier<T>): StreamCodec<RegistryFriendlyByteBuf, T> = ByteBufCodecs.fromCodecWithRegistries(createCodec(factory))
+
+	/** Supplies an annotated transient field with its existing registry-aware network encoding. */
+	@JvmStatic
+	fun <T : Any> fromStreamCodec(codec: StreamCodec<in RegistryFriendlyByteBuf, T>, registries: RegistryAccess): Codec<T> = StreamFieldCodec.create(codec, registries)
 
 	@JvmStatic
 	fun <T : Any> registerFactory(type: Class<T>, factory: Supplier<T>): Unit = synchronized(codecLock) {

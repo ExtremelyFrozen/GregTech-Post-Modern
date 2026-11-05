@@ -201,7 +201,9 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 			val previousValue = cachedClientValues[field]
 			val manuallyDirty = dirtySyncFields.contains(field.fieldName)
 			val container = currentValue is Map<*, *> || currentValue is Collection<*> || field.handle.varType().isArray
-			val encoded = if (field.contextualCodec != null && !container) {
+			val immutable = field.contextualCodec?.isImmutable() == true
+			if (!fullSync && !manuallyDirty && immutable && currentValue === previousValue) continue
+			val encoded = if (field.contextualCodec != null && !immutable && !container) {
 				if (!fullSync && !manuallyDirty && currentValue == previousValue &&
 					!shouldSyncContextualField(registries, field, currentValue, fullSync, manuallyDirty)
 				) {
@@ -210,7 +212,10 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 				FieldSyncHandler.serializeFieldData(registries, holder, field, true, fullSync)
 			} else {
 				val value = FieldSyncHandler.serializeFieldData(registries, holder, field, true, fullSync = true, readOnly = true)
-				if (!fullSync && !manuallyDirty && value?.value == cachedClientData[field]) continue
+				if (!fullSync && !manuallyDirty && value?.value == cachedClientData[field]) {
+					cachedClientValues[field] = currentValue
+					continue
+				}
 				value
 			}
 			changes.put(field.componentKey, encoded)
