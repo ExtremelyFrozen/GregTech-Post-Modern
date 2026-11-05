@@ -14,22 +14,22 @@ import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolderContext;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIProvider;
 import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUI;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyTabs;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyTooltipsPanel;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
+import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.TabsWidget;
+import com.gregtechceu.gtceu.api.gui.fancy.TooltipsPanel;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.ConditionalSubscriptionHandler;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.BatchModeConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.DirectionalConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.MachineModeConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CombinedDirectionalFancyConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.MachineModeFancyConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.VoidingModeConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
 import com.gregtechceu.gtceu.api.machine.feature.FancyActionMachine;
 import com.gregtechceu.gtceu.api.machine.feature.IOverclockMachine;
 import com.gregtechceu.gtceu.api.machine.feature.ITieredMachine;
+import com.gregtechceu.gtceu.api.machine.feature.IUIMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.BatchModeMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IDisplayUIMachine;
@@ -69,7 +69,7 @@ import java.util.Map;
 
 public class WorkableElectricMultiblockMachine extends WorkableMultiblockMachine implements BatchModeMachine,
                                                IDisplayUIMachine, ITieredMachine,
-                                               IOverclockMachine, MachineUIProvider,
+                                               IOverclockMachine, IUIMachine,
                                                FancyActionMachine {
 
     // runtime
@@ -214,7 +214,7 @@ public class WorkableElectricMultiblockMachine extends WorkableMultiblockMachine
     public UI createUI(Player player, MachineUIHolder holder) {
         requireControllerHolder(holder);
         WorkableElectricMultiblockFancyPage page = new WorkableElectricMultiblockFancyPage(player, holder);
-        FancyMachineUI shell = new FancyMachineUI(page, player.getInventory(), holder,
+        FancyMachineUIWidget shell = new FancyMachineUIWidget(page, player.getInventory(), holder,
                 page.getPageWidth(), page.getPageHeight());
         shell.addEventListener(UIEvents.MUI_CHANGED, event -> {
             var modularUI = shell.getModularUI();
@@ -250,30 +250,30 @@ public class WorkableElectricMultiblockMachine extends WorkableMultiblockMachine
 
     private record DisplayOpening(Player player, AbstractContainerMenu menu) {}
 
-    private final class WorkableElectricMultiblockFancyPage implements FancyUIProvider {
+    private final class WorkableElectricMultiblockFancyPage implements IFancyUIProvider {
 
         private static final int PAGE_WIDTH = 190;
         private static final int PAGE_HEIGHT = 125;
 
         private final MachineUIHolder holder;
         private final List<IMultiPart> openingParts;
-        private final List<FancyUIProvider> sidePages;
-        private final List<FancyUIProvider> partPages;
+        private final List<IFancyUIProvider> sidePages;
+        private final List<IFancyUIProvider> partPages;
 
         private WorkableElectricMultiblockFancyPage(Player player, MachineUIHolder holder) {
             this.holder = holder;
             openingParts = List.copyOf(getParts());
 
-            List<FancyUIProvider> openingSidePages = new ArrayList<>();
+            List<IFancyUIProvider> openingSidePages = new ArrayList<>();
             if (getRecipeTypes().length > 1) {
-                openingSidePages.add(new MachineModeConfigurator(
+                openingSidePages.add(new MachineModeFancyConfigurator(
                         WorkableElectricMultiblockMachine.this));
             }
-            openingSidePages.add(new DirectionalConfigurator(
+            openingSidePages.add(new CombinedDirectionalFancyConfigurator(
                     WorkableElectricMultiblockMachine.this, player, holder));
             sidePages = List.copyOf(openingSidePages);
 
-            List<FancyUIProvider> openingPartPages = new ArrayList<>();
+            List<IFancyUIProvider> openingPartPages = new ArrayList<>();
             for (IMultiPart part : openingParts) {
                 if (!(part instanceof FancyPartUIProvider pageProvider)) {
                     GTCEu.LOGGER.error("Workable multiblock part {} has no LDLib2 Fancy page",
@@ -288,7 +288,7 @@ public class WorkableElectricMultiblockMachine extends WorkableMultiblockMachine
         }
 
         @Override
-        public UIElement createMainPage(FancyMachineUI shell) {
+        public UIElement createUIWidget(FancyMachineUIWidget shell) {
             if (holder.getMachine() != WorkableElectricMultiblockMachine.this) {
                 GTCEu.LOGGER.error("Workable multiblock page holder changed after opening at {}", getBlockPos());
                 throw new IllegalStateException("Workable multiblock page holder no longer resolves its controller.");
@@ -344,7 +344,7 @@ public class WorkableElectricMultiblockMachine extends WorkableMultiblockMachine
         }
 
         @Override
-        public void attachSideTabs(FancyTabs tabs) {
+        public void attachSideTabs(TabsWidget tabs) {
             sidePages.forEach(tabs::attachSubTab);
         }
 
@@ -359,7 +359,7 @@ public class WorkableElectricMultiblockMachine extends WorkableMultiblockMachine
         }
 
         @Override
-        public void attachTooltips(FancyTooltipsPanel tooltipsPanel) {
+        public void attachTooltips(TooltipsPanel tooltipsPanel) {
             for (IMultiPart part : openingParts) {
                 part.attachFancyTooltipsToController(
                         WorkableElectricMultiblockMachine.this, tooltipsPanel);
@@ -367,7 +367,7 @@ public class WorkableElectricMultiblockMachine extends WorkableMultiblockMachine
         }
 
         @Override
-        public List<FancyUIProvider> getSubTabs() {
+        public List<IFancyUIProvider> getSubTabs() {
             return partPages;
         }
 

@@ -9,16 +9,16 @@ import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTImageElement;
 import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIProvider;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUI;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyTabs;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyTooltipsPanel;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyTooltip;
+import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.TabsWidget;
+import com.gregtechceu.gtceu.api.gui.fancy.TooltipsPanel;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.TickableSubscription;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.DirectionalConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CombinedDirectionalFancyConfigurator;
 import com.gregtechceu.gtceu.api.machine.feature.ITieredMachine;
+import com.gregtechceu.gtceu.api.machine.feature.IUIMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.*;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.machine.multiblock.part.TieredPartMachine;
@@ -57,7 +57,7 @@ import static com.gregtechceu.gtceu.api.machine.property.GTMachineModelPropertie
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 public class RotorHolderPartMachine extends TieredPartMachine
-                                    implements MachineUIProvider, FancyPartUIProvider {
+                                    implements IUIMachine, FancyPartUIProvider {
 
     public static final int SPEED_INCREMENT = 1;
     public static final int SPEED_DECREMENT = 3;
@@ -260,7 +260,7 @@ public class RotorHolderPartMachine extends TieredPartMachine
      * Creates a new holder-scoped Rotor Holder page for one surrounding multiblock UI opening.
      */
     @Override
-    public FancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
+    public IFancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
         return new RotorHolderPage(player, holder);
     }
 
@@ -304,20 +304,20 @@ public class RotorHolderPartMachine extends TieredPartMachine
     /**
      * Owns the contextual Rotor Holder page state for exactly one menu opening.
      */
-    private final class RotorHolderPage implements FancyUIProvider {
+    private final class RotorHolderPage implements IFancyUIProvider {
 
         private final MachineUIHolder holder;
-        private final DirectionalConfigurator directionalPage;
+        private final CombinedDirectionalFancyConfigurator directionalPage;
 
         private RotorHolderPage(Player player, MachineUIHolder holder) {
             requireMatchingHolder(holder);
             this.holder = holder;
-            this.directionalPage = new DirectionalConfigurator(RotorHolderPartMachine.this, player,
+            this.directionalPage = new CombinedDirectionalFancyConfigurator(RotorHolderPartMachine.this, player,
                     holder);
         }
 
         @Override
-        public UIElement createMainPage(FancyMachineUI shell) {
+        public UIElement createUIWidget(FancyMachineUIWidget shell) {
             if (holder.getMachine() != RotorHolderPartMachine.this) {
                 throw new IllegalStateException("Rotor Holder page holder no longer resolves its opened machine.");
             }
@@ -345,12 +345,12 @@ public class RotorHolderPartMachine extends TieredPartMachine
         }
 
         @Override
-        public void attachSideTabs(FancyTabs tabs) {
+        public void attachSideTabs(TabsWidget tabs) {
             tabs.attachSubTab(directionalPage);
         }
 
         @Override
-        public void attachTooltips(FancyTooltipsPanel tooltipsPanel) {
+        public void attachTooltips(TooltipsPanel tooltipsPanel) {
             tooltipsPanel.attachTooltips(createRotorObstructionTooltip());
         }
 
@@ -376,7 +376,7 @@ public class RotorHolderPartMachine extends TieredPartMachine
     //////////////////////////////////////
     @Override
     public void attachFancyTooltipsToController(MultiblockControllerMachine controller,
-                                                FancyTooltipsPanel tooltipsPanel) {
+                                                TooltipsPanel tooltipsPanel) {
         tooltipsPanel.attachTooltips(createRotorObstructionTooltip());
     }
 

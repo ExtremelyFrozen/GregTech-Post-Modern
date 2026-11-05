@@ -6,9 +6,9 @@ import com.gregtechceu.gtceu.api.gui.element.GTButtonElement;
 import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyConfigurator;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyMiddleClickAction;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyMouseWheelAction;
+import com.gregtechceu.gtceu.api.gui.fancy.IFancyConfigurator;
+import com.gregtechceu.gtceu.api.gui.fancy.IFancyCustomMiddleClickAction;
+import com.gregtechceu.gtceu.api.gui.fancy.IFancyCustomMouseWheelAction;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.feature.IHasCircuitSlot;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler;
@@ -40,8 +40,8 @@ import java.util.function.IntFunction;
  * The configurator keeps the client-visible circuit slot responsive locally, then sends GTM machine actions for the
  * authoritative server write when the opened holder currently resolves to a remote machine.
  */
-public class CircuitConfigurator implements FancyConfigurator, FancyMouseWheelAction,
-                                 FancyMiddleClickAction {
+public class CircuitFancyConfigurator implements IFancyConfigurator, IFancyCustomMouseWheelAction,
+                                      IFancyCustomMiddleClickAction {
 
     private static final int WIDTH = 174;
     private static final int HEIGHT = 132;
@@ -61,7 +61,7 @@ public class CircuitConfigurator implements FancyConfigurator, FancyMouseWheelAc
      * @param circuitMachine machine feature that owns the configurable circuit slot.
      * @param holder         opened machine UI holder used to send GTM machine actions.
      */
-    public CircuitConfigurator(IHasCircuitSlot circuitMachine, MachineUIHolder holder) {
+    public CircuitFancyConfigurator(IHasCircuitSlot circuitMachine, MachineUIHolder holder) {
         this(circuitMachine, holder, (target, action) -> action.accept(target.getMachine()), () -> true,
                 configuration -> managed -> managed.rpcToServer("configureCircuit", configuration));
     }
@@ -69,10 +69,10 @@ public class CircuitConfigurator implements FancyConfigurator, FancyMouseWheelAc
     /**
      * Creates a circuit configurator whose authoritative action and slot validity belong to its caller's opening.
      */
-    public CircuitConfigurator(IHasCircuitSlot circuitMachine, MachineUIHolder holder,
-                               BiConsumer<MachineUIHolder, Consumer<ISyncManaged>> actionSender,
-                               BooleanSupplier openingValid,
-                               IntFunction<Consumer<ISyncManaged>> actionFactory) {
+    public CircuitFancyConfigurator(IHasCircuitSlot circuitMachine, MachineUIHolder holder,
+                                    BiConsumer<MachineUIHolder, Consumer<ISyncManaged>> actionSender,
+                                    BooleanSupplier openingValid,
+                                    IntFunction<Consumer<ISyncManaged>> actionFactory) {
         if (!hasUsableCircuitSlot(circuitMachine)) {
             throw new IllegalArgumentException("Circuit Fancy configurator requires an enabled circuit slot.");
         }
@@ -153,7 +153,7 @@ public class CircuitConfigurator implements FancyConfigurator, FancyMouseWheelAc
 
     @Override
     public List<Component> getTooltips() {
-        List<Component> tooltips = new ArrayList<>(FancyConfigurator.super.getTooltips());
+        List<Component> tooltips = new ArrayList<>(IFancyConfigurator.super.getTooltips());
         tooltips.addAll(LangHandler.getMultiLang("gtpm.gui.configurator_slot.tooltip"));
         return tooltips;
     }

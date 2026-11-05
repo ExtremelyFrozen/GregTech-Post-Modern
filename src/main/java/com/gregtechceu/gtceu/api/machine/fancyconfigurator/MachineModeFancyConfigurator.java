@@ -5,8 +5,8 @@ import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTButtonElement;
 import com.gregtechceu.gtceu.api.gui.element.GTImageElement;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUI;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
+import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.gui.texture.TextTexture;
 import com.gregtechceu.gtceu.api.machine.feature.IRecipeLogicMachine;
@@ -25,7 +25,7 @@ import java.util.List;
  * <p>
  * The page updates the client-side sync field and flushes it through the GTM machine sync channel.
  */
-public class MachineModeConfigurator implements FancyUIProvider {
+public class MachineModeFancyConfigurator implements IFancyUIProvider {
 
     private static final int PAGE_WIDTH = 140;
     private static final int BUTTON_HEIGHT = 20;
@@ -38,7 +38,7 @@ public class MachineModeConfigurator implements FancyUIProvider {
     /**
      * Creates a mode selector page for one recipe logic machine.
      */
-    public MachineModeConfigurator(IRecipeLogicMachine machine) {
+    public MachineModeFancyConfigurator(IRecipeLogicMachine machine) {
         this.machine = machine;
     }
 
@@ -46,7 +46,7 @@ public class MachineModeConfigurator implements FancyUIProvider {
      * Builds fixed-height LDLib2 buttons that request a recipe type switch through GTM field sync.
      */
     @Override
-    public UIElement createMainPage(FancyMachineUI shell) {
+    public UIElement createUIWidget(FancyMachineUIWidget shell) {
         UIElement root = new UIElement();
         UITemplate.setBounds(root, 0, 0, getPageWidth(), getPageHeight());
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
@@ -117,7 +117,7 @@ public class MachineModeConfigurator implements FancyUIProvider {
                         .setType(TextTexture.TextType.ROLL));
     }
 
-    private void onModeClicked(FancyMachineUI shell, int activeRecipeType, UIEvent event) {
+    private void onModeClicked(FancyMachineUIWidget shell, int activeRecipeType, UIEvent event) {
         var openedMachine = shell.getHolder().getMachine();
         if (openedMachine == machine.self() && openedMachine.isRemote()) {
             machine.setActiveRecipeType(activeRecipeType);

@@ -10,9 +10,9 @@ import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTImageElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIProvider;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
+import com.gregtechceu.gtceu.api.machine.feature.IUIMachine;
 import com.gregtechceu.gtceu.api.machine.property.GTMachineModelProperties;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler;
 import com.gregtechceu.gtceu.api.multiblock.util.RelativeDirection;
@@ -43,7 +43,7 @@ import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.function.BooleanSupplier;
 
-public class SimpleSteamMachine extends SteamWorkableMachine implements MachineUIProvider {
+public class SimpleSteamMachine extends SteamWorkableMachine implements IUIMachine {
 
     @SaveField
     public final NotifiableItemStackHandler importItems;

@@ -2,7 +2,7 @@ package com.gregtechceu.gtceu.api.machine.fancyconfigurator;
 
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyConfiguratorButton;
+import com.gregtechceu.gtceu.api.gui.fancy.IFancyConfiguratorButton;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.DistinctPart;
 
 import net.minecraft.ChatFormatting;
@@ -28,10 +28,10 @@ public final class DistinctPartConfigurator {
         configuratorPanel.attachConfigurators(createDistinctConfigurator(configuratorPanel, part));
     }
 
-    static FancyConfiguratorButton.Toggle createDistinctConfigurator(
-                                                                     ConfiguratorPanel configuratorPanel,
-                                                                     DistinctPart part) {
-        return new FancyConfiguratorButton.Toggle(
+    static IFancyConfiguratorButton.Toggle createDistinctConfigurator(
+                                                                      ConfiguratorPanel configuratorPanel,
+                                                                      DistinctPart part) {
+        return new IFancyConfiguratorButton.Toggle(
                 GuiTextures.BUTTON_DISTINCT_BUSES.getSubTexture(0, 0.5, 1, 0.5),
                 GuiTextures.BUTTON_DISTINCT_BUSES.getSubTexture(0, 0, 1, 0.5),
                 part::isDistinct,

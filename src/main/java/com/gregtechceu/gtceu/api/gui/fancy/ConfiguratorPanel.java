@@ -92,8 +92,8 @@ public class ConfiguratorPanel extends UIElement {
         updatePanelBounds();
     }
 
-    public void attachConfigurators(FancyConfigurator... configurators) {
-        for (FancyConfigurator configurator : configurators) {
+    public void attachConfigurators(IFancyConfigurator... configurators) {
+        for (IFancyConfigurator configurator : configurators) {
             Tab tab = new Tab(configurator, tabs.size());
             tabs.add(tab);
             addChild(tab);
@@ -122,9 +122,9 @@ public class ConfiguratorPanel extends UIElement {
     }
 
     private void rebuildTabs() {
-        List<FancyConfigurator> configurators = tabs.stream().map(tab -> tab.configurator).toList();
+        List<IFancyConfigurator> configurators = tabs.stream().map(tab -> tab.configurator).toList();
         clear();
-        attachConfigurators(configurators.toArray(FancyConfigurator[]::new));
+        attachConfigurators(configurators.toArray(IFancyConfigurator[]::new));
     }
 
     private void updatePanelBounds() {
@@ -136,14 +136,14 @@ public class ConfiguratorPanel extends UIElement {
      */
     public class Tab extends UIElement {
 
-        private final FancyConfigurator configurator;
+        private final IFancyConfigurator configurator;
         private final GTButtonElement button;
         private final GTImageElement icon;
 
         @Nullable
         private final UIElement view;
 
-        private Tab(FancyConfigurator configurator, int index) {
+        private Tab(IFancyConfigurator configurator, int index) {
             this.configurator = configurator;
             UITemplate.setBounds(this, 0, index * (TAB_SIZE + TAB_GAP), TAB_SIZE, TAB_SIZE);
             UITemplate.setBackgroundTexture(this, texture);
@@ -162,7 +162,7 @@ public class ConfiguratorPanel extends UIElement {
             button.addChild(icon);
             addChild(button);
 
-            if (configurator instanceof FancyConfiguratorButton) {
+            if (configurator instanceof IFancyConfiguratorButton) {
                 this.view = null;
             } else {
                 this.view = createView(configurator);
@@ -178,7 +178,7 @@ public class ConfiguratorPanel extends UIElement {
             super.screenTick();
         }
 
-        private UIElement createView(FancyConfigurator configurator) {
+        private UIElement createView(IFancyConfigurator configurator) {
             int width = configurator.getConfiguratorWidth() + border * 2;
             int height = configurator.getConfiguratorHeight() + TAB_SIZE + border;
             UIElement createdView = UITemplate.setBounds(new UIElement(), 0, 0, width, height);
@@ -200,7 +200,7 @@ public class ConfiguratorPanel extends UIElement {
         }
 
         private void onMouseWheel(UIEvent event) {
-            if (configurator instanceof FancyMouseWheelAction mouseWheelAction &&
+            if (configurator instanceof IFancyCustomMouseWheelAction mouseWheelAction &&
                     mouseWheelAction.mouseWheelMove(event)) {
                 event.stopImmediatePropagation();
                 event.hasHandler = true;
@@ -209,13 +209,13 @@ public class ConfiguratorPanel extends UIElement {
 
         private void onClick(UIEvent event) {
             if (event.button == GLFW.GLFW_MOUSE_BUTTON_MIDDLE &&
-                    configurator instanceof FancyMiddleClickAction middleClickAction) {
+                    configurator instanceof IFancyCustomMiddleClickAction middleClickAction) {
                 middleClickAction.onMiddleClick(event);
                 event.stopImmediatePropagation();
                 event.hasHandler = true;
                 return;
             }
-            if (configurator instanceof FancyConfiguratorButton configuratorButton) {
+            if (configurator instanceof IFancyConfiguratorButton configuratorButton) {
                 configuratorButton.onClick(event);
                 return;
             }

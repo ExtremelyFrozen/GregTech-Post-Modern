@@ -12,18 +12,18 @@ import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTPhantomItemSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTToggleButtonElement;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIProvider;
 import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyConfiguratorButton;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUI;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyTooltipsPanel;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
+import com.gregtechceu.gtceu.api.gui.fancy.IFancyConfiguratorButton;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyTooltip;
+import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.TooltipsPanel;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.item.datacomponents.LargeItemContent;
 import com.gregtechceu.gtceu.api.item.tool.GTToolType;
 import com.gregtechceu.gtceu.api.item.tool.GridHighlightTexture;
 import com.gregtechceu.gtceu.api.machine.TieredMachine;
+import com.gregtechceu.gtceu.api.machine.feature.IUIMachine;
 import com.gregtechceu.gtceu.api.machine.trait.MachineTrait;
 import com.gregtechceu.gtceu.api.machine.trait.MachineTraitType;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
@@ -69,7 +69,7 @@ import java.util.UUID;
 import java.util.function.Predicate;
 
 public class QuantumChestMachine extends TieredMachine implements IControllable,
-                                 MachineUIProvider {
+                                 IUIMachine {
 
     /**
      * Sourced from FunctionalStorage's
@@ -296,7 +296,7 @@ public class QuantumChestMachine extends TieredMachine implements IControllable,
 
     @Override
     public UI createUI(Player player, MachineUIHolder holder) {
-        return UI.of(new FancyMachineUI(new QuantumChestPage(player, holder),
+        return UI.of(new FancyMachineUIWidget(new QuantumChestPage(player, holder),
                 player.getInventory(), holder, PAGE_WIDTH, PAGE_HEIGHT));
     }
 
@@ -439,9 +439,9 @@ public class QuantumChestMachine extends TieredMachine implements IControllable,
         return slot;
     }
 
-    private FancyConfiguratorButton.Toggle createWorkingEnabledConfigurator(Player player,
-                                                                            MachineUIHolder holder) {
-        return new FancyConfiguratorButton.Toggle(
+    private IFancyConfiguratorButton.Toggle createWorkingEnabledConfigurator(Player player,
+                                                                             MachineUIHolder holder) {
+        return new IFancyConfiguratorButton.Toggle(
                 GuiTextures.BUTTON_POWER.getSubTexture(0, 0, 1, 0.5),
                 GuiTextures.BUTTON_POWER.getSubTexture(0, 0.5, 1, 0.5),
                 this::isWorkingEnabled,
@@ -541,7 +541,7 @@ public class QuantumChestMachine extends TieredMachine implements IControllable,
         return super.sideTips(player, pos, state, toolTypes, held, side);
     }
 
-    private final class QuantumChestPage implements FancyUIProvider {
+    private final class QuantumChestPage implements IFancyUIProvider {
 
         private final Player player;
         private final MachineUIHolder holder;
@@ -552,7 +552,7 @@ public class QuantumChestMachine extends TieredMachine implements IControllable,
         }
 
         @Override
-        public UIElement createMainPage(FancyMachineUI shell) {
+        public UIElement createUIWidget(FancyMachineUIWidget shell) {
             return QuantumChestMachine.this.createStoragePage(player, holder);
         }
 
@@ -582,7 +582,7 @@ public class QuantumChestMachine extends TieredMachine implements IControllable,
         }
 
         @Override
-        public void attachTooltips(FancyTooltipsPanel tooltipsPanel) {
+        public void attachTooltips(TooltipsPanel tooltipsPanel) {
             tooltipsPanel.attachTooltips(QuantumChestMachine.this);
             getTraitHolder().getAllTraits().stream()
                     .filter(IFancyTooltip.class::isInstance)

@@ -5,7 +5,7 @@ import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo;
 import com.gregtechceu.gtceu.api.capability.recipe.IO;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyPreviewPage;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.multiblock.part.TieredIOPartMachine;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableEnergyContainer;
@@ -56,13 +56,13 @@ public class EnergyHatchPartMachine extends TieredIOPartMachine implements Fancy
     }
 
     @Override
-    public FancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
+    public IFancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
         return new FancyPreviewPage(this, player, holder, switch (io) {
-            case IN -> new FancyUIProvider.PageGroupingData(
+            case IN -> new IFancyUIProvider.PageGroupingData(
                     "gtpm.multiblock.page_switcher.io.import", 1);
-            case OUT -> new FancyUIProvider.PageGroupingData(
+            case OUT -> new IFancyUIProvider.PageGroupingData(
                     "gtpm.multiblock.page_switcher.io.export", 2);
-            case BOTH -> new FancyUIProvider.PageGroupingData(
+            case BOTH -> new IFancyUIProvider.PageGroupingData(
                     "gtpm.multiblock.page_switcher.io.both", 3);
             case NONE -> null;
         });

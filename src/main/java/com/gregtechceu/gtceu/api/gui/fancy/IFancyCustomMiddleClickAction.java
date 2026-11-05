@@ -9,7 +9,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
  * Implementations use this when the collapsed tab should expose a direct reset or alternate action without opening
  * the expanded configurator body.
  */
-public interface FancyMiddleClickAction {
+public interface IFancyCustomMiddleClickAction {
 
     /**
      * Handles a middle-click event for the owning Fancy tab.

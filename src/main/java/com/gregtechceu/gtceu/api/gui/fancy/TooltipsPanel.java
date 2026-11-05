@@ -17,7 +17,7 @@ import java.util.List;
 /**
  * LDLib2 right-side tooltip indicator panel for Fancy pages.
  */
-public class FancyTooltipsPanel extends UIElement {
+public class TooltipsPanel extends UIElement {
 
     private static final int ICON_SIZE = 20;
     private static final int ICON_GAP = 2;
@@ -26,7 +26,7 @@ public class FancyTooltipsPanel extends UIElement {
     private int x;
     private int y;
 
-    public FancyTooltipsPanel(int x, int y) {
+    public TooltipsPanel(int x, int y) {
         this.x = x;
         this.y = y;
         UITemplate.setBounds(this, x, y, ICON_SIZE, 0);

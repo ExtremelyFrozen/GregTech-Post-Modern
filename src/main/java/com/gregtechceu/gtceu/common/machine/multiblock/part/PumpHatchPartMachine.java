@@ -9,8 +9,8 @@ import com.gregtechceu.gtceu.api.gui.element.GTImageElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTToggleButtonElement;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIProvider;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
+import com.gregtechceu.gtceu.api.machine.feature.IUIMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.PumpHatch;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableFluidTank;
@@ -40,7 +40,7 @@ import net.neoforged.neoforge.fluids.FluidUtil;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 
 public class PumpHatchPartMachine extends FluidHatchPartMachine
-                                  implements MachineUIProvider, FancyPartUIProvider, PumpHatch {
+                                  implements IUIMachine, FancyPartUIProvider, PumpHatch {
 
     public PumpHatchPartMachine(BlockEntityCreationInfo info) {
         super(info, 0, IO.OUT, FluidType.BUCKET_VOLUME, 1);
@@ -78,7 +78,7 @@ public class PumpHatchPartMachine extends FluidHatchPartMachine
     }
 
     @Override
-    public FancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
+    public IFancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
         return createPage(player, holder);
     }
 

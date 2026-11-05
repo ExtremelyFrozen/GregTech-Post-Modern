@@ -10,10 +10,10 @@ import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTIntInputElement;
 import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUI;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
 import com.gregtechceu.gtceu.api.machine.TickableSubscription;
 import com.gregtechceu.gtceu.api.machine.TieredEnergyMachine;
-import com.gregtechceu.gtceu.api.machine.feature.FancyUIMachine;
+import com.gregtechceu.gtceu.api.machine.feature.IFancyUIMachine;
 import com.gregtechceu.gtceu.api.machine.property.GTMachineModelProperties;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler;
 import com.gregtechceu.gtceu.api.sync_system.annotations.RerenderOnChanged;
@@ -50,7 +50,7 @@ import java.util.List;
  * @implNote FisherMachine
  */
 public class ItemCollectorMachine extends TieredEnergyMachine
-                                  implements FancyUIMachine, IWorkable {
+                                  implements IFancyUIMachine, IWorkable {
 
     private static final int MIN_RANGE = 1;
     private static final int SLOT_SIZE = 18;
@@ -343,7 +343,7 @@ public class ItemCollectorMachine extends TieredEnergyMachine
     //////////////////////////////////////
 
     @Override
-    public UIElement createMainPage(FancyMachineUI shell) {
+    public UIElement createUIWidget(FancyMachineUIWidget shell) {
         UIElement root = UITemplate.setBounds(new UIElement(), 0, 0,
                 getPageWidth(), getPageHeight());
 

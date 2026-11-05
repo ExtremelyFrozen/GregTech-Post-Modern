@@ -14,21 +14,21 @@ import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolderContext;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIProvider;
 import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUI;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyTabs;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
+import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.TabsWidget;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.ConditionalSubscriptionHandler;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.api.machine.TickableSubscription;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.BatchModeConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.DirectionalConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CombinedDirectionalFancyConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.VoidingModeConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
 import com.gregtechceu.gtceu.api.machine.feature.FancyActionMachine;
 import com.gregtechceu.gtceu.api.machine.feature.ITieredMachine;
+import com.gregtechceu.gtceu.api.machine.feature.IUIMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMultiPart;
 import com.gregtechceu.gtceu.api.machine.multiblock.WorkableElectricMultiblockMachine;
@@ -82,7 +82,7 @@ import static com.gregtechceu.gtceu.api.recipe.OverclockingLogic.PERFECT_HALF_VO
 import static com.gregtechceu.gtceu.common.data.GTBlocks.*;
 
 public class FusionReactorMachine extends WorkableElectricMultiblockMachine
-                                  implements ITieredMachine, MachineUIProvider, FancyActionMachine {
+                                  implements ITieredMachine, IUIMachine, FancyActionMachine {
 
     // Standard OC used for Fusion
     public static final OverclockingLogic FUSION_OC = OverclockingLogic.create(PERFECT_HALF_DURATION_FACTOR,
@@ -384,12 +384,12 @@ public class FusionReactorMachine extends WorkableElectricMultiblockMachine
 
     @Override
     public UI createUI(Player player, MachineUIHolder holder) {
-        FancyUIProvider page = createPage(player, holder);
-        return UI.of(new FancyMachineUI(page, player.getInventory(), holder,
+        IFancyUIProvider page = createPage(player, holder);
+        return UI.of(new FancyMachineUIWidget(page, player.getInventory(), holder,
                 page.getPageWidth(), page.getPageHeight()));
     }
 
-    FancyUIProvider createPage(Player player, MachineUIHolder holder) {
+    IFancyUIProvider createPage(Player player, MachineUIHolder holder) {
         requireMatchingHolder(holder);
         return new FusionReactorFancyPage(player, holder);
     }
@@ -400,21 +400,21 @@ public class FusionReactorMachine extends WorkableElectricMultiblockMachine
         }
     }
 
-    private final class FusionReactorFancyPage implements FancyUIProvider {
+    private final class FusionReactorFancyPage implements IFancyUIProvider {
 
         private static final int PAGE_WIDTH = 190;
         private static final int PAGE_HEIGHT = 125;
 
         private final MachineUIHolder holder;
-        private final DirectionalConfigurator directionalPage;
-        private final List<FancyUIProvider> partPages;
+        private final CombinedDirectionalFancyConfigurator directionalPage;
+        private final List<IFancyUIProvider> partPages;
 
         private FusionReactorFancyPage(Player player, MachineUIHolder holder) {
             requireMatchingHolder(holder);
             this.holder = holder;
-            this.directionalPage = new DirectionalConfigurator(FusionReactorMachine.this, player, holder);
+            this.directionalPage = new CombinedDirectionalFancyConfigurator(FusionReactorMachine.this, player, holder);
 
-            List<FancyUIProvider> pages = new ArrayList<>();
+            List<IFancyUIProvider> pages = new ArrayList<>();
             for (IMultiPart part : getParts()) {
                 if (!(part instanceof FancyPartUIProvider pageProvider)) {
                     throw new IllegalStateException("Fusion Reactor part has no LDLib2 Fancy page: " +
@@ -427,7 +427,7 @@ public class FusionReactorMachine extends WorkableElectricMultiblockMachine
         }
 
         @Override
-        public UIElement createMainPage(FancyMachineUI shell) {
+        public UIElement createUIWidget(FancyMachineUIWidget shell) {
             if (holder.getMachine() != FusionReactorMachine.this) {
                 throw new IllegalStateException("Fusion Reactor page holder no longer resolves its controller.");
             }
@@ -480,7 +480,7 @@ public class FusionReactorMachine extends WorkableElectricMultiblockMachine
         }
 
         @Override
-        public void attachSideTabs(FancyTabs tabs) {
+        public void attachSideTabs(TabsWidget tabs) {
             tabs.attachSubTab(directionalPage);
         }
 
@@ -493,7 +493,7 @@ public class FusionReactorMachine extends WorkableElectricMultiblockMachine
         }
 
         @Override
-        public List<FancyUIProvider> getSubTabs() {
+        public List<IFancyUIProvider> getSubTabs() {
             return partPages;
         }
 

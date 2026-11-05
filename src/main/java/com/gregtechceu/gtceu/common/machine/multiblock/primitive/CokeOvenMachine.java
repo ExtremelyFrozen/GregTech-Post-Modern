@@ -9,7 +9,7 @@ import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTProgressBarElement;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIProvider;
+import com.gregtechceu.gtceu.api.machine.feature.IUIMachine;
 import com.gregtechceu.gtceu.config.ConfigHolder;
 import com.gregtechceu.gtceu.utils.ExtendedUseOnContext;
 import com.gregtechceu.gtceu.utils.FormattingUtil;
@@ -32,7 +32,7 @@ import net.neoforged.neoforge.fluids.FluidUtil;
 
 import java.util.List;
 
-public class CokeOvenMachine extends PrimitiveWorkableMachine implements MachineUIProvider {
+public class CokeOvenMachine extends PrimitiveWorkableMachine implements IUIMachine {
 
     public CokeOvenMachine(BlockEntityCreationInfo info) {
         super(info);

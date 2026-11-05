@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 /**
  * LDLib2 page switcher page for the Fancy shell.
  */
-public class FancyPageSwitcher implements FancyUIProvider {
+public class PageSwitcher implements IFancyUIProvider {
 
     private static final int WIDTH = 176;
     private static final int HEIGHT = 166;
@@ -33,28 +33,28 @@ public class FancyPageSwitcher implements FancyUIProvider {
     private static final int MAX_COLUMNS = 5;
     private static final int TEXT_COLOR = 0x404040;
 
-    private final Consumer<FancyUIProvider> onPageSwitched;
+    private final Consumer<IFancyUIProvider> onPageSwitched;
     private final UIElement container;
     private final GTScrollerViewElement scrollableGroup;
 
-    private List<FancyUIProvider> pages = List.of();
-    private FancyUIProvider currentPage;
+    private List<IFancyUIProvider> pages = List.of();
+    private IFancyUIProvider currentPage;
 
-    public FancyPageSwitcher(Consumer<FancyUIProvider> onPageSwitched) {
+    public PageSwitcher(Consumer<IFancyUIProvider> onPageSwitched) {
         this.onPageSwitched = onPageSwitched;
         this.container = UITemplate.setBounds(new UIElement(), 0, 0, WIDTH, HEIGHT);
         this.scrollableGroup = new GTScrollerViewElement(10, 10, 156, 146);
         container.addChild(scrollableGroup);
     }
 
-    public void setPageList(List<FancyUIProvider> allPages, FancyUIProvider currentPage) {
+    public void setPageList(List<IFancyUIProvider> allPages, IFancyUIProvider currentPage) {
         this.pages = allPages;
         this.currentPage = currentPage;
         rebuildPageButtons();
     }
 
     @Override
-    public UIElement createMainPage(FancyMachineUI shell) {
+    public UIElement createUIWidget(FancyMachineUIWidget shell) {
         return container;
     }
 
@@ -80,9 +80,9 @@ public class FancyPageSwitcher implements FancyUIProvider {
                 currentY += 12;
             }
 
-            List<FancyUIProvider> groupPages = groupedPages.get(group);
+            List<IFancyUIProvider> groupPages = groupedPages.get(group);
             for (int index = 0; index < groupPages.size(); index++) {
-                FancyUIProvider page = groupPages.get(index);
+                IFancyUIProvider page = groupPages.get(index);
                 int x = index % MAX_COLUMNS * COLUMN_WIDTH;
                 int y = currentY + index / MAX_COLUMNS * ROW_HEIGHT;
                 scrollableGroup.addChild(createPageButton(page, x, y));
@@ -118,7 +118,7 @@ public class FancyPageSwitcher implements FancyUIProvider {
         return false;
     }
 
-    private UIElement createPageButton(FancyUIProvider page, int x, int y) {
+    private UIElement createPageButton(IFancyUIProvider page, int x, int y) {
         UIElement pageElement = UITemplate.setBounds(new UIElement(), x, y, BUTTON_SIZE, BUTTON_SIZE);
         GTButtonElement button = new GTButtonElement(0, 0, BUTTON_SIZE, BUTTON_SIZE);
         button.noText();

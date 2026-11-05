@@ -4,12 +4,12 @@ import com.gregtechceu.gtceu.api.GTValues;
 import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo;
 import com.gregtechceu.gtceu.api.capability.recipe.IO;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIProvider;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyPreviewPage;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.api.machine.feature.FancyActionMachine;
 import com.gregtechceu.gtceu.api.machine.feature.IDataStickInteractable;
+import com.gregtechceu.gtceu.api.machine.feature.IUIMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.multiblock.part.TieredIOPartMachine;
 import com.gregtechceu.gtceu.api.recipe.handler.RecipeHandlerList;
@@ -32,7 +32,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 public class MEPatternBufferProxyPartMachine extends TieredIOPartMachine
-                                             implements IDataStickInteractable, MachineUIProvider,
+                                             implements IDataStickInteractable, IUIMachine,
                                              FancyPartUIProvider, FancyActionMachine {
 
     @Getter
@@ -124,9 +124,9 @@ public class MEPatternBufferProxyPartMachine extends TieredIOPartMachine
 
     /** Creates the proxy-local preview used by a surrounding multiblock without opening its linked buffer. */
     @Override
-    public FancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
+    public IFancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
         return new FancyPreviewPage(this, player, holder,
-                new FancyUIProvider.PageGroupingData(
+                new IFancyUIProvider.PageGroupingData(
                         "gtpm.multiblock.page_switcher.io.import", 1));
     }
 

@@ -21,7 +21,7 @@ public final class VoidingModeConfigurator {
      * Attaches a voiding mode selector to a migrated LDLib2 Fancy configurator panel.
      */
     public static void attachConfigurators(ConfiguratorPanel configuratorPanel, IVoidable controller) {
-        configuratorPanel.attachConfigurators(new SelectorConfigurator<>(
+        configuratorPanel.attachConfigurators(new FancySelectorConfigurator<>(
                 IVoidable.VoidingMode.VALUES,
                 controller::getVoidingMode,
                 (event, mode) -> {

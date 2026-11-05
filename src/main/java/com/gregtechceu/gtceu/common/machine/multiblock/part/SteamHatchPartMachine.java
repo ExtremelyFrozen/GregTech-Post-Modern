@@ -8,8 +8,8 @@ import com.gregtechceu.gtceu.api.gui.element.GTFluidSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTImageElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIProvider;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
+import com.gregtechceu.gtceu.api.machine.feature.IUIMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableFluidTank;
 import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
@@ -39,7 +39,7 @@ import net.neoforged.neoforge.fluids.FluidUtil;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 
 public class SteamHatchPartMachine extends FluidHatchPartMachine
-                                   implements MachineUIProvider, FancyPartUIProvider {
+                                   implements IUIMachine, FancyPartUIProvider {
 
     public static final int INITIAL_TANK_CAPACITY = 64 * FluidType.BUCKET_VOLUME;
     public static final boolean IS_STEEL = ConfigHolder.INSTANCE.machines.steelSteamMultiblocks;
@@ -86,7 +86,7 @@ public class SteamHatchPartMachine extends FluidHatchPartMachine
      * Creates a holder-scoped Fluid Hatch page for one surrounding steam multiblock UI opening.
      */
     @Override
-    public FancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
+    public IFancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
         return createPage(player, holder);
     }
 

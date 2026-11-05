@@ -10,11 +10,11 @@ import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTComponentPanelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUI;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
 import com.gregtechceu.gtceu.api.machine.TickableSubscription;
 import com.gregtechceu.gtceu.api.machine.WorkableTieredMachine;
-import com.gregtechceu.gtceu.api.machine.feature.FancyUIMachine;
 import com.gregtechceu.gtceu.api.machine.feature.IDataInfoProvider;
+import com.gregtechceu.gtceu.api.machine.feature.IFancyUIMachine;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
 import com.gregtechceu.gtceu.api.transfer.item.CustomItemStackHandler;
@@ -45,7 +45,7 @@ import java.util.Collections;
 import java.util.List;
 
 public class MinerMachine extends WorkableTieredMachine
-                          implements IControllable, FancyUIMachine, IDataInfoProvider, IMiner {
+                          implements IControllable, IFancyUIMachine, IDataInfoProvider, IMiner {
 
     private static final int SLOT_SIZE = 18;
     private static final int PAGE_MIN_WIDTH = 172;
@@ -151,7 +151,7 @@ public class MinerMachine extends WorkableTieredMachine
     //////////////////////////////////////
 
     @Override
-    public UIElement createMainPage(FancyMachineUI shell) {
+    public UIElement createUIWidget(FancyMachineUIWidget shell) {
         UIElement root = UITemplate.setBounds(new UIElement(), 0, 0,
                 getPageWidth(), getPageHeight());
 

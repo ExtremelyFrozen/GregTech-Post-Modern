@@ -19,7 +19,7 @@ import java.util.function.Consumer;
 /**
  * LDLib2 title bar for Fancy pages.
  */
-public class FancyTitleBar extends UIElement {
+public class TitleBarWidget extends UIElement {
 
     private static final int BORDER_SIZE = 3;
     private static final int HORIZONTAL_MARGIN = 8;
@@ -41,8 +41,8 @@ public class FancyTitleBar extends UIElement {
     private boolean showMenuButton;
     private TextTexture titleText = GuiTextures.text("");
 
-    public FancyTitleBar(int parentWidth, Consumer<UIEvent> onBackClicked,
-                         Consumer<UIEvent> onMenuClicked) {
+    public TitleBarWidget(int parentWidth, Consumer<UIEvent> onBackClicked,
+                          Consumer<UIEvent> onMenuClicked) {
         UITemplate.setBounds(this, HORIZONTAL_MARGIN, -HEIGHT, parentWidth, HEIGHT);
         style(style -> style.overflowVisible(true));
         this.width = parentWidth - 2 * HORIZONTAL_MARGIN;
@@ -70,7 +70,7 @@ public class FancyTitleBar extends UIElement {
         mainSection.addChildren(tabIcon, tabTitle);
     }
 
-    public void updateState(FancyUIProvider currentPage, boolean showBackButton, boolean showMenuButton) {
+    public void updateState(IFancyUIProvider currentPage, boolean showBackButton, boolean showMenuButton) {
         this.showBackButton = showBackButton;
         this.showMenuButton = showMenuButton;
 

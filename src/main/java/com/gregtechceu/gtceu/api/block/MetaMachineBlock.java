@@ -7,12 +7,12 @@ import com.gregtechceu.gtceu.api.capability.compat.EnergyStorageList;
 import com.gregtechceu.gtceu.api.computation.ComputationPort;
 import com.gregtechceu.gtceu.api.data.RotationState;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHelper;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIProvider;
 import com.gregtechceu.gtceu.api.item.IGTTool;
 import com.gregtechceu.gtceu.api.item.MetaMachineItem;
 import com.gregtechceu.gtceu.api.machine.MachineDefinition;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
+import com.gregtechceu.gtceu.api.machine.feature.IUIMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMaintenanceMachine;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.machine.trait.MachineTrait;
@@ -293,7 +293,7 @@ public class MetaMachineBlock extends Block implements ManagedSyncEntityBlock {
         }
 
         if (shouldOpenUi && MachineOwner.canOpenOwnerMachine(player, machine)) {
-            if (machine instanceof MachineUIProvider) {
+            if (machine instanceof IUIMachine) {
                 if (player instanceof ServerPlayer serverPlayer) {
                     MachineUIHelper.open(machine, serverPlayer);
                 }
@@ -309,7 +309,7 @@ public class MetaMachineBlock extends Block implements ManagedSyncEntityBlock {
         var machine = MetaMachine.getMachine(level, pos);
         if (machine == null) return InteractionResult.PASS;
         if (MachineOwner.canOpenOwnerMachine(player, machine)) {
-            if (machine instanceof MachineUIProvider) {
+            if (machine instanceof IUIMachine) {
                 if (player instanceof ServerPlayer serverPlayer) {
                     MachineUIHelper.open(machine, serverPlayer);
                 }

@@ -6,15 +6,15 @@ import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTIntInputElement;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIProvider;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUI;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyTabs;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyTooltipsPanel;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyTooltip;
+import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.TabsWidget;
+import com.gregtechceu.gtceu.api.gui.fancy.TooltipsPanel;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.DirectionalConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CombinedDirectionalFancyConfigurator;
 import com.gregtechceu.gtceu.api.machine.feature.IRecipeLogicMachine;
+import com.gregtechceu.gtceu.api.machine.feature.IUIMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.machine.multiblock.part.TieredPartMachine;
@@ -35,7 +35,7 @@ import lombok.Getter;
 import java.util.List;
 
 public class ParallelHatchPartMachine extends TieredPartMachine
-                                      implements MachineUIProvider, FancyPartUIProvider {
+                                      implements IUIMachine, FancyPartUIProvider {
 
     private static final int MIN_PARALLEL = 1;
     private static final int PAGE_WIDTH = 100;
@@ -94,7 +94,7 @@ public class ParallelHatchPartMachine extends TieredPartMachine
 
     /** Creates a new holder-scoped page for one surrounding multiblock UI opening. */
     @Override
-    public FancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
+    public IFancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
         requireMatchingHolder(holder);
         return new ParallelHatchPage(player, holder);
     }
@@ -120,19 +120,19 @@ public class ParallelHatchPartMachine extends TieredPartMachine
     }
 
     /** Owns the contextual Parallel Hatch page state for exactly one menu opening. */
-    private final class ParallelHatchPage implements FancyUIProvider {
+    private final class ParallelHatchPage implements IFancyUIProvider {
 
         private final MachineUIHolder holder;
-        private final DirectionalConfigurator directionalPage;
+        private final CombinedDirectionalFancyConfigurator directionalPage;
 
         private ParallelHatchPage(Player player, MachineUIHolder holder) {
             requireMatchingHolder(holder);
             this.holder = holder;
-            directionalPage = new DirectionalConfigurator(ParallelHatchPartMachine.this, player, holder);
+            directionalPage = new CombinedDirectionalFancyConfigurator(ParallelHatchPartMachine.this, player, holder);
         }
 
         @Override
-        public UIElement createMainPage(FancyMachineUI shell) {
+        public UIElement createUIWidget(FancyMachineUIWidget shell) {
             if (holder.getMachine() != ParallelHatchPartMachine.this) {
                 throw new IllegalStateException("Parallel Hatch page holder no longer resolves its opened machine.");
             }
@@ -160,12 +160,12 @@ public class ParallelHatchPartMachine extends TieredPartMachine
         }
 
         @Override
-        public void attachSideTabs(FancyTabs tabs) {
+        public void attachSideTabs(TabsWidget tabs) {
             tabs.attachSubTab(directionalPage);
         }
 
         @Override
-        public void attachTooltips(FancyTooltipsPanel tooltipsPanel) {
+        public void attachTooltips(TooltipsPanel tooltipsPanel) {
             tooltipsPanel.attachTooltips(ParallelHatchPartMachine.this);
             getTraitHolder().getAllTraits().stream()
                     .filter(IFancyTooltip.class::isInstance)

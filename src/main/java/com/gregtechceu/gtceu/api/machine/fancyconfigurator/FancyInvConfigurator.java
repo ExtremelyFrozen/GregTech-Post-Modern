@@ -3,7 +3,7 @@ package com.gregtechceu.gtceu.api.machine.fancyconfigurator;
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyConfigurator;
+import com.gregtechceu.gtceu.api.gui.fancy.IFancyConfigurator;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.transfer.item.CustomItemStackHandler;
 import com.gregtechceu.gtceu.integration.xei.GTXEIHelper;
@@ -19,22 +19,22 @@ import java.util.function.BooleanSupplier;
 /**
  * LDLib2 Fancy configurator for displaying a small item inventory grid.
  */
-public class InventoryConfigurator implements FancyConfigurator {
+public class FancyInvConfigurator implements IFancyConfigurator {
 
     private final CustomItemStackHandler inventory;
     private final Component title;
     private final BooleanSupplier openingValid;
     private List<Component> tooltips = Collections.emptyList();
 
-    public InventoryConfigurator(CustomItemStackHandler inventory, Component title) {
+    public FancyInvConfigurator(CustomItemStackHandler inventory, Component title) {
         this(inventory, title, () -> true);
     }
 
     /**
      * Creates an inventory configurator whose server slots reject interactions after its opening becomes stale.
      */
-    public InventoryConfigurator(CustomItemStackHandler inventory, Component title,
-                                 BooleanSupplier openingValid) {
+    public FancyInvConfigurator(CustomItemStackHandler inventory, Component title,
+                                BooleanSupplier openingValid) {
         this.inventory = inventory;
         this.title = title;
         this.openingValid = openingValid;
@@ -55,7 +55,7 @@ public class InventoryConfigurator implements FancyConfigurator {
         return tooltips;
     }
 
-    public InventoryConfigurator setTooltips(List<Component> tooltips) {
+    public FancyInvConfigurator setTooltips(List<Component> tooltips) {
         this.tooltips = tooltips;
         return this;
     }

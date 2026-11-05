@@ -20,7 +20,7 @@ import java.util.function.Function;
  * Implementations that need to mutate server state must flush a GTM field update or dispatch a GTM action packet from
  * the click handler.
  */
-public interface FancyConfiguratorButton extends FancyConfigurator {
+public interface IFancyConfiguratorButton extends IFancyConfigurator {
 
     /**
      * Handles the local click event for this configurator button.
@@ -50,7 +50,7 @@ public interface FancyConfiguratorButton extends FancyConfigurator {
      * The toggle does not own synchronization. Callers that mutate business state must send a GTM field update or
      * action packet from the click handler.
      */
-    class Toggle implements FancyConfiguratorButton {
+    class Toggle implements IFancyConfiguratorButton {
 
         private final IGuiTexture base;
         private final IGuiTexture pressed;

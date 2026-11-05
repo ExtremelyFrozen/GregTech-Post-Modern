@@ -3,7 +3,7 @@ package com.gregtechceu.gtceu.api.machine.fancyconfigurator;
 import com.gregtechceu.gtceu.api.capability.IControllable;
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyConfiguratorButton;
+import com.gregtechceu.gtceu.api.gui.fancy.IFancyConfiguratorButton;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
 
 import net.minecraft.network.chat.Component;
@@ -17,7 +17,7 @@ import java.util.List;
  * The button sends a GTM machine action for server-side mutation and does not use LDLib2-owned business state
  * channels.
  */
-public class WorkingEnabledConfigurator extends FancyConfiguratorButton.Toggle {
+public class WorkingEnabledConfigurator extends IFancyConfiguratorButton.Toggle {
 
     /**
      * Creates a working-enabled toggle bound to the opened machine holder.

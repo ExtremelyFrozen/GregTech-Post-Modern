@@ -5,21 +5,21 @@ import com.gregtechceu.gtceu.api.capability.recipe.IO;
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUI;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyTabs;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyTooltipsPanel;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyTooltip;
+import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.TabsWidget;
+import com.gregtechceu.gtceu.api.gui.fancy.TooltipsPanel;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.gui.util.FluidContainerSlotInteraction;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
 import com.gregtechceu.gtceu.api.machine.TickableSubscription;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.ButtonConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CircuitConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.DirectionalConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.InventoryConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.TankConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CircuitFancyConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CombinedDirectionalFancyConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.FancyInvConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.FancyTankConfigurator;
 import com.gregtechceu.gtceu.api.machine.feature.FancyActionMachine;
 import com.gregtechceu.gtceu.api.machine.feature.IDataStickInteractable;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
@@ -305,17 +305,17 @@ public class MEPatternBufferPartMachine extends MEBusPartMachine
 
     @Override
     public UI createUI(Player player, MachineUIHolder holder) {
-        FancyUIProvider page = createPage(player, holder);
-        return UI.of(new FancyMachineUI(page, player.getInventory(), holder,
+        IFancyUIProvider page = createPage(player, holder);
+        return UI.of(new FancyMachineUIWidget(page, player.getInventory(), holder,
                 page.getPageWidth(), page.getPageHeight()));
     }
 
-    FancyUIProvider createPage(Player player, MachineUIHolder holder) {
+    IFancyUIProvider createPage(Player player, MachineUIHolder holder) {
         return new MEPatternBufferFancyPage(player, holder);
     }
 
     @Override
-    public FancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
+    public IFancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
         return createPage(player, holder);
     }
 
@@ -351,20 +351,20 @@ public class MEPatternBufferPartMachine extends MEBusPartMachine
     /**
      * Owns one menu opening's page-local state, holder, actions, and directional subpage.
      */
-    private final class MEPatternBufferFancyPage implements FancyUIProvider {
+    private final class MEPatternBufferFancyPage implements IFancyUIProvider {
 
         private final Player player;
         private final MachineUIHolder holder;
-        private final DirectionalConfigurator directionalPage;
+        private final CombinedDirectionalFancyConfigurator directionalPage;
 
         private MEPatternBufferFancyPage(Player player, MachineUIHolder holder) {
             this.player = player;
             this.holder = holder;
-            directionalPage = new DirectionalConfigurator(MEPatternBufferPartMachine.this, player, holder);
+            directionalPage = new CombinedDirectionalFancyConfigurator(MEPatternBufferPartMachine.this, player, holder);
         }
 
         @Override
-        public UIElement createMainPage(FancyMachineUI shell) {
+        public UIElement createUIWidget(FancyMachineUIWidget shell) {
             return new MEPatternBufferPageElement(MEPatternBufferPartMachine.this, player.level(), holder);
         }
 
@@ -389,7 +389,7 @@ public class MEPatternBufferPartMachine extends MEBusPartMachine
         }
 
         @Override
-        public void attachSideTabs(FancyTabs tabs) {
+        public void attachSideTabs(TabsWidget tabs) {
             tabs.attachSubTab(directionalPage);
         }
 
@@ -402,15 +402,15 @@ public class MEPatternBufferPartMachine extends MEBusPartMachine
                         }
                     }).setTooltips(List.of(Component.translatable("gui.gtpm.refund_all.desc"))));
             if (isHasCircuitSlot() && isCircuitSlotEnabled()) {
-                configuratorPanel.attachConfigurators(new CircuitConfigurator(
+                configuratorPanel.attachConfigurators(new CircuitFancyConfigurator(
                         MEPatternBufferPartMachine.this, holder));
             }
-            configuratorPanel.attachConfigurators(new InventoryConfigurator(
+            configuratorPanel.attachConfigurators(new FancyInvConfigurator(
                     shareInventory.storage, Component.translatable("gui.gtpm.share_inventory.title"), () -> true)
                     .setTooltips(List.of(
                             Component.translatable("gui.gtpm.share_inventory.desc.0"),
                             Component.translatable("gui.gtpm.share_inventory.desc.1"))));
-            configuratorPanel.attachConfigurators(new TankConfigurator(
+            configuratorPanel.attachConfigurators(new FancyTankConfigurator(
                     shareTank.getStorages(), Component.translatable("gui.gtpm.share_tank.title"))
                     .setTankClickHandler((tankIndex, event) -> {
                         if (!player.level().isClientSide() ||
@@ -426,7 +426,7 @@ public class MEPatternBufferPartMachine extends MEBusPartMachine
         }
 
         @Override
-        public void attachTooltips(FancyTooltipsPanel tooltipsPanel) {
+        public void attachTooltips(TooltipsPanel tooltipsPanel) {
             tooltipsPanel.attachTooltips(MEPatternBufferPartMachine.this);
             getTraitHolder().getAllTraits().stream()
                     .filter(IFancyTooltip.class::isInstance)

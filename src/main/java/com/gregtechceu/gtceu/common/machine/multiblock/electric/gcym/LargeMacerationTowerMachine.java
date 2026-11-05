@@ -10,20 +10,20 @@ import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolderContext;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIProvider;
 import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUI;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyTabs;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyTooltipsPanel;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
+import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.TabsWidget;
+import com.gregtechceu.gtceu.api.gui.fancy.TooltipsPanel;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.ConditionalSubscriptionHandler;
 import com.gregtechceu.gtceu.api.machine.TickableSubscription;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.BatchModeConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.DirectionalConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CombinedDirectionalFancyConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.VoidingModeConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
 import com.gregtechceu.gtceu.api.machine.feature.FancyActionMachine;
+import com.gregtechceu.gtceu.api.machine.feature.IUIMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMaintenanceMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMultiPart;
@@ -54,7 +54,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class LargeMacerationTowerMachine extends WorkableElectricMultiblockMachine
-                                         implements MachineUIProvider, FancyActionMachine {
+                                         implements IUIMachine, FancyActionMachine {
 
     @NotNull
     private AABB grindBound = new AABB(BlockPos.ZERO);
@@ -205,7 +205,7 @@ public class LargeMacerationTowerMachine extends WorkableElectricMultiblockMachi
     public UI createUI(Player player, MachineUIHolder holder) {
         requireMatchingHolder(holder);
         LargeMacerationTowerFancyPage page = new LargeMacerationTowerFancyPage(player, holder);
-        return UI.of(new FancyMachineUI(page, player.getInventory(), holder,
+        return UI.of(new FancyMachineUIWidget(page, player.getInventory(), holder,
                 page.getPageWidth(), page.getPageHeight()));
     }
 
@@ -216,22 +216,22 @@ public class LargeMacerationTowerMachine extends WorkableElectricMultiblockMachi
     }
 
     /** Owns the opening-scoped controller, directional, and contextual part pages. */
-    private final class LargeMacerationTowerFancyPage implements FancyUIProvider {
+    private final class LargeMacerationTowerFancyPage implements IFancyUIProvider {
 
         private static final int PAGE_WIDTH = 190;
         private static final int PAGE_HEIGHT = 125;
 
         private final MachineUIHolder holder;
-        private final DirectionalConfigurator directionalPage;
-        private final List<FancyUIProvider> partPages;
+        private final CombinedDirectionalFancyConfigurator directionalPage;
+        private final List<IFancyUIProvider> partPages;
 
         private LargeMacerationTowerFancyPage(Player player, MachineUIHolder holder) {
             requireMatchingHolder(holder);
             this.holder = holder;
-            this.directionalPage = new DirectionalConfigurator(LargeMacerationTowerMachine.this,
+            this.directionalPage = new CombinedDirectionalFancyConfigurator(LargeMacerationTowerMachine.this,
                     player, holder);
 
-            List<FancyUIProvider> pages = new ArrayList<>();
+            List<IFancyUIProvider> pages = new ArrayList<>();
             for (IMultiPart part : getParts()) {
                 if (!(part instanceof FancyPartUIProvider pageProvider)) {
                     throw new IllegalStateException("Large Maceration Tower part has no LDLib2 Fancy page: " +
@@ -244,7 +244,7 @@ public class LargeMacerationTowerMachine extends WorkableElectricMultiblockMachi
         }
 
         @Override
-        public UIElement createMainPage(FancyMachineUI shell) {
+        public UIElement createUIWidget(FancyMachineUIWidget shell) {
             if (holder.getMachine() != LargeMacerationTowerMachine.this) {
                 throw new IllegalStateException(
                         "Large Maceration Tower page holder no longer resolves its controller.");
@@ -300,7 +300,7 @@ public class LargeMacerationTowerMachine extends WorkableElectricMultiblockMachi
         }
 
         @Override
-        public void attachSideTabs(FancyTabs tabs) {
+        public void attachSideTabs(TabsWidget tabs) {
             tabs.attachSubTab(directionalPage);
         }
 
@@ -315,7 +315,7 @@ public class LargeMacerationTowerMachine extends WorkableElectricMultiblockMachi
         }
 
         @Override
-        public void attachTooltips(FancyTooltipsPanel tooltipsPanel) {
+        public void attachTooltips(TooltipsPanel tooltipsPanel) {
             for (IMultiPart part : getParts()) {
                 if (part instanceof IMaintenanceMachine maintenanceMachine) {
                     maintenanceMachine.attachMaintenanceTooltips(tooltipsPanel);
@@ -324,7 +324,7 @@ public class LargeMacerationTowerMachine extends WorkableElectricMultiblockMachi
         }
 
         @Override
-        public List<FancyUIProvider> getSubTabs() {
+        public List<IFancyUIProvider> getSubTabs() {
             return partPages;
         }
 

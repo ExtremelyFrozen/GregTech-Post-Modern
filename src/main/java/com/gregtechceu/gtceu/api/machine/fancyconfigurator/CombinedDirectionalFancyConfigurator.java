@@ -10,8 +10,8 @@ import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTToggleButtonElement;
 import com.gregtechceu.gtceu.api.gui.factory.CoverUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUI;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
+import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.MachineCoverContainer;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
@@ -48,7 +48,7 @@ import java.util.function.Consumer;
  * The provider owns its page-specific machine holder so direct machine pages and future nested part pages cannot
  * accidentally send actions through the Fancy shell's root holder.
  */
-public final class DirectionalConfigurator implements FancyUIProvider {
+public final class CombinedDirectionalFancyConfigurator implements IFancyUIProvider {
 
     public static final int PAGE_WIDTH = 168;
     public static final int PAGE_HEIGHT = 80;
@@ -142,13 +142,13 @@ public final class DirectionalConfigurator implements FancyUIProvider {
      * @param player     player whose cursor and cover permissions drive the page controls
      * @param pageHolder stable holder used for every machine action sent by the page
      */
-    public DirectionalConfigurator(MetaMachine machine, Player player, MachineUIHolder pageHolder) {
+    public CombinedDirectionalFancyConfigurator(MetaMachine machine, Player player, MachineUIHolder pageHolder) {
         this(machine, player, pageHolder, (target, action) -> action.accept(target.getMachine()),
                 () -> pageHolder.getMachine() == machine, DIRECT_COVER_ACTIONS);
     }
 
-    DirectionalConfigurator(MetaMachine machine, Player player, MachineUIHolder pageHolder,
-                            BiConsumer<MachineUIHolder, Consumer<ISyncManaged>> actionSender) {
+    CombinedDirectionalFancyConfigurator(MetaMachine machine, Player player, MachineUIHolder pageHolder,
+                                         BiConsumer<MachineUIHolder, Consumer<ISyncManaged>> actionSender) {
         this(machine, player, pageHolder, actionSender,
                 () -> pageHolder.getMachine() == machine, DIRECT_COVER_ACTIONS);
     }
@@ -156,10 +156,10 @@ public final class DirectionalConfigurator implements FancyUIProvider {
     /**
      * Creates a directional page whose holder validity and cover actions belong to a caller-owned opening.
      */
-    public DirectionalConfigurator(MetaMachine machine, Player player, MachineUIHolder pageHolder,
-                                   BiConsumer<MachineUIHolder, Consumer<ISyncManaged>> actionSender,
-                                   BooleanSupplier openingValid,
-                                   CoverActionRequests coverActionRequests) {
+    public CombinedDirectionalFancyConfigurator(MetaMachine machine, Player player, MachineUIHolder pageHolder,
+                                                BiConsumer<MachineUIHolder, Consumer<ISyncManaged>> actionSender,
+                                                BooleanSupplier openingValid,
+                                                CoverActionRequests coverActionRequests) {
         requireValidOpening(openingValid);
         this.machine = machine;
         this.player = player;
@@ -187,7 +187,7 @@ public final class DirectionalConfigurator implements FancyUIProvider {
     }
 
     @Override
-    public UIElement createMainPage(FancyMachineUI shell) {
+    public UIElement createUIWidget(FancyMachineUIWidget shell) {
         if (!openingValid.getAsBoolean()) {
             throw new IllegalStateException("Directional page no longer resolves its opened machine context.");
         }
@@ -451,7 +451,7 @@ public final class DirectionalConfigurator implements FancyUIProvider {
 
         private ItemOutputModeButton() {
             super(0, 0, CONTROL_SIZE, CONTROL_SIZE, ITEM_MODE_OFF,
-                    DirectionalConfigurator.this::onItemOutputModeClick);
+                    CombinedDirectionalFancyConfigurator.this::onItemOutputModeClick);
             noText();
             refreshState();
         }
@@ -473,7 +473,7 @@ public final class DirectionalConfigurator implements FancyUIProvider {
 
         private FluidOutputModeButton() {
             super(0, 0, CONTROL_SIZE, CONTROL_SIZE, FLUID_MODE_OFF,
-                    DirectionalConfigurator.this::onFluidOutputModeClick);
+                    CombinedDirectionalFancyConfigurator.this::onFluidOutputModeClick);
             noText();
             refreshState();
         }
@@ -542,7 +542,7 @@ public final class DirectionalConfigurator implements FancyUIProvider {
 
         private CoverConfigButton() {
             super(0, 0, CONTROL_SIZE, CONTROL_SIZE, COVER_CONFIG_TEXTURE,
-                    DirectionalConfigurator.this::onCoverConfigClick);
+                    CombinedDirectionalFancyConfigurator.this::onCoverConfigClick);
             noText();
             refreshState();
         }
@@ -568,7 +568,7 @@ public final class DirectionalConfigurator implements FancyUIProvider {
             setCanPutItems(false);
             setCanTakeItems(false);
             setBackgroundTexture(GuiTextures.group(GuiTextures.SLOT, GuiTextures.IO_CONFIG_COVER_SLOT_OVERLAY));
-            addEventListener(UIEvents.MOUSE_DOWN, DirectionalConfigurator.this::onCoverSlotClick);
+            addEventListener(UIEvents.MOUSE_DOWN, CombinedDirectionalFancyConfigurator.this::onCoverSlotClick);
             refreshState();
         }
 

@@ -1,7 +1,7 @@
 package com.gregtechceu.gtceu.api.machine.feature.multiblock;
 
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
 import com.gregtechceu.gtceu.api.machine.feature.FancyActionMachine;
 import com.gregtechceu.gtceu.api.machine.feature.IMachineFeature;
 
@@ -12,7 +12,7 @@ import net.minecraft.world.entity.player.Player;
  *
  * <p>
  * This contract stays separate from the legacy part UI provider interfaces because their page-list return types are
- * not compatible with {@link FancyUIProvider}. It also opts each implementation into the holder-validated
+ * not compatible with {@link IFancyUIProvider}. It also opts each implementation into the holder-validated
  * Fancy action handlers required by working and cover controls.
  */
 public interface FancyPartUIProvider extends IMachineFeature, FancyActionMachine {
@@ -24,5 +24,5 @@ public interface FancyPartUIProvider extends IMachineFeature, FancyActionMachine
      * @param holder holder that must resolve this part rather than the surrounding controller
      * @return a new stable page provider owned by this menu opening
      */
-    FancyUIProvider createFancyPage(Player player, MachineUIHolder holder);
+    IFancyUIProvider createFancyPage(Player player, MachineUIHolder holder);
 }

@@ -1,6 +1,6 @@
 package com.gregtechceu.gtceu.api.machine.fancyconfigurator;
 
-import com.gregtechceu.gtceu.api.gui.fancy.FancyConfiguratorButton;
+import com.gregtechceu.gtceu.api.gui.fancy.IFancyConfiguratorButton;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
@@ -17,7 +17,7 @@ import java.util.function.Consumer;
  * <p>
  * Callers that mutate business state must dispatch a GTM action packet from the click handler.
  */
-public class ButtonConfigurator implements FancyConfiguratorButton {
+public class ButtonConfigurator implements IFancyConfiguratorButton {
 
     private final IGuiTexture icon;
     private final Consumer<UIEvent> onClick;

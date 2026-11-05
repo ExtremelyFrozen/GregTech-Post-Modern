@@ -1,6 +1,6 @@
 package com.gregtechceu.gtceu.api.machine.feature;
 
-import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUI;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyPreviewPage;
 
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
@@ -9,10 +9,10 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
  * Supplies the LDLib2 default preview page for Fancy machines without a dedicated page body.
  *
  * <p>
- * This opt-in contract mirrors the legacy fallback preview while keeping {@link FancyUIMachine} explicit:
+ * This opt-in contract mirrors the legacy fallback preview while keeping {@link IFancyUIMachine} explicit:
  * concrete machines must choose this fallback instead of silently receiving a placeholder page.
  */
-public interface PreviewFancyUIMachine extends FancyUIMachine {
+public interface PreviewFancyUIMachine extends IFancyUIMachine {
 
     /**
      * Width of the legacy fallback preview content.
@@ -31,7 +31,7 @@ public interface PreviewFancyUIMachine extends FancyUIMachine {
      * @return page root containing a client-side LDLib2 scene when the machine is remote.
      */
     @Override
-    default UIElement createMainPage(FancyMachineUI shell) {
+    default UIElement createUIWidget(FancyMachineUIWidget shell) {
         return FancyPreviewPage.createPreviewElement(self());
     }
 

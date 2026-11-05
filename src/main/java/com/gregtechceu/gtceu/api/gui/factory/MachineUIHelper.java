@@ -1,6 +1,7 @@
 package com.gregtechceu.gtceu.api.gui.factory;
 
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
+import com.gregtechceu.gtceu.api.machine.feature.IUIMachine;
 
 import net.minecraft.server.level.ServerPlayer;
 
@@ -17,6 +18,6 @@ public final class MachineUIHelper {
      * @return {@code true} when the machine provider accepted and opened the menu.
      */
     public static boolean open(MetaMachine machine, ServerPlayer player) {
-        return machine instanceof MachineUIProvider provider && provider.openUI(machine, player);
+        return machine instanceof IUIMachine provider && provider.openUI(machine, player);
     }
 }

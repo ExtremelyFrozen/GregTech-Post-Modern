@@ -2,7 +2,7 @@ package com.gregtechceu.gtceu.api.machine.fancyconfigurator;
 
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyConfiguratorButton;
+import com.gregtechceu.gtceu.api.gui.fancy.IFancyConfiguratorButton;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.feature.AutoOutputMachine;
 
@@ -39,9 +39,9 @@ public final class AutoOutputConfigurator {
         }
     }
 
-    static FancyConfiguratorButton.Toggle createAutoOutputFluidConfigurator(
-                                                                            ConfiguratorPanel panel,
-                                                                            AutoOutputMachine autoOutputMachine) {
+    static IFancyConfiguratorButton.Toggle createAutoOutputFluidConfigurator(
+                                                                             ConfiguratorPanel panel,
+                                                                             AutoOutputMachine autoOutputMachine) {
         return createAutoOutputConfigurator(
                 GuiTextures.group(
                         GuiTextures.TOGGLE_BUTTON_BACK.getSubTexture(0, 0, 1, 0.5),
@@ -62,9 +62,9 @@ public final class AutoOutputConfigurator {
                 });
     }
 
-    static FancyConfiguratorButton.Toggle createAutoOutputItemConfigurator(
-                                                                           ConfiguratorPanel panel,
-                                                                           AutoOutputMachine autoOutputMachine) {
+    static IFancyConfiguratorButton.Toggle createAutoOutputItemConfigurator(
+                                                                            ConfiguratorPanel panel,
+                                                                            AutoOutputMachine autoOutputMachine) {
         return createAutoOutputConfigurator(
                 GuiTextures.group(
                         GuiTextures.TOGGLE_BUTTON_BACK.getSubTexture(0, 0, 1, 0.5),
@@ -85,13 +85,13 @@ public final class AutoOutputConfigurator {
                 });
     }
 
-    private static FancyConfiguratorButton.Toggle createAutoOutputConfigurator(
-                                                                               IGuiTexture disabledIcon,
-                                                                               IGuiTexture enabledIcon,
-                                                                               BooleanSupplier stateSupplier,
-                                                                               String tooltipBaseLangKey,
-                                                                               BiConsumer<UIEvent, Boolean> clickHandler) {
-        return new FancyConfiguratorButton.Toggle(disabledIcon, enabledIcon, stateSupplier, clickHandler)
+    private static IFancyConfiguratorButton.Toggle createAutoOutputConfigurator(
+                                                                                IGuiTexture disabledIcon,
+                                                                                IGuiTexture enabledIcon,
+                                                                                BooleanSupplier stateSupplier,
+                                                                                String tooltipBaseLangKey,
+                                                                                BiConsumer<UIEvent, Boolean> clickHandler) {
+        return new IFancyConfiguratorButton.Toggle(disabledIcon, enabledIcon, stateSupplier, clickHandler)
                 .setTooltipsSupplier(enabled -> List.of(Component.translatable(
                         tooltipBaseLangKey + "." + (enabled ? "enabled" : "disabled"))));
     }

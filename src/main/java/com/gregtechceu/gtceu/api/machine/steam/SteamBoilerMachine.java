@@ -10,10 +10,10 @@ import com.gregtechceu.gtceu.api.gui.element.GTImageElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTProgressBarElement;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIProvider;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.api.machine.TickableSubscription;
 import com.gregtechceu.gtceu.api.machine.feature.IDataInfoProvider;
+import com.gregtechceu.gtceu.api.machine.feature.IUIMachine;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableFluidTank;
 import com.gregtechceu.gtceu.api.machine.trait.RecipeLogic;
 import com.gregtechceu.gtceu.api.recipe.GTRecipe;
@@ -67,7 +67,7 @@ import java.util.Collections;
 import java.util.List;
 
 public abstract class SteamBoilerMachine extends SteamWorkableMachine
-                                         implements MachineUIProvider, IDataInfoProvider {
+                                         implements IUIMachine, IDataInfoProvider {
 
     protected static final int WATER_FLUID_SLOT = 0;
     protected static final int STEAM_FLUID_SLOT = 1;

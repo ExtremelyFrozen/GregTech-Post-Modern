@@ -8,10 +8,10 @@ import com.gregtechceu.gtceu.api.capability.recipe.IO;
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUI;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
 import com.gregtechceu.gtceu.api.machine.TickableSubscription;
 import com.gregtechceu.gtceu.api.machine.TieredEnergyMachine;
-import com.gregtechceu.gtceu.api.machine.feature.FancyUIMachine;
+import com.gregtechceu.gtceu.api.machine.feature.IFancyUIMachine;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
@@ -41,7 +41,7 @@ import java.util.List;
  * @implNote BlockBreakerMachine
  */
 public class BlockBreakerMachine extends TieredEnergyMachine
-                                 implements FancyUIMachine, IControllable {
+                                 implements IFancyUIMachine, IControllable {
 
     private static final int SLOT_SIZE = 18;
     private static final int TEMPLATE_PADDING = 8;
@@ -275,7 +275,7 @@ public class BlockBreakerMachine extends TieredEnergyMachine
     // ********** GUI ***********//
     //////////////////////////////////////
     @Override
-    public UIElement createMainPage(FancyMachineUI shell) {
+    public UIElement createUIWidget(FancyMachineUIWidget shell) {
         UIElement root = UITemplate.setBounds(new UIElement(), 0, 0,
                 getPageWidth(), getPageHeight());
 

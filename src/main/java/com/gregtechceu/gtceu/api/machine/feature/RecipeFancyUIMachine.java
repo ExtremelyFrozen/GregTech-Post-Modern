@@ -8,7 +8,7 @@ import com.gregtechceu.gtceu.api.capability.recipe.ItemRecipeCapability;
 import com.gregtechceu.gtceu.api.capability.recipe.RecipeCapability;
 import com.gregtechceu.gtceu.api.gui.editor.EditableMachineUI;
 import com.gregtechceu.gtceu.api.gui.editor.EditableMachineUI.MachineUISize;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUI;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
 import com.gregtechceu.gtceu.api.machine.WorkableTieredMachine;
 import com.gregtechceu.gtceu.api.recipe.ui.GTRecipeTypeUI.RecipeHolder;
 
@@ -28,7 +28,7 @@ import java.util.LinkedHashMap;
 /**
  * Loads and binds editable LDLib2 XML pages for tiered recipe machines.
  */
-public interface RecipeFancyUIMachine extends FancyUIMachine {
+public interface RecipeFancyUIMachine extends IFancyUIMachine {
 
     /**
      * Loads the active machine XML and binds it to the concrete recipe machine.
@@ -37,7 +37,7 @@ public interface RecipeFancyUIMachine extends FancyUIMachine {
      * @return parsed and bound machine XML root.
      */
     @Override
-    default UIElement createMainPage(FancyMachineUI shell) {
+    default UIElement createUIWidget(FancyMachineUIWidget shell) {
         WorkableTieredMachine machine = getRecipeMachine();
         return getMachineUITemplate(machine)
                 .createUI(getMachineUIResourceManager(machine), machine).rootElement;

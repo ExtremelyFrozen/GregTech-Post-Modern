@@ -2,6 +2,7 @@ package com.gregtechceu.gtceu.api.gui.factory;
 
 import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
+import com.gregtechceu.gtceu.api.machine.feature.IUIMachine;
 
 import com.lowdragmc.lowdraglib2.gui.factory.IContainerUIHolder;
 import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerMenu;
@@ -177,7 +178,7 @@ public final class DynamicItemSlotMachineUIHolder implements MachineUIHolder, Me
             throw new IllegalStateException("Dynamic item-slot opening data belongs to another menu.");
         }
         buffer.writeBlockPos(pos);
-        MachineUIProvider.BLOCK_STATE_CODEC.encode(buffer, openedMachine.getBlockState());
+        IUIMachine.BLOCK_STATE_CODEC.encode(buffer, openedMachine.getBlockState());
         buffer.writeResourceLocation(machineDefinitionId);
         buffer.writeUUID(menuSessionId);
     }

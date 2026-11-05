@@ -10,10 +10,10 @@ import com.gregtechceu.gtceu.api.capability.compat.FeCompat;
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUI;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.TieredEnergyMachine;
-import com.gregtechceu.gtceu.api.machine.feature.FancyUIMachine;
+import com.gregtechceu.gtceu.api.machine.feature.IFancyUIMachine;
 import com.gregtechceu.gtceu.api.machine.property.GTMachineModelProperties;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableEnergyContainer;
 import com.gregtechceu.gtceu.api.sync_system.annotations.RerenderOnChanged;
@@ -38,7 +38,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class BatteryBufferMachine extends TieredEnergyMachine
-                                  implements IControllable, FancyUIMachine, IMonitorComponent {
+                                  implements IControllable, IFancyUIMachine, IMonitorComponent {
 
     public static final long AMPS_PER_BATTERY_NORMAL = 2L;
     public static final long AMPS_PER_BATTERY_CHARGER = 4L;
@@ -128,7 +128,7 @@ public class BatteryBufferMachine extends TieredEnergyMachine
     //////////////////////////////////////
 
     @Override
-    public UIElement createMainPage(FancyMachineUI shell) {
+    public UIElement createUIWidget(FancyMachineUIWidget shell) {
         UIElement root = UITemplate.setBounds(new UIElement(), 0, 0,
                 getPageWidth(), getPageHeight());
 

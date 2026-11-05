@@ -2,14 +2,14 @@ package com.gregtechceu.gtceu.integration.ae2.gui.fancy;
 
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyConfiguratorButton;
+import com.gregtechceu.gtceu.api.gui.fancy.IFancyConfiguratorButton;
 import com.gregtechceu.gtceu.integration.ae2.machine.MEStockingHatchPartMachine;
 
 import net.minecraft.network.chat.Component;
 
 import java.util.List;
 
-public final class MEFluidAutoPullConfigurator extends FancyConfiguratorButton.Toggle {
+public final class MEFluidAutoPullConfigurator extends IFancyConfiguratorButton.Toggle {
 
     public MEFluidAutoPullConfigurator(MEStockingHatchPartMachine machine, MachineUIHolder holder) {
         super(GuiTextures.BUTTON_AUTO_PULL.getSubTexture(0, 0, 1, 0.5),

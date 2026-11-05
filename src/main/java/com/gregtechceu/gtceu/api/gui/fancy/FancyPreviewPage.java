@@ -7,7 +7,7 @@ import com.gregtechceu.gtceu.api.gui.element.GTImageElement;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.DirectionalConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CombinedDirectionalFancyConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
 import com.gregtechceu.gtceu.api.machine.feature.FancyActionMachine;
 import com.gregtechceu.gtceu.client.gui.fancy.PreviewScene;
@@ -31,15 +31,15 @@ import java.util.function.Consumer;
  * The page captures its own validated holder so contextual multiblock part actions cannot accidentally use the
  * controller holder owned by the surrounding Fancy shell.
  */
-public final class FancyPreviewPage implements FancyUIProvider {
+public final class FancyPreviewPage implements IFancyUIProvider {
 
     public static final int PREVIEW_PAGE_WIDTH = 100;
     public static final int PREVIEW_PAGE_HEIGHT = 100;
 
     private final MetaMachine machine;
     private final MachineUIHolder holder;
-    private final DirectionalConfigurator directionalPage;
-    private final Consumer<FancyTooltipsPanel> tooltipAttacher;
+    private final CombinedDirectionalFancyConfigurator directionalPage;
+    private final Consumer<TooltipsPanel> tooltipAttacher;
     @Nullable
     private final PageGroupingData groupingData;
 
@@ -72,7 +72,7 @@ public final class FancyPreviewPage implements FancyUIProvider {
      */
     public FancyPreviewPage(MetaMachine machine, Player player, MachineUIHolder holder,
                             @Nullable PageGroupingData groupingData,
-                            Consumer<FancyTooltipsPanel> tooltipAttacher) {
+                            Consumer<TooltipsPanel> tooltipAttacher) {
         requireMatchingHolder(machine, holder);
         if (!(machine instanceof FancyActionMachine)) {
             throw new IllegalArgumentException("Preview Fancy page machine must opt into LDLib2 Fancy actions.");
@@ -81,11 +81,11 @@ public final class FancyPreviewPage implements FancyUIProvider {
         this.holder = holder;
         this.groupingData = groupingData;
         this.tooltipAttacher = tooltipAttacher;
-        this.directionalPage = new DirectionalConfigurator(machine, player, holder);
+        this.directionalPage = new CombinedDirectionalFancyConfigurator(machine, player, holder);
     }
 
     @Override
-    public UIElement createMainPage(FancyMachineUI shell) {
+    public UIElement createUIWidget(FancyMachineUIWidget shell) {
         if (holder.getMachine() != machine) {
             throw new IllegalStateException("Preview Fancy page holder no longer resolves its opened machine.");
         }
@@ -128,7 +128,7 @@ public final class FancyPreviewPage implements FancyUIProvider {
     }
 
     @Override
-    public void attachSideTabs(FancyTabs tabs) {
+    public void attachSideTabs(TabsWidget tabs) {
         tabs.attachSubTab(directionalPage);
     }
 
@@ -140,7 +140,7 @@ public final class FancyPreviewPage implements FancyUIProvider {
     }
 
     @Override
-    public void attachTooltips(FancyTooltipsPanel tooltipsPanel) {
+    public void attachTooltips(TooltipsPanel tooltipsPanel) {
         tooltipAttacher.accept(tooltipsPanel);
     }
 
@@ -161,7 +161,7 @@ public final class FancyPreviewPage implements FancyUIProvider {
         }
     }
 
-    private static Consumer<FancyTooltipsPanel> createDefaultTooltipAttacher(MetaMachine machine) {
+    private static Consumer<TooltipsPanel> createDefaultTooltipAttacher(MetaMachine machine) {
         return tooltipsPanel -> {
             tooltipsPanel.attachTooltips(machine);
             machine.getTraitHolder().getAllTraits().stream()

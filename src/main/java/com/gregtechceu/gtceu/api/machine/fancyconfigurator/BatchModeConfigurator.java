@@ -2,7 +2,7 @@ package com.gregtechceu.gtceu.api.machine.fancyconfigurator;
 
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyConfiguratorButton;
+import com.gregtechceu.gtceu.api.gui.fancy.IFancyConfiguratorButton;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.BatchModeMachine;
 
 import net.minecraft.network.chat.Component;
@@ -31,10 +31,10 @@ public final class BatchModeConfigurator {
         configuratorPanel.attachConfigurators(createBatchModeConfigurator(configuratorPanel, machine));
     }
 
-    static FancyConfiguratorButton.Toggle createBatchModeConfigurator(
-                                                                      ConfiguratorPanel configuratorPanel,
-                                                                      BatchModeMachine machine) {
-        return new FancyConfiguratorButton.Toggle(
+    static IFancyConfiguratorButton.Toggle createBatchModeConfigurator(
+                                                                       ConfiguratorPanel configuratorPanel,
+                                                                       BatchModeMachine machine) {
+        return new IFancyConfiguratorButton.Toggle(
                 GuiTextures.BUTTON_BATCH.getSubTexture(0, 0, 1, 0.5),
                 GuiTextures.BUTTON_BATCH.getSubTexture(0, 0.5, 1, 0.5),
                 machine::isBatchEnabled,

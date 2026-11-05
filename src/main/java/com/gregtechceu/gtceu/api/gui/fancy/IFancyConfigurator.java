@@ -15,7 +15,7 @@ import java.util.List;
  * The configurator owns only UI construction and metadata. Field persistence and business actions must be wired
  * through GTM sync fields or GTM action packets by concrete callers.
  */
-public interface FancyConfigurator {
+public interface IFancyConfigurator {
 
     /**
      * Returns the title shown in the expanded configurator header.

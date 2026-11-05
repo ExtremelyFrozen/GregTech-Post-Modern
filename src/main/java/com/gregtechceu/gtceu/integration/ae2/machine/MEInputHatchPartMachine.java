@@ -10,15 +10,15 @@ import com.gregtechceu.gtceu.api.gui.element.GTIntInputElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUI;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyTabs;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyTooltipsPanel;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyTooltip;
+import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.TabsWidget;
+import com.gregtechceu.gtceu.api.gui.fancy.TooltipsPanel;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.AutoStockingConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CircuitConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.DirectionalConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CircuitFancyConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CombinedDirectionalFancyConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
 import com.gregtechceu.gtceu.api.machine.feature.FancyActionMachine;
 import com.gregtechceu.gtceu.api.machine.feature.IDataStickInteractable;
@@ -171,18 +171,18 @@ public class MEInputHatchPartMachine extends MEHatchPartMachine
 
     @Override
     public UI createUI(Player player, MachineUIHolder holder) {
-        FancyUIProvider page = createPage(player, holder);
-        return UI.of(new FancyMachineUI(page, player.getInventory(), holder,
+        IFancyUIProvider page = createPage(player, holder);
+        return UI.of(new FancyMachineUIWidget(page, player.getInventory(), holder,
                 page.getPageWidth(), page.getPageHeight()));
     }
 
     /** Creates one standalone opening-scoped page after validating the exact holder and definition. */
-    FancyUIProvider createPage(Player player, MachineUIHolder holder) {
+    IFancyUIProvider createPage(Player player, MachineUIHolder holder) {
         return new MEFluidHatchFancyPage(player, holder);
     }
 
     @Override
-    public FancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
+    public IFancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
         return createPage(player, holder);
     }
 
@@ -320,22 +320,22 @@ public class MEInputHatchPartMachine extends MEHatchPartMachine
     }
 
     /** One opening-scoped Fancy home page shared by standalone and contextual part navigation. */
-    private final class MEFluidHatchFancyPage implements FancyUIProvider {
+    private final class MEFluidHatchFancyPage implements IFancyUIProvider {
 
         private final Player player;
         private final MachineUIHolder holder;
         @Nullable
-        private final DirectionalConfigurator directionalPage;
+        private final CombinedDirectionalFancyConfigurator directionalPage;
 
         private MEFluidHatchFancyPage(Player player, MachineUIHolder holder) {
             this.player = player;
             this.holder = holder;
             this.directionalPage = isMEFluidStocking() ? null :
-                    new DirectionalConfigurator(MEInputHatchPartMachine.this, player, holder);
+                    new CombinedDirectionalFancyConfigurator(MEInputHatchPartMachine.this, player, holder);
         }
 
         @Override
-        public UIElement createMainPage(FancyMachineUI shell) {
+        public UIElement createUIWidget(FancyMachineUIWidget shell) {
             return new FluidConfig(player);
         }
 
@@ -360,7 +360,7 @@ public class MEInputHatchPartMachine extends MEHatchPartMachine
         }
 
         @Override
-        public void attachSideTabs(FancyTabs tabs) {
+        public void attachSideTabs(TabsWidget tabs) {
             if (directionalPage != null) {
                 tabs.attachSubTab(directionalPage);
             }
@@ -371,7 +371,7 @@ public class MEInputHatchPartMachine extends MEHatchPartMachine
             configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
                     MEInputHatchPartMachine.this, holder));
             if (isCircuitSlotEnabled()) {
-                configuratorPanel.attachConfigurators(new CircuitConfigurator(
+                configuratorPanel.attachConfigurators(new CircuitFancyConfigurator(
                         MEInputHatchPartMachine.this, holder));
             }
             if (MEInputHatchPartMachine.this instanceof MEStockingHatchPartMachine stockingHatch) {
@@ -382,7 +382,7 @@ public class MEInputHatchPartMachine extends MEHatchPartMachine
         }
 
         @Override
-        public void attachTooltips(FancyTooltipsPanel tooltipsPanel) {
+        public void attachTooltips(TooltipsPanel tooltipsPanel) {
             tooltipsPanel.attachTooltips(MEInputHatchPartMachine.this);
             for (var trait : getTraitHolder().getAllTraits()) {
                 if (trait instanceof IFancyTooltip tooltip) {

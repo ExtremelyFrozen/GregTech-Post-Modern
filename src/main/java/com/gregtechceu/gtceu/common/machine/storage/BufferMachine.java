@@ -6,10 +6,10 @@ import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTFluidSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUI;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
 import com.gregtechceu.gtceu.api.machine.TieredMachine;
 import com.gregtechceu.gtceu.api.machine.feature.FancyActionMachine;
-import com.gregtechceu.gtceu.api.machine.feature.FancyUIMachine;
+import com.gregtechceu.gtceu.api.machine.feature.IFancyUIMachine;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableFluidTank;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
@@ -38,7 +38,7 @@ import org.lwjgl.glfw.GLFW;
 
 import java.util.List;
 
-public class BufferMachine extends TieredMachine implements FancyUIMachine, FancyActionMachine {
+public class BufferMachine extends TieredMachine implements IFancyUIMachine, FancyActionMachine {
 
     public static final int TANK_SIZE = 64000;
 
@@ -77,7 +77,7 @@ public class BufferMachine extends TieredMachine implements FancyUIMachine, Fanc
     ////////////////////////////////
 
     @Override
-    public UIElement createMainPage(FancyMachineUI shell) {
+    public UIElement createUIWidget(FancyMachineUIWidget shell) {
         int invTier = getTankSize(tier);
         UIElement root = UITemplate.setBounds(new UIElement(), 0, 0,
                 getPageWidth(), getPageHeight());
@@ -119,7 +119,7 @@ public class BufferMachine extends TieredMachine implements FancyUIMachine, Fanc
         return UITemplate.setBounds(slotElement, x, y, 18, 18);
     }
 
-    private GTFluidSlotElement createFluidSlot(FancyMachineUI shell, int tankIndex, int x, int y) {
+    private GTFluidSlotElement createFluidSlot(FancyMachineUIWidget shell, int tankIndex, int x, int y) {
         GTFluidSlotElement fluidSlot = new GTFluidSlotElement()
                 .setFluidTank(tank.getStorages()[tankIndex], 0)
                 .setShowAmount(true)

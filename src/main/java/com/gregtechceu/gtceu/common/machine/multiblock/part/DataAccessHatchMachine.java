@@ -12,16 +12,16 @@ import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIProvider;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUI;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyTabs;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyTooltipsPanel;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyTooltip;
+import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.TabsWidget;
+import com.gregtechceu.gtceu.api.gui.fancy.TooltipsPanel;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.DirectionalConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CombinedDirectionalFancyConfigurator;
 import com.gregtechceu.gtceu.api.machine.feature.IDataInfoProvider;
 import com.gregtechceu.gtceu.api.machine.feature.IRecipeLogicMachine;
+import com.gregtechceu.gtceu.api.machine.feature.IUIMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.machine.multiblock.part.TieredPartMachine;
@@ -58,7 +58,7 @@ import java.util.List;
 import java.util.Set;
 
 public class DataAccessHatchMachine extends TieredPartMachine
-                                    implements MachineUIProvider, FancyPartUIProvider,
+                                    implements IUIMachine, FancyPartUIProvider,
                                     IDataAccessMachine, IDataInfoProvider, IMonitorComponent {
 
     private final Set<GTRecipeDefinition> recipeDefinitions;
@@ -137,7 +137,7 @@ public class DataAccessHatchMachine extends TieredPartMachine
 
     /** Creates one holder-scoped inventory page for a surrounding multiblock controller. */
     @Override
-    public FancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
+    public IFancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
         if (isCreative) {
             throw new IllegalStateException(
                     "Creative Data Access Hatch is excluded from controller contextual pages.");
@@ -187,20 +187,20 @@ public class DataAccessHatchMachine extends TieredPartMachine
     }
 
     /** Keeps contextual inventory state and actions scoped to one validated menu opening. */
-    private final class DataAccessHatchPage implements FancyUIProvider {
+    private final class DataAccessHatchPage implements IFancyUIProvider {
 
         private final MachineUIHolder holder;
-        private final DirectionalConfigurator directionalPage;
+        private final CombinedDirectionalFancyConfigurator directionalPage;
 
         private DataAccessHatchPage(Player player, MachineUIHolder holder) {
             requireMatchingHolder(holder);
             this.holder = holder;
-            this.directionalPage = new DirectionalConfigurator(
+            this.directionalPage = new CombinedDirectionalFancyConfigurator(
                     DataAccessHatchMachine.this, player, holder);
         }
 
         @Override
-        public UIElement createMainPage(FancyMachineUI shell) {
+        public UIElement createUIWidget(FancyMachineUIWidget shell) {
             if (holder.getMachine() != DataAccessHatchMachine.this) {
                 throw new IllegalStateException(
                         "Data Access Hatch contextual page holder no longer resolves its opened hatch.");
@@ -229,12 +229,12 @@ public class DataAccessHatchMachine extends TieredPartMachine
         }
 
         @Override
-        public void attachSideTabs(FancyTabs tabs) {
+        public void attachSideTabs(TabsWidget tabs) {
             tabs.attachSubTab(directionalPage);
         }
 
         @Override
-        public void attachTooltips(FancyTooltipsPanel tooltipsPanel) {
+        public void attachTooltips(TooltipsPanel tooltipsPanel) {
             tooltipsPanel.attachTooltips(DataAccessHatchMachine.this);
             getTraitHolder().getAllTraits().stream()
                     .filter(IFancyTooltip.class::isInstance)

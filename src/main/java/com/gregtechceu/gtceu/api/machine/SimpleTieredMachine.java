@@ -11,7 +11,7 @@ import com.gregtechceu.gtceu.api.gui.editor.MachineUIXmlTemplates;
 import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
 import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.AutoOutputConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CircuitConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CircuitFancyConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
 import com.gregtechceu.gtceu.api.machine.feature.IHasCircuitSlot;
 import com.gregtechceu.gtceu.api.machine.feature.RecipeFancyUIMachine;
@@ -148,7 +148,7 @@ public class SimpleTieredMachine extends WorkableTieredMachine
                 this, configuratorPanel.getHolder()));
         AutoOutputConfigurator.attachConfigurators(configuratorPanel, autoOutput);
         if (isCircuitSlotEnabled()) {
-            configuratorPanel.attachConfigurators(new CircuitConfigurator(
+            configuratorPanel.attachConfigurators(new CircuitFancyConfigurator(
                     this, configuratorPanel.getHolder()));
         }
     }

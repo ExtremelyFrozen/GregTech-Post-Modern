@@ -24,7 +24,7 @@ import java.util.stream.Stream;
 /**
  * LDLib2 Fancy shell that owns local navigation, title bar, side tabs, configurator panel, and tooltip panel.
  */
-public class FancyMachineUI extends UIElement {
+public class FancyMachineUIWidget extends UIElement {
 
     private static final int MIN_PAGE_WIDTH = 172;
     private static final int MIN_PAGE_HEIGHT = 86;
@@ -33,7 +33,7 @@ public class FancyMachineUI extends UIElement {
     private static final int PLAYER_INVENTORY_FRAME_HEIGHT = 82;
     private static final int DEFAULT_BORDER = 4;
 
-    private final FancyUIProvider mainPage;
+    private final IFancyUIProvider mainPage;
     /**
      * Player whose inventory was captured when this Fancy screen opened.
      */
@@ -41,39 +41,39 @@ public class FancyMachineUI extends UIElement {
     private final Player openingPlayer;
     private final MachineUIHolder holder;
     private final UIElement pageContainer;
-    private final FancyTitleBar titleBar;
-    private final FancyTabs sideTabsElement;
+    private final TitleBarWidget titleBar;
+    private final TabsWidget sideTabsElement;
     private final ConfiguratorPanel configuratorPanel;
-    private final FancyTooltipsPanel tooltipsPanel;
-    private final FancyPageSwitcher pageSwitcher;
+    private final TooltipsPanel tooltipsPanel;
+    private final PageSwitcher pageSwitcher;
     /**
      * Holds side pages that belong to this opened UI context, such as pages that capture its validated holder.
      */
-    private final List<FancyUIProvider> contextualSubTabs;
-    private final Map<FancyUIProvider, UIElement> pageCache = new IdentityHashMap<>();
+    private final List<IFancyUIProvider> contextualSubTabs;
+    private final Map<IFancyUIProvider, UIElement> pageCache = new IdentityHashMap<>();
     private final Deque<NavigationEntry> previousPages = new ArrayDeque<>();
 
     @Nullable
     private final UIElement playerInventory;
     private int border = DEFAULT_BORDER;
-    private FancyUIProvider currentPage;
-    private FancyUIProvider currentHomePage;
-    private List<FancyUIProvider> allPages = List.of();
+    private IFancyUIProvider currentPage;
+    private IFancyUIProvider currentHomePage;
+    private List<IFancyUIProvider> allPages = List.of();
 
-    private record NavigationEntry(FancyUIProvider page, FancyUIProvider homePage,
+    private record NavigationEntry(IFancyUIProvider page, IFancyUIProvider homePage,
                                    Runnable onNavigation) {}
 
-    public FancyMachineUI(FancyUIProvider mainPage, Inventory inventory, MachineUIHolder holder,
-                          int width, int height) {
+    public FancyMachineUIWidget(IFancyUIProvider mainPage, Inventory inventory, MachineUIHolder holder,
+                                int width, int height) {
         this(mainPage, inventory, holder, width, height, List.of());
     }
 
     /**
      * Creates a Fancy shell with side pages scoped to this opened holder rather than shared machine state.
      */
-    public FancyMachineUI(FancyUIProvider mainPage, Inventory inventory, MachineUIHolder holder,
-                          int width, int height,
-                          List<? extends FancyUIProvider> contextualSubTabs) {
+    public FancyMachineUIWidget(IFancyUIProvider mainPage, Inventory inventory, MachineUIHolder holder,
+                                int width, int height,
+                                List<? extends IFancyUIProvider> contextualSubTabs) {
         this.mainPage = mainPage;
         this.openingPlayer = inventory.player;
         this.holder = holder;
@@ -92,11 +92,11 @@ public class FancyMachineUI extends UIElement {
             this.playerInventory = null;
         }
 
-        this.titleBar = new FancyTitleBar(width, event -> navigateBack(), event -> openPageSwitcher());
-        this.sideTabsElement = new FancyTabs(this::navigate, -20, 0, 24, height, true);
-        this.tooltipsPanel = new FancyTooltipsPanel(width + 2, 2);
+        this.titleBar = new TitleBarWidget(width, event -> navigateBack(), event -> openPageSwitcher());
+        this.sideTabsElement = new TabsWidget(this::navigate, -20, 0, 24, height, true);
+        this.tooltipsPanel = new TooltipsPanel(width + 2, 2);
         this.configuratorPanel = new ConfiguratorPanel(holder, -26, height);
-        this.pageSwitcher = new FancyPageSwitcher(this::switchPage);
+        this.pageSwitcher = new PageSwitcher(this::switchPage);
         addChildren(titleBar, sideTabsElement, tooltipsPanel, configuratorPanel);
 
         initializePages();
@@ -113,15 +113,15 @@ public class FancyMachineUI extends UIElement {
         return configuratorPanel;
     }
 
-    public FancyTooltipsPanel getTooltipsPanel() {
+    public TooltipsPanel getTooltipsPanel() {
         return tooltipsPanel;
     }
 
-    public FancyTabs getSideTabsElement() {
+    public TabsWidget getSideTabsElement() {
         return sideTabsElement;
     }
 
-    public FancyMachineUI setBorder(int border) {
+    public FancyMachineUIWidget setBorder(int border) {
         if (border < 0) {
             throw new IllegalArgumentException("border must be non-negative");
         }
@@ -130,11 +130,11 @@ public class FancyMachineUI extends UIElement {
         return this;
     }
 
-    protected void navigate(FancyUIProvider newPage) {
+    protected void navigate(IFancyUIProvider newPage) {
         navigate(newPage, currentHomePage);
     }
 
-    protected void navigate(FancyUIProvider nextPage, FancyUIProvider nextHomePage) {
+    protected void navigate(IFancyUIProvider nextPage, IFancyUIProvider nextHomePage) {
         if (nextPage != mainPage) {
             if (!previousPages.isEmpty() && previousPages.peek().page == nextPage) {
                 previousPages.pop();
@@ -153,7 +153,7 @@ public class FancyMachineUI extends UIElement {
         navigationEntry.onNavigation.run();
     }
 
-    protected void performNavigation(FancyUIProvider nextPage, FancyUIProvider nextHomePage) {
+    protected void performNavigation(IFancyUIProvider nextPage, IFancyUIProvider nextHomePage) {
         if (currentHomePage != nextHomePage) {
             setupSideTabs(nextHomePage);
         }
@@ -186,7 +186,7 @@ public class FancyMachineUI extends UIElement {
         setupFancyUI(pageSwitcher);
     }
 
-    protected void switchPage(FancyUIProvider nextHomePage) {
+    protected void switchPage(IFancyUIProvider nextHomePage) {
         currentHomePage = mainPage;
         currentPage = mainPage;
         previousPages.clear();
@@ -196,11 +196,11 @@ public class FancyMachineUI extends UIElement {
         navigate(nextHomePage, nextHomePage);
     }
 
-    protected void setupFancyUI(FancyUIProvider fancyUI) {
+    protected void setupFancyUI(IFancyUIProvider fancyUI) {
         setupFancyUI(fancyUI, fancyUI.hasPlayerInventory());
     }
 
-    protected void setupFancyUI(FancyUIProvider fancyUI, boolean showInventory) {
+    protected void setupFancyUI(IFancyUIProvider fancyUI, boolean showInventory) {
         clearUI();
         sideTabsElement.selectTab(fancyUI);
         titleBar.updateState(fancyUI, !previousPages.isEmpty(),
@@ -254,7 +254,7 @@ public class FancyMachineUI extends UIElement {
 
     protected void initializePages() {
         allPages = Stream.concat(Stream.of(mainPage), mainPage.getSubTabs().stream()).toList();
-        for (FancyUIProvider page : allPages) {
+        for (IFancyUIProvider page : allPages) {
             UIElement createdPage = getOrCreatePage(page);
             createdPage.setVisible(false);
             createdPage.setActive(false);
@@ -262,15 +262,15 @@ public class FancyMachineUI extends UIElement {
         performNavigation(mainPage, mainPage);
     }
 
-    protected UIElement getOrCreatePage(FancyUIProvider fancyUI) {
+    protected UIElement getOrCreatePage(IFancyUIProvider fancyUI) {
         return pageCache.computeIfAbsent(fancyUI, key -> {
-            UIElement createdPage = key.createMainPage(this);
+            UIElement createdPage = key.createUIWidget(this);
             pageContainer.addChild(createdPage);
             return createdPage;
         });
     }
 
-    protected void setupSideTabs(FancyUIProvider homePage) {
+    protected void setupSideTabs(IFancyUIProvider homePage) {
         sideTabsElement.setMainTab(homePage);
         sideTabsElement.clearSubTabs();
         homePage.attachSideTabs(sideTabsElement);

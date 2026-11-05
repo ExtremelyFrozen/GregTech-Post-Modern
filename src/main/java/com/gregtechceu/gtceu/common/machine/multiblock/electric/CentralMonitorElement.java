@@ -14,10 +14,10 @@ import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolderContext;
 import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUI;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyTabs;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyTooltipsPanel;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
+import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.TabsWidget;
+import com.gregtechceu.gtceu.api.gui.fancy.TooltipsPanel;
 import com.gregtechceu.gtceu.api.gui.slot.DynamicItemHandlerRoute;
 import com.gregtechceu.gtceu.api.gui.slot.DynamicItemSlotBinding;
 import com.gregtechceu.gtceu.api.gui.slot.DynamicItemSlotDefinition;
@@ -25,7 +25,7 @@ import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.item.IComponentItem;
 import com.gregtechceu.gtceu.api.item.component.IItemComponent;
 import com.gregtechceu.gtceu.api.item.component.IMonitorModuleItem;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.DirectionalConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CombinedDirectionalFancyConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.VoidingModeConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
@@ -69,7 +69,7 @@ import java.util.function.Supplier;
 /**
  * Owns one Central Monitor LDLib2 opening, including its local selection draft and acknowledged group page.
  */
-final class CentralMonitorElement extends UIElement implements FancyUIProvider {
+final class CentralMonitorElement extends UIElement implements IFancyUIProvider {
 
     static final int PAGE_WIDTH = 344;
     static final int PAGE_HEIGHT = 210;
@@ -88,8 +88,8 @@ final class CentralMonitorElement extends UIElement implements FancyUIProvider {
     private final Consumer<Runnable> actionSender;
     private final Supplier<UUID> groupIdentitySupplier;
     private final GroupPageSelectionRequester pageRequester;
-    private final DirectionalConfigurator directionalPage;
-    private final List<FancyUIProvider> partPages;
+    private final CombinedDirectionalFancyConfigurator directionalPage;
+    private final List<IFancyUIProvider> partPages;
     private final Set<BlockPos> selectedMonitorPositions = new LinkedHashSet<>();
     private final Map<BlockPos, GTButtonElement> componentControls = new LinkedHashMap<>();
     private final Map<UUID, GTButtonElement> groupGearControls = new LinkedHashMap<>();
@@ -141,8 +141,8 @@ final class CentralMonitorElement extends UIElement implements FancyUIProvider {
         this.actionSender = actionSender;
         this.groupIdentitySupplier = groupIdentitySupplier;
         requireOpeningMachine();
-        directionalPage = new DirectionalConfigurator(machine, player, holder);
-        List<FancyUIProvider> pages = new ArrayList<>();
+        directionalPage = new CombinedDirectionalFancyConfigurator(machine, player, holder);
+        List<IFancyUIProvider> pages = new ArrayList<>();
         for (IMultiPart part : machine.getParts()) {
             if (!(part instanceof FancyPartUIProvider pageProvider)) {
                 GTCEu.LOGGER.error("Central Monitor part {} has no LDLib2 Fancy page",
@@ -244,7 +244,7 @@ final class CentralMonitorElement extends UIElement implements FancyUIProvider {
     }
 
     @Override
-    public UIElement createMainPage(FancyMachineUI shell) {
+    public UIElement createUIWidget(FancyMachineUIWidget shell) {
         if (shell.getHolder() != holder || shell.getOpeningPlayer() != player) {
             GTCEu.LOGGER.error("Central Monitor Fancy page was attached to a different opening at {}",
                     machine.getBlockPos());
@@ -279,7 +279,7 @@ final class CentralMonitorElement extends UIElement implements FancyUIProvider {
     }
 
     @Override
-    public void attachSideTabs(FancyTabs tabs) {
+    public void attachSideTabs(TabsWidget tabs) {
         tabs.attachSubTab(directionalPage);
     }
 
@@ -290,7 +290,7 @@ final class CentralMonitorElement extends UIElement implements FancyUIProvider {
     }
 
     @Override
-    public void attachTooltips(FancyTooltipsPanel tooltipsPanel) {
+    public void attachTooltips(TooltipsPanel tooltipsPanel) {
         for (IMultiPart part : machine.getParts()) {
             if (part instanceof IMaintenanceMachine maintenanceMachine) {
                 maintenanceMachine.attachMaintenanceTooltips(tooltipsPanel);
@@ -299,7 +299,7 @@ final class CentralMonitorElement extends UIElement implements FancyUIProvider {
     }
 
     @Override
-    public List<FancyUIProvider> getSubTabs() {
+    public List<IFancyUIProvider> getSubTabs() {
         return partPages;
     }
 

@@ -19,7 +19,7 @@ import java.util.List;
  * local side-tab registration, configurator registration, and tooltip registration outside concrete machine UI
  * implementations so machine pages can migrate one page at a time.
  */
-public interface FancyUIProvider {
+public interface IFancyUIProvider {
 
     /**
      * Builds the LDLib2 element tree for the page content area.
@@ -27,7 +27,7 @@ public interface FancyUIProvider {
      * @param shell shell element that owns navigation, side tabs, configurators, and tooltips.
      * @return page root element sized by {@link #getPageWidth()} and {@link #getPageHeight()}.
      */
-    UIElement createMainPage(FancyMachineUI shell);
+    UIElement createUIWidget(FancyMachineUIWidget shell);
 
     /**
      * Returns the icon rendered in the title bar and tab buttons.
@@ -56,7 +56,7 @@ public interface FancyUIProvider {
     /**
      * Registers local side tabs for this page's home page.
      */
-    default void attachSideTabs(FancyTabs tabs) {}
+    default void attachSideTabs(TabsWidget tabs) {}
 
     /**
      * Registers LDLib2 configurators for this page.
@@ -66,7 +66,7 @@ public interface FancyUIProvider {
     /**
      * Registers right-side tooltip indicators for this page.
      */
-    default void attachTooltips(FancyTooltipsPanel tooltipsPanel) {}
+    default void attachTooltips(TooltipsPanel tooltipsPanel) {}
 
     /**
      * Returns whether the shell should show the player inventory under this page.
@@ -78,7 +78,7 @@ public interface FancyUIProvider {
     /**
      * Returns pages shown in the page switcher and home side-tab list.
      */
-    default List<FancyUIProvider> getSubTabs() {
+    default List<IFancyUIProvider> getSubTabs() {
         return List.of();
     }
 

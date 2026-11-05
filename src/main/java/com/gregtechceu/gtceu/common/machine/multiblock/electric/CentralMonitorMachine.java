@@ -9,7 +9,7 @@ import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.factory.DynamicItemSlotMachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.factory.DynamicItemSlotMachineUIProvider;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUI;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.item.IComponentItem;
 import com.gregtechceu.gtceu.api.item.component.IItemComponent;
@@ -726,7 +726,7 @@ public class CentralMonitorMachine extends WorkableElectricMultiblockMachine
     @Override
     public UI createUI(Player player, MachineUIHolder holder) {
         CentralMonitorElement page = createCentralMonitorElement(player, holder);
-        FancyMachineUI root = new FancyMachineUI(
+        FancyMachineUIWidget root = new FancyMachineUIWidget(
                 page, player.getInventory(), holder, page.getPageWidth(), page.getPageHeight());
         root.addChild(page.sessionElement());
         return UI.of(root);

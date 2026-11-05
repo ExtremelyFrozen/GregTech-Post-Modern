@@ -12,16 +12,16 @@ import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTPhantomFluidSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTToggleButtonElement;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIProvider;
 import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyConfiguratorButton;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUI;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyTooltipsPanel;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
+import com.gregtechceu.gtceu.api.gui.fancy.IFancyConfiguratorButton;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyTooltip;
+import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.TooltipsPanel;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.MachineDefinition;
 import com.gregtechceu.gtceu.api.machine.TieredMachine;
+import com.gregtechceu.gtceu.api.machine.feature.IUIMachine;
 import com.gregtechceu.gtceu.api.machine.trait.MachineTrait;
 import com.gregtechceu.gtceu.api.machine.trait.MachineTraitType;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
@@ -71,7 +71,7 @@ import java.util.List;
 import java.util.function.Predicate;
 
 public class QuantumTankMachine extends TieredMachine implements IControllable,
-                                MachineUIProvider {
+                                IUIMachine {
 
     public static Object2LongMap<MachineDefinition> TANK_CAPACITY = Util.make(new Object2LongArrayMap<>(),
             map -> map.defaultReturnValue(-1L));
@@ -224,7 +224,7 @@ public class QuantumTankMachine extends TieredMachine implements IControllable,
 
     @Override
     public UI createUI(Player player, MachineUIHolder holder) {
-        return UI.of(new FancyMachineUI(new QuantumTankPage(player, holder),
+        return UI.of(new FancyMachineUIWidget(new QuantumTankPage(player, holder),
                 player.getInventory(), holder, PAGE_WIDTH, PAGE_HEIGHT));
     }
 
@@ -327,9 +327,9 @@ public class QuantumTankMachine extends TieredMachine implements IControllable,
         return slot;
     }
 
-    private FancyConfiguratorButton.Toggle createWorkingEnabledConfigurator(Player player,
-                                                                            MachineUIHolder holder) {
-        return new FancyConfiguratorButton.Toggle(
+    private IFancyConfiguratorButton.Toggle createWorkingEnabledConfigurator(Player player,
+                                                                             MachineUIHolder holder) {
+        return new IFancyConfiguratorButton.Toggle(
                 GuiTextures.BUTTON_POWER.getSubTexture(0, 0, 1, 0.5),
                 GuiTextures.BUTTON_POWER.getSubTexture(0, 0.5, 1, 0.5),
                 this::isWorkingEnabled,
@@ -384,7 +384,7 @@ public class QuantumTankMachine extends TieredMachine implements IControllable,
         new FluidClickTarget(cache, true, true).click(player, shiftDown);
     }
 
-    private final class QuantumTankPage implements FancyUIProvider {
+    private final class QuantumTankPage implements IFancyUIProvider {
 
         private final Player player;
         private final MachineUIHolder holder;
@@ -395,7 +395,7 @@ public class QuantumTankMachine extends TieredMachine implements IControllable,
         }
 
         @Override
-        public UIElement createMainPage(FancyMachineUI shell) {
+        public UIElement createUIWidget(FancyMachineUIWidget shell) {
             return QuantumTankMachine.this.createStoragePage(player, holder);
         }
 
@@ -425,7 +425,7 @@ public class QuantumTankMachine extends TieredMachine implements IControllable,
         }
 
         @Override
-        public void attachTooltips(FancyTooltipsPanel tooltipsPanel) {
+        public void attachTooltips(TooltipsPanel tooltipsPanel) {
             tooltipsPanel.attachTooltips(QuantumTankMachine.this);
             getTraitHolder().getAllTraits().stream()
                     .filter(IFancyTooltip.class::isInstance)

@@ -28,20 +28,20 @@ import java.util.function.Supplier;
 /**
  * LDLib2 tab strip used by the Fancy shell for local page navigation.
  */
-public class FancyTabs extends UIElement {
+public class TabsWidget extends UIElement {
 
     private static final int TAB_SIZE = 24;
     private static final int TAB_ICON_SIZE = 16;
 
-    private final Consumer<FancyUIProvider> onTabClick;
+    private final Consumer<IFancyUIProvider> onTabClick;
     private final boolean vertical;
-    private final List<FancyUIProvider> subTabs = new ArrayList<>();
-    private final Map<FancyUIProvider, Map<ResourceLocation, FancyUIProvider>> subTabCache = new IdentityHashMap<>();
+    private final List<IFancyUIProvider> subTabs = new ArrayList<>();
+    private final Map<IFancyUIProvider, Map<ResourceLocation, IFancyUIProvider>> subTabCache = new IdentityHashMap<>();
 
     @Nullable
-    private FancyUIProvider mainTab;
+    private IFancyUIProvider mainTab;
     @Nullable
-    private FancyUIProvider selectedTab;
+    private IFancyUIProvider selectedTab;
 
     private IGuiTexture tabTexture = GuiTextures.resource("gtpm:textures/gui/tab/tabs_top.png")
             .getSubTexture(1 / 3f, 0, 1 / 3f, 0.5f);
@@ -49,8 +49,8 @@ public class FancyTabs extends UIElement {
             .getSubTexture(1 / 3f, 0.5f, 1 / 3f, 0.5f);
     private IGuiTexture tabPressedTexture = tabHoverTexture;
 
-    public FancyTabs(Consumer<FancyUIProvider> onTabClick, int x, int y, int width, int height,
-                     boolean vertical) {
+    public TabsWidget(Consumer<IFancyUIProvider> onTabClick, int x, int y, int width, int height,
+                      boolean vertical) {
         this.onTabClick = onTabClick;
         this.vertical = vertical;
         UITemplate.setBounds(this, x, y, width, height);
@@ -63,25 +63,25 @@ public class FancyTabs extends UIElement {
         }
     }
 
-    public FancyTabs setTabTexture(IGuiTexture tabTexture) {
+    public TabsWidget setTabTexture(IGuiTexture tabTexture) {
         this.tabTexture = tabTexture;
         rebuildTabs();
         return this;
     }
 
-    public FancyTabs setTabHoverTexture(IGuiTexture tabHoverTexture) {
+    public TabsWidget setTabHoverTexture(IGuiTexture tabHoverTexture) {
         this.tabHoverTexture = tabHoverTexture;
         rebuildTabs();
         return this;
     }
 
-    public FancyTabs setTabPressedTexture(IGuiTexture tabPressedTexture) {
+    public TabsWidget setTabPressedTexture(IGuiTexture tabPressedTexture) {
         this.tabPressedTexture = tabPressedTexture;
         rebuildTabs();
         return this;
     }
 
-    public void setMainTab(FancyUIProvider mainTab) {
+    public void setMainTab(IFancyUIProvider mainTab) {
         this.mainTab = mainTab;
         if (this.selectedTab == null) {
             this.selectedTab = mainTab;
@@ -94,7 +94,7 @@ public class FancyTabs extends UIElement {
         rebuildTabs();
     }
 
-    public void attachSubTab(FancyUIProvider subTab) {
+    public void attachSubTab(IFancyUIProvider subTab) {
         subTabs.add(subTab);
         rebuildTabs();
     }
@@ -108,17 +108,17 @@ public class FancyTabs extends UIElement {
      *
      * @return the provider created for this home page and key, or the previously cached instance.
      */
-    public FancyUIProvider attachCachedSubTab(
-                                              ResourceLocation key,
-                                              Supplier<? extends FancyUIProvider> factory) {
-        FancyUIProvider homeTab = mainTab;
+    public IFancyUIProvider attachCachedSubTab(
+                                               ResourceLocation key,
+                                               Supplier<? extends IFancyUIProvider> factory) {
+        IFancyUIProvider homeTab = mainTab;
         if (homeTab == null) {
             throw new IllegalStateException("Cannot cache a Fancy sub-tab before setting the main tab.");
         }
 
-        Map<ResourceLocation, FancyUIProvider> homeCache = subTabCache.computeIfAbsent(homeTab,
+        Map<ResourceLocation, IFancyUIProvider> homeCache = subTabCache.computeIfAbsent(homeTab,
                 ignored -> new HashMap<>());
-        FancyUIProvider subTab = homeCache.get(key);
+        IFancyUIProvider subTab = homeCache.get(key);
         if (subTab == null) {
             subTab = factory.get();
             if (subTab == null) {
@@ -130,7 +130,7 @@ public class FancyTabs extends UIElement {
         return subTab;
     }
 
-    public void selectTab(FancyUIProvider selectedTab) {
+    public void selectTab(IFancyUIProvider selectedTab) {
         this.selectedTab = selectedTab;
         rebuildTabs();
     }
@@ -151,7 +151,7 @@ public class FancyTabs extends UIElement {
         }
     }
 
-    private void addTabButton(FancyUIProvider tab, int index) {
+    private void addTabButton(IFancyUIProvider tab, int index) {
         int x = vertical ? 0 : 8 + index * TAB_SIZE;
         int y = vertical ? 8 + index * TAB_SIZE : 0;
         GTButtonElement button = new GTButtonElement(x, y, TAB_SIZE, TAB_SIZE);
@@ -173,7 +173,7 @@ public class FancyTabs extends UIElement {
         addChild(button);
     }
 
-    private void onTabClicked(FancyUIProvider tab) {
+    private void onTabClicked(IFancyUIProvider tab) {
         if (tab == selectedTab) {
             return;
         }
@@ -182,7 +182,7 @@ public class FancyTabs extends UIElement {
         onTabClick.accept(tab);
     }
 
-    private static void applyTabTooltips(UIEvent event, FancyUIProvider tab) {
+    private static void applyTabTooltips(UIEvent event, IFancyUIProvider tab) {
         List<Component> tooltips = tab.getTabTooltips();
         var tooltipComponent = tab.getTabTooltipComponent();
         if (!tooltips.isEmpty() || tooltipComponent != null) {

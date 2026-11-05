@@ -3,10 +3,10 @@ package com.gregtechceu.gtceu.common.machine.multiblock.part;
 import com.gregtechceu.gtceu.api.GTValues;
 import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIProvider;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUI;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyPreviewPage;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
+import com.gregtechceu.gtceu.api.machine.feature.IUIMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMaintenanceMachine;
 import com.gregtechceu.gtceu.api.machine.multiblock.part.TieredPartMachine;
@@ -16,7 +16,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import net.minecraft.world.entity.player.Player;
 
 public class AutoMaintenanceHatchPartMachine extends TieredPartMachine
-                                             implements IMaintenanceMachine, MachineUIProvider,
+                                             implements IMaintenanceMachine, IUIMachine,
                                              FancyPartUIProvider {
 
     public AutoMaintenanceHatchPartMachine(BlockEntityCreationInfo info) {
@@ -30,13 +30,13 @@ public class AutoMaintenanceHatchPartMachine extends TieredPartMachine
 
     @Override
     public UI createUI(Player player, MachineUIHolder holder) {
-        FancyUIProvider page = createFancyPage(player, holder);
-        return UI.of(new FancyMachineUI(page, player.getInventory(), holder,
+        IFancyUIProvider page = createFancyPage(player, holder);
+        return UI.of(new FancyMachineUIWidget(page, player.getInventory(), holder,
                 page.getPageWidth(), page.getPageHeight()));
     }
 
     @Override
-    public FancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
+    public IFancyUIProvider createFancyPage(Player player, MachineUIHolder holder) {
         return new FancyPreviewPage(this, player, holder, null,
                 this::attachMaintenanceTooltips);
     }

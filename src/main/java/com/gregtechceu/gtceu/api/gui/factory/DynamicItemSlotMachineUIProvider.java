@@ -2,6 +2,7 @@ package com.gregtechceu.gtceu.api.gui.factory;
 
 import com.gregtechceu.gtceu.api.gui.element.GTDynamicItemSlotSessionElement;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
+import com.gregtechceu.gtceu.api.machine.feature.IUIMachine;
 
 import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerMenu;
 
@@ -17,7 +18,7 @@ import net.minecraft.world.entity.player.Inventory;
  * runtime slot append and keeps removed ranges as opening-local tombstones.
  * </p>
  */
-public interface DynamicItemSlotMachineUIProvider extends MachineUIProvider {
+public interface DynamicItemSlotMachineUIProvider extends IUIMachine {
 
     /**
      * Captures the machine session so runtime slots can be acknowledged before they become interactive.

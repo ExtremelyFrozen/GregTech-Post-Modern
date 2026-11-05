@@ -11,21 +11,21 @@ import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTPhantomFluidSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTToggleButtonElement;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIProvider;
 import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUI;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyTabs;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyTooltipsPanel;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyTooltip;
+import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.TabsWidget;
+import com.gregtechceu.gtceu.api.gui.fancy.TooltipsPanel;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.MachineDefinition;
 import com.gregtechceu.gtceu.api.machine.TickableSubscription;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CircuitConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.DirectionalConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CircuitFancyConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CombinedDirectionalFancyConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
 import com.gregtechceu.gtceu.api.machine.feature.FancyActionMachine;
 import com.gregtechceu.gtceu.api.machine.feature.IHasCircuitSlot;
+import com.gregtechceu.gtceu.api.machine.feature.IUIMachine;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.machine.multiblock.part.TieredIOPartMachine;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableFluidTank;
@@ -88,7 +88,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 public class FluidHatchPartMachine extends TieredIOPartMachine
-                                   implements IHasCircuitSlot, IPaintable, MachineUIProvider,
+                                   implements IHasCircuitSlot, IPaintable, IUIMachine,
                                    FancyActionMachine {
 
     public static final int INITIAL_TANK_CAPACITY_1X = 8 * FluidType.BUCKET_VOLUME;
@@ -297,12 +297,12 @@ public class FluidHatchPartMachine extends TieredIOPartMachine
 
     @Override
     public UI createUI(Player player, MachineUIHolder holder) {
-        FancyUIProvider page = createPage(player, holder);
-        return UI.of(new FancyMachineUI(page, player.getInventory(), holder,
+        IFancyUIProvider page = createPage(player, holder);
+        return UI.of(new FancyMachineUIWidget(page, player.getInventory(), holder,
                 page.getPageWidth(), page.getPageHeight()));
     }
 
-    FancyUIProvider createPage(Player player, MachineUIHolder holder) {
+    IFancyUIProvider createPage(Player player, MachineUIHolder holder) {
         requireHatchHolder(holder);
         if (!supportsGenericPage()) {
             throw new IllegalStateException("Fluid hatch definition requires its specialized UI provider.");
@@ -737,22 +737,22 @@ public class FluidHatchPartMachine extends TieredIOPartMachine
     /**
      * Adapts this legacy multipart Fancy page to a holder-scoped LDLib2 Fancy provider.
      */
-    private final class FluidHatchPage implements FancyUIProvider {
+    private final class FluidHatchPage implements IFancyUIProvider {
 
         private final Player player;
         private final MachineUIHolder holder;
-        private final DirectionalConfigurator directionalPage;
+        private final CombinedDirectionalFancyConfigurator directionalPage;
 
         private FluidHatchPage(Player player, MachineUIHolder holder) {
             requireHatchHolder(holder);
             this.player = player;
             this.holder = holder;
-            this.directionalPage = new DirectionalConfigurator(
+            this.directionalPage = new CombinedDirectionalFancyConfigurator(
                     FluidHatchPartMachine.this, player, holder);
         }
 
         @Override
-        public UIElement createMainPage(FancyMachineUI shell) {
+        public UIElement createUIWidget(FancyMachineUIWidget shell) {
             if (holder.getMachine() != FluidHatchPartMachine.this) {
                 throw new IllegalStateException("Fluid hatch page holder no longer resolves its opened machine.");
             }
@@ -780,7 +780,7 @@ public class FluidHatchPartMachine extends TieredIOPartMachine
         }
 
         @Override
-        public void attachSideTabs(FancyTabs tabs) {
+        public void attachSideTabs(TabsWidget tabs) {
             tabs.attachSubTab(directionalPage);
         }
 
@@ -789,13 +789,13 @@ public class FluidHatchPartMachine extends TieredIOPartMachine
             configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
                     FluidHatchPartMachine.this, holder));
             if (isCircuitSlotEnabled() && io.support(IO.IN)) {
-                configuratorPanel.attachConfigurators(new CircuitConfigurator(
+                configuratorPanel.attachConfigurators(new CircuitFancyConfigurator(
                         FluidHatchPartMachine.this, holder));
             }
         }
 
         @Override
-        public void attachTooltips(FancyTooltipsPanel tooltipsPanel) {
+        public void attachTooltips(TooltipsPanel tooltipsPanel) {
             tooltipsPanel.attachTooltips(FluidHatchPartMachine.this);
             for (var trait : getTraitHolder().getAllTraits()) {
                 if (trait instanceof IFancyTooltip tooltip) {
@@ -811,13 +811,13 @@ public class FluidHatchPartMachine extends TieredIOPartMachine
 
         @Override
         @Nullable
-        public FancyUIProvider.PageGroupingData getPageGroupingData() {
+        public IFancyUIProvider.PageGroupingData getPageGroupingData() {
             return switch (io) {
-                case IN -> new FancyUIProvider.PageGroupingData(
+                case IN -> new IFancyUIProvider.PageGroupingData(
                         "gtpm.multiblock.page_switcher.io.import", 1);
-                case OUT -> new FancyUIProvider.PageGroupingData(
+                case OUT -> new IFancyUIProvider.PageGroupingData(
                         "gtpm.multiblock.page_switcher.io.export", 2);
-                case BOTH -> new FancyUIProvider.PageGroupingData(
+                case BOTH -> new IFancyUIProvider.PageGroupingData(
                         "gtpm.multiblock.page_switcher.io.both", 3);
                 case NONE -> null;
             };

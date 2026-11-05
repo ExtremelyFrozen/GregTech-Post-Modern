@@ -8,19 +8,19 @@ import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolderContext;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIProvider;
 import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUI;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyTabs;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyTooltipsPanel;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
+import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.TabsWidget;
+import com.gregtechceu.gtceu.api.gui.fancy.TooltipsPanel;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.ConditionalSubscriptionHandler;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.BatchModeConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.DirectionalConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CombinedDirectionalFancyConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.VoidingModeConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
 import com.gregtechceu.gtceu.api.machine.feature.FancyActionMachine;
+import com.gregtechceu.gtceu.api.machine.feature.IUIMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMaintenanceMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMultiPart;
@@ -56,7 +56,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 public class LargeMixerMachine extends WorkableElectricMultiblockMachine
-                               implements MachineUIProvider, FancyActionMachine {
+                               implements IUIMachine, FancyActionMachine {
 
     @Getter
     @SyncToClient
@@ -172,7 +172,7 @@ public class LargeMixerMachine extends WorkableElectricMultiblockMachine
     public UI createUI(Player player, MachineUIHolder holder) {
         requireMatchingHolder(holder);
         LargeMixerFancyPage page = new LargeMixerFancyPage(player, holder);
-        return UI.of(new FancyMachineUI(page, player.getInventory(), holder,
+        return UI.of(new FancyMachineUIWidget(page, player.getInventory(), holder,
                 page.getPageWidth(), page.getPageHeight()));
     }
 
@@ -183,21 +183,21 @@ public class LargeMixerMachine extends WorkableElectricMultiblockMachine
     }
 
     /** Owns the opening-scoped controller, directional, and contextual part pages. */
-    private final class LargeMixerFancyPage implements FancyUIProvider {
+    private final class LargeMixerFancyPage implements IFancyUIProvider {
 
         private static final int PAGE_WIDTH = 190;
         private static final int PAGE_HEIGHT = 125;
 
         private final MachineUIHolder holder;
-        private final DirectionalConfigurator directionalPage;
-        private final List<FancyUIProvider> partPages;
+        private final CombinedDirectionalFancyConfigurator directionalPage;
+        private final List<IFancyUIProvider> partPages;
 
         private LargeMixerFancyPage(Player player, MachineUIHolder holder) {
             requireMatchingHolder(holder);
             this.holder = holder;
-            this.directionalPage = new DirectionalConfigurator(LargeMixerMachine.this, player, holder);
+            this.directionalPage = new CombinedDirectionalFancyConfigurator(LargeMixerMachine.this, player, holder);
 
-            List<FancyUIProvider> pages = new ArrayList<>();
+            List<IFancyUIProvider> pages = new ArrayList<>();
             for (IMultiPart part : getParts()) {
                 if (!(part instanceof FancyPartUIProvider pageProvider)) {
                     throw new IllegalStateException("Large Mixer part has no LDLib2 Fancy page: " +
@@ -210,7 +210,7 @@ public class LargeMixerMachine extends WorkableElectricMultiblockMachine
         }
 
         @Override
-        public UIElement createMainPage(FancyMachineUI shell) {
+        public UIElement createUIWidget(FancyMachineUIWidget shell) {
             if (holder.getMachine() != LargeMixerMachine.this) {
                 throw new IllegalStateException("Large Mixer page holder no longer resolves its controller.");
             }
@@ -264,7 +264,7 @@ public class LargeMixerMachine extends WorkableElectricMultiblockMachine
         }
 
         @Override
-        public void attachSideTabs(FancyTabs tabs) {
+        public void attachSideTabs(TabsWidget tabs) {
             tabs.attachSubTab(directionalPage);
         }
 
@@ -277,7 +277,7 @@ public class LargeMixerMachine extends WorkableElectricMultiblockMachine
         }
 
         @Override
-        public void attachTooltips(FancyTooltipsPanel tooltipsPanel) {
+        public void attachTooltips(TooltipsPanel tooltipsPanel) {
             for (IMultiPart part : getParts()) {
                 if (part instanceof IMaintenanceMachine maintenanceMachine) {
                     maintenanceMachine.attachMaintenanceTooltips(tooltipsPanel);
@@ -286,7 +286,7 @@ public class LargeMixerMachine extends WorkableElectricMultiblockMachine
         }
 
         @Override
-        public List<FancyUIProvider> getSubTabs() {
+        public List<IFancyUIProvider> getSubTabs() {
             return partPages;
         }
 

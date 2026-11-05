@@ -11,15 +11,15 @@ import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTPhantomFluidSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTTextFieldElement;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIProvider;
 import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyConfiguratorButton;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUI;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyTooltipsPanel;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
+import com.gregtechceu.gtceu.api.gui.fancy.IFancyConfiguratorButton;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyTooltip;
+import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.TooltipsPanel;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.item.datacomponents.CreativeMachineInfo;
+import com.gregtechceu.gtceu.api.machine.feature.IUIMachine;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.ServerFieldChangeListener;
 import com.gregtechceu.gtceu.api.sync_system.annotations.ServerFieldNormalizer;
@@ -51,7 +51,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.List;
 
 public class CreativeTankMachine extends QuantumTankMachine
-                                 implements MachineUIProvider {
+                                 implements IUIMachine {
 
     private static final int PAGE_WIDTH = 176;
     private static final int PAGE_HEIGHT = 131;
@@ -184,11 +184,11 @@ public class CreativeTankMachine extends QuantumTankMachine
 
     @Override
     public UI createUI(Player player, MachineUIHolder holder) {
-        return UI.of(new FancyMachineUI(new CreativeTankPage(player, holder),
+        return UI.of(new FancyMachineUIWidget(new CreativeTankPage(player, holder),
                 player.getInventory(), holder, PAGE_WIDTH, PAGE_HEIGHT));
     }
 
-    private UIElement createMainPage(Player player, MachineUIHolder holder) {
+    private UIElement createUIWidget(Player player, MachineUIHolder holder) {
         UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
         root.addChild(createStoredFluidSlot(player, holder));
         root.addChild(createLabel(7, 9, 162, 10, "gtpm.creative.tank.fluid"));
@@ -299,8 +299,8 @@ public class CreativeTankMachine extends QuantumTankMachine
                 GuiTextures.text(isWorkingEnabled() ? "gtpm.creative.activity.on" : "gtpm.creative.activity.off"));
     }
 
-    FancyConfiguratorButton.Toggle createWorkingEnabledConfigurator() {
-        return new FancyConfiguratorButton.Toggle(
+    IFancyConfiguratorButton.Toggle createWorkingEnabledConfigurator() {
+        return new IFancyConfiguratorButton.Toggle(
                 GuiTextures.BUTTON_POWER.getSubTexture(0, 0, 1, 0.5),
                 GuiTextures.BUTTON_POWER.getSubTexture(0, 0.5, 1, 0.5),
                 this::isWorkingEnabled,
@@ -379,7 +379,7 @@ public class CreativeTankMachine extends QuantumTankMachine
         components.set(GTDataComponents.CREATIVE_MACHINE_INFO, new CreativeMachineInfo(mBPerCycle, ticksPerCycle));
     }
 
-    private final class CreativeTankPage implements FancyUIProvider {
+    private final class CreativeTankPage implements IFancyUIProvider {
 
         private final Player player;
         private final MachineUIHolder holder;
@@ -390,8 +390,8 @@ public class CreativeTankMachine extends QuantumTankMachine
         }
 
         @Override
-        public UIElement createMainPage(FancyMachineUI shell) {
-            return CreativeTankMachine.this.createMainPage(player, holder);
+        public UIElement createUIWidget(FancyMachineUIWidget shell) {
+            return CreativeTankMachine.this.createUIWidget(player, holder);
         }
 
         @Override
@@ -420,7 +420,7 @@ public class CreativeTankMachine extends QuantumTankMachine
         }
 
         @Override
-        public void attachTooltips(FancyTooltipsPanel tooltipsPanel) {
+        public void attachTooltips(TooltipsPanel tooltipsPanel) {
             tooltipsPanel.attachTooltips(CreativeTankMachine.this);
             getTraitHolder().getAllTraits().stream()
                     .filter(IFancyTooltip.class::isInstance)

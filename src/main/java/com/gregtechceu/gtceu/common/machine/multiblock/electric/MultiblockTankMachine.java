@@ -9,7 +9,7 @@ import com.gregtechceu.gtceu.api.gui.element.GTFluidSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTImageElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIProvider;
+import com.gregtechceu.gtceu.api.machine.feature.IUIMachine;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableFluidTank;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
@@ -44,7 +44,7 @@ import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
 
 public class MultiblockTankMachine extends MultiblockControllerMachine
-                                   implements MachineUIProvider {
+                                   implements IUIMachine {
 
     @SaveField
     @Getter

@@ -2,12 +2,12 @@ package com.gregtechceu.gtceu.api.gui.factory;
 
 import com.gregtechceu.gtceu.api.block.MetaMachineBlock;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
+import com.gregtechceu.gtceu.api.machine.feature.IUIMachine;
 import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
 
 import com.lowdragmc.lowdraglib2.gui.factory.IContainerUIHolder;
 import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerMenu;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
-import com.lowdragmc.lowdraglib2.gui.ui.UI;
 
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.core.BlockPos;
@@ -54,12 +54,12 @@ public final class MachineBlockUIHolder implements MachineUIHolder, MenuProvider
 
     static ModularUIContainerMenu read(int windowId, Inventory inventory, RegistryFriendlyByteBuf data) {
         BlockPos pos = data.readBlockPos();
-        BlockState blockState = MachineUIProvider.BLOCK_STATE_CODEC.decode(data);
+        BlockState blockState = IUIMachine.BLOCK_STATE_CODEC.decode(data);
         if (!(blockState.getBlock() instanceof MetaMachineBlock block)) {
             throw new IllegalArgumentException("No machine UI found for block " + blockState);
         }
         var holder = new MachineBlockUIHolder(inventory.player, pos, blockState, block.getDefinition().getId());
-        var provider = (MachineUIProvider) holder.getMachine();
+        var provider = (IUIMachine) holder.getMachine();
         return provider.createClientMenu(windowId, inventory, holder, data);
     }
 
@@ -82,7 +82,7 @@ public final class MachineBlockUIHolder implements MachineUIHolder, MenuProvider
     @Override
     public boolean isStillValid(Player player) {
         MetaMachine machine = getMachine();
-        return !machine.isRemoved() && machine instanceof MachineUIProvider provider &&
+        return !machine.isRemoved() && machine instanceof IUIMachine provider &&
                 provider.canCreateUI(player, this);
     }
 
@@ -99,12 +99,12 @@ public final class MachineBlockUIHolder implements MachineUIHolder, MenuProvider
     @Override
     public void writeClientSideData(AbstractContainerMenu menu, RegistryFriendlyByteBuf buffer) {
         buffer.writeBlockPos(pos);
-        MachineUIProvider.BLOCK_STATE_CODEC.encode(buffer, blockState);
+        IUIMachine.BLOCK_STATE_CODEC.encode(buffer, blockState);
         SyncFieldData.STREAM_CODEC.encode(buffer, machine.getSyncDataHolder().getClientData(player.registryAccess()));
     }
 
     @Override
     public ModularUI createUI(Player player) {
-        return UIRegistry.createUI(((MachineUIProvider) machine).createUI(player, this), player);
+        return UIRegistry.createUI(((IUIMachine) machine).createUI(player, this), player);
     }
 }
