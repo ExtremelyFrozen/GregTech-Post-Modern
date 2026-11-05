@@ -152,13 +152,16 @@ public final class StructureControls extends UIElement {
         boolean locked = required || structure.selected() &&
                 machine.structures().values().stream().filter(TerminalStructure::selected).count() == 1;
         int half = (contentWidth - 2) / 2;
-        action(this, 4, 55, toggleWorldPreview == null ? contentWidth : half,
-                text(locked ? "required" : structure.selected() ? "selected" : "unselected"),
-                TerminalChange.structureSelected(name, !structure.selected()), !locked);
+        if (!locked) {
+            action(this, 4, 55, toggleWorldPreview == null ? contentWidth : half,
+                    text(structure.selected() ? "selected" : "unselected"),
+                    TerminalChange.structureSelected(name, !structure.selected()), true);
+        }
         Consumer<String> toggle = toggleWorldPreview;
         if (toggle != null) {
             worldVisible = worldPreviewVisible.test(name);
-            visibilityButton = button(6 + half, 55, half, text(worldVisible ? "visible" : "hidden"));
+            visibilityButton = button(locked ? 4 : 6 + half, 55, locked ? contentWidth : half,
+                    text(worldVisible ? "visible" : "hidden"));
             visibilityButton.getStyle().tooltips(text("world_preview"));
             controls.add(new Control(visibilityButton,
                     displayedStructures.stream().anyMatch(current -> current.name().equals(name))));

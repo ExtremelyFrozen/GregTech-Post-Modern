@@ -647,10 +647,6 @@ public final class ClientMultiblockPreviewElement extends UIElement {
                 red = 1.0f;
                 green = 0.18f;
                 blue = 0.92f;
-            } else if (cell.demolitionTarget()) {
-                red = 1.0f;
-                green = 0.2f;
-                blue = 0.16f;
             } else {
                 red = green = blue = 1.0f;
             }
