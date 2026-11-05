@@ -271,8 +271,9 @@ object FieldCodecs {
 	}
 
 	@JvmStatic
-	fun <T> registerStream(type: Type, codec: StreamCodec<RegistryFriendlyByteBuf, T>): Unit = synchronized(codecLock) {
-		STREAM_CODECS[type] = codec
+	@Suppress("UNCHECKED_CAST") // A codec accepting a base ByteBuf also accepts RegistryFriendlyByteBuf.
+	fun <T> registerStream(type: Type, codec: StreamCodec<in RegistryFriendlyByteBuf, T>): Unit = synchronized(codecLock) {
+		STREAM_CODECS[type] = codec as StreamCodec<RegistryFriendlyByteBuf, T>
 	}
 
 	@Suppress("UNCHECKED_CAST") // Native ByteBuf codecs also accept the registry-aware ByteBuf subtype.
