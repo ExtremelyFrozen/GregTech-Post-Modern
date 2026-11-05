@@ -207,16 +207,6 @@ public class GTDataComponents {
             .registerComponentType("lighter_open",
                     builder -> builder.persistent(Codec.BOOL).networkSynchronized(ByteBufCodecs.BOOL));
 
-    public static final DeferredHolder<DataComponentType<?>, DataComponentType<TerminalMachines>> TERMINAL_MACHINES = DATA_COMPONENTS
-            .registerComponentType("terminal_machines",
-                    builder -> builder.persistent(TerminalMachines.CODEC)
-                            .networkSynchronized(TerminalMachines.STREAM_CODEC));
-
-    public static final DeferredHolder<DataComponentType<?>, DataComponentType<TerminalControllerBinding>> TERMINAL_CONTROLLER = DATA_COMPONENTS
-            .registerComponentType("terminal_controller",
-                    builder -> builder.persistent(TerminalControllerBinding.CODEC)
-                            .networkSynchronized(TerminalControllerBinding.STREAM_CODEC));
-
     public static final DeferredHolder<DataComponentType<?>, DataComponentType<SyncFieldData>> ITEM_DATA = DATA_COMPONENTS
             .registerComponentType("item_data", builder -> builder.persistent(SyncFieldData.CODEC)
                     .networkSynchronized(SyncFieldData.STREAM_CODEC));

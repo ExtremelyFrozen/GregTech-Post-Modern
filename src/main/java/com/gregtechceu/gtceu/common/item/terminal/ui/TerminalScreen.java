@@ -13,20 +13,15 @@ import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.multiblock.preview.StructurePreview;
 import com.gregtechceu.gtceu.api.registry.GTRegistries;
 import com.gregtechceu.gtceu.client.renderer.MultiblockInWorldPreviewRenderer;
-import com.gregtechceu.gtceu.common.data.GTDataComponents;
 import com.gregtechceu.gtceu.common.item.datacomponents.TerminalControllerBinding;
 import com.gregtechceu.gtceu.common.item.datacomponents.TerminalMachine;
+import com.gregtechceu.gtceu.common.item.terminal.TerminalData;
 import com.gregtechceu.gtceu.common.item.terminal.menu.TerminalMenuState;
 import com.gregtechceu.gtceu.common.item.terminal.menu.TerminalSession;
-import com.gregtechceu.gtceu.common.item.terminal.network.TerminalAction;
 import com.gregtechceu.gtceu.common.item.terminal.network.TerminalChange;
-import com.gregtechceu.gtceu.common.item.terminal.network.TerminalStateUpdate;
 import com.gregtechceu.gtceu.config.ConfigHolder;
 
 import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerScreen;
-import com.lowdragmc.lowdraglib2.gui.sync.SyncValue;
-import com.lowdragmc.lowdraglib2.gui.sync.rpc.RPCEmitter;
-import com.lowdragmc.lowdraglib2.gui.sync.rpc.RPCEventBuilder;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
@@ -41,7 +36,6 @@ import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 import java.util.Locale;
-import java.util.UUID;
 
 /** A per-opening terminal UI hosted by the existing held-item menu, with no separate menu registration. */
 @NullMarked
@@ -51,12 +45,9 @@ public final class TerminalScreen extends UIElement {
     private static final int HEIGHT = 200;
 
     private final Player player;
+    private final TerminalData data;
     private final TerminalControllerBinding binding;
     private final @Nullable TerminalSession serverSession;
-    private final SyncValue<TerminalStateUpdate> stateSync = new SyncValue<>("terminal-state",
-            TerminalStateUpdate.class,
-            null);
-    private final RPCEmitter actions;
     private final MultiblockPreviewPanel preview;
     private final StructureControls configuration;
     private final GTButtonElement executeButton = new GTButtonElement(188, 180, 108, 16);
@@ -65,25 +56,20 @@ public final class TerminalScreen extends UIElement {
     private final GTLabelElement title;
     private boolean expanded;
     private TerminalMenuState state;
-    private @Nullable UUID sessionId;
     private long nextSequence = 1;
     private long pendingSequence = -1;
     private int refreshTicks;
 
     public TerminalScreen(HeldItemUIHolder holder, Player player) {
         this.player = player;
-        binding = holder.getOpenedStack().get(GTDataComponents.TERMINAL_CONTROLLER);
-        if (binding == null || !(GTRegistries.MACHINES
-                .get(binding.definitionId()) instanceof MultiblockMachineDefinition definition)) {
-            throw new IllegalArgumentException("Terminal UI requires a registered bound multiblock");
-        }
+        data = (TerminalData) holder.getSyncHolder();
+        binding = data.getBinding();
+        var definition = (MultiblockMachineDefinition) GTRegistries.MACHINES.get(binding.definitionId());
         if (player instanceof ServerPlayer serverPlayer) {
-            if (!(MetaMachine.getMachine(player.level(),
-                    binding.position()) instanceof MultiblockControllerMachine controller)) {
-                throw new IllegalStateException("Bound controller disappeared before terminal UI creation");
-            }
-            serverSession = new TerminalSession(serverPlayer, holder.getHand(), holder.getHeld(), controller);
-            state = serverSession.state();
+            var controller = (MultiblockControllerMachine) MetaMachine.getMachine(player.level(), binding.position());
+            serverSession = new TerminalSession(serverPlayer, holder.getHand(), data, controller);
+            data.setSession(serverSession);
+            state = data.getState();
         } else {
             serverSession = null;
             var emptyPreview = new StructurePreview(definition.getId(), "awaiting-server", false,
@@ -94,11 +80,6 @@ public final class TerminalScreen extends UIElement {
 
         UITemplate.setBounds(this, 0, 0, WIDTH, HEIGHT);
         style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));
-        actions = addRPCEvent(RPCEventBuilder.simple(TerminalAction.class, this::receiveAction));
-        stateSync.setAcceptSync(player.level().isClientSide);
-        stateSync.setToSync(!player.level().isClientSide);
-        stateSync.addListener(this::receiveState);
-        addSyncValue(stateSync);
 
         title = new GTLabelElement(6, 6, 268, 10, definition.getBlock().getName());
         title.textStyle(style -> style.adaptiveWidth(false).adaptiveHeight(false).fontSize(9)
@@ -147,8 +128,8 @@ public final class TerminalScreen extends UIElement {
             event.stopPropagation();
         });
         addChild(fullscreen);
+        data.setStateListener(this::receiveState);
         updateDisplay();
-        if (serverSession != null) publishState();
     }
 
     public UI createUI() {
@@ -173,67 +154,31 @@ public final class TerminalScreen extends UIElement {
     }
 
     private void requestAction(@Nullable TerminalChange update) {
-        if (!player.level().isClientSide || sessionId == null || pendingSequence >= 0 || state.executing() ||
+        if (!player.level().isClientSide || data.getState() == null || pendingSequence >= 0 || state.executing() ||
                 !installed()) {
             return;
         }
-        long sequence = nextSequence;
-        if (actions.send(new TerminalAction(sessionId, sequence, state.revision(), update))) {
-            pendingSequence = sequence;
-            nextSequence++;
-            updateInteractivity();
+        pendingSequence = nextSequence++;
+        if (update == null) {
+            data.rpcToServer("execute", pendingSequence, state.revision(),
+                    Long.parseUnsignedLong(state.preview().fingerprint(), 16));
+        } else {
+            data.rpcToServer("change", pendingSequence, state.revision(), update);
         }
+        updateInteractivity();
     }
 
-    private void receiveAction(TerminalAction action) {
-        if (!(player instanceof ServerPlayer serverPlayer) || serverSession == null || !installed()) return;
-        try {
-            if (!serverSession.sessionId().equals(action.sessionId())) {
-                throw new IllegalArgumentException("Terminal action belongs to another opening");
-            }
-            serverSession.attachMenu(player.containerMenu);
-            if (action.update() == null)
-                serverSession.execute(serverPlayer, action.sequence(), action.expectedRevision());
-            else serverSession.applyUpdate(serverPlayer, action.sequence(), action.expectedRevision(), action.update());
-            if (installed()) publishState();
-        } catch (RuntimeException exception) {
-            GTCEu.LOGGER.error("Closed terminal UI after an invalid action for {}", state.definitionId(), exception);
-            player.closeContainer();
-        }
-    }
-
-    private void publishState() {
-        if (serverSession == null) throw new IllegalStateException("Only the server publishes terminal state");
-        state = serverSession.state();
-        stateSync.setValue(new TerminalStateUpdate(serverSession.sessionId(), state));
-        stateSync.markAsChanged();
+    private void receiveState() {
+        state = data.getState();
+        if (state.acknowledgedSequence() >= pendingSequence) pendingSequence = -1;
+        nextSequence = state.acknowledgedSequence() + 1;
         updateDisplay();
-    }
-
-    private void receiveState(TerminalStateUpdate update) {
-        if (!player.level().isClientSide) return;
-        try {
-            if (sessionId != null && !sessionId.equals(update.sessionId()) ||
-                    !state.definitionId().equals(update.state().definitionId()) ||
-                    update.state().revision() < state.revision() ||
-                    update.state().acknowledgedSequence() < state.acknowledgedSequence()) {
-                throw new IllegalArgumentException("Terminal state has a stale or different session identity");
-            }
-            sessionId = update.sessionId();
-            state = update.state();
-            if (state.acknowledgedSequence() >= pendingSequence) pendingSequence = -1;
-            nextSequence = Math.max(nextSequence, state.acknowledgedSequence() + 1);
-            updateDisplay();
-        } catch (RuntimeException exception) {
-            GTCEu.LOGGER.error("Closed terminal UI after an invalid state for {}", state.definitionId(), exception);
-            player.closeContainer();
-        }
     }
 
     private void updateDisplay() {
         preview.setPreview(state.preview());
         configuration.setMachine(state.machine());
-        if (player.level().isClientSide && sessionId != null) {
+        if (player.level().isClientSide && data.getState() != null) {
             MultiblockInWorldPreviewRenderer.updatePreview(binding.position(), state.preview(),
                     ConfigHolder.INSTANCE.client.inWorldPreviewDuration * 20);
         }
@@ -251,7 +196,7 @@ public final class TerminalScreen extends UIElement {
     }
 
     private void updateInteractivity() {
-        boolean ready = player.level().isClientSide && sessionId != null && pendingSequence < 0 &&
+        boolean ready = player.level().isClientSide && data.getState() != null && pendingSequence < 0 &&
                 !state.executing() && installed();
         configuration.setInteractive(ready);
         executeButton.setActive(ready);
@@ -261,7 +206,6 @@ public final class TerminalScreen extends UIElement {
     public void serverTick() {
         super.serverTick();
         if (!(player instanceof ServerPlayer serverPlayer) || serverSession == null || !installed()) return;
-        serverSession.attachMenu(player.containerMenu);
         if (!serverSession.isStillValid(player)) {
             player.closeContainer();
             return;
@@ -269,7 +213,7 @@ public final class TerminalScreen extends UIElement {
         if (++refreshTicks < 20) return;
         refreshTicks = 0;
         try {
-            if (serverSession.refresh(serverPlayer) && installed()) publishState();
+            serverSession.refresh(serverPlayer);
         } catch (RuntimeException exception) {
             GTCEu.LOGGER.error("Closed terminal UI after refresh failed for {}", state.definitionId(), exception);
             player.closeContainer();
@@ -284,7 +228,8 @@ public final class TerminalScreen extends UIElement {
 
     @Override
     protected void onRemoved() {
-        if (serverSession != null) serverSession.close(player);
+        data.setStateListener(null);
+        if (serverSession != null) serverSession.close();
         super.onRemoved();
     }
 }
