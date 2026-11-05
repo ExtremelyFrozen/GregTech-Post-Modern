@@ -45,6 +45,7 @@ import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
 import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ObjectList;
 import it.unimi.dsi.fastutil.objects.ObjectSet;
+import org.joml.Matrix4f;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 import org.lwjgl.opengl.GL11;
@@ -357,6 +358,8 @@ public final class MultiblockInWorldPreviewRenderer {
             Vec3 projectedView = camera.getPosition();
             poseStack.translate(-projectedView.x, -projectedView.y, -projectedView.z);
 
+            // The level-stage pose stack is separate from the camera's global model-view matrix.
+            var modelView = new Matrix4f(RenderSystem.getModelViewMatrix()).mul(poseStack.last().pose());
             for (int i = 0; i < RenderType.chunkBufferLayers().size(); i++) {
                 VertexBuffer vertexbuffer = getBuffers()[i];
                 var layer = RenderType.chunkBufferLayers().get(i);
@@ -400,7 +403,7 @@ public final class MultiblockInWorldPreviewRenderer {
 
                 // setup shader uniform
                 if (shaderInstance.MODEL_VIEW_MATRIX != null) {
-                    shaderInstance.MODEL_VIEW_MATRIX.set(poseStack.last().pose());
+                    shaderInstance.MODEL_VIEW_MATRIX.set(modelView);
                 }
 
                 if (shaderInstance.PROJECTION_MATRIX != null) {
