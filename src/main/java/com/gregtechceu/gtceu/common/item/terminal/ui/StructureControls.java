@@ -14,6 +14,7 @@ import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.StructureOperation;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.StructureRequest;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.BatchPlanner;
+import com.gregtechceu.gtceu.api.multiblock.pattern.layout.PatternAxis;
 import com.gregtechceu.gtceu.api.multiblock.preview.StructurePreview.Structure;
 import com.gregtechceu.gtceu.common.item.datacomponents.TerminalMachine;
 import com.gregtechceu.gtceu.common.item.datacomponents.TerminalStructure;
@@ -30,6 +31,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectList;
 import org.jspecify.annotations.NullMarked;
@@ -180,15 +182,29 @@ public final class StructureControls extends UIElement {
         action(this, terminal ? 6 + half : 4, 77, terminal ? half : contentWidth,
                 text("flip", onOff(structure.flipMode())),
                 TerminalChange.structureFlip(name, !structure.flipMode()), definition.isAllowFlip());
-        for (var repetition : definition.getPattern(name).getRepeatDescriptors()) {
+        var pattern = definition.getPattern(name);
+        var axes = pattern.getSourceDefinition().getAxes();
+        var layout = pattern.expandLayout(structure.repetitions().toIntArray(), structure.choices());
+        for (var repetition : pattern.getRepeatDescriptors()) {
             if (repetition.minimum() == repetition.maximum()) continue;
             int index = repetition.index();
             int value = structure.repetitions().getInt(index);
-            selections.add(new Selection(text("axis." + repetition.axis().name().toLowerCase(Locale.ROOT)),
-                    Component.literal(Integer.toString(value)),
+            var axis = PatternAxis.of(switch (repetition.axis()) {
+                case DEPTH -> axes.getDepth();
+                case HEIGHT -> axes.getHeight();
+                case WIDTH -> axes.getWidth();
+            });
+            selections.add(new Selection(text("axis." + axis.name().toLowerCase(Locale.ROOT)),
+                    Component.literal(Integer.toString(layout.size(repetition.axis()))),
                     () -> IntStream.rangeClosed(repetition.minimum(), repetition.maximum())
-                            .mapToObj(amount -> new Value(Component.literal(Integer.toString(amount)), ItemStack.EMPTY,
-                                    TerminalChange.repetition(name, index, amount), amount == value))
+                            .mapToObj(amount -> {
+                                var repetitions = new IntArrayList(structure.repetitions());
+                                repetitions.set(index, amount);
+                                int size = pattern.expandLayout(repetitions.toIntArray(), structure.choices())
+                                        .size(repetition.axis());
+                                return new Value(Component.literal(Integer.toString(size)), ItemStack.EMPTY,
+                                        TerminalChange.repetition(name, index, amount), amount == value);
+                            })
                             .collect(ObjectArrayList.toList())));
         }
         for (var choice : definition.getPattern(name).getChoiceDescriptors()) {

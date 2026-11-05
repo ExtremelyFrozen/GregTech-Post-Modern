@@ -164,7 +164,13 @@ class PatternLayoutResolver(private val definition: PatternDefinition) {
 			is PatternNode.Sequence -> node.children.forEachIndexed { i, child -> describe(child, "$path/sequence[$i]", nested, stack, level + 1) }
 
 			is PatternNode.Repeat -> {
-				repeats.add(PatternRepeatDescriptor(repeats.size, node.id, path, PatternAxis.of(node.axis), node.minimum, node.maximum))
+				val count = node.count
+				if (count == null) {
+					repeats.add(PatternRepeatDescriptor(repeats.size, node.id, path, PatternAxis.of(node.axis), node.minimum, node.maximum))
+				} else if (repeats.none { it.parameter == count.parameter }) {
+					val parameter = definition.parameters[count.parameter] as PatternParameter.IntegerRange
+					repeats.add(PatternRepeatDescriptor(repeats.size, count.parameter, path, PatternAxis.of(node.axis), parameter.minimum, parameter.maximum, count.parameter))
+				}
 				describe(node.body, "$path/repeat:${node.id}", true, stack, level + 1)
 			}
 
@@ -292,7 +298,7 @@ class PatternLayoutResolver(private val definition: PatternDefinition) {
 		repetition: Int,
 		level: Int,
 	): Box {
-		val descriptor = repeats.firstOrNull { it.path == declaration }
+		val descriptor = if (node is PatternNode.Repeat && node.count != null) repeats.first { it.parameter == node.count.parameter } else repeats.firstOrNull { it.path == declaration }
 		val currentUnit = if (unit < 0 && descriptor != null) descriptor.index else unit
 		return when (node) {
 			is PatternNode.Fixed -> {
@@ -316,7 +322,7 @@ class PatternLayoutResolver(private val definition: PatternDefinition) {
 
 			is PatternNode.Repeat -> {
 				val declared = requireNotNull(descriptor)
-				val count = selected["$path#repeat"]?.toInt() ?: repetitions[declared.index]
+				val count = node.count?.resolve(repetitions[declared.index]) ?: selected["$path#repeat"]?.toInt() ?: repetitions[declared.index]
 				require(count in node.minimum..node.maximum) { "Instance repetition outside bounds at $path" }
 				val children = ObjectArrayList<Box>()
 				repeat(count) { i ->

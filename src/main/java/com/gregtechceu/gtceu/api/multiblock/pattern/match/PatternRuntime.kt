@@ -5,6 +5,7 @@ import com.gregtechceu.gtceu.api.capability.recipe.IO
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState
 import com.gregtechceu.gtceu.api.multiblock.error.PatternStringError
 import com.gregtechceu.gtceu.api.multiblock.pattern.constraint.PatternConstraintEvaluator
+import com.gregtechceu.gtceu.api.multiblock.pattern.layout.PatternAxis
 import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternConstraint
 import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternDefinition
 
@@ -41,6 +42,9 @@ internal class PatternRuntime(private val pattern: MultiBlockPattern, private va
 		}
 		var previousDepth: Int? = null
 		val layout = pattern.expandLayoutForMatch(repetitions, choices)
+		facts.set("pattern.width", layout.size(PatternAxis.WIDTH))
+		facts.set("pattern.height", layout.size(PatternAxis.HEIGHT))
+		facts.set("pattern.depth", layout.size(PatternAxis.DEPTH))
 		layout.repeats.forEach { facts.ensureScopes(ObjectLists.singleton("repeat:${it.descriptor.id}@${it.path}")) }
 		val cells = ObjectArrayList(layout.cells)
 		cells.sortWith(compareBy { it.depth })
@@ -140,7 +144,7 @@ internal class PatternRuntime(private val pattern: MultiBlockPattern, private va
 		val selected = Object2ObjectOpenHashMap<String, String>()
 		fun explore(): Boolean {
 			val layout = pattern.expandLayoutForMatch(repetitions, selected)
-			val repeat = layout.repeats.firstOrNull { !selected.containsKey("${it.path}#repeat") }
+			val repeat = layout.repeats.firstOrNull { it.descriptor.parameter.isEmpty() && !selected.containsKey("${it.path}#repeat") }
 			if (repeat != null) {
 				val baseline = Object2ObjectOpenHashMap(selected)
 				for (count in repeat.descriptor.minimum..repeat.descriptor.maximum) {
@@ -177,12 +181,22 @@ internal class PatternRuntime(private val pattern: MultiBlockPattern, private va
 			selected.putAll(solution ?: baseline)
 			return solution != null && match(state, center, front, up, flipped, save, repetitions, selected).matched
 		}
-		val matched = explore()
+		val parameters = descriptors.filter { it.parameter.isNotEmpty() }
+		fun dimensions(index: Int): Boolean {
+			if (index == parameters.size) return explore()
+			val parameter = parameters[index]
+			for (count in parameter.minimum..parameter.maximum) {
+				repetitions[parameter.index] = count
+				if (dimensions(index + 1)) return true
+			}
+			return false
+		}
+		val matched = dimensions(0)
 		if (matched) {
 			val resolved = BooleanArray(descriptors.size)
 			pattern.expandLayoutForMatch(repetitions, selected).repeats.forEach { instance ->
 				val index = instance.descriptor.index
-				if (!resolved[index]) {
+				if (instance.descriptor.parameter.isEmpty() && !resolved[index]) {
 					repetitions[index] = selected.getValue("${instance.path}#repeat").toInt()
 					resolved[index] = true
 				}

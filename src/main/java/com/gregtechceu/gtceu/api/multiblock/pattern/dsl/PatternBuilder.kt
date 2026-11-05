@@ -14,6 +14,7 @@ import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternFragment
 import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternNode
 import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternOrientation
 import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternOrigin
+import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternParameter
 import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternPredicateDefinition
 import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternRepeatDirection
 import com.gregtechceu.gtceu.api.multiblock.structurepredicate.ObservedPatternPredicate
@@ -39,7 +40,7 @@ class PatternBuilder private constructor(charDir: RelativeDirection, stringDir: 
 	private val definitionKey get() = StructurePatternKey(definition.id, structureName)
 	private val units = ObjectArrayList<AisleUnit>()
 	private val symbolMap: Char2ObjectMap<PatternPredicate?> = Char2ObjectArrayMap()
-	private val structureDir = StructureDir(charDir, stringDir, aisleDir)
+	private var structureDir = StructureDir(charDir, stringDir, aisleDir)
 	private var repeatableGroup: ObjectArrayList<Array<String>>? = null
 	private var condition: PatternCondition? = null
 	private var aisleHeight = 0
@@ -48,6 +49,23 @@ class PatternBuilder private constructor(charDir: RelativeDirection, stringDir: 
 	private val constraints = ObjectArrayList<PatternConstraint>()
 	private val fragments = Object2ObjectLinkedOpenHashMap<String, PatternFragment>()
 	private var orientation = PatternOrientation(true, true)
+	private var origin = PatternOrigin.controller()
+	private val parameters = Object2ObjectLinkedOpenHashMap<String, PatternParameter>()
+
+	fun axes(axes: PatternAxes): PatternBuilder {
+		structureDir = StructureDir(RelativeDirection.valueOf(axes.width.name), RelativeDirection.valueOf(axes.height.name), RelativeDirection.valueOf(axes.depth.name))
+		return this
+	}
+
+	fun origin(origin: PatternOrigin): PatternBuilder {
+		this.origin = origin
+		return this
+	}
+
+	fun parameter(name: String, parameter: PatternParameter): PatternBuilder {
+		parameters[name] = parameter
+		return this
+	}
 
 	fun orientation(orientation: PatternOrientation): PatternBuilder {
 		this.orientation = orientation
@@ -217,8 +235,8 @@ class PatternBuilder private constructor(charDir: RelativeDirection, stringDir: 
 				toPatternDirection(structureDir.charDir()),
 			),
 			orientation,
-			PatternOrigin.controller(),
-			emptyMap(),
+			origin,
+			parameters,
 			fragments,
 			predicates,
 			body,

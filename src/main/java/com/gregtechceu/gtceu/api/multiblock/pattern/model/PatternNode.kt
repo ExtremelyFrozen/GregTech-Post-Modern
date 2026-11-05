@@ -40,8 +40,23 @@ sealed interface PatternNode {
 		constructor(axis: PatternDirection, children: List<PatternNode>) : this(axis, ObjectArrayList(children))
 	}
 
-	data class Repeat @JvmOverloads constructor(val id: String, val axis: PatternDirection, val direction: PatternRepeatDirection, val minimum: Int, val maximum: Int, val body: PatternNode, val minimumParameter: String = "", val maximumParameter: String = "", val axisParameter: String = "") :
-		PatternNode
+	data class Repeat @JvmOverloads constructor(
+		val id: String,
+		val axis: PatternDirection,
+		val direction: PatternRepeatDirection,
+		val minimum: Int,
+		val maximum: Int,
+		val body: PatternNode,
+		val minimumParameter: String = "",
+		val maximumParameter: String = "",
+		val axisParameter: String = "",
+		val count: Count? = null,
+	) : PatternNode {
+		/** Reuses a root dimension; offsets and integer division place both odd and even sized centers. */
+		data class Count(val parameter: String, val offset: Int = 0, val divisor: Int = 1) {
+			fun resolve(value: Int): Int = Math.floorDiv(value + offset, divisor)
+		}
+	}
 
 	data class Choice @JvmOverloads constructor(val id: String, val alternatives: ObjectList<Alternative>, val priority: ObjectList<String> = ObjectLists.emptyList()) : PatternNode {
 		@JvmOverloads

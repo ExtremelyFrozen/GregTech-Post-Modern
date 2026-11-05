@@ -171,7 +171,7 @@ object PatternJsonCodec {
 			}
 
 			"repeat" -> {
-				rejectUnknown(value, setOf("type", "id", "axis", "direction", "min", "max", "body"), path)
+				rejectUnknown(value, setOf("type", "id", "axis", "direction", "min", "max", "body", "count"), path)
 				PatternNode.Repeat(
 					str(required(value, "id", "$path.id"), "$path.id"),
 					if (str(required(value, "axis", "$path.axis"), "$path.axis").startsWith("$")) PatternDirection.FRONT else direction(required(value, "axis", "$path.axis"), "$path.axis"),
@@ -182,6 +182,10 @@ object PatternJsonCodec {
 					if (value["min"].asJsonPrimitive.isString) value["min"].asString.removePrefix("$") else "",
 					if (value["max"].asJsonPrimitive.isString) value["max"].asString.removePrefix("$") else "",
 					if (value["axis"].asString.startsWith("$")) value["axis"].asString.substring(1) else "",
+					value["count"]?.let { element ->
+						val count = obj(element, "$path.count")
+						PatternNode.Repeat.Count(str(required(count, "parameter", "$path.count.parameter"), "$path.count.parameter"), count["offset"]?.let { integer(it, "$path.count.offset") } ?: 0, count["divisor"]?.let { integer(it, "$path.count.divisor") } ?: 1)
+					},
 				)
 			}
 
@@ -439,6 +443,16 @@ object PatternJsonCodec {
 			addProperty("direction", node.direction.name.lowercase())
 			if (node.minimumParameter.isEmpty()) addProperty("min", node.minimum) else addProperty("min", "$${node.minimumParameter}")
 			if (node.maximumParameter.isEmpty()) addProperty("max", node.maximum) else addProperty("max", "$${node.maximumParameter}")
+			node.count?.let { count ->
+				add(
+					"count",
+					JsonObject().apply {
+						addProperty("parameter", count.parameter)
+						if (count.offset != 0) addProperty("offset", count.offset)
+						if (count.divisor != 1) addProperty("divisor", count.divisor)
+					},
+				)
+			}
 			add("body", encodeNode(node.body))
 		}
 

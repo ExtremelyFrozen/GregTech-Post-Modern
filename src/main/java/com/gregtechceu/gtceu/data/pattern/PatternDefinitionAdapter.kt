@@ -16,6 +16,8 @@ import it.unimi.dsi.fastutil.chars.Char2ObjectLinkedOpenHashMap
 object PatternDefinitionAdapter {
 	@JvmStatic
 	fun appendToBuilder(builder: PatternBuilder, definition: PatternDefinition) {
+		builder.axes(definition.axes).orientation(definition.orientation).origin(definition.origin)
+		definition.parameters.forEach { (name, parameter) -> builder.parameter(name, parameter) }
 		builder.node(definition.body)
 		definition.fragments.forEach { (id, fragment) -> builder.fragment(id, fragment) }
 		definition.predicates.forEach { (symbol, predicate) -> builder.where(symbol, PatternPredicateCompiler.compile(predicate)) }
