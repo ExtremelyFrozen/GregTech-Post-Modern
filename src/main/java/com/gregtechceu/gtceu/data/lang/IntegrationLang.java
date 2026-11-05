@@ -159,7 +159,6 @@ public class IntegrationLang {
         provider.add("gtpm.multiblock.category.machine_hulls", "Machine hulls");
         provider.add("gtpm.multiblock.category.computer_casings", "Computer casings");
         provider.add("gtpm.multiblock.category.computer_heat_vents", "Computer heat vents");
-        provider.add("gtpm.multiblock.autobuild.terminal.ae_available", "ME: connected");
         provider.add("gtpm.multiblock.preview.tooltip.structure", "Select the structure to configure");
         provider.add("gtpm.multiblock.preview.tooltip.selected", "Include or exclude this structure");
         provider.add("gtpm.multiblock.preview.tooltip.selected_locked",

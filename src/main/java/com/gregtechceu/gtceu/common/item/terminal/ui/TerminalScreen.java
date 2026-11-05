@@ -60,7 +60,6 @@ public final class TerminalScreen extends UIElement {
     private final MultiblockPreviewPanel preview;
     private final StructureControls configuration;
     private final GTButtonElement executeButton = new GTButtonElement(188, 180, 108, 16);
-    private final GTLabelElement sourceLabel = new GTLabelElement(192, 155, 100, 10);
     private final GTLabelElement resultLabel = new GTLabelElement(192, 167, 100, 10);
     private final GTButtonElement fullscreen = new GTButtonElement(278, 4, 16, 14);
     private final GTLabelElement title;
@@ -90,7 +89,7 @@ public final class TerminalScreen extends UIElement {
             var emptyPreview = new StructurePreview(definition.getId(), "awaiting-server", false,
                     ObjectList.of(), ObjectList.of(), ObjectList.of(), ObjectList.of());
             state = new TerminalMenuState(definition.getId(), 0, 0, TerminalMachine.defaults(definition),
-                    emptyPreview, false, null, null);
+                    emptyPreview, false, null);
         }
 
         UITemplate.setBounds(this, 0, 0, WIDTH, HEIGHT);
@@ -119,12 +118,8 @@ public final class TerminalScreen extends UIElement {
                     name -> MultiblockInWorldPreviewRenderer.togglePreview(binding.position(), state.preview(), name,
                             ConfigHolder.INSTANCE.client.inWorldPreviewDuration * 20));
         }
-        sourceLabel.textStyle(style -> style.adaptiveWidth(false).adaptiveHeight(false).fontSize(8)
-                .textColor(0xff404040).textShadow(false).textWrap(TextWrap.HIDE));
         resultLabel.textStyle(style -> style.adaptiveWidth(false).adaptiveHeight(false).fontSize(8)
                 .textColor(0xff404040).textShadow(false).textWrap(TextWrap.HIDE));
-        addChild(sourceLabel);
-        sourceLabel.setDisplay(GTCEu.MODS.AE2.isLoaded());
         addChild(resultLabel);
         executeButton.setButtonTexture(GuiTextures.BUTTON);
         executeButton.getLayout().paddingAll(1);
@@ -166,8 +161,7 @@ public final class TerminalScreen extends UIElement {
         title.getLayout().width(width - 32);
         fullscreen.getLayout().left(width - 22);
         preview.resize(width - 120, height - 24);
-        configuration.resize(width - 112, 20, 108, height - (GTCEu.MODS.AE2.isLoaded() ? 68 : 56));
-        sourceLabel.getLayout().left(width - 108).top(height - 45);
+        configuration.resize(width - 112, 20, 108, height - 56);
         resultLabel.getLayout().left(width - 108).top(height - 33);
         executeButton.getLayout().left(width - 112).top(height - 20);
         return Size.of(width, height);
@@ -243,15 +237,6 @@ public final class TerminalScreen extends UIElement {
             MultiblockInWorldPreviewRenderer.updatePreview(binding.position(), state.preview(),
                     ConfigHolder.INSTANCE.client.inWorldPreviewDuration * 20);
         }
-        var source = state.meSource();
-        sourceLabel.setValue(Component.translatable(source == null ?
-                "gtpm.multiblock.autobuild.terminal.ae_unavailable" :
-                "gtpm.multiblock.autobuild.terminal.ae_available"));
-        sourceLabel.getStyle().tooltips(source == null ?
-                Component.translatable("gtpm.multiblock.autobuild.terminal.ae_unavailable") :
-                Component.translatable("gtpm.multiblock.autobuild.terminal.ae_source", source.terminalName(),
-                        source.selectionIdentity(), source.linkTarget().dimension().location(),
-                        source.linkTarget().pos().toShortString()));
         var result = state.lastExecution();
         resultLabel.setValue(result == null ? Component.translatable("gtpm.multiblock.autobuild.terminal.no_result") :
                 Component.translatable("gtpm.multiblock.autobuild.status." +

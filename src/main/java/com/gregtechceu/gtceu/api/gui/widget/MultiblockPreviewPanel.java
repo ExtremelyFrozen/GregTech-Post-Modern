@@ -41,7 +41,7 @@ public final class MultiblockPreviewPanel extends UIElement {
      * @param width            full panel width
      * @param height           full panel height
      * @param preview          resolved view
-     * @param showAvailability whether the panel includes terminal-only persistent material allocation details
+     * @param showAvailability whether material tooltips include terminal inventory availability
      */
     public MultiblockPreviewPanel(int width, int height, StructurePreview preview,
                                   boolean showAvailability) {

@@ -13,7 +13,6 @@ import org.jspecify.annotations.Nullable;
 public record TerminalMenuState(ResourceLocation definitionId, long acknowledgedSequence, long revision,
                                 TerminalMachine machine,
                                 StructurePreview preview, boolean executing,
-                                @Nullable TerminalMESourceDisplay meSource,
                                 @Nullable TerminalExecutionSummary lastExecution) {
 
     public static final StreamCodec<RegistryFriendlyByteBuf, TerminalMenuState> STREAM_CODEC = StreamCodec
@@ -26,10 +25,6 @@ public record TerminalMenuState(ResourceLocation definitionId, long acknowledged
         TerminalMachine.STREAM_CODEC.encode(buffer, value.machine);
         StructurePreview.STREAM_CODEC.encode(buffer, value.preview);
         buffer.writeBoolean(value.executing);
-        buffer.writeBoolean(value.meSource != null);
-        if (value.meSource != null) {
-            TerminalMESourceDisplay.STREAM_CODEC.encode(buffer, value.meSource);
-        }
         buffer.writeBoolean(value.lastExecution != null);
         if (value.lastExecution != null) {
             TerminalExecutionSummary.STREAM_CODEC.encode(buffer, value.lastExecution);
@@ -43,11 +38,9 @@ public record TerminalMenuState(ResourceLocation definitionId, long acknowledged
         TerminalMachine machine = TerminalMachine.STREAM_CODEC.decode(buffer);
         StructurePreview preview = StructurePreview.STREAM_CODEC.decode(buffer);
         boolean executing = buffer.readBoolean();
-        TerminalMESourceDisplay meSource = buffer.readBoolean() ? TerminalMESourceDisplay.STREAM_CODEC.decode(buffer) :
-                null;
         TerminalExecutionSummary lastExecution = buffer.readBoolean() ?
                 TerminalExecutionSummary.STREAM_CODEC.decode(buffer) : null;
         return new TerminalMenuState(definitionId, acknowledgedSequence, revision, machine, preview, executing,
-                meSource, lastExecution);
+                lastExecution);
     }
 }

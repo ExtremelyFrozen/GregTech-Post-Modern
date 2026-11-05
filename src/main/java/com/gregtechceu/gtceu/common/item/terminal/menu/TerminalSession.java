@@ -166,7 +166,7 @@ public final class TerminalSession {
         String expectedFingerprint = state.preview().fingerprint();
         executing = true;
         state = new TerminalMenuState(definitionId, acceptedSequence, revision, machine, state.preview(), true,
-                state.meSource(), lastExecution);
+                lastExecution);
         try {
             BatchRequest request = machine.createRequest(definition,
                     boundSources);
@@ -255,12 +255,12 @@ public final class TerminalSession {
 
     private TerminalMenuState stateWithCurrentSequence() {
         return new TerminalMenuState(definitionId, acceptedSequence, revision, machine, state.preview(), executing,
-                state.meSource(), lastExecution);
+                lastExecution);
     }
 
     private static TerminalMenuState withRevision(TerminalMenuState state, long revision) {
         return new TerminalMenuState(state.definitionId(), state.acknowledgedSequence(), revision, state.machine(),
-                state.preview(), state.executing(), state.meSource(), state.lastExecution());
+                state.preview(), state.executing(), state.lastExecution());
     }
 
     private TerminalMenuState buildState(ServerPlayer player) {
@@ -269,12 +269,7 @@ public final class TerminalSession {
         BatchResolution resolved = resolver.resolveBatch(openedController, player, request);
         boundSources = sources;
         StructurePreview preview = StructurePreview.bound(definitionId, resolved);
-        TerminalMESourceDisplay meSource = resolved.availability().stream()
-                .map(MaterialSource.Availability::descriptor)
-                .filter(descriptor -> descriptor != null && descriptor.kind() == MaterialSource.SourceKind.ME)
-                .map(TerminalMESourceDisplay::from)
-                .findFirst().orElse(null);
-        return new TerminalMenuState(definitionId, acceptedSequence, revision, machine, preview, executing, meSource,
+        return new TerminalMenuState(definitionId, acceptedSequence, revision, machine, preview, executing,
                 lastExecution);
     }
 
@@ -395,7 +390,6 @@ public final class TerminalSession {
             }
         }
         result = 31 * result + preview.diagnostics().hashCode();
-        result = 31 * result + (state.meSource() == null ? 0 : state.meSource().hashCode());
         result = 31 * result + (state.lastExecution() == null ? 0 : state.lastExecution().hashCode());
         return result;
     }
