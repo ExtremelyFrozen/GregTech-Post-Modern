@@ -18,7 +18,6 @@ import com.gregtechceu.gtceu.common.cover.detector.AdvancedEnergyDetectorCover;
 import com.gregtechceu.gtceu.common.cover.detector.AdvancedFluidDetectorCover;
 import com.gregtechceu.gtceu.common.cover.detector.AdvancedItemDetectorCover;
 import com.gregtechceu.gtceu.common.data.GTCovers;
-import com.gregtechceu.gtceu.common.data.GTDataComponents;
 import com.gregtechceu.gtceu.common.data.GTItems;
 import com.gregtechceu.gtceu.common.data.GTMachines;
 import com.gregtechceu.gtceu.common.machine.storage.BufferMachine;
@@ -28,9 +27,7 @@ import com.gregtechceu.gtceu.utils.RedstoneUtil;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.RegistryAccess;
-import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.gametest.framework.GameTest;
-import net.minecraft.gametest.framework.GameTestAssertException;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
@@ -43,11 +40,11 @@ import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 import net.neoforged.testframework.annotation.TestHolder;
 import net.neoforged.testframework.gametest.EmptyTemplate;
 
-import com.google.gson.JsonElement;
-import com.google.gson.JsonPrimitive;
+import com.mojang.serialization.Codec;
 import org.apache.commons.lang3.mutable.MutableInt;
 
 import java.math.BigInteger;
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -260,28 +257,27 @@ public class AdvancedDetectorCoverTest {
                                                                EnergyDetectorSyncProbe loaded) {
         RegistryAccess registries = helper.getLevel().registryAccess();
 
-        DataComponentMap full = server.getSyncDataHolder().serializeFullClientSyncComponents(registries);
+        SyncFieldData full = server.getSyncDataHolder().serializeFullClientSyncData(registries);
         assertEnergyScalarFields(helper, full, DEFAULT_ENERGY_MIN, DEFAULT_ENERGY_MAX, true,
                 "advanced energy detector full sync");
-        client.getSyncDataHolder().applyClientNetworkUpdate(registries, full);
+        client.getSyncDataHolder().applyClientNetworkUpdate(registries, full, true);
         assertEnergyScalarState(helper, client, DEFAULT_ENERGY_MIN, DEFAULT_ENERGY_MAX, true,
                 "advanced energy detector full sync client");
 
         server.setMinValue(DEFAULT_ENERGY_MIN);
         server.setMaxValue(DEFAULT_ENERGY_MAX);
         server.setUsePercent(true);
-        helper.assertTrue(server.getSyncDataHolder().serializeToComponents(registries, true, false).isEmpty(),
+        helper.assertTrue(server.getSyncDataHolder().serializeToFieldData(registries, true, false).isEmpty(),
                 "advanced energy detector default-equivalent setters produced a redundant delta");
 
         server.setMinValue(CHANGED_ENERGY_MIN);
         server.setMaxValue(CHANGED_ENERGY_MAX);
         server.setUsePercent(false);
-        DataComponentMap delta = server.getSyncDataHolder().serializeToComponents(registries, true, false);
-        SyncFieldData changedFields = requireFields(delta, "advanced energy detector changed delta");
-        helper.assertTrue(changedFields.fields().size() == 3,
+        SyncFieldData delta = server.getSyncDataHolder().serializeToFieldData(registries, true, false);
+        helper.assertTrue(delta.fields().size() == 3,
                 "advanced energy detector changed delta contained fields other than minValue, maxValue, and " +
                         "usePercent");
-        assertEnergyScalarFields(helper, changedFields, CHANGED_ENERGY_MIN, CHANGED_ENERGY_MAX, false,
+        assertEnergyScalarFields(helper, delta, CHANGED_ENERGY_MIN, CHANGED_ENERGY_MAX, false,
                 "advanced energy detector changed delta");
         client.getSyncDataHolder().applyClientNetworkUpdate(registries, delta);
         assertEnergyScalarState(helper, client, CHANGED_ENERGY_MIN, CHANGED_ENERGY_MAX, false,
@@ -297,25 +293,25 @@ public class AdvancedDetectorCoverTest {
         server.setMinValue(CHANGED_ENERGY_MIN);
         server.setMaxValue(CHANGED_ENERGY_MAX);
         server.setUsePercent(false);
-        helper.assertTrue(server.getSyncDataHolder().serializeToComponents(registries, true, false).isEmpty(),
+        helper.assertTrue(server.getSyncDataHolder().serializeToFieldData(registries, true, false).isEmpty(),
                 "advanced energy detector changed-equivalent setters produced a redundant delta");
 
         assertRejectedEnergyClientField(helper, server, registries, MIN_VALUE_FIELD,
-                new JsonPrimitive(DEFAULT_ENERGY_MIN), "advanced energy detector minValue client write");
+                Codec.LONG, DEFAULT_ENERGY_MIN, "advanced energy detector minValue client write");
         assertRejectedEnergyClientField(helper, server, registries, MAX_VALUE_FIELD,
-                new JsonPrimitive(DEFAULT_ENERGY_MAX), "advanced energy detector maxValue client write");
+                Codec.LONG, DEFAULT_ENERGY_MAX, "advanced energy detector maxValue client write");
         assertRejectedEnergyClientField(helper, server, registries, USE_PERCENT_FIELD,
-                new JsonPrimitive(true), "advanced energy detector usePercent client write");
+                Codec.BOOL, true, "advanced energy detector usePercent client write");
     }
 
-    private static void assertRejectedEnergyClientField(GameTestHelper helper, EnergyDetectorSyncProbe server,
-                                                        RegistryAccess registries, ResourceLocation field,
-                                                        JsonElement value, String description) {
+    private static <T> void assertRejectedEnergyClientField(GameTestHelper helper, EnergyDetectorSyncProbe server,
+                                                            RegistryAccess registries, ResourceLocation field,
+                                                            Codec<T> codec, T value, String description) {
         ServerFieldUpdateResult rejected = server.getSyncDataHolder().tryApplyServerNetworkUpdate(
-                registries, scalarPayload(field, value));
+                registries, SyncFieldData.builder().put(field, codec, value).build());
         helper.assertTrue(!rejected.getAccepted(), description + " was accepted");
         assertEnergyScalarState(helper, server, CHANGED_ENERGY_MIN, CHANGED_ENERGY_MAX, false, description);
-        helper.assertTrue(server.getSyncDataHolder().serializeToComponents(registries, true, false).isEmpty(),
+        helper.assertTrue(server.getSyncDataHolder().serializeToFieldData(registries, true, false).isEmpty(),
                 description + " produced an acknowledgement");
     }
 
@@ -326,29 +322,18 @@ public class AdvancedDetectorCoverTest {
                 description + " did not contain the expected scalar state");
     }
 
-    private static void assertEnergyScalarFields(GameTestHelper helper, DataComponentMap components,
-                                                 long minValue, long maxValue, boolean usePercent,
-                                                 String description) {
-        assertEnergyScalarFields(helper, requireFields(components, description), minValue, maxValue, usePercent,
-                description);
-    }
-
     private static void assertEnergyScalarFields(GameTestHelper helper, SyncFieldData fields,
                                                  long minValue, long maxValue, boolean usePercent,
                                                  String description) {
         assertLongField(helper, fields, MIN_VALUE_FIELD, minValue, description);
         assertLongField(helper, fields, MAX_VALUE_FIELD, maxValue, description);
-        JsonElement usePercentValue = fields.get(USE_PERCENT_FIELD);
-        helper.assertTrue(usePercentValue instanceof JsonPrimitive primitive && primitive.isBoolean() &&
-                primitive.getAsBoolean() == usePercent,
+        helper.assertTrue(Objects.equals(fields.read(USE_PERCENT_FIELD, Codec.BOOL), usePercent),
                 description + " did not contain the expected usePercent field");
     }
 
     private static void assertLongField(GameTestHelper helper, SyncFieldData fields,
                                         ResourceLocation field, long expected, String description) {
-        JsonElement value = fields.get(field);
-        helper.assertTrue(value instanceof JsonPrimitive primitive && primitive.isNumber() &&
-                primitive.getAsLong() == expected,
+        helper.assertTrue(Objects.equals(fields.read(field, Codec.LONG), expected),
                 description + " did not contain the expected " + field.getPath() + " field");
     }
 
@@ -359,26 +344,25 @@ public class AdvancedDetectorCoverTest {
                                                          String description) {
         RegistryAccess registries = helper.getLevel().registryAccess();
 
-        DataComponentMap full = server.getSyncDataHolder().serializeFullClientSyncComponents(registries);
+        SyncFieldData full = server.getSyncDataHolder().serializeFullClientSyncData(registries);
         assertScalarFields(helper, full, DEFAULT_MIN, DEFAULT_MAX, false, description + " full sync");
-        client.getSyncDataHolder().applyClientNetworkUpdate(registries, full);
+        client.getSyncDataHolder().applyClientNetworkUpdate(registries, full, true);
         assertScalarState(helper, client, DEFAULT_MIN, DEFAULT_MAX, false,
                 description + " full sync client");
 
         server.setMinValue(DEFAULT_MIN);
         server.setMaxValue(DEFAULT_MAX);
         server.setLatched(false);
-        helper.assertTrue(server.getSyncDataHolder().serializeToComponents(registries, true, false).isEmpty(),
+        helper.assertTrue(server.getSyncDataHolder().serializeToFieldData(registries, true, false).isEmpty(),
                 description + " default-equivalent setters produced a redundant delta");
 
         server.setMaxValue(CHANGED_MAX);
         server.setMinValue(CHANGED_MIN);
         server.setLatched(true);
-        DataComponentMap delta = server.getSyncDataHolder().serializeToComponents(registries, true, false);
-        SyncFieldData changedFields = requireFields(delta, description + " changed delta");
-        helper.assertTrue(changedFields.fields().size() == 3,
+        SyncFieldData delta = server.getSyncDataHolder().serializeToFieldData(registries, true, false);
+        helper.assertTrue(delta.fields().size() == 3,
                 description + " changed delta contained fields other than minValue, maxValue, and isLatched");
-        assertScalarFields(helper, changedFields, CHANGED_MIN, CHANGED_MAX, true,
+        assertScalarFields(helper, delta, CHANGED_MIN, CHANGED_MAX, true,
                 description + " changed delta");
         client.getSyncDataHolder().applyClientNetworkUpdate(registries, delta);
         assertScalarState(helper, client, CHANGED_MIN, CHANGED_MAX, true,
@@ -393,34 +377,27 @@ public class AdvancedDetectorCoverTest {
         server.setMaxValue(CHANGED_MAX);
         server.setMinValue(CHANGED_MIN);
         server.setLatched(true);
-        helper.assertTrue(server.getSyncDataHolder().serializeToComponents(registries, true, false).isEmpty(),
+        helper.assertTrue(server.getSyncDataHolder().serializeToFieldData(registries, true, false).isEmpty(),
                 description + " changed-equivalent setters produced a redundant delta");
 
-        assertRejectedClientField(helper, server, registries, MIN_VALUE_FIELD, new JsonPrimitive(DEFAULT_MIN),
+        assertRejectedClientField(helper, server, registries, MIN_VALUE_FIELD, Codec.INT, DEFAULT_MIN,
                 description + " minValue client write");
-        assertRejectedClientField(helper, server, registries, MAX_VALUE_FIELD, new JsonPrimitive(DEFAULT_MAX),
+        assertRejectedClientField(helper, server, registries, MAX_VALUE_FIELD, Codec.INT, DEFAULT_MAX,
                 description + " maxValue client write");
-        assertRejectedClientField(helper, server, registries, LATCHED_FIELD, new JsonPrimitive(false),
+        assertRejectedClientField(helper, server, registries, LATCHED_FIELD, Codec.BOOL, false,
                 description + " isLatched client write");
     }
 
-    private static void assertRejectedClientField(GameTestHelper helper, AdvancedDetectorSyncProbe server,
-                                                  RegistryAccess registries, ResourceLocation field, JsonElement value,
-                                                  String description) {
+    private static <T> void assertRejectedClientField(GameTestHelper helper, AdvancedDetectorSyncProbe server,
+                                                      RegistryAccess registries, ResourceLocation field, Codec<T> codec,
+                                                      T value,
+                                                      String description) {
         ServerFieldUpdateResult rejected = server.getSyncDataHolder().tryApplyServerNetworkUpdate(
-                registries, scalarPayload(field, value));
+                registries, SyncFieldData.builder().put(field, codec, value).build());
         helper.assertTrue(!rejected.getAccepted(), description + " was accepted");
         assertScalarState(helper, server, CHANGED_MIN, CHANGED_MAX, true, description);
-        helper.assertTrue(server.getSyncDataHolder().serializeToComponents(registries, true, false).isEmpty(),
+        helper.assertTrue(server.getSyncDataHolder().serializeToFieldData(registries, true, false).isEmpty(),
                 description + " produced an acknowledgement");
-    }
-
-    private static DataComponentMap scalarPayload(ResourceLocation field, JsonElement value) {
-        return DataComponentMap.builder()
-                .set(GTDataComponents.SYNC_FIELD_DATA.get(), SyncFieldData.builder()
-                        .put(field, value)
-                        .build())
-                .build();
     }
 
     private static BufferMachine createBuffer() {
@@ -439,35 +416,18 @@ public class AdvancedDetectorCoverTest {
                 description + " did not contain the expected scalar state");
     }
 
-    private static void assertScalarFields(GameTestHelper helper, DataComponentMap components,
-                                           int minValue, int maxValue, boolean latched, String description) {
-        assertScalarFields(helper, requireFields(components, description), minValue, maxValue, latched, description);
-    }
-
     private static void assertScalarFields(GameTestHelper helper, SyncFieldData fields,
                                            int minValue, int maxValue, boolean latched, String description) {
         assertIntField(helper, fields, MIN_VALUE_FIELD, minValue, description);
         assertIntField(helper, fields, MAX_VALUE_FIELD, maxValue, description);
-        JsonElement latchedValue = fields.get(LATCHED_FIELD);
-        helper.assertTrue(latchedValue instanceof JsonPrimitive primitive && primitive.isBoolean() &&
-                primitive.getAsBoolean() == latched,
+        helper.assertTrue(Objects.equals(fields.read(LATCHED_FIELD, Codec.BOOL), latched),
                 description + " did not contain the expected isLatched field");
     }
 
     private static void assertIntField(GameTestHelper helper, SyncFieldData fields,
                                        ResourceLocation field, int expected, String description) {
-        JsonElement value = fields.get(field);
-        helper.assertTrue(value instanceof JsonPrimitive primitive && primitive.isNumber() &&
-                primitive.getAsInt() == expected,
+        helper.assertTrue(Objects.equals(fields.read(field, Codec.INT), expected),
                 description + " did not contain the expected " + field.getPath() + " field");
-    }
-
-    private static SyncFieldData requireFields(DataComponentMap components, String description) {
-        SyncFieldData fields = components.get(GTDataComponents.SYNC_FIELD_DATA.get());
-        if (fields == null) {
-            throw new GameTestAssertException(description + " omitted sync field data");
-        }
-        return fields;
     }
 
     /**
