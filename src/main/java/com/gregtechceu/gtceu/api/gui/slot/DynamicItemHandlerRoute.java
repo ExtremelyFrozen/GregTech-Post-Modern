@@ -47,19 +47,6 @@ public final class DynamicItemHandlerRoute implements IItemHandlerModifiable, No
      */
     public DynamicItemHandlerRoute(UUID targetId, UUID targetIncarnation, int logicalSlotCount,
                                    BiFunction<UUID, UUID, IItemHandlerModifiable> handlerResolver) {
-        validateLogicalSlotCount(logicalSlotCount);
-        if (targetId == null) {
-            GTCEu.LOGGER.error("Cannot create a dynamic item handler route without a target id");
-            throw new IllegalArgumentException("targetId must not be null");
-        }
-        if (handlerResolver == null) {
-            GTCEu.LOGGER.error("Cannot create dynamic item handler route {} without a resolver", targetId);
-            throw new IllegalArgumentException("handlerResolver must not be null");
-        }
-        if (targetIncarnation == null) {
-            GTCEu.LOGGER.error("Cannot create a dynamic item handler route {} without a target incarnation", targetId);
-            throw new IllegalArgumentException("targetIncarnation must not be null");
-        }
         this.targetId = targetId;
         this.targetIncarnation = targetIncarnation;
         this.logicalSlotCount = logicalSlotCount;
@@ -73,14 +60,12 @@ public final class DynamicItemHandlerRoute implements IItemHandlerModifiable, No
 
     @Override
     public @NotNull ItemStack getStackInSlot(int slot) {
-        validateLogicalSlotIndex(slot);
         IItemHandlerModifiable handler = resolveCurrentHandler();
         return handler == null ? ItemStack.EMPTY : handler.getStackInSlot(slot);
     }
 
     @Override
     public void setStackInSlot(int slot, ItemStack stack) {
-        validateLogicalSlotIndex(slot);
         IItemHandlerModifiable handler = resolveCurrentHandler();
         if (handler == null) {
             if (!stack.isEmpty()) {
@@ -94,28 +79,24 @@ public final class DynamicItemHandlerRoute implements IItemHandlerModifiable, No
 
     @Override
     public @NotNull ItemStack insertItem(int slot, ItemStack stack, boolean simulate) {
-        validateLogicalSlotIndex(slot);
         IItemHandlerModifiable handler = resolveCurrentHandler();
         return handler == null ? stack : handler.insertItem(slot, stack, simulate);
     }
 
     @Override
     public @NotNull ItemStack extractItem(int slot, int amount, boolean simulate) {
-        validateLogicalSlotIndex(slot);
         IItemHandlerModifiable handler = resolveCurrentHandler();
         return handler == null ? ItemStack.EMPTY : handler.extractItem(slot, amount, simulate);
     }
 
     @Override
     public int getSlotLimit(int slot) {
-        validateLogicalSlotIndex(slot);
         IItemHandlerModifiable handler = resolveCurrentHandler();
         return handler == null ? 0 : handler.getSlotLimit(slot);
     }
 
     @Override
     public boolean isItemValid(int slot, ItemStack stack) {
-        validateLogicalSlotIndex(slot);
         IItemHandlerModifiable handler = resolveCurrentHandler();
         return handler != null && handler.isItemValid(slot, stack);
     }
@@ -148,7 +129,6 @@ public final class DynamicItemHandlerRoute implements IItemHandlerModifiable, No
      */
     @Override
     public int getMaxStackSizeForEmptySlot(int slot, ItemStack stack) {
-        validateLogicalSlotIndex(slot);
         IItemHandlerModifiable handler = resolveCurrentHandler();
         if (handler == null) {
             return 0;
@@ -194,23 +174,5 @@ public final class DynamicItemHandlerRoute implements IItemHandlerModifiable, No
             return false;
         }
         return true;
-    }
-
-    private void validateLogicalSlotIndex(int slot) {
-        if (slot < 0 || slot >= logicalSlotCount) {
-            GTCEu.LOGGER.error("Dynamic item handler target {} rejected logical slot {} outside [0, {})",
-                    targetId, slot, logicalSlotCount);
-            throw new IllegalArgumentException("Invalid dynamic item handler slot: " + slot);
-        }
-    }
-
-    private static void validateLogicalSlotCount(int logicalSlotCount) {
-        if (logicalSlotCount < 1 || logicalSlotCount > DynamicItemSlotDefinition.MAX_SLOT_COUNT) {
-            GTCEu.LOGGER.error("Dynamic item handler route requires between 1 and {} slots but received {}",
-                    DynamicItemSlotDefinition.MAX_SLOT_COUNT, logicalSlotCount);
-            throw new IllegalArgumentException(
-                    "logicalSlotCount must be between 1 and " + DynamicItemSlotDefinition.MAX_SLOT_COUNT + ": " +
-                            logicalSlotCount);
-        }
     }
 }

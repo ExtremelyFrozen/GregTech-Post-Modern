@@ -35,13 +35,4 @@ public record DynamicItemSlotSelection(long sequence, Optional<UUID> bindingId) 
             value.bindingId().ifPresent(buffer::writeUUID);
         }
     };
-
-    public DynamicItemSlotSelection {
-        if (sequence < 0) {
-            throw new IllegalArgumentException("selection sequence must be non-negative: " + sequence);
-        }
-        if (bindingId == null) {
-            throw new IllegalArgumentException("selection bindingId optional must not be null");
-        }
-    }
 }

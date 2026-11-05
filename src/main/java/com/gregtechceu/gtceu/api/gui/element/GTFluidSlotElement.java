@@ -102,13 +102,9 @@ public class GTFluidSlotElement extends FluidSlot {
 
     public GTFluidSlotElement setFluidTank(IFluidHandler fluidHandler, int tankIndex) {
         if (fluidHandler instanceof NotifiableFluidTank notifiable) {
-            if (tankIndex < 0 || tankIndex >= notifiable.getStorages().length) {
-                throw new IllegalArgumentException("Invalid fluid tank index: " + tankIndex);
-            }
             this.fluidHandler = notifiable.getStorages()[tankIndex];
             this.tankIndex = 0;
         } else {
-            validateTankIndex(fluidHandler, tankIndex);
             this.fluidHandler = fluidHandler;
             this.tankIndex = tankIndex;
         }
@@ -120,7 +116,6 @@ public class GTFluidSlotElement extends FluidSlot {
     }
 
     public GTFluidSlotElement setCycleFluidDisplay(CycleFluidEntryHandler handler, int tankIndex) {
-        validateTankIndex(handler, tankIndex);
         xeiFluids = () -> {
             var entry = handler.getEntry(tankIndex);
             return entry == null ? Stream.empty() : entry.getStacks().stream();
@@ -522,12 +517,6 @@ public class GTFluidSlotElement extends FluidSlot {
         } catch (IllegalArgumentException e) {
             GTCEu.LOGGER.error("Invalid GTM fluid slot fill direction '{}'", value, e);
             throw e;
-        }
-    }
-
-    private static void validateTankIndex(IFluidHandler fluidHandler, int tankIndex) {
-        if (tankIndex < 0 || tankIndex >= fluidHandler.getTanks()) {
-            throw new IllegalArgumentException("Invalid fluid tank index: " + tankIndex);
         }
     }
 }

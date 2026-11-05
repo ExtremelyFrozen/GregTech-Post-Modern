@@ -79,7 +79,6 @@ public class GTItemSlotElement extends ItemSlot {
 
     @Override
     public GTItemSlotElement bind(IItemHandlerModifiable itemHandlerModifiable, int index) {
-        validateSlotIndex(itemHandlerModifiable, index);
         var itemHandlerSlot = new CapacityAwareItemHandlerSlot(itemHandlerModifiable, index);
         configureItemHandlerSlot(itemHandlerSlot, true);
         super.bind(itemHandlerSlot);
@@ -103,7 +102,6 @@ public class GTItemSlotElement extends ItemSlot {
     }
 
     public GTItemSlotElement setCycleItemDisplay(CycleItemEntryHandler handler, int slotIndex) {
-        validateSlotIndex(handler, slotIndex);
         xeiStacks = () -> handler.getEntry(slotIndex).getStacks().stream()
                 .filter(itemStack -> !itemStack.isEmpty());
         return this;
@@ -455,14 +453,6 @@ public class GTItemSlotElement extends ItemSlot {
                 return itemCapacity.getMaxStackSizeForEmptySlot(slotIndex, stack);
             }
             return super.getMaxStackSize(stack);
-        }
-    }
-
-    private static void validateSlotIndex(IItemHandlerModifiable itemHandler, int slotIndex) {
-        if (slotIndex < 0 || slotIndex >= itemHandler.getSlots()) {
-            GTCEu.LOGGER.error("Invalid GTM item slot index {} for handler with {} slots",
-                    slotIndex, itemHandler.getSlots());
-            throw new IllegalArgumentException("Invalid item slot index: " + slotIndex);
         }
     }
 }

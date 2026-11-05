@@ -1,6 +1,5 @@
 package com.gregtechceu.gtceu.common.machine.storage;
 
-import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.GTValues;
 import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo;
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
@@ -18,7 +17,6 @@ import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.item.datacomponents.CreativeMachineInfo;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.ServerFieldChangeListener;
-import com.gregtechceu.gtceu.api.sync_system.annotations.ServerFieldNormalizer;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncBoth;
 import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
 import com.gregtechceu.gtceu.api.transfer.fluid.CustomFluidTank;
@@ -91,31 +89,14 @@ public class CreativeTankMachine extends QuantumTankMachine {
     }
 
     private void setTicksPerCycle(int ticksPerCycle) {
-        int normalizedTicksPerCycle = normalizeTicksPerCycle(ticksPerCycle);
-        this.ticksPerCycle = normalizedTicksPerCycle;
-        autoOutput.setTicksPerCycle(normalizedTicksPerCycle);
+        this.ticksPerCycle = ticksPerCycle;
+        autoOutput.setTicksPerCycle(ticksPerCycle);
         onFluidChanged();
     }
 
     private void setMillibucketsPerCycle(int mBPerCycle) {
-        this.mBPerCycle = normalizeMillibucketsPerCycle(mBPerCycle);
+        this.mBPerCycle = mBPerCycle;
         onFluidChanged();
-    }
-
-    @ServerFieldNormalizer(fieldName = "mBPerCycle")
-    private int normalizeMillibucketsPerCycle(int candidate) {
-        if (candidate <= 0) {
-            throw new IllegalArgumentException("Millibuckets per cycle must be positive: " + candidate);
-        }
-        return candidate;
-    }
-
-    @ServerFieldNormalizer(fieldName = "ticksPerCycle")
-    private int normalizeTicksPerCycle(int candidate) {
-        if (candidate <= 0) {
-            throw new IllegalArgumentException("Ticks per cycle must be positive: " + candidate);
-        }
-        return candidate;
     }
 
     @ServerFieldChangeListener(fieldName = "mBPerCycle")
@@ -294,8 +275,7 @@ public class CreativeTankMachine extends QuantumTankMachine {
         if (value.isEmpty()) {
             return;
         }
-        int parsedValue = parsePositiveInteger(value, "creative tank millibuckets per cycle");
-        setMillibucketsPerCycle(parsedValue);
+        setMillibucketsPerCycle(Integer.parseInt(value));
         if (isRemote()) {
             sendServerSyncChanges();
         }
@@ -305,8 +285,7 @@ public class CreativeTankMachine extends QuantumTankMachine {
         if (value.isEmpty()) {
             return;
         }
-        int parsedValue = parsePositiveInteger(value, "creative tank ticks per cycle");
-        setTicksPerCycle(parsedValue);
+        setTicksPerCycle(Integer.parseInt(value));
         if (isRemote()) {
             sendServerSyncChanges();
         }
@@ -316,19 +295,6 @@ public class CreativeTankMachine extends QuantumTankMachine {
         setWorkingEnabled(workingEnabled);
         if (isRemote()) {
             sendServerSyncChanges();
-        }
-    }
-
-    private static int parsePositiveInteger(String value, String fieldName) {
-        try {
-            int parsedValue = Integer.parseInt(value);
-            if (parsedValue <= 0) {
-                throw new IllegalArgumentException(fieldName + " must be positive: " + parsedValue);
-            }
-            return parsedValue;
-        } catch (NumberFormatException e) {
-            GTCEu.LOGGER.error("Invalid {} input: {}", fieldName, value, e);
-            throw e;
         }
     }
 

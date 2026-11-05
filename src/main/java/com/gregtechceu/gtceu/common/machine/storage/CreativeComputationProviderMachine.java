@@ -17,7 +17,6 @@ import com.gregtechceu.gtceu.api.machine.feature.IUIMachine;
 import com.gregtechceu.gtceu.api.machine.trait.DirectComputationPortTrait;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.ServerFieldChangeListener;
-import com.gregtechceu.gtceu.api.sync_system.annotations.ServerFieldNormalizer;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncBoth;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
 
@@ -227,15 +226,7 @@ public class CreativeComputationProviderMachine extends MetaMachine
     }
 
     private void setMaxCWUt(int maxCWUt) {
-        this.maxCWUt = normalizeMaxCWUt(maxCWUt);
-    }
-
-    @ServerFieldNormalizer(fieldName = "maxCWUt")
-    private int normalizeMaxCWUt(int maxCWUt) {
-        if (maxCWUt < 0) {
-            throw new IllegalArgumentException("Creative computation max CWUt cannot be negative.");
-        }
-        return maxCWUt;
+        this.maxCWUt = maxCWUt;
     }
 
     private void setLastRequestedCWUt(int lastRequestedCWUt) {

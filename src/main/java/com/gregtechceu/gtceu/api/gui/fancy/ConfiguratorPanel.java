@@ -76,9 +76,6 @@ public class ConfiguratorPanel extends UIElement {
     }
 
     public ConfiguratorPanel setBorder(int border) {
-        if (border < 0) {
-            throw new IllegalArgumentException("border must be non-negative");
-        }
         this.border = border;
         rebuildTabs();
         return this;

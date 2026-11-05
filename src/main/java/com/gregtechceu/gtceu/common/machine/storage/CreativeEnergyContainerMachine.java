@@ -18,7 +18,6 @@ import com.gregtechceu.gtceu.api.machine.TieredMachine;
 import com.gregtechceu.gtceu.api.machine.feature.IUIMachine;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.ServerFieldChangeListener;
-import com.gregtechceu.gtceu.api.sync_system.annotations.ServerFieldNormalizer;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncBoth;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
 import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
@@ -197,19 +196,7 @@ public class CreativeEnergyContainerMachine extends TieredMachine
     }
 
     private void setAmps(int amps) {
-        int normalizedAmps = normalizeAmps(amps);
-        if (this.amps == normalizedAmps) {
-            return;
-        }
-        this.amps = normalizedAmps;
-    }
-
-    @ServerFieldNormalizer(fieldName = "amps")
-    private int normalizeAmps(int amps) {
-        if (amps < 0) {
-            throw new IllegalArgumentException("Creative energy amperage cannot be negative.");
-        }
-        return amps;
+        this.amps = amps;
     }
 
     private void setActive(boolean active) {

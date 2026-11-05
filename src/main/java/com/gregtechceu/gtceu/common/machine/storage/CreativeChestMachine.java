@@ -1,6 +1,5 @@
 package com.gregtechceu.gtceu.common.machine.storage;
 
-import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.GTValues;
 import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo;
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
@@ -18,7 +17,6 @@ import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.item.datacomponents.CreativeMachineInfo;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.ServerFieldChangeListener;
-import com.gregtechceu.gtceu.api.sync_system.annotations.ServerFieldNormalizer;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncBoth;
 import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
 import com.gregtechceu.gtceu.common.data.GTDataComponents;
@@ -74,31 +72,14 @@ public class CreativeChestMachine extends QuantumChestMachine {
     }
 
     private void setTicksPerCycle(int ticksPerCycle) {
-        int normalizedTicksPerCycle = normalizeTicksPerCycle(ticksPerCycle);
-        this.ticksPerCycle = normalizedTicksPerCycle;
-        autoOutput.setTicksPerCycle(normalizedTicksPerCycle);
+        this.ticksPerCycle = ticksPerCycle;
+        autoOutput.setTicksPerCycle(ticksPerCycle);
         onItemChanged();
     }
 
     private void setItemsPerCycle(int itemsPerCycle) {
-        this.itemsPerCycle = normalizeItemsPerCycle(itemsPerCycle);
+        this.itemsPerCycle = itemsPerCycle;
         onItemChanged();
-    }
-
-    @ServerFieldNormalizer(fieldName = "itemsPerCycle")
-    private int normalizeItemsPerCycle(int candidate) {
-        if (candidate <= 0) {
-            throw new IllegalArgumentException("Items per cycle must be positive: " + candidate);
-        }
-        return candidate;
-    }
-
-    @ServerFieldNormalizer(fieldName = "ticksPerCycle")
-    private int normalizeTicksPerCycle(int candidate) {
-        if (candidate <= 0) {
-            throw new IllegalArgumentException("Ticks per cycle must be positive: " + candidate);
-        }
-        return candidate;
     }
 
     @ServerFieldChangeListener(fieldName = "itemsPerCycle")
@@ -246,8 +227,7 @@ public class CreativeChestMachine extends QuantumChestMachine {
         if (value.isEmpty()) {
             return;
         }
-        int parsedValue = parsePositiveInteger(value, "creative chest items per cycle");
-        setItemsPerCycle(parsedValue);
+        setItemsPerCycle(Integer.parseInt(value));
         if (isRemote()) {
             sendServerSyncChanges();
         }
@@ -257,8 +237,7 @@ public class CreativeChestMachine extends QuantumChestMachine {
         if (value.isEmpty()) {
             return;
         }
-        int parsedValue = parsePositiveInteger(value, "creative chest ticks per cycle");
-        setTicksPerCycle(parsedValue);
+        setTicksPerCycle(Integer.parseInt(value));
         if (isRemote()) {
             sendServerSyncChanges();
         }
@@ -268,19 +247,6 @@ public class CreativeChestMachine extends QuantumChestMachine {
         setWorkingEnabled(workingEnabled);
         if (isRemote()) {
             sendServerSyncChanges();
-        }
-    }
-
-    private static int parsePositiveInteger(String value, String fieldName) {
-        try {
-            int parsedValue = Integer.parseInt(value);
-            if (parsedValue <= 0) {
-                throw new IllegalArgumentException(fieldName + " must be positive: " + parsedValue);
-            }
-            return parsedValue;
-        } catch (NumberFormatException e) {
-            GTCEu.LOGGER.error("Invalid {} input: {}", fieldName, value, e);
-            throw e;
         }
     }
 

@@ -16,7 +16,6 @@ import com.gregtechceu.gtceu.api.recipe.GTRecipeType;
 import com.gregtechceu.gtceu.api.recipe.handler.RecipeHandlerList;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.ServerFieldChangeListener;
-import com.gregtechceu.gtceu.api.sync_system.annotations.ServerFieldNormalizer;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncBoth;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
 import com.gregtechceu.gtceu.client.model.machine.MachineRenderState;
@@ -349,14 +348,6 @@ public abstract class WorkableMultiblockMachine extends MultiblockControllerMach
         recipeLogic.updateTickSubscription();
     }
 
-    @ServerFieldNormalizer(fieldName = "activeRecipeType")
-    private int normalizeActiveRecipeType(int candidate) {
-        if (candidate < 0 || candidate >= recipeTypes.length) {
-            throw new IllegalArgumentException("Active recipe type index is out of range.");
-        }
-        return candidate;
-    }
-
     @ServerFieldChangeListener(fieldName = "activeRecipeType")
     private void onActiveRecipeTypeChanged(int oldIndex, int newIndex) {
         if (!keepSubscribing()) {
@@ -368,16 +359,6 @@ public abstract class WorkableMultiblockMachine extends MultiblockControllerMach
     public void setVoidingMode(VoidingMode mode) {
         voidingMode = mode;
         getRecipeLogic().updateTickSubscription();
-    }
-
-    @ServerFieldNormalizer(fieldName = "voidingMode")
-    private VoidingMode normalizeVoidingMode(VoidingMode candidate) {
-        for (VoidingMode allowed : VoidingMode.VALUES) {
-            if (allowed == candidate) {
-                return candidate;
-            }
-        }
-        throw new IllegalArgumentException("Unsupported voiding mode.");
     }
 
     @ServerFieldChangeListener(fieldName = "voidingMode")

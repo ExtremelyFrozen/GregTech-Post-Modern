@@ -19,7 +19,6 @@ import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler;
 import com.gregtechceu.gtceu.api.sync_system.annotations.RerenderOnChanged;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.ServerFieldChangeListener;
-import com.gregtechceu.gtceu.api.sync_system.annotations.ServerFieldNormalizer;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncBoth;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
 import com.gregtechceu.gtceu.api.transfer.item.CustomItemStackHandler;
@@ -306,21 +305,11 @@ public class ItemCollectorMachine extends TieredEnergyMachine
     }
 
     public void setRange(int range) {
-        int normalizedRange = normalizeRange(range);
-        if (this.range == normalizedRange) {
+        if (this.range == range) {
             return;
         }
-        this.range = normalizedRange;
+        this.range = range;
         invalidateCollectionBounds();
-    }
-
-    @ServerFieldNormalizer(fieldName = "range")
-    private int normalizeRange(int range) {
-        if (range < MIN_RANGE || range > maxRange) {
-            throw new IllegalArgumentException("Item collector range must be between " + MIN_RANGE + " and " +
-                    maxRange + ": " + range);
-        }
-        return range;
     }
 
     @ServerFieldChangeListener(fieldName = "range")

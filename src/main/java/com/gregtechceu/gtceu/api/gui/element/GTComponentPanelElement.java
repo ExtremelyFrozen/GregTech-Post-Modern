@@ -102,9 +102,6 @@ public class GTComponentPanelElement extends UIElement {
     }
 
     public GTComponentPanelElement setMaxWidthLimit(int maxWidthLimit) {
-        if (maxWidthLimit < 0) {
-            throw new IllegalArgumentException("maxWidthLimit must be non-negative");
-        }
         this.maxWidthLimit = maxWidthLimit;
         refreshDisplayText();
         return this;
@@ -117,9 +114,6 @@ public class GTComponentPanelElement extends UIElement {
     }
 
     public GTComponentPanelElement setSpace(int space) {
-        if (space < 0) {
-            throw new IllegalArgumentException("space must be non-negative");
-        }
         this.space = space;
         refreshDisplayText();
         return this;
