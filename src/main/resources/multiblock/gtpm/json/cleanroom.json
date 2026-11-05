@@ -205,10 +205,7 @@
 			"predicates": [
 				{
 					"type": "gtpm:block",
-					"ids": [
-						"gtpm:plascrete",
-						"gtpm:cleanroom_glass"
-					]
+					"ids": ["gtpm:plascrete", "gtpm:cleanroom_glass"]
 				},
 				{
 					"type": "gtpm:block_tag",
