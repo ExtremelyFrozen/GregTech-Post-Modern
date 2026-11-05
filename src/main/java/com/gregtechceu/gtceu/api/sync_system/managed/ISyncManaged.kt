@@ -128,5 +128,9 @@ interface ISyncManaged {
 				},
 			)
 		}
+
+		init {
+			FieldCodecs.registerContextual(ISyncManaged::class.java, CODEC)
+		}
 	}
 }
