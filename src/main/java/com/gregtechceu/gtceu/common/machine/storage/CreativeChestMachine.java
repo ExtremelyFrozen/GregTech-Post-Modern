@@ -82,15 +82,9 @@ public class CreativeChestMachine extends QuantumChestMachine {
         onItemChanged();
     }
 
-    @ServerFieldChangeListener(fieldName = "itemsPerCycle")
-    private void onItemsPerCycleChanged(int oldValue, int newValue) {
-        onItemChanged();
-    }
-
     @ServerFieldChangeListener(fieldName = "ticksPerCycle")
     private void onTicksPerCycleChanged(int oldValue, int newValue) {
         autoOutput.setTicksPerCycle(newValue);
-        onItemChanged();
     }
 
     @Override

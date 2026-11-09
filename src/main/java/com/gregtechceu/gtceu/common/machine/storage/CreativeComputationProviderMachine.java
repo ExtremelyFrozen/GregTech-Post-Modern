@@ -62,6 +62,7 @@ public class CreativeComputationProviderMachine extends MetaMachine
         updateComputationSubscription();
     }
 
+    @ServerFieldChangeListener(fieldName = "active")
     protected void updateComputationSubscription() {
         if (active) {
             this.computationSubs = subscribeServerTick(this::updateComputationTick);
@@ -118,11 +119,6 @@ public class CreativeComputationProviderMachine extends MetaMachine
             return;
         }
         this.active = active;
-        updateComputationSubscription();
-    }
-
-    @ServerFieldChangeListener(fieldName = "active")
-    private void onActiveChanged(boolean oldActive, boolean newActive) {
         updateComputationSubscription();
     }
 

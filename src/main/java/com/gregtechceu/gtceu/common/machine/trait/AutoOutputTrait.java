@@ -12,7 +12,6 @@ import com.gregtechceu.gtceu.api.machine.trait.feature.IRenderingTrait;
 import com.gregtechceu.gtceu.api.sync_system.annotations.RerenderOnChanged;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.ServerFieldChangeListener;
-import com.gregtechceu.gtceu.api.sync_system.annotations.ServerFieldNormalizer;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncBoth;
 import com.gregtechceu.gtceu.utils.ExtendedUseOnContext;
 import com.gregtechceu.gtceu.utils.GTTransferUtils;
@@ -221,60 +220,6 @@ public class AutoOutputTrait extends MachineTrait implements DirectionalAutoOutp
             this.autoOutputFluids = allow;
             updateFluidOutputSubscription();
         }
-    }
-
-    @ServerFieldNormalizer(fieldName = "autoOutputItems")
-    private boolean normalizeAutoOutputItems(boolean candidate) {
-        if (!supportsAutoOutputItems()) {
-            throw new IllegalArgumentException("Machine trait does not support item auto-output.");
-        }
-        return candidate;
-    }
-
-    @ServerFieldNormalizer(fieldName = "itemOutputDirection")
-    private @Nullable Direction normalizeItemOutputDirection(@Nullable Direction candidate) {
-        if (!supportsAutoOutputItems()) {
-            throw new IllegalArgumentException("Machine trait does not support item output directions.");
-        }
-        if (candidate != itemOutputDirection && !canSetItemOutputDirection(candidate)) {
-            throw new IllegalArgumentException("Machine trait rejected the item output direction.");
-        }
-        return candidate;
-    }
-
-    @ServerFieldNormalizer(fieldName = "fluidOutputDirection")
-    private @Nullable Direction normalizeFluidOutputDirection(@Nullable Direction candidate) {
-        if (!supportsAutoOutputFluids()) {
-            throw new IllegalArgumentException("Machine trait does not support fluid output directions.");
-        }
-        if (candidate != fluidOutputDirection && !canSetFluidOutputDirection(candidate)) {
-            throw new IllegalArgumentException("Machine trait rejected the fluid output direction.");
-        }
-        return candidate;
-    }
-
-    @ServerFieldNormalizer(fieldName = "autoOutputFluids")
-    private boolean normalizeAutoOutputFluids(boolean candidate) {
-        if (!supportsAutoOutputFluids()) {
-            throw new IllegalArgumentException("Machine trait does not support fluid auto-output.");
-        }
-        return candidate;
-    }
-
-    @ServerFieldNormalizer(fieldName = "allowItemInputFromOutputSide")
-    private boolean normalizeAllowItemInputFromOutputSide(boolean candidate) {
-        if (!supportsAutoOutputItems()) {
-            throw new IllegalArgumentException("Machine trait does not support item output-side input.");
-        }
-        return candidate;
-    }
-
-    @ServerFieldNormalizer(fieldName = "allowFluidInputFromOutputSide")
-    private boolean normalizeAllowFluidInputFromOutputSide(boolean candidate) {
-        if (!supportsAutoOutputFluids()) {
-            throw new IllegalArgumentException("Machine trait does not support fluid output-side input.");
-        }
-        return candidate;
     }
 
     @Override

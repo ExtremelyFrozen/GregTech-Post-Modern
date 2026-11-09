@@ -99,15 +99,9 @@ public class CreativeTankMachine extends QuantumTankMachine {
         onFluidChanged();
     }
 
-    @ServerFieldChangeListener(fieldName = "mBPerCycle")
-    private void onMillibucketsPerCycleChanged(int oldValue, int newValue) {
-        onFluidChanged();
-    }
-
     @ServerFieldChangeListener(fieldName = "ticksPerCycle")
     private void onTicksPerCycleChanged(int oldValue, int newValue) {
         autoOutput.setTicksPerCycle(newValue);
-        onFluidChanged();
     }
 
     @Override

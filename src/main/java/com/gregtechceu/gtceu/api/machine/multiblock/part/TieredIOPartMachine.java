@@ -35,14 +35,10 @@ public class TieredIOPartMachine extends TieredPartMachine implements IControlla
         onWorkingEnabledChanged();
     }
 
-    @ServerFieldChangeListener(fieldName = "workingEnabled")
-    private void onWorkingEnabledUpdatedByClient(boolean oldValue, boolean newValue) {
-        onWorkingEnabledChanged();
-    }
-
     /**
      * Rebuilds subclass runtime state after either a direct setter call or an accepted client update.
      */
+    @ServerFieldChangeListener(fieldName = "workingEnabled")
     protected void onWorkingEnabledChanged() {}
 
     //////////////////////////////////////

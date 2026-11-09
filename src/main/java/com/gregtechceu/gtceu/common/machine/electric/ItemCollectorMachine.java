@@ -313,10 +313,6 @@ public class ItemCollectorMachine extends TieredEnergyMachine
     }
 
     @ServerFieldChangeListener(fieldName = "range")
-    private void onRangeChanged(int oldRange, int newRange) {
-        invalidateCollectionBounds();
-    }
-
     protected void invalidateCollectionBounds() {
         rangeDirty = true;
     }

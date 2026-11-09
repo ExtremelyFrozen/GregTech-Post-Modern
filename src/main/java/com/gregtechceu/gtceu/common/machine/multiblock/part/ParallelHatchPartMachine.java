@@ -53,10 +53,6 @@ public class ParallelHatchPartMachine extends TieredPartMachine {
     }
 
     @ServerFieldChangeListener(fieldName = "currentParallel")
-    private void onCurrentParallelChanged(int oldParallel, int newParallel) {
-        markControllerRecipesDirty();
-    }
-
     protected void markControllerRecipesDirty() {
         for (MultiblockControllerMachine controller : this.getControllers()) {
             if (controller instanceof IRecipeLogicMachine rlm) {

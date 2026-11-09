@@ -211,15 +211,11 @@ public class CreativeEnergyContainerMachine extends TieredMachine
             return;
         }
         this.source = source;
-        applySourceMode(source);
+        applySourceMode();
     }
 
     @ServerFieldChangeListener(fieldName = "source")
-    private void onSourceChanged(boolean oldSource, boolean newSource) {
-        applySourceMode(newSource);
-    }
-
-    private void applySourceMode(boolean source) {
+    private void applySourceMode() {
         if (source) {
             this.voltage = 0;
             this.amps = 0;
