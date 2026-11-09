@@ -1,15 +1,21 @@
 package com.gregtechceu.gtceu.api.multiblock.autobuild.batch;
 
-import com.mojang.serialization.Codec;
+import net.minecraft.util.StringRepresentable;
+
+import java.util.Locale;
 
 /**
  * Selects whether one named structure is constructed or removed.
  */
-public enum StructureOperation {
+public enum StructureOperation implements StringRepresentable {
 
     BUILD,
     DEMOLISH;
 
-    public static final Codec<StructureOperation> CODEC = Codec.STRING.xmap(StructureOperation::valueOf,
-            StructureOperation::name);
+    public static final EnumCodec<StructureOperation> CODEC = StringRepresentable.fromEnum(StructureOperation::values);
+
+    @Override
+    public String getSerializedName() {
+        return name().toLowerCase(Locale.ROOT);
+    }
 }
