@@ -113,7 +113,7 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 				fullSync = false,
 			)
 			if (value != null) {
-				builder.put(itemFieldKey(field), value)
+				builder.put(field.componentKey, value)
 			}
 		}
 		return builder.build()
@@ -282,10 +282,10 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 
 	fun deserializeItemFieldData(registries: HolderLookup.Provider, fieldData: SyncFieldData) {
 		for (field in syncData.getItemSaveFields()) {
-			if (!fieldData.fields.containsKey(itemFieldKey(field))) {
+			if (!fieldData.fields.containsKey(field.componentKey)) {
 				continue
 			}
-			val savedValue = fieldData[itemFieldKey(field)]?.orElse(null)
+			val savedValue = fieldData[field.componentKey]?.orElse(null)
 			FieldSyncHandler.deserializeFieldData(registries, holder, field, savedValue, false)
 		}
 	}
@@ -621,9 +621,6 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 		Double::class.javaPrimitiveType -> Double::class.javaObjectType
 		else -> type
 	}
-
-	private fun itemFieldKey(field: FieldSyncData) = field.itemDataKey
-		?: throw IllegalArgumentException("Sync: @ItemSave field ${field.fieldName} has no item data component key")
 
 	private data class PendingServerFieldUpdate(val field: FieldSyncData, @field:Nullable val decodedCandidate: Any?, @field:Nullable var oldValue: Any? = null, @field:Nullable var normalizedCandidate: Any? = null)
 }

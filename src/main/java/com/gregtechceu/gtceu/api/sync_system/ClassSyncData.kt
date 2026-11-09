@@ -179,7 +179,7 @@ class ClassSyncData private constructor(clazz: Class<*>) {
 				serverSaveFields.add(syncData)
 			}
 			if (hasItemSave) {
-				checkDuplicateKey(localItemKeys, syncData.itemDataName, clazz, "item")
+				checkDuplicateKey(localItemKeys, syncData.nbtSaveKey, clazz, "item")
 				itemSaveFields.add(syncData)
 			}
 			if (hasServerSync) {

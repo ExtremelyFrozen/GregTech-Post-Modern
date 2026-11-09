@@ -6,7 +6,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Instructs the sync system to save and load this field to and from world data.
+ * Instructs the sync system to persist this field with its holder, including world data and item state.
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.FIELD)

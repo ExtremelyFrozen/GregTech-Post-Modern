@@ -27,7 +27,7 @@ import com.gregtechceu.gtceu.api.multiblock.preview.PreviewVisibility;
 import com.gregtechceu.gtceu.api.multiblock.preview.StructurePreview;
 import com.gregtechceu.gtceu.api.registry.GTRegistries;
 import com.gregtechceu.gtceu.api.sync_system.annotations.ClientFieldChangeListener;
-import com.gregtechceu.gtceu.api.sync_system.annotations.ItemSave;
+import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
 import com.gregtechceu.gtceu.api.sync_system.managed.ItemSyncHolder;
 import com.gregtechceu.gtceu.api.sync_system.managed.SyncItem;
@@ -82,18 +82,18 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
 
     @Getter
     @Setter
-    @ItemSave
+    @SaveField
     private @Nullable TerminalControllerBinding binding;
     @Getter
-    @ItemSave
+    @SaveField
     @SyncToClient
     private final Object2ObjectMap<ResourceLocation, BuildPolicy> policies = new Object2ObjectLinkedOpenHashMap<>();
     @Getter
-    @ItemSave
+    @SaveField
     @SyncToClient
     private final Object2ObjectMap<ResourceLocation, Object2ObjectMap<String, StructureRequest>> structures = new Object2ObjectLinkedOpenHashMap<>();
     @Getter
-    @ItemSave
+    @SaveField
     @SyncToClient
     private final Object2ObjectMap<ResourceLocation, ObjectSet<String>> included = new Object2ObjectLinkedOpenHashMap<>();
     @Getter

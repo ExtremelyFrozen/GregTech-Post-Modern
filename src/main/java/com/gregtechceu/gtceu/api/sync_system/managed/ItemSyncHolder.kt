@@ -18,7 +18,7 @@ abstract class ItemSyncHolder(val stack: ItemStack, val registries: RegistryAcce
 	override fun getSyncDataHolder(): SyncDataHolder = storage
 
 	fun saveToStack() {
-		val data = storage.serializeToItemFieldData(registries)
+		val data = storage.serializeToSaveFieldData(registries)
 		if (data == savedData) return
 		if (data.isEmpty()) {
 			stack.remove(GTDataComponents.ITEM_DATA)
@@ -30,7 +30,7 @@ abstract class ItemSyncHolder(val stack: ItemStack, val registries: RegistryAcce
 
 	fun loadFromStack() {
 		savedData = stack.get(GTDataComponents.ITEM_DATA) ?: SyncFieldData.EMPTY
-		storage.deserializeItemFieldData(registries, savedData)
+		storage.deserializeFieldData(registries, savedData, false)
 	}
 
 	override fun getParentSyncObject(): ISyncManaged? = null
