@@ -594,7 +594,7 @@ public class MEInputHatchPartMachine extends MEHatchPartMachine
         if (MEInputHatchPartMachine.this instanceof MEStockingHatchPartMachine stockingHatch) {
             configuratorPanel.attachConfigurators(
                     new MEFluidAutoPullConfigurator(stockingHatch, holder),
-                    new AutoStockingConfigurator(stockingHatch, holder));
+                    new AutoStockingConfigurator(stockingHatch));
         }
     }
 

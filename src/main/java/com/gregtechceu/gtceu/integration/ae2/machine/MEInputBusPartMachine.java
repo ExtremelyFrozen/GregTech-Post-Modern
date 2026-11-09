@@ -619,7 +619,7 @@ public class MEInputBusPartMachine extends MEBusPartMachine
         if (MEInputBusPartMachine.this instanceof MEStockingBusPartMachine stockingBus) {
             configuratorPanel.attachConfigurators(
                     new MEItemAutoPullConfigurator(stockingBus, holder),
-                    new AutoStockingConfigurator(stockingBus, holder));
+                    new AutoStockingConfigurator(stockingBus));
         }
     }
 

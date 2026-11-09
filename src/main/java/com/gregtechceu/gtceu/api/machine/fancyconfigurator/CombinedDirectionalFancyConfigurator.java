@@ -177,7 +177,7 @@ public final class CombinedDirectionalFancyConfigurator implements IFancyUIProvi
 
     boolean configureSelectedItemOutputSide() {
         Direction side = selectedSide;
-        if (side == null || !supportsItemOutput() || !canChangeSyncedFields()) {
+        if (side == null || !supportsItemOutput()) {
             return false;
         }
         if (output.getItemOutputDirection() == side) {
@@ -189,13 +189,12 @@ public final class CombinedDirectionalFancyConfigurator implements IFancyUIProvi
             output.setAllowAutoOutputItems(false);
             output.setItemOutputDirection(side);
         }
-        machine.sendServerSyncChanges();
         return true;
     }
 
     boolean configureSelectedFluidOutputSide() {
         Direction side = selectedSide;
-        if (side == null || !supportsFluidOutput() || !canChangeSyncedFields()) {
+        if (side == null || !supportsFluidOutput()) {
             return false;
         }
         if (output.getFluidOutputDirection() == side) {
@@ -207,22 +206,7 @@ public final class CombinedDirectionalFancyConfigurator implements IFancyUIProvi
             output.setAllowAutoOutputFluids(false);
             output.setFluidOutputDirection(side);
         }
-        machine.sendServerSyncChanges();
         return true;
-    }
-
-    void setAllowItemInputFromOutputSide(boolean allow) {
-        if (canChangeSyncedFields()) {
-            output.setAllowItemInputFromOutputSide(allow);
-            machine.sendServerSyncChanges();
-        }
-    }
-
-    void setAllowFluidInputFromOutputSide(boolean allow) {
-        if (canChangeSyncedFields()) {
-            output.setAllowFluidInputFromOutputSide(allow);
-            machine.sendServerSyncChanges();
-        }
     }
 
     OutputMode getItemOutputMode() {
@@ -247,7 +231,7 @@ public final class CombinedDirectionalFancyConfigurator implements IFancyUIProvi
         controls.addChild(new ItemOutputModeButton());
         controls.addChild(new GTToggleButtonElement(CONTROL_SIZE + CONTROL_GAP, 0, CONTROL_SIZE, CONTROL_SIZE,
                 GuiTextures.BUTTON_ITEM_OUTPUT,
-                output::allowsItemInputFromOutputSide, this::setAllowItemInputFromOutputSide)
+                output::allowsItemInputFromOutputSide, output::setAllowItemInputFromOutputSide)
                 .setShouldUseBaseBackground()
                 .setTooltipText("gtpm.gui.item_auto_output.allow_input"));
         return controls;
@@ -263,7 +247,7 @@ public final class CombinedDirectionalFancyConfigurator implements IFancyUIProvi
         controls.addChild(new FluidOutputModeButton());
         controls.addChild(new GTToggleButtonElement(CONTROL_SIZE + CONTROL_GAP, 0, CONTROL_SIZE, CONTROL_SIZE,
                 GuiTextures.BUTTON_FLUID_OUTPUT,
-                output::allowsFluidInputFromOutputSide, this::setAllowFluidInputFromOutputSide)
+                output::allowsFluidInputFromOutputSide, output::setAllowFluidInputFromOutputSide)
                 .setShouldUseBaseBackground()
                 .setTooltipText("gtpm.gui.fluid_auto_output.allow_input"));
         return controls;
@@ -279,10 +263,6 @@ public final class CombinedDirectionalFancyConfigurator implements IFancyUIProvi
         UITemplate.setBounds(coverSlot, CONTROL_SIZE + CONTROL_GAP, 0, CONTROL_SIZE, CONTROL_SIZE);
         controls.addChild(coverSlot);
         return controls;
-    }
-
-    private boolean canChangeSyncedFields() {
-        return machine.isRemote();
     }
 
     private boolean supportsItemOutput() {

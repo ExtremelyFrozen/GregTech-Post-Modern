@@ -18,7 +18,7 @@ import java.util.function.BooleanSupplier;
  * LDLib2 Fancy configurator helper for common auto-output item and fluid toggles.
  *
  * <p>
- * The buttons update the client field and flush GTM annotation sync; they do not use LDLib2-owned business state.
+ * The buttons update the client fields; the owning UI synchronizes their changes.
  */
 public final class AutoOutputConfigurator {
 
@@ -30,17 +30,14 @@ public final class AutoOutputConfigurator {
     public static void attachConfigurators(ConfiguratorPanel configuratorPanel,
                                            AutoOutputMachine autoOutputMachine) {
         if (autoOutputMachine.supportsAutoOutputFluids()) {
-            configuratorPanel.attachConfigurators(createAutoOutputFluidConfigurator(configuratorPanel,
-                    autoOutputMachine));
+            configuratorPanel.attachConfigurators(createAutoOutputFluidConfigurator(autoOutputMachine));
         }
         if (autoOutputMachine.supportsAutoOutputItems()) {
-            configuratorPanel.attachConfigurators(createAutoOutputItemConfigurator(configuratorPanel,
-                    autoOutputMachine));
+            configuratorPanel.attachConfigurators(createAutoOutputItemConfigurator(autoOutputMachine));
         }
     }
 
     static IFancyConfiguratorButton.Toggle createAutoOutputFluidConfigurator(
-                                                                             ConfiguratorPanel panel,
                                                                              AutoOutputMachine autoOutputMachine) {
         return createAutoOutputConfigurator(
                 GuiTextures.group(
@@ -52,18 +49,13 @@ public final class AutoOutputConfigurator {
                 autoOutputMachine::isAutoOutputFluids,
                 "gtpm.gui.fluid_auto_output",
                 (event, enabled) -> {
-                    var machine = panel.getHolder().getMachine();
-                    if (machine != null && machine.isRemote()) {
-                        autoOutputMachine.setAllowAutoOutputFluids(enabled);
-                        machine.sendServerSyncChanges();
-                        event.stopImmediatePropagation();
-                        event.hasHandler = true;
-                    }
+                    autoOutputMachine.setAllowAutoOutputFluids(enabled);
+                    event.stopImmediatePropagation();
+                    event.hasHandler = true;
                 });
     }
 
     static IFancyConfiguratorButton.Toggle createAutoOutputItemConfigurator(
-                                                                            ConfiguratorPanel panel,
                                                                             AutoOutputMachine autoOutputMachine) {
         return createAutoOutputConfigurator(
                 GuiTextures.group(
@@ -75,13 +67,9 @@ public final class AutoOutputConfigurator {
                 autoOutputMachine::isAutoOutputItems,
                 "gtpm.gui.item_auto_output",
                 (event, enabled) -> {
-                    var machine = panel.getHolder().getMachine();
-                    if (machine != null && machine.isRemote()) {
-                        autoOutputMachine.setAllowAutoOutputItems(enabled);
-                        machine.sendServerSyncChanges();
-                        event.stopImmediatePropagation();
-                        event.hasHandler = true;
-                    }
+                    autoOutputMachine.setAllowAutoOutputItems(enabled);
+                    event.stopImmediatePropagation();
+                    event.hasHandler = true;
                 });
     }
 

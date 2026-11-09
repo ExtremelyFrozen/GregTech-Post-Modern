@@ -15,7 +15,7 @@ import java.util.List;
  * LDLib2 Fancy configurator helper for multiblock distinct bus mode.
  *
  * <p>
- * The button updates the annotated distinct field on the client and flushes the owning machine's field changes.
+ * The button updates the annotated distinct field; the owning UI synchronizes the change.
  */
 public final class DistinctPartConfigurator {
 
@@ -25,24 +25,19 @@ public final class DistinctPartConfigurator {
      * Attaches a distinct part toggle to a migrated LDLib2 Fancy configurator panel.
      */
     public static void attachConfigurators(ConfiguratorPanel configuratorPanel, DistinctPart part) {
-        configuratorPanel.attachConfigurators(createDistinctConfigurator(configuratorPanel, part));
+        configuratorPanel.attachConfigurators(createDistinctConfigurator(part));
     }
 
     static IFancyConfiguratorButton.Toggle createDistinctConfigurator(
-                                                                      ConfiguratorPanel configuratorPanel,
                                                                       DistinctPart part) {
         return new IFancyConfiguratorButton.Toggle(
                 GuiTextures.BUTTON_DISTINCT_BUSES.getSubTexture(0, 0.5, 1, 0.5),
                 GuiTextures.BUTTON_DISTINCT_BUSES.getSubTexture(0, 0, 1, 0.5),
                 part::isDistinct,
                 (event, pressed) -> {
-                    var machine = configuratorPanel.getHolder().getMachine();
-                    if (machine != null && machine.isRemote()) {
-                        part.setDistinct(pressed);
-                        machine.sendServerSyncChanges();
-                        event.stopImmediatePropagation();
-                        event.hasHandler = true;
-                    }
+                    part.setDistinct(pressed);
+                    event.stopImmediatePropagation();
+                    event.hasHandler = true;
                 })
                 .setTooltipsSupplier(pressed -> List.of(
                         Component.translatable("gtpm.multiblock.universal.distinct")

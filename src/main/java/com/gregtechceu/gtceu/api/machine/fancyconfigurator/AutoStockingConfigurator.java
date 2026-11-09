@@ -4,7 +4,6 @@ import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTIntInputElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyConfigurator;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.common.data.GTItems;
@@ -22,7 +21,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
  * LDLib2 Fancy page for advanced auto-stocking item and fluid thresholds.
  *
  * <p>
- * The page updates managed machine fields and flushes their pending client-to-server changes.
+ * The page updates managed fields; the owning UI synchronizes their changes.
  */
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
@@ -32,14 +31,12 @@ public final class AutoStockingConfigurator implements IFancyConfigurator {
     private static final int CONFIGURATOR_HEIGHT = 70;
 
     private final AutoStockingPart machine;
-    private final MachineUIHolder holder;
 
     /**
-     * Creates an advanced auto-stocking configurator bound to the opened machine holder.
+     * Creates an advanced auto-stocking configurator for the machine's annotated fields.
      */
-    public AutoStockingConfigurator(AutoStockingPart machine, MachineUIHolder holder) {
+    public AutoStockingConfigurator(AutoStockingPart machine) {
         this.machine = machine;
-        this.holder = holder;
     }
 
     @Override
@@ -65,7 +62,7 @@ public final class AutoStockingConfigurator implements IFancyConfigurator {
                 "gtpm.gui.title.adv_stocking_config." + suffix, true));
 
         GTIntInputElement minStackSizeInput = new GTIntInputElement(4, 12, 81, 14, machine::getMinStackSize,
-                this::setMinStackSize);
+                machine::setMinStackSize);
         minStackSizeInput.setMin(1);
         minStackSizeInput.style(style -> style.tooltips(Component.translatable(
                 "gtpm.gui.adv_stocking_config." + suffix)));
@@ -75,7 +72,7 @@ public final class AutoStockingConfigurator implements IFancyConfigurator {
                 "gtpm.gui.title.adv_stocking_config.ticks_per_cycle", true));
 
         GTIntInputElement ticksPerCycleInput = new GTIntInputElement(4, 46, 81, 14, machine::getTicksPerCycle,
-                this::setTicksPerCycle);
+                machine::setTicksPerCycle);
         ticksPerCycleInput.setMin(ConfigHolder.INSTANCE.compat.ae2.updateIntervals);
         ticksPerCycleInput.style(style -> style.tooltips(Component.translatable(
                 "gtpm.gui.adv_stocking_config.ticks_per_cycle")));
@@ -92,21 +89,5 @@ public final class AutoStockingConfigurator implements IFancyConfigurator {
     @Override
     public int getConfiguratorHeight() {
         return CONFIGURATOR_HEIGHT;
-    }
-
-    public void setMinStackSize(int value) {
-        machine.setMinStackSize(value);
-        var currentMachine = holder.getMachine();
-        if (currentMachine != null && currentMachine.isRemote()) {
-            currentMachine.sendServerSyncChanges();
-        }
-    }
-
-    public void setTicksPerCycle(int value) {
-        machine.setTicksPerCycle(value);
-        var currentMachine = holder.getMachine();
-        if (currentMachine != null && currentMachine.isRemote()) {
-            currentMachine.sendServerSyncChanges();
-        }
     }
 }

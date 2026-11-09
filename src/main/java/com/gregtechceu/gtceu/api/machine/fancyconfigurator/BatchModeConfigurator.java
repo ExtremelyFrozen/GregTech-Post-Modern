@@ -13,7 +13,7 @@ import java.util.List;
  * LDLib2 Fancy configurator helper for multiblock batch mode.
  *
  * <p>
- * The button updates the client field and flushes GTM annotation sync.
+ * The button updates the client field; the owning UI synchronizes the change.
  */
 public final class BatchModeConfigurator {
 
@@ -28,24 +28,19 @@ public final class BatchModeConfigurator {
             return;
         }
 
-        configuratorPanel.attachConfigurators(createBatchModeConfigurator(configuratorPanel, machine));
+        configuratorPanel.attachConfigurators(createBatchModeConfigurator(machine));
     }
 
     static IFancyConfiguratorButton.Toggle createBatchModeConfigurator(
-                                                                       ConfiguratorPanel configuratorPanel,
                                                                        BatchModeMachine machine) {
         return new IFancyConfiguratorButton.Toggle(
                 GuiTextures.BUTTON_BATCH.getSubTexture(0, 0, 1, 0.5),
                 GuiTextures.BUTTON_BATCH.getSubTexture(0, 0.5, 1, 0.5),
                 machine::isBatchEnabled,
                 (event, pressed) -> {
-                    var openedMachine = configuratorPanel.getHolder().getMachine();
-                    if (openedMachine != null && openedMachine.isRemote()) {
-                        machine.setBatchEnabled(pressed);
-                        openedMachine.sendServerSyncChanges();
-                        event.stopImmediatePropagation();
-                        event.hasHandler = true;
-                    }
+                    machine.setBatchEnabled(pressed);
+                    event.stopImmediatePropagation();
+                    event.hasHandler = true;
                 })
                 .setTooltipsSupplier(pressed -> List.of(Component.translatable(
                         "gtpm.machine.batch_" + (pressed ? "enabled" : "disabled"))));

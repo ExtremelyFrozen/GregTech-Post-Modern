@@ -13,7 +13,6 @@ import com.gregtechceu.gtceu.api.machine.feature.IRecipeLogicMachine;
 import com.gregtechceu.gtceu.common.data.GTItems;
 
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
-import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 
 import net.minecraft.network.chat.Component;
 
@@ -23,7 +22,7 @@ import java.util.List;
  * LDLib2 Fancy page for selecting the active recipe type of a recipe logic machine.
  *
  * <p>
- * The page updates the client-side sync field and flushes it through the GTM machine sync channel.
+ * The page updates the client field; the owning UI synchronizes the change.
  */
 public class MachineModeFancyConfigurator implements IFancyUIProvider {
 
@@ -55,7 +54,11 @@ public class MachineModeFancyConfigurator implements IFancyUIProvider {
             int activeRecipeType = index;
             int y = BUTTON_Y + index * BUTTON_HEIGHT;
             GTButtonElement button = new GTButtonElement(BUTTON_X, y, BUTTON_WIDTH, BUTTON_HEIGHT, IGuiTexture.EMPTY,
-                    event -> onModeClicked(shell, activeRecipeType, event));
+                    event -> {
+                        machine.setActiveRecipeType(activeRecipeType);
+                        event.stopImmediatePropagation();
+                        event.hasHandler = true;
+                    });
             button.noText();
             root.addChild(button);
 
@@ -115,15 +118,5 @@ public class MachineModeFancyConfigurator implements IFancyUIProvider {
                 GuiTextures.text(machine.getRecipeTypes()[activeRecipeType].getTranslationKey())
                         .setWidth(BUTTON_WIDTH)
                         .setType(TextTexture.TextType.ROLL));
-    }
-
-    private void onModeClicked(FancyMachineUIWidget shell, int activeRecipeType, UIEvent event) {
-        var openedMachine = shell.getHolder().getMachine();
-        if (openedMachine == machine.self() && openedMachine.isRemote()) {
-            machine.setActiveRecipeType(activeRecipeType);
-            openedMachine.sendServerSyncChanges();
-            event.stopImmediatePropagation();
-            event.hasHandler = true;
-        }
     }
 }
