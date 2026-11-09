@@ -282,34 +282,17 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 
 	fun deserializeItemFieldData(registries: HolderLookup.Provider, fieldData: SyncFieldData) {
 		for (field in syncData.getItemSaveFields()) {
-			if (!fieldData.fields.containsKey(field.componentKey)) {
-				continue
-			}
-			val savedValue = fieldData[field.componentKey]?.orElse(null)
+			val savedValue = (fieldData[field.componentKey] ?: continue).orElse(null)
 			FieldSyncHandler.deserializeFieldData(registries, holder, field, savedValue, false)
 		}
 	}
 
 	@JvmOverloads
 	fun deserializeFieldData(registries: HolderLookup.Provider, fieldData: SyncFieldData, readingClientFields: Boolean, parseExplicitNull: Boolean = false, fullSync: Boolean = false, notifyUnchangedOnFullSync: Boolean = true) {
-		deserializeFieldDataInternal(
-			registries,
-			fieldData,
-			readingClientFields,
-			parseExplicitNull,
-			fullSync,
-			notifyUnchangedOnFullSync,
-		)
-	}
-
-	private fun deserializeFieldDataInternal(registries: HolderLookup.Provider, fieldData: SyncFieldData, readingClientFields: Boolean, parseExplicitNull: Boolean, fullSync: Boolean, notifyUnchangedOnFullSync: Boolean) {
 		val fieldsToCheck = if (readingClientFields) syncData.getClientSyncFields() else syncData.getServerSaveFields()
-		val changedClientFields = ArrayList<FieldSyncData>()
+		val changedClientFields = ObjectArrayList<FieldSyncData>()
 		for (field in fieldsToCheck) {
-			if (!fieldData.fields.containsKey(field.componentKey)) {
-				continue
-			}
-			val savedValue = fieldData[field.componentKey]?.orElse(null)
+			val savedValue = (fieldData[field.componentKey] ?: continue).orElse(null)
 			val previousClientValue = if (readingClientFields) {
 				snapshotClientValue(field.handle.get(holder))
 			} else {
@@ -366,41 +349,32 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 	fun tryApplyServerNetworkUpdate(registries: RegistryAccess, changes: SyncFieldData): ServerFieldUpdateResult {
 		if (changes.isEmpty()) return ServerFieldUpdateResult.accepted(false)
 
-		val serverFields = syncData.getOrderedServerUpdateFields()
-		val selectedFields = serverFields.filter { field -> changes.fields.containsKey(field.componentKey) }
-		val selectedKeys = selectedFields.mapTo(HashSet()) { field -> field.componentKey }
-		val rejectedKeys = changes.fields.keys.filterNot(selectedKeys::contains)
-		if (rejectedKeys.isNotEmpty()) {
+		val selectedFields = syncData.getOrderedServerUpdateFields().filter { field -> changes.fields.containsKey(field.componentKey) }
+		if (selectedFields.size != changes.fields.size) {
+			val selectedKeys = selectedFields.mapTo(ObjectOpenHashSet()) { field -> field.componentKey }
+			val rejectedKeys = changes.fields.keys.filterNot(selectedKeys::contains)
 			requestAuthoritativeServerAcks(selectedFields)
 			return ServerFieldUpdateResult.rejected(
 				"Sync: Server field update contains unknown or non-server-updatable fields: ${rejectedKeys.sortedBy { key -> key.toString() }}",
 			)
 		}
-		if (selectedFields.isEmpty()) {
-			return ServerFieldUpdateResult.rejected("Sync: Server field update contains no server-updatable fields")
-		}
-
-		val pendingUpdates = ArrayList<PendingServerFieldUpdate>(selectedFields.size)
+		val pendingUpdates = ObjectArrayList<PendingServerFieldUpdate>(selectedFields.size)
 		try {
-			// Decode every candidate without consulting or mutating the holder.
+			// Decode and snapshot the complete batch before running any normalizer.
 			for (field in selectedFields) {
 				val encodedValue = changes[field.componentKey]?.orElse(null)
-				val candidate = FieldSyncHandler.decodeDetachedServerCandidate(registries, holder, field, encodedValue)
-				pendingUpdates.add(PendingServerFieldUpdate(field, candidate))
-			}
-
-			// Snapshot every old value before a normalizer is allowed to run.
-			for (update in pendingUpdates) {
-				update.oldValue = update.field.handle.get(holder)
-				validateServerCandidateType(update.field, update.decodedCandidate)
+				pendingUpdates.add(
+					PendingServerFieldUpdate(
+						field,
+						field.handle.get(holder),
+						FieldSyncHandler.decodeDetachedServerCandidate(registries, field, encodedValue),
+					),
+				)
 			}
 
 			// Normalize the complete decoded batch before committing any field.
 			for (update in pendingUpdates) {
-				update.normalizedCandidate = normalizeServerCandidate(update)
-			}
-			for ((field, _, _, normalizedCandidate) in pendingUpdates) {
-				validateServerCandidateType(field, normalizedCandidate)
+				update.candidate = normalizeServerCandidate(update)
 			}
 
 			commitServerUpdates(pendingUpdates)
@@ -412,9 +386,10 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 		}
 
 		requestAuthoritativeServerAcks(selectedFields)
-		val changed = pendingUpdates.any { update -> update.oldValue != update.normalizedCandidate }
+		var changed = false
 		for (update in pendingUpdates) {
-			if (update.oldValue != update.normalizedCandidate) {
+			if (update.oldValue != update.candidate) {
+				changed = true
 				invokeServerChangeListener(update)
 			}
 		}
@@ -423,39 +398,7 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 
 	@JvmOverloads
 	fun applyClientNetworkUpdate(registries: RegistryAccess, changes: SyncFieldData, fullSync: Boolean = false, notifyUnchangedOnFullSync: Boolean = true) {
-		val changedClientFields = ArrayList<FieldSyncData>()
-		for (field in syncData.getClientSyncFields()) {
-			if (!changes.fields.containsKey(field.componentKey)) {
-				continue
-			}
-			val value = changes[field.componentKey]?.orElse(null)
-			val previousValue = snapshotClientValue(field.handle.get(holder))
-			FieldSyncHandler.deserializeFieldData(
-				registries,
-				holder,
-				field,
-				value,
-				true,
-				parseExplicitNull = true,
-				fullSync = fullSync,
-				notifyUnchangedOnFullSync = notifyUnchangedOnFullSync,
-			)
-			val currentValue = field.handle.get(holder)
-			cachedClientValues[field] = currentValue
-			cachedClientData[field] = value?.value
-			if (field.hasSyncBoth) {
-				cachedServerData[field] = value?.value
-			}
-			if (shouldNotifyClientField(field, previousValue, currentValue, fullSync, notifyUnchangedOnFullSync)) {
-				changedClientFields.add(field)
-			}
-		}
-		notifyClientFields(changedClientFields)
-		if (fullSync) {
-			resyncAll = false
-			dirtySyncFields.clear()
-			pendingClientChanges = null
-		}
+		deserializeFieldData(registries, changes, readingClientFields = true, parseExplicitNull = true, fullSync, notifyUnchangedOnFullSync)
 	}
 
 	private fun snapshotClientValue(value: Any?): Any? = when (value) {
@@ -498,9 +441,6 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 		previous is LongArray && current is LongArray -> previous.contentEquals(current)
 		previous is FloatArray && current is FloatArray -> previous.contentEquals(current)
 		previous is DoubleArray && current is DoubleArray -> previous.contentEquals(current)
-		previous is Map<*, *> && current is Map<*, *> -> previous == current
-		previous is Set<*> && current is Set<*> -> previous == current
-		previous is Collection<*> && current is Collection<*> -> previous == current
 		else -> previous == current
 	}
 
@@ -530,9 +470,9 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 	}
 
 	private fun normalizeServerCandidate(update: PendingServerFieldUpdate): Any? {
-		val normalizer = update.field.serverNormalizerHandle ?: return update.decodedCandidate
+		val normalizer = update.field.serverNormalizerHandle ?: return update.candidate
 		return try {
-			normalizer.invoke(holder, update.decodedCandidate)
+			normalizer.invoke(holder, update.candidate)
 		} catch (e: Throwable) {
 			throw IllegalArgumentException(
 				"Sync: Server normalizer rejected field ${update.field.fieldName} of type ${update.field.type}",
@@ -541,28 +481,11 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 		}
 	}
 
-	private fun validateServerCandidateType(field: FieldSyncData, @Nullable candidate: Any?) {
-		val fieldType = field.handle.varType()
-		if (candidate == null) {
-			if (fieldType.isPrimitive) {
-				throw IllegalArgumentException(
-					"Sync: Server candidate for primitive field ${field.fieldName} of type ${field.type} was null",
-				)
-			}
-			return
-		}
-		if (!boxedType(fieldType).isInstance(candidate)) {
-			throw IllegalArgumentException(
-				"Sync: Server candidate for field ${field.fieldName} expected ${fieldType.typeName} but decoded ${candidate.javaClass.name}",
-			)
-		}
-	}
-
 	private fun commitServerUpdates(updates: List<PendingServerFieldUpdate>) {
 		var committed = 0
 		try {
-			for ((field, _, _, normalizedCandidate) in updates) {
-				field.handle.set(holder, normalizedCandidate)
+			for ((field, _, candidate) in updates) {
+				field.handle.set(holder, candidate)
 				committed++
 			}
 		} catch (e: Throwable) {
@@ -599,7 +522,7 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 	private fun invokeServerChangeListener(update: PendingServerFieldUpdate) {
 		val listener = update.field.serverChangeListenerHandle ?: return
 		try {
-			listener.invoke(holder, update.oldValue, update.normalizedCandidate)
+			listener.invoke(holder, update.oldValue, update.candidate)
 		} catch (e: Throwable) {
 			GTCEu.LOGGER.error(
 				"Sync: Error while invoking server change listener for field {} of type {}",
@@ -610,17 +533,5 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 		}
 	}
 
-	private fun boxedType(type: Class<*>): Class<*> = when (type) {
-		Boolean::class.javaPrimitiveType -> Boolean::class.javaObjectType
-		Byte::class.javaPrimitiveType -> Byte::class.javaObjectType
-		Char::class.javaPrimitiveType -> Char::class.javaObjectType
-		Short::class.javaPrimitiveType -> Short::class.javaObjectType
-		Int::class.javaPrimitiveType -> Int::class.javaObjectType
-		Long::class.javaPrimitiveType -> Long::class.javaObjectType
-		Float::class.javaPrimitiveType -> Float::class.javaObjectType
-		Double::class.javaPrimitiveType -> Double::class.javaObjectType
-		else -> type
-	}
-
-	private data class PendingServerFieldUpdate(val field: FieldSyncData, @field:Nullable val decodedCandidate: Any?, @field:Nullable var oldValue: Any? = null, @field:Nullable var normalizedCandidate: Any? = null)
+	private data class PendingServerFieldUpdate(val field: FieldSyncData, @field:Nullable val oldValue: Any?, @field:Nullable var candidate: Any?)
 }

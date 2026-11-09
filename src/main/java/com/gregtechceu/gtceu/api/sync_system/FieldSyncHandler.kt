@@ -9,8 +9,6 @@ import com.mojang.serialization.Codec
 import com.mojang.serialization.Dynamic
 import org.jetbrains.annotations.ApiStatus
 
-import java.lang.invoke.VarHandle
-
 @ApiStatus.Internal
 object FieldSyncHandler {
 	@JvmStatic
@@ -21,7 +19,7 @@ object FieldSyncHandler {
 	}
 
 	@JvmStatic
-	fun decodeDetachedServerCandidate(registries: HolderLookup.Provider, holder: Any, field: FieldSyncData, savedValue: Dynamic<*>?): Any? = decode(registries, ordinaryCodec(field), savedValue)
+	fun decodeDetachedServerCandidate(registries: HolderLookup.Provider, field: FieldSyncData, savedValue: Dynamic<*>?): Any? = decode(registries, ordinaryCodec(field), savedValue)
 
 	@JvmStatic
 	fun encodeDetachedServerCandidate(registries: HolderLookup.Provider, holder: Any, field: FieldSyncData): Dynamic<*>? {
@@ -45,9 +43,6 @@ object FieldSyncHandler {
 		}
 		if (result === current) return
 		if (current != null && result != null && CollectionCodecs.update(current, result)) return
-		if (!field.handle.isAccessModeSupported(VarHandle.AccessMode.SET)) {
-			throw IllegalStateException("Sync: cannot replace final field ${field.fieldName}")
-		}
 		field.handle.set(holder, result)
 	}
 
