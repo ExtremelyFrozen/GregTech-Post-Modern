@@ -6155,6 +6155,8 @@
 	"gtpm.multiblock.configuration.fullscreen": "全屏",
 	"gtpm.multiblock.configuration.compact": "紧凑视图",
 	"gtpm.multiblock.configuration.select": "等级与尺寸",
+	"gtpm.multiblock.configuration.edit": "选择方块",
+	"gtpm.multiblock.configuration.dimension": "%s：%s",
 	"gtpm.multiblock.ability.import_items": "物品输入",
 	"gtpm.multiblock.ability.export_items": "物品输出",
 	"gtpm.multiblock.ability.import_fluids": "流体输入",

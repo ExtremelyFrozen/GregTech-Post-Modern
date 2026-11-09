@@ -4,10 +4,8 @@ import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.GTValues;
 import com.gregtechceu.gtceu.api.cosmetics.event.RegisterGTCapesEvent;
 import com.gregtechceu.gtceu.api.gui.factory.UIRegistry;
-import com.gregtechceu.gtceu.api.gui.widget.MultiblockPreviewPanel;
 import com.gregtechceu.gtceu.api.item.IComponentItem;
 import com.gregtechceu.gtceu.api.item.IGTTool;
-import com.gregtechceu.gtceu.client.gui.ClientMultiblockPreviewElement;
 import com.gregtechceu.gtceu.client.model.item.FacadeUnbakedModel;
 import com.gregtechceu.gtceu.client.model.machine.MachineModelLoader;
 import com.gregtechceu.gtceu.client.model.pipe.PipeModel;
@@ -77,13 +75,6 @@ import org.jetbrains.annotations.NotNull;
 public class ClientProxy {
 
     public static void init(IEventBus modBus) {
-        MultiblockPreviewPanel.registerClientFactory(context -> {
-            ClientMultiblockPreviewElement element = new ClientMultiblockPreviewElement(
-                    context.width(), context.height(), context.state(), context.showAvailability());
-            context.installUpdater().accept(element::previewChanged);
-            context.installResize().accept(element::resize);
-            return element;
-        });
         modBus.register(ClientProxy.class);
         if (!GTCEu.isDataGen()) {
             ClientCacheManager.registerClientCache(GTClientCache.instance, GTCEu.MOD_ID);

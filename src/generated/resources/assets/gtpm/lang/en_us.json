@@ -6168,6 +6168,8 @@
     "gtpm.multiblock.configuration.fullscreen": "Full screen",
     "gtpm.multiblock.configuration.compact": "Compact view",
 	"gtpm.multiblock.configuration.select": "Tiers and dimensions",
+	"gtpm.multiblock.configuration.edit": "Choose blocks",
+	"gtpm.multiblock.configuration.dimension": "%s: %s",
     "gtpm.multiblock.ability.import_items": "Item input",
     "gtpm.multiblock.ability.export_items": "Item output",
     "gtpm.multiblock.ability.import_fluids": "Fluid input",

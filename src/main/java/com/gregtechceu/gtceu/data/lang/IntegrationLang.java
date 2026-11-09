@@ -112,6 +112,8 @@ public class IntegrationLang {
         provider.add("gtpm.multiblock.configuration.fullscreen", "Full screen");
         provider.add("gtpm.multiblock.configuration.compact", "Compact view");
         provider.add("gtpm.multiblock.configuration.select", "Tiers and dimensions");
+        provider.add("gtpm.multiblock.configuration.edit", "Choose blocks");
+        provider.add("gtpm.multiblock.configuration.dimension", "%s: %s");
         provider.add("gtpm.multiblock.ability.import_items", "Item input");
         provider.add("gtpm.multiblock.ability.export_items", "Item output");
         provider.add("gtpm.multiblock.ability.import_fluids", "Fluid input");

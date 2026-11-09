@@ -9,13 +9,13 @@ import com.gregtechceu.gtceu.api.gui.element.GTButtonElement;
 import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTSceneElement;
+import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.multiblock.MultiblockBlockInfo;
 import com.gregtechceu.gtceu.api.multiblock.MultiblockPreviewLevel;
 import com.gregtechceu.gtceu.api.multiblock.preview.PreviewVisibility;
 import com.gregtechceu.gtceu.api.multiblock.preview.StructurePreview;
 import com.gregtechceu.gtceu.api.multiblock.preview.StructurePreview.Cell;
 import com.gregtechceu.gtceu.api.multiblock.util.RelativeDirection;
-import com.gregtechceu.gtceu.common.item.terminal.ui.StructureControls;
 import com.gregtechceu.gtceu.integration.xei.GTXEIHelper;
 import com.gregtechceu.gtceu.integration.xei.handlers.item.CycleItemEntryHandler;
 
@@ -103,6 +103,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
                                           boolean showAvailability) {
         this.state = state;
         this.showAvailability = showAvailability;
+        getStyle().backgroundTexture(GuiTextures.BACKGROUND_INVERSE);
         materialViewportWidth = width - 36;
         layout(layout -> {
             layout.positionType(TaffyPosition.ABSOLUTE);
@@ -216,13 +217,8 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         rebuildMaterials();
     }
 
-    /**
-     * Called by the side-safe parent after its shared state accepted a new preview.
-     */
-    public void previewChanged(StructurePreview preview) {
-        if (state.getPreview() != preview) {
-            throw new IllegalStateException("Client preview state was not updated before rebuilding its scene");
-        }
+    public void setPreview(StructurePreview preview) {
+        state.setPreview(preview);
         rebuildPreview(true);
     }
 
@@ -380,7 +376,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         tooltips.add(Component.translatable("gtpm.multiblock.preview.material.required", material.required()));
         for (StructurePreview.StructureAmount structure : material.structures()) {
             tooltips.add(Component.translatable("gtpm.multiblock.preview.material.structure",
-                    StructureControls.structureName(structure.structureName()), structure.required()));
+                    structureName(structure.structureName()), structure.required()));
         }
         if (showAvailability && state.getPreview().availabilityKnown()) {
             if (GTCEu.MODS.AE2.isLoaded()) {
@@ -412,7 +408,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         for (StructurePreview.Contribution contribution : cell.contributions()) {
             StructurePreview.CellKey key = contribution.cellKey();
             tooltips.add(Component.translatable("gtpm.multiblock.preview.cell.contribution",
-                    StructureControls.structureName(contribution.structureName()),
+                    structureName(contribution.structureName()),
                     contribution.targetState().getBlock().getName(),
                     Component.translatable("gtpm.multiblock.preview.cell.action." +
                             contribution.action().name().toLowerCase(Locale.ROOT)),
@@ -453,13 +449,18 @@ public final class ClientMultiblockPreviewElement extends UIElement {
                 Component.translatable("gtpm.multiblock.preview.button.structure"));
         focusButton.getStyle().tooltips(focus == null ?
                 Component.translatable("gtpm.multiblock.preview.tooltip.focus") :
-                StructureControls.structureName(focus));
+                structureName(focus));
         @Nullable
         Integer layer = state.getVisibleLayer();
         layerButton.setText(layer == null ?
                 Component.translatable("gtpm.multiblock.preview.button.layer_all") :
                 Component.translatable("gtpm.multiblock.preview.button.layer", layer));
         hatchButton.textStyle(style -> style.textColor(state.isHighlightHatches() ? 0xff167129 : 0xff404040));
+    }
+
+    private static Component structureName(String name) {
+        return Component.translatable(name.equals(MultiblockControllerMachine.DEFAULT_STRUCTURE) ?
+                "gtpm.multiblock.configuration.main" : name);
     }
 
     private void updateDiagnosticText() {
