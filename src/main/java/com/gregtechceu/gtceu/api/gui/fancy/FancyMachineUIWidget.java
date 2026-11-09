@@ -9,6 +9,8 @@ import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerScreen;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEventListener;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -115,7 +117,14 @@ public class FancyMachineUIWidget extends UIElement {
      */
     public MachineUIHolder getHolder(MetaMachine machine) {
         return machine == holder.getMachine() ? holder :
-                machineHolders.computeIfAbsent(machine, key -> new MachineUIHolderContext(key));
+                machineHolders.computeIfAbsent(machine, key -> {
+                    if (openingPlayer.level().isClientSide()) {
+                        UIEventListener sync = event -> key.sendServerSyncChanges();
+                        addEventListener(UIEvents.TICK, sync);
+                        addEventListener(UIEvents.REMOVED, sync);
+                    }
+                    return new MachineUIHolderContext(key);
+                });
     }
 
     public FancyMachineUIWidget setBorder(int border) {

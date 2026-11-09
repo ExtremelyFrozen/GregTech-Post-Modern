@@ -5,6 +5,8 @@ import com.gregtechceu.gtceu.GTCEu;
 import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerMenu;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEventListener;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -88,7 +90,19 @@ public final class UIRegistry {
     /** Keeps GT's supplied textures and sizes while allowing LDLib to center every menu root. */
     public static ModularUI createUI(UI ui, @Nullable Player player) {
         ui.getRootElement().getLayout().positionType(TaffyPosition.RELATIVE);
-        return ModularUI.of(ui, player);
+        var modularUI = ModularUI.of(ui, player);
+        if (player != null && player.level().isClientSide()) {
+            UIEventListener sync = event -> {
+                if (modularUI.getMenu() instanceof ModularUIContainerMenu menu &&
+                        menu.uiHolder instanceof MachineUIHolder holder) {
+                    var machine = holder.getMachine();
+                    if (machine != null) machine.sendServerSyncChanges();
+                }
+            };
+            ui.getRootElement().addEventListener(UIEvents.TICK, sync);
+            ui.getRootElement().addEventListener(UIEvents.REMOVED, sync);
+        }
+        return modularUI;
     }
 
     private static ModularUIContainerMenu create(int windowId, Inventory inventory, RegistryFriendlyByteBuf data) {
