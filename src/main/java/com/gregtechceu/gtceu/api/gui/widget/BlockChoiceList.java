@@ -198,7 +198,9 @@ public final class BlockChoiceList extends UIElement {
 
     @OnlyIn(Dist.CLIENT)
     private ItemStack getHoveredItem() {
-        var hovered = getModularUI().getLastHoveredElement();
+        var ui = getModularUI();
+        var hit = ui.ui.rootElement.hitTest(ui.getLastMouseX(), ui.getLastMouseY());
+        var hovered = hit == null ? null : hit.getA();
         if (!(hovered instanceof GTItemSlotElement item)) return ItemStack.EMPTY;
         for (UIElement parent = item.getParent(); parent != null; parent = parent.getParent()) {
             if (parent == this) return item.getValue();

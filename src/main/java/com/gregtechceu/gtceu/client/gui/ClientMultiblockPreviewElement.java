@@ -17,7 +17,6 @@ import com.gregtechceu.gtceu.api.multiblock.preview.StructurePreview;
 import com.gregtechceu.gtceu.api.multiblock.preview.StructurePreview.Cell;
 import com.gregtechceu.gtceu.api.multiblock.util.RelativeDirection;
 import com.gregtechceu.gtceu.integration.xei.GTXEIHelper;
-import com.gregtechceu.gtceu.integration.xei.handlers.item.CycleItemEntryHandler;
 
 import com.lowdragmc.lowdraglib2.client.scene.ISceneBlockRenderHook;
 import com.lowdragmc.lowdraglib2.client.scene.WorldSceneRenderer;
@@ -26,6 +25,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.gui.ui.event.HoverTooltips;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
+import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.integration.xei.IngredientIO;
 import com.lowdragmc.lowdraglib2.integration.xei.emi.LDLibEMIPlugin;
 import com.lowdragmc.lowdraglib2.integration.xei.jei.LDLibJEIPlugin;
@@ -84,6 +84,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
     private final GTButtonElement previousMaterials;
     private final GTButtonElement nextMaterials;
     private final ObjectList<GTItemSlotElement> materialSlots = new ObjectArrayList<>();
+    private ObjectList<List<ItemStack>> materialCandidates = ObjectList.of();
     private final GTButtonElement focusButton;
     private final GTButtonElement layerButton;
     private final GTButtonElement hatchButton;
@@ -311,35 +312,38 @@ public final class ClientMultiblockPreviewElement extends UIElement {
     }
 
     private ItemStack getHoveredMaterial() {
-        var hovered = getModularUI().getLastHoveredElement();
+        var ui = getModularUI();
+        var hit = ui.ui.rootElement.hitTest(ui.getLastMouseX(), ui.getLastMouseY());
+        var hovered = hit == null ? null : hit.getA();
         return hovered instanceof GTItemSlotElement slot && slot.getParent() == materialViewport ?
                 slot.getValue() : ItemStack.EMPTY;
     }
 
     private void rebuildMaterials() {
+        if (updateJEIMaterial != null) updateJEIMaterial.accept(ItemStack.EMPTY);
         materialViewport.clearAllChildren();
         materialSlots.clear();
-        ObjectList<List<ItemStack>> displayStacks = state.getPreview().materials().stream()
+        materialCandidates = state.getPreview().materials().stream()
                 .<List<ItemStack>>map(material -> material.candidates().stream()
                         .map(candidate -> candidate
                                 .copyWithCount((int) Math.min(material.required(), Integer.MAX_VALUE)))
                         .collect(ObjectImmutableList.toList()))
                 .collect(ObjectImmutableList.toList());
-        if (displayStacks.isEmpty()) {
+        if (materialCandidates.isEmpty()) {
             updateMaterialPage();
             return;
         }
-        CycleItemEntryHandler itemHandler = CycleItemEntryHandler.createFromStacks(displayStacks);
-        for (int index = 0; index < displayStacks.size(); index++) {
-            GTItemSlotElement slot = getSlot(index, itemHandler);
+        for (int index = 0; index < materialCandidates.size(); index++) {
+            GTItemSlotElement slot = getSlot(index);
             materialViewport.addChild(slot);
             materialSlots.add(slot);
         }
+        updateMaterialIcons();
         updateMaterialPage();
     }
 
-    private GTItemSlotElement getSlot(int slotIndex, CycleItemEntryHandler itemHandler) {
-        GTItemSlotElement slot = new GTItemSlotElement(itemHandler, slotIndex);
+    private GTItemSlotElement getSlot(int slotIndex) {
+        GTItemSlotElement slot = new GTItemSlotElement();
         slot.layout(layout -> {
             layout.positionType(TaffyPosition.ABSOLUTE);
             layout.left(slotIndex * 18);
@@ -347,8 +351,6 @@ public final class ClientMultiblockPreviewElement extends UIElement {
             layout.width(18);
             layout.height(18);
         });
-        slot.setCanTakeItems(false);
-        slot.setCanPutItems(false);
         slot.setIngredientIO(GTXEIHelper.input());
         slot.setBackgroundTexture(GuiTextures.SLOT);
         slot.setItemCountDecorationXOffset(ClientMultiblockPreviewElement::countDecorationOffset);
@@ -359,6 +361,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
     }
 
     private void updateMaterialPage() {
+        if (updateJEIMaterial != null) updateJEIMaterial.accept(ItemStack.EMPTY);
         int perPage = Math.max(1, materialViewportWidth / 18);
         int lastPage = Math.max(0, (materialSlots.size() - 1) / perPage);
         materialPage = Math.clamp(materialPage, 0, lastPage);
@@ -370,6 +373,15 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         materialViewport.getLayout().width(perPage * 18);
         previousMaterials.setActive(materialPage > 0);
         nextMaterials.setActive(materialPage < lastPage);
+    }
+
+    private void updateMaterialIcons() {
+        long cycle = System.currentTimeMillis() / 1000;
+        for (int i = 0; i < materialSlots.size(); i++) {
+            var values = materialCandidates.get(i);
+            materialSlots.get(i).setItem(values.isEmpty() ? ItemStack.EMPTY : values.get((int) (cycle % values.size())),
+                    false);
+        }
     }
 
     private void addMaterialTooltips(StructurePreview.Material material, List<Component> tooltips) {
@@ -491,7 +503,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
     @Override
     public void screenTick() {
         super.screenTick();
-        if (updateJEIMaterial != null) updateJEIMaterial.accept(getHoveredMaterial());
+        updateMaterialIcons();
         @Nullable
         Level currentLevel = Minecraft.getInstance().level;
         if (currentLevel != sourceLevel) {
@@ -500,6 +512,12 @@ public final class ClientMultiblockPreviewElement extends UIElement {
             rebuildRenderedCore(false);
             updateNavigationText();
         }
+    }
+
+    @Override
+    public void drawBackgroundAdditional(GUIContext context) {
+        if (updateJEIMaterial != null) updateJEIMaterial.accept(getHoveredMaterial());
+        super.drawBackgroundAdditional(context);
     }
 
     private void rebuildForLevel(@Nullable Level currentLevel) {
