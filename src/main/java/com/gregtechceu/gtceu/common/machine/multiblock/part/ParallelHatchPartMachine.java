@@ -10,7 +10,6 @@ import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.machine.multiblock.part.TieredPartMachine;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.ServerFieldChangeListener;
-import com.gregtechceu.gtceu.api.sync_system.annotations.ServerFieldNormalizer;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncBoth;
 
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
@@ -39,17 +38,12 @@ public class ParallelHatchPartMachine extends TieredPartMachine {
     }
 
     public void setCurrentParallel(int parallelAmount) {
-        int normalizedParallel = normalizeCurrentParallel(parallelAmount);
-        if (this.currentParallel == normalizedParallel) {
+        parallelAmount = Mth.clamp(parallelAmount, MIN_PARALLEL, this.maxParallel);
+        if (this.currentParallel == parallelAmount) {
             return;
         }
-        this.currentParallel = normalizedParallel;
+        this.currentParallel = parallelAmount;
         markControllerRecipesDirty();
-    }
-
-    @ServerFieldNormalizer(fieldName = "currentParallel")
-    private int normalizeCurrentParallel(int parallelAmount) {
-        return Mth.clamp(parallelAmount, MIN_PARALLEL, this.maxParallel);
     }
 
     @ServerFieldChangeListener(fieldName = "currentParallel")
@@ -65,15 +59,10 @@ public class ParallelHatchPartMachine extends TieredPartMachine {
     public UIElement createUIWidget(FancyMachineUIWidget widget) {
         UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
         root.addChild(new GTIntInputElement(0, 0, PAGE_WIDTH, PAGE_HEIGHT, this::getCurrentParallel,
-                this::setCurrentParallelAndSync)
+                value -> currentParallel = value)
                 .setMin(MIN_PARALLEL)
                 .setMax(maxParallel));
         return root;
-    }
-
-    private void setCurrentParallelAndSync(int value) {
-        setCurrentParallel(value);
-        sendServerSyncChanges();
     }
 
     @Override

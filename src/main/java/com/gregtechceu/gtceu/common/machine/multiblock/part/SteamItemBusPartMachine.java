@@ -91,12 +91,7 @@ public class SteamItemBusPartMachine extends ItemBusPartMachine
 
     GTToggleButtonElement createWorkingEnabledToggle(int x, int y) {
         return new GTToggleButtonElement(x, y, 18, 18,
-                GuiTextures.BUTTON_ITEM_OUTPUT, this::isWorkingEnabled, enabled -> {
-                    setWorkingEnabled(enabled);
-                    if (isRemote()) {
-                        sendServerSyncChanges();
-                    }
-                })
+                GuiTextures.BUTTON_ITEM_OUTPUT, this::isWorkingEnabled, this::setWorkingEnabled)
                 .setShouldUseBaseBackground()
                 .setTooltipText(autoTooltipKey);
     }

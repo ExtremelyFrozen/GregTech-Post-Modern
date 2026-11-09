@@ -66,7 +66,7 @@ public class PumpHatchPartMachine extends FluidHatchPartMachine
 
     GTToggleButtonElement createWorkingEnabledToggle() {
         return new GTToggleButtonElement(7, 53, 18, 18,
-                GuiTextures.BUTTON_FLUID_OUTPUT, this::isWorkingEnabled, this::setWorkingEnabledAndSync)
+                GuiTextures.BUTTON_FLUID_OUTPUT, this::isWorkingEnabled, this::setWorkingEnabled)
                 .setShouldUseBaseBackground()
                 .setTooltipText("gtpm.gui.fluid_auto_input.tooltip");
     }
@@ -131,13 +131,6 @@ public class PumpHatchPartMachine extends FluidHatchPartMachine
             }
         });
         return UITemplate.setBounds(fluidSlot, 90, 35, 18, 18);
-    }
-
-    private void setWorkingEnabledAndSync(boolean enabled) {
-        setWorkingEnabled(enabled);
-        if (isRemote()) {
-            sendServerSyncChanges();
-        }
     }
 
     @RPCMethod

@@ -398,14 +398,9 @@ public class ItemCollectorMachine extends TieredEnergyMachine
 
     private GTIntInputElement createRangeInput(int x, int y) {
         return new GTIntInputElement(x, y, RANGE_INPUT_WIDTH, RANGE_INPUT_HEIGHT, this::getRange,
-                this::setRangeAndSync)
+                value -> range = value)
                 .setMin(MIN_RANGE)
                 .setMax(maxRange);
-    }
-
-    private void setRangeAndSync(int value) {
-        setRange(value);
-        sendServerSyncChanges();
     }
 
     private int getEnergyGroupWidth() {

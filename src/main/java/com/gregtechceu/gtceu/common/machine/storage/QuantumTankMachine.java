@@ -297,7 +297,7 @@ public class QuantumTankMachine extends TieredMachine implements IControllable,
                 GuiTextures.BUTTON_POWER.getSubTexture(0, 0.5, 1, 0.5),
                 this::isWorkingEnabled,
                 (event, pressed) -> {
-                    setAutoOutputFluids(player, pressed);
+                    autoOutput.setAllowAutoOutputFluids(pressed);
                     event.stopImmediatePropagation();
                     event.hasHandler = true;
                 })
@@ -322,23 +322,9 @@ public class QuantumTankMachine extends TieredMachine implements IControllable,
 
     GTToggleButtonElement createVoidingButton() {
         return new GTToggleButtonElement(40, 41, 18, 18,
-                GuiTextures.BUTTON_VOID, () -> isVoiding, this::setVoidingAndSync)
+                GuiTextures.BUTTON_VOID, () -> isVoiding, value -> isVoiding = value)
                 .setShouldUseBaseBackground()
                 .setTooltipText("gtpm.gui.fluid_voiding_partial.tooltip");
-    }
-
-    private void setVoidingAndSync(boolean voiding) {
-        setVoiding(voiding);
-        if (isRemote()) {
-            sendServerSyncChanges();
-        }
-    }
-
-    private void setAutoOutputFluids(Player player, boolean enabled) {
-        autoOutput.setAllowAutoOutputFluids(enabled);
-        if (player.level().isClientSide()) {
-            sendServerSyncChanges();
-        }
     }
 
     @RPCMethod
@@ -545,7 +531,7 @@ public class QuantumTankMachine extends TieredMachine implements IControllable,
         root.addChild(createLockedFluidSlot(player, holder));
         root.addChild(new GTToggleButtonElement(4, 41, 18, 18,
                 GuiTextures.BUTTON_FLUID_OUTPUT, this.autoOutput::isAutoOutputFluids,
-                enabled -> setAutoOutputFluids(player, enabled))
+                autoOutput::setAllowAutoOutputFluids)
                 .setShouldUseBaseBackground()
                 .setTooltipText("gtpm.gui.fluid_auto_output.tooltip"));
         root.addChild(new GTToggleButtonElement(22, 41, 18, 18,

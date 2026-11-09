@@ -366,18 +366,11 @@ public class FisherMachine extends TieredEnergyMachine
     GTToggleButtonElement createJunkButton(int x, int y) {
         GTToggleButtonElement button = new GTToggleButtonElement(x, y, SLOT_SIZE, SLOT_SIZE,
                 GuiTextures.itemStack(Items.NAME_TAG).scale(0.9F), this::isJunkEnabled,
-                this::requestJunkEnabled)
+                value -> junkEnabled = value)
                 .setShouldUseBaseBackground();
         button.style(style -> style.tooltips(LangHandler.getMultiLang("gtpm.gui.fisher_mode.tooltip",
                 GTValues.VNF[getTier()], GTValues.VNF[getTier()]).toArray(Component[]::new)));
         return button;
-    }
-
-    private void requestJunkEnabled(boolean enabled) {
-        setJunkEnabled(enabled);
-        if (isRemote()) {
-            sendServerSyncChanges();
-        }
     }
 
     private int getEnergyGroupWidth() {

@@ -566,7 +566,7 @@ public class PumpMachine extends TieredEnergyMachine implements IUIMachine {
     GTToggleButtonElement createFluidAutoOutputToggle() {
         return new GTToggleButtonElement(7, 53, 18, 18,
                 GuiTextures.BUTTON_FLUID_OUTPUT, this.autoOutput::isAutoOutputFluids,
-                this::requestFluidAutoOutput)
+                autoOutput::setAllowAutoOutputFluids)
                 .setShouldUseBaseBackground()
                 .setTooltipText("gtpm.gui.fluid_auto_output.tooltip");
     }
@@ -631,13 +631,6 @@ public class PumpMachine extends TieredEnergyMachine implements IUIMachine {
             }
         });
         return UITemplate.setBounds(fluidSlot, 90, 35, 18, 18);
-    }
-
-    private void requestFluidAutoOutput(boolean enabled) {
-        autoOutput.setAllowAutoOutputFluids(enabled);
-        if (isRemote()) {
-            sendServerSyncChanges();
-        }
     }
 
     @RPCMethod
