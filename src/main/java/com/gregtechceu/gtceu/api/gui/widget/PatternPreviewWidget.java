@@ -16,8 +16,6 @@ import com.gregtechceu.gtceu.api.multiblock.pattern.layout.PatternAxis;
 import com.gregtechceu.gtceu.api.multiblock.preview.PreviewVisibility;
 import com.gregtechceu.gtceu.api.multiblock.preview.StructurePreview;
 import com.gregtechceu.gtceu.client.gui.ClientMultiblockPreviewElement;
-import com.gregtechceu.gtceu.common.item.datacomponents.TerminalMachine;
-import com.gregtechceu.gtceu.common.item.datacomponents.TerminalStructure;
 import com.gregtechceu.gtceu.data.pattern.StructurePatternRegistry;
 import com.gregtechceu.gtceu.integration.xei.multiblock.MultiblockInfo;
 
@@ -133,15 +131,13 @@ public final class PatternPreviewWidget extends UIElement {
         options.clearAllScrollViewChildren();
         controls.clear();
         int width = pageWidth - BlockChoiceList.WIDTH - 12;
-        var machine = info.getMachine();
+        var policy = info.getPolicy();
         String name = structureName();
-        TerminalStructure structure = machine.structures().get(name);
+        var structure = info.getStructures().get(name);
         var noHatches = button(0, 0, 70, text("casings"));
-        noHatches.textStyle(style -> style.textColor(machine.sharedOptions().noHatchMode() ? 0xff167129 : 0xff404040));
+        noHatches.textStyle(style -> style.textColor(policy.noHatchMode() ? 0xff167129 : 0xff404040));
         noHatches.setOnClick(event -> {
-            var shared = machine.sharedOptions();
-            applyChange(value -> value
-                    .withSharedOptions(new BuildPolicy(shared.replaceMode(), !shared.noHatchMode(), false)));
+            applyChange(() -> info.setPolicy(new BuildPolicy(policy.replaceMode(), !policy.noHatchMode(), false)));
             event.stopPropagation();
         });
         options.addScrollViewChild(noHatches);
@@ -168,23 +164,14 @@ public final class PatternPreviewWidget extends UIElement {
                 rebuildOptions();
             }, true, true);
             y += 20;
-            boolean required = machine.structures().entrySet().stream().anyMatch(entry -> entry.getValue().selected() &&
-                    entry.getValue().mode() == StructureOperation.BUILD &&
-                    definition.getRequiredStructures(entry.getKey()).contains(name));
-            if (!required && (!structure.selected() ||
-                    machine.structures().values().stream().filter(TerminalStructure::selected).count() > 1)) {
-                var included = button(0, y, width, text(structure.selected() ? "selected" : "unselected"));
+            boolean selected = info.getIncluded().contains(name);
+            boolean required = info.getIncluded().stream()
+                    .anyMatch(included -> info.getStructures().get(included).mode() == StructureOperation.BUILD &&
+                            definition.getRequiredStructures(included).contains(name));
+            if (!required && (!selected || info.getIncluded().size() > 1)) {
+                var included = button(0, y, width, text(selected ? "selected" : "unselected"));
                 included.setOnClick(event -> {
-                    applyChange(value -> {
-                        var changed = value.withStructure(name, structure.withSelected(!structure.selected()));
-                        if (!structure.selected()) {
-                            for (String dependency : definition.getRequiredStructures(name)) {
-                                changed = changed.withStructure(dependency,
-                                        changed.structures().get(dependency).withSelected(true));
-                            }
-                        }
-                        return changed;
-                    });
+                    applyChange(() -> info.setIncluded(name, !selected));
                     event.stopPropagation();
                 });
                 options.addScrollViewChild(included);
@@ -223,9 +210,7 @@ public final class PatternPreviewWidget extends UIElement {
         }
         options.viewContainer.getLayout().width(width - 3).height(y);
         optionsHeight = Math.min(y, Math.max(20, pageHeight / 3));
-        blocks.setChoices(new BatchPlanner().activeTierChoiceOptions(definition, new StructureRequest(name,
-                structure.repetitions(), structure.tierChoices(), structure.flipMode(), structure.mode(),
-                structure.choices())),
+        blocks.setChoices(new BatchPlanner().activeTierChoiceOptions(definition, structure),
                 structure.tierChoices());
         layoutContent();
     }
@@ -272,25 +257,13 @@ public final class PatternPreviewWidget extends UIElement {
         });
     }
 
-    private void changeStructure(UnaryOperator<TerminalStructure> update) {
-        String name = structureName();
-        applyChange(machine -> {
-            var structure = update.apply(machine.structures().get(name));
-            var domains = new BatchPlanner().activeTierChoiceOptions(definition, new StructureRequest(name,
-                    structure.repetitions(), structure.tierChoices(), structure.flipMode(), structure.mode(),
-                    structure.choices()));
-            for (var entry : domains.object2ObjectEntrySet()) {
-                if (!entry.getValue().contains(structure.tierChoices().get(entry.getKey()))) {
-                    structure = structure.withTierChoice(entry.getKey(), entry.getValue().getFirst());
-                }
-            }
-            return machine.withStructure(name, structure);
-        });
+    private void changeStructure(UnaryOperator<StructureRequest> update) {
+        applyChange(() -> info.setStructure(update.apply(info.getStructures().get(structureName()))));
     }
 
-    private void applyChange(UnaryOperator<TerminalMachine> update) {
+    private void applyChange(Runnable update) {
         try {
-            info.setMachine(update.apply(info.getMachine()));
+            update.run();
             publishPreview();
         } catch (RuntimeException exception) {
             showFailure(exception);

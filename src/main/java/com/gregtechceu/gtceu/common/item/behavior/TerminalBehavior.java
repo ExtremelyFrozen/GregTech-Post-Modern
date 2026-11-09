@@ -13,6 +13,12 @@ import com.gregtechceu.gtceu.api.item.component.IItemUIFactory;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialRequest;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialSource;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialSources;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.BatchRequest;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.BatchStatus;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.BuildPolicy;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.StructureOperation;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.StructureRequest;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.BatchPlanner;
@@ -30,13 +36,9 @@ import com.gregtechceu.gtceu.api.sync_system.rpc.RPCSender;
 import com.gregtechceu.gtceu.client.gui.ClientMultiblockPreviewElement;
 import com.gregtechceu.gtceu.client.renderer.MultiblockInWorldPreviewRenderer;
 import com.gregtechceu.gtceu.common.item.datacomponents.TerminalControllerBinding;
-import com.gregtechceu.gtceu.common.item.datacomponents.TerminalMachine;
-import com.gregtechceu.gtceu.common.item.datacomponents.TerminalStructure;
-import com.gregtechceu.gtceu.common.item.terminal.menu.TerminalMenuState;
-import com.gregtechceu.gtceu.common.item.terminal.menu.TerminalSession;
-import com.gregtechceu.gtceu.common.item.terminal.network.TerminalChange;
 import com.gregtechceu.gtceu.common.machine.owner.MachineOwner;
 import com.gregtechceu.gtceu.config.ConfigHolder;
+import com.gregtechceu.gtceu.data.pattern.StructurePatternRegistry;
 
 import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerScreen;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
@@ -60,16 +62,20 @@ import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ObjectList;
+import it.unimi.dsi.fastutil.objects.ObjectSet;
 import lombok.Getter;
 import lombok.Setter;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 import java.util.Locale;
+import java.util.function.UnaryOperator;
 
 @NullMarked
 public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, SyncItem {
@@ -80,18 +86,34 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
     private @Nullable TerminalControllerBinding binding;
     @Getter
     @ItemSave
-    private final Object2ObjectMap<ResourceLocation, TerminalMachine> machines = new Object2ObjectLinkedOpenHashMap<>();
-    @Getter
-    @Setter
     @SyncToClient
-    private @Nullable TerminalMenuState state;
+    private final Object2ObjectMap<ResourceLocation, BuildPolicy> policies = new Object2ObjectLinkedOpenHashMap<>();
     @Getter
-    @Setter
-    private @Nullable TerminalSession session;
-    @Setter
-    private @Nullable Runnable stateListener;
+    @ItemSave
+    @SyncToClient
+    private final Object2ObjectMap<ResourceLocation, Object2ObjectMap<String, StructureRequest>> structures = new Object2ObjectLinkedOpenHashMap<>();
+    @Getter
+    @ItemSave
+    @SyncToClient
+    private final Object2ObjectMap<ResourceLocation, ObjectSet<String>> included = new Object2ObjectLinkedOpenHashMap<>();
+    @Getter
+    @SyncToClient
+    private @Nullable StructurePreview preview;
+    @Getter
+    @SyncToClient
+    private @Nullable BatchStatus status;
+    @Getter
+    @SyncToClient
+    private int placed;
+    @Getter
+    @SyncToClient
+    private int removed;
+    private boolean refreshUI;
+    private @Nullable MultiblockControllerMachine openedController;
+    private ObjectList<MaterialRequest.Result> boundSources = ObjectList.of();
+    private long patternGeneration;
 
-    /** The registered component only creates stack-owned instances; it never holds an opened terminal's state. */
+    /** The registered component creates independent annotated state for each opened stack. */
     public TerminalBehavior() {
         this(ItemStack.EMPTY, RegistryAccess.EMPTY);
     }
@@ -100,23 +122,161 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
         super(stack, registries);
     }
 
-    @ClientFieldChangeListener(fieldName = "state")
-    public void onStateChanged() {
-        if (stateListener != null) stateListener.run();
+    @ClientFieldChangeListener(fieldName = "policies")
+    public void onPoliciesChanged() {
+        refreshUI = true;
+    }
+
+    @ClientFieldChangeListener(fieldName = "structures")
+    public void onStructuresChanged() {
+        refreshUI = true;
+    }
+
+    @ClientFieldChangeListener(fieldName = "included")
+    public void onIncludedChanged() {
+        refreshUI = true;
+    }
+
+    @ClientFieldChangeListener(fieldName = "preview")
+    public void onPreviewChanged() {
+        refreshUI = true;
+    }
+
+    @ClientFieldChangeListener(fieldName = "status")
+    public void onStatusChanged() {
+        refreshUI = true;
+    }
+
+    @ClientFieldChangeListener(fieldName = "placed")
+    public void onPlacedChanged() {
+        refreshUI = true;
+    }
+
+    @ClientFieldChangeListener(fieldName = "removed")
+    public void onRemovedChanged() {
+        refreshUI = true;
     }
 
     @RPCMethod
-    public void change(RPCSender sender, long sequence, long revision, TerminalChange update) {
-        if (sender.isRemote() && session != null) {
-            session.applyUpdate(sender.asPlayer(), sequence, revision, update);
-        }
+    public void setPolicy(RPCSender sender, BuildPolicy policy) {
+        policies.put(binding.definitionId(), policy);
+        refresh(sender.asPlayer());
     }
 
     @RPCMethod
-    public void execute(RPCSender sender, long sequence, long revision, long fingerprint) {
-        if (sender.isRemote() && session != null) {
-            session.execute(sender.asPlayer(), sequence, revision, fingerprint);
+    public void setStructure(RPCSender sender, StructureRequest request) {
+        var definition = (MultiblockMachineDefinition) openedController.getDefinition();
+        String name = request.structureName();
+        var current = structures.get(binding.definitionId()).get(name);
+        if (request.mode() == StructureOperation.DEMOLISH && isRequired(name)) return;
+        structures.get(binding.definitionId()).put(name, normalize(definition, request));
+        if (current.mode() != request.mode() && request.mode() == StructureOperation.BUILD &&
+                included.get(binding.definitionId()).contains(name)) {
+            includeDependencies(definition, name);
         }
+        refresh(sender.asPlayer());
+    }
+
+    @RPCMethod
+    public void setIncluded(RPCSender sender, String name, boolean value) {
+        var selected = included.get(binding.definitionId());
+        if (value) {
+            selected.add(name);
+            includeDependencies((MultiblockMachineDefinition) openedController.getDefinition(), name);
+        } else {
+            if (isRequired(name) || selected.size() == 1) return;
+            selected.remove(name);
+        }
+        refresh(sender.asPlayer());
+    }
+
+    @RPCMethod
+    public void execute(RPCSender sender, long fingerprint) {
+        var player = sender.asPlayer();
+        if (fingerprint != Long.parseUnsignedLong(preview.fingerprint(), 16)) return;
+        try {
+            var result = openedController.autoBuildBatch(player, createRequest(boundSources), fingerprint);
+            status = result.status();
+            placed = result.placed();
+            removed = result.removed();
+            player.displayClientMessage(Component.translatable("gtpm.multiblock.autobuild.execution_result",
+                    Component
+                            .translatable("gtpm.multiblock.autobuild.status." + status.name().toLowerCase(Locale.ROOT)),
+                    placed, removed), true);
+            refresh(player);
+        } catch (RuntimeException exception) {
+            GTCEu.LOGGER.error("Terminal execution failed for {}", binding.definitionId(), exception);
+            player.displayClientMessage(Component.translatable("gtpm.multiblock.autobuild.execution_failed"), true);
+            player.closeContainer();
+        }
+    }
+
+    private void initialize(MultiblockMachineDefinition definition) {
+        ResourceLocation id = definition.getId();
+        policies.putIfAbsent(id, BuildPolicy.DEFAULT);
+        var saved = structures.computeIfAbsent(id, ignored -> new Object2ObjectLinkedOpenHashMap<>());
+        saved.keySet().retainAll(definition.getStructureOrder());
+        var planner = new BatchPlanner();
+        for (String name : definition.getStructureOrder()) {
+            var request = saved.computeIfAbsent(name, ignored -> planner.defaultStructureOptions(definition, name));
+            try {
+                saved.put(name, normalize(definition, request));
+            } catch (IllegalArgumentException | IllegalStateException exception) {
+                saved.put(name, planner.defaultStructureOptions(definition, name));
+            }
+        }
+        var selected = included.computeIfAbsent(id, ignored -> new ObjectLinkedOpenHashSet<>());
+        selected.retainAll(definition.getStructureOrder());
+        if (selected.isEmpty()) selected.add(MultiblockControllerMachine.DEFAULT_STRUCTURE);
+        for (String name : new ObjectArrayList<>(selected)) includeDependencies(definition, name);
+        patternGeneration = StructurePatternRegistry.generation();
+    }
+
+    private StructureRequest normalize(MultiblockMachineDefinition definition, StructureRequest request) {
+        var domains = new BatchPlanner().activeTierChoiceOptions(definition, request);
+        var tiers = new Object2ObjectLinkedOpenHashMap<String, ResourceLocation>();
+        for (var entry : domains.object2ObjectEntrySet()) {
+            ResourceLocation current = request.tierChoices().get(entry.getKey());
+            tiers.put(entry.getKey(), entry.getValue().contains(current) ? current : entry.getValue().getFirst());
+        }
+        return new StructureRequest(request.structureName(), request.repetitions(), tiers,
+                request.flipMode(), request.mode(), request.choices());
+    }
+
+    private void includeDependencies(MultiblockMachineDefinition definition, String name) {
+        var saved = structures.get(definition.getId());
+        if (saved.get(name).mode() != StructureOperation.BUILD) return;
+        for (String dependency : definition.getRequiredStructures(name)) {
+            included.get(definition.getId()).add(dependency);
+            saved.put(dependency, saved.get(dependency).withMode(StructureOperation.BUILD));
+        }
+    }
+
+    private boolean isRequired(String name) {
+        var definition = (MultiblockMachineDefinition) openedController.getDefinition();
+        return included.get(binding.definitionId()).stream().anyMatch(
+                selected -> structures.get(binding.definitionId()).get(selected).mode() == StructureOperation.BUILD &&
+                        definition.getRequiredStructures(selected).contains(name));
+    }
+
+    private BatchRequest createRequest(ObjectList<MaterialRequest.Result> sources) {
+        var selected = included.get(binding.definitionId());
+        var definition = (MultiblockMachineDefinition) openedController.getDefinition();
+        return new BatchRequest(definition.getStructureOrder().stream().filter(selected::contains)
+                .map(structures.get(binding.definitionId())::get).collect(ObjectArrayList.toList()),
+                policies.get(binding.definitionId()), sources);
+    }
+
+    public void refresh(ServerPlayer player) {
+        var definition = (MultiblockMachineDefinition) openedController.getDefinition();
+        if (patternGeneration != StructurePatternRegistry.generation()) initialize(definition);
+        var policy = policies.get(binding.definitionId());
+        boolean build = included.get(binding.definitionId()).stream()
+                .anyMatch(name -> structures.get(binding.definitionId()).get(name).mode() == StructureOperation.BUILD);
+        boundSources = build ? MaterialSources.request(player, new MaterialRequest(ObjectList.of(), getStack(),
+                kind -> policy.useME() || kind != MaterialSource.SourceKind.ME, null)) : ObjectList.of();
+        preview = StructurePreview.bound(definition.getId(),
+                new BatchPlanner().resolveBatch(openedController, player, createRequest(boundSources)));
     }
 
     @Override
@@ -169,9 +329,10 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
             return false;
         }
         if (player.level().isClientSide) return true;
-        if (data.getSession() != null) return data.getSession().isStillValid(player);
         MultiblockControllerMachine controller = boundController(player, binding);
-        return controller != null && canAccess(controller, player, holder.getHand(), holder.getHeld());
+        return controller != null && (data.openedController == null || data.openedController == controller) &&
+                holder.getHeld() == data.getStack() &&
+                canAccess(controller, player, holder.getHand(), holder.getHeld());
     }
 
     @Override
@@ -179,10 +340,11 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
         TerminalBehavior terminal = (TerminalBehavior) holder.getSyncHolder();
         TerminalControllerBinding binding = terminal.getBinding();
         var definition = (MultiblockMachineDefinition) GTRegistries.MACHINES.get(binding.definitionId());
+        terminal.initialize(definition);
         if (player instanceof ServerPlayer serverPlayer) {
             var controller = (MultiblockControllerMachine) MetaMachine.getMachine(player.level(), binding.position());
-            var session = new TerminalSession(serverPlayer, holder.getHand(), terminal, controller);
-            terminal.setSession(session);
+            terminal.openedController = controller;
+            terminal.refresh(serverPlayer);
             var root = new UIElement() {
 
                 private int refreshTicks;
@@ -193,7 +355,7 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                     if (++refreshTicks < 20) return;
                     refreshTicks = 0;
                     try {
-                        session.refresh(serverPlayer);
+                        terminal.refresh(serverPlayer);
                     } catch (RuntimeException exception) {
                         GTCEu.LOGGER.error("Closed terminal after refresh failed for {}", definition.getId(),
                                 exception);
@@ -203,8 +365,7 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
 
                 @Override
                 protected void onRemoved() {
-                    session.close();
-                    terminal.setSession(null);
+                    terminal.openedController = null;
                     super.onRemoved();
                 }
             };
@@ -224,7 +385,7 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
             private final GTLabelElement title;
             private final GTLabelElement result = label(6, 183, 182, Component.empty());
             private @Nullable GTButtonElement visibility;
-            private TerminalMenuState state;
+            private @Nullable StructurePreview displayedPreview;
             private boolean expanded;
             private boolean editing;
             private boolean worldVisible;
@@ -232,21 +393,19 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
             private int width = 300;
             private int height = 200;
             private int optionsHeight;
-            private long pendingSequence = -1;
 
             Page() {
                 var empty = new StructurePreview(definition.getId(), "awaiting-server", false,
                         ObjectList.of(), ObjectList.of(), ObjectList.of(), ObjectList.of());
-                state = terminal.getState() == null ? new TerminalMenuState(definition.getId(), 0, 0,
-                        TerminalMachine.defaults(definition), empty, false, null) : terminal.getState();
+
                 UITemplate.setBounds(this, 0, 0, width, height);
                 getStyle().backgroundTexture(GuiTextures.BACKGROUND);
                 setOverflowVisible(false);
                 title = label(6, 6, 244, definition.getBlock().getName());
                 title.getStyle().tooltips(Component.literal(binding.dimension().location() + " @ " +
                         binding.position().toShortString()));
-                preview = new ClientMultiblockPreviewElement(292, 136, new PreviewVisibility(state.preview()), true);
-                blocks = new BlockChoiceList((group, id) -> request(TerminalChange.tier(structureName(), group, id)));
+                preview = new ClientMultiblockPreviewElement(292, 136, new PreviewVisibility(empty), true);
+                blocks = new BlockChoiceList((group, id) -> change(value -> value.withTierChoice(group, id)));
                 blocks.setDisplay(false);
                 options.scrollerStyle(style -> style.mode(ScrollerMode.VERTICAL)
                         .verticalScrollDisplay(ScrollDisplay.AUTO).horizontalScrollDisplay(ScrollDisplay.NEVER)
@@ -255,7 +414,7 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                 options.verticalScroller(scroll -> scroll.getLayout().width(2));
                 execute = button(192, 180, 104, Component.translatable("gtpm.multiblock.autobuild.terminal.execute"));
                 execute.setOnClick(event -> {
-                    request(null);
+                    terminal.rpcToServer("execute", Long.parseUnsignedLong(terminal.preview.fingerprint(), 16));
                     event.stopPropagation();
                 });
                 edit = button(260, 4, 16, Component.literal("✎"));
@@ -280,7 +439,7 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                     event.stopPropagation();
                 });
                 addChildren(title, preview, options, blocks, result, execute, edit, fullscreen);
-                terminal.setStateListener(this::receiveState);
+                rebuildOptions();
                 updateDisplay();
             }
 
@@ -305,20 +464,23 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                 controls.clear();
                 visibility = null;
                 int contentWidth = width - (editing ? BlockChoiceList.WIDTH + 12 : 8);
-                var machine = state.machine();
-                var shared = machine.sharedOptions();
+                var requests = terminal.structures.get(definition.getId());
+                var selected = terminal.included.get(definition.getId());
+                var shared = terminal.policies.get(definition.getId());
                 String name = structureName();
-                var structure = machine.structures().get(name);
+                var structure = requests.get(name);
                 var replace = button(0, 0, 58, text("replace"));
                 replace.textStyle(style -> style.textColor(shared.replaceMode() ? 0xff167129 : 0xff404040));
                 replace.setOnClick(event -> {
-                    request(TerminalChange.sharedReplace(!shared.replaceMode()));
+                    terminal.rpcToServer("setPolicy",
+                            new BuildPolicy(!shared.replaceMode(), shared.noHatchMode(), shared.useME()));
                     event.stopPropagation();
                 });
                 var casings = button(60, 0, 66, text("casings"));
                 casings.textStyle(style -> style.textColor(shared.noHatchMode() ? 0xff167129 : 0xff404040));
                 casings.setOnClick(event -> {
-                    request(TerminalChange.sharedNoHatch(!shared.noHatchMode()));
+                    terminal.rpcToServer("setPolicy",
+                            new BuildPolicy(shared.replaceMode(), !shared.noHatchMode(), shared.useME()));
                     event.stopPropagation();
                 });
                 options.addScrollViewChildren(replace, casings);
@@ -328,7 +490,8 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                     var me = button(128, 0, 30, text("me"));
                     me.textStyle(style -> style.textColor(shared.useME() ? 0xff167129 : 0xff404040));
                     me.setOnClick(event -> {
-                        request(TerminalChange.sharedME(!shared.useME()));
+                        terminal.rpcToServer("setPolicy",
+                                new BuildPolicy(shared.replaceMode(), shared.noHatchMode(), !shared.useME()));
                         event.stopPropagation();
                     });
                     options.addScrollViewChild(me);
@@ -348,17 +511,15 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                     }, true, true);
                     y += 20;
                 }
-                boolean required = machine.structures().entrySet().stream()
-                        .anyMatch(entry -> entry.getValue().selected() &&
-                                entry.getValue().mode() == StructureOperation.BUILD &&
-                                definition.getRequiredStructures(entry.getKey()).contains(name));
-                boolean locked = required || structure.selected() &&
-                        machine.structures().values().stream().filter(TerminalStructure::selected).count() == 1;
+                boolean required = selected.stream()
+                        .anyMatch(entry -> requests.get(entry).mode() == StructureOperation.BUILD &&
+                                definition.getRequiredStructures(entry).contains(name));
+                boolean locked = required || selected.contains(name) && selected.size() == 1;
                 int x = 0;
                 if (!locked) {
-                    var included = button(x, y, 48, text(structure.selected() ? "selected" : "unselected"));
+                    var included = button(x, y, 48, text(selected.contains(name) ? "selected" : "unselected"));
                     included.setOnClick(event -> {
-                        request(TerminalChange.structureSelected(name, !structure.selected()));
+                        terminal.rpcToServer("setIncluded", name, !selected.contains(name));
                         event.stopPropagation();
                     });
                     options.addScrollViewChild(included);
@@ -370,7 +531,7 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                     visibility = button(x, y, 42, text(worldVisible ? "visible" : "hidden"));
                     visibility.getStyle().tooltips(text("world_preview"));
                     visibility.setOnClick(event -> {
-                        MultiblockInWorldPreviewRenderer.togglePreview(binding.position(), state.preview(),
+                        MultiblockInWorldPreviewRenderer.togglePreview(binding.position(), terminal.preview,
                                 structureName(),
                                 ConfigHolder.INSTANCE.client.inWorldPreviewDuration * 20);
                         event.stopPropagation();
@@ -381,17 +542,18 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                 var mode = button(x, y, 52, text("mode." + structure.mode().name().toLowerCase(Locale.ROOT)));
                 mode.setActive(!required);
                 mode.setOnClick(event -> {
-                    request(TerminalChange.structureMode(name, structure.mode() == StructureOperation.BUILD ?
+                    change(value -> value.withMode(value.mode() == StructureOperation.BUILD ?
                             StructureOperation.DEMOLISH : StructureOperation.BUILD));
                     event.stopPropagation();
                 });
                 options.addScrollViewChild(mode);
                 if (!required) controls.add(mode);
                 if (definition.isAllowFlip()) {
-                    var flip = button(x + 54, y, contentWidth - x - 54,
+                    y += 20;
+                    var flip = button(0, y, contentWidth,
                             text("flip", text(structure.flipMode() ? "on" : "off")));
                     flip.setOnClick(event -> {
-                        request(TerminalChange.structureFlip(name, !structure.flipMode()));
+                        change(value -> value.withFlipMode(!value.flipMode()));
                         event.stopPropagation();
                     });
                     options.addScrollViewChild(flip);
@@ -412,8 +574,8 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                     });
                     addStep(y, contentWidth, text("dimension", text("axis." + axis.name().toLowerCase(Locale.ROOT)),
                             layout.size(repetition.axis())),
-                            () -> request(TerminalChange.repetition(name, index, amount - 1)),
-                            () -> request(TerminalChange.repetition(name, index, amount + 1)),
+                            () -> changeRepetition(index, amount - 1),
+                            () -> changeRepetition(index, amount + 1),
                             amount > repetition.minimum(), amount < repetition.maximum());
                     y += 20;
                 }
@@ -421,8 +583,8 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                     var values = choice.alternatives();
                     int index = values.indexOf(structure.choices().getOrDefault(choice.path(), values.getFirst()));
                     addStep(y, contentWidth, text("variant_index", index + 1, values.size()),
-                            () -> request(TerminalChange.choice(name, choice.path(), values.get(index - 1))),
-                            () -> request(TerminalChange.choice(name, choice.path(), values.get(index + 1))),
+                            () -> change(value -> value.withChoice(choice.path(), values.get(index - 1))),
+                            () -> change(value -> value.withChoice(choice.path(), values.get(index + 1))),
                             index > 0, index + 1 < values.size());
                     y += 20;
                 }
@@ -432,9 +594,7 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                 preview.getLayout().left(4).top(22 + optionsHeight);
                 preview.resize(contentWidth, height - optionsHeight - 46);
                 blocks.resize(width - BlockChoiceList.WIDTH - 4, 20, height - 44);
-                blocks.setChoices(new BatchPlanner().activeTierChoiceOptions(definition, new StructureRequest(name,
-                        structure.repetitions(), structure.tierChoices(), structure.flipMode(), structure.mode(),
-                        structure.choices())),
+                blocks.setChoices(new BatchPlanner().activeTierChoiceOptions(definition, structure),
                         structure.tierChoices());
                 updateInteractivity();
             }
@@ -459,59 +619,53 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                 if (hasNext) controls.add(forward);
             }
 
-            private void request(@Nullable TerminalChange update) {
-                if (!ready()) return;
-                pendingSequence = state.acknowledgedSequence() + 1;
-                if (update == null) {
-                    terminal.rpcToServer("execute", pendingSequence, state.revision(),
-                            Long.parseUnsignedLong(state.preview().fingerprint(), 16));
-                } else {
-                    terminal.rpcToServer("change", pendingSequence, state.revision(), update);
-                }
-                updateInteractivity();
+            private void change(UnaryOperator<StructureRequest> update) {
+                terminal.rpcToServer("setStructure",
+                        update.apply(terminal.structures.get(definition.getId()).get(structureName())));
             }
 
-            private void receiveState() {
-                var previous = state.machine();
-                state = terminal.getState();
-                if (state.acknowledgedSequence() >= pendingSequence) pendingSequence = -1;
-                if (!previous.equals(state.machine())) rebuildOptions();
-                updateDisplay();
+            private void changeRepetition(int index, int amount) {
+                change(value -> {
+                    var repetitions = new IntArrayList(value.repetitions());
+                    repetitions.set(index, amount);
+                    return value.withRepetitions(repetitions);
+                });
             }
 
             private void updateDisplay() {
-                preview.setPreview(state.preview());
-                if (terminal.getState() != null) {
-                    MultiblockInWorldPreviewRenderer.updatePreview(binding.position(), state.preview(),
+                if (terminal.preview != null && terminal.preview != displayedPreview) {
+                    displayedPreview = terminal.preview;
+                    preview.setPreview(displayedPreview);
+                    MultiblockInWorldPreviewRenderer.updatePreview(binding.position(), displayedPreview,
                             ConfigHolder.INSTANCE.client.inWorldPreviewDuration * 20);
                 }
-                var summary = state.lastExecution();
-                result.setValue(summary == null ? Component.empty() :
+                result.setValue(terminal.status == null ? Component.empty() :
                         Component.translatable("gtpm.multiblock.autobuild.status." +
-                                summary.status().name().toLowerCase(Locale.ROOT)));
-                result.getStyle().tooltips(summary == null ? Component.empty() :
+                                terminal.status.name().toLowerCase(Locale.ROOT)));
+                result.getStyle().tooltips(terminal.status == null ? Component.empty() :
                         Component.translatable("gtpm.multiblock.autobuild.terminal.result",
                                 Component.translatable("gtpm.multiblock.autobuild.status." +
-                                        summary.status().name().toLowerCase(Locale.ROOT)),
-                                summary.placed(), summary.removed()));
-                if (controls.isEmpty()) rebuildOptions();
+                                        terminal.status.name().toLowerCase(Locale.ROOT)),
+                                terminal.placed, terminal.removed));
                 updateInteractivity();
             }
 
-            private boolean ready() {
-                return terminal.getState() != null && pendingSequence < 0 && !state.executing();
-            }
-
             private void updateInteractivity() {
-                boolean ready = ready();
+                boolean ready = terminal.preview != null;
                 controls.forEach(button -> button.setActive(ready));
                 blocks.setInteractive(ready);
                 execute.setActive(ready);
+                if (visibility != null) visibility.setActive(ready);
             }
 
             @Override
             public void screenTick() {
                 super.screenTick();
+                if (terminal.refreshUI) {
+                    terminal.refreshUI = false;
+                    rebuildOptions();
+                    updateDisplay();
+                }
                 if (visibility != null) {
                     boolean visible = MultiblockInWorldPreviewRenderer.isPreviewVisible(binding.position(),
                             structureName());
@@ -520,12 +674,6 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                         visibility.setText(text(visible ? "visible" : "hidden"));
                     }
                 }
-            }
-
-            @Override
-            protected void onRemoved() {
-                terminal.setStateListener(null);
-                super.onRemoved();
             }
         }
 

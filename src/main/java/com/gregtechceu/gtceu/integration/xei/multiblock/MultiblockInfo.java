@@ -3,20 +3,26 @@ package com.gregtechceu.gtceu.integration.xei.multiblock;
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialKey;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.BatchRequest;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.BuildPolicy;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.StructureRequest;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.BatchPlanner;
 import com.gregtechceu.gtceu.api.multiblock.preview.PatternGenerationGuard;
 import com.gregtechceu.gtceu.api.multiblock.preview.PatternGenerationGuard.Resolution;
 import com.gregtechceu.gtceu.api.multiblock.preview.StructurePreview;
-import com.gregtechceu.gtceu.common.item.datacomponents.TerminalMachine;
 import com.gregtechceu.gtceu.data.pattern.StructurePatternRegistry;
 
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 
+import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
 import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ObjectList;
+import it.unimi.dsi.fastutil.objects.ObjectSet;
 import lombok.Getter;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
@@ -30,7 +36,9 @@ public final class MultiblockInfo {
 
     @Getter
     private final MultiblockMachineDefinition definition;
-    private @Nullable TerminalMachine machine;
+    private BuildPolicy policy = BuildPolicy.DEFAULT;
+    private final Object2ObjectMap<String, StructureRequest> structures = new Object2ObjectLinkedOpenHashMap<>();
+    private final ObjectSet<String> included = new ObjectLinkedOpenHashSet<>();
     private @Nullable Resolution<StructurePreview> preview;
     private volatile @Nullable Resolution<ObjectList<MaterialKey>> inputs;
     private long generation = -1;
@@ -39,25 +47,76 @@ public final class MultiblockInfo {
         this.definition = definition;
     }
 
-    public TerminalMachine getMachine() {
-        if (machine == null) machine = TerminalMachine.defaults(definition);
-        return machine;
+    public BuildPolicy getPolicy() {
+        initialize();
+        return policy;
     }
 
-    public void setMachine(TerminalMachine machine) {
-        this.machine = machine;
-        generation = StructurePatternRegistry.generation();
+    public void setPolicy(BuildPolicy policy) {
+        initialize();
+        this.policy = policy;
+        preview = null;
+    }
+
+    public Object2ObjectMap<String, StructureRequest> getStructures() {
+        initialize();
+        return structures;
+    }
+
+    public ObjectSet<String> getIncluded() {
+        initialize();
+        return included;
+    }
+
+    public void setStructure(StructureRequest structure) {
+        initialize();
+        Object2ObjectMap<String, ResourceLocation> tiers = new Object2ObjectLinkedOpenHashMap<>();
+        new BatchPlanner().activeTierChoiceOptions(definition, structure).forEach((group, values) -> {
+            var selected = structure.tierChoices().get(group);
+            tiers.put(group, values.contains(selected) ? selected : values.getFirst());
+        });
+        structures.put(structure.structureName(), new StructureRequest(structure.structureName(),
+                structure.repetitions(), tiers, structure.flipMode(), structure.mode(), structure.choices()));
+        preview = null;
+    }
+
+    public void setIncluded(String name, boolean selected) {
+        initialize();
+        if (selected) {
+            included.add(name);
+            included.addAll(definition.getRequiredStructures(name));
+        } else {
+            included.remove(name);
+        }
+        preview = null;
+    }
+
+    private void initialize() {
+        long current = StructurePatternRegistry.generation();
+        if (generation == current) return;
+        structures.clear();
+        included.clear();
+        policy = BuildPolicy.DEFAULT;
+        var planner = new BatchPlanner();
+        for (String name : definition.getStructureOrder()) {
+            structures.put(name, planner.defaultStructureOptions(definition, name));
+        }
+        included.add(MultiblockControllerMachine.DEFAULT_STRUCTURE);
+        included.addAll(definition.getRequiredStructures(MultiblockControllerMachine.DEFAULT_STRUCTURE));
+        generation = current;
         preview = null;
     }
 
     public Resolution<StructurePreview> resolvePreview() {
         long current = StructurePatternRegistry.generation();
         if (preview != null && preview.generation() == current) return preview;
-        if (generation != current) machine = null;
         var resolved = PatternGenerationGuard.resolve(StructurePatternRegistry::generation, attempt -> {
-            if (attempt > 0) machine = null;
+            if (attempt > 0) generation = -1;
+            initialize();
+            var requests = definition.getStructureOrder().stream().filter(included::contains)
+                    .map(structures::get).collect(ObjectImmutableList.toList());
             var plan = new BatchPlanner().resolveCanonical(definition,
-                    getMachine().createRequest(definition, ObjectList.of()));
+                    new BatchRequest(requests, policy, ObjectList.of()));
             return StructurePreview.canonical(definition.getId(), plan);
         });
         generation = resolved.generation();

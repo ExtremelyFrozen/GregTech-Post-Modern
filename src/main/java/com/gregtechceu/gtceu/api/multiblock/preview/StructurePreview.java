@@ -12,7 +12,9 @@ import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.PatternCellKey;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.PlannedBlockInfo;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.PlannedCell;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.StructurePlan;
+import com.gregtechceu.gtceu.api.sync_system.ContextualFieldCodec;
 import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
+import com.gregtechceu.gtceu.api.sync_system.managed.ItemSyncHolder;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -24,6 +26,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 
+import com.mojang.serialization.Codec;
 import it.unimi.dsi.fastutil.objects.Object2IntLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2LongLinkedOpenHashMap;
@@ -55,6 +58,23 @@ public record StructurePreview(ResourceLocation definitionId, String fingerprint
                                ObjectList<Material> materials, ObjectList<Diagnostic> diagnostics) {
 
     private static final BlockState AIR_CONFLICT_MARKER_STATE = Blocks.WHITE_STAINED_GLASS.defaultBlockState();
+
+    public static final ContextualFieldCodec<StructurePreview> CODEC = new ContextualFieldCodec<>() {
+
+        @Override
+        public Codec<StructurePreview> codec(Context<StructurePreview> context) {
+            return FieldCodecs.fromStreamCodec(STREAM_CODEC, ((ItemSyncHolder) context.holder()).getRegistries());
+        }
+
+        @Override
+        public boolean isImmutable() {
+            return true;
+        }
+    };
+
+    static {
+        FieldCodecs.registerContextual(StructurePreview.class, CODEC);
+    }
     private static final RenderInfo AIR_CONFLICT_RENDER_INFO = RenderInfo
             .fromPlan(PlannedBlockInfo.from(AIR_CONFLICT_MARKER_STATE));
 
