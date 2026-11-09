@@ -19,6 +19,7 @@ import net.minecraft.world.item.ItemStack;
 
 import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
 import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ObjectList;
@@ -117,7 +118,12 @@ public final class MultiblockInfo {
                     .map(structures::get).collect(ObjectImmutableList.toList());
             var plan = new BatchPlanner().resolveCanonical(definition,
                     new BatchRequest(requests, policy, ObjectList.of()));
-            return StructurePreview.canonical(definition.getId(), plan);
+            var result = StructurePreview.canonical(definition.getId(), plan);
+            var materials = new ObjectArrayList<>(result.materials());
+            materials.addFirst(new StructurePreview.Material(ObjectList.of(definition.asStack()),
+                    1, 0, 0, 0, 0, 0, false, ObjectList.of()));
+            return new StructurePreview(result.definitionId(), result.fingerprint(), result.availabilityKnown(),
+                    result.structures(), result.cells(), new ObjectImmutableList<>(materials), result.diagnostics());
         });
         generation = resolved.generation();
         preview = resolved;
@@ -135,6 +141,7 @@ public final class MultiblockInfo {
         Resolution<ObjectList<MaterialKey>> resolved = PatternGenerationGuard
                 .resolve(StructurePatternRegistry::generation, attempt -> {
                     var keys = new ObjectLinkedOpenHashSet<MaterialKey>();
+                    keys.add(MaterialKey.of(definition.asStack()));
                     for (String structure : definition.getStructureOrder()) {
                         for (var predicate : definition.getPattern(structure).getAllPredicates()) {
                             for (var candidate : predicate.getPreviewCandidates(definition)) {
