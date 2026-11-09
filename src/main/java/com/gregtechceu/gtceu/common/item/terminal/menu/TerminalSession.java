@@ -14,8 +14,8 @@ import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.BatchPlan;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.BatchPlanner;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.BatchResolution;
 import com.gregtechceu.gtceu.api.multiblock.preview.StructurePreview;
+import com.gregtechceu.gtceu.common.item.behavior.TerminalBehavior;
 import com.gregtechceu.gtceu.common.item.datacomponents.TerminalMachine;
-import com.gregtechceu.gtceu.common.item.terminal.TerminalData;
 import com.gregtechceu.gtceu.common.item.terminal.network.TerminalChange;
 import com.gregtechceu.gtceu.common.machine.owner.MachineOwner;
 import com.gregtechceu.gtceu.data.pattern.StructurePatternRegistry;
@@ -42,7 +42,7 @@ public final class TerminalSession {
 
     private final ServerPlayer player;
     private final InteractionHand hand;
-    private final TerminalData data;
+    private final TerminalBehavior data;
     private final ItemStack openedTerminal;
     private final MultiblockControllerMachine openedController;
     private final MultiblockMachineDefinition definition;
@@ -61,7 +61,7 @@ public final class TerminalSession {
     private TerminalExecutionSummary lastExecution;
 
     /** Captures the exact server objects used for every later validation. */
-    public TerminalSession(ServerPlayer player, InteractionHand hand, TerminalData data,
+    public TerminalSession(ServerPlayer player, InteractionHand hand, TerminalBehavior data,
                            MultiblockControllerMachine controller) {
         this.player = player;
         this.hand = hand;
@@ -232,7 +232,7 @@ public final class TerminalSession {
         }
     }
 
-    private static TerminalMachine loadMachine(ServerPlayer player, TerminalData data,
+    private static TerminalMachine loadMachine(ServerPlayer player, TerminalBehavior data,
                                                MultiblockMachineDefinition definition) {
         TerminalMachine machine = data.getMachines().get(definition.getId());
         if (machine == null || !isValidMachine(definition, machine)) {

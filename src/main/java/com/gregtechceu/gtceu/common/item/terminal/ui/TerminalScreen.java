@@ -13,9 +13,9 @@ import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.multiblock.preview.StructurePreview;
 import com.gregtechceu.gtceu.api.registry.GTRegistries;
 import com.gregtechceu.gtceu.client.renderer.MultiblockInWorldPreviewRenderer;
+import com.gregtechceu.gtceu.common.item.behavior.TerminalBehavior;
 import com.gregtechceu.gtceu.common.item.datacomponents.TerminalControllerBinding;
 import com.gregtechceu.gtceu.common.item.datacomponents.TerminalMachine;
-import com.gregtechceu.gtceu.common.item.terminal.TerminalData;
 import com.gregtechceu.gtceu.common.item.terminal.menu.TerminalMenuState;
 import com.gregtechceu.gtceu.common.item.terminal.menu.TerminalSession;
 import com.gregtechceu.gtceu.common.item.terminal.network.TerminalChange;
@@ -45,7 +45,7 @@ public final class TerminalScreen extends UIElement {
     private static final int HEIGHT = 200;
 
     private final Player player;
-    private final TerminalData data;
+    private final TerminalBehavior data;
     private final TerminalControllerBinding binding;
     private final @Nullable TerminalSession serverSession;
     private final MultiblockPreviewPanel preview;
@@ -62,7 +62,7 @@ public final class TerminalScreen extends UIElement {
 
     public TerminalScreen(HeldItemUIHolder holder, Player player) {
         this.player = player;
-        data = (TerminalData) holder.getSyncHolder();
+        data = (TerminalBehavior) holder.getSyncHolder();
         binding = data.getBinding();
         var definition = (MultiblockMachineDefinition) GTRegistries.MACHINES.get(binding.definitionId());
         if (player instanceof ServerPlayer serverPlayer) {

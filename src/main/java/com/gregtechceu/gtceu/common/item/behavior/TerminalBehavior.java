@@ -8,10 +8,18 @@ import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.registry.GTRegistries;
+import com.gregtechceu.gtceu.api.sync_system.annotations.ClientFieldChangeListener;
+import com.gregtechceu.gtceu.api.sync_system.annotations.ItemSave;
+import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
 import com.gregtechceu.gtceu.api.sync_system.managed.ItemSyncHolder;
 import com.gregtechceu.gtceu.api.sync_system.managed.SyncItem;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCSender;
 import com.gregtechceu.gtceu.common.item.datacomponents.TerminalControllerBinding;
-import com.gregtechceu.gtceu.common.item.terminal.TerminalData;
+import com.gregtechceu.gtceu.common.item.datacomponents.TerminalMachine;
+import com.gregtechceu.gtceu.common.item.terminal.menu.TerminalMenuState;
+import com.gregtechceu.gtceu.common.item.terminal.menu.TerminalSession;
+import com.gregtechceu.gtceu.common.item.terminal.network.TerminalChange;
 import com.gregtechceu.gtceu.common.item.terminal.ui.TerminalScreen;
 import com.gregtechceu.gtceu.common.machine.owner.MachineOwner;
 
@@ -20,6 +28,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -30,15 +39,64 @@ import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 
+import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
+import lombok.Getter;
+import lombok.Setter;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 @NullMarked
-public class TerminalBehavior implements IItemUIFactory, SyncItem {
+public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, SyncItem {
+
+    @Getter
+    @Setter
+    @ItemSave
+    private @Nullable TerminalControllerBinding binding;
+    @Getter
+    @ItemSave
+    private final Object2ObjectMap<ResourceLocation, TerminalMachine> machines = new Object2ObjectLinkedOpenHashMap<>();
+    @Getter
+    @Setter
+    @SyncToClient
+    private @Nullable TerminalMenuState state;
+    @Getter
+    @Setter
+    private @Nullable TerminalSession session;
+    @Setter
+    private @Nullable Runnable stateListener;
+
+    /** The registered component only creates stack-owned instances; it never holds an opened terminal's state. */
+    public TerminalBehavior() {
+        this(ItemStack.EMPTY, RegistryAccess.EMPTY);
+    }
+
+    public TerminalBehavior(ItemStack stack, RegistryAccess registries) {
+        super(stack, registries);
+    }
+
+    @ClientFieldChangeListener(fieldName = "state")
+    public void onStateChanged() {
+        if (stateListener != null) stateListener.run();
+    }
+
+    @RPCMethod
+    public void change(RPCSender sender, long sequence, long revision, TerminalChange update) {
+        if (sender.isRemote() && session != null) {
+            session.applyUpdate(sender.asPlayer(), sequence, revision, update);
+        }
+    }
+
+    @RPCMethod
+    public void execute(RPCSender sender, long sequence, long revision, long fingerprint) {
+        if (sender.isRemote() && session != null) {
+            session.execute(sender.asPlayer(), sequence, revision, fingerprint);
+        }
+    }
 
     @Override
-    public TerminalData createSyncHolder(ItemStack stack, RegistryAccess registries) {
-        return new TerminalData(stack, registries);
+    public TerminalBehavior createSyncHolder(ItemStack stack, RegistryAccess registries) {
+        return new TerminalBehavior(stack, registries);
     }
 
     @Override
@@ -71,7 +129,7 @@ public class TerminalBehavior implements IItemUIFactory, SyncItem {
 
     @Override
     public boolean canCreateUI(HeldItemUIHolder holder, Player player) {
-        TerminalControllerBinding binding = ((TerminalData) holder.getSyncHolder()).getBinding();
+        TerminalControllerBinding binding = ((TerminalBehavior) holder.getSyncHolder()).getBinding();
         return binding != null &&
                 GTRegistries.MACHINES.get(binding.definitionId()) instanceof MultiblockMachineDefinition &&
                 isUIStillValid(holder, player);
@@ -79,7 +137,7 @@ public class TerminalBehavior implements IItemUIFactory, SyncItem {
 
     @Override
     public boolean isUIStillValid(HeldItemUIHolder holder, Player player) {
-        TerminalData data = (TerminalData) holder.getSyncHolder();
+        TerminalBehavior data = (TerminalBehavior) holder.getSyncHolder();
         TerminalControllerBinding binding = data.getBinding();
         if (binding == null || !ItemStack.isSameItem(holder.getHeld(), holder.getOpenedStack()) ||
                 !binding.dimension().equals(player.level().dimension())) {
@@ -99,7 +157,7 @@ public class TerminalBehavior implements IItemUIFactory, SyncItem {
     private static boolean bind(MultiblockControllerMachine controller, ServerPlayer player, InteractionHand hand,
                                 ItemStack terminal) {
         if (!canAccess(controller, player, hand, terminal)) return reject(player, "access_denied");
-        TerminalData data = (TerminalData) ItemSyncHolder.create(terminal, player.registryAccess());
+        TerminalBehavior data = (TerminalBehavior) ItemSyncHolder.create(terminal, player.registryAccess());
         data.setBinding(new TerminalControllerBinding(controller.getBlockPos(),
                 player.level().dimension(), controller.getDefinition().getId()));
         data.saveToStack();
@@ -109,7 +167,7 @@ public class TerminalBehavior implements IItemUIFactory, SyncItem {
     }
 
     private static boolean openBound(ServerPlayer player, InteractionHand hand, ItemStack terminal) {
-        TerminalControllerBinding binding = ((TerminalData) ItemSyncHolder.create(terminal, player.registryAccess()))
+        TerminalControllerBinding binding = ((TerminalBehavior) ItemSyncHolder.create(terminal, player.registryAccess()))
                 .getBinding();
         if (binding == null) return reject(player, "unbound");
         if (!binding.dimension().equals(player.level().dimension())) return reject(player, "wrong_dimension");
