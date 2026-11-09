@@ -1,40 +1,32 @@
 package com.gregtechceu.gtceu.api.gui.widget;
 
-import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTButtonElement;
-import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
+import com.gregtechceu.gtceu.api.gui.element.GTImageElement;
 import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
 import com.gregtechceu.gtceu.api.gui.texture.ColorRectTexture;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
+import com.gregtechceu.gtceu.api.gui.texture.ItemStackTexture;
 
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
 import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollerMode;
-import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
-import com.lowdragmc.lowdraglib2.integration.xei.IngredientIO;
-import com.lowdragmc.lowdraglib2.integration.xei.emi.LDLibEMIPlugin;
-import com.lowdragmc.lowdraglib2.integration.xei.jei.LDLibJEIPlugin;
+import com.lowdragmc.lowdraglib2.gui.ui.event.HoverTooltips;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
+import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.item.ItemStack;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 
-import dev.emi.emi.api.stack.EmiStack;
 import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectMaps;
 import it.unimi.dsi.fastutil.objects.ObjectList;
-import mezz.jei.api.constants.VanillaTypes;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
-import java.util.stream.Stream;
 
 /** Two compact item columns. The caller owns the choices and applies selections to its own state. */
 @NullMarked
@@ -50,7 +42,6 @@ public final class BlockChoiceList extends UIElement {
     private Object2ObjectMap<String, ResourceLocation> selected = Object2ObjectMaps.emptyMap();
     private @Nullable String expandedGroup;
     private boolean interactive = true;
-    private Consumer<ItemStack> updateJEI = ignored -> {};
 
     public BlockChoiceList(BiConsumer<String, ResourceLocation> select) {
         this.select = select;
@@ -67,7 +58,6 @@ public final class BlockChoiceList extends UIElement {
 
     public void setChoices(Object2ObjectMap<String, ObjectList<ResourceLocation>> choices,
                            Object2ObjectMap<String, ResourceLocation> selected) {
-        updateJEI.accept(ItemStack.EMPTY);
         this.choices = choices;
         this.selected = selected;
         if (!choices.containsKey(expandedGroup)) expandedGroup = null;
@@ -82,7 +72,6 @@ public final class BlockChoiceList extends UIElement {
     public void close() {
         expandedGroup = null;
         candidates.setDisplay(false);
-        updateJEI.accept(ItemStack.EMPTY);
         refreshButtons();
     }
 
@@ -97,7 +86,6 @@ public final class BlockChoiceList extends UIElement {
             expand.getStyle().tooltips(Component.translatable("gtpm.multiblock.category." + group));
             expand.setOnClick(event -> {
                 expandedGroup = group.equals(expandedGroup) ? null : group;
-                updateJEI.accept(ItemStack.EMPTY);
                 candidates.verticalScroller(scroll -> scroll.setNormalizedValue(0));
                 rebuildCandidates();
                 refreshButtons();
@@ -147,11 +135,12 @@ public final class BlockChoiceList extends UIElement {
         }
     }
 
-    private static GTItemSlotElement icon(ResourceLocation id, int y) {
-        var icon = new GTItemSlotElement();
-        UITemplate.setBounds(icon, 4, y, 18, 18);
-        icon.setBackgroundTexture(IGuiTexture.EMPTY);
-        icon.setItem(BuiltInRegistries.BLOCK.get(id).asItem().getDefaultInstance(), false);
+    private static GTImageElement icon(ResourceLocation id, int y) {
+        var stack = BuiltInRegistries.BLOCK.get(id).asItem().getDefaultInstance();
+        var icon = new GTImageElement(5, y + 1, 16, 16, new ItemStackTexture(stack));
+        icon.addEventListener(UIEvents.HOVER_TOOLTIPS,
+                event -> event.hoverTooltips = new HoverTooltips(DrawerHelper.getItemToolTip(stack),
+                        stack.getTooltipImage().orElse(null), null, stack));
         return icon;
     }
 
@@ -184,50 +173,5 @@ public final class BlockChoiceList extends UIElement {
             scroll.scrollBar.buttonStyle(style -> style.baseTexture(bar).hoverTexture(bar).pressedTexture(bar));
         });
         return scroller;
-    }
-
-    /** Recipe widgets are collected once, so keep the binding on this surviving viewport. */
-    @OnlyIn(Dist.CLIENT)
-    public void enableRecipeLookup() {
-        if (GTCEu.MODS.isEMILoaded()) {
-            EMISupport.recipeSlot(this);
-        }
-        if (GTCEu.MODS.isJEILoaded()) {
-            updateJEI = JEISupport.recipeSlot(this);
-        }
-    }
-
-    @OnlyIn(Dist.CLIENT)
-    private ItemStack getHoveredItem() {
-        var ui = getModularUI();
-        var hit = ui.ui.rootElement.hitTest(ui.getLastMouseX(), ui.getLastMouseY());
-        var hovered = hit == null ? null : hit.getA();
-        if (!(hovered instanceof GTItemSlotElement item)) return ItemStack.EMPTY;
-        for (UIElement parent = item.getParent(); parent != null; parent = parent.getParent()) {
-            if (parent == this) return item.getValue();
-        }
-        return ItemStack.EMPTY;
-    }
-
-    @Override
-    @OnlyIn(Dist.CLIENT)
-    public void drawBackgroundAdditional(GUIContext context) {
-        updateJEI.accept(getHoveredItem());
-        super.drawBackgroundAdditional(context);
-    }
-
-    private static final class EMISupport {
-
-        private static void recipeSlot(BlockChoiceList list) {
-            LDLibEMIPlugin.recipeSlot(list, () -> EmiStack.of(list.getHoveredItem()));
-        }
-    }
-
-    private static final class JEISupport {
-
-        private static Consumer<ItemStack> recipeSlot(BlockChoiceList list) {
-            return LDLibJEIPlugin.recipeSlot(list, IngredientIO.NONE, VanillaTypes.ITEM_STACK,
-                    Stream::empty, ignored -> {});
-        }
     }
 }

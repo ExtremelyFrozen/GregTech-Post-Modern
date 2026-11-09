@@ -82,7 +82,6 @@ public final class PatternPreviewWidget extends UIElement {
         preview = new ClientMultiblockPreviewElement(188, 156, new PreviewVisibility(initial.value()), false);
         addChild(preview);
         blocks = new BlockChoiceList((group, id) -> changeStructure(structure -> structure.withTierChoice(group, id)));
-        blocks.enableRecipeLookup();
         addChild(blocks);
         options.scrollerStyle(style -> style.mode(ScrollerMode.VERTICAL)
                 .verticalScrollDisplay(ScrollDisplay.AUTO).horizontalScrollDisplay(ScrollDisplay.NEVER)
