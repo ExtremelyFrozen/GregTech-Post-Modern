@@ -10,7 +10,6 @@ import com.gregtechceu.gtceu.api.gui.element.GTIntInputElement;
 import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTPhantomItemSlotElement;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
 import com.gregtechceu.gtceu.api.gui.fancy.TabsWidget;
@@ -288,12 +287,6 @@ public class MEInputBusPartMachine extends MEBusPartMachine
         player.containerMenu.setCarried(pickedUp);
         long remaining = stock.amount() - pickedUp.getCount();
         configSlot.setStock(remaining > 0 ? new GenericStack(key, remaining) : null);
-    }
-
-    @RPCMethod
-    @ApiStatus.Internal
-    public void setMEItemAutoPull(boolean autoPull) {
-        throw new IllegalStateException("Ordinary ME item input buses do not support auto-pull.");
     }
 
     /** One opening-scoped Fancy home page shared by standalone and contextual part navigation. */
@@ -608,7 +601,6 @@ public class MEInputBusPartMachine extends MEBusPartMachine
 
     @Override
     public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
-        MachineUIHolder holder = configuratorPanel.getHolder();
         configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
                 MEInputBusPartMachine.this));
         DistinctPartConfigurator.attachConfigurators(configuratorPanel, MEInputBusPartMachine.this);
@@ -618,7 +610,7 @@ public class MEInputBusPartMachine extends MEBusPartMachine
         }
         if (MEInputBusPartMachine.this instanceof MEStockingBusPartMachine stockingBus) {
             configuratorPanel.attachConfigurators(
-                    new MEItemAutoPullConfigurator(stockingBus, holder),
+                    new MEItemAutoPullConfigurator(stockingBus),
                     new AutoStockingConfigurator(stockingBus));
         }
     }

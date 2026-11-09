@@ -201,10 +201,6 @@ public class QuantumTankMachine extends TieredMachine implements IControllable,
         setLocked(locked);
     }
 
-    private void setVoiding(boolean voiding) {
-        isVoiding = voiding;
-    }
-
     public FluidStack getLockedFluid() {
         return lockedFluid.getFluid();
     }

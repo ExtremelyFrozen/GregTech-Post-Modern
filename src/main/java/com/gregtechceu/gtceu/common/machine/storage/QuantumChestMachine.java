@@ -272,10 +272,6 @@ public class QuantumChestMachine extends TieredMachine implements IControllable,
         return stored.isEmpty() || ItemStack.isSameItemSameComponents(stack, stored);
     }
 
-    private void setVoiding(boolean voiding) {
-        isVoiding = voiding;
-    }
-
     public ItemStack getLockedItem() {
         return lockedItem.getStackInSlot(0);
     }

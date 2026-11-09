@@ -6,8 +6,8 @@ import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMultiPart;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableFluidTank;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
+import com.gregtechceu.gtceu.api.sync_system.annotations.ServerFieldChangeListener;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncBoth;
-import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
 import com.gregtechceu.gtceu.common.data.datacomponents.AEInputConfigCopyData;
 import com.gregtechceu.gtceu.common.item.behavior.IntCircuitBehaviour;
 import com.gregtechceu.gtceu.config.ConfigHolder;
@@ -43,7 +43,7 @@ public class MEStockingHatchPartMachine extends MEInputHatchPartMachine implemen
 
     private static final int CONFIG_SIZE = 16;
 
-    @SyncToClient
+    @SyncBoth
     @SaveField
     @Getter
     private boolean autoPull;
@@ -177,13 +177,17 @@ public class MEStockingHatchPartMachine extends MEInputHatchPartMachine implemen
         }
         this.autoPull = autoPull;
         if (!isRemote()) {
-            syncDataHolder.markClientSyncFieldDirty("autoPull");
-            if (!this.autoPull) {
-                this.aeFluidHandler.clearInventory(0);
-            } else if (updateMEStatus()) {
-                this.refreshList();
-                updateTankSubscription();
-            }
+            updateAutoPullInventory();
+        }
+    }
+
+    @ServerFieldChangeListener(fieldName = "autoPull")
+    private void updateAutoPullInventory() {
+        if (!autoPull) {
+            aeFluidHandler.clearInventory(0);
+        } else if (updateMEStatus()) {
+            refreshList();
+            updateTankSubscription();
         }
     }
 
@@ -195,11 +199,6 @@ public class MEStockingHatchPartMachine extends MEInputHatchPartMachine implemen
     @Override
     public boolean isMEFluidStocking() {
         return true;
-    }
-
-    @Override
-    public void setMEFluidAutoPull(boolean autoPull) {
-        setAutoPull(autoPull);
     }
 
     @Override

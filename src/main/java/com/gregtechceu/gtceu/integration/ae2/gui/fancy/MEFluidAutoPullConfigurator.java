@@ -1,7 +1,6 @@
 package com.gregtechceu.gtceu.integration.ae2.gui.fancy;
 
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyConfiguratorButton;
 import com.gregtechceu.gtceu.integration.ae2.machine.MEStockingHatchPartMachine;
 
@@ -11,15 +10,13 @@ import java.util.List;
 
 public final class MEFluidAutoPullConfigurator extends IFancyConfiguratorButton.Toggle {
 
-    public MEFluidAutoPullConfigurator(MEStockingHatchPartMachine machine, MachineUIHolder holder) {
+    public MEFluidAutoPullConfigurator(MEStockingHatchPartMachine machine) {
         super(GuiTextures.BUTTON_AUTO_PULL.getSubTexture(0, 0, 1, 0.5),
                 GuiTextures.BUTTON_AUTO_PULL.getSubTexture(0, 0.5, 1, 0.5),
                 machine::isAutoPull, (event, pressed) -> {
-                    if (machine.isRemote()) {
-                        machine.rpcToServer("setMEFluidAutoPull", pressed);
-                        event.stopImmediatePropagation();
-                        event.hasHandler = true;
-                    }
+                    machine.setAutoPull(pressed);
+                    event.stopImmediatePropagation();
+                    event.hasHandler = true;
                 });
         setTooltipsSupplier(pressed -> List.of(Component.translatable("gtpm.gui.me_bus.auto_pull_button")));
     }

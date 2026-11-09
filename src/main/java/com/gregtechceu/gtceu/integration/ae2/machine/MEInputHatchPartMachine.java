@@ -9,7 +9,6 @@ import com.gregtechceu.gtceu.api.gui.element.GTFluidSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTImageElement;
 import com.gregtechceu.gtceu.api.gui.element.GTIntInputElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
 import com.gregtechceu.gtceu.api.gui.fancy.TabsWidget;
@@ -276,12 +275,6 @@ public class MEInputHatchPartMachine extends MEHatchPartMachine
             throw new IllegalStateException("ME fluid configuration amount mutation is not permitted.");
         }
         configSlot.setConfig(ExportOnlyAESlot.copy(config, amount));
-    }
-
-    @RPCMethod
-    @ApiStatus.Internal
-    public void setMEFluidAutoPull(boolean autoPull) {
-        throw new IllegalStateException("Ordinary ME fluid input hatches do not support auto-pull.");
     }
 
     /** One opening-scoped Fancy home page shared by standalone and contextual part navigation. */
@@ -584,7 +577,6 @@ public class MEInputHatchPartMachine extends MEHatchPartMachine
 
     @Override
     public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
-        MachineUIHolder holder = configuratorPanel.getHolder();
         configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
                 MEInputHatchPartMachine.this));
         if (isCircuitSlotEnabled()) {
@@ -593,7 +585,7 @@ public class MEInputHatchPartMachine extends MEHatchPartMachine
         }
         if (MEInputHatchPartMachine.this instanceof MEStockingHatchPartMachine stockingHatch) {
             configuratorPanel.attachConfigurators(
-                    new MEFluidAutoPullConfigurator(stockingHatch, holder),
+                    new MEFluidAutoPullConfigurator(stockingHatch),
                     new AutoStockingConfigurator(stockingHatch));
         }
     }
