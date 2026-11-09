@@ -49,7 +49,7 @@ import java.util.function.UnaryOperator;
 @NullMarked
 public final class PatternPreviewWidget extends UIElement {
 
-    public static final int WIDTH = 300;
+    public static final int WIDTH = 300 + BlockChoiceList.WIDTH + 4;
     public static final int HEIGHT = 200;
 
     private final MultiblockMachineDefinition definition;
@@ -64,7 +64,6 @@ public final class PatternPreviewWidget extends UIElement {
     private int selectedStructure;
     private int pageWidth = WIDTH;
     private int pageHeight = HEIGHT;
-    private int optionsHeight;
     private long observedGeneration;
 
     private PatternPreviewWidget(MultiblockInfo info, boolean expanded) {
@@ -79,7 +78,7 @@ public final class PatternPreviewWidget extends UIElement {
         observedGeneration = initial.generation();
         title = label(6, 6, 246, definition.getBlock().getName());
         addChild(title);
-        preview = new ClientMultiblockPreviewElement(188, 156, new PreviewVisibility(initial.value()), false);
+        preview = new ClientMultiblockPreviewElement(180, 176, new PreviewVisibility(initial.value()), false);
         addChild(preview);
         blocks = new BlockChoiceList((group, id) -> changeStructure(structure -> structure.withTierChoice(group, id)));
         addChild(blocks);
@@ -111,17 +110,18 @@ public final class PatternPreviewWidget extends UIElement {
     private Size resize(Size screen) {
         pageWidth = expanded ? screen.getWidth() : Math.min(WIDTH, screen.getWidth());
         pageHeight = expanded ? screen.getHeight() : Math.min(HEIGHT, screen.getHeight());
-        title.getLayout().width(pageWidth - 54);
-        fullscreen.getLayout().left(pageWidth - 42);
+        int contentWidth = pageWidth - BlockChoiceList.WIDTH - 4;
+        title.getLayout().width(contentWidth - 54);
+        fullscreen.getLayout().left(contentWidth - 42);
         rebuildOptions();
         return Size.of(pageWidth, pageHeight);
     }
 
     private void layoutContent() {
-        int contentWidth = pageWidth - BlockChoiceList.WIDTH - 12;
-        UITemplate.setBounds(options, 4, 20, contentWidth, optionsHeight);
-        preview.getLayout().left(4).top(22 + optionsHeight);
-        preview.resize(contentWidth, pageHeight - optionsHeight - 26);
+        int contentWidth = pageWidth - BlockChoiceList.WIDTH - 4;
+        preview.getLayout().left(4).top(20);
+        preview.resize(contentWidth - 120, pageHeight - 24);
+        UITemplate.setBounds(options, contentWidth - 112, 20, 108, pageHeight - 24);
         blocks.resize(pageWidth - BlockChoiceList.WIDTH - 4, 20, pageHeight - 24);
     }
 
@@ -132,11 +132,11 @@ public final class PatternPreviewWidget extends UIElement {
     private void rebuildOptions() {
         options.clearAllScrollViewChildren();
         controls.clear();
-        int width = pageWidth - BlockChoiceList.WIDTH - 12;
+        int width = 104;
         var policy = info.getPolicy();
         String name = structureName();
         var structure = info.getStructures().get(name);
-        var noHatches = button(0, 0, 70, text("casings"));
+        var noHatches = button(0, 0, width, text("casings"));
         noHatches.textStyle(style -> style.textColor(policy.noHatchMode() ? 0xff167129 : 0xff404040));
         noHatches.setOnClick(event -> {
             applyChange(() -> info.setPolicy(new BuildPolicy(policy.replaceMode(), !policy.noHatchMode(), false)));
@@ -144,16 +144,17 @@ public final class PatternPreviewWidget extends UIElement {
         });
         options.addScrollViewChild(noHatches);
         controls.add(noHatches);
+        int y = 20;
         if (definition.isAllowFlip()) {
-            var flip = button(74, 0, width - 74, text("flip", text(structure.flipMode() ? "on" : "off")));
+            var flip = button(0, y, width, text("flip", text(structure.flipMode() ? "on" : "off")));
             flip.setOnClick(event -> {
                 changeStructure(value -> value.withFlipMode(!value.flipMode()));
                 event.stopPropagation();
             });
             options.addScrollViewChild(flip);
             controls.add(flip);
+            y += 20;
         }
-        int y = 20;
         var order = definition.getStructureOrder();
         if (order.size() > 1) {
             addStep(y, width, displayName(name), () -> {
@@ -211,7 +212,6 @@ public final class PatternPreviewWidget extends UIElement {
             y += 20;
         }
         options.viewContainer.getLayout().width(width - 3).height(y);
-        optionsHeight = Math.min(y, Math.max(20, pageHeight / 3));
         blocks.setChoices(new BatchPlanner().activeTierChoiceOptions(definition, structure),
                 structure.tierChoices());
         layoutContent();

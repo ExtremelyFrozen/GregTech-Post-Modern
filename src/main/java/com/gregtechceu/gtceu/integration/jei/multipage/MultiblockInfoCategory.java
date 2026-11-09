@@ -1,6 +1,7 @@
 package com.gregtechceu.gtceu.integration.jei.multipage;
 
 import com.gregtechceu.gtceu.GTCEu;
+import com.gregtechceu.gtceu.api.gui.widget.BlockChoiceList;
 import com.gregtechceu.gtceu.api.gui.widget.PatternPreviewWidget;
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialKey;
@@ -103,7 +104,7 @@ public class MultiblockInfoCategory extends ModularUIRecipeCategory<MultiblockIn
 
     @Override
     public int getWidth() {
-        return Math.min(width, Minecraft.getInstance().getWindow().getGuiScaledWidth() - 64);
+        return Math.min(width, Minecraft.getInstance().getWindow().getGuiScaledWidth() - 24);
     }
 
     @Override
@@ -122,7 +123,7 @@ public class MultiblockInfoCategory extends ModularUIRecipeCategory<MultiblockIn
         super.setRecipe(builder, recipe, focuses);
         builder.addSlot(RecipeIngredientRole.OUTPUT)
                 .addItemStacks(recipe.getOutputs())
-                .setPosition(getWidth() - 22, 4);
+                .setPosition(getWidth() - BlockChoiceList.WIDTH - 26, 4);
     }
 
     @Override

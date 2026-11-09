@@ -383,7 +383,7 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
             private final GTButtonElement fullscreen;
             private final GTButtonElement edit;
             private final GTLabelElement title;
-            private final GTLabelElement result = label(6, 183, 182, Component.empty());
+            private final GTLabelElement result = label(192, 167, 100, Component.empty());
             private @Nullable GTButtonElement visibility;
             private @Nullable StructurePreview displayedPreview;
             private boolean expanded;
@@ -392,7 +392,6 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
             private int selectedStructure;
             private int width = 300;
             private int height = 200;
-            private int optionsHeight;
 
             Page() {
                 var empty = new StructurePreview(definition.getId(), "awaiting-server", false,
@@ -404,7 +403,7 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                 title = label(6, 6, 244, definition.getBlock().getName());
                 title.getStyle().tooltips(Component.literal(binding.dimension().location() + " @ " +
                         binding.position().toShortString()));
-                preview = new ClientMultiblockPreviewElement(292, 136, new PreviewVisibility(empty), true);
+                preview = new ClientMultiblockPreviewElement(180, 176, new PreviewVisibility(empty), true);
                 blocks = new BlockChoiceList((group, id) -> change(value -> value.withTierChoice(group, id)));
                 blocks.setDisplay(false);
                 options.scrollerStyle(style -> style.mode(ScrollerMode.VERTICAL)
@@ -415,7 +414,7 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                     port.getStyle().backgroundTexture(GuiTextures.BACKGROUND_INVERSE);
                 });
                 options.verticalScroller(scroll -> scroll.getLayout().width(2));
-                execute = button(192, 180, 104, Component.translatable("gtpm.multiblock.autobuild.terminal.execute"));
+                execute = button(188, 180, 108, Component.translatable("gtpm.multiblock.autobuild.terminal.execute"));
                 execute.setOnClick(event -> {
                     terminal.rpcToServer("execute", Long.parseUnsignedLong(terminal.preview.fingerprint(), 16));
                     event.stopPropagation();
@@ -427,7 +426,9 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                     edit.setText(Component.literal(editing ? "✘" : "✎"));
                     blocks.setDisplay(editing);
                     if (!editing) blocks.close();
-                    rebuildOptions();
+                    var ui = getModularUI();
+                    ui.init(ui.getScreenWidth(), ui.getScreenHeight());
+                    ((ModularUIContainerScreen) ui.getScreen()).init();
                     event.stopPropagation();
                 });
                 fullscreen = button(278, 4, 16, Component.literal("↗"));
@@ -447,13 +448,15 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
             }
 
             private Size resize(Size screen) {
-                width = expanded ? screen.getWidth() : Math.min(300, screen.getWidth());
+                width = expanded ? screen.getWidth() :
+                        Math.min(300 + (editing ? BlockChoiceList.WIDTH + 4 : 0), screen.getWidth());
                 height = expanded ? screen.getHeight() : Math.min(200, screen.getHeight());
-                title.getLayout().width(width - 48);
-                edit.getLayout().left(width - 40);
-                fullscreen.getLayout().left(width - 22);
-                result.getLayout().top(height - 17).width(width - 116);
-                execute.getLayout().left(width - 108).top(height - 20);
+                int contentWidth = width - (editing ? BlockChoiceList.WIDTH + 4 : 0);
+                title.getLayout().width(contentWidth - 48);
+                edit.getLayout().left(contentWidth - 40);
+                fullscreen.getLayout().left(contentWidth - 22);
+                result.getLayout().left(contentWidth - 108).top(height - 33).width(100);
+                execute.getLayout().left(contentWidth - 112).top(height - 20);
                 rebuildOptions();
                 return Size.of(width, height);
             }
@@ -466,20 +469,20 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                 options.clearAllScrollViewChildren();
                 controls.clear();
                 visibility = null;
-                int contentWidth = width - (editing ? BlockChoiceList.WIDTH + 12 : 8);
+                int contentWidth = 104;
                 var requests = terminal.structures.get(definition.getId());
                 var selected = terminal.included.get(definition.getId());
                 var shared = terminal.policies.get(definition.getId());
                 String name = structureName();
                 var structure = requests.get(name);
-                var replace = button(0, 0, 58, text("replace"));
+                var replace = button(0, 0, 50, text("replace"));
                 replace.textStyle(style -> style.textColor(shared.replaceMode() ? 0xff167129 : 0xff404040));
                 replace.setOnClick(event -> {
                     terminal.rpcToServer("setPolicy",
                             new BuildPolicy(!shared.replaceMode(), shared.noHatchMode(), shared.useME()));
                     event.stopPropagation();
                 });
-                var casings = button(60, 0, 66, text("casings"));
+                var casings = button(52, 0, 52, text("casings"));
                 casings.textStyle(style -> style.textColor(shared.noHatchMode() ? 0xff167129 : 0xff404040));
                 casings.setOnClick(event -> {
                     terminal.rpcToServer("setPolicy",
@@ -489,8 +492,9 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                 options.addScrollViewChildren(replace, casings);
                 controls.add(replace);
                 controls.add(casings);
+                int y = 20;
                 if (GTCEu.MODS.AE2.isLoaded()) {
-                    var me = button(128, 0, 30, text("me"));
+                    var me = button(0, y, contentWidth, text("me"));
                     me.textStyle(style -> style.textColor(shared.useME() ? 0xff167129 : 0xff404040));
                     me.setOnClick(event -> {
                         terminal.rpcToServer("setPolicy",
@@ -499,8 +503,8 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                     });
                     options.addScrollViewChild(me);
                     controls.add(me);
+                    y += 20;
                 }
-                int y = 20;
                 var order = definition.getStructureOrder();
                 if (order.size() > 1) {
                     addStep(y, contentWidth, displayName(name), () -> {
@@ -518,20 +522,20 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                         .anyMatch(entry -> requests.get(entry).mode() == StructureOperation.BUILD &&
                                 definition.getRequiredStructures(entry).contains(name));
                 boolean locked = required || selected.contains(name) && selected.size() == 1;
-                int x = 0;
                 if (!locked) {
-                    var included = button(x, y, 48, text(selected.contains(name) ? "selected" : "unselected"));
+                    var included = button(0, y, definition.isRenderWorldPreview() ? 50 : contentWidth,
+                            text(selected.contains(name) ? "selected" : "unselected"));
                     included.setOnClick(event -> {
                         terminal.rpcToServer("setIncluded", name, !selected.contains(name));
                         event.stopPropagation();
                     });
                     options.addScrollViewChild(included);
                     controls.add(included);
-                    x += 50;
                 }
                 if (definition.isRenderWorldPreview()) {
                     worldVisible = MultiblockInWorldPreviewRenderer.isPreviewVisible(binding.position(), name);
-                    visibility = button(x, y, 42, text(worldVisible ? "visible" : "hidden"));
+                    visibility = button(locked ? 0 : 54, y, locked ? contentWidth : 50,
+                            text(worldVisible ? "visible" : "hidden"));
                     visibility.getStyle().tooltips(text("world_preview"));
                     visibility.setOnClick(event -> {
                         MultiblockInWorldPreviewRenderer.togglePreview(binding.position(), terminal.preview,
@@ -540,9 +544,10 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                         event.stopPropagation();
                     });
                     options.addScrollViewChild(visibility);
-                    x += 44;
                 }
-                var mode = button(x, y, 52, text("mode." + structure.mode().name().toLowerCase(Locale.ROOT)));
+                if (!locked || definition.isRenderWorldPreview()) y += 20;
+                var mode = button(0, y, definition.isAllowFlip() ? 50 : contentWidth,
+                        text("mode." + structure.mode().name().toLowerCase(Locale.ROOT)));
                 mode.setActive(!required);
                 mode.setOnClick(event -> {
                     change(value -> value.withMode(value.mode() == StructureOperation.BUILD ?
@@ -552,8 +557,7 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                 options.addScrollViewChild(mode);
                 if (!required) controls.add(mode);
                 if (definition.isAllowFlip()) {
-                    y += 20;
-                    var flip = button(0, y, contentWidth,
+                    var flip = button(54, y, 50,
                             text("flip", text(structure.flipMode() ? "on" : "off")));
                     flip.setOnClick(event -> {
                         change(value -> value.withFlipMode(!value.flipMode()));
@@ -592,11 +596,11 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                     y += 20;
                 }
                 options.viewContainer.getLayout().width(contentWidth - 3).height(y);
-                optionsHeight = Math.min(y, Math.max(40, height / 3));
-                UITemplate.setBounds(options, 4, 20, contentWidth, optionsHeight);
-                preview.getLayout().left(4).top(22 + optionsHeight);
-                preview.resize(contentWidth, height - optionsHeight - 46);
-                blocks.resize(width - BlockChoiceList.WIDTH - 4, 20, height - 44);
+                int bodyWidth = width - (editing ? BlockChoiceList.WIDTH + 4 : 0);
+                UITemplate.setBounds(options, bodyWidth - 112, 20, 108, height - 56);
+                preview.getLayout().left(4).top(20);
+                preview.resize(bodyWidth - 120, height - 24);
+                blocks.resize(bodyWidth, 20, height - 24);
                 blocks.setChoices(new BatchPlanner().activeTierChoiceOptions(definition, structure),
                         structure.tierChoices());
                 updateInteractivity();

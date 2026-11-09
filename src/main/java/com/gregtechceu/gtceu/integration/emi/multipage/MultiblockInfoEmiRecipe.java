@@ -1,5 +1,6 @@
 package com.gregtechceu.gtceu.integration.emi.multipage;
 
+import com.gregtechceu.gtceu.api.gui.widget.BlockChoiceList;
 import com.gregtechceu.gtceu.api.gui.widget.PatternPreviewWidget;
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
 import com.gregtechceu.gtceu.integration.xei.multiblock.MultiblockInfo;
@@ -87,7 +88,7 @@ public class MultiblockInfoEmiRecipe extends ModularUIEMIRecipe {
         }
         widgets.add(widget);
         widgets.add(new SlotWidget(EmiIngredient.of(getOutputs()),
-                getDisplayWidth() - 22, 4)
+                getDisplayWidth() - BlockChoiceList.WIDTH - 26, 4)
                 .recipeContext(this)
                 .drawBack(false));
     }
@@ -132,7 +133,7 @@ public class MultiblockInfoEmiRecipe extends ModularUIEMIRecipe {
 
     @Override
     public int getDisplayWidth() {
-        return Math.min(PatternPreviewWidget.WIDTH, Minecraft.getInstance().getWindow().getGuiScaledWidth() - 64);
+        return Math.min(PatternPreviewWidget.WIDTH, Minecraft.getInstance().getWindow().getGuiScaledWidth() - 24);
     }
 
     @Override
