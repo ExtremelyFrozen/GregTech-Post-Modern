@@ -414,7 +414,7 @@ public final class GTDynamicItemSlotContainerMenu extends ModularUIContainerMenu
     public void removed(Player player) {
         super.removed(player);
         abortOpening(player);
-        holder.close(player);
+        holder.close();
     }
 
     /**
