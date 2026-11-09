@@ -1,6 +1,5 @@
 package com.gregtechceu.gtceu.common.machine.storage;
 
-import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo;
 import com.gregtechceu.gtceu.api.capability.IOpticalComputationProvider;
 import com.gregtechceu.gtceu.api.computation.ComputationProducer;
@@ -162,7 +161,9 @@ public class CreativeComputationProviderMachine extends MetaMachine
         field.textFieldStyle(style -> style
                 .textColor(0x404040)
                 .textShadow(false));
-        field.setTextResponder(this::setMaxCWUt);
+        field.setTextResponder(value -> {
+            if (!value.isEmpty()) maxCWUt = Integer.parseInt(value);
+        });
         return field;
     }
 
@@ -186,7 +187,7 @@ public class CreativeComputationProviderMachine extends MetaMachine
 
     private GTButtonElement createActivityButton() {
         return new GTButtonElement(9, 66, 122, 20, createActivityButtonTexture(),
-                event -> setActiveAndSync(!isActive())) {
+                event -> active = !active) {
 
             @Override
             public void screenTick() {
@@ -199,30 +200,6 @@ public class CreativeComputationProviderMachine extends MetaMachine
     private IGuiTexture createActivityButtonTexture() {
         return GuiTextures.group(GuiTextures.BUTTON,
                 GuiTextures.text(active ? "gtpm.creative.activity.on" : "gtpm.creative.activity.off"));
-    }
-
-    private void setMaxCWUt(String value) {
-        if (value.isEmpty()) {
-            return;
-        }
-        int parsedValue;
-        try {
-            parsedValue = Integer.parseInt(value);
-        } catch (NumberFormatException e) {
-            GTCEu.LOGGER.error("Invalid creative computation max CWUt input: {}", value, e);
-            throw e;
-        }
-        setMaxCWUt(parsedValue);
-        sendServerSyncChanges();
-    }
-
-    private void setActiveAndSync(boolean active) {
-        setActive(active);
-        sendServerSyncChanges();
-    }
-
-    private void setMaxCWUt(int maxCWUt) {
-        this.maxCWUt = maxCWUt;
     }
 
     private void setLastRequestedCWUt(int lastRequestedCWUt) {

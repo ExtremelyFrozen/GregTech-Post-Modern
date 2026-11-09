@@ -1,6 +1,5 @@
 package com.gregtechceu.gtceu.common.machine.storage;
 
-import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.GTValues;
 import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo;
 import com.gregtechceu.gtceu.api.capability.GTCapabilityHelper;
@@ -195,17 +194,6 @@ public class CreativeEnergyContainerMachine extends TieredMachine
         syncDataHolder.markClientSyncFieldDirty("setTier");
     }
 
-    private void setAmps(int amps) {
-        this.amps = amps;
-    }
-
-    private void setActive(boolean active) {
-        if (this.active == active) {
-            return;
-        }
-        this.active = active;
-    }
-
     private void setSource(boolean source) {
         if (this.source == source) {
             return;
@@ -308,14 +296,16 @@ public class CreativeEnergyContainerMachine extends TieredMachine
         field.textFieldStyle(style -> style
                 .textColor(0x404040)
                 .textShadow(false));
-        field.setTextResponder(this::setAmpsAndSync);
+        field.setTextResponder(value -> {
+            if (!value.isEmpty()) amps = Integer.parseInt(value);
+        });
         return field;
     }
 
     private GTButtonElement createAmpsDecreaseButton() {
         return new GTButtonElement(7, 87, 20, 20,
                 GuiTextures.group(GuiTextures.BUTTON, GuiTextures.text("-")),
-                event -> setAmpsAndSync(Math.max(0, amps - 1)));
+                event -> amps = Math.max(0, amps - 1));
     }
 
     private GTButtonElement createAmpsIncreaseButton() {
@@ -323,7 +313,7 @@ public class CreativeEnergyContainerMachine extends TieredMachine
                 GuiTextures.group(GuiTextures.BUTTON, GuiTextures.text("+")),
                 event -> {
                     if (amps < Integer.MAX_VALUE) {
-                        setAmpsAndSync(amps + 1);
+                        amps++;
                     }
                 });
     }
@@ -352,7 +342,7 @@ public class CreativeEnergyContainerMachine extends TieredMachine
 
     private GTButtonElement createActiveButton() {
         return new GTButtonElement(7, 139, 77, 20, createActiveButtonTexture(),
-                event -> setActiveAndSync(!active)) {
+                event -> active = !active) {
 
             @Override
             public void screenTick() {
@@ -364,7 +354,7 @@ public class CreativeEnergyContainerMachine extends TieredMachine
 
     private GTButtonElement createSourceButton() {
         return new GTButtonElement(85, 139, 77, 20, createSourceButtonTexture(),
-                event -> setSourceAndSync(!source)) {
+                event -> setSource(!source)) {
 
             @Override
             public void screenTick() {
@@ -388,36 +378,11 @@ public class CreativeEnergyContainerMachine extends TieredMachine
         if (value.isEmpty()) {
             return;
         }
-        long parsedValue;
-        try {
-            parsedValue = Long.parseLong(value);
-        } catch (NumberFormatException e) {
-            GTCEu.LOGGER.error("Invalid creative energy voltage input: {}", value, e);
-            throw e;
-        }
+        long parsedValue = Long.parseLong(value);
         setCreativeEnergyVoltage(parsedValue);
         if (player.level().isClientSide()) {
             holder.getMachine().rpcToServer("setCreativeEnergyVoltage", parsedValue);
         }
-    }
-
-    private void setAmpsAndSync(String value) {
-        if (value.isEmpty()) {
-            return;
-        }
-        int parsedValue;
-        try {
-            parsedValue = Integer.parseInt(value);
-        } catch (NumberFormatException e) {
-            GTCEu.LOGGER.error("Invalid creative energy amperage input: {}", value, e);
-            throw e;
-        }
-        setAmpsAndSync(parsedValue);
-    }
-
-    private void setAmpsAndSync(int value) {
-        setAmps(value);
-        sendServerSyncChanges();
     }
 
     private void setTier(Player player, MachineUIHolder holder, String tierName) {
@@ -426,16 +391,6 @@ public class CreativeEnergyContainerMachine extends TieredMachine
         if (player.level().isClientSide()) {
             holder.getMachine().rpcToServer("setCreativeEnergyTier", tierIndex);
         }
-    }
-
-    private void setActiveAndSync(boolean active) {
-        setActive(active);
-        sendServerSyncChanges();
-    }
-
-    private void setSourceAndSync(boolean source) {
-        setSource(source);
-        sendServerSyncChanges();
     }
 
     private static int getTierIndex(String tierName) {

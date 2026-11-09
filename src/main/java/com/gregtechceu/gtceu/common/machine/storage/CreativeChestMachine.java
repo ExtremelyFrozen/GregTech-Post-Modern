@@ -71,17 +71,6 @@ public class CreativeChestMachine extends QuantumChestMachine {
         onItemChanged();
     }
 
-    private void setTicksPerCycle(int ticksPerCycle) {
-        this.ticksPerCycle = ticksPerCycle;
-        autoOutput.setTicksPerCycle(ticksPerCycle);
-        onItemChanged();
-    }
-
-    private void setItemsPerCycle(int itemsPerCycle) {
-        this.itemsPerCycle = itemsPerCycle;
-        onItemChanged();
-    }
-
     @ServerFieldChangeListener(fieldName = "ticksPerCycle")
     private void onTicksPerCycleChanged(int oldValue, int newValue) {
         autoOutput.setTicksPerCycle(newValue);
@@ -154,7 +143,9 @@ public class CreativeChestMachine extends QuantumChestMachine {
         field.textFieldStyle(style -> style
                 .textColor(0x404040)
                 .textShadow(false));
-        field.setTextResponder(this::setItemsPerCycle);
+        field.setTextResponder(value -> {
+            if (!value.isEmpty()) itemsPerCycle = Integer.parseInt(value);
+        });
         return field;
     }
 
@@ -174,13 +165,15 @@ public class CreativeChestMachine extends QuantumChestMachine {
         field.textFieldStyle(style -> style
                 .textColor(0x404040)
                 .textShadow(false));
-        field.setTextResponder(this::setTicksPerCycle);
+        field.setTextResponder(value -> {
+            if (!value.isEmpty()) ticksPerCycle = Integer.parseInt(value);
+        });
         return field;
     }
 
     private GTButtonElement createActivityButton() {
         return new GTButtonElement(7, 101, 162, 20, createActivityButtonTexture(),
-                event -> setWorkingEnabledAndSync(!isWorkingEnabled())) {
+                event -> setWorkingEnabled(!isWorkingEnabled())) {
 
             @Override
             public void screenTick() {
@@ -201,7 +194,7 @@ public class CreativeChestMachine extends QuantumChestMachine {
                 GuiTextures.BUTTON_POWER.getSubTexture(0, 0.5, 1, 0.5),
                 this::isWorkingEnabled,
                 (event, pressed) -> {
-                    setWorkingEnabledAndSync(pressed);
+                    setWorkingEnabled(pressed);
                     event.stopImmediatePropagation();
                     event.hasHandler = true;
                 })
@@ -214,33 +207,6 @@ public class CreativeChestMachine extends QuantumChestMachine {
         if (player.level().isClientSide()) {
             ItemStack storedItem = item.isEmpty() ? ItemStack.EMPTY : item.copyWithCount(1);
             holder.getMachine().rpcToServer("setCreativeChestItem", storedItem);
-        }
-    }
-
-    private void setItemsPerCycle(String value) {
-        if (value.isEmpty()) {
-            return;
-        }
-        setItemsPerCycle(Integer.parseInt(value));
-        if (isRemote()) {
-            sendServerSyncChanges();
-        }
-    }
-
-    private void setTicksPerCycle(String value) {
-        if (value.isEmpty()) {
-            return;
-        }
-        setTicksPerCycle(Integer.parseInt(value));
-        if (isRemote()) {
-            sendServerSyncChanges();
-        }
-    }
-
-    private void setWorkingEnabledAndSync(boolean workingEnabled) {
-        setWorkingEnabled(workingEnabled);
-        if (isRemote()) {
-            sendServerSyncChanges();
         }
     }
 

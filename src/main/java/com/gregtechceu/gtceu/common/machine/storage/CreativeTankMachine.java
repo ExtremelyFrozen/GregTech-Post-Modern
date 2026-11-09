@@ -88,17 +88,6 @@ public class CreativeTankMachine extends QuantumTankMachine {
         return InteractionResult.SUCCESS;
     }
 
-    private void setTicksPerCycle(int ticksPerCycle) {
-        this.ticksPerCycle = ticksPerCycle;
-        autoOutput.setTicksPerCycle(ticksPerCycle);
-        onFluidChanged();
-    }
-
-    private void setMillibucketsPerCycle(int mBPerCycle) {
-        this.mBPerCycle = mBPerCycle;
-        onFluidChanged();
-    }
-
     @ServerFieldChangeListener(fieldName = "ticksPerCycle")
     private void onTicksPerCycleChanged(int oldValue, int newValue) {
         autoOutput.setTicksPerCycle(newValue);
@@ -202,7 +191,9 @@ public class CreativeTankMachine extends QuantumTankMachine {
         field.textFieldStyle(style -> style
                 .textColor(0x404040)
                 .textShadow(false));
-        field.setTextResponder(this::setMillibucketsPerCycle);
+        field.setTextResponder(value -> {
+            if (!value.isEmpty()) mBPerCycle = Integer.parseInt(value);
+        });
         return field;
     }
 
@@ -222,13 +213,15 @@ public class CreativeTankMachine extends QuantumTankMachine {
         field.textFieldStyle(style -> style
                 .textColor(0x404040)
                 .textShadow(false));
-        field.setTextResponder(this::setTicksPerCycle);
+        field.setTextResponder(value -> {
+            if (!value.isEmpty()) ticksPerCycle = Integer.parseInt(value);
+        });
         return field;
     }
 
     private GTButtonElement createActivityButton() {
         return new GTButtonElement(7, 101, 162, 20, createActivityButtonTexture(),
-                event -> setWorkingEnabledAndSync(!isWorkingEnabled())) {
+                event -> setWorkingEnabled(!isWorkingEnabled())) {
 
             @Override
             public void screenTick() {
@@ -249,7 +242,7 @@ public class CreativeTankMachine extends QuantumTankMachine {
                 GuiTextures.BUTTON_POWER.getSubTexture(0, 0.5, 1, 0.5),
                 this::isWorkingEnabled,
                 (event, pressed) -> {
-                    setWorkingEnabledAndSync(pressed);
+                    setWorkingEnabled(pressed);
                     event.stopImmediatePropagation();
                     event.hasHandler = true;
                 })
@@ -262,33 +255,6 @@ public class CreativeTankMachine extends QuantumTankMachine {
         if (player.level().isClientSide()) {
             FluidStack storedFluid = fluid.isEmpty() ? FluidStack.EMPTY : fluid.copyWithAmount(FluidType.BUCKET_VOLUME);
             holder.getMachine().rpcToServer("setCreativeTankFluid", storedFluid);
-        }
-    }
-
-    private void setMillibucketsPerCycle(String value) {
-        if (value.isEmpty()) {
-            return;
-        }
-        setMillibucketsPerCycle(Integer.parseInt(value));
-        if (isRemote()) {
-            sendServerSyncChanges();
-        }
-    }
-
-    private void setTicksPerCycle(String value) {
-        if (value.isEmpty()) {
-            return;
-        }
-        setTicksPerCycle(Integer.parseInt(value));
-        if (isRemote()) {
-            sendServerSyncChanges();
-        }
-    }
-
-    private void setWorkingEnabledAndSync(boolean workingEnabled) {
-        setWorkingEnabled(workingEnabled);
-        if (isRemote()) {
-            sendServerSyncChanges();
         }
     }
 
