@@ -11,6 +11,7 @@ import com.lowdragmc.lowdraglib2.integration.xei.emi.ModularUIEMIRecipe;
 import com.lowdragmc.lowdraglib2.integration.xei.emi.ModularUIEMIWidget;
 import com.lowdragmc.lowdraglib2.integration.xei.emi.handler.EMIRecipeWidgetHandler;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.resources.ResourceLocation;
 
@@ -43,6 +44,7 @@ public class MultiblockInfoEmiRecipe extends ModularUIEMIRecipe {
     @Override
     public void addWidgets(@NotNull WidgetHolder widgets) {
         var ui = getModularUI();
+        ui.init(getDisplayWidth(), getDisplayHeight());
         var widget = new ModularUIEMIWidget(ui) {
 
             private final Matrix4f localToScreen = new Matrix4f();
@@ -85,7 +87,7 @@ public class MultiblockInfoEmiRecipe extends ModularUIEMIRecipe {
         }
         widgets.add(widget);
         widgets.add(new SlotWidget(EmiIngredient.of(getOutputs()),
-                PatternPreviewWidget.WIDTH - 22, 4)
+                getDisplayWidth() - 22, 4)
                 .recipeContext(this)
                 .drawBack(false));
     }
@@ -130,11 +132,11 @@ public class MultiblockInfoEmiRecipe extends ModularUIEMIRecipe {
 
     @Override
     public int getDisplayWidth() {
-        return PatternPreviewWidget.WIDTH;
+        return Math.min(PatternPreviewWidget.WIDTH, Minecraft.getInstance().getWindow().getGuiScaledWidth() - 64);
     }
 
     @Override
     public int getDisplayHeight() {
-        return PatternPreviewWidget.HEIGHT;
+        return Math.min(PatternPreviewWidget.HEIGHT, Minecraft.getInstance().getWindow().getGuiScaledHeight() - 96);
     }
 }

@@ -103,12 +103,12 @@ public class MultiblockInfoCategory extends ModularUIRecipeCategory<MultiblockIn
 
     @Override
     public int getWidth() {
-        return width;
+        return Math.min(width, Minecraft.getInstance().getWindow().getGuiScaledWidth() - 64);
     }
 
     @Override
     public int getHeight() {
-        return height;
+        return Math.min(height, Minecraft.getInstance().getWindow().getGuiScaledHeight() - 96);
     }
 
     @Override
@@ -118,10 +118,11 @@ public class MultiblockInfoCategory extends ModularUIRecipeCategory<MultiblockIn
 
     @Override
     public void setRecipe(IRecipeLayoutBuilder builder, MultiblockInfo recipe, IFocusGroup focuses) {
+        getUIForRecipe(recipe).init(getWidth(), getHeight());
         super.setRecipe(builder, recipe, focuses);
         builder.addSlot(RecipeIngredientRole.OUTPUT)
                 .addItemStacks(recipe.getOutputs())
-                .setPosition(PatternPreviewWidget.WIDTH - 22, 4);
+                .setPosition(getWidth() - 22, 4);
     }
 
     @Override

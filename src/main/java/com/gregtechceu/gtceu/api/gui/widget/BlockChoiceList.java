@@ -159,7 +159,9 @@ public final class BlockChoiceList extends UIElement {
         var button = new GTButtonElement(28, y + 3, 12, 12);
         button.setButtonTexture(GuiTextures.VANILLA_BUTTON).setText(Component.literal(text));
         button.getLayout().paddingAll(0);
-        button.textStyle(style -> style.fontSize(9).textShadow(false).textColor(0xff404040));
+        button.text.getLayout().widthPercent(100).heightPercent(100).marginAll(0).minWidth(0);
+        button.textStyle(style -> style.adaptiveWidth(false).adaptiveHeight(false)
+                .fontSize(9).textShadow(false).textColor(0xff404040));
         return button;
     }
 

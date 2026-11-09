@@ -87,7 +87,10 @@ public final class PatternPreviewWidget extends UIElement {
         options.scrollerStyle(style -> style.mode(ScrollerMode.VERTICAL)
                 .verticalScrollDisplay(ScrollDisplay.AUTO).horizontalScrollDisplay(ScrollDisplay.NEVER)
                 .scrollerViewStyle(0));
-        options.viewPort(port -> port.getLayout().paddingAll(0));
+        options.viewPort(port -> {
+            port.getLayout().paddingAll(0);
+            port.getStyle().backgroundTexture(GuiTextures.BACKGROUND_INVERSE);
+        });
         options.verticalScroller(scroll -> scroll.getLayout().width(2));
         addChild(options);
         fullscreen = button(258, 4, 16, Component.literal(expanded ? "↙" : "↗"));
@@ -292,6 +295,7 @@ public final class PatternPreviewWidget extends UIElement {
         var button = new GTButtonElement(x, y, width, 16);
         button.setButtonTexture(GuiTextures.VANILLA_BUTTON).setText(text);
         button.getLayout().paddingAll(0);
+        button.text.getLayout().widthPercent(100).heightPercent(100).marginAll(0).minWidth(0);
         button.textStyle(style -> style.adaptiveWidth(false).adaptiveHeight(false).fontSize(8)
                 .textColor(0xff404040).textShadow(false).textWrap(TextWrap.HIDE));
         button.getStyle().tooltips(text);
