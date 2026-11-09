@@ -3,7 +3,6 @@ package com.gregtechceu.gtceu.api.multiblock.structurepredicate
 import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.multiblock.MultiblockBlockInfo
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState
-import com.gregtechceu.gtceu.api.multiblock.structurepredicate.PatternObservation
 
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.world.level.block.Block
@@ -18,7 +17,7 @@ import it.unimi.dsi.fastutil.objects.ObjectList
 @JvmRecord
 data class FluidPredicate(val fluids: ObjectList<Fluid>) : StructurePredicate {
 	override fun type(): StructurePredicateType<*> = TYPE
-	override fun observeCandidate(state: BlockState): PatternObservation = PatternObservation.of(fluids.contains(state.fluidState.type))
+	override fun observeCandidate(candidateState: BlockState): PatternObservation = PatternObservation.of(fluids.contains(candidateState.fluidState.type))
 	override fun candidates(): ObjectList<MultiblockBlockInfo> = fluids.stream().map(::blockInfoFromFluid).collect(ObjectImmutableList.toList())
 	override fun blockCandidates(): ObjectList<Block> = fluids.stream().map(::blockStateFromFluid).map(BlockState::getBlock).distinct().collect(ObjectImmutableList.toList())
 	override fun test(multiblockState: MultiblockState, mutateCount: Boolean): Boolean = observeCandidate(multiblockState.blockState).matched

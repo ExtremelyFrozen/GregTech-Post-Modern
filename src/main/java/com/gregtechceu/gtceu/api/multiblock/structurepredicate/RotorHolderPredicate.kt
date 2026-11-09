@@ -21,8 +21,8 @@ import it.unimi.dsi.fastutil.objects.ObjectList
 data class RotorHolderPredicate(val tier: Int) : CategoryPredicate {
 	override val category: String get() = BlockCategories.ROTOR_HOLDER
 	override fun type(): StructurePredicateType<*> = TYPE
-	override fun observeCandidate(state: BlockState): PatternObservation = PatternObservation.of(
-		(state.block as? MetaMachineBlock)?.definition?.tier == tier && PartAbility.ROTOR_HOLDER.isApplicable(state.block),
+	override fun observeCandidate(candidateState: BlockState): PatternObservation = PatternObservation.of(
+		(candidateState.block as? MetaMachineBlock)?.definition?.tier == tier && PartAbility.ROTOR_HOLDER.isApplicable(candidateState.block),
 	)
 	override fun observePosition(state: MultiblockState): PatternObservation {
 		val rotor = MetaMachine.getMachine(state.world, state.pos) as? RotorHolderPartMachine ?: return PatternObservation.of(false)

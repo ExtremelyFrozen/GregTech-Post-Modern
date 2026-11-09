@@ -23,7 +23,7 @@ import java.util.Optional
 @JvmRecord
 data class RestrictedPredicate(val predicate: StructurePredicate, val minCount: Optional<Int>, val maxCount: Optional<Int>, val minCountByLayer: Optional<Int>, val maxCountByLayer: Optional<Int>, val previewCount: Optional<Int>, val tooltips: Optional<ObjectList<Component>>) : StructurePredicate {
 	override fun type(): StructurePredicateType<*> = TYPE
-	override fun observeCandidate(state: BlockState): PatternObservation = predicate.observeCandidate(state)
+	override fun observeCandidate(candidateState: BlockState): PatternObservation = predicate.observeCandidate(candidateState)
 	private data class Position(val child: PatternObservation) : PatternObservation.PositionMatch
 	private fun hasCapacity(state: MultiblockState): Boolean = (maxCount.isEmpty || state.structureGlobalCount.getInt(this) < maxCount.get()) &&
 		(maxCountByLayer.isEmpty || state.structureLayerCount.getInt(this) < maxCountByLayer.get())
@@ -34,7 +34,7 @@ data class RestrictedPredicate(val predicate: StructurePredicate, val minCount: 
 		val observed = observation.positionMatch as Position
 		return testGlobal(state, true) && testLayer(state, true) && predicate.acceptPosition(state, observed.child)
 	}
-	override fun configureRuntime(runtime: PatternPredicate) = predicate.configureRuntime(runtime)
+	override fun configureRuntime(predicate: PatternPredicate) = this@RestrictedPredicate.predicate.configureRuntime(predicate)
 	override fun candidateStates(): ObjectList<BlockState> = predicate.candidateStates()
 	override fun candidates(): ObjectList<MultiblockBlockInfo> = predicate.candidates()
 	override fun blockCandidates(): ObjectList<Block> = predicate.blockCandidates()

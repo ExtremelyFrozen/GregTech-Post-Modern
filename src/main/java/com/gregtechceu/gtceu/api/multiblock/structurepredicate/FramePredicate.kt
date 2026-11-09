@@ -5,7 +5,6 @@ import com.gregtechceu.gtceu.api.data.chemical.material.Material
 import com.gregtechceu.gtceu.api.data.tag.TagPrefix
 import com.gregtechceu.gtceu.api.multiblock.MultiblockBlockInfo
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState
-import com.gregtechceu.gtceu.api.multiblock.structurepredicate.PatternObservation
 import com.gregtechceu.gtceu.api.pipenet.IPipeNode
 import com.gregtechceu.gtceu.api.registry.GTRegistries
 import com.gregtechceu.gtceu.common.data.GTMaterialBlocks
@@ -28,7 +27,7 @@ class FramePredicate(val materialIds: ObjectList<ResourceLocation>) : StructureP
 	val frameBlocks: ObjectList<Block> get() = resolvedFrameBlocks.get()
 
 	override fun type(): StructurePredicateType<*> = TYPE
-	override fun observeCandidate(state: BlockState): PatternObservation = PatternObservation.of(frameBlocks.contains(state.block), ObjectList.of("frame"))
+	override fun observeCandidate(candidateState: BlockState): PatternObservation = PatternObservation.of(frameBlocks.contains(candidateState.block), ObjectList.of("frame"))
 	override fun observePosition(state: MultiblockState): PatternObservation = PatternObservation.of(
 		frameBlocks.contains(state.blockState.block) || (state.blockEntity as? IPipeNode<*, *>)?.let { materials.contains(it.frameMaterial) } == true,
 		ObjectList.of("frame"),

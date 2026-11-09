@@ -20,7 +20,7 @@ enum class CleanroomDoorPredicate : StructurePredicate {
 	;
 
 	override fun type(): StructurePredicateType<*> = TYPE
-	override fun observeCandidate(state: BlockState): PatternObservation = PatternObservation.of(state.`is`(CustomTags.CLEANROOM_DOORS))
+	override fun observeCandidate(candidateState: BlockState): PatternObservation = PatternObservation.of(candidateState.`is`(CustomTags.CLEANROOM_DOORS))
 	override fun test(multiblockState: MultiblockState, mutateCount: Boolean): Boolean = observeCandidate(multiblockState.blockState).matched
 	override fun candidates(): ObjectList<MultiblockBlockInfo> = ObjectList.of(
 		MultiblockBlockInfo(Blocks.IRON_DOOR.defaultBlockState()),

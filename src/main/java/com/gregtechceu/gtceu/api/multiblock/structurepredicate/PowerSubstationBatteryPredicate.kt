@@ -23,8 +23,8 @@ enum class PowerSubstationBatteryPredicate : CategoryPredicate {
 
 	override val category: String = BlockCategories.POWER_SUBSTATION_BATTERIES
 	override fun type(): StructurePredicateType<*> = TYPE
-	override fun observeCandidate(state: BlockState): PatternObservation = PatternObservation.of(
-		blockCandidates().contains(state.block),
+	override fun observeCandidate(candidateState: BlockState): PatternObservation = PatternObservation.of(
+		blockCandidates().contains(candidateState.block),
 		ObjectList.of("battery"),
 	)
 	private data class Position(val battery: IBatteryData) : PatternObservation.PositionMatch

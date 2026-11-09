@@ -5,7 +5,6 @@ import com.gregtechceu.gtceu.api.GTCEuAPI
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState
 import com.gregtechceu.gtceu.api.multiblock.autobuild.BlockCategories
 import com.gregtechceu.gtceu.api.multiblock.error.PatternStringError
-import com.gregtechceu.gtceu.api.multiblock.structurepredicate.PatternObservation
 
 import net.minecraft.world.level.block.state.BlockState
 
@@ -20,8 +19,8 @@ enum class HeatingCoilPredicate : CategoryPredicate {
 	override val category: String = BlockCategories.HEATING_COILS
 	override fun type(): StructurePredicateType<*> = TYPE
 
-	override fun observeCandidate(state: BlockState): PatternObservation {
-		val stats = GTCEuAPI.HEATING_COILS.entries.firstOrNull { it.value.get() == state.block }?.key
+	override fun observeCandidate(candidateState: BlockState): PatternObservation {
+		val stats = GTCEuAPI.HEATING_COILS.entries.firstOrNull { it.value.get() == candidateState.block }?.key
 			?: return PatternObservation.of(false)
 		val properties = Object2ObjectLinkedOpenHashMap<String, Any>()
 		properties["CoilType"] = stats
