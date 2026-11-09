@@ -277,26 +277,6 @@ public class AutoOutputTrait extends MachineTrait implements DirectionalAutoOutp
         return candidate;
     }
 
-    @ServerFieldChangeListener(fieldName = "autoOutputItems")
-    private void onAutoOutputItemsChanged(boolean oldValue, boolean newValue) {
-        updateItemOutputSubscription();
-    }
-
-    @ServerFieldChangeListener(fieldName = "autoOutputFluids")
-    private void onAutoOutputFluidsChanged(boolean oldValue, boolean newValue) {
-        updateFluidOutputSubscription();
-    }
-
-    @ServerFieldChangeListener(fieldName = "itemOutputDirection")
-    private void onItemOutputDirectionChanged(@Nullable Direction oldValue, @Nullable Direction newValue) {
-        updateItemOutputSubscription();
-    }
-
-    @ServerFieldChangeListener(fieldName = "fluidOutputDirection")
-    private void onFluidOutputDirectionChanged(@Nullable Direction oldValue, @Nullable Direction newValue) {
-        updateFluidOutputSubscription();
-    }
-
     @Override
     public boolean canSetFluidOutputDirection(@Nullable Direction outputFacing) {
         return supportsAutoOutputFluids() && fluidOutputDirectionValidator.test(outputFacing) &&
@@ -342,6 +322,7 @@ public class AutoOutputTrait extends MachineTrait implements DirectionalAutoOutp
         return true;
     }
 
+    @ServerFieldChangeListener(fieldName = { "autoOutputItems", "itemOutputDirection" })
     protected void updateItemOutputSubscription() {
         if (shouldKeepItemSubscription()) {
             itemOutputSub = subscribeServerTick(itemOutputSub, this::autoOutputItems);
@@ -351,6 +332,7 @@ public class AutoOutputTrait extends MachineTrait implements DirectionalAutoOutp
         }
     }
 
+    @ServerFieldChangeListener(fieldName = { "autoOutputFluids", "fluidOutputDirection" })
     protected void updateFluidOutputSubscription() {
         if (shouldKeepFluidSubscription()) {
             fluidOutputSub = subscribeServerTick(fluidOutputSub, this::autoOutputFluids);

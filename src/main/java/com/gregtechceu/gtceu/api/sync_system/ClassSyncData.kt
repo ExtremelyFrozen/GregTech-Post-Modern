@@ -77,33 +77,35 @@ class ClassSyncData private constructor(clazz: Class<*>) {
 					continue
 				}
 
-				if (clientListener.fieldName.isBlank()) {
-					throw IllegalArgumentException("@ClientFieldChangeListener requires a non-blank fieldName: ${clazz.name}.${method.name}")
+				for (fieldName in clientListener.fieldName) {
+					changeListeners.computeIfAbsent(fieldName) { ObjectArrayList() }.add(handle)
+					clientListenerTargets.add(fieldName)
 				}
-
-				changeListeners.computeIfAbsent(clientListener.fieldName) { ArrayList() }.add(handle)
-				clientListenerTargets.add(clientListener.fieldName)
 			}
 
 			val normalizer = method.getAnnotation(ServerFieldNormalizer::class.java)
 			if (normalizer != null) {
-				validateServerMethodDeclaration(clazz, method, normalizer.fieldName, "@ServerFieldNormalizer")
-				val previous = serverNormalizerMethods.put(normalizer.fieldName, method)
-				if (previous != null) {
-					throw IllegalArgumentException(
-						"Duplicate @ServerFieldNormalizer for ${clazz.name}.${normalizer.fieldName}: ${previous.name}, ${method.name}",
-					)
+				validateServerMethodDeclaration(clazz, method, "@ServerFieldNormalizer")
+				for (fieldName in normalizer.fieldName) {
+					val previous = serverNormalizerMethods.put(fieldName, method)
+					if (previous != null) {
+						throw IllegalArgumentException(
+							"Duplicate @ServerFieldNormalizer for ${clazz.name}.$fieldName: ${previous.name}, ${method.name}",
+						)
+					}
 				}
 			}
 
 			val serverListener = method.getAnnotation(ServerFieldChangeListener::class.java)
 			if (serverListener != null) {
-				validateServerMethodDeclaration(clazz, method, serverListener.fieldName, "@ServerFieldChangeListener")
-				val previous = serverChangeListenerMethods.put(serverListener.fieldName, method)
-				if (previous != null) {
-					throw IllegalArgumentException(
-						"Duplicate @ServerFieldChangeListener for ${clazz.name}.${serverListener.fieldName}: ${previous.name}, ${method.name}",
-					)
+				validateServerMethodDeclaration(clazz, method, "@ServerFieldChangeListener")
+				for (fieldName in serverListener.fieldName) {
+					val previous = serverChangeListenerMethods.put(fieldName, method)
+					if (previous != null) {
+						throw IllegalArgumentException(
+							"Duplicate @ServerFieldChangeListener for ${clazz.name}.$fieldName: ${previous.name}, ${method.name}",
+						)
+					}
 				}
 			}
 		}
@@ -156,7 +158,8 @@ class ClassSyncData private constructor(clazz: Class<*>) {
 			}
 			val serverChangeListenerHandle = serverChangeListenerMethod?.let {
 				validateServerListenerSignature(clazz, field, it)
-				unreflectServerMethod(privateLookup, clazz, it, "@ServerFieldChangeListener")
+				val listener = unreflectServerMethod(privateLookup, clazz, it, "@ServerFieldChangeListener")
+				if (it.parameterCount == 0) MethodHandles.dropArguments(listener, 1, field.type, field.type) else listener
 			}
 
 			val syncData = FieldSyncData(
@@ -198,11 +201,11 @@ class ClassSyncData private constructor(clazz: Class<*>) {
 		}
 
 		if (serverNormalizerMethods.isNotEmpty()) {
-			val fieldName = serverNormalizerMethods.keys.sorted().first()
+			val fieldName = serverNormalizerMethods.keys.minOf { it }
 			throw IllegalArgumentException("@ServerFieldNormalizer targets unknown field: ${clazz.name}.$fieldName")
 		}
 		if (serverChangeListenerMethods.isNotEmpty()) {
-			val fieldName = serverChangeListenerMethods.keys.sorted().first()
+			val fieldName = serverChangeListenerMethods.keys.minOf { it }
 			throw IllegalArgumentException("@ServerFieldChangeListener targets unknown field: ${clazz.name}.$fieldName")
 		}
 
@@ -295,15 +298,9 @@ class ClassSyncData private constructor(clazz: Class<*>) {
 		@JvmStatic
 		fun getClassData(cls: Class<*>): ClassSyncData = CACHE.get(cls)
 
-		private fun validateServerMethodDeclaration(clazz: Class<*>, method: Method, fieldName: String, annotationName: String) {
-			if (method.declaringClass != clazz) {
-				throw IllegalArgumentException("$annotationName must be declared by ${clazz.name}: ${method.name}")
-			}
+		private fun validateServerMethodDeclaration(clazz: Class<*>, method: Method, annotationName: String) {
 			if (Modifier.isStatic(method.modifiers)) {
 				throw IllegalArgumentException("$annotationName cannot target a static method: ${clazz.name}.${method.name}")
-			}
-			if (fieldName.isBlank()) {
-				throw IllegalArgumentException("$annotationName requires a non-blank fieldName: ${clazz.name}.${method.name}")
 			}
 		}
 
@@ -317,13 +314,11 @@ class ClassSyncData private constructor(clazz: Class<*>) {
 
 		private fun validateServerListenerSignature(clazz: Class<*>, field: Field, method: Method) {
 			if (
-				method.parameterCount != 2 ||
-				method.parameterTypes[0] != field.type ||
-				method.parameterTypes[1] != field.type ||
-				method.returnType != Void.TYPE
+				method.returnType != Void.TYPE ||
+				(method.parameterCount != 0 && !method.parameterTypes.contentEquals(arrayOf(field.type, field.type)))
 			) {
 				throw IllegalArgumentException(
-					"@ServerFieldChangeListener must have signature void ${method.name}(${field.type.typeName}, ${field.type.typeName}) for ${clazz.name}.${field.name}",
+					"@ServerFieldChangeListener must return void and accept no arguments or (${field.type.typeName}, ${field.type.typeName}) for ${clazz.name}.${field.name}",
 				)
 			}
 		}

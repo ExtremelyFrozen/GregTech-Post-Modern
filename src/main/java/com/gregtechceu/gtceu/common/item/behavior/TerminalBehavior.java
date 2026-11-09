@@ -122,38 +122,9 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
         super(stack, registries);
     }
 
-    @ClientFieldChangeListener(fieldName = "policies")
-    public void onPoliciesChanged() {
-        refreshUI = true;
-    }
-
-    @ClientFieldChangeListener(fieldName = "structures")
-    public void onStructuresChanged() {
-        refreshUI = true;
-    }
-
-    @ClientFieldChangeListener(fieldName = "included")
-    public void onIncludedChanged() {
-        refreshUI = true;
-    }
-
-    @ClientFieldChangeListener(fieldName = "preview")
-    public void onPreviewChanged() {
-        refreshUI = true;
-    }
-
-    @ClientFieldChangeListener(fieldName = "status")
-    public void onStatusChanged() {
-        refreshUI = true;
-    }
-
-    @ClientFieldChangeListener(fieldName = "placed")
-    public void onPlacedChanged() {
-        refreshUI = true;
-    }
-
-    @ClientFieldChangeListener(fieldName = "removed")
-    public void onRemovedChanged() {
+    @ClientFieldChangeListener(fieldName = { "policies", "structures", "included", "preview", "status", "placed",
+            "removed" })
+    public void onTerminalChanged() {
         refreshUI = true;
     }
 

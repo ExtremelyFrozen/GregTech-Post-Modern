@@ -10,17 +10,18 @@ import java.lang.annotation.Target;
  * changed.
  *
  * <p>
- * The method must be a non-static member of the class that declares the target field. It must accept exactly one
- * parameter and return exactly the target field type. The target must use {@link SyncBoth}, so the server can always
- * acknowledge the authoritative canonical value. The method must be a pure function and must not modify its holder or
- * any external state. Throwing an exception rejects the complete field-update batch.
+ * The method must be a non-static member of the class that declares the target fields. It must accept exactly one
+ * parameter and return exactly the target field type; all named fields must share that type. The targets must use
+ * {@link SyncBoth}, so the server can always acknowledge the authoritative canonical value. The method must be a pure
+ * function and must not modify its holder or any external state. Throwing an exception rejects the complete
+ * field-update batch.
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
 public @interface ServerFieldNormalizer {
 
     /**
-     * The {@link SyncBoth} field normalized by the annotated method.
+     * The {@link SyncBoth} fields normalized by the annotated method.
      */
-    String fieldName();
+    String[] fieldName();
 }
