@@ -190,11 +190,10 @@ public final class BlockChoiceList extends UIElement {
     @OnlyIn(Dist.CLIENT)
     public void enableRecipeLookup() {
         if (GTCEu.MODS.isEMILoaded()) {
-            LDLibEMIPlugin.recipeSlot(this, () -> EmiStack.of(getHoveredItem()));
+            EMISupport.recipeSlot(this);
         }
         if (GTCEu.MODS.isJEILoaded()) {
-            updateJEI = LDLibJEIPlugin.recipeSlot(this, IngredientIO.NONE, VanillaTypes.ITEM_STACK,
-                    Stream::empty, ignored -> {});
+            updateJEI = JEISupport.recipeSlot(this);
         }
     }
 
@@ -215,5 +214,20 @@ public final class BlockChoiceList extends UIElement {
     public void drawBackgroundAdditional(GUIContext context) {
         updateJEI.accept(getHoveredItem());
         super.drawBackgroundAdditional(context);
+    }
+
+    private static final class EMISupport {
+
+        private static void recipeSlot(BlockChoiceList list) {
+            LDLibEMIPlugin.recipeSlot(list, () -> EmiStack.of(list.getHoveredItem()));
+        }
+    }
+
+    private static final class JEISupport {
+
+        private static Consumer<ItemStack> recipeSlot(BlockChoiceList list) {
+            return LDLibJEIPlugin.recipeSlot(list, IngredientIO.NONE, VanillaTypes.ITEM_STACK,
+                    Stream::empty, ignored -> {});
+        }
     }
 }

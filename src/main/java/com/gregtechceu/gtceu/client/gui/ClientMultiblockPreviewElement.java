@@ -155,11 +155,10 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         });
         // The container survives material changes; per-slot recipe widgets would retain removed slots.
         if (GTCEu.MODS.isEMILoaded()) {
-            LDLibEMIPlugin.recipeSlot(materialViewport, () -> EmiStack.of(getHoveredMaterial()));
+            EMISupport.recipeSlot(this);
         }
         if (GTCEu.MODS.isJEILoaded()) {
-            updateJEIMaterial = LDLibJEIPlugin.recipeSlot(materialViewport, IngredientIO.INPUT,
-                    VanillaTypes.ITEM_STACK, () -> Stream.of(getHoveredMaterial()), ignored -> {});
+            updateJEIMaterial = JEISupport.recipeSlot(this);
         }
         addChildren(materialViewport, previousMaterials, nextMaterials);
 
@@ -580,6 +579,21 @@ public final class ClientMultiblockPreviewElement extends UIElement {
     private static void runOnRenderThread(Runnable action) {
         if (RenderSystem.isOnRenderThread()) action.run();
         else RenderSystem.recordRenderCall(action::run);
+    }
+
+    private static final class EMISupport {
+
+        private static void recipeSlot(ClientMultiblockPreviewElement preview) {
+            LDLibEMIPlugin.recipeSlot(preview.materialViewport, () -> EmiStack.of(preview.getHoveredMaterial()));
+        }
+    }
+
+    private static final class JEISupport {
+
+        private static Consumer<ItemStack> recipeSlot(ClientMultiblockPreviewElement preview) {
+            return LDLibJEIPlugin.recipeSlot(preview.materialViewport, IngredientIO.INPUT,
+                    VanillaTypes.ITEM_STACK, () -> Stream.of(preview.getHoveredMaterial()), ignored -> {});
+        }
     }
 
     private final class PreviewCellRenderHook implements ISceneBlockRenderHook {
