@@ -88,7 +88,7 @@ public class MultiblockInfoEmiRecipe extends ModularUIEMIRecipe {
         }
         widgets.add(widget);
         widgets.add(new SlotWidget(EmiIngredient.of(getOutputs()),
-                getDisplayWidth() - BlockChoiceList.WIDTH - 26, 4)
+                getDisplayWidth() - BlockChoiceList.COLUMN_WIDTH - 26, 4)
                 .recipeContext(this)
                 .drawBack(false));
     }

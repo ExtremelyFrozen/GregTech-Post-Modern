@@ -123,7 +123,7 @@ public class MultiblockInfoCategory extends ModularUIRecipeCategory<MultiblockIn
         super.setRecipe(builder, recipe, focuses);
         builder.addSlot(RecipeIngredientRole.OUTPUT)
                 .addItemStacks(recipe.getOutputs())
-                .setPosition(getWidth() - BlockChoiceList.WIDTH - 26, 4);
+                .setPosition(getWidth() - BlockChoiceList.COLUMN_WIDTH - 26, 4);
     }
 
     @Override

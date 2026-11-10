@@ -49,11 +49,12 @@ import java.util.function.UnaryOperator;
 @NullMarked
 public final class PatternPreviewWidget extends UIElement {
 
-    public static final int WIDTH = 300 + BlockChoiceList.WIDTH + 4;
+    public static final int WIDTH = 300 + BlockChoiceList.COLUMN_WIDTH + 4;
     public static final int HEIGHT = 200;
 
     private final MultiblockMachineDefinition definition;
     private final MultiblockInfo info;
+    private final UIElement main = new UIElement();
     private final ClientMultiblockPreviewElement preview;
     private final BlockChoiceList blocks;
     private final GTScrollerViewElement options = new GTScrollerViewElement();
@@ -72,14 +73,16 @@ public final class PatternPreviewWidget extends UIElement {
         this.expanded = expanded;
         UITemplate.setBounds(this, 0, 0, WIDTH, HEIGHT);
         getLayout().positionType(TaffyPosition.RELATIVE);
-        getStyle().backgroundTexture(GuiTextures.BACKGROUND);
-        setOverflowVisible(false);
+        setOverflowVisible(true);
+        main.getStyle().backgroundTexture(GuiTextures.BACKGROUND);
+        main.setOverflowVisible(false);
+        addChild(main);
         var initial = info.resolvePreview();
         observedGeneration = initial.generation();
         title = label(6, 6, 246, definition.getBlock().getName());
-        addChild(title);
+        main.addChild(title);
         preview = new ClientMultiblockPreviewElement(180, 176, new PreviewVisibility(initial.value()), false);
-        addChild(preview);
+        main.addChild(preview);
         blocks = new BlockChoiceList((group, id) -> changeStructure(structure -> structure.withTierChoice(group, id)));
         addChild(blocks);
         options.scrollerStyle(style -> style.mode(ScrollerMode.VERTICAL)
@@ -90,7 +93,7 @@ public final class PatternPreviewWidget extends UIElement {
             port.getStyle().backgroundTexture(GuiTextures.BACKGROUND_INVERSE);
         });
         options.verticalScroller(scroll -> scroll.getLayout().width(2));
-        addChild(options);
+        main.addChild(options);
         fullscreen = button(258, 4, 16, Component.literal(expanded ? "↙" : "↗"));
         fullscreen.getStyle().tooltips(text(expanded ? "compact" : "fullscreen"));
         fullscreen.setOnClick(event -> {
@@ -98,7 +101,7 @@ public final class PatternPreviewWidget extends UIElement {
             else openFullscreen();
             event.stopPropagation();
         });
-        addChild(fullscreen);
+        main.addChild(fullscreen);
         rebuildOptions();
     }
 
@@ -110,7 +113,7 @@ public final class PatternPreviewWidget extends UIElement {
     private Size resize(Size screen) {
         pageWidth = expanded ? screen.getWidth() : Math.min(WIDTH, screen.getWidth());
         pageHeight = expanded ? screen.getHeight() : Math.min(HEIGHT, screen.getHeight());
-        int contentWidth = pageWidth - BlockChoiceList.WIDTH - 4;
+        int contentWidth = pageWidth - (expanded ? BlockChoiceList.WIDTH : BlockChoiceList.COLUMN_WIDTH) - 4;
         title.getLayout().width(contentWidth - 54);
         fullscreen.getLayout().left(contentWidth - 42);
         rebuildOptions();
@@ -118,11 +121,12 @@ public final class PatternPreviewWidget extends UIElement {
     }
 
     private void layoutContent() {
-        int contentWidth = pageWidth - BlockChoiceList.WIDTH - 4;
+        int contentWidth = pageWidth - (expanded ? BlockChoiceList.WIDTH : BlockChoiceList.COLUMN_WIDTH) - 4;
+        UITemplate.setBounds(main, 0, 0, contentWidth, pageHeight);
         preview.getLayout().left(4).top(20);
-        preview.resize(contentWidth - 120, pageHeight - 24);
-        UITemplate.setBounds(options, contentWidth - 112, 20, 108, pageHeight - 24);
-        blocks.resize(pageWidth - BlockChoiceList.WIDTH - 4, 20, pageHeight - 24);
+        preview.resize(contentWidth - 66, pageHeight - 24);
+        UITemplate.setBounds(options, contentWidth - 58, 20, 54, pageHeight - 24);
+        blocks.resize(contentWidth + 4, 20, pageHeight - 24);
     }
 
     private String structureName() {
@@ -132,7 +136,7 @@ public final class PatternPreviewWidget extends UIElement {
     private void rebuildOptions() {
         options.clearAllScrollViewChildren();
         controls.clear();
-        int width = 104;
+        int width = 50;
         var policy = info.getPolicy();
         String name = structureName();
         var structure = info.getStructures().get(name);
@@ -166,7 +170,7 @@ public final class PatternPreviewWidget extends UIElement {
                 blocks.close();
                 rebuildOptions();
             }, true, true);
-            y += 20;
+            y += 30;
             boolean selected = info.getIncluded().contains(name);
             boolean required = info.getIncluded().stream()
                     .anyMatch(included -> info.getStructures().get(included).mode() == StructureOperation.BUILD &&
@@ -200,7 +204,7 @@ public final class PatternPreviewWidget extends UIElement {
                     () -> changeRepetition(index, amount - 1),
                     () -> changeRepetition(index, amount + 1),
                     amount > repetition.minimum(), amount < repetition.maximum());
-            y += 20;
+            y += 30;
         }
         for (var choice : pattern.getChoiceDescriptors()) {
             var values = choice.alternatives();
@@ -209,9 +213,9 @@ public final class PatternPreviewWidget extends UIElement {
                     () -> changeStructure(value -> value.withChoice(choice.path(), values.get(index - 1))),
                     () -> changeStructure(value -> value.withChoice(choice.path(), values.get(index + 1))),
                     index > 0, index + 1 < values.size());
-            y += 20;
+            y += 30;
         }
-        options.viewContainer.getLayout().width(width - 3).height(y);
+        options.viewContainer.getLayout().width(width).height(y);
         blocks.setChoices(new BatchPlanner().activeTierChoiceOptions(definition, structure),
                 structure.tierChoices());
         layoutContent();
@@ -219,14 +223,14 @@ public final class PatternPreviewWidget extends UIElement {
 
     private void addStep(int y, int width, Component name, Runnable previous, Runnable next, boolean hasPrevious,
                          boolean hasNext) {
-        options.addScrollViewChild(label(18, y + 3, width - 36, name));
-        var back = button(0, y, 16, Component.literal("◀"));
+        options.addScrollViewChild(label(0, y, width, name));
+        var back = button(0, y + 10, 16, Component.literal("◀"));
         back.setActive(hasPrevious);
         back.setOnClick(event -> {
             previous.run();
             event.stopPropagation();
         });
-        var forward = button(width - 19, y, 16, Component.literal("▶"));
+        var forward = button(width - 16, y + 10, 16, Component.literal("▶"));
         forward.setActive(hasNext);
         forward.setOnClick(event -> {
             next.run();

@@ -346,6 +346,7 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
 
         class Page extends UIElement {
 
+            private final UIElement main = new UIElement();
             private final ClientMultiblockPreviewElement preview;
             private final BlockChoiceList blocks;
             private final GTScrollerViewElement options = new GTScrollerViewElement();
@@ -369,8 +370,10 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                         ObjectList.of(), ObjectList.of(), ObjectList.of(), ObjectList.of());
 
                 UITemplate.setBounds(this, 0, 0, width, height);
-                getStyle().backgroundTexture(GuiTextures.BACKGROUND);
-                setOverflowVisible(false);
+                setOverflowVisible(true);
+                main.getStyle().backgroundTexture(GuiTextures.BACKGROUND);
+                main.setOverflowVisible(false);
+                addChild(main);
                 title = label(6, 6, 244, definition.getBlock().getName());
                 title.getStyle().tooltips(Component.literal(binding.dimension().location() + " @ " +
                         binding.position().toShortString()));
@@ -385,7 +388,7 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                     port.getStyle().backgroundTexture(GuiTextures.BACKGROUND_INVERSE);
                 });
                 options.verticalScroller(scroll -> scroll.getLayout().width(2));
-                execute = button(188, 180, 108, Component.translatable("gtpm.multiblock.autobuild.terminal.execute"));
+                execute = button(242, 180, 54, Component.translatable("gtpm.multiblock.autobuild.terminal.execute"));
                 execute.setOnClick(event -> {
                     terminal.rpcToServer("execute", Long.parseUnsignedLong(terminal.preview.fingerprint(), 16));
                     event.stopPropagation();
@@ -397,9 +400,6 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                     edit.setText(Component.literal(editing ? "✘" : "✎"));
                     blocks.setDisplay(editing);
                     if (!editing) blocks.close();
-                    var ui = getModularUI();
-                    ui.init(ui.getScreenWidth(), ui.getScreenHeight());
-                    ((ModularUIContainerScreen) ui.getScreen()).init();
                     event.stopPropagation();
                 });
                 fullscreen = button(278, 4, 16, Component.literal("↗"));
@@ -413,21 +413,22 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                     ((ModularUIContainerScreen) ui.getScreen()).init();
                     event.stopPropagation();
                 });
-                addChildren(title, preview, options, blocks, result, execute, edit, fullscreen);
+                main.addChildren(title, preview, options, result, execute, edit, fullscreen);
+                addChild(blocks);
                 rebuildOptions();
                 updateDisplay();
             }
 
             private Size resize(Size screen) {
-                width = expanded ? screen.getWidth() :
-                        Math.min(300 + (editing ? BlockChoiceList.WIDTH + 4 : 0), screen.getWidth());
+                width = expanded ? screen.getWidth() : Math.min(300, screen.getWidth());
                 height = expanded ? screen.getHeight() : Math.min(200, screen.getHeight());
-                int contentWidth = width - (editing ? BlockChoiceList.WIDTH + 4 : 0);
+                int contentWidth = width - (expanded ? BlockChoiceList.WIDTH + 8 : 0);
+                UITemplate.setBounds(main, 0, 0, contentWidth, height);
                 title.getLayout().width(contentWidth - 48);
                 edit.getLayout().left(contentWidth - 40);
                 fullscreen.getLayout().left(contentWidth - 22);
-                result.getLayout().left(contentWidth - 108).top(height - 33).width(100);
-                execute.getLayout().left(contentWidth - 112).top(height - 20);
+                result.getLayout().left(contentWidth - 58).top(height - 33).width(54);
+                execute.getLayout().left(contentWidth - 58).top(height - 20);
                 rebuildOptions();
                 return Size.of(width, height);
             }
@@ -440,20 +441,20 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                 options.clearAllScrollViewChildren();
                 controls.clear();
                 visibility = null;
-                int contentWidth = 104;
+                int contentWidth = 50;
                 var requests = terminal.structures.get(definition.getId());
                 var selected = terminal.included.get(definition.getId());
                 var shared = terminal.policies.get(definition.getId());
                 String name = structureName();
                 var structure = requests.get(name);
-                var replace = button(0, 0, 50, text("replace"));
+                var replace = button(0, 0, contentWidth, text("replace"));
                 replace.textStyle(style -> style.textColor(shared.replaceMode() ? 0xff167129 : 0xff404040));
                 replace.setOnClick(event -> {
                     terminal.rpcToServer("setPolicy",
                             new BuildPolicy(!shared.replaceMode(), shared.noHatchMode(), shared.useME()));
                     event.stopPropagation();
                 });
-                var casings = button(52, 0, 52, text("casings"));
+                var casings = button(0, 20, contentWidth, text("casings"));
                 casings.textStyle(style -> style.textColor(shared.noHatchMode() ? 0xff167129 : 0xff404040));
                 casings.setOnClick(event -> {
                     terminal.rpcToServer("setPolicy",
@@ -463,7 +464,7 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                 options.addScrollViewChildren(replace, casings);
                 controls.add(replace);
                 controls.add(casings);
-                int y = 20;
+                int y = 40;
                 if (GTCEu.MODS.AE2.isLoaded()) {
                     var me = button(0, y, contentWidth, text("me"));
                     me.textStyle(style -> style.textColor(shared.useME() ? 0xff167129 : 0xff404040));
@@ -487,14 +488,14 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                         blocks.close();
                         rebuildOptions();
                     }, true, true);
-                    y += 20;
+                    y += 30;
                 }
                 boolean required = selected.stream()
                         .anyMatch(entry -> requests.get(entry).mode() == StructureOperation.BUILD &&
                                 definition.getRequiredStructures(entry).contains(name));
                 boolean locked = required || selected.contains(name) && selected.size() == 1;
                 if (!locked) {
-                    var included = button(0, y, definition.isRenderWorldPreview() ? 50 : contentWidth,
+                    var included = button(0, y, contentWidth,
                             text(selected.contains(name) ? "selected" : "unselected"));
                     included.setOnClick(event -> {
                         terminal.rpcToServer("setIncluded", name, !selected.contains(name));
@@ -502,10 +503,11 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                     });
                     options.addScrollViewChild(included);
                     controls.add(included);
+                    y += 20;
                 }
                 if (definition.isRenderWorldPreview()) {
                     worldVisible = MultiblockInWorldPreviewRenderer.isPreviewVisible(binding.position(), name);
-                    visibility = button(locked ? 0 : 54, y, locked ? contentWidth : 50,
+                    visibility = button(0, y, contentWidth,
                             text(worldVisible ? "visible" : "hidden"));
                     visibility.getStyle().tooltips(text("world_preview"));
                     visibility.setOnClick(event -> {
@@ -515,9 +517,9 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                         event.stopPropagation();
                     });
                     options.addScrollViewChild(visibility);
+                    y += 20;
                 }
-                if (!locked || definition.isRenderWorldPreview()) y += 20;
-                var mode = button(0, y, definition.isAllowFlip() ? 50 : contentWidth,
+                var mode = button(0, y, contentWidth,
                         text("mode." + structure.mode().name().toLowerCase(Locale.ROOT)));
                 mode.setActive(!required);
                 mode.setOnClick(event -> {
@@ -527,8 +529,9 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                 });
                 options.addScrollViewChild(mode);
                 if (!required) controls.add(mode);
+                y += 20;
                 if (definition.isAllowFlip()) {
-                    var flip = button(54, y, 50,
+                    var flip = button(0, y, contentWidth,
                             text("flip", text(structure.flipMode() ? "on" : "off")));
                     flip.setOnClick(event -> {
                         change(value -> value.withFlipMode(!value.flipMode()));
@@ -536,8 +539,8 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                     });
                     options.addScrollViewChild(flip);
                     controls.add(flip);
+                    y += 20;
                 }
-                y += 20;
                 var pattern = definition.getPattern(name);
                 var axes = pattern.getSourceDefinition().getAxes();
                 var layout = pattern.expandLayout(structure.repetitions().toIntArray(), structure.choices());
@@ -555,7 +558,7 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                             () -> changeRepetition(index, amount - 1),
                             () -> changeRepetition(index, amount + 1),
                             amount > repetition.minimum(), amount < repetition.maximum());
-                    y += 20;
+                    y += 30;
                 }
                 for (var choice : pattern.getChoiceDescriptors()) {
                     var values = choice.alternatives();
@@ -564,14 +567,14 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                             () -> change(value -> value.withChoice(choice.path(), values.get(index - 1))),
                             () -> change(value -> value.withChoice(choice.path(), values.get(index + 1))),
                             index > 0, index + 1 < values.size());
-                    y += 20;
+                    y += 30;
                 }
-                options.viewContainer.getLayout().width(contentWidth - 3).height(y);
-                int bodyWidth = width - (editing ? BlockChoiceList.WIDTH + 4 : 0);
-                UITemplate.setBounds(options, bodyWidth - 112, 20, 108, height - 56);
+                options.viewContainer.getLayout().width(contentWidth).height(y);
+                int bodyWidth = width - (expanded ? BlockChoiceList.WIDTH + 8 : 0);
+                UITemplate.setBounds(options, bodyWidth - 58, 20, 54, height - 56);
                 preview.getLayout().left(4).top(20);
-                preview.resize(bodyWidth - 120, height - 24);
-                blocks.resize(bodyWidth, 20, height - 24);
+                preview.resize(bodyWidth - 66, height - 24);
+                blocks.resize(bodyWidth + 4, 20, height - 24);
                 blocks.setChoices(new BatchPlanner().activeTierChoiceOptions(definition, structure),
                         structure.tierChoices());
                 updateInteractivity();
@@ -579,14 +582,14 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
 
             private void addStep(int y, int width, Component name, Runnable previous, Runnable next,
                                  boolean hasPrevious, boolean hasNext) {
-                options.addScrollViewChild(label(18, y + 3, width - 36, name));
-                var back = button(0, y, 16, Component.literal("◀"));
+                options.addScrollViewChild(label(0, y, width, name));
+                var back = button(0, y + 10, 16, Component.literal("◀"));
                 back.setOnClick(event -> {
                     previous.run();
                     event.stopPropagation();
                 });
                 back.setActive(hasPrevious);
-                var forward = button(width - 19, y, 16, Component.literal("▶"));
+                var forward = button(width - 16, y + 10, 16, Component.literal("▶"));
                 forward.setOnClick(event -> {
                     next.run();
                     event.stopPropagation();
