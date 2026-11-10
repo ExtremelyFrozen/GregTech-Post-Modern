@@ -575,8 +575,16 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                 preview.getLayout().left(4).top(20);
                 preview.resize(bodyWidth - 66, height - 24);
                 blocks.resize(bodyWidth + 4, 20, height - 24);
-                blocks.setChoices(new BatchPlanner().activeTierChoiceOptions(definition, structure),
-                        structure.tierChoices());
+                var choices = new BatchPlanner().activeTierChoiceOptions(definition, structure);
+                blocks.setChoices(choices, structure.tierChoices());
+                boolean available = !choices.isEmpty();
+                edit.setActive(available);
+                if (!available) {
+                    editing = false;
+                    edit.setText(Component.literal("✎"));
+                    blocks.setDisplay(false);
+                    blocks.close();
+                }
                 updateInteractivity();
             }
 

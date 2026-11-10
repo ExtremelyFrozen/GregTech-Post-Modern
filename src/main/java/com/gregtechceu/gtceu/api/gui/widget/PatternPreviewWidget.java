@@ -264,8 +264,16 @@ public final class PatternPreviewWidget extends UIElement {
             y += 30;
         }
         options.viewContainer.getLayout().width(width).height(y);
-        blocks.setChoices(new BatchPlanner().activeTierChoiceOptions(definition, structure),
-                structure.tierChoices());
+        var choices = new BatchPlanner().activeTierChoiceOptions(definition, structure);
+        blocks.setChoices(choices, structure.tierChoices());
+        boolean available = !choices.isEmpty();
+        edit.setActive(available);
+        if (!available) {
+            editing = false;
+            edit.setText(Component.literal("✎"));
+            blocks.setDisplay(false);
+            blocks.close();
+        }
         layoutContent();
     }
 
