@@ -384,7 +384,7 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                         .verticalScrollDisplay(ScrollDisplay.AUTO).horizontalScrollDisplay(ScrollDisplay.NEVER)
                         .scrollerViewStyle(0));
                 options.viewPort(port -> {
-                    port.getLayout().paddingAll(0);
+                    port.getLayout().paddingAll(4);
                     port.getStyle().backgroundTexture(GuiTextures.BACKGROUND_INVERSE);
                 });
                 options.verticalScroller(scroll -> scroll.getLayout().width(2));
@@ -441,7 +441,7 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                 options.clearAllScrollViewChildren();
                 controls.clear();
                 visibility = null;
-                int contentWidth = 50;
+                int contentWidth = 44;
                 var requests = terminal.structures.get(definition.getId());
                 var selected = terminal.included.get(definition.getId());
                 var shared = terminal.policies.get(definition.getId());

@@ -1,7 +1,6 @@
 package com.gregtechceu.gtceu.integration.jei.multipage;
 
 import com.gregtechceu.gtceu.GTCEu;
-import com.gregtechceu.gtceu.api.gui.widget.BlockChoiceList;
 import com.gregtechceu.gtceu.api.gui.widget.PatternPreviewWidget;
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialKey;
@@ -123,7 +122,7 @@ public class MultiblockInfoCategory extends ModularUIRecipeCategory<MultiblockIn
         super.setRecipe(builder, recipe, focuses);
         builder.addSlot(RecipeIngredientRole.OUTPUT)
                 .addItemStacks(recipe.getOutputs())
-                .setPosition(getWidth() - BlockChoiceList.COLUMN_WIDTH - 26, 4);
+                .setPosition(getWidth() - 26, 4);
     }
 
     @Override

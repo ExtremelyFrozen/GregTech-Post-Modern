@@ -54,7 +54,7 @@ import java.util.stream.Stream;
 @NullMarked
 public final class PatternPreviewWidget extends UIElement {
 
-    public static final int WIDTH = 300 + BlockChoiceList.COLUMN_WIDTH + 4;
+    public static final int WIDTH = 300;
     public static final int HEIGHT = 200;
 
     private final MultiblockMachineDefinition definition;
@@ -65,8 +65,10 @@ public final class PatternPreviewWidget extends UIElement {
     private final GTScrollerViewElement options = new GTScrollerViewElement();
     private final ObjectList<GTButtonElement> controls = new ObjectArrayList<>();
     private final GTLabelElement title;
+    private final GTButtonElement edit;
     private final GTButtonElement fullscreen;
     private final boolean expanded;
+    private boolean editing;
     private int selectedStructure;
     private int pageWidth = WIDTH;
     private int pageHeight = HEIGHT;
@@ -90,24 +92,34 @@ public final class PatternPreviewWidget extends UIElement {
         preview.setOnSelected(this::showCandidates);
         main.addChild(preview);
         blocks = new BlockChoiceList((group, id) -> changeStructure(structure -> structure.withTierChoice(group, id)));
+        blocks.setDisplay(false);
         addChild(blocks);
         options.scrollerStyle(style -> style.mode(ScrollerMode.VERTICAL)
                 .verticalScrollDisplay(ScrollDisplay.AUTO).horizontalScrollDisplay(ScrollDisplay.NEVER)
                 .scrollerViewStyle(0));
         options.viewPort(port -> {
-            port.getLayout().paddingAll(0);
+            port.getLayout().paddingAll(4);
             port.getStyle().backgroundTexture(GuiTextures.BACKGROUND_INVERSE);
         });
         options.verticalScroller(scroll -> scroll.getLayout().width(2));
         main.addChild(options);
-        fullscreen = button(258, 4, 16, Component.literal(expanded ? "↙" : "↗"));
+        edit = button(238, 4, 16, Component.literal("✎"));
+        edit.getStyle().tooltips(text("edit"));
+        edit.setOnClick(event -> {
+            editing = !editing;
+            edit.setText(Component.literal(editing ? "✘" : "✎"));
+            blocks.setDisplay(editing);
+            if (!editing) blocks.close();
+            event.stopPropagation();
+        });
+        fullscreen = button(256, 4, 16, Component.literal(expanded ? "↙" : "↗"));
         fullscreen.getStyle().tooltips(text(expanded ? "compact" : "fullscreen"));
         fullscreen.setOnClick(event -> {
             if (expanded) Minecraft.getInstance().screen.onClose();
             else openFullscreen();
             event.stopPropagation();
         });
-        main.addChild(fullscreen);
+        main.addChildren(edit, fullscreen);
         rebuildOptions();
     }
 
@@ -119,15 +131,17 @@ public final class PatternPreviewWidget extends UIElement {
     private Size resize(Size screen) {
         pageWidth = expanded ? screen.getWidth() : Math.min(WIDTH, screen.getWidth());
         pageHeight = expanded ? screen.getHeight() : Math.min(HEIGHT, screen.getHeight());
-        int contentWidth = pageWidth - (expanded ? BlockChoiceList.WIDTH : BlockChoiceList.COLUMN_WIDTH) - 4;
-        title.getLayout().width(contentWidth - 54);
-        fullscreen.getLayout().left(contentWidth - 42);
+        int contentWidth = pageWidth - (expanded ? BlockChoiceList.WIDTH + 8 : 0);
+        int headerRight = contentWidth - (expanded ? 0 : 22);
+        title.getLayout().width(headerRight - 48);
+        edit.getLayout().left(headerRight - 40);
+        fullscreen.getLayout().left(headerRight - 22);
         rebuildOptions();
         return Size.of(pageWidth, pageHeight);
     }
 
     private void layoutContent() {
-        int contentWidth = pageWidth - (expanded ? BlockChoiceList.WIDTH : BlockChoiceList.COLUMN_WIDTH) - 4;
+        int contentWidth = pageWidth - (expanded ? BlockChoiceList.WIDTH + 8 : 0);
         UITemplate.setBounds(main, 0, 0, contentWidth, pageHeight);
         preview.getLayout().left(4).top(20);
         preview.resize(contentWidth - 66, pageHeight - 24);
@@ -170,7 +184,7 @@ public final class PatternPreviewWidget extends UIElement {
     private void rebuildOptions() {
         options.clearAllScrollViewChildren();
         controls.clear();
-        int width = 50;
+        int width = 44;
         var policy = info.getPolicy();
         String name = structureName();
         var structure = info.getStructures().get(name);
