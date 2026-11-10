@@ -5,11 +5,16 @@ import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTButtonElement;
 import com.gregtechceu.gtceu.api.gui.element.GTImageElement;
+import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
+import com.gregtechceu.gtceu.api.gui.texture.ColorRectTexture;
+import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.gui.texture.ItemStackTexture;
 
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
+import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollerMode;
 import com.lowdragmc.lowdraglib2.gui.ui.event.HoverTooltips;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
@@ -22,6 +27,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
+import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.client.event.ScreenEvent;
@@ -37,7 +43,7 @@ import org.lwjgl.glfw.GLFW;
 
 import java.util.function.BiConsumer;
 
-/** Anchors independent category and candidate columns beside the caller's page. */
+/** Anchors independent category and candidate lists beside the caller's page. */
 @NullMarked
 public final class BlockChoiceList extends UIElement {
 
@@ -56,8 +62,8 @@ public final class BlockChoiceList extends UIElement {
     }
 
     public void resize(int x, int y, int height) {
-        // The anchor stays inside the page's clip; the panels are drawn separately beside it.
-        UITemplate.setBounds(this, x - 8, y, 1, height);
+        // Cover the caller's content so recipe clipping cannot discard the invisible anchor.
+        UITemplate.setBounds(this, 0, y, x - 4, height);
     }
 
     public void setChoices(Object2ObjectMap<String, ObjectList<ResourceLocation>> choices,
@@ -100,7 +106,7 @@ public final class BlockChoiceList extends UIElement {
 
     private static GTImageElement icon(ResourceLocation id, int y) {
         var stack = BuiltInRegistries.BLOCK.get(id).asItem().getDefaultInstance();
-        var icon = new GTImageElement(5, y + 1, 16, 16, new ItemStackTexture(stack));
+        var icon = new GTImageElement(1, y + 1, 16, 16, new ItemStackTexture(stack));
         icon.addEventListener(UIEvents.HOVER_TOOLTIPS,
                 event -> event.hoverTooltips = new HoverTooltips(DrawerHelper.getItemToolTip(stack),
                         stack.getTooltipImage().orElse(null), null, stack));
@@ -108,13 +114,35 @@ public final class BlockChoiceList extends UIElement {
     }
 
     private static GTButtonElement button(int y) {
-        var button = new GTButtonElement(28, y + 3, 12, 12);
+        var button = new GTButtonElement(24, y + 3, 12, 12);
         button.setButtonTexture(GuiTextures.VANILLA_BUTTON);
         button.getLayout().paddingAll(0);
         button.text.getLayout().widthPercent(100).heightPercent(100).marginAll(0).minWidth(0);
         button.textStyle(style -> style.adaptiveWidth(false).adaptiveHeight(false)
                 .fontSize(9).textShadow(false).textColor(0xff404040));
         return button;
+    }
+
+    private static GTScrollerViewElement list() {
+        var list = new GTScrollerViewElement();
+        list.getLayout().paddingAll(4);
+        list.getStyle().backgroundTexture(GuiTextures.BACKGROUND_INVERSE);
+        list.scrollerStyle(style -> style.mode(ScrollerMode.VERTICAL)
+                .verticalScrollDisplay(ScrollDisplay.AUTO).horizontalScrollDisplay(ScrollDisplay.NEVER)
+                .scrollerViewStyle(0));
+        list.viewPort(port -> {
+            port.getLayout().paddingAll(0);
+            port.getStyle().backgroundTexture(IGuiTexture.EMPTY);
+        });
+        list.verticalScroller(scroll -> {
+            scroll.getLayout().width(2);
+            scroll.getStyle().backgroundTexture(IGuiTexture.EMPTY);
+            scroll.headButton.setDisplay(false);
+            scroll.tailButton.setDisplay(false);
+            var bar = new ColorRectTexture(0xffffffff).setRadius(1);
+            scroll.scrollBar.buttonStyle(style -> style.baseTexture(bar).hoverTexture(bar).pressedTexture(bar));
+        });
+        return list;
     }
 
     /** Both levels share a screen-sized input surface; only their visible columns receive input. */
@@ -127,12 +155,14 @@ public final class BlockChoiceList extends UIElement {
         private final Screen screen = Minecraft.getInstance().screen;
         private final UIElement root = new UIElement();
         private final ModularUI ui = ModularUI.of(UI.of(root, size -> size));
+        private final GTScrollerViewElement groupList = list();
+        private final GTScrollerViewElement candidateList = list();
         private final Object2ObjectMap<String, GTButtonElement> groups = new Object2ObjectLinkedOpenHashMap<>();
         private final Object2ObjectMap<ResourceLocation, GTButtonElement> candidates = new Object2ObjectLinkedOpenHashMap<>();
         private @Nullable ResourceLocation current;
         private int x;
         private int y;
-        private int rows;
+        private int height;
         private boolean dirty = true;
         private boolean captured;
         private boolean ownerRendered;
@@ -141,6 +171,7 @@ public final class BlockChoiceList extends UIElement {
             this.owner = owner;
             root.getLayout().positionType(TaffyPosition.ABSOLUTE);
             root.setAllowHitTest(false);
+            root.addChildren(groupList, candidateList);
             ui.setScreenAndInit(screen);
         }
 
@@ -157,17 +188,17 @@ public final class BlockChoiceList extends UIElement {
         }
 
         private void updatePosition() {
-            var anchor = owner.getWorldMouse(owner.getContentX() + 8, owner.getContentY());
+            var anchor = owner.getWorldMouse(owner.getContentX() + owner.getContentWidth() + 4, owner.getContentY());
             var parent = owner.getParent();
             var bottom = parent.getWorldMouse(parent.getContentX(),
                     parent.getContentY() + parent.getContentHeight() - 4);
             int x = Math.round(anchor.x);
             int y = Math.round(anchor.y);
-            int rows = Math.max(1, (Math.round(bottom.y) - y - 8) / 18);
-            if (this.x != x || this.y != y || this.rows != rows) {
+            int height = Math.max(26, Math.round(bottom.y) - y);
+            if (this.x != x || this.y != y || this.height != height) {
                 this.x = x;
                 this.y = y;
-                this.rows = rows;
+                this.height = height;
                 dirty = true;
             }
             if (ui.getScreenWidth() != screen.width || ui.getScreenHeight() != screen.height) {
@@ -178,36 +209,37 @@ public final class BlockChoiceList extends UIElement {
 
         private void rebuild() {
             dirty = false;
-            root.clearAllChildren();
+            groupList.clearAllScrollViewChildren();
+            candidateList.clearAllScrollViewChildren();
             groups.clear();
             candidates.clear();
             var expanded = owner.expandedGroup;
             var values = expanded == null ? ObjectList.<ResourceLocation>of() : owner.choices.get(expanded);
             current = values.isEmpty() ? null : owner.selected.getOrDefault(expanded, values.getFirst());
-            int groupColumns = Math.ceilDiv(owner.choices.size(), rows);
-            int columns = groupColumns + Math.ceilDiv(values.size(), rows);
+            int columns = expanded == null ? 1 : 2;
             int left = Math.max(4, Math.min(x, screen.width - columns * (COLUMN_WIDTH + 4)));
+            UITemplate.setBounds(groupList, left, y, COLUMN_WIDTH, height);
+            UITemplate.setBounds(candidateList, left + COLUMN_WIDTH + 4, y, COLUMN_WIDTH, height);
+            candidateList.setDisplay(expanded != null);
             int index = 0;
-            UIElement panel = root;
             for (var entry : owner.choices.object2ObjectEntrySet()) {
-                if (index % rows == 0) panel = column(left, index / rows, owner.choices.size() - index);
                 String group = entry.getKey();
-                int top = index % rows * 18 + 4;
+                int top = index * 18;
                 var expand = button(top);
                 expand.getStyle().tooltips(Component.translatable("gtpm.multiblock.category." + group));
                 expand.setOnClick(event -> {
                     owner.expandedGroup = group.equals(owner.expandedGroup) ? null : group;
+                    candidateList.verticalScroller.setValue(0f);
                     dirty = true;
                     event.stopPropagation();
                 });
-                panel.addChildren(icon(entry.getValue().getFirst(), top), expand);
+                groupList.addScrollViewChildren(icon(entry.getValue().getFirst(), top), expand);
                 groups.put(group, expand);
                 index++;
             }
             for (int i = 0; i < values.size(); i++) {
-                if (i % rows == 0) panel = column(left, groupColumns + i / rows, values.size() - i);
                 ResourceLocation id = values.get(i);
-                int top = i % rows * 18 + 4;
+                int top = i * 18;
                 var choose = button(top);
                 choose.getStyle().tooltips(BuiltInRegistries.BLOCK.get(id).getName());
                 choose.setOnClick(event -> {
@@ -216,18 +248,12 @@ public final class BlockChoiceList extends UIElement {
                     refreshButtons();
                     event.stopPropagation();
                 });
-                panel.addChildren(icon(id, top), choose);
+                candidateList.addScrollViewChildren(icon(id, top), choose);
                 candidates.put(id, choose);
             }
+            groupList.viewContainer.getLayout().width(38).height(owner.choices.size() * 18);
+            candidateList.viewContainer.getLayout().width(38).height(values.size() * 18);
             refreshButtons();
-        }
-
-        private UIElement column(int left, int index, int remaining) {
-            var panel = UITemplate.setBounds(new UIElement(), left + index * (COLUMN_WIDTH + 4), y,
-                    COLUMN_WIDTH, Math.min(rows, remaining) * 18 + 8);
-            panel.getStyle().backgroundTexture(GuiTextures.BACKGROUND_INVERSE);
-            root.addChild(panel);
-            return panel;
         }
 
         private void refreshButtons() {
@@ -248,12 +274,12 @@ public final class BlockChoiceList extends UIElement {
             }
         }
 
-        @SubscribeEvent
+        @SubscribeEvent(priority = EventPriority.HIGHEST)
         public static void beforeRender(ScreenEvent.Render.Pre event) {
             if (opened != null) opened.ownerRendered = false;
         }
 
-        @SubscribeEvent
+        @SubscribeEvent(priority = EventPriority.LOWEST)
         public static void render(ScreenEvent.Render.Post event) {
             if (opened == null) return;
             if (opened.screen != event.getScreen() || !opened.ownerRendered) {
@@ -268,7 +294,7 @@ public final class BlockChoiceList extends UIElement {
             graphics.pose().popPose();
         }
 
-        @SubscribeEvent
+        @SubscribeEvent(priority = EventPriority.HIGHEST)
         public static void mousePressed(ScreenEvent.MouseButtonPressed.Pre event) {
             if (opened == null || opened.screen != event.getScreen()) return;
             var panel = opened;
@@ -283,7 +309,7 @@ public final class BlockChoiceList extends UIElement {
             }
         }
 
-        @SubscribeEvent
+        @SubscribeEvent(priority = EventPriority.HIGHEST)
         public static void mouseReleased(ScreenEvent.MouseButtonReleased.Pre event) {
             if (opened == null || !opened.captured || opened.screen != event.getScreen()) return;
             opened.ui.getWidget().mouseReleased(event.getMouseX(), event.getMouseY(), event.getButton());
@@ -291,7 +317,26 @@ public final class BlockChoiceList extends UIElement {
             event.setCanceled(true);
         }
 
-        @SubscribeEvent
+        @SubscribeEvent(priority = EventPriority.HIGHEST)
+        public static void mouseDragged(ScreenEvent.MouseDragged.Pre event) {
+            if (opened != null && opened.captured && opened.screen == event.getScreen()) {
+                opened.ui.getWidget().mouseDragged(event.getMouseX(), event.getMouseY(), event.getMouseButton(),
+                        event.getDragX(), event.getDragY());
+                event.setCanceled(true);
+            }
+        }
+
+        @SubscribeEvent(priority = EventPriority.HIGHEST)
+        public static void mouseScrolled(ScreenEvent.MouseScrolled.Pre event) {
+            if (opened != null && opened.screen == event.getScreen() &&
+                    opened.ui.hitTestAtScreen((float) event.getMouseX(), (float) event.getMouseY()) != null) {
+                opened.ui.getWidget().mouseScrolled(event.getMouseX(), event.getMouseY(), event.getScrollDeltaX(),
+                        event.getScrollDeltaY());
+                event.setCanceled(true);
+            }
+        }
+
+        @SubscribeEvent(priority = EventPriority.HIGHEST)
         public static void keyPressed(ScreenEvent.KeyPressed.Pre event) {
             if (opened != null && opened.screen == event.getScreen() &&
                     opened.owner.expandedGroup != null && event.getKeyCode() == GLFW.GLFW_KEY_ESCAPE) {
