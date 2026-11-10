@@ -1,6 +1,7 @@
 package com.gregtechceu.gtceu.api.multiblock.structurepredicate
 
 import com.gregtechceu.gtceu.api.capability.recipe.IO
+import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition
 import com.gregtechceu.gtceu.api.multiblock.MultiblockBlockInfo
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState
 import com.gregtechceu.gtceu.api.multiblock.error.SinglePredicateError
@@ -53,6 +54,12 @@ open class PredicateRule {
 			blocks.get().forEach { out.add(it.defaultBlockState()) }
 		}
 	}
+
+	/** Keeps each registered candidate family intact when inspecting a selected preview position. */
+	fun getPreviewChoices(definition: MultiblockMachineDefinition): ObjectList<StructurePreviewChoice> = source?.previewChoices(definition)
+		?: ObjectLists.singleton(
+			StructurePreviewChoice.unrestricted(candidateStates().mapTo(ObjectArrayList(), ::MultiblockBlockInfo)).withObserver(::observeCandidate),
+		)
 
 	@JvmField
 	var candidates: Supplier<Array<Block>>? = null

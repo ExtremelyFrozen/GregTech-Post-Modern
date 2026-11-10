@@ -8,6 +8,7 @@ import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
+import com.gregtechceu.gtceu.api.multiblock.MultiblockBlockInfo;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.BuildPolicy;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.StructureOperation;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.StructureRequest;
@@ -15,6 +16,7 @@ import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.BatchPlanner;
 import com.gregtechceu.gtceu.api.multiblock.pattern.layout.PatternAxis;
 import com.gregtechceu.gtceu.api.multiblock.preview.PreviewVisibility;
 import com.gregtechceu.gtceu.api.multiblock.preview.StructurePreview;
+import com.gregtechceu.gtceu.api.multiblock.structurepredicate.PatternPredicate;
 import com.gregtechceu.gtceu.client.gui.ClientMultiblockPreviewElement;
 import com.gregtechceu.gtceu.data.pattern.StructurePatternRegistry;
 import com.gregtechceu.gtceu.integration.xei.multiblock.MultiblockInfo;
@@ -38,11 +40,14 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import dev.vfyjxf.taffy.style.TaffyPosition;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
 import it.unimi.dsi.fastutil.objects.ObjectList;
+import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
 import org.jspecify.annotations.NullMarked;
 
 import java.util.Locale;
 import java.util.function.UnaryOperator;
+import java.util.stream.Stream;
 
 /** A recipe-viewer page owns its local choices, controls and client scene. */
 @OnlyIn(Dist.CLIENT)
@@ -82,6 +87,7 @@ public final class PatternPreviewWidget extends UIElement {
         title = label(6, 6, 246, definition.getBlock().getName());
         main.addChild(title);
         preview = new ClientMultiblockPreviewElement(180, 176, new PreviewVisibility(initial.value()), false);
+        preview.setOnSelected(this::showCandidates);
         main.addChild(preview);
         blocks = new BlockChoiceList((group, id) -> changeStructure(structure -> structure.withTierChoice(group, id)));
         addChild(blocks);
@@ -131,6 +137,34 @@ public final class PatternPreviewWidget extends UIElement {
 
     private String structureName() {
         return definition.getStructureOrder().get(selectedStructure);
+    }
+
+    private void showCandidates(StructurePreview.Cell selected) {
+        preview.clearCandidates();
+        var seen = new ReferenceOpenHashSet<PatternPredicate>();
+        for (var contribution : selected.contributions()) {
+            var request = info.getStructures().get(contribution.structureName());
+            var layout = definition.getPattern(contribution.structureName())
+                    .expandLayout(request.repetitions().toIntArray(), request.choices());
+            var key = contribution.cellKey();
+            for (var cell : layout.cells()) {
+                if (cell.unit() != key.unitIndex() || cell.repetition() != key.repetition() ||
+                        cell.inner() != key.innerSlice() || cell.row() != key.row() || cell.column() != key.column())
+                    continue;
+                var predicate = cell.predicate();
+                if (!seen.add(predicate)) break;
+                Stream.concat(predicate.common.stream(), predicate.limited.stream()).forEach(rule -> {
+                    for (var choice : rule.getPreviewChoices(definition)) {
+                        var items = choice.candidates().stream().map(MultiblockBlockInfo::getItemStackForm)
+                                .filter(item -> !item.isEmpty()).collect(ObjectImmutableList.toList());
+                        var tips = new ObjectArrayList<>(choice.getTooltips(predicate));
+                        tips.addAll(rule.getToolTips(null));
+                        preview.addCandidates(items, tips);
+                    }
+                });
+                break;
+            }
+        }
     }
 
     private void rebuildOptions() {

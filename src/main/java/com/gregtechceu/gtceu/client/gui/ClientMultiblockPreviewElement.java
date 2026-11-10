@@ -9,6 +9,7 @@ import com.gregtechceu.gtceu.api.gui.element.GTButtonElement;
 import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTSceneElement;
+import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.multiblock.MultiblockBlockInfo;
 import com.gregtechceu.gtceu.api.multiblock.MultiblockPreviewLevel;
@@ -21,6 +22,8 @@ import com.gregtechceu.gtceu.integration.xei.GTXEIHelper;
 import com.lowdragmc.lowdraglib2.client.scene.ISceneBlockRenderHook;
 import com.lowdragmc.lowdraglib2.client.scene.WorldSceneRenderer;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
+import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollerMode;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.gui.ui.event.HoverTooltips;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
@@ -54,6 +57,7 @@ import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
 import it.unimi.dsi.fastutil.objects.ObjectList;
+import lombok.Setter;
 import mezz.jei.api.constants.VanillaTypes;
 import org.joml.Vector3f;
 import org.jspecify.annotations.NullMarked;
@@ -62,6 +66,7 @@ import org.jspecify.annotations.Nullable;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 /**
@@ -80,7 +85,10 @@ public final class ClientMultiblockPreviewElement extends UIElement {
     private Level sourceLevel;
     private final GTSceneElement scene;
     private final UIElement materialViewport;
+    private final GTScrollerViewElement predicateViewport = new GTScrollerViewElement();
+    private final Object2ObjectMap<GTItemSlotElement, List<ItemStack>> predicateItems = new Object2ObjectLinkedOpenHashMap<>();
     private @Nullable Consumer<ItemStack> updateJEIMaterial;
+    private @Nullable Consumer<ItemStack> updateJEIPredicate;
     private final GTButtonElement previousMaterials;
     private final GTButtonElement nextMaterials;
     private final ObjectList<GTItemSlotElement> materialSlots = new ObjectArrayList<>();
@@ -90,6 +98,8 @@ public final class ClientMultiblockPreviewElement extends UIElement {
     private final GTButtonElement hatchButton;
     private final GTLabelElement diagnosticLabel;
     private final boolean showAvailability;
+    @Setter
+    private @Nullable Consumer<Cell> onSelected;
     private int materialViewportWidth;
     private float sceneAspect;
     private final Object2ObjectMap<BlockPos, StructurePreview.Cell> sceneCells = new Object2ObjectLinkedOpenHashMap<>();
@@ -155,10 +165,12 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         });
         // The container survives material changes; per-slot recipe widgets would retain removed slots.
         if (GTCEu.MODS.isEMILoaded()) {
-            EMISupport.recipeSlot(this);
+            EMISupport.recipeSlot(materialViewport, () -> getHoveredItem(materialViewport));
+            EMISupport.recipeSlot(predicateViewport, () -> getHoveredItem(predicateViewport));
         }
         if (GTCEu.MODS.isJEILoaded()) {
-            updateJEIMaterial = JEISupport.recipeSlot(this);
+            updateJEIMaterial = JEISupport.recipeSlot(materialViewport, () -> getHoveredItem(materialViewport));
+            updateJEIPredicate = JEISupport.recipeSlot(predicateViewport, () -> getHoveredItem(predicateViewport));
         }
         addChildren(materialViewport, previousMaterials, nextMaterials);
 
@@ -197,6 +209,19 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         diagnosticLabel.setAllowHitTest(false);
         addChild(diagnosticLabel);
 
+        predicateViewport.layout(layout -> layout.positionType(TaffyPosition.ABSOLUTE)
+                .left(4).top(4).width(24).height(sceneHeight - 8));
+        predicateViewport.scrollerStyle(style -> style.mode(ScrollerMode.VERTICAL)
+                .verticalScrollDisplay(ScrollDisplay.AUTO).horizontalScrollDisplay(ScrollDisplay.NEVER)
+                .scrollerViewStyle(0));
+        predicateViewport.viewPort(port -> {
+            port.getLayout().paddingAll(0);
+            port.setOverflowVisible(false);
+        });
+        predicateViewport.verticalScroller(scroll -> scroll.getLayout().width(2));
+        predicateViewport.setDisplay(false);
+        addChild(predicateViewport);
+
         rebuildPreview(true);
     }
 
@@ -213,11 +238,13 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         layerButton.getLayout().left(width - 20);
         hatchButton.getLayout().left(width - 20);
         diagnosticLabel.getLayout().top((float) sceneHeight / 2 - 10).width(width - 16);
+        predicateViewport.getLayout().height(sceneHeight - 8);
         rebuildRenderedCore(true);
         rebuildMaterials();
     }
 
     public void setPreview(StructurePreview preview) {
+        clearCandidates();
         state.setPreview(preview);
         rebuildPreview(true);
     }
@@ -310,12 +337,33 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         renderedViewRevision = state.getViewRevision();
     }
 
-    private ItemStack getHoveredMaterial() {
+    private ItemStack getHoveredItem(UIElement viewport) {
         var ui = getModularUI();
         var hit = ui.ui.rootElement.hitTest(ui.getLastMouseX(), ui.getLastMouseY());
         var hovered = hit == null ? null : hit.getA();
-        return hovered instanceof GTItemSlotElement slot && slot.getParent() == materialViewport ?
+        return hovered instanceof GTItemSlotElement slot && viewport.isAncestorOf(slot) ?
                 slot.getValue() : ItemStack.EMPTY;
+    }
+
+    public void clearCandidates() {
+        if (updateJEIPredicate != null) updateJEIPredicate.accept(ItemStack.EMPTY);
+        predicateViewport.clearAllScrollViewChildren();
+        predicateItems.clear();
+        predicateViewport.setDisplay(false);
+    }
+
+    public void addCandidates(List<ItemStack> items, List<Component> tooltips) {
+        if (items.isEmpty()) return;
+        var slot = new GTItemSlotElement();
+        slot.layout(layout -> layout.positionType(TaffyPosition.ABSOLUTE)
+                .left(0).top(predicateItems.size() * 18).width(18).height(18));
+        slot.setCanPutItems(false).setCanTakeItems(false).setBackgroundTexture(GuiTextures.SLOT);
+        slot.setOnAddedTooltips((element, tips) -> tips.addAll(tooltips));
+        slot.setItem(items.getFirst(), false);
+        predicateItems.put(slot, items);
+        predicateViewport.addScrollViewChild(slot);
+        predicateViewport.viewContainer.getLayout().width(18).height(predicateItems.size() * 18);
+        predicateViewport.setDisplay(true);
     }
 
     private void rebuildMaterials() {
@@ -450,6 +498,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         state.setFocusedStructure(cell.representative().structureName());
         rebuildRenderedCore(false);
         updateNavigationText();
+        if (onSelected != null) onSelected.accept(cell);
     }
 
     private void updateNavigationText() {
@@ -503,6 +552,11 @@ public final class ClientMultiblockPreviewElement extends UIElement {
     public void screenTick() {
         super.screenTick();
         updateMaterialIcons();
+        long cycle = System.currentTimeMillis() / 1000;
+        for (var entry : predicateItems.object2ObjectEntrySet()) {
+            var items = entry.getValue();
+            entry.getKey().setItem(items.get((int) (cycle % items.size())), false);
+        }
         @Nullable
         Level currentLevel = Minecraft.getInstance().level;
         if (currentLevel != sourceLevel) {
@@ -515,7 +569,8 @@ public final class ClientMultiblockPreviewElement extends UIElement {
 
     @Override
     public void drawBackgroundAdditional(GUIContext context) {
-        if (updateJEIMaterial != null) updateJEIMaterial.accept(getHoveredMaterial());
+        if (updateJEIMaterial != null) updateJEIMaterial.accept(getHoveredItem(materialViewport));
+        if (updateJEIPredicate != null) updateJEIPredicate.accept(getHoveredItem(predicateViewport));
         super.drawBackgroundAdditional(context);
     }
 
@@ -583,16 +638,16 @@ public final class ClientMultiblockPreviewElement extends UIElement {
 
     private static final class EMISupport {
 
-        private static void recipeSlot(ClientMultiblockPreviewElement preview) {
-            LDLibEMIPlugin.recipeSlot(preview.materialViewport, () -> EmiStack.of(preview.getHoveredMaterial()));
+        private static void recipeSlot(UIElement viewport, Supplier<ItemStack> hovered) {
+            LDLibEMIPlugin.recipeSlot(viewport, () -> EmiStack.of(hovered.get()));
         }
     }
 
     private static final class JEISupport {
 
-        private static Consumer<ItemStack> recipeSlot(ClientMultiblockPreviewElement preview) {
-            return LDLibJEIPlugin.recipeSlot(preview.materialViewport, IngredientIO.INPUT,
-                    VanillaTypes.ITEM_STACK, () -> Stream.of(preview.getHoveredMaterial()), ignored -> {});
+        private static Consumer<ItemStack> recipeSlot(UIElement viewport, Supplier<ItemStack> hovered) {
+            return LDLibJEIPlugin.recipeSlot(viewport, IngredientIO.INPUT,
+                    VanillaTypes.ITEM_STACK, () -> Stream.of(hovered.get()), ignored -> {});
         }
     }
 
