@@ -5,16 +5,11 @@ import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTButtonElement;
 import com.gregtechceu.gtceu.api.gui.element.GTImageElement;
-import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
-import com.gregtechceu.gtceu.api.gui.texture.ColorRectTexture;
-import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.gui.texture.ItemStackTexture;
 
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
-import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
-import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollerMode;
 import com.lowdragmc.lowdraglib2.gui.ui.event.HoverTooltips;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
@@ -42,14 +37,13 @@ import org.lwjgl.glfw.GLFW;
 
 import java.util.function.BiConsumer;
 
-/** Category entries open an independent candidate panel; the caller owns and applies selections. */
+/** Anchors independent category and candidate columns beside the caller's page. */
 @NullMarked
 public final class BlockChoiceList extends UIElement {
 
     public static final int COLUMN_WIDTH = 48;
     public static final int WIDTH = COLUMN_WIDTH * 2 + 4;
 
-    private final GTScrollerViewElement groups = scroller();
     private final BiConsumer<String, ResourceLocation> select;
     private Object2ObjectMap<String, ObjectList<ResourceLocation>> choices = Object2ObjectMaps.emptyMap();
     private Object2ObjectMap<String, ResourceLocation> selected = Object2ObjectMaps.emptyMap();
@@ -58,78 +52,44 @@ public final class BlockChoiceList extends UIElement {
 
     public BlockChoiceList(BiConsumer<String, ResourceLocation> select) {
         this.select = select;
-        setOverflowVisible(false);
-        addChild(groups);
+        setAllowHitTest(false);
     }
 
     public void resize(int x, int y, int height) {
-        UITemplate.setBounds(this, x, y, COLUMN_WIDTH, height);
-        UITemplate.setBounds(groups, 0, 0, COLUMN_WIDTH, height);
+        // The anchor stays inside the page's clip; the panels are drawn separately beside it.
+        UITemplate.setBounds(this, x - 8, y, 1, height);
     }
 
     public void setChoices(Object2ObjectMap<String, ObjectList<ResourceLocation>> choices,
                            Object2ObjectMap<String, ResourceLocation> selected) {
         this.choices = choices;
         this.selected = selected;
-        if (!choices.containsKey(expandedGroup)) close();
-        rebuild();
+        if (!choices.containsKey(expandedGroup)) expandedGroup = null;
+        if (Panels.opened != null && Panels.opened.owner == this) Panels.opened.dirty = true;
     }
 
     public void setInteractive(boolean interactive) {
         this.interactive = interactive;
-        refreshButtons();
-        if (Candidates.opened != null && Candidates.opened.owner == this) Candidates.opened.refreshSelection();
+        if (Panels.opened != null && Panels.opened.owner == this && !Panels.opened.dirty) {
+            Panels.opened.refreshButtons();
+        }
     }
 
     public void close() {
         expandedGroup = null;
-        Candidates.close(this);
-        refreshButtons();
-    }
-
-    private void rebuild() {
-        groups.clearAllScrollViewChildren();
-        int row = 0;
-        for (var entry : choices.object2ObjectEntrySet()) {
-            String group = entry.getKey();
-            var item = icon(entry.getValue().getFirst(), row * 18);
-            var expand = button(row * 18, group.equals(expandedGroup) ? "◀" : "▶");
-            expand.setId(group);
-            expand.getStyle().tooltips(Component.translatable("gtpm.multiblock.category." + group));
-            expand.setOnClick(event -> {
-                if (group.equals(expandedGroup)) close();
-                else {
-                    close();
-                    expandedGroup = group;
-                    Candidates.open(this, group);
-                }
-                refreshButtons();
-                event.stopPropagation();
-            });
-            groups.addScrollViewChildren(item, expand);
-            row++;
-        }
-        groups.viewContainer.getLayout().width(44).height(row * 18);
-        if (Candidates.opened != null && Candidates.opened.owner == this) Candidates.opened.rebuild();
-        refreshButtons();
-    }
-
-    private void refreshButtons() {
-        for (var child : groups.viewContainer.getChildren()) {
-            if (child instanceof GTButtonElement button) {
-                button.setText(Component.literal(button.getId().equals(expandedGroup) ? "◀" : "▶"));
-                String group = button.getId();
-                var first = choices.get(group).getFirst();
-                button.textStyle(style -> style.textColor(!first.equals(selected.getOrDefault(group, first)) ?
-                        0xff169fb5 : 0xff404040));
-            }
-        }
+        Panels.close(this);
     }
 
     @Override
     public void drawBackgroundAdditional(GUIContext context) {
         super.drawBackgroundAdditional(context);
-        if (Candidates.opened != null && Candidates.opened.owner == this) Candidates.opened.ownerRendered = true;
+        if (choices.isEmpty()) return;
+        var panels = Panels.opened;
+        if (panels == null || panels.owner != this || panels.screen != Minecraft.getInstance().screen) {
+            panels = Panels.open(this);
+        }
+        panels.ownerRendered = true;
+        panels.updatePosition();
     }
 
     @Override
@@ -147,9 +107,9 @@ public final class BlockChoiceList extends UIElement {
         return icon;
     }
 
-    private static GTButtonElement button(int y, String text) {
+    private static GTButtonElement button(int y) {
         var button = new GTButtonElement(28, y + 3, 12, 12);
-        button.setButtonTexture(GuiTextures.VANILLA_BUTTON).setText(Component.literal(text));
+        button.setButtonTexture(GuiTextures.VANILLA_BUTTON);
         button.getLayout().paddingAll(0);
         button.text.getLayout().widthPercent(100).heightPercent(100).marginAll(0).minWidth(0);
         button.textStyle(style -> style.adaptiveWidth(false).adaptiveHeight(false)
@@ -157,68 +117,36 @@ public final class BlockChoiceList extends UIElement {
         return button;
     }
 
-    private static GTScrollerViewElement scroller() {
-        var scroller = new GTScrollerViewElement();
-        scroller.scrollerStyle(style -> style.mode(ScrollerMode.VERTICAL)
-                .verticalScrollDisplay(ScrollDisplay.AUTO).horizontalScrollDisplay(ScrollDisplay.NEVER)
-                .scrollerViewStyle(0));
-        scroller.viewPort(port -> {
-            port.getLayout().paddingAll(0);
-            port.getStyle().backgroundTexture(GuiTextures.BACKGROUND_INVERSE);
-            port.setOverflowVisible(false);
-        });
-        scroller.verticalScroller(scroll -> {
-            scroll.getLayout().width(2);
-            scroll.getStyle().backgroundTexture(IGuiTexture.EMPTY);
-            scroll.headButton.setDisplay(false);
-            scroll.tailButton.setDisplay(false);
-            var bar = new ColorRectTexture(0xffffffff).setRadius(1);
-            scroll.scrollBar.buttonStyle(style -> style.baseTexture(bar).hoverTexture(bar).pressedTexture(bar));
-        });
-        return scroller;
-    }
-
-    /** Uses the screen's overlay/input events so candidates also work outside a recipe viewer. */
+    /** Both levels share a screen-sized input surface; only their visible columns receive input. */
     @OnlyIn(Dist.CLIENT)
     @EventBusSubscriber(modid = GTCEu.MOD_ID, value = Dist.CLIENT)
-    public static final class Candidates {
+    public static final class Panels {
 
-        private static @Nullable Candidates opened;
+        private static @Nullable Panels opened;
         private final BlockChoiceList owner;
-        private final String group;
         private final Screen screen = Minecraft.getInstance().screen;
-        private final GTScrollerViewElement root = new GTScrollerViewElement();
-        private final ModularUI ui = ModularUI.of(UI.of(root));
-        private final Object2ObjectMap<ResourceLocation, GTButtonElement> buttons = new Object2ObjectLinkedOpenHashMap<>();
-        private ResourceLocation current;
+        private final UIElement root = new UIElement();
+        private final ModularUI ui = ModularUI.of(UI.of(root, size -> size));
+        private final Object2ObjectMap<String, GTButtonElement> groups = new Object2ObjectLinkedOpenHashMap<>();
+        private final Object2ObjectMap<ResourceLocation, GTButtonElement> candidates = new Object2ObjectLinkedOpenHashMap<>();
+        private @Nullable ResourceLocation current;
+        private int x;
+        private int y;
+        private int rows;
+        private boolean dirty = true;
         private boolean captured;
         private boolean ownerRendered;
 
-        private Candidates(BlockChoiceList owner, String group) {
+        private Panels(BlockChoiceList owner) {
             this.owner = owner;
-            this.group = group;
-            current = owner.selected.getOrDefault(group, owner.choices.get(group).getFirst());
-            root.scrollerStyle(style -> style.mode(ScrollerMode.HORIZONTAL)
-                    .verticalScrollDisplay(ScrollDisplay.NEVER).horizontalScrollDisplay(ScrollDisplay.AUTO)
-                    .scrollerViewStyle(0));
-            root.viewPort(port -> {
-                port.getLayout().paddingAll(0);
-                port.setOverflowVisible(false);
-            });
-            root.horizontalScroller(scroll -> {
-                scroll.getLayout().height(2);
-                scroll.getStyle().backgroundTexture(IGuiTexture.EMPTY);
-                scroll.headButton.setDisplay(false);
-                scroll.tailButton.setDisplay(false);
-                var bar = new ColorRectTexture(0xffffffff).setRadius(1);
-                scroll.scrollBar.buttonStyle(style -> style.baseTexture(bar).hoverTexture(bar).pressedTexture(bar));
-            });
+            root.getLayout().positionType(TaffyPosition.ABSOLUTE);
+            root.setAllowHitTest(false);
+            ui.setScreenAndInit(screen);
         }
 
-        private static void open(BlockChoiceList owner, String group) {
+        private static Panels open(BlockChoiceList owner) {
             if (opened != null) opened.owner.close();
-            opened = new Candidates(owner, group);
-            opened.rebuild();
+            return opened = new Panels(owner);
         }
 
         private static void close(BlockChoiceList owner) {
@@ -228,48 +156,90 @@ public final class BlockChoiceList extends UIElement {
             }
         }
 
-        private void rebuild() {
-            root.clearAllScrollViewChildren();
-            buttons.clear();
-            var values = owner.choices.get(group);
-            current = owner.selected.getOrDefault(group, values.getFirst());
-            var anchor = owner.getWorldMouse(owner.getContentX() + COLUMN_WIDTH + 4, owner.getContentY());
+        private void updatePosition() {
+            var anchor = owner.getWorldMouse(owner.getContentX() + 8, owner.getContentY());
             var parent = owner.getParent();
             var bottom = parent.getWorldMouse(parent.getContentX(),
                     parent.getContentY() + parent.getContentHeight() - 4);
-            int rows = Math.max(1, ((int) (bottom.y - anchor.y) - 10) / 18);
-            int columns = (values.size() + rows - 1) / rows;
-            int contentWidth = columns * (COLUMN_WIDTH + 4) - 4;
-            int height = rows * 18 + 10;
-            int x = Math.min(Math.round(anchor.x), screen.width - COLUMN_WIDTH - 4);
-            UITemplate.setBounds(root, x, Math.round(anchor.y), Math.min(contentWidth, screen.width - x - 4), height);
-            root.getLayout().positionType(TaffyPosition.ABSOLUTE);
-            for (int column = 0; column < columns; column++) {
-                var panel = UITemplate.setBounds(new UIElement(), column * (COLUMN_WIDTH + 4), 0, COLUMN_WIDTH,
-                        height - 2);
-                panel.getStyle().backgroundTexture(GuiTextures.BACKGROUND_INVERSE);
-                root.addScrollViewChild(panel);
-                for (int row = 0; row < rows && column * rows + row < values.size(); row++) {
-                    ResourceLocation id = values.get(column * rows + row);
-                    var choose = button(row * 18 + 4, "");
-                    choose.getStyle().tooltips(BuiltInRegistries.BLOCK.get(id).getName());
-                    choose.setOnClick(event -> {
-                        if (!id.equals(current)) owner.select.accept(group, id);
-                        current = id;
-                        refreshSelection();
-                        event.stopPropagation();
-                    });
-                    panel.addChildren(icon(id, row * 18 + 4), choose);
-                    buttons.put(id, choose);
-                }
+            int x = Math.round(anchor.x);
+            int y = Math.round(anchor.y);
+            int rows = Math.max(1, (Math.round(bottom.y) - y - 8) / 18);
+            if (this.x != x || this.y != y || this.rows != rows) {
+                this.x = x;
+                this.y = y;
+                this.rows = rows;
+                dirty = true;
             }
-            root.viewContainer.getLayout().width(contentWidth).height(height - 2);
-            refreshSelection();
-            ui.setScreenAndInit(screen);
+            if (ui.getScreenWidth() != screen.width || ui.getScreenHeight() != screen.height) {
+                ui.init(screen.width, screen.height);
+                dirty = true;
+            }
         }
 
-        private void refreshSelection() {
-            for (var entry : buttons.object2ObjectEntrySet()) {
+        private void rebuild() {
+            dirty = false;
+            root.clearAllChildren();
+            groups.clear();
+            candidates.clear();
+            var expanded = owner.expandedGroup;
+            var values = expanded == null ? ObjectList.<ResourceLocation>of() : owner.choices.get(expanded);
+            current = values.isEmpty() ? null : owner.selected.getOrDefault(expanded, values.getFirst());
+            int groupColumns = Math.ceilDiv(owner.choices.size(), rows);
+            int columns = groupColumns + Math.ceilDiv(values.size(), rows);
+            int left = Math.max(4, Math.min(x, screen.width - columns * (COLUMN_WIDTH + 4)));
+            int index = 0;
+            UIElement panel = root;
+            for (var entry : owner.choices.object2ObjectEntrySet()) {
+                if (index % rows == 0) panel = column(left, index / rows, owner.choices.size() - index);
+                String group = entry.getKey();
+                int top = index % rows * 18 + 4;
+                var expand = button(top);
+                expand.getStyle().tooltips(Component.translatable("gtpm.multiblock.category." + group));
+                expand.setOnClick(event -> {
+                    owner.expandedGroup = group.equals(owner.expandedGroup) ? null : group;
+                    dirty = true;
+                    event.stopPropagation();
+                });
+                panel.addChildren(icon(entry.getValue().getFirst(), top), expand);
+                groups.put(group, expand);
+                index++;
+            }
+            for (int i = 0; i < values.size(); i++) {
+                if (i % rows == 0) panel = column(left, groupColumns + i / rows, values.size() - i);
+                ResourceLocation id = values.get(i);
+                int top = i % rows * 18 + 4;
+                var choose = button(top);
+                choose.getStyle().tooltips(BuiltInRegistries.BLOCK.get(id).getName());
+                choose.setOnClick(event -> {
+                    if (!id.equals(current)) owner.select.accept(expanded, id);
+                    current = id;
+                    refreshButtons();
+                    event.stopPropagation();
+                });
+                panel.addChildren(icon(id, top), choose);
+                candidates.put(id, choose);
+            }
+            refreshButtons();
+        }
+
+        private UIElement column(int left, int index, int remaining) {
+            var panel = UITemplate.setBounds(new UIElement(), left + index * (COLUMN_WIDTH + 4), y,
+                    COLUMN_WIDTH, Math.min(rows, remaining) * 18 + 8);
+            panel.getStyle().backgroundTexture(GuiTextures.BACKGROUND_INVERSE);
+            root.addChild(panel);
+            return panel;
+        }
+
+        private void refreshButtons() {
+            for (var entry : groups.object2ObjectEntrySet()) {
+                String group = entry.getKey();
+                var button = entry.getValue();
+                var first = owner.choices.get(group).getFirst();
+                button.setText(Component.literal(group.equals(owner.expandedGroup) ? "◀" : "▶"));
+                button.textStyle(style -> style.textColor(!first.equals(owner.selected.getOrDefault(group, first)) ?
+                        0xff169fb5 : 0xff404040));
+            }
+            for (var entry : candidates.object2ObjectEntrySet()) {
                 boolean selected = entry.getKey().equals(current);
                 var button = entry.getValue();
                 button.setText(Component.literal(selected ? "✔" : "✘"));
@@ -290,8 +260,12 @@ public final class BlockChoiceList extends UIElement {
                 opened.owner.close();
                 return;
             }
-            opened.ui.getWidget().render(event.getGuiGraphics(), event.getMouseX(), event.getMouseY(),
-                    event.getPartialTick());
+            if (opened.dirty) opened.rebuild();
+            var graphics = event.getGuiGraphics();
+            graphics.pose().pushPose();
+            graphics.pose().translate(0, 0, 400);
+            opened.ui.getWidget().render(graphics, event.getMouseX(), event.getMouseY(), event.getPartialTick());
+            graphics.pose().popPose();
         }
 
         @SubscribeEvent
@@ -303,10 +277,10 @@ public final class BlockChoiceList extends UIElement {
                 panel.ui.getWidget().mouseClicked(event.getMouseX(), event.getMouseY(), event.getButton());
                 panel.captured = true;
                 event.setCanceled(true);
-            } else if (!panel.owner.isAncestorOf(
-                    panel.owner.getModularUI().hitTestAtScreen((float) event.getMouseX(), (float) event.getMouseY()))) {
-                        panel.owner.close();
-                    }
+            } else if (panel.owner.expandedGroup != null) {
+                panel.owner.expandedGroup = null;
+                panel.dirty = true;
+            }
         }
 
         @SubscribeEvent
@@ -318,28 +292,11 @@ public final class BlockChoiceList extends UIElement {
         }
 
         @SubscribeEvent
-        public static void mouseDragged(ScreenEvent.MouseDragged.Pre event) {
-            if (opened != null && opened.captured && opened.screen == event.getScreen()) {
-                opened.ui.getWidget().mouseDragged(event.getMouseX(), event.getMouseY(), event.getMouseButton(),
-                        event.getDragX(), event.getDragY());
-                event.setCanceled(true);
-            }
-        }
-
-        @SubscribeEvent
-        public static void mouseScrolled(ScreenEvent.MouseScrolled.Pre event) {
-            if (opened != null && opened.screen == event.getScreen() &&
-                    opened.ui.hitTestAtScreen((float) event.getMouseX(), (float) event.getMouseY()) != null) {
-                opened.ui.getWidget().mouseScrolled(event.getMouseX(), event.getMouseY(), event.getScrollDeltaX(),
-                        event.getScrollDeltaY());
-                event.setCanceled(true);
-            }
-        }
-
-        @SubscribeEvent
         public static void keyPressed(ScreenEvent.KeyPressed.Pre event) {
-            if (opened != null && opened.screen == event.getScreen() && event.getKeyCode() == GLFW.GLFW_KEY_ESCAPE) {
-                opened.owner.close();
+            if (opened != null && opened.screen == event.getScreen() &&
+                    opened.owner.expandedGroup != null && event.getKeyCode() == GLFW.GLFW_KEY_ESCAPE) {
+                opened.owner.expandedGroup = null;
+                opened.dirty = true;
                 event.setCanceled(true);
             }
         }

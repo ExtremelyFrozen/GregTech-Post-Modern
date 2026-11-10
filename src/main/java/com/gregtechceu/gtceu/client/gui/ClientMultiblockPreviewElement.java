@@ -9,7 +9,6 @@ import com.gregtechceu.gtceu.api.gui.element.GTButtonElement;
 import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTSceneElement;
-import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.multiblock.MultiblockBlockInfo;
 import com.gregtechceu.gtceu.api.multiblock.MultiblockPreviewLevel;
@@ -22,8 +21,6 @@ import com.gregtechceu.gtceu.integration.xei.GTXEIHelper;
 import com.lowdragmc.lowdraglib2.client.scene.ISceneBlockRenderHook;
 import com.lowdragmc.lowdraglib2.client.scene.WorldSceneRenderer;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
-import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
-import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollerMode;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.gui.ui.event.HoverTooltips;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
@@ -85,7 +82,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
     private Level sourceLevel;
     private final GTSceneElement scene;
     private final UIElement materialViewport;
-    private final GTScrollerViewElement predicateViewport = new GTScrollerViewElement();
+    private final UIElement predicateViewport = new UIElement();
     private final Object2ObjectMap<GTItemSlotElement, List<ItemStack>> predicateItems = new Object2ObjectLinkedOpenHashMap<>();
     private @Nullable Consumer<ItemStack> updateJEIMaterial;
     private @Nullable Consumer<ItemStack> updateJEIPredicate;
@@ -174,7 +171,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         }
         addChildren(materialViewport, previousMaterials, nextMaterials);
 
-        focusButton = navigationButton(width - 20, 2, "gtpm.multiblock.preview.tooltip.focus");
+        focusButton = navigationButton(width - 22, 4, "gtpm.multiblock.preview.tooltip.focus");
         focusButton.setOnClick(event -> {
             state.focusNext();
             rebuildRenderedCore(false);
@@ -183,7 +180,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         });
         addChild(focusButton);
 
-        layerButton = navigationButton(width - 20, 22, "gtpm.multiblock.preview.tooltip.layer");
+        layerButton = navigationButton(width - 22, 24, "gtpm.multiblock.preview.tooltip.layer");
         layerButton.setOnClick(event -> {
             state.layerNext();
             rebuildRenderedCore(false);
@@ -192,7 +189,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         });
         addChild(layerButton);
 
-        hatchButton = navigationButton(width - 20, 42, "gtpm.multiblock.preview.tooltip.hatches");
+        hatchButton = navigationButton(width - 22, 44, "gtpm.multiblock.preview.tooltip.hatches");
         hatchButton.setText(Component.translatable("gtpm.multiblock.preview.button.hatches"));
         hatchButton.setOnClick(event -> {
             state.setHighlightHatches(!state.isHighlightHatches());
@@ -210,15 +207,9 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         addChild(diagnosticLabel);
 
         predicateViewport.layout(layout -> layout.positionType(TaffyPosition.ABSOLUTE)
-                .left(4).top(4).width(24).height(sceneHeight - 8));
-        predicateViewport.scrollerStyle(style -> style.mode(ScrollerMode.VERTICAL)
-                .verticalScrollDisplay(ScrollDisplay.AUTO).horizontalScrollDisplay(ScrollDisplay.NEVER)
-                .scrollerViewStyle(0));
-        predicateViewport.viewPort(port -> {
-            port.getLayout().paddingAll(0);
-            port.setOverflowVisible(false);
-        });
-        predicateViewport.verticalScroller(scroll -> scroll.getLayout().width(2));
+                .left(4).top(4).width(18).height(sceneHeight - 8));
+        predicateViewport.setOverflowVisible(false);
+        predicateViewport.setAllowHitTest(false);
         predicateViewport.setDisplay(false);
         addChild(predicateViewport);
 
@@ -234,11 +225,11 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         materialViewport.getLayout().top(height - MATERIAL_BAR_HEIGHT + 3).width(materialViewportWidth);
         previousMaterials.getLayout().top(height - MATERIAL_BAR_HEIGHT + 3);
         nextMaterials.getLayout().left(width - 16).top(height - MATERIAL_BAR_HEIGHT + 3);
-        focusButton.getLayout().left(width - 20);
-        layerButton.getLayout().left(width - 20);
-        hatchButton.getLayout().left(width - 20);
+        focusButton.getLayout().left(width - 22);
+        layerButton.getLayout().left(width - 22);
+        hatchButton.getLayout().left(width - 22);
         diagnosticLabel.getLayout().top((float) sceneHeight / 2 - 10).width(width - 16);
-        predicateViewport.getLayout().height(sceneHeight - 8);
+        layoutCandidates(sceneHeight - 8);
         rebuildRenderedCore(true);
         rebuildMaterials();
     }
@@ -347,7 +338,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
 
     public void clearCandidates() {
         if (updateJEIPredicate != null) updateJEIPredicate.accept(ItemStack.EMPTY);
-        predicateViewport.clearAllScrollViewChildren();
+        predicateViewport.clearAllChildren();
         predicateItems.clear();
         predicateViewport.setDisplay(false);
     }
@@ -355,15 +346,24 @@ public final class ClientMultiblockPreviewElement extends UIElement {
     public void addCandidates(List<ItemStack> items, List<Component> tooltips) {
         if (items.isEmpty()) return;
         var slot = new GTItemSlotElement();
-        slot.layout(layout -> layout.positionType(TaffyPosition.ABSOLUTE)
-                .left(0).top(predicateItems.size() * 18).width(18).height(18));
+        slot.layout(layout -> layout.positionType(TaffyPosition.ABSOLUTE).width(18).height(18));
         slot.setCanPutItems(false).setCanTakeItems(false).setBackgroundTexture(GuiTextures.SLOT);
         slot.setOnAddedTooltips((element, tips) -> tips.addAll(tooltips));
         slot.setItem(items.getFirst(), false);
         predicateItems.put(slot, items);
-        predicateViewport.addScrollViewChild(slot);
-        predicateViewport.viewContainer.getLayout().width(18).height(predicateItems.size() * 18);
+        predicateViewport.addChild(slot);
+        layoutCandidates((int) getSizeHeight() - MATERIAL_BAR_HEIGHT - 8);
         predicateViewport.setDisplay(true);
+    }
+
+    private void layoutCandidates(int height) {
+        int rows = Math.max(1, height / 18);
+        int index = 0;
+        for (var slot : predicateItems.keySet()) {
+            slot.getLayout().left(index / rows * 18).top(index % rows * 18);
+            index++;
+        }
+        predicateViewport.getLayout().width(Math.ceilDiv(index, rows) * 18).height(Math.min(index, rows) * 18);
     }
 
     private void rebuildMaterials() {
