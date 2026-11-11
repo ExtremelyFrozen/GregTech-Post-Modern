@@ -122,7 +122,6 @@ public final class ClientMultiblockPreviewElement extends UIElement {
             layout.height(height);
         });
         setOverflowVisible(false);
-        @Nullable
         Level clientLevel = Minecraft.getInstance().level;
         if (clientLevel == null) {
             throw new IllegalStateException("Cannot create a multiblock preview before the client level is loaded");
@@ -471,10 +470,8 @@ public final class ClientMultiblockPreviewElement extends UIElement {
     }
 
     private void addCellTooltips(UIEvent event) {
-        @Nullable
         BlockPosFace hovered = scene.getLastHoverPosFace();
         if (hovered == null) return;
-        @Nullable
         Cell cell = sceneCells.get(hovered.pos());
         if (cell == null) return;
         ObjectList<Component> tooltips = new ObjectArrayList<>();
@@ -489,7 +486,6 @@ public final class ClientMultiblockPreviewElement extends UIElement {
                     Component.translatable("gtpm.multiblock.preview.cell.action." +
                             contribution.action().name().toLowerCase(Locale.ROOT)),
                     key.unitIndex(), key.repetition(), key.innerSlice(), key.row(), key.column()));
-            @Nullable
             Direction requiredDirection = contribution.requiredDirection();
             if (requiredDirection != null) {
                 tooltips.add(Component.translatable("gtpm.multiblock.preview.cell.direction",
@@ -509,7 +505,6 @@ public final class ClientMultiblockPreviewElement extends UIElement {
     }
 
     private void selectCell(BlockPos scenePos) {
-        @Nullable
         Cell cell = sceneCells.get(scenePos);
         if (cell == null || cell.contributions().isEmpty()) return;
         state.setFocusedStructure(cell.representative().structureName());
