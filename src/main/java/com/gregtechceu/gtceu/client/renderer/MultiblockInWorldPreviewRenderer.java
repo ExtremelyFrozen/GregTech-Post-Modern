@@ -23,7 +23,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.*;
 import net.minecraft.client.renderer.block.BlockRenderDispatcher;
 import net.minecraft.client.renderer.block.ModelBlockRenderer;
-import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.RandomSource;
@@ -54,7 +53,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static net.minecraft.world.level.block.RenderShape.INVISIBLE;
+import static net.minecraft.world.level.block.RenderShape.MODEL;
 
 @OnlyIn(Dist.CLIENT)
 @NullMarked
@@ -70,8 +69,7 @@ public final class MultiblockInWorldPreviewRenderer {
 
     private static final Object BUFFER_LOCK = new Object();
     private static final int MAX_PATTERN_PUBLICATION_ATTEMPTS = 8;
-    @Nullable
-    private static volatile VertexBuffer[] buffers;
+    private static volatile VertexBuffer @Nullable [] buffers;
     @Nullable
     private static MultiblockPreviewLevel LEVEL = null;
     @Nullable
@@ -108,7 +106,6 @@ public final class MultiblockInWorldPreviewRenderer {
 
     public static void cleanPreview() {
         PREVIEW_GENERATION.incrementAndGet();
-        @Nullable
         Thread compiling = THREAD;
         if (compiling != null) {
             compiling.interrupt();
@@ -195,7 +192,6 @@ public final class MultiblockInWorldPreviewRenderer {
     public static void showPreview(BlockPos pos, MultiblockControllerMachine controller,
                                    int duration) {
         if (!controller.getDefinition().isRenderWorldPreview()) return;
-        @Nullable
         BlockPos previousPos = LAST_POS;
         int previousLayer = LAST_LAYER;
         for (int publicationAttempt = 0; publicationAttempt < MAX_PATTERN_PUBLICATION_ATTEMPTS; publicationAttempt++) {
@@ -252,7 +248,6 @@ public final class MultiblockInWorldPreviewRenderer {
     private static long beginPreview(Level source, MultiblockPreviewLevel level, BlockPos pos,
                                      Set<BlockPos> positions, int layer) {
         long generation = PREVIEW_GENERATION.incrementAndGet();
-        @Nullable
         Thread compiling = THREAD;
         if (compiling != null) {
             compiling.interrupt();
@@ -286,7 +281,6 @@ public final class MultiblockInWorldPreviewRenderer {
                 continue;
             }
             PlannedCell representative = renderRepresentative(merged);
-            @Nullable
             BlockPos worldPos = representative.worldPos();
             if (representative.action() == CellAction.CONTROLLER || worldPos == null ||
                     representative.blockState().isAir() && !merged.conflict()) {
@@ -350,7 +344,6 @@ public final class MultiblockInWorldPreviewRenderer {
     }
 
     public static void renderInWorldPreview(PoseStack poseStack, Camera camera, float partialTicks) {
-        @Nullable
         MultiblockPreviewLevel level = LEVEL;
         if (CACHE_STATE.get() == CacheState.COMPILED && level != null) {
             poseStack.pushPose();
@@ -364,18 +357,15 @@ public final class MultiblockInWorldPreviewRenderer {
                 var layer = RenderType.chunkBufferLayers().get(i);
 
                 // render TESR before translucent
-                @Nullable
                 Set<BlockPos> blockEntities = BLOCK_ENTITIES;
                 if (layer == RenderType.translucent() && blockEntities != null) { // render tesr before translucent
                     var buffers = Minecraft.getInstance().renderBuffers().bufferSource();
                     for (BlockPos pos : blockEntities) {
-                        @Nullable
                         BlockEntity tile = level.getBlockEntity(pos);
                         if (tile != null) {
                             poseStack.pushPose();
                             poseStack.translate(pos.getX(), pos.getY(), pos.getZ());
-                            @Nullable
-                            BlockEntityRenderer<BlockEntity> ber = Minecraft.getInstance()
+                            var ber = Minecraft.getInstance()
                                     .getBlockEntityRenderDispatcher().getRenderer(tile);
                             if (ber != null) {
                                 if (tile.hasLevel() && tile.getType().isValid(tile.getBlockState())) {
@@ -509,7 +499,6 @@ public final class MultiblockInWorldPreviewRenderer {
                 Set<BlockPos> poses = new HashSet<>();
                 for (BlockPos blockPos : renderedBlocks) {
                     if (stale(generation)) return;
-                    @Nullable
                     BlockEntity tile = level.getBlockEntity(blockPos);
                     if (tile != null && Minecraft.getInstance().getBlockEntityRenderDispatcher()
                             .getRenderer(tile) != null) {
@@ -546,19 +535,19 @@ public final class MultiblockInWorldPreviewRenderer {
     }
 
     private static VertexBuffer[] getBuffers() {
-        @Nullable
         VertexBuffer[] current = buffers;
         if (current != null) return current;
         synchronized (BUFFER_LOCK) {
-            if (buffers == null) {
-                buffers = initBuffers();
+            current = buffers;
+            if (current == null) {
+                current = initBuffers();
+                buffers = current;
             }
-            return buffers;
+            return current;
         }
     }
 
     private static void closeBuffers() {
-        @Nullable
         VertexBuffer[] old;
         synchronized (BUFFER_LOCK) {
             old = buffers;
@@ -571,9 +560,7 @@ public final class MultiblockInWorldPreviewRenderer {
     }
 
     private static void releasePreviewLevel() {
-        @Nullable
         MultiblockPreviewLevel oldLevel = LEVEL;
-        @Nullable
         Set<BlockPos> oldPositions = LOADED_POSITIONS;
         if (oldLevel == null || oldPositions == null) return;
         releasePreviewLevel(oldLevel, oldPositions);
@@ -581,7 +568,6 @@ public final class MultiblockInWorldPreviewRenderer {
 
     private static void releasePreviewLevel(MultiblockPreviewLevel level, Collection<BlockPos> positions) {
         for (BlockPos blockPos : positions) {
-            @Nullable
             BlockEntity blockEntity = level.getBlockEntity(blockPos);
             if (blockEntity != null && !blockEntity.isRemoved()) {
                 blockEntity.setRemoved();
@@ -600,7 +586,7 @@ public final class MultiblockInWorldPreviewRenderer {
             if (block == Blocks.AIR) continue;
 
             // render blocks
-            if (state.getRenderShape() != INVISIBLE && ItemBlockRenderTypes.getRenderLayers(state).contains(layer)) {
+            if (state.getRenderShape() == MODEL) {
                 poseStack.pushPose();
                 poseStack.translate(pos.getX(), pos.getY(), pos.getZ());
 
@@ -630,11 +616,14 @@ public final class MultiblockInWorldPreviewRenderer {
                                          MultiblockPreviewLevel level, PoseStack poseStack,
                                          VertexConsumer vertexConsumer,
                                          RandomSource random, RenderType layer) {
-        @Nullable
         BlockEntity blockEntity = level.getBlockEntity(pos);
         var model = dispatcher.getBlockModel(state);
         ModelData baseData = blockEntity == null ? ModelData.EMPTY : blockEntity.getModelData();
         ModelData modelData = model.getModelData(level, pos, state, baseData);
-        dispatcher.renderBatched(state, pos, level, poseStack, vertexConsumer, false, random, modelData, layer);
+        long seed = state.getSeed(pos);
+        random.setSeed(seed);
+        if (!model.getRenderTypes(state, random, modelData).contains(layer)) return;
+        dispatcher.getModelRenderer().tesselateBlock(level, model, state, pos, poseStack, vertexConsumer,
+                false, random, seed, OverlayTexture.NO_OVERLAY, modelData, layer);
     }
 }
