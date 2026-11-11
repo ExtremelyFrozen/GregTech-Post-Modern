@@ -77,7 +77,6 @@ public final class ClientMultiblockPreviewElement extends UIElement {
 
     private static final BlockPos SCENE_ORIGIN = new BlockPos(0, 64, 0);
     private static final int MATERIAL_BAR_HEIGHT = 24;
-    private static final boolean FTB_LIBRARY_LOADED = GTCEu.isModLoaded("ftblibrary");
 
     private PreviewVisibility state;
     private MultiblockPreviewLevel previewLevel;
@@ -239,7 +238,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
     }
 
     public void setFullscreen(boolean fullscreen) {
-        if (this.fullscreen && !fullscreen && FTB_LIBRARY_LOADED) FTBSupport.setSidebarVisible(true);
+        if (this.fullscreen && !fullscreen && GTCEu.MODS.FTB_LIBRARY.isLoaded()) FTBSupport.setSidebarVisible(true);
         this.fullscreen = fullscreen;
         getStyle().backgroundTexture(fullscreen ? IGuiTexture.EMPTY : GuiTextures.BACKGROUND_INVERSE);
     }
@@ -377,7 +376,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         int rows = Math.max(1, (previewHeight - MATERIAL_BAR_HEIGHT - (fullscreen ? 38 : 8)) / 18);
         int index = 0;
         for (var slot : predicateItems.keySet()) {
-            slot.getLayout().left(index / rows * 18).top(index % rows * 18);
+            slot.getLayout().left((float) index / rows * 18).top(index % rows * 18);
             index++;
         }
         predicateViewport.getLayout().left(fullscreen ? 8 : 4).top(fullscreen ? 34 : 4)
@@ -520,7 +519,6 @@ public final class ClientMultiblockPreviewElement extends UIElement {
     }
 
     private void updateNavigationText() {
-        @Nullable
         String focus = state.getFocusedStructure();
         focusButton.setText(focus == null ?
                 Component.translatable("gtpm.multiblock.preview.button.structure_all") :
@@ -528,7 +526,6 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         focusButton.getStyle().tooltips(focus == null ?
                 Component.translatable("gtpm.multiblock.preview.tooltip.focus") :
                 structureName(focus));
-        @Nullable
         Integer layer = state.getVisibleLayer();
         layerButton.setText(layer == null ?
                 Component.translatable("gtpm.multiblock.preview.button.layer_all") :
@@ -560,7 +557,6 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         // Hidden cells still own block entities that must be initialized and released with the whole preview.
         previewLevel.setBlockFilter(null);
         for (BlockPos pos : loadedPositions) {
-            @Nullable
             BlockEntity blockEntity = previewLevel.getBlockEntity(pos);
             if (blockEntity != null && !blockEntity.isRemoved()) blockEntity.setRemoved();
             previewLevel.removeBlock(pos, false);
@@ -578,7 +574,6 @@ public final class ClientMultiblockPreviewElement extends UIElement {
             var items = entry.getValue();
             entry.getKey().setItem(items.get((int) (cycle % items.size())), false);
         }
-        @Nullable
         Level currentLevel = Minecraft.getInstance().level;
         if (currentLevel != sourceLevel) {
             rebuildForLevel(currentLevel);
@@ -590,7 +585,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
 
     @Override
     public void drawBackgroundAdditional(GUIContext context) {
-        if (fullscreen && FTB_LIBRARY_LOADED) FTBSupport.setSidebarVisible(false);
+        if (fullscreen && GTCEu.MODS.FTB_LIBRARY.isLoaded()) FTBSupport.setSidebarVisible(false);
         if (updateJEIMaterial != null) updateJEIMaterial.accept(getHoveredItem(materialViewport));
         if (updateJEIPredicate != null) updateJEIPredicate.accept(getHoveredItem(predicateViewport));
         super.drawBackgroundAdditional(context);
@@ -615,7 +610,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
 
     @Override
     protected void onRemoved() {
-        if (fullscreen && FTB_LIBRARY_LOADED) FTBSupport.setSidebarVisible(true);
+        if (fullscreen && GTCEu.MODS.FTB_LIBRARY.isLoaded()) FTBSupport.setSidebarVisible(true);
         removed = true;
         releaseLoadedBlocks();
         sourceLevel = null;
@@ -694,7 +689,6 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         public void applyVertexConsumerWrapper(Level world, BlockPos pos, BlockState state,
                                                WorldSceneRenderer.VertexConsumerWrapper wrapper,
                                                RenderType layer, float partialTicks) {
-            @Nullable
             Cell cell = sceneCells.get(pos);
             if (cell == null) return;
             float red;

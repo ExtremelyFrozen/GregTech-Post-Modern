@@ -175,17 +175,28 @@ public class GTCEu {
 
         EMI(GTValues.MODID_EMI),
         JEI(GTValues.MODID_JEI),
-        IRIS(GTValues.MODID_IRIS),
+
         SODIUM(GTValues.MODID_SODIUM),
+        IRIS(GTValues.MODID_IRIS),
+
         AE2(GTValues.MODID_APPENG),
+
         CURIOS(GTValues.MODID_CURIOS),
+
         MODERNFIX(GTValues.MODID_MODERNFIX),
+
+        FTB_LIBRARY(GTValues.MODID_FTB_LIBRARY),
         FTB_TEAMS(GTValues.MODID_FTB_TEAMS),
-        HERACLES(GTValues.MODID_HERACLES),
         FTB_QUESTS(GTValues.MODID_FTB_QUEST),
+
+        HERACLES(GTValues.MODID_HERACLES),
+
         ARGONAUTS(GTValues.MODID_ARGONAUTS),
+
         GAMESTAGES(GTValues.MODID_GAMESTAGES),
+
         CCTWEAKED(GTValues.MODID_CCTWEAKED),
+
         CREATE(GTValues.MODID_CREATE);
 
         @Getter
