@@ -5,6 +5,7 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
 import it.unimi.dsi.fastutil.objects.ObjectList;
 import lombok.Getter;
+import lombok.Setter;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -29,18 +30,13 @@ public final class PreviewVisibility {
     private int visibleLayer;
     @Getter
     private boolean allLayers = true;
+    @Setter
     @Getter
     private boolean highlightHatches;
 
     public PreviewVisibility(StructurePreview preview) {
         this.preview = preview;
         updateLayers();
-    }
-
-    /** Only changes the window overlay; structure selection and material allocation remain untouched. */
-    public void setHighlightHatches(boolean highlightHatches) {
-        this.highlightHatches = highlightHatches;
-        viewRevision++;
     }
 
     /**

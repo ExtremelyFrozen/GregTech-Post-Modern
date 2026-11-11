@@ -8,7 +8,6 @@ import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.element.GTButtonElement;
 import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
-import com.gregtechceu.gtceu.api.gui.element.GTSceneElement;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.multiblock.MultiblockBlockInfo;
@@ -42,7 +41,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.phys.AABB;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 
@@ -51,6 +49,10 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import dev.emi.emi.api.stack.EmiStack;
 import dev.ftb.mods.ftblibrary.sidebar.SidebarGroupGuiButton;
 import dev.vfyjxf.taffy.style.TaffyPosition;
+import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.longs.LongArrayList;
+import it.unimi.dsi.fastutil.longs.LongList;
 import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
@@ -75,14 +77,13 @@ import java.util.stream.Stream;
 @NullMarked
 public final class ClientMultiblockPreviewElement extends UIElement {
 
-    private static final BlockPos SCENE_ORIGIN = new BlockPos(0, 64, 0);
     private static final int MATERIAL_BAR_HEIGHT = 24;
 
     private PreviewVisibility state;
     private MultiblockPreviewLevel previewLevel;
     @Nullable
     private Level sourceLevel;
-    private final GTSceneElement scene;
+    private final PreviewScene scene;
     private final UIElement materialViewport;
     private final UIElement predicateViewport = new UIElement();
     private final Object2ObjectMap<GTItemSlotElement, List<ItemStack>> predicateItems = new Object2ObjectLinkedOpenHashMap<>();
@@ -101,14 +102,17 @@ public final class ClientMultiblockPreviewElement extends UIElement {
     private @Nullable Consumer<Cell> onSelected;
     private int materialViewportWidth;
     private float sceneAspect;
-    private final Object2ObjectMap<BlockPos, StructurePreview.Cell> sceneCells = new Object2ObjectLinkedOpenHashMap<>();
-    private final ObjectList<BlockPos> loadedPositions = new ObjectArrayList<>();
-    private final ObjectList<BlockPos> hatchPositions = new ObjectArrayList<>();
+    private final Long2ObjectMap<StructurePreview.Cell> sceneCells = new Long2ObjectOpenHashMap<>();
+    private final LongList loadedPositions = new LongArrayList();
+    private final LongList hatchPositions = new LongArrayList();
+    private LongList renderedPositions = LongList.of();
+    private final PreviewCellRenderHook renderHook = new PreviewCellRenderHook();
     private int materialPage;
     private long renderedViewRevision;
     private @Nullable BlockState cameraControllerState;
     private boolean removed;
     private boolean fullscreen;
+    private long iconCycle = -1;
 
     public ClientMultiblockPreviewElement(int width, int height, PreviewVisibility state,
                                           boolean showAvailability) {
@@ -131,7 +135,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
 
         int sceneHeight = height - MATERIAL_BAR_HEIGHT;
         sceneAspect = (float) width / sceneHeight;
-        scene = new GTSceneElement(0, 0, width, sceneHeight);
+        scene = new PreviewScene(0, 0, width, sceneHeight);
         scene.setAllowXEILookup(false);
         scene.setRenderFacing(false);
         scene.setRenderSelect(false);
@@ -232,8 +236,8 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         hatchButton.getLayout().left(width - (fullscreen ? 68 : 22)).top(fullscreen ? 8 : 44);
         diagnosticLabel.getLayout().top(height - MATERIAL_BAR_HEIGHT - 14).width(width - 16);
         layoutCandidates(height);
-        rebuildRenderedCore(true);
-        rebuildMaterials();
+        fitCamera();
+        updateMaterialPage();
     }
 
     public void setFullscreen(boolean fullscreen) {
@@ -261,8 +265,8 @@ public final class ClientMultiblockPreviewElement extends UIElement {
             releaseLoadedBlocks();
             if (sourceLevel == null) {
                 sceneCells.clear();
-                scene.createScene(previewLevel);
-                scene.setRenderedCore(ObjectList.of(), new PreviewCellRenderHook(), resetCamera);
+                scene.setLevel(previewLevel);
+                scene.setBlocks(LongList.of(), renderHook, resetCamera);
                 rebuildMaterials();
                 updateNavigationText();
                 updateDiagnosticText();
@@ -270,20 +274,22 @@ public final class ClientMultiblockPreviewElement extends UIElement {
             }
             sceneCells.clear();
             BlockState controllerState = null;
+            var scenePos = new BlockPos.MutableBlockPos();
             for (StructurePreview.Cell cell : state.getPreview().cells()) {
                 if (cell.renderState().isAir()) continue;
-                BlockPos scenePos = SCENE_ORIGIN.offset(cell.relativePos());
+                long packedPos = BlockPos.offset(cell.relativePos().asLong(), 0, 64, 0);
+                scenePos.set(packedPos);
                 MultiblockBlockInfo blockInfo = cell.renderInfo().createBlockInfo();
                 previewLevel.addBlock(scenePos, blockInfo);
                 if (cell.worldPos() != null) {
                     previewLevel.copyMachineAppearance(sourceLevel, cell.worldPos(), scenePos);
                 }
-                loadedPositions.add(scenePos);
-                sceneCells.put(scenePos, cell);
+                loadedPositions.add(packedPos);
+                sceneCells.put(packedPos, cell);
                 if (cell.controller()) controllerState = cell.renderState();
             }
             // Scene installs a core filter: attach it only after every block initializer has run.
-            scene.createScene(previewLevel);
+            scene.setLevel(previewLevel);
             if (controllerState != null && controllerState != cameraControllerState) {
                 cameraControllerState = controllerState;
                 orientCamera(controllerState);
@@ -316,31 +322,37 @@ public final class ClientMultiblockPreviewElement extends UIElement {
     private void rebuildRenderedCore(boolean resetCamera) {
         var visible = state.visibleCells();
         hatchPositions.clear();
+        var rendered = new LongArrayList(visible.size());
         for (var cell : visible) {
-            if (!cell.renderState().isAir() && cell.contributions().stream()
+            if (cell.renderState().isAir()) continue;
+            long pos = BlockPos.offset(cell.relativePos().asLong(), 0, 64, 0);
+            rendered.add(pos);
+            if (cell.contributions().stream()
                     .anyMatch(StructurePreview.Contribution::hatchReplaceable)) {
-                hatchPositions.add(SCENE_ORIGIN.offset(cell.relativePos()));
+                hatchPositions.add(pos);
             }
         }
-        ObjectList<BlockPos> rendered = visible.stream()
-                .filter(cell -> !cell.renderState().isAir())
-                .map(cell -> SCENE_ORIGIN.offset(cell.relativePos()))
-                .collect(ObjectImmutableList.toList());
-        scene.setRenderedCore(rendered, new PreviewCellRenderHook(), resetCamera);
-        if (resetCamera && !rendered.isEmpty()) {
+        renderedPositions = rendered;
+        scene.setBlocks(rendered, renderHook, resetCamera);
+        if (resetCamera) fitCamera();
+        renderedViewRevision = state.getViewRevision();
+    }
+
+    private void fitCamera() {
+        if (!renderedPositions.isEmpty()) {
             var center = scene.getCenter();
             double radiusSquared = 0;
-            for (BlockPos pos : rendered) {
-                double x = Math.abs(pos.getX() + 0.5 - center.x) + 0.5;
-                double y = Math.abs(pos.getY() + 0.5 - center.y) + 0.5;
-                double z = Math.abs(pos.getZ() + 0.5 - center.z) + 0.5;
+            for (int i = 0; i < renderedPositions.size(); i++) {
+                long pos = renderedPositions.getLong(i);
+                double x = Math.abs(BlockPos.getX(pos) + 0.5 - center.x) + 0.5;
+                double y = Math.abs(BlockPos.getY(pos) + 0.5 - center.y) + 0.5;
+                double z = Math.abs(BlockPos.getZ(pos) + 0.5 - center.z) + 0.5;
                 radiusSquared = Math.max(radiusSquared, x * x + y * y + z * z);
             }
             double halfFov = Math.atan(Math.tan(Math.toRadians(scene.getRenderer().getFov() / 2)) *
                     Math.min(1, sceneAspect));
             scene.setZoom((float) (Math.sqrt(radiusSquared) / Math.sin(halfFov) * 1.1));
         }
-        renderedViewRevision = state.getViewRevision();
     }
 
     private ItemStack getHoveredItem(UIElement viewport) {
@@ -401,7 +413,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
             materialViewport.addChild(slot);
             materialSlots.add(slot);
         }
-        updateMaterialIcons();
+        updateMaterialIcons(System.currentTimeMillis() / 1000);
         updateMaterialPage();
     }
 
@@ -438,8 +450,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         nextMaterials.setActive(materialPage < lastPage);
     }
 
-    private void updateMaterialIcons() {
-        long cycle = System.currentTimeMillis() / 1000;
+    private void updateMaterialIcons(long cycle) {
         for (int i = 0; i < materialSlots.size(); i++) {
             var values = materialCandidates.get(i);
             materialSlots.get(i).setItem(values.isEmpty() ? ItemStack.EMPTY : values.get((int) (cycle % values.size())),
@@ -463,7 +474,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
     private void addCellTooltips(UIEvent event) {
         BlockPosFace hovered = scene.getLastHoverPosFace();
         if (hovered == null) return;
-        Cell cell = sceneCells.get(hovered.pos());
+        Cell cell = sceneCells.get(hovered.pos().asLong());
         if (cell == null) return;
         ObjectList<Component> tooltips = new ObjectArrayList<>();
         tooltips.add(cell.renderState().getBlock().getName());
@@ -496,7 +507,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
     }
 
     private void selectCell(BlockPos scenePos) {
-        Cell cell = sceneCells.get(scenePos);
+        Cell cell = sceneCells.get(scenePos.asLong());
         if (cell == null || cell.contributions().isEmpty()) return;
         state.setFocusedStructure(cell.representative().structureName());
         rebuildRenderedCore(false);
@@ -531,7 +542,9 @@ public final class ClientMultiblockPreviewElement extends UIElement {
     private void releaseLoadedBlocks() {
         // Hidden cells still own block entities that must be initialized and released with the whole preview.
         previewLevel.setBlockFilter(null);
-        for (BlockPos pos : loadedPositions) {
+        var pos = new BlockPos.MutableBlockPos();
+        for (int i = 0; i < loadedPositions.size(); i++) {
+            pos.set(loadedPositions.getLong(i));
             BlockEntity blockEntity = previewLevel.getBlockEntity(pos);
             if (blockEntity != null && !blockEntity.isRemoved()) blockEntity.setRemoved();
             previewLevel.removeBlock(pos, false);
@@ -543,11 +556,14 @@ public final class ClientMultiblockPreviewElement extends UIElement {
     @Override
     public void screenTick() {
         super.screenTick();
-        updateMaterialIcons();
         long cycle = System.currentTimeMillis() / 1000;
-        for (var entry : predicateItems.object2ObjectEntrySet()) {
-            var items = entry.getValue();
-            entry.getKey().setItem(items.get((int) (cycle % items.size())), false);
+        if (iconCycle != cycle) {
+            iconCycle = cycle;
+            updateMaterialIcons(cycle);
+            for (var entry : predicateItems.object2ObjectEntrySet()) {
+                var items = entry.getValue();
+                entry.getKey().setItem(items.get((int) (cycle % items.size())), false);
+            }
         }
         Level currentLevel = Minecraft.getInstance().level;
         if (currentLevel != sourceLevel) {
@@ -575,8 +591,8 @@ public final class ClientMultiblockPreviewElement extends UIElement {
             previewLevel = currentLevel == null ?
                     new MultiblockPreviewLevel() : new MultiblockPreviewLevel(currentLevel);
             if (currentLevel == null) {
-                scene.createScene(previewLevel);
-                scene.setRenderedCore(ObjectList.of(), new PreviewCellRenderHook(), true);
+                scene.setLevel(previewLevel);
+                scene.setBlocks(LongList.of(), renderHook, true);
             } else {
                 rebuildPreview(true);
             }
@@ -618,8 +634,11 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         var buffers = Minecraft.getInstance().renderBuffers().bufferSource();
         var lines = buffers.getBuffer(RenderType.lines());
         var pose = new PoseStack();
-        for (BlockPos pos : hatchPositions) {
-            LevelRenderer.renderLineBox(pose, lines, new AABB(pos).inflate(0.002), 0.2f, 0.85f, 1.0f, 1.0f);
+        for (int i = 0; i < hatchPositions.size(); i++) {
+            long pos = hatchPositions.getLong(i);
+            double x = BlockPos.getX(pos), y = BlockPos.getY(pos), z = BlockPos.getZ(pos);
+            LevelRenderer.renderLineBox(pose, lines, x - 0.002, y - 0.002, z - 0.002,
+                    x + 1.002, y + 1.002, z + 1.002, 0.2f, 0.85f, 1.0f, 1.0f);
         }
         buffers.endBatch(RenderType.lines());
     }
@@ -664,7 +683,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         public void applyVertexConsumerWrapper(Level world, BlockPos pos, BlockState state,
                                                WorldSceneRenderer.VertexConsumerWrapper wrapper,
                                                RenderType layer, float partialTicks) {
-            Cell cell = sceneCells.get(pos);
+            Cell cell = sceneCells.get(pos.asLong());
             if (cell == null) return;
             float red;
             float green;
