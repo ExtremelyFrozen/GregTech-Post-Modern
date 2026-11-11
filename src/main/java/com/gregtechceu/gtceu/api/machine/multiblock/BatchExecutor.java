@@ -221,7 +221,7 @@ public final class BatchExecutor {
             }
             BlockState current = level.getBlockState(pos);
             if (structure.mode() == StructureOperation.DEMOLISH) {
-                if (!current.isAir() && matchesDemolitionCandidate(cell, current)) {
+                if (cell.action() == CellAction.DEMOLISH_CANDIDATE && !current.isAir()) {
                     BuildProblem clearProblem = validateClear(controller, player, level, pos, current);
                     if (clearProblem != null) {
                         work.problems().add(clearProblem);
@@ -640,13 +640,6 @@ public final class BatchExecutor {
             controller.formStructure(result.structureName());
             MultiblockWorldSavedData.getOrCreate(level).addMapping(state);
         }
-    }
-
-    private static boolean matchesDemolitionCandidate(PlannedCell cell, BlockState state) {
-        for (BlockState candidate : cell.stateCandidates()) {
-            if (state.equals(candidate)) return true;
-        }
-        return false;
     }
 
     private static BatchResult failAll(BatchPlan plan, BuildProblem problem) {

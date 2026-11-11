@@ -102,11 +102,8 @@ public final class StructurePlanner {
                 candidate.state().is(definition.getBlock());
         if (controllerCell) return CellAction.CONTROLLER;
         if (mode == StructureOperation.DEMOLISH) {
-            if (context.canonical()) {
-                return candidate.state().isAir() ? CellAction.KEEP :
-                        CellAction.DEMOLISH_CANDIDATE;
-            }
-            return observed != null && matchesCandidateState(cell, observed) ?
+            if (candidate.state().isAir()) return CellAction.KEEP;
+            return context.canonical() || observed != null && !observed.isAir() ?
                     CellAction.DEMOLISH_CANDIDATE : CellAction.KEEP;
         }
         if (candidate.state().isAir()) {
@@ -120,16 +117,6 @@ public final class StructurePlanner {
             }
         }
         return CellAction.PLACE;
-    }
-
-    public static boolean matchesCandidateState(UnresolvedCell cell, BlockState observed) {
-        for (ResolvedCandidate candidate : cell.candidates()) {
-            if (candidate.any() || candidate.state().isAir()) continue;
-            if (observed.equals(candidate.state())) {
-                return true;
-            }
-        }
-        return false;
     }
 
     public static boolean matchesCandidateDomain(UnresolvedCell cell, ResolvedCandidate candidate,
