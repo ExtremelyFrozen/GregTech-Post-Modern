@@ -6,6 +6,7 @@ import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTButtonElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
+import com.gregtechceu.gtceu.api.gui.element.GTTextFieldElement;
 import com.gregtechceu.gtceu.api.gui.factory.HeldItemUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.HeldItemUIHolder;
 import com.gregtechceu.gtceu.api.gui.texture.ColorRectTexture;
@@ -357,7 +358,9 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
             private final ClientMultiblockPreviewElement preview;
             private final BlockChoiceList blocks;
             private final GTScrollerViewElement options = new GTScrollerViewElement();
-            private final ObjectList<GTButtonElement> controls = new ObjectArrayList<>();
+            private final ObjectList<UIElement> controls = new ObjectArrayList<>();
+            private final ObjectList<GTTextFieldElement> dimensionInputs = new ObjectArrayList<>();
+            private final Object2IntMap<PatternAxis> pendingDimensions = new Object2IntOpenHashMap<>();
             private final GTButtonElement execute;
             private final GTButtonElement fullscreen;
             private final GTButtonElement edit;
@@ -368,6 +371,8 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
             private boolean expanded;
             private boolean editing;
             private boolean worldVisible;
+            private boolean awaitingPreview;
+            private int dimensionTicks;
             private int selectedStructure;
             private int width = 300;
             private int height = 200;
@@ -451,6 +456,7 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
             private void rebuildOptions() {
                 options.clearAllScrollViewChildren();
                 controls.clear();
+                dimensionInputs.clear();
                 visibility = null;
                 int contentWidth = 44;
                 var requests = structures;
@@ -543,21 +549,44 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                 }
                 var pattern = definition.getPattern(name);
                 var axes = pattern.getSourceDefinition().getAxes();
-                var layout = pattern.expandLayout(structure.repetitions().toIntArray(), structure.choices());
+                int[] repetitions = structure.repetitions().toIntArray();
+                int[] sizes = pattern.getDimensions(repetitions, structure.choices());
                 for (var repetition : pattern.getRepeatDescriptors()) {
                     if (repetition.minimum() == repetition.maximum()) continue;
                     int index = repetition.index();
-                    int amount = structure.repetitions().getInt(index);
                     var axis = PatternAxis.of(switch (repetition.axis()) {
                         case DEPTH -> axes.getDepth();
                         case HEIGHT -> axes.getHeight();
                         case WIDTH -> axes.getWidth();
                     });
-                    addStep(y, contentWidth, text("dimension", text("axis." + axis.name().toLowerCase(Locale.ROOT)),
-                            layout.size(repetition.axis())),
-                            () -> changeRepetition(index, amount - 1),
-                            () -> changeRepetition(index, amount + 1),
-                            amount > repetition.minimum(), amount < repetition.maximum());
+                    int[] bounds = repetitions.clone();
+                    bounds[index] = repetition.minimum();
+                    int minimum = pattern.getDimensions(bounds, structure.choices())[repetition.axis().ordinal()];
+                    bounds[index] = repetition.maximum();
+                    int maximum = pattern.getDimensions(bounds, structure.choices())[repetition.axis().ordinal()];
+                    if (minimum == maximum) continue;
+                    var title = text("axis." + axis.name().toLowerCase(Locale.ROOT));
+                    options.addScrollViewChild(label(0, y, contentWidth, title));
+                    var input = new GTTextFieldElement(0, y + 10, contentWidth, 16) {
+
+                        @Override
+                        protected void onRawTextUpdate() {
+                            super.onRawTextUpdate();
+                            dimensionTicks = 5;
+                            updateInteractivity();
+                        }
+                    };
+                    input.setNumbersOnlyInt(minimum, maximum);
+                    input.setText(
+                            Integer.toString(pendingDimensions.getOrDefault(axis, sizes[repetition.axis().ordinal()])),
+                            false);
+                    input.setTextResponder(value -> pendingDimensions.put(axis, Integer.parseInt(value)));
+                    input.textFieldStyle(style -> style.fontSize(8).textColor(0xff404040).textShadow(false)
+                            .focusOverlay(GuiTextures.SLOT));
+                    input.getStyle().backgroundTexture(GuiTextures.BACKGROUND_INVERSE).tooltips(title);
+                    options.addScrollViewChild(input);
+                    dimensionInputs.add(input);
+                    controls.add(input);
                     y += 30;
                 }
                 for (var choice : pattern.getChoiceDescriptors()) {
@@ -620,28 +649,15 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
 
             private void change(Runnable update) {
                 update.run();
+                awaitingPreview = true;
                 initialize(definition);
                 rebuildOptions();
             }
 
-            private void changeRepetition(int index, int amount) {
-                change(() -> {
-                    var value = structures.get(structureName());
-                    var pattern = definition.getPattern(structureName());
-                    var repetitions = new IntArrayList(value.repetitions());
-                    repetitions.set(index, amount);
-                    var repeat = pattern.getRepeatDescriptors().get(index);
-                    var axes = pattern.getSourceDefinition().getAxes();
-                    dimensions.put(PatternAxis.of(switch (repeat.axis()) {
-                        case DEPTH -> axes.getDepth();
-                        case HEIGHT -> axes.getHeight();
-                        case WIDTH -> axes.getWidth();
-                    }), pattern.getDimensions(repetitions.toIntArray(), value.choices())[repeat.axis().ordinal()]);
-                });
-            }
-
             private void updateDisplay() {
-                if (TerminalBehavior.this.preview != null && TerminalBehavior.this.preview != displayedPreview) {
+                if (dimensionTicks == 0 && TerminalBehavior.this.preview != null &&
+                        TerminalBehavior.this.preview != displayedPreview) {
+                    awaitingPreview = false;
                     displayedPreview = TerminalBehavior.this.preview;
                     preview.setPreview(displayedPreview);
                     MultiblockInWorldPreviewRenderer.updatePreview(position, displayedPreview,
@@ -662,16 +678,31 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                 boolean ready = TerminalBehavior.this.preview != null;
                 controls.forEach(button -> button.setActive(ready));
                 blocks.setInteractive(ready);
-                execute.setActive(ready);
-                if (visibility != null) visibility.setActive(ready);
+                boolean settled = ready && dimensionTicks == 0 && !awaitingPreview;
+                execute.setActive(settled);
+                if (visibility != null) visibility.setActive(settled);
             }
 
             @Override
             public void screenTick() {
                 super.screenTick();
+                if (dimensionTicks > 0 && dimensionInputs.stream().noneMatch(GTTextFieldElement::isError) &&
+                        --dimensionTicks == 0) {
+                    if (!pendingDimensions.isEmpty()) {
+                        dimensions.putAll(pendingDimensions);
+                        pendingDimensions.clear();
+                        awaitingPreview = true;
+                        displayedPreview = TerminalBehavior.this.preview;
+                        initialize(definition);
+                        refreshUI = true;
+                    }
+                    updateInteractivity();
+                }
                 if (refreshUI) {
-                    refreshUI = false;
-                    rebuildOptions();
+                    if (dimensionTicks == 0 && dimensionInputs.stream().noneMatch(GTTextFieldElement::isFocused)) {
+                        refreshUI = false;
+                        rebuildOptions();
+                    }
                     updateDisplay();
                 }
                 if (visibility != null) {

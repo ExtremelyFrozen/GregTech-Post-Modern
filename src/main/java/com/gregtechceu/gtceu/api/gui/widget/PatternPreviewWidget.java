@@ -6,6 +6,7 @@ import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTButtonElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
+import com.gregtechceu.gtceu.api.gui.element.GTTextFieldElement;
 import com.gregtechceu.gtceu.api.gui.texture.ColorRectTexture;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
@@ -40,6 +41,8 @@ import net.neoforged.api.distmarker.OnlyIn;
 import com.mojang.blaze3d.systems.RenderSystem;
 import dev.vfyjxf.taffy.style.TaffyPosition;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
 import it.unimi.dsi.fastutil.objects.ObjectList;
@@ -64,7 +67,9 @@ public final class PatternPreviewWidget extends UIElement {
     private final ClientMultiblockPreviewElement preview;
     private final BlockChoiceList blocks;
     private final GTScrollerViewElement options = new GTScrollerViewElement();
-    private final ObjectList<GTButtonElement> controls = new ObjectArrayList<>();
+    private final ObjectList<UIElement> controls = new ObjectArrayList<>();
+    private final ObjectList<GTTextFieldElement> dimensionInputs = new ObjectArrayList<>();
+    private final Object2ObjectMap<String, StructureRequest> pendingStructures = new Object2ObjectLinkedOpenHashMap<>();
     private final GTLabelElement title;
     private final GTButtonElement edit;
     private final GTButtonElement fullscreen;
@@ -74,6 +79,8 @@ public final class PatternPreviewWidget extends UIElement {
     private int pageWidth = WIDTH;
     private int pageHeight = HEIGHT;
     private long observedGeneration;
+    private int dimensionTicks;
+    private boolean refreshOptions;
 
     private PatternPreviewWidget(MultiblockInfo info, boolean expanded) {
         this.info = info;
@@ -136,6 +143,9 @@ public final class PatternPreviewWidget extends UIElement {
     public void reset() {
         if (info.isResuming()) return;
         info.reset();
+        pendingStructures.clear();
+        dimensionTicks = 0;
+        refreshOptions = false;
         selectedStructure = 0;
         editing = false;
         edit.setText(Component.literal("✎"));
@@ -211,9 +221,10 @@ public final class PatternPreviewWidget extends UIElement {
     private void rebuildOptions() {
         options.clearAllScrollViewChildren();
         controls.clear();
+        dimensionInputs.clear();
         int width = 44;
         String name = structureName();
-        var structure = info.getStructures().get(name);
+        var structure = pendingStructures.getOrDefault(name, info.getStructures().get(name));
         var noHatches = button(0, 0, width, text("casings"));
         noHatches.textStyle(style -> style.textColor(info.isNoHatchMode() ? 0xff167129 : 0xff404040));
         noHatches.setOnClick(event -> {
@@ -262,22 +273,46 @@ public final class PatternPreviewWidget extends UIElement {
         }
         var pattern = definition.getPattern(name);
         var axes = pattern.getSourceDefinition().getAxes();
-        var layout = pattern.expandLayout(structure.repetitions().toIntArray(), structure.choices());
+        int[] repetitions = structure.repetitions().toIntArray();
+        int[] sizes = pattern.getDimensions(repetitions, structure.choices());
         for (var repetition : pattern.getRepeatDescriptors()) {
             if (repetition.minimum() == repetition.maximum()) continue;
             int index = repetition.index();
-            int amount = structure.repetitions().getInt(index);
             var axis = PatternAxis.of(switch (repetition.axis()) {
                 case DEPTH -> axes.getDepth();
                 case HEIGHT -> axes.getHeight();
                 case WIDTH -> axes.getWidth();
             });
-            addStep(y, width,
-                    text("dimension", text("axis." + axis.name().toLowerCase(Locale.ROOT)),
-                            layout.size(repetition.axis())),
-                    () -> changeRepetition(index, amount - 1),
-                    () -> changeRepetition(index, amount + 1),
-                    amount > repetition.minimum(), amount < repetition.maximum());
+            int[] bounds = repetitions.clone();
+            bounds[index] = repetition.minimum();
+            int minimum = pattern.getDimensions(bounds, structure.choices())[repetition.axis().ordinal()];
+            bounds[index] = repetition.maximum();
+            int maximum = pattern.getDimensions(bounds, structure.choices())[repetition.axis().ordinal()];
+            if (minimum == maximum) continue;
+            var title = text("axis." + axis.name().toLowerCase(Locale.ROOT));
+            options.addScrollViewChild(label(0, y, width, title));
+            var input = new GTTextFieldElement(0, y + 10, width, 16) {
+
+                @Override
+                protected void onRawTextUpdate() {
+                    super.onRawTextUpdate();
+                    dimensionTicks = 5;
+                }
+            };
+            input.setNumbersOnlyInt(minimum, maximum);
+            input.setText(Integer.toString(sizes[repetition.axis().ordinal()]), false);
+            input.setTextResponder(value -> {
+                var current = pendingStructures.getOrDefault(name, info.getStructures().get(name));
+                int[] resized = pattern.resizeLayout(current.repetitions().toIntArray(), current.choices(), index,
+                        Integer.parseInt(value));
+                pendingStructures.put(name, current.withRepetitions(new IntArrayList(resized)));
+            });
+            input.textFieldStyle(style -> style.fontSize(8).textColor(0xff404040).textShadow(false)
+                    .focusOverlay(GuiTextures.SLOT));
+            input.getStyle().backgroundTexture(GuiTextures.BACKGROUND_INVERSE).tooltips(title);
+            options.addScrollViewChild(input);
+            dimensionInputs.add(input);
+            controls.add(input);
             y += 30;
         }
         for (var choice : pattern.getChoiceDescriptors()) {
@@ -290,7 +325,7 @@ public final class PatternPreviewWidget extends UIElement {
             y += 30;
         }
         options.viewContainer.getLayout().width(width).height(y);
-        var choices = new BatchPlanner().activeTierChoiceOptions(definition, structure);
+        var choices = new BatchPlanner().activeTierChoiceOptions(definition, info.getStructures().get(name));
         blocks.setChoices(choices, structure.tierChoices());
         boolean available = !choices.isEmpty();
         edit.setActive(available);
@@ -327,11 +362,21 @@ public final class PatternPreviewWidget extends UIElement {
         var client = Minecraft.getInstance();
         var parent = client.screen;
         var root = new PatternPreviewWidget(info, true);
+        root.pendingStructures.putAll(pendingStructures);
+        root.dimensionTicks = dimensionTicks;
+        pendingStructures.clear();
+        dimensionTicks = 0;
+        root.rebuildOptions();
         client.setScreen(new ModularUIScreen(ModularUI.of(UI.of(root, root::resize)), definition.getBlock().getName()) {
 
             @Override
             public void onClose() {
-                publishPreview();
+                pendingStructures.putAll(root.pendingStructures);
+                dimensionTicks = root.dimensionTicks;
+                root.pendingStructures.clear();
+                root.dimensionTicks = 0;
+                if (dimensionTicks == 0) publishPreview();
+                else rebuildOptions();
                 info.setResuming(true);
                 try {
                     client.setScreen(parent);
@@ -342,22 +387,26 @@ public final class PatternPreviewWidget extends UIElement {
         });
     }
 
-    private void changeRepetition(int index, int amount) {
-        changeStructure(structure -> {
-            var repetitions = new IntArrayList(structure.repetitions());
-            repetitions.set(index, amount);
-            return structure.withRepetitions(repetitions);
-        });
-    }
-
     private void changeStructure(UnaryOperator<StructureRequest> update) {
+        if (dimensionTicks > 0) {
+            String name = structureName();
+            pendingStructures.put(name,
+                    update.apply(pendingStructures.getOrDefault(name, info.getStructures().get(name))));
+            dimensionTicks = 5;
+            rebuildOptions();
+            return;
+        }
         applyChange(() -> info.setStructure(update.apply(info.getStructures().get(structureName()))));
     }
 
     private void applyChange(Runnable update) {
         try {
             update.run();
-            publishPreview();
+            if (dimensionTicks == 0) publishPreview();
+            else {
+                dimensionTicks = 5;
+                rebuildOptions();
+            }
         } catch (RuntimeException exception) {
             showFailure(exception);
         }
@@ -367,7 +416,8 @@ public final class PatternPreviewWidget extends UIElement {
         var resolved = info.resolvePreview();
         observedGeneration = resolved.generation();
         preview.setPreview(resolved.value());
-        rebuildOptions();
+        if (dimensionInputs.stream().anyMatch(GTTextFieldElement::isFocused)) refreshOptions = true;
+        else rebuildOptions();
         blocks.setInteractive(true);
     }
 
@@ -410,7 +460,20 @@ public final class PatternPreviewWidget extends UIElement {
     @Override
     public void screenTick() {
         super.screenTick();
+        if (dimensionTicks > 0 && dimensionInputs.stream().noneMatch(GTTextFieldElement::isError) &&
+                --dimensionTicks == 0) {
+            applyChange(() -> {
+                pendingStructures.values().forEach(info::setStructure);
+                pendingStructures.clear();
+            });
+        }
+        if (refreshOptions && dimensionInputs.stream().noneMatch(GTTextFieldElement::isFocused)) {
+            refreshOptions = false;
+            rebuildOptions();
+        }
         if (StructurePatternRegistry.generation() != observedGeneration) {
+            pendingStructures.clear();
+            dimensionTicks = 0;
             try {
                 publishPreview();
             } catch (RuntimeException exception) {
