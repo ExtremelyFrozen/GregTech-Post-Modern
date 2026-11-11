@@ -2,6 +2,7 @@ package com.gregtechceu.gtceu.api.sync_system
 
 import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.sync_system.managed.ISyncManaged
+import com.gregtechceu.gtceu.api.sync_system.serialization.CollectionCodecs
 
 import net.minecraft.core.HolderLookup
 import net.minecraft.core.RegistryAccess
@@ -363,10 +364,12 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 			// Decode and snapshot the complete batch before running any normalizer.
 			for (field in selectedFields) {
 				val encodedValue = changes[field.componentKey]?.orElse(null)
+				val current = field.handle.get(holder)
 				pendingUpdates.add(
 					PendingServerFieldUpdate(
 						field,
-						field.handle.get(holder),
+						current,
+						CollectionCodecs.snapshot(field.type.rawType, current),
 						FieldSyncHandler.decodeDetachedServerCandidate(registries, field, encodedValue),
 					),
 				)
@@ -484,15 +487,18 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 	private fun commitServerUpdates(updates: List<PendingServerFieldUpdate>) {
 		var committed = 0
 		try {
-			for ((field, _, candidate) in updates) {
-				field.handle.set(holder, candidate)
+			for (update in updates) {
 				committed++
+				FieldSyncHandler.applyValue(holder, update.field, update.candidate)
 			}
 		} catch (e: Throwable) {
 			for (index in committed - 1 downTo 0) {
 				val update = updates[index]
 				try {
-					update.field.handle.set(holder, update.oldValue)
+					if (update.oldReference != null && update.oldValue != null) {
+						CollectionCodecs.update(update.oldReference, update.oldValue)
+					}
+					if (update.field.handle.get(holder) !== update.oldReference) update.field.handle.set(holder, update.oldReference)
 				} catch (rollbackFailure: Throwable) {
 					GTCEu.LOGGER.error(
 						"Sync: Failed to roll back field {} of type {} after server batch commit failure",
@@ -533,5 +539,5 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 		}
 	}
 
-	private data class PendingServerFieldUpdate(val field: FieldSyncData, @field:Nullable val oldValue: Any?, @field:Nullable var candidate: Any?)
+	private data class PendingServerFieldUpdate(val field: FieldSyncData, @field:Nullable val oldReference: Any?, @field:Nullable val oldValue: Any?, @field:Nullable var candidate: Any?)
 }

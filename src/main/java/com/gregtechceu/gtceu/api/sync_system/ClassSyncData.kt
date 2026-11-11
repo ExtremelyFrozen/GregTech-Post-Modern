@@ -11,6 +11,7 @@ import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToServer
 import com.gregtechceu.gtceu.api.sync_system.managed.ISyncAnnotated
 import com.gregtechceu.gtceu.api.sync_system.managed.ISyncManaged
+import com.gregtechceu.gtceu.api.sync_system.serialization.CollectionCodecs
 
 import net.minecraft.resources.ResourceLocation
 
@@ -127,7 +128,7 @@ class ClassSyncData private constructor(clazz: Class<*>) {
 			if (Modifier.isStatic(field.modifiers)) {
 				throw IllegalArgumentException("Cannot apply syncdata annotations to static field: ${field.declaringClass.name}.${field.name}")
 			}
-			if ((hasServerSync || hasSyncBoth) && Modifier.isFinal(field.modifiers)) {
+			if ((hasServerSync || hasSyncBoth) && Modifier.isFinal(field.modifiers) && !CollectionCodecs.isContainer(field.genericType)) {
 				throw IllegalArgumentException(
 					"@SyncToServer and @SyncBoth require a writable field: ${field.declaringClass.name}.${field.name}",
 				)

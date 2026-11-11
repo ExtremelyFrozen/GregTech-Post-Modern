@@ -158,6 +158,15 @@ object CollectionCodecs {
 		return true
 	}
 
+	/** Copies container contents with the registered collection policy before an in-place transaction. */
+	fun snapshot(type: Type, current: Any?): Any? {
+		if (current == null || !isContainer(current.javaClass)) return current
+		val construction = construction(type, current)
+		val copy = construction.create()
+		update(copy, current)
+		return construction.finish(copy)
+	}
+
 	private fun construction(type: Type, current: Any?): Construction {
 		val declared = requireNotNull(Types.raw(type))
 		(current?.javaClass?.let(factories::get) ?: factories[declared])?.let { return it(type, current) }

@@ -41,9 +41,16 @@ object FieldSyncHandler {
 				savedValue,
 			)
 		}
-		if (result === current) return
-		if (current != null && result != null && CollectionCodecs.update(current, result)) return
-		field.handle.set(holder, result)
+		applyValue(holder, field, result)
+	}
+
+	/** Updates mutable container contents so field consumers keep their existing references. */
+	@JvmStatic
+	fun applyValue(holder: Any, field: FieldSyncData, value: Any?) {
+		val current = field.handle.get(holder)
+		if (value === current) return
+		if (current != null && value != null && CollectionCodecs.update(current, value)) return
+		field.handle.set(holder, value)
 	}
 
 	@Suppress("UNCHECKED_CAST")
