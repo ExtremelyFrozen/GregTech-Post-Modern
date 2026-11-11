@@ -387,7 +387,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         int rows = Math.max(1, (previewHeight - MATERIAL_BAR_HEIGHT - (fullscreen ? 38 : 8)) / 18);
         int index = 0;
         for (var slot : predicateItems.keySet()) {
-            slot.getLayout().left((float) index / rows * 18).top(index % rows * 18);
+            slot.getLayout().left(index / rows * 18).top(index % rows * 18);
             index++;
         }
         predicateViewport.getLayout().left(fullscreen ? 8 : 4).top(fullscreen ? 34 : 4)
