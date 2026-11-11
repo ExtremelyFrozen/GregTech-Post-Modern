@@ -1254,6 +1254,8 @@ public class LangHandler {
         provider.add("gtpm.multiblock.autobuild.unknown_tier_category", "Unknown tier block category: %s.");
         provider.add("gtpm.multiblock.autobuild.invalid_tier", "Invalid tier %2$d for category %1$s.");
         provider.add("gtpm.multiblock.autobuild.unloaded", "Target position is not loaded: %s.");
+        provider.add("gtpm.multiblock.autobuild.outside_build_height",
+                "Target position is outside the world's build height: %s.");
         provider.add("gtpm.multiblock.autobuild.blocked", "Target position is blocked: %s.");
         provider.add("gtpm.multiblock.autobuild.no_candidate", "No placeable candidate for %s.");
         provider.add("gtpm.multiblock.autobuild.missing_material", "Missing material for %s.");

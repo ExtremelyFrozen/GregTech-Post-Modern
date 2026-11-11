@@ -186,6 +186,8 @@ public class IntegrationLang {
         provider.add("gtpm.multiblock.preview.diagnostic.pattern_unavailable", "Pattern unavailable");
         provider.add("gtpm.multiblock.preview.diagnostic.permission_denied", "Permission denied");
         provider.add("gtpm.multiblock.preview.diagnostic.unloaded", "Target area is not loaded");
+        provider.add("gtpm.multiblock.preview.diagnostic.outside_build_height",
+                "Structure exceeds the world's build height");
         provider.add("gtpm.multiblock.preview.diagnostic.blocked", "Target is blocked");
         provider.add("gtpm.multiblock.preview.diagnostic.unsupported", "Unsupported pattern target");
         provider.add("gtpm.multiblock.preview.diagnostic.missing_material", "Missing material");

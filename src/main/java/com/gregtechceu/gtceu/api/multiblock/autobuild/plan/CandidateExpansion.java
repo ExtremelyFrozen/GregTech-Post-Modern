@@ -24,6 +24,7 @@ import com.gregtechceu.gtceu.api.multiblock.structurepredicate.StructurePreviewC
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.SectionPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
@@ -112,6 +113,7 @@ public final class CandidateExpansion {
             requirements.add(limit);
         }
         int minimumDepth = layout.cells().stream().mapToInt(PatternLayoutCell::depth).min().orElse(0);
+        BuildProblem unavailable = null;
         for (var cell : layout.cells()) {
             PatternPredicate predicate = cell.predicate();
             PatternCellKey cellKey = new PatternCellKey(cell.unit(), cell.repetition(), cell.inner(), cell.row(),
@@ -122,12 +124,20 @@ public final class CandidateExpansion {
             BlockState observed = null;
             if (!context.canonical()) {
                 Level level = context.level();
-                if (level == null || worldPos == null || !level.isLoaded(worldPos)) {
-                    problems.add(problem(BuildProblem.Type.UNLOADED, worldPos,
-                            "gtpm.multiblock.autobuild.unloaded", position(worldPos)));
-                    return ObjectList.of();
-                }
-                observed = level.getBlockState(worldPos);
+                if (level.isOutsideBuildHeight(worldPos)) {
+                    if (unavailable == null) {
+                        unavailable = problem(BuildProblem.Type.OUTSIDE_BUILD_HEIGHT, worldPos,
+                                "gtpm.multiblock.autobuild.outside_build_height", position(worldPos));
+                    }
+                } else if (!level.getChunkSource().hasChunk(SectionPos.blockToSectionCoord(worldPos.getX()),
+                        SectionPos.blockToSectionCoord(worldPos.getZ()))) {
+                            if (unavailable == null) {
+                                unavailable = problem(BuildProblem.Type.UNLOADED, worldPos,
+                                        "gtpm.multiblock.autobuild.unloaded", position(worldPos));
+                            }
+                        } else {
+                            observed = level.getBlockState(worldPos);
+                        }
             }
             ObjectList<ResolvedCandidate> candidates = resolveCandidates(definition, predicate,
                     context.frontFacing(), context.upwardsFacing(), options.flipMode(), constraintIds, problems,
@@ -149,6 +159,7 @@ public final class CandidateExpansion {
             cells.add(new UnresolvedCell(options.structureName(), cellKey, relativePos, worldPos, observed,
                     cell.depth() - minimumDepth, predicate, candidates, requiredDirection));
         }
+        if (unavailable != null) problems.add(unavailable);
         return cells;
     }
 

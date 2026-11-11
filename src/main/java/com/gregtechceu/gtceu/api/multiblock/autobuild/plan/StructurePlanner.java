@@ -32,7 +32,9 @@ public final class StructurePlanner {
                                                  ResolutionContext context,
                                                  MaterialAllocation materials) {
         ObjectArrayList<BuildProblem> problems = new ObjectArrayList<>(pending.problems());
-        if (!problems.isEmpty()) {
+        // World access failures block execution without discarding the requested preview geometry.
+        if (problems.stream().anyMatch(problem -> problem.type() != BuildProblem.Type.UNLOADED &&
+                problem.type() != BuildProblem.Type.OUTSIDE_BUILD_HEIGHT)) {
             return new StructurePlan(pending.options().structureName(), pending.options().mode(),
                     pending.repetitions(), pending.options().flipMode(), ObjectList.of(), Object2LongMaps.emptyMap(),
                     problems);
@@ -41,8 +43,9 @@ public final class StructurePlanner {
         CandidateSearch solver = new CandidateSearch(
                 sharedOptions.noHatchMode() && buildMode, materials, buildMode, context.canonical());
         ObjectList<UnresolvedCell> observedCells = materials.applyVirtualWorld(pending.cells());
+        int worldProblems = problems.size();
         ObjectList<SelectedCell> selected = solver.solve(observedCells, pending.requirements(), problems);
-        if (!problems.isEmpty()) {
+        if (problems.size() != worldProblems) {
             return new StructurePlan(pending.options().structureName(), pending.options().mode(),
                     pending.repetitions(), pending.options().flipMode(), ObjectList.of(), Object2LongMaps.emptyMap(),
                     problems);
@@ -81,7 +84,7 @@ public final class StructurePlanner {
                     candidate.limits().stream().map(ConstraintLimit::id).collect(ObjectImmutableList.toList()),
                     observedCells.get(index).candidates().stream().anyMatch(ResolvedCandidate::hatch)));
         }
-        PlannedCell missingCell = buildMode ? materials.commitStructure(planned) : null;
+        PlannedCell missingCell = buildMode && worldProblems == 0 ? materials.commitStructure(planned) : null;
         if (missingCell != null) {
             problems.addAll(materials.structureProblems());
             problems.add(problem(BuildProblem.Type.MISSING_MATERIAL, missingCell.worldPos(),

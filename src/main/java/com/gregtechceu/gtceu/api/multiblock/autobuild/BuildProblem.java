@@ -20,6 +20,7 @@ public record BuildProblem(Type type, @Nullable BlockPos pos, Component message)
         PATTERN_UNAVAILABLE,
         PERMISSION_DENIED,
         UNLOADED,
+        OUTSIDE_BUILD_HEIGHT,
         BLOCKED,
         UNSUPPORTED,
         MISSING_MATERIAL,
