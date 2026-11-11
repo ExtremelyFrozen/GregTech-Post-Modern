@@ -98,6 +98,12 @@ open class MultiBlockPattern private constructor(private val sourceDefinition: P
 
 	fun expandLayout(repetitions: IntArray, choices: Map<String, String>): PatternLayout = layoutResolver.expand(repetitions, choices)
 
+	/** Returns depth, height and width without enumerating layout cells. */
+	fun getDimensions(repetitions: IntArray, choices: Map<String, String>): IntArray = layoutResolver.dimensions(repetitions, choices)
+
+	/** Converts an actual dimension back into the nearest attainable repeat count. */
+	fun resizeLayout(repetitions: IntArray, choices: Map<String, String>, index: Int, size: Int): IntArray = layoutResolver.resize(repetitions, choices, index, size)
+
 	fun getSourceDefinition(): PatternDefinition = sourceDefinition
 
 	fun getCompiledPattern(): CompiledPattern = compiledPattern

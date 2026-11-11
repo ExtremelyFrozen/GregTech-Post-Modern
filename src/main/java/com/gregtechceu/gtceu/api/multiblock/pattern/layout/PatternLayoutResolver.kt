@@ -62,6 +62,32 @@ class PatternLayoutResolver(private val definition: PatternDefinition) {
 	fun repeatDescriptors(): ObjectList<PatternRepeatDescriptor> = ObjectLists.unmodifiable(repeats)
 	fun choiceDescriptors(): ObjectList<PatternChoiceDescriptor> = ObjectLists.unmodifiable(choices)
 
+	/** Measures the same layout bounds without expanding its cells, predicates or instance metadata. */
+	fun dimensions(repetitions: IntArray, choices: Map<String, String>): IntArray {
+		val box = expandNode(definition.body, "$", "$", rootSymbols, emptyMap(), repetitions, choices, ObjectArrayList(), "", -1, 0, 0, true)
+		return IntArray(3) { box.size(it) }
+	}
+
+	/** Finds the nearest attainable size for one repeat while preserving the other dimensions and choices. */
+	fun resize(repetitions: IntArray, choices: Map<String, String>, index: Int, size: Int): IntArray {
+		val descriptor = repeats[index]
+		val result = repetitions.copyOf()
+		fun sizeAt(amount: Int): Int {
+			result[index] = amount
+			return dimensions(result, choices)[descriptor.axis.ordinal]
+		}
+		var lower = descriptor.minimum
+		var upper = descriptor.maximum
+		while (lower < upper) {
+			val middle = lower + (upper - lower) / 2
+			if (sizeAt(middle) < size) lower = middle + 1 else upper = middle
+		}
+		val above = sizeAt(lower)
+		val amount = if (lower > descriptor.minimum && size - sizeAt(lower - 1) < above - size) lower - 1 else lower
+		result[index] = amount
+		return result
+	}
+
 	/** Includes inactive branches and zero-minimum repeats for configuration and candidate discovery. */
 	fun allPredicates(): ObjectList<PatternPredicate> {
 		val result = ObjectArrayList<PatternPredicate>()
@@ -280,7 +306,15 @@ class PatternLayoutResolver(private val definition: PatternDefinition) {
 		}
 	}
 
-	private data class Box(val cells: ObjectArrayList<PatternLayoutCell>, val minimum: IntArray, val maximum: IntArray, val repeats: ObjectArrayList<PatternRepeatInstance> = ObjectArrayList(), val choices: ObjectArrayList<PatternChoiceInstance> = ObjectArrayList(), val placed: Boolean = false) {
+	private data class Box(
+		val cells: ObjectArrayList<PatternLayoutCell>,
+		val minimum: IntArray,
+		val maximum: IntArray,
+		val repeats: ObjectArrayList<PatternRepeatInstance> = ObjectArrayList(),
+		val choices: ObjectArrayList<PatternChoiceInstance> = ObjectArrayList(),
+		val placed: Boolean = false,
+		val occupied: Boolean = cells.isNotEmpty(),
+	) {
 		fun size(axis: Int): Int = Math.subtractExact(maximum[axis], minimum[axis])
 	}
 
@@ -297,12 +331,14 @@ class PatternLayoutResolver(private val definition: PatternDefinition) {
 		unit: Int,
 		repetition: Int,
 		level: Int,
+		boundsOnly: Boolean = false,
 	): Box {
 		val descriptor = if (node is PatternNode.Repeat && node.count != null) repeats.first { it.parameter == node.count.parameter } else repeats.firstOrNull { it.path == declaration }
 		val currentUnit = if (unit < 0 && descriptor != null) descriptor.index else unit
 		return when (node) {
 			is PatternNode.Fixed -> {
 				val cells = ObjectArrayList<PatternLayoutCell>()
+				if (boundsOnly) return Box(cells, IntArray(3), intArrayOf(node.depth(), node.height(), node.width()), occupied = true)
 				node.layers.forEachIndexed { d, layer ->
 					layer.forEachIndexed { h, row ->
 						row.forEachIndexed { w, symbol ->
@@ -316,7 +352,7 @@ class PatternLayoutResolver(private val definition: PatternDefinition) {
 
 			is PatternNode.Sequence -> {
 				val children = ObjectArrayList<Box>()
-				node.children.forEachIndexed { i, child -> children.add(expandNode(child, "$declaration/sequence[$i]", "$path/sequence[$i]", symbols, bindings, repetitions, selected, scopes, repeatPath, currentUnit, repetition, level + 1)) }
+				node.children.forEachIndexed { i, child -> children.add(expandNode(child, "$declaration/sequence[$i]", "$path/sequence[$i]", symbols, bindings, repetitions, selected, scopes, repeatPath, currentUnit, repetition, level + 1, boundsOnly)) }
 				join(children, PatternAxis.of(node.axis).ordinal, false)
 			}
 
@@ -324,13 +360,35 @@ class PatternLayoutResolver(private val definition: PatternDefinition) {
 				val declared = requireNotNull(descriptor)
 				val count = node.count?.resolve(repetitions[declared.index]) ?: selected["$path#repeat"]?.toInt() ?: repetitions[declared.index]
 				require(count in node.minimum..node.maximum) { "Instance repetition outside bounds at $path" }
+				if (boundsOnly && selected.keys.none { it.startsWith("$path/repeat:${node.id}[") }) {
+					if (count == 0) return Box(ObjectArrayList(), IntArray(3), IntArray(3))
+					val child = expandNode(node.body, "$declaration/repeat:${node.id}", "$path/repeat:${node.id}[0]", symbols, bindings, repetitions, selected, scopes, repeatPath, currentUnit, 0, level + 1, true)
+					if (child.placed) return child.copy(placed = false)
+					val axis = PatternAxis.of(node.axis).ordinal
+					val length = Math.multiplyExact(child.size(axis), count)
+					val minimum = IntArray(3) { if (it != axis && !child.occupied) child.minimum[it] else 0 }
+					val maximum = IntArray(3) {
+						if (it == axis) {
+							length
+						} else if (child.occupied) {
+							child.size(it)
+						} else {
+							child.maximum[it]
+						}
+					}
+					if (node.direction == PatternRepeatDirection.NEGATIVE) {
+						minimum[axis] = -length
+						maximum[axis] = 0
+					}
+					return Box(ObjectArrayList(), minimum, maximum, occupied = child.occupied)
+				}
 				val children = ObjectArrayList<Box>()
 				repeat(count) { i ->
 					val instance = "$path/repeat:${node.id}[$i]"
 					val childScopes = ObjectArrayList(scopes)
 					childScopes.add("node:${node.id}@$instance")
 					childScopes.add("repeat:${node.id}@$path")
-					children.add(expandNode(node.body, "$declaration/repeat:${node.id}", instance, symbols, bindings, repetitions, selected, childScopes, instance, currentUnit, i, level + 1))
+					children.add(expandNode(node.body, "$declaration/repeat:${node.id}", instance, symbols, bindings, repetitions, selected, childScopes, instance, currentUnit, i, level + 1, boundsOnly))
 				}
 				join(children, PatternAxis.of(node.axis).ordinal, node.direction == PatternRepeatDirection.NEGATIVE).also { it.repeats.add(PatternRepeatInstance(path, declared)) }
 			}
@@ -340,7 +398,7 @@ class PatternLayoutResolver(private val definition: PatternDefinition) {
 				val branch = node.alternatives.firstOrNull { it.id == id } ?: error("Unknown branch '$id' at $path")
 				val childScopes = ObjectArrayList(scopes)
 				childScopes.add("node:${node.id}@$path")
-				expandNode(branch.node, "$declaration/choice:${node.id}/${branch.id}", "$path/choice:${node.id}/${branch.id}", symbols, bindings, repetitions, selected, childScopes, repeatPath, currentUnit, repetition, level + 1).also {
+				expandNode(branch.node, "$declaration/choice:${node.id}/${branch.id}", "$path/choice:${node.id}/${branch.id}", symbols, bindings, repetitions, selected, childScopes, repeatPath, currentUnit, repetition, level + 1, boundsOnly).also {
 					it.choices.add(
 						PatternChoiceInstance(
 							path,
@@ -359,11 +417,11 @@ class PatternLayoutResolver(private val definition: PatternDefinition) {
 				val local = localByDeclaration.computeIfAbsent(declaration) { localSymbols(target, node, symbols) }
 				val childScopes = ObjectArrayList(scopes)
 				childScopes.add("fragment:$targetId@$path")
-				expandNode(bind(target.body, node.bindings), "$declaration/fragment:${node.id}", "$path/fragment:$targetId", local, node.bindings, repetitions, selected, childScopes, repeatPath, currentUnit, repetition, level + 1)
+				expandNode(bind(target.body, node.bindings), "$declaration/fragment:${node.id}", "$path/fragment:$targetId", local, node.bindings, repetitions, selected, childScopes, repeatPath, currentUnit, repetition, level + 1, boundsOnly)
 			}
 
 			is PatternNode.Placed -> {
-				val child = expandNode(node.body, "$declaration/placed", "$path/placed", symbols, bindings, repetitions, selected, scopes, repeatPath, currentUnit, repetition, level + 1)
+				val child = expandNode(node.body, "$declaration/placed", "$path/placed", symbols, bindings, repetitions, selected, scopes, repeatPath, currentUnit, repetition, level + 1, boundsOnly)
 				shift(child, intArrayOf(node.offset.depth, node.offset.height, node.offset.width)).copy(placed = true)
 			}
 		}
@@ -384,7 +442,7 @@ class PatternLayoutResolver(private val definition: PatternDefinition) {
 					0
 				} else if (i == axis) {
 					if (negative) Math.subtractExact(-cursor, box.maximum[i]) else Math.subtractExact(cursor, box.minimum[i])
-				} else if (box.cells.isEmpty()) {
+				} else if (!box.occupied) {
 					0
 				} else {
 					require((crossSize[i] - box.size(i)) % 2 == 0) { "Cannot center nodes of incompatible parity; place the node with an explicit offset" }
@@ -401,7 +459,7 @@ class PatternLayoutResolver(private val definition: PatternDefinition) {
 			}
 			if (!box.placed) cursor = Math.addExact(cursor, box.size(axis))
 		}
-		return Box(cells, if (children.isEmpty()) IntArray(3) else minimum, if (children.isEmpty()) IntArray(3) else maximum, repeatInstances, choiceInstances)
+		return Box(cells, if (children.isEmpty()) IntArray(3) else minimum, if (children.isEmpty()) IntArray(3) else maximum, repeatInstances, choiceInstances, occupied = children.any { it.occupied })
 	}
 
 	private fun shift(box: Box, offset: IntArray): Box {
@@ -409,6 +467,6 @@ class PatternLayoutResolver(private val definition: PatternDefinition) {
 		box.cells.forEach { cells.add(it.copy(depth = Math.addExact(it.depth, offset[0]), height = Math.addExact(it.height, offset[1]), width = Math.addExact(it.width, offset[2]))) }
 		val repeats = ObjectArrayList<PatternRepeatInstance>(box.repeats.size)
 		box.repeats.forEach { repeats.add(it.copy(depth = Math.addExact(it.depth, offset[0]), height = Math.addExact(it.height, offset[1]), width = Math.addExact(it.width, offset[2]))) }
-		return Box(cells, IntArray(3) { Math.addExact(box.minimum[it], offset[it]) }, IntArray(3) { Math.addExact(box.maximum[it], offset[it]) }, repeats, box.choices, box.placed)
+		return Box(cells, IntArray(3) { Math.addExact(box.minimum[it], offset[it]) }, IntArray(3) { Math.addExact(box.maximum[it], offset[it]) }, repeats, box.choices, box.placed, box.occupied)
 	}
 }
