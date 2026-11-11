@@ -1235,6 +1235,10 @@ public class LangHandler {
         provider.add("gtpm.multiblock.pattern.error.coils", "§cAll heating coils must be the same§r");
         provider.add("gtpm.multiblock.pattern.error.filters", "§cAll filters must be the same§r");
         provider.add("gtpm.multiblock.pattern.error.batteries", "§cAll batteries must be the same§r");
+        provider.add("gtpm.multiblock.pattern.error.constraint",
+                "§cMultiblock structure constraints are not satisfied§r");
+        provider.add("gtpm.multiblock.pattern.error.ambiguous_choice",
+                "§cMultiple structure variants match simultaneously§r");
         provider.add("gtpm.multiblock.pattern.clear_amount_1", "§6Must have a clear 1x1x1 space in front§r");
         provider.add("gtpm.multiblock.pattern.clear_amount_3", "§6Must have a clear 3x3x1 space in front§r");
         provider.add("gtpm.multiblock.pattern.single", "§6Only this block can be used§r");
@@ -1247,6 +1251,7 @@ public class LangHandler {
         provider.add("gtpm.multiblock.autobuild.unknown_structure", "Unknown multiblock structure: %s.");
         provider.add("gtpm.multiblock.autobuild.pattern_unavailable",
                 "Multiblock structure pattern is not available: %s.");
+        provider.add("gtpm.multiblock.autobuild.invalid_layout", "Invalid layout for structure %s: %s.");
         provider.add("gtpm.multiblock.autobuild.permission_denied", "No permission at %s.");
         provider.add("gtpm.multiblock.autobuild.invalid_repeat", "Invalid repeat count: %d.");
         provider.add("gtpm.multiblock.autobuild.flip_not_allowed",
@@ -1259,6 +1264,8 @@ public class LangHandler {
         provider.add("gtpm.multiblock.autobuild.blocked", "Target position is blocked: %s.");
         provider.add("gtpm.multiblock.autobuild.no_candidate", "No placeable candidate for %s.");
         provider.add("gtpm.multiblock.autobuild.missing_material", "Missing material for %s.");
+        provider.add("gtpm.multiblock.autobuild.material_changed",
+                "Materials in the player inventory changed before extraction.");
         provider.add("gtpm.multiblock.autobuild.not_placeable", "%s cannot be placed.");
         provider.add("gtpm.multiblock.autobuild.unsupported_liquid_candidate",
                 "Liquid candidate is not supported: %s.");
@@ -1273,11 +1280,69 @@ public class LangHandler {
         provider.add("gtpm.multiblock.autobuild.me_linked_level_missing", "Linked ME dimension is unavailable.");
         provider.add("gtpm.multiblock.autobuild.me_wrong_dimension", "Linked ME access point is in another dimension.");
         provider.add("gtpm.multiblock.autobuild.me_access_point_missing", "Linked ME access point is missing.");
+        provider.add("gtpm.multiblock.autobuild.me_access_point_unloaded",
+                "The linked ME access point's chunk is not loaded.");
         provider.add("gtpm.multiblock.autobuild.me_access_point_inactive", "Linked ME access point is inactive.");
         provider.add("gtpm.multiblock.autobuild.me_out_of_range", "Linked ME access point is out of range.");
         provider.add("gtpm.multiblock.autobuild.me_grid_missing", "Linked ME grid is missing.");
+        provider.add("gtpm.multiblock.autobuild.me_source_changed",
+                "The ME material source changed before extraction.");
         provider.add("gtpm.multiblock.autobuild.structure_check_failed",
                 "Auto-built structure failed final pattern check: %s.");
+        provider.add("gtpm.multiblock.autobuild.break_event_denied",
+                "A block-break event denied automatic building at %s.");
+        provider.add("gtpm.multiblock.autobuild.constraint_unsatisfied",
+                "The selected pattern constraints cannot be satisfied.");
+        provider.add("gtpm.multiblock.autobuild.controller_changed",
+                "The bound multiblock controller changed before execution.");
+        provider.add("gtpm.multiblock.autobuild.controller_unloaded", "The bound multiblock controller is not loaded.");
+        provider.add("gtpm.multiblock.autobuild.count_overflow",
+                "Automatic-build material counts exceeded the supported range.");
+        provider.add("gtpm.multiblock.autobuild.dependency_mode_conflict",
+                "Required structure %s cannot be built and demolished in the same batch.");
+        provider.add("gtpm.multiblock.autobuild.direction_update_failed",
+                "Could not apply the required block direction at %s.");
+        provider.add("gtpm.multiblock.autobuild.execution_failed",
+                "Automatic building failed; the bound terminal session was closed.");
+        provider.add("gtpm.multiblock.autobuild.execution_result", "Auto-build %s: %s placed, %s removed");
+        provider.add("gtpm.multiblock.autobuild.extraction_changed",
+                "Reserved material became unavailable during extraction for %s.");
+        provider.add("gtpm.multiblock.autobuild.invalid_target_level",
+                "The player and multiblock controller are not in the same server level.");
+        provider.add("gtpm.multiblock.autobuild.missing_dependency",
+                "Structure %1$s requires selected build structure %2$s.");
+        provider.add("gtpm.multiblock.autobuild.planning_failed", "Automatic-build planning failed.");
+        provider.add("gtpm.multiblock.autobuild.player_inventory_unavailable",
+                "The player's inventory is unavailable.");
+        provider.add("gtpm.multiblock.autobuild.refund_failed",
+                "Committed automatic-build material could not be returned to its source.");
+        provider.add("gtpm.multiblock.autobuild.rejected_stacks",
+                "A material source returned unexpected stacks during its transaction.");
+        provider.add("gtpm.multiblock.autobuild.spectator_denied", "Spectators cannot execute automatic building.");
+        provider.add("gtpm.multiblock.autobuild.stale_plan", "The automatic-build preview changed before execution.");
+        provider.add("gtpm.multiblock.autobuild.tier_candidate_invalid",
+                "Block %1$s is not a candidate of tier group %2$s in structure %3$s.");
+        provider.add("gtpm.multiblock.autobuild.tier_domain_empty",
+                "The tier selection removed every candidate at pattern cell %s.");
+        provider.add("gtpm.multiblock.autobuild.too_far",
+                "The player is too far from the bound multiblock controller.");
+        provider.add("gtpm.multiblock.autobuild.status.failed", "Failed");
+        provider.add("gtpm.multiblock.autobuild.status.partial_success", "Partially successful");
+        provider.add("gtpm.multiblock.autobuild.status.success", "Successful");
+        provider.add("gtpm.multiblock.autobuild.terminal.access_denied",
+                "You do not have permission to use this controller.");
+        provider.add("gtpm.multiblock.autobuild.terminal.bound", "Bound to %s at %s.");
+        provider.add("gtpm.multiblock.autobuild.terminal.controller_missing",
+                "The bound controller is missing or has been replaced.");
+        provider.add("gtpm.multiblock.autobuild.terminal.execute", "Execute");
+        provider.add("gtpm.multiblock.autobuild.terminal.open_failed", "Could not open the terminal interface.");
+        provider.add("gtpm.multiblock.autobuild.terminal.out_of_range", "The bound controller is out of reach.");
+        provider.add("gtpm.multiblock.autobuild.terminal.result", "%s · P:%s R:%s");
+        provider.add("gtpm.multiblock.autobuild.terminal.unbound",
+                "Bind the terminal to a multiblock controller first.");
+        provider.add("gtpm.multiblock.autobuild.terminal.unloaded", "The bound controller's chunk is not loaded.");
+        provider.add("gtpm.multiblock.autobuild.terminal.wrong_dimension",
+                "The bound controller is in another dimension.");
 
         provider.add("gtpm.multiblock.computation.max", "Max CWU/t: %s");
         provider.add("gtpm.multiblock.computation.usage", "Using: %s");
