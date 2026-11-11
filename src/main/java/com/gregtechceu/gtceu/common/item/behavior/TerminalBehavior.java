@@ -36,7 +36,6 @@ import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
 import com.gregtechceu.gtceu.api.sync_system.rpc.RPCSender;
 import com.gregtechceu.gtceu.client.gui.ClientMultiblockPreviewElement;
 import com.gregtechceu.gtceu.client.renderer.MultiblockInWorldPreviewRenderer;
-import com.gregtechceu.gtceu.common.item.datacomponents.TerminalControllerBinding;
 import com.gregtechceu.gtceu.common.machine.owner.MachineOwner;
 import com.gregtechceu.gtceu.config.ConfigHolder;
 import com.gregtechceu.gtceu.data.pattern.StructurePatternRegistry;
@@ -85,7 +84,15 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
     @Getter
     @Setter
     @SaveField
-    private @Nullable TerminalControllerBinding binding;
+    private BlockPos position = BlockPos.ZERO;
+    @Getter
+    @Setter
+    @SaveField
+    private ResourceLocation dimension = Level.OVERWORLD.location();
+    @Getter
+    @Setter
+    @SaveField
+    private @Nullable ResourceLocation definitionId;
     @Getter
     @SaveField
     @SyncToClient
@@ -132,7 +139,7 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
 
     @RPCMethod
     public void setPolicy(RPCSender sender, BuildPolicy policy) {
-        policies.put(binding.definitionId(), policy);
+        policies.put(definitionId, policy);
         refresh(sender.asPlayer());
     }
 
@@ -140,11 +147,11 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
     public void setStructure(RPCSender sender, StructureRequest request) {
         var definition = (MultiblockMachineDefinition) openedController.getDefinition();
         String name = request.structureName();
-        var current = structures.get(binding.definitionId()).get(name);
+        var current = structures.get(definitionId).get(name);
         if (request.mode() == StructureOperation.DEMOLISH && isRequired(name)) return;
-        structures.get(binding.definitionId()).put(name, normalize(definition, request));
+        structures.get(definitionId).put(name, normalize(definition, request));
         if (current.mode() != request.mode() && request.mode() == StructureOperation.BUILD &&
-                included.get(binding.definitionId()).contains(name)) {
+                included.get(definitionId).contains(name)) {
             includeDependencies(definition, name);
         }
         refresh(sender.asPlayer());
@@ -152,7 +159,7 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
 
     @RPCMethod
     public void setIncluded(RPCSender sender, String name, boolean value) {
-        var selected = included.get(binding.definitionId());
+        var selected = included.get(definitionId);
         if (value) {
             selected.add(name);
             includeDependencies(openedController.getDefinition(), name);
@@ -178,7 +185,7 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                     placed, removed), true);
             refresh(player);
         } catch (RuntimeException exception) {
-            GTCEu.LOGGER.error("Terminal execution failed for {}", binding.definitionId(), exception);
+            GTCEu.LOGGER.error("Terminal execution failed for {}", definitionId, exception);
             player.displayClientMessage(Component.translatable("gtpm.multiblock.autobuild.execution_failed"), true);
             player.closeContainer();
         }
@@ -227,25 +234,25 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
 
     private boolean isRequired(String name) {
         var definition = (MultiblockMachineDefinition) openedController.getDefinition();
-        return included.get(binding.definitionId()).stream().anyMatch(
-                selected -> structures.get(binding.definitionId()).get(selected).mode() == StructureOperation.BUILD &&
+        return included.get(definitionId).stream().anyMatch(
+                selected -> structures.get(definitionId).get(selected).mode() == StructureOperation.BUILD &&
                         definition.getRequiredStructures(selected).contains(name));
     }
 
     private BatchRequest createRequest(ObjectList<MaterialRequest.Result> sources) {
-        var selected = included.get(binding.definitionId());
+        var selected = included.get(definitionId);
         var definition = (MultiblockMachineDefinition) openedController.getDefinition();
         return new BatchRequest(definition.getStructureOrder().stream().filter(selected::contains)
-                .map(structures.get(binding.definitionId())::get).collect(ObjectArrayList.toList()),
-                policies.get(binding.definitionId()), sources);
+                .map(structures.get(definitionId)::get).collect(ObjectArrayList.toList()),
+                policies.get(definitionId), sources);
     }
 
     public void refresh(ServerPlayer player) {
         var definition = (MultiblockMachineDefinition) openedController.getDefinition();
         if (patternGeneration != StructurePatternRegistry.generation()) initialize(definition);
-        var policy = policies.get(binding.definitionId());
-        boolean build = included.get(binding.definitionId()).stream()
-                .anyMatch(name -> structures.get(binding.definitionId()).get(name).mode() == StructureOperation.BUILD);
+        var policy = policies.get(definitionId);
+        boolean build = included.get(definitionId).stream()
+                .anyMatch(name -> structures.get(definitionId).get(name).mode() == StructureOperation.BUILD);
         boundSources = build ? MaterialSources.request(player, new MaterialRequest(ObjectList.of(), getStack(),
                 policy.sources()::contains, null)) : ObjectList.of();
         preview = StructurePreview.bound(definition.getId(),
@@ -287,22 +294,22 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
 
     @Override
     public boolean canCreateUI(HeldItemUIHolder holder, Player player) {
-        TerminalControllerBinding binding = ((TerminalBehavior) holder.getSyncHolder()).getBinding();
-        return binding != null &&
-                GTRegistries.MACHINES.get(binding.definitionId()) instanceof MultiblockMachineDefinition &&
+        TerminalBehavior data = (TerminalBehavior) holder.getSyncHolder();
+        return data.definitionId != null &&
+                GTRegistries.MACHINES.get(data.definitionId) instanceof MultiblockMachineDefinition &&
                 isUIStillValid(holder, player);
     }
 
     @Override
     public boolean isUIStillValid(HeldItemUIHolder holder, Player player) {
         TerminalBehavior data = (TerminalBehavior) holder.getSyncHolder();
-        TerminalControllerBinding binding = data.getBinding();
-        if (binding == null || !ItemStack.isSameItem(holder.getHeld(), holder.getOpenedStack()) ||
-                !binding.dimension().equals(player.level().dimension())) {
+        if (data.definitionId == null || !ItemStack.isSameItem(holder.getHeld(), holder.getOpenedStack()) ||
+                !data.dimension.equals(player.level().dimension().location())) {
             return false;
         }
         if (player.level().isClientSide) return true;
-        MultiblockControllerMachine controller = boundController(player, binding);
+        if (!player.level().isLoaded(data.position)) return false;
+        MultiblockControllerMachine controller = data.boundController(player);
         return controller != null && (data.openedController == null || data.openedController == controller) &&
                 holder.getHeld() == data.getStack() &&
                 canAccess(controller, player, holder.getHand(), holder.getHeld());
@@ -311,11 +318,10 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
     @Override
     public UI createUI(HeldItemUIHolder holder, Player player) {
         TerminalBehavior terminal = (TerminalBehavior) holder.getSyncHolder();
-        TerminalControllerBinding binding = terminal.getBinding();
-        var definition = (MultiblockMachineDefinition) GTRegistries.MACHINES.get(binding.definitionId());
+        var definition = (MultiblockMachineDefinition) GTRegistries.MACHINES.get(terminal.definitionId);
         terminal.initialize(definition);
         if (player instanceof ServerPlayer serverPlayer) {
-            terminal.openedController = (MultiblockControllerMachine) MetaMachine.getMachine(player.level(), binding.position());
+            terminal.openedController = terminal.boundController(player);
             terminal.refresh(serverPlayer);
             var root = new UIElement() {
 
@@ -376,8 +382,8 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                 main.setOverflowVisible(false);
                 addChild(main);
                 title = label(6, 6, 244, definition.getBlock().getName());
-                title.getStyle().tooltips(Component.literal(binding.dimension().location() + " @ " +
-                        binding.position().toShortString()));
+                title.getStyle().tooltips(Component.literal(terminal.dimension + " @ " +
+                        terminal.position.toShortString()));
                 preview = new ClientMultiblockPreviewElement(180, 176, new PreviewVisibility(empty), true);
                 blocks = new BlockChoiceList((group, id) -> change(value -> value.withTierChoice(group, id)));
                 blocks.setDisplay(false);
@@ -516,12 +522,12 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                     y += 20;
                 }
                 if (definition.isRenderWorldPreview()) {
-                    worldVisible = MultiblockInWorldPreviewRenderer.isPreviewVisible(binding.position(), name);
+                    worldVisible = MultiblockInWorldPreviewRenderer.isPreviewVisible(terminal.position, name);
                     visibility = button(0, y, contentWidth,
                             text(worldVisible ? "visible" : "hidden"));
                     visibility.getStyle().tooltips(text("world_preview"));
                     visibility.setOnClick(event -> {
-                        MultiblockInWorldPreviewRenderer.togglePreview(binding.position(), terminal.preview,
+                        MultiblockInWorldPreviewRenderer.togglePreview(terminal.position, terminal.preview,
                                 structureName(),
                                 ConfigHolder.INSTANCE.client.inWorldPreviewDuration * 20);
                         event.stopPropagation();
@@ -645,7 +651,7 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                 if (terminal.preview != null && terminal.preview != displayedPreview) {
                     displayedPreview = terminal.preview;
                     preview.setPreview(displayedPreview);
-                    MultiblockInWorldPreviewRenderer.updatePreview(binding.position(), displayedPreview,
+                    MultiblockInWorldPreviewRenderer.updatePreview(terminal.position, displayedPreview,
                             ConfigHolder.INSTANCE.client.inWorldPreviewDuration * 20);
                 }
                 result.setValue(terminal.status == null ? Component.empty() :
@@ -676,7 +682,7 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                     updateDisplay();
                 }
                 if (visibility != null) {
-                    boolean visible = MultiblockInWorldPreviewRenderer.isPreviewVisible(binding.position(),
+                    boolean visible = MultiblockInWorldPreviewRenderer.isPreviewVisible(terminal.position,
                             structureName());
                     if (worldVisible != visible) {
                         worldVisible = visible;
@@ -721,8 +727,9 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                                 ItemStack terminal) {
         if (!canAccess(controller, player, hand, terminal)) return reject(player, "access_denied");
         TerminalBehavior data = (TerminalBehavior) ItemSyncHolder.create(terminal, player.registryAccess());
-        data.setBinding(new TerminalControllerBinding(controller.getBlockPos(),
-                player.level().dimension(), controller.getDefinition().getId()));
+        data.position = controller.getBlockPos().immutable();
+        data.dimension = player.level().dimension().location();
+        data.definitionId = controller.getDefinition().getId();
         data.saveToStack();
         player.displayClientMessage(Component.translatable("gtpm.multiblock.autobuild.terminal.bound",
                 controller.getDefinition().getBlock().getName(), controller.getBlockPos().toShortString()), true);
@@ -730,31 +737,27 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
     }
 
     private static boolean openBound(ServerPlayer player, InteractionHand hand, ItemStack terminal) {
-        TerminalControllerBinding binding = ((TerminalBehavior) ItemSyncHolder.create(terminal,
-                player.registryAccess()))
-                .getBinding();
-        if (binding == null) return reject(player, "unbound");
-        if (!binding.dimension().equals(player.level().dimension())) return reject(player, "wrong_dimension");
-        if (!player.level().isLoaded(binding.position())) return reject(player, "unloaded");
-        MultiblockControllerMachine controller = boundController(player, binding);
+        TerminalBehavior data = (TerminalBehavior) ItemSyncHolder.create(terminal, player.registryAccess());
+        if (data.definitionId == null) return reject(player, "unbound");
+        if (!data.dimension.equals(player.level().dimension().location())) return reject(player, "wrong_dimension");
+        if (!player.level().isLoaded(data.position)) return reject(player, "unloaded");
+        MultiblockControllerMachine controller = data.boundController(player);
         if (controller == null) return reject(player, "controller_missing");
-        if (player.distanceToSqr(Vec3.atCenterOf(binding.position())) > 64) return reject(player, "out_of_range");
+        if (player.distanceToSqr(Vec3.atCenterOf(data.position)) > 64) return reject(player, "out_of_range");
         if (!canAccess(controller, player, hand, terminal)) return reject(player, "access_denied");
         try {
             return HeldItemUIHelper.open(player, hand) || reject(player, "open_failed");
         } catch (RuntimeException exception) {
-            GTCEu.LOGGER.error("Failed to open terminal bound to {} at {} for {}", binding.definitionId(),
-                    binding.position(), player.getGameProfile().getName(), exception);
+            GTCEu.LOGGER.error("Failed to open terminal bound to {} at {} for {}", data.definitionId,
+                    data.position, player.getGameProfile().getName(), exception);
             return reject(player, "open_failed");
         }
     }
 
-    private static @Nullable MultiblockControllerMachine boundController(Player player,
-                                                                         TerminalControllerBinding binding) {
-        if (!player.level().isLoaded(binding.position())) return null;
+    private @Nullable MultiblockControllerMachine boundController(Player player) {
         return MetaMachine.getMachine(player.level(),
-                binding.position()) instanceof MultiblockControllerMachine controller &&
-                binding.definitionId().equals(controller.getDefinition().getId()) ? controller : null;
+                position) instanceof MultiblockControllerMachine controller &&
+                definitionId.equals(controller.getDefinition().getId()) ? controller : null;
     }
 
     private static boolean canAccess(MultiblockControllerMachine controller, Player player,
