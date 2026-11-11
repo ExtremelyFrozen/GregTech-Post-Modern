@@ -383,13 +383,12 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                 blocks = new BlockChoiceList((group, id) -> change(value -> value.withTierChoice(group, id)));
                 blocks.setDisplay(false);
                 options.scrollerStyle(style -> style.mode(ScrollerMode.VERTICAL)
-                        .verticalScrollDisplay(ScrollDisplay.AUTO).horizontalScrollDisplay(ScrollDisplay.NEVER)
+                        .verticalScrollDisplay(ScrollDisplay.NEVER).horizontalScrollDisplay(ScrollDisplay.NEVER)
                         .scrollerViewStyle(0));
                 options.viewPort(port -> {
                     port.getLayout().paddingAll(4);
                     port.getStyle().backgroundTexture(GuiTextures.BACKGROUND_INVERSE);
                 });
-                options.verticalScroller(scroll -> scroll.getLayout().width(2));
                 execute = button(242, 180, 54, Component.translatable("gtpm.multiblock.autobuild.terminal.execute"));
                 execute.setOnClick(event -> {
                     terminal.rpcToServer("execute", Long.parseUnsignedLong(terminal.preview.fingerprint(), 16));

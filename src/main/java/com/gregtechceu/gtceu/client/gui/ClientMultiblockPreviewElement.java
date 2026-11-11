@@ -202,11 +202,11 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         });
         addChild(hatchButton);
 
-        diagnosticLabel = new GTLabelElement(8, Math.max(42, sceneHeight / 2 - 10),
-                width - 16, 24, Component.empty());
+        diagnosticLabel = new GTLabelElement(8, sceneHeight - 14, width - 16, 10, Component.empty());
+        diagnosticLabel.textStyle(style -> style.adaptiveWidth(false).adaptiveHeight(false).fontSize(8));
         diagnosticLabel.setTextColor(0xffff6060);
         diagnosticLabel.setTextShadow(true);
-        diagnosticLabel.setTextWrap(TextWrap.WRAP);
+        diagnosticLabel.setTextWrap(TextWrap.HIDE);
         diagnosticLabel.setAllowHitTest(false);
         addChild(diagnosticLabel);
 
@@ -232,7 +232,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         focusButton.getLayout().left(width - (fullscreen ? 108 : 22)).top(fullscreen ? 8 : 4);
         layerButton.getLayout().left(width - (fullscreen ? 88 : 22)).top(fullscreen ? 8 : 24);
         hatchButton.getLayout().left(width - (fullscreen ? 68 : 22)).top(fullscreen ? 8 : 44);
-        diagnosticLabel.getLayout().top((float) sceneHeight / 2 - 10).width(width - 16);
+        diagnosticLabel.getLayout().top(height - MATERIAL_BAR_HEIGHT - 14).width(width - 16);
         layoutCandidates(height);
         rebuildRenderedCore(true);
         rebuildMaterials();
@@ -539,6 +539,9 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         diagnosticLabel.setText(diagnostics.isEmpty() ? Component.empty() :
                 Component.translatable("gtpm.multiblock.preview.diagnostic",
                         diagnosticDescription(diagnostics.getFirst())));
+        diagnosticLabel.getStyle().tooltips(diagnostics.stream()
+                .map(ClientMultiblockPreviewElement::diagnosticDescription).toArray(Component[]::new));
+        diagnosticLabel.setAllowHitTest(!diagnostics.isEmpty());
     }
 
     private static Component diagnosticDescription(StructurePreview.Diagnostic diagnostic) {

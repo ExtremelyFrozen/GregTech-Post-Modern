@@ -97,13 +97,12 @@ public final class PatternPreviewWidget extends UIElement {
         blocks.setDisplay(false);
         addChild(blocks);
         options.scrollerStyle(style -> style.mode(ScrollerMode.VERTICAL)
-                .verticalScrollDisplay(ScrollDisplay.AUTO).horizontalScrollDisplay(ScrollDisplay.NEVER)
+                .verticalScrollDisplay(ScrollDisplay.NEVER).horizontalScrollDisplay(ScrollDisplay.NEVER)
                 .scrollerViewStyle(0));
         options.viewPort(port -> {
             port.getLayout().paddingAll(4);
             port.getStyle().backgroundTexture(GuiTextures.BACKGROUND_INVERSE);
         });
-        options.verticalScroller(scroll -> scroll.getLayout().width(2));
         main.addChild(options);
         edit = button(238, 4, 16, Component.literal("✎"));
         edit.getStyle().tooltips(text("edit"));
