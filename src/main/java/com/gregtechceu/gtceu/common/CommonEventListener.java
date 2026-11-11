@@ -70,6 +70,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.LevelChunk;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -82,6 +83,7 @@ import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.event.level.BlockEvent;
+import net.neoforged.neoforge.event.level.ChunkEvent;
 import net.neoforged.neoforge.event.level.ChunkWatchEvent;
 import net.neoforged.neoforge.event.level.LevelEvent;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
@@ -90,11 +92,16 @@ import net.neoforged.neoforge.event.server.ServerStoppingEvent;
 import net.neoforged.neoforge.event.tick.EntityTickEvent;
 import net.neoforged.neoforge.event.tick.LevelTickEvent;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.network.PacketDistributor;
 
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+
 @EventBusSubscriber(modid = GTCEu.MOD_ID)
 public class CommonEventListener {
+
+    private static int multiblockLevelStart;
 
     @SubscribeEvent
     public static void registerCapes(RegisterGTCapesEvent event) {
@@ -211,6 +218,33 @@ public class CommonEventListener {
                 EnvironmentalHazardSavedData.getOrCreate(serverLevel).tick();
                 LocalizedHazardSavedData.getOrCreate(serverLevel).tick();
             }
+        }
+    }
+
+    @SubscribeEvent
+    public static void multiblockTick(ServerTickEvent.Post event) {
+        ObjectArrayList<ServerLevel> levels = new ObjectArrayList<>();
+        event.getServer().getAllLevels().forEach(levels::add);
+        if (levels.isEmpty()) return;
+        int start = Math.floorMod(multiblockLevelStart++, levels.size());
+        long deadline = System.nanoTime() + 5_000_000L;
+        for (int index = 0; index < levels.size() && System.nanoTime() < deadline; index++) {
+            ServerLevel level = levels.get((start + index) % levels.size());
+            MultiblockWorldSavedData.getOrCreate(level).tickFormationChecks(level, deadline);
+        }
+    }
+
+    @SubscribeEvent
+    public static void multiblockChunkLoad(ChunkEvent.Load event) {
+        if (event.getLevel() instanceof ServerLevel level && event.getChunk() instanceof LevelChunk chunk) {
+            MultiblockWorldSavedData.getOrCreate(level).rebuildChunkIndex(chunk);
+        }
+    }
+
+    @SubscribeEvent
+    public static void multiblockChunkUnload(ChunkEvent.Unload event) {
+        if (event.getLevel() instanceof ServerLevel level && event.getChunk() instanceof LevelChunk chunk) {
+            MultiblockWorldSavedData.getOrCreate(level).clearChunkIndex(chunk);
         }
     }
 

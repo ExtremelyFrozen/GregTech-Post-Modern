@@ -167,48 +167,58 @@ public class MultiblockState {
     }
 
     public void onBlockStateChanged(BlockPos pos, BlockState state) {
+        LongOpenHashSet changedPositions = new LongOpenHashSet(1);
+        changedPositions.add(pos.asLong());
+        onBlockStateChanged(changedPositions);
+    }
+
+    public void onBlockStateChanged(LongOpenHashSet changedPositions) {
         if (world instanceof ServerLevel serverLevel) {
-            if (pos.equals(controllerPos)) {
+            if (changedPositions.contains(controllerPos.asLong())) {
                 if (lastController != null) {
-                    if (!state.is(lastController.self().getBlockState().getBlock())) {
+                    if (!world.getBlockState(controllerPos).is(lastController.self().getBlockState().getBlock())) {
                         lastController.invalidateStructure(structureName);
                         var mwsd = MultiblockWorldSavedData.getOrCreate(serverLevel);
                         mwsd.removeMapping(this);
+                        mwsd.removeAsyncLogic(lastController);
                     }
                 }
+                return;
+            }
+
+            MultiblockControllerMachine controller = getController();
+            if (controller == null && error == UNLOAD_ERROR) {
+                if (!serverLevel.isLoaded(controllerPos)) {
+                    GTCEu.LOGGER.info("Controller not loaded, pos {}", controllerPos);
+                }
+            }
+            if (controller == null) return;
+
+            if (controller.isStructureFormed(structureName)) {
+                LongSet activeBlocks = getFacts().getOrDefault("vaBlocks", LongSets.emptySet());
+                boolean onlyActiveChanges = !changedPositions.isEmpty();
+                for (long changedPosition : changedPositions) {
+                    BlockPos changedPos = BlockPos.of(changedPosition);
+                    onlyActiveChanges &= activeBlocks.contains(changedPosition) &&
+                            world.getBlockState(changedPos).getBlock() instanceof ActiveBlock;
+                }
+                if (onlyActiveChanges) return;
+            }
+
+            if (controller.checkPatternWithLock(structureName)) {
+                if (MultiblockControllerMachine.DEFAULT_STRUCTURE.equals(structureName)) {
+                    controller.setFlipped(this.neededFlip);
+                }
+                controller.formStructure(structureName);
+                MultiblockWorldSavedData.getOrCreate(serverLevel).addMapping(this);
             } else {
-                MultiblockControllerMachine controller = getController();
-                if (controller == null && error == UNLOAD_ERROR) {
-                    if (!serverLevel.isLoaded(controllerPos)) {
-                        GTCEu.LOGGER.info("Controller not loaded, pos {}", controllerPos);
-                    }
+                if (MultiblockControllerMachine.DEFAULT_STRUCTURE.equals(structureName)) {
+                    controller.setFlipped(false);
                 }
-                if (controller != null) {
-                    if (controller.isStructureFormed(structureName) && state.getBlock() instanceof ActiveBlock) {
-                        LongSet activeBlocks = getFacts().getOrDefault("vaBlocks", LongSets.emptySet());
-                        if (activeBlocks.contains(pos.asLong())) {
-                            // fine! it's caused by active blocks.
-                            // speed up here!
-                            return;
-                        }
-                    }
-                    if (controller.checkPatternWithLock(structureName)) {
-                        // refresh structure
-                        if (MultiblockControllerMachine.DEFAULT_STRUCTURE.equals(structureName)) {
-                            controller.setFlipped(this.neededFlip);
-                        }
-                        controller.formStructure(structureName);
-                    } else {
-                        // invalid structure
-                        if (MultiblockControllerMachine.DEFAULT_STRUCTURE.equals(structureName)) {
-                            controller.setFlipped(false);
-                        }
-                        controller.invalidateStructure(structureName);
-                        var mwsd = MultiblockWorldSavedData.getOrCreate(serverLevel);
-                        mwsd.removeMapping(this);
-                        mwsd.addAsyncLogic(controller);
-                    }
-                }
+                controller.invalidateStructure(structureName);
+                MultiblockWorldSavedData mwsd = MultiblockWorldSavedData.getOrCreate(serverLevel);
+                mwsd.removeMapping(this);
+                mwsd.addAsyncLogic(controller);
             }
         }
     }

@@ -87,6 +87,7 @@
 		"neoforge.ConfiguredModelBuilderAccessor",
 		"neoforge.ConfiguredModelListAccessor",
 		"neoforge.GameDataMixin",
+		"multiblock.LevelChunkMixin",
 		"registrate.AbstractRegistrateAccessor",
 		"registrate.RegistrateDataProviderAccessor"
 	],

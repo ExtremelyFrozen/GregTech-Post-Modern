@@ -99,7 +99,9 @@ public class MultiblockControllerMachine extends MetaMachine {
     public void onUnload() {
         super.onUnload();
         if (getLevel() instanceof ServerLevel serverLevel) {
-            MultiblockWorldSavedData.getOrCreate(serverLevel).removeAsyncLogic(this);
+            var data = MultiblockWorldSavedData.getOrCreate(serverLevel);
+            data.removeAsyncLogic(this);
+            for (var state : multiblockStates.values()) data.removeMapping(state);
         }
     }
 
@@ -400,37 +402,13 @@ public class MultiblockControllerMachine extends MetaMachine {
     @Getter
     private final Lock patternLock = new ReentrantLock();
 
-    /**
-     * Called in an async thread. It's unsafe, Don't modify anything of world but checking information.
-     * It will be called per 5 tick.
-     *
-     * @param periodID period Tick
-     */
+    /** Queues a backoff retry for each structure that is still unformed. */
     public void asyncCheckPattern(long periodID) {
         for (String structureName : getDefinition().getStructureNames()) {
             MultiblockState state = getMultiblockState(structureName);
-            if ((state.hasError() || !isStructureFormed(structureName)) && (getOffset() + periodID) % 4 == 0 &&
-                    checkPatternWithTryLock(structureName)) { // per second
+            if (state.hasError() || !isStructureFormed(structureName)) {
                 if (getLevel() instanceof ServerLevel serverLevel) {
-                    serverLevel.getServer().execute(() -> {
-                        patternLock.lock();
-                        try {
-                            if (checkPattern(structureName)) { // formed
-                                MultiblockState checkedState = getMultiblockState(structureName);
-                                if (DEFAULT_STRUCTURE.equals(structureName)) {
-                                    setFlipped(checkedState.isNeededFlip());
-                                }
-                                formStructure(structureName);
-                                var mwsd = MultiblockWorldSavedData.getOrCreate(serverLevel);
-                                mwsd.addMapping(checkedState);
-                                if (!hasPendingStructureSearch()) {
-                                    mwsd.removeAsyncLogic(this);
-                                }
-                            }
-                        } finally {
-                            patternLock.unlock();
-                        }
-                    });
+                    MultiblockWorldSavedData.getOrCreate(serverLevel).queuePatternCheck(state);
                 }
             }
         }
