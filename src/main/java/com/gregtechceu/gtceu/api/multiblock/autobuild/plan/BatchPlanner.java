@@ -6,7 +6,6 @@ import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.BuildProblem;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialKey;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.BatchRequest;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.BuildPolicy;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.StructureOperation;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.StructureRequest;
 import com.gregtechceu.gtceu.api.multiblock.pattern.layout.PatternLayoutCell;
@@ -65,7 +64,7 @@ public final class BatchPlanner {
      */
     public BatchPlan resolveCanonical(MultiblockMachineDefinition definition, BatchRequest request) {
         return CANONICAL_PLANS.computeIfAbsent(
-                new CanonicalKey(definition, request.structures(), request.sharedOptions(),
+                new CanonicalKey(definition, request.structures(), request.noHatchMode(),
                         StructurePatternRegistry.generation()),
                 key -> resolve(definition, request,
                         new ResolutionContext(null, null, null, BlockPos.ZERO, CANONICAL_FRONT,
@@ -214,7 +213,7 @@ public final class BatchPlanner {
         ObjectArrayList<StructurePlan> demolitionPlans = new ObjectArrayList<>();
         ObjectArrayList<StructurePlan> buildPlans = new ObjectArrayList<>();
         for (PendingStructure structure : pending) {
-            StructurePlan plan = resolveStructure(definition, structure, request.sharedOptions(), context,
+            StructurePlan plan = resolveStructure(definition, structure, request.noHatchMode(), context,
                     materials);
             if (structure.options().mode() == StructureOperation.DEMOLISH) {
                 demolitionPlans.add(plan);
@@ -305,7 +304,7 @@ public final class BatchPlanner {
     }
 
     private record CanonicalKey(MultiblockMachineDefinition definition, ObjectList<StructureRequest> structures,
-                                BuildPolicy policy, long generation) {}
+                                boolean noHatchMode, long generation) {}
 
     public record PendingStructure(StructureRequest options, IntList repetitions,
                                    ObjectList<UnresolvedCell> cells, ObjectList<ConstraintLimit> requirements,

@@ -4,7 +4,6 @@ import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialKey;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.BatchRequest;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.BuildPolicy;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.StructureRequest;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.BatchPlanner;
 import com.gregtechceu.gtceu.api.multiblock.preview.PatternGenerationGuard;
@@ -38,7 +37,7 @@ public final class MultiblockInfo {
 
     @Getter
     private final MultiblockMachineDefinition definition;
-    private BuildPolicy policy = BuildPolicy.DEFAULT;
+    private boolean noHatchMode = true;
     private final Object2ObjectMap<String, StructureRequest> structures = new Object2ObjectLinkedOpenHashMap<>();
     private final ObjectSet<String> included = new ObjectLinkedOpenHashSet<>();
     private @Nullable Resolution<StructurePreview> preview;
@@ -58,14 +57,14 @@ public final class MultiblockInfo {
         preview = null;
     }
 
-    public BuildPolicy getPolicy() {
+    public boolean isNoHatchMode() {
         initialize();
-        return policy;
+        return noHatchMode;
     }
 
-    public void setPolicy(BuildPolicy policy) {
+    public void setNoHatchMode(boolean noHatchMode) {
         initialize();
-        this.policy = policy;
+        this.noHatchMode = noHatchMode;
         preview = null;
     }
 
@@ -107,7 +106,7 @@ public final class MultiblockInfo {
         if (generation == current) return;
         structures.clear();
         included.clear();
-        policy = BuildPolicy.DEFAULT;
+        noHatchMode = true;
         var planner = new BatchPlanner();
         for (String name : definition.getStructureOrder()) {
             structures.put(name, planner.defaultStructureOptions(definition, name));
@@ -127,7 +126,7 @@ public final class MultiblockInfo {
             var requests = definition.getStructureOrder().stream().filter(included::contains)
                     .map(structures::get).collect(ObjectImmutableList.toList());
             var plan = new BatchPlanner().resolveCanonical(definition,
-                    new BatchRequest(requests, policy, ObjectList.of()));
+                    new BatchRequest(requests, false, noHatchMode, ObjectList.of()));
             var result = StructurePreview.canonical(definition.getId(), plan);
             var materials = new ObjectArrayList<>(result.materials());
             materials.addFirst(new StructurePreview.Material(ObjectList.of(definition.asStack()),

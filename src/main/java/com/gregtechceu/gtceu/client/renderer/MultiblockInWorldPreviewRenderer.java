@@ -5,7 +5,6 @@ import com.gregtechceu.gtceu.api.GTValues;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.multiblock.MultiblockPreviewLevel;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.BatchRequest;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.BuildPolicy;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.StructureRequest;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.BatchPlan;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.BatchPlanner;
@@ -335,7 +334,7 @@ public final class MultiblockInWorldPreviewRenderer {
                 .filter(selected::contains)
                 .map(name -> resolver.defaultStructureOptions(definition, name))
                 .collect(ObjectImmutableList.toList());
-        return new BatchRequest(structures, BuildPolicy.DEFAULT, ObjectList.of());
+        return new BatchRequest(structures, false, true, ObjectList.of());
     }
 
     public static void onClientTick() {

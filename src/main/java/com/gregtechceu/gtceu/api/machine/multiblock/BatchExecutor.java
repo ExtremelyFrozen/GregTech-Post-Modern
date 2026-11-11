@@ -234,7 +234,7 @@ public final class BatchExecutor {
             }
             if (cell.blockState().isAir()) {
                 if (!current.isAir()) {
-                    if (!request.sharedOptions().replaceMode()) {
+                    if (!request.replaceMode()) {
                         work.problems().add(problem(pos,
                                 "gtpm.multiblock.autobuild.blocked", position(pos)));
                         return work;
@@ -260,7 +260,7 @@ public final class BatchExecutor {
                 continue;
             }
             boolean replaceable = current.isAir() || current.canBeReplaced();
-            if (!current.isAir() && !request.sharedOptions().replaceMode()) {
+            if (!current.isAir() && !request.replaceMode()) {
                 work.problems().add(problem(pos,
                         "gtpm.multiblock.autobuild.blocked", position(pos)));
                 return work;

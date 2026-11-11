@@ -11,7 +11,6 @@ import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.multiblock.MultiblockBlockInfo;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.BuildPolicy;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.StructureOperation;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.StructureRequest;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.BatchPlanner;
@@ -213,14 +212,12 @@ public final class PatternPreviewWidget extends UIElement {
         options.clearAllScrollViewChildren();
         controls.clear();
         int width = 44;
-        var policy = info.getPolicy();
         String name = structureName();
         var structure = info.getStructures().get(name);
         var noHatches = button(0, 0, width, text("casings"));
-        noHatches.textStyle(style -> style.textColor(policy.noHatchMode() ? 0xff167129 : 0xff404040));
+        noHatches.textStyle(style -> style.textColor(info.isNoHatchMode() ? 0xff167129 : 0xff404040));
         noHatches.setOnClick(event -> {
-            applyChange(() -> info
-                    .setPolicy(new BuildPolicy(policy.replaceMode(), !policy.noHatchMode(), policy.sources())));
+            applyChange(() -> info.setNoHatchMode(!info.isNoHatchMode()));
             event.stopPropagation();
         });
         options.addScrollViewChild(noHatches);

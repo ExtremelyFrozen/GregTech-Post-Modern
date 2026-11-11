@@ -3,7 +3,6 @@ package com.gregtechceu.gtceu.api.multiblock.autobuild.plan;
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.BuildProblem;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialKey;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.BuildPolicy;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.StructureOperation;
 import com.gregtechceu.gtceu.api.multiblock.pattern.match.MultiBlockPattern;
 
@@ -28,7 +27,7 @@ public final class StructurePlanner {
 
     public static StructurePlan resolveStructure(MultiblockMachineDefinition definition,
                                                  PendingStructure pending,
-                                                 BuildPolicy sharedOptions,
+                                                 boolean noHatchMode,
                                                  ResolutionContext context,
                                                  MaterialAllocation materials) {
         ObjectArrayList<BuildProblem> problems = new ObjectArrayList<>(pending.problems());
@@ -40,7 +39,7 @@ public final class StructurePlanner {
         }
         boolean buildMode = pending.options().mode() == StructureOperation.BUILD;
         CandidateSearch solver = new CandidateSearch(
-                sharedOptions.noHatchMode() && buildMode, materials, buildMode, context.canonical());
+                noHatchMode && buildMode, materials, buildMode, context.canonical());
         ObjectList<UnresolvedCell> observedCells = materials.applyVirtualWorld(pending.cells());
         int worldProblems = problems.size();
         ObjectList<SelectedCell> selected = solver.solve(observedCells, pending.requirements(), problems);
