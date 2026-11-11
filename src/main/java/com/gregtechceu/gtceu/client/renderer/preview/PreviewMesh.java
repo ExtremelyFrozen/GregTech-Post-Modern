@@ -25,14 +25,17 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.ByteBufferBuilder;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.vertex.MeshData.SortState;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexBuffer;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.blaze3d.vertex.VertexFormat;
+import com.mojang.blaze3d.vertex.VertexSorting;
 import it.unimi.dsi.fastutil.longs.LongList;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectList;
 import org.joml.Matrix4f;
+import org.joml.Vector3f;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
@@ -47,6 +50,10 @@ public final class PreviewMesh implements AutoCloseable {
     private final float scale;
     private final PoseStack pose = new PoseStack();
     private final RandomSource random = RandomSource.create();
+    private final Matrix4f sortedView = new Matrix4f().zero();
+    private final Matrix4f inverseView = new Matrix4f();
+    private final Vector3f sortingOrigin = new Vector3f();
+    private final VertexSorting sorting = VertexSorting.byDistance(sortingOrigin);
     private final BlockPos.MutableBlockPos position = new BlockPos.MutableBlockPos();
     private final @Nullable Layer[] layers = new Layer[RenderType.chunkBufferLayers().size()];
     private final ObjectList<RenderedBlockEntity> blockEntities = new ObjectArrayList<>();
@@ -64,7 +71,7 @@ public final class PreviewMesh implements AutoCloseable {
     }
 
     /** Advances only changed geometry, yielding after a frame's 2 ms compile budget. */
-    public boolean compile() {
+    public boolean compile(Matrix4f modelView) {
         var currentModels = Minecraft.getInstance().getModelManager().getModelBakery();
         if (models != currentModels) {
             close();
@@ -79,8 +86,13 @@ public final class PreviewMesh implements AutoCloseable {
                 if (System.nanoTime() >= deadline) return false;
             }
             while (uploadCursor < layers.length) {
-                var layer = layers[uploadCursor++];
-                if (layer != null) layer.upload();
+                int index = uploadCursor++;
+                var layer = layers[index];
+                if (layer != null) {
+                    boolean translucent = index == RenderType.translucent().getChunkLayerId();
+                    if (translucent) prepareSorting(modelView);
+                    layer.upload(translucent ? sorting : null);
+                }
                 if (System.nanoTime() >= deadline && uploadCursor < layers.length) return false;
             }
             compiled = true;
@@ -149,9 +161,17 @@ public final class PreviewMesh implements AutoCloseable {
             if (type == RenderType.translucent()) renderBlockEntities(poseStack, partialTick);
             var layer = layers[type.getChunkLayerId()];
             if (layer == null || layer.buffer == null) continue;
+            RenderSystem.setShaderColor(1, 1, 1, 1);
             type.setupRenderState();
             try {
                 layer.buffer.bind();
+                if (layer.translucency != null && !sortedView.equals(modelView)) {
+                    prepareSorting(modelView);
+                    var translucency = layer.translucency;
+                    layer.buffer
+                            .uploadIndexBuffer(translucency.state.buildSortedIndexBuffer(translucency.memory, sorting));
+                    translucency.memory.clear();
+                }
                 layer.buffer.drawWithShader(modelView, projection, RenderSystem.getShader());
             } finally {
                 VertexBuffer.unbind();
@@ -160,15 +180,23 @@ public final class PreviewMesh implements AutoCloseable {
         }
     }
 
+    private void prepareSorting(Matrix4f modelView) {
+        inverseView.set(modelView).invertAffine().getTranslation(sortingOrigin);
+        sortedView.set(modelView);
+    }
+
     private void renderBlockEntities(PoseStack poseStack, float partialTick) {
         var buffers = Minecraft.getInstance().renderBuffers().bufferSource();
         for (var entry : blockEntities) {
             var pos = entry.entity.getBlockPos();
             poseStack.pushPose();
-            poseStack.translate(pos.getX(), pos.getY(), pos.getZ());
-            entry.renderer.render(entry.entity, partialTick, poseStack, buffers,
-                    LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY);
-            poseStack.popPose();
+            try {
+                poseStack.translate(pos.getX(), pos.getY(), pos.getZ());
+                entry.renderer.render(entry.entity, partialTick, poseStack, buffers,
+                        LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY);
+            } finally {
+                poseStack.popPose();
+            }
         }
         buffers.endBatch();
     }
@@ -180,6 +208,7 @@ public final class PreviewMesh implements AutoCloseable {
             if (layer == null) continue;
             if (layer.buffer != null) layer.buffer.close();
             if (!layer.uploaded) layer.memory.close();
+            if (layer.translucency != null) layer.translucency.memory.close();
             layers[i] = null;
         }
         blockEntities.clear();
@@ -190,6 +219,8 @@ public final class PreviewMesh implements AutoCloseable {
 
     private record RenderedBlockEntity(BlockEntity entity, BlockEntityRenderer<BlockEntity> renderer) {}
 
+    private record Translucency(SortState state, ByteBufferBuilder memory) {}
+
     private static final class Layer {
 
         private final ByteBufferBuilder memory = new ByteBufferBuilder(65_536);
@@ -197,12 +228,16 @@ public final class PreviewMesh implements AutoCloseable {
                 DefaultVertexFormat.BLOCK);
         private final Vertices vertices = new Vertices(builder);
         private @Nullable VertexBuffer buffer;
+        private @Nullable Translucency translucency;
         private boolean uploaded;
 
-        private void upload() {
+        private void upload(@Nullable VertexSorting sorting) {
             try {
                 var mesh = builder.build();
                 if (mesh != null) {
+                    if (sorting != null) {
+                        translucency = new Translucency(mesh.sortQuads(memory, sorting), new ByteBufferBuilder(65_536));
+                    }
                     buffer = new VertexBuffer(VertexBuffer.Usage.STATIC);
                     buffer.bind();
                     try {

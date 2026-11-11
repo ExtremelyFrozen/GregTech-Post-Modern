@@ -113,7 +113,7 @@ public final class PreviewRenderer extends ImmediateWorldSceneRenderer {
     protected void drawWorld() {
         if (mesh != null) {
             try {
-                if (mesh.compile()) {
+                if (mesh.compile(RenderSystem.getModelViewMatrix())) {
                     mesh.render(RenderSystem.getModelViewMatrix(), RenderSystem.getProjectionMatrix(),
                             pose, Minecraft.getInstance().getTimer().getGameTimeDeltaPartialTick(false));
                 }
