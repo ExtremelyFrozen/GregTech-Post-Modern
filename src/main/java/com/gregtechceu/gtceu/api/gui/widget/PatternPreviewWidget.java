@@ -133,6 +133,22 @@ public final class PatternPreviewWidget extends UIElement {
         return ModularUI.of(UI.of(root, root::resize));
     }
 
+    /** Starts a new recipe page with default choices, including when LDLib reuses its cached UI. */
+    public void reset() {
+        if (info.isResuming()) return;
+        info.reset();
+        selectedStructure = 0;
+        editing = false;
+        edit.setText(Component.literal("✎"));
+        blocks.setDisplay(false);
+        blocks.close();
+        var resolved = info.resolvePreview();
+        observedGeneration = resolved.generation();
+        preview.reset(resolved.value());
+        rebuildOptions();
+        blocks.setInteractive(true);
+    }
+
     private Size resize(Size screen) {
         pageWidth = expanded ? screen.getWidth() : Math.min(WIDTH, screen.getWidth());
         pageHeight = expanded ? screen.getHeight() : Math.min(HEIGHT, screen.getHeight());
@@ -318,7 +334,12 @@ public final class PatternPreviewWidget extends UIElement {
             @Override
             public void onClose() {
                 publishPreview();
-                client.setScreen(parent);
+                info.setResuming(true);
+                try {
+                    client.setScreen(parent);
+                } finally {
+                    info.setResuming(false);
+                }
             }
         });
     }

@@ -118,7 +118,9 @@ public class MultiblockInfoCategory extends ModularUIRecipeCategory<MultiblockIn
 
     @Override
     public void setRecipe(IRecipeLayoutBuilder builder, MultiblockInfo recipe, IFocusGroup focuses) {
-        getUIForRecipe(recipe).init(getWidth(), getHeight());
+        var ui = getUIForRecipe(recipe);
+        ui.init(getWidth(), getHeight());
+        ((PatternPreviewWidget) ui.ui.rootElement).reset();
         super.setRecipe(builder, recipe, focuses);
         builder.addSlot(RecipeIngredientRole.OUTPUT)
                 .addItemStacks(recipe.getOutputs())

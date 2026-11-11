@@ -25,6 +25,7 @@ import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ObjectList;
 import it.unimi.dsi.fastutil.objects.ObjectSet;
 import lombok.Getter;
+import lombok.Setter;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
@@ -43,9 +44,18 @@ public final class MultiblockInfo {
     private @Nullable Resolution<StructurePreview> preview;
     private volatile @Nullable Resolution<ObjectList<MaterialKey>> inputs;
     private long generation = -1;
+    @Getter
+    @Setter
+    private boolean resuming;
 
     public MultiblockInfo(MultiblockMachineDefinition definition) {
         this.definition = definition;
+    }
+
+    /** Restores default choices for a newly opened recipe page. */
+    public void reset() {
+        generation = -1;
+        preview = null;
     }
 
     public BuildPolicy getPolicy() {

@@ -79,7 +79,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
     private static final int MATERIAL_BAR_HEIGHT = 24;
     private static final boolean FTB_LIBRARY_LOADED = GTCEu.isModLoaded("ftblibrary");
 
-    private final PreviewVisibility state;
+    private PreviewVisibility state;
     private MultiblockPreviewLevel previewLevel;
     @Nullable
     private Level sourceLevel;
@@ -247,6 +247,13 @@ public final class ClientMultiblockPreviewElement extends UIElement {
     public void setPreview(StructurePreview preview) {
         clearCandidates();
         state.setPreview(preview);
+        rebuildPreview(true);
+    }
+
+    public void reset(StructurePreview preview) {
+        clearCandidates();
+        state = new PreviewVisibility(preview);
+        materialPage = 0;
         rebuildPreview(true);
     }
 

@@ -45,6 +45,7 @@ public class MultiblockInfoEmiRecipe extends ModularUIEMIRecipe {
     public void addWidgets(@NotNull WidgetHolder widgets) {
         var ui = getModularUI();
         ui.init(getDisplayWidth(), getDisplayHeight());
+        ((PatternPreviewWidget) ui.ui.rootElement).reset();
         var widget = new ModularUIEMIWidget(ui) {
 
             private final Matrix4f localToScreen = new Matrix4f();
