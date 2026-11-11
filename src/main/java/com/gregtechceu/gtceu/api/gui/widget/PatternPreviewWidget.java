@@ -6,6 +6,8 @@ import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTButtonElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
+import com.gregtechceu.gtceu.api.gui.texture.ColorRectTexture;
+import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.multiblock.MultiblockBlockInfo;
@@ -120,6 +122,10 @@ public final class PatternPreviewWidget extends UIElement {
             event.stopPropagation();
         });
         main.addChildren(edit, fullscreen);
+        title.getStyle().zIndex(1);
+        options.getStyle().zIndex(1);
+        edit.getStyle().zIndex(1);
+        fullscreen.getStyle().zIndex(1);
         rebuildOptions();
     }
 
@@ -131,22 +137,29 @@ public final class PatternPreviewWidget extends UIElement {
     private Size resize(Size screen) {
         pageWidth = expanded ? screen.getWidth() : Math.min(WIDTH, screen.getWidth());
         pageHeight = expanded ? screen.getHeight() : Math.min(HEIGHT, screen.getHeight());
-        int contentWidth = pageWidth - (expanded ? BlockChoiceList.WIDTH + 8 : 0);
-        int headerRight = contentWidth - (expanded ? 0 : 22);
-        title.getLayout().width(headerRight - 48);
-        edit.getLayout().left(headerRight - 40);
-        fullscreen.getLayout().left(headerRight - 22);
+        int headerRight = pageWidth - (expanded ? 4 : 22);
+        title.getLayout().left(expanded ? 8 : 6).top(expanded ? 10 : 6)
+                .width(expanded ? Math.min(220, pageWidth - 130) : headerRight - 48);
+        title.textStyle(style -> style.textColor(expanded ? 0xffffffff : 0xff404040).textShadow(expanded));
+        edit.getLayout().left(headerRight - 40).top(expanded ? 8 : 4);
+        fullscreen.getLayout().left(headerRight - 22).top(expanded ? 8 : 4);
         rebuildOptions();
         return Size.of(pageWidth, pageHeight);
     }
 
-    private void layoutContent() {
-        int contentWidth = pageWidth - (expanded ? BlockChoiceList.WIDTH + 8 : 0);
-        UITemplate.setBounds(main, 0, 0, contentWidth, pageHeight);
-        preview.getLayout().left(4).top(20);
-        preview.resize(contentWidth - 66, pageHeight - 24);
-        UITemplate.setBounds(options, contentWidth - 58, 20, 54, pageHeight - 24);
-        blocks.resize(contentWidth + 4, 20, pageHeight - 24);
+    private void layoutContent(int optionHeight) {
+        UITemplate.setBounds(main, 0, 0, pageWidth, pageHeight);
+        main.getStyle().backgroundTexture(expanded ? IGuiTexture.EMPTY : GuiTextures.BACKGROUND);
+        preview.setFullscreen(expanded);
+        preview.getLayout().left(expanded ? 0 : 4).top(expanded ? 0 : 20);
+        preview.resize(expanded ? pageWidth : pageWidth - 66, expanded ? pageHeight : pageHeight - 24);
+        options.viewPort(port -> port.getStyle().backgroundTexture(expanded ?
+                new ColorRectTexture(0xA0202020) : GuiTextures.BACKGROUND_INVERSE));
+        UITemplate.setBounds(options, pageWidth - (expanded ? 62 : 58), expanded ? 34 : 20, 54,
+                expanded ? Math.min(optionHeight + 8, pageHeight - 72) : pageHeight - 24);
+        blocks.setFullscreen(expanded);
+        blocks.resize(expanded ? pageWidth - BlockChoiceList.WIDTH - 66 : pageWidth + 4,
+                expanded ? 34 : 20, pageHeight - (expanded ? 38 : 24));
     }
 
     private String structureName() {
@@ -274,7 +287,7 @@ public final class PatternPreviewWidget extends UIElement {
             blocks.setDisplay(false);
             blocks.close();
         }
-        layoutContent();
+        layoutContent(y);
     }
 
     private void addStep(int y, int width, Component name, Runnable previous, Runnable next, boolean hasPrevious,

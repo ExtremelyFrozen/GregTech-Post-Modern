@@ -6,6 +6,7 @@ import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTButtonElement;
 import com.gregtechceu.gtceu.api.gui.element.GTImageElement;
 import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
+import com.gregtechceu.gtceu.api.gui.texture.ColorRectTexture;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.gui.texture.ItemStackTexture;
 
@@ -36,6 +37,7 @@ import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectMaps;
 import it.unimi.dsi.fastutil.objects.ObjectList;
+import lombok.Setter;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
@@ -54,6 +56,8 @@ public final class BlockChoiceList extends UIElement {
     private Object2ObjectMap<String, ResourceLocation> selected = Object2ObjectMaps.emptyMap();
     private @Nullable String expandedGroup;
     private boolean interactive = true;
+    @Setter
+    private boolean fullscreen;
 
     public BlockChoiceList(BiConsumer<String, ResourceLocation> select) {
         this.select = select;
@@ -211,6 +215,9 @@ public final class BlockChoiceList extends UIElement {
             int left = Math.max(4, Math.min(x, screen.width - columns * (COLUMN_WIDTH + 4)));
             UITemplate.setBounds(groupList, left, y, COLUMN_WIDTH, height);
             UITemplate.setBounds(candidateList, left + COLUMN_WIDTH + 4, y, COLUMN_WIDTH, height);
+            var background = owner.fullscreen ? new ColorRectTexture(0xA0202020) : GuiTextures.BACKGROUND_INVERSE;
+            groupList.getStyle().backgroundTexture(background);
+            candidateList.getStyle().backgroundTexture(background);
             candidateList.setDisplay(expanded != null);
             int index = 0;
             for (var entry : owner.choices.object2ObjectEntrySet()) {

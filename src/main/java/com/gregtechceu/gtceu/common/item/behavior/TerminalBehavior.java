@@ -8,6 +8,8 @@ import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
 import com.gregtechceu.gtceu.api.gui.factory.HeldItemUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.HeldItemUIHolder;
+import com.gregtechceu.gtceu.api.gui.texture.ColorRectTexture;
+import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.gui.widget.BlockChoiceList;
 import com.gregtechceu.gtceu.api.item.component.IItemUIFactory;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
@@ -414,6 +416,12 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                     event.stopPropagation();
                 });
                 main.addChildren(title, preview, options, result, execute, edit, fullscreen);
+                title.getStyle().zIndex(1);
+                options.getStyle().zIndex(1);
+                result.getStyle().zIndex(1);
+                execute.getStyle().zIndex(1);
+                edit.getStyle().zIndex(1);
+                fullscreen.getStyle().zIndex(1);
                 addChild(blocks);
                 rebuildOptions();
                 updateDisplay();
@@ -422,13 +430,13 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
             private Size resize(Size screen) {
                 width = expanded ? screen.getWidth() : Math.min(300, screen.getWidth());
                 height = expanded ? screen.getHeight() : Math.min(200, screen.getHeight());
-                int contentWidth = width - (expanded ? BlockChoiceList.WIDTH + 8 : 0);
-                UITemplate.setBounds(main, 0, 0, contentWidth, height);
-                title.getLayout().width(contentWidth - 48);
-                edit.getLayout().left(contentWidth - 40);
-                fullscreen.getLayout().left(contentWidth - 22);
-                result.getLayout().left(contentWidth - 58).top(height - 33).width(54);
-                execute.getLayout().left(contentWidth - 58).top(height - 20);
+                UITemplate.setBounds(main, 0, 0, width, height);
+                main.getStyle().backgroundTexture(expanded ? IGuiTexture.EMPTY : GuiTextures.BACKGROUND);
+                title.getLayout().left(expanded ? 8 : 6).top(expanded ? 10 : 6)
+                        .width(expanded ? Math.min(220, width - 130) : width - 48);
+                title.textStyle(style -> style.textColor(expanded ? 0xffffffff : 0xff404040).textShadow(expanded));
+                edit.getLayout().left(width - (expanded ? 44 : 40)).top(expanded ? 8 : 4);
+                fullscreen.getLayout().left(width - (expanded ? 26 : 22)).top(expanded ? 8 : 4);
                 rebuildOptions();
                 return Size.of(width, height);
             }
@@ -570,11 +578,21 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                     y += 30;
                 }
                 options.viewContainer.getLayout().width(contentWidth).height(y);
-                int bodyWidth = width - (expanded ? BlockChoiceList.WIDTH + 8 : 0);
-                UITemplate.setBounds(options, bodyWidth - 58, 20, 54, height - 56);
-                preview.getLayout().left(4).top(20);
-                preview.resize(bodyWidth - 66, height - 24);
-                blocks.resize(bodyWidth + 4, 20, height - 24);
+                int optionHeight = expanded ? Math.min(y + 8, height - 96) : height - 56;
+                options.viewPort(port -> port.getStyle().backgroundTexture(expanded ?
+                        new ColorRectTexture(0xA0202020) : GuiTextures.BACKGROUND_INVERSE));
+                UITemplate.setBounds(options, width - (expanded ? 62 : 58), expanded ? 34 : 20, 54, optionHeight);
+                preview.setFullscreen(expanded);
+                preview.getLayout().left(expanded ? 0 : 4).top(expanded ? 0 : 20);
+                preview.resize(expanded ? width : width - 66, expanded ? height : height - 24);
+                execute.getLayout().left(width - (expanded ? 62 : 58))
+                        .top(expanded ? optionHeight + 42 : height - 20);
+                result.getLayout().left(width - (expanded ? 62 : 58))
+                        .top(expanded ? optionHeight + 62 : height - 33).width(54);
+                result.textStyle(style -> style.textColor(expanded ? 0xffffffff : 0xff404040).textShadow(expanded));
+                blocks.setFullscreen(expanded);
+                blocks.resize(expanded ? width - BlockChoiceList.WIDTH - 66 : width + 4,
+                        expanded ? 34 : 20, height - (expanded ? 38 : 24));
                 var choices = new BatchPlanner().activeTierChoiceOptions(definition, structure);
                 blocks.setChoices(choices, structure.tierChoices());
                 boolean available = !choices.isEmpty();

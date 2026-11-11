@@ -9,6 +9,7 @@ import com.gregtechceu.gtceu.api.gui.element.GTButtonElement;
 import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTSceneElement;
+import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.multiblock.MultiblockBlockInfo;
 import com.gregtechceu.gtceu.api.multiblock.MultiblockPreviewLevel;
@@ -48,6 +49,7 @@ import net.neoforged.api.distmarker.OnlyIn;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import dev.emi.emi.api.stack.EmiStack;
+import dev.ftb.mods.ftblibrary.sidebar.SidebarGroupGuiButton;
 import dev.vfyjxf.taffy.style.TaffyPosition;
 import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
@@ -75,6 +77,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
 
     private static final BlockPos SCENE_ORIGIN = new BlockPos(0, 64, 0);
     private static final int MATERIAL_BAR_HEIGHT = 24;
+    private static final boolean FTB_LIBRARY_LOADED = GTCEu.isModLoaded("ftblibrary");
 
     private final PreviewVisibility state;
     private MultiblockPreviewLevel previewLevel;
@@ -106,6 +109,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
     private long renderedViewRevision;
     private @Nullable BlockState cameraControllerState;
     private boolean removed;
+    private boolean fullscreen;
 
     public ClientMultiblockPreviewElement(int width, int height, PreviewVisibility state,
                                           boolean showAvailability) {
@@ -219,19 +223,25 @@ public final class ClientMultiblockPreviewElement extends UIElement {
     public void resize(int width, int height) {
         getLayout().width(width).height(height);
         materialViewportWidth = width - 36;
-        int sceneHeight = height - MATERIAL_BAR_HEIGHT;
+        int sceneHeight = height - (fullscreen ? 0 : MATERIAL_BAR_HEIGHT);
         sceneAspect = (float) width / sceneHeight;
         scene.getLayout().width(width).height(sceneHeight);
         materialViewport.getLayout().top(height - MATERIAL_BAR_HEIGHT + 3).width(materialViewportWidth);
         previousMaterials.getLayout().top(height - MATERIAL_BAR_HEIGHT + 3);
         nextMaterials.getLayout().left(width - 16).top(height - MATERIAL_BAR_HEIGHT + 3);
-        focusButton.getLayout().left(width - 22);
-        layerButton.getLayout().left(width - 22);
-        hatchButton.getLayout().left(width - 22);
+        focusButton.getLayout().left(width - (fullscreen ? 108 : 22)).top(fullscreen ? 8 : 4);
+        layerButton.getLayout().left(width - (fullscreen ? 88 : 22)).top(fullscreen ? 8 : 24);
+        hatchButton.getLayout().left(width - (fullscreen ? 68 : 22)).top(fullscreen ? 8 : 44);
         diagnosticLabel.getLayout().top((float) sceneHeight / 2 - 10).width(width - 16);
-        layoutCandidates(sceneHeight - 8);
+        layoutCandidates(height);
         rebuildRenderedCore(true);
         rebuildMaterials();
+    }
+
+    public void setFullscreen(boolean fullscreen) {
+        if (this.fullscreen && !fullscreen && FTB_LIBRARY_LOADED) FTBSupport.setSidebarVisible(true);
+        this.fullscreen = fullscreen;
+        getStyle().backgroundTexture(fullscreen ? IGuiTexture.EMPTY : GuiTextures.BACKGROUND_INVERSE);
     }
 
     public void setPreview(StructurePreview preview) {
@@ -352,18 +362,19 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         slot.setItem(items.getFirst(), false);
         predicateItems.put(slot, items);
         predicateViewport.addChild(slot);
-        layoutCandidates((int) getSizeHeight() - MATERIAL_BAR_HEIGHT - 8);
+        layoutCandidates((int) getSizeHeight());
         predicateViewport.setDisplay(true);
     }
 
-    private void layoutCandidates(int height) {
-        int rows = Math.max(1, height / 18);
+    private void layoutCandidates(int previewHeight) {
+        int rows = Math.max(1, (previewHeight - MATERIAL_BAR_HEIGHT - (fullscreen ? 38 : 8)) / 18);
         int index = 0;
         for (var slot : predicateItems.keySet()) {
             slot.getLayout().left(index / rows * 18).top(index % rows * 18);
             index++;
         }
-        predicateViewport.getLayout().width(Math.ceilDiv(index, rows) * 18).height(Math.min(index, rows) * 18);
+        predicateViewport.getLayout().left(fullscreen ? 8 : 4).top(fullscreen ? 34 : 4)
+                .width(Math.ceilDiv(index, rows) * 18).height(Math.min(index, rows) * 18);
     }
 
     private void rebuildMaterials() {
@@ -569,6 +580,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
 
     @Override
     public void drawBackgroundAdditional(GUIContext context) {
+        if (fullscreen && FTB_LIBRARY_LOADED) FTBSupport.setSidebarVisible(false);
         if (updateJEIMaterial != null) updateJEIMaterial.accept(getHoveredItem(materialViewport));
         if (updateJEIPredicate != null) updateJEIPredicate.accept(getHoveredItem(predicateViewport));
         super.drawBackgroundAdditional(context);
@@ -593,6 +605,7 @@ public final class ClientMultiblockPreviewElement extends UIElement {
 
     @Override
     protected void onRemoved() {
+        if (fullscreen && FTB_LIBRARY_LOADED) FTBSupport.setSidebarVisible(true);
         removed = true;
         releaseLoadedBlocks();
         sourceLevel = null;
@@ -634,6 +647,20 @@ public final class ClientMultiblockPreviewElement extends UIElement {
     private static void runOnRenderThread(Runnable action) {
         if (RenderSystem.isOnRenderThread()) action.run();
         else RenderSystem.recordRenderCall(action::run);
+    }
+
+    private static final class FTBSupport {
+
+        private static void setSidebarVisible(boolean visible) {
+            var screen = Minecraft.getInstance().screen;
+            if (screen == null) return;
+            for (var child : screen.children()) {
+                if (child instanceof SidebarGroupGuiButton sidebar) {
+                    sidebar.visible = visible;
+                    sidebar.active = visible;
+                }
+            }
+        }
     }
 
     private static final class EMISupport {
