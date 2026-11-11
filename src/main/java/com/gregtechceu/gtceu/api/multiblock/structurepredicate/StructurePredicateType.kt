@@ -13,14 +13,7 @@ import com.mojang.serialization.MapCodec
 data class StructurePredicateType<T : StructurePredicate>(val id: ResourceLocation, val codec: MapCodec<T>) {
 	companion object {
 		@JvmStatic
-		fun <T : StructurePredicate> register(id: ResourceLocation, codec: MapCodec<T>): StructurePredicateType<T> {
-			val type = StructurePredicateType(id, codec)
-			PredicateRegistry.register(id, PredicateType(codec) { PatternPredicate(it) })
-			return GTRegistries.register(GTRegistries.STRUCTURE_PREDICATE_TYPES, id, type)
-		}
-
-		@JvmStatic
-		fun byId(id: ResourceLocation): StructurePredicateType<*>? = GTRegistries.lookup(GTRegistries.STRUCTURE_PREDICATE_TYPES, id)
+		fun byId(id: ResourceLocation): StructurePredicateType<*>? = GTRegistries.STRUCTURE_PREDICATE_TYPES.get(id)
 
 		/** Definitions own their registration; addons still register before machine definitions use their codecs. */
 		@JvmStatic

@@ -1,8 +1,8 @@
 package com.gregtechceu.gtceu.api.multiblock.structurepredicate
 
-import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.multiblock.MultiblockBlockInfo
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState
+import com.gregtechceu.gtceu.common.registry.GTRegistration.REGISTRATE
 
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.world.level.block.Block
@@ -40,7 +40,7 @@ data class BlockStatePredicate(val block: Block, val properties: Map<String, Str
 	override fun hasAir(): Boolean = observeCandidate(Blocks.AIR.defaultBlockState()).matched
 
 	companion object {
-		val TYPE: StructurePredicateType<BlockStatePredicate> by lazy { StructurePredicateType.register(GTCEu.id("block_state"), CODEC) }
+		val TYPE: StructurePredicateType<BlockStatePredicate> by lazy { REGISTRATE.structurePredicate("block_state", CODEC) }
 		val CODEC: MapCodec<BlockStatePredicate> = RecordCodecBuilder.mapCodec { instance ->
 			instance.group(
 				BuiltInRegistries.BLOCK.byNameCodec().fieldOf("block").forGetter(BlockStatePredicate::block),

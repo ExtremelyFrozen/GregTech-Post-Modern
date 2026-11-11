@@ -1,8 +1,8 @@
 package com.gregtechceu.gtceu.api.multiblock.structurepredicate
 
-import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.multiblock.MultiblockBlockInfo
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState
+import com.gregtechceu.gtceu.common.registry.GTRegistration.REGISTRATE
 
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.core.registries.Registries
@@ -35,7 +35,7 @@ class BlockTagPredicate(val tag: TagKey<Block>) : StructurePredicate {
 	override fun toString(): String = "BlockTagPredicate[tag=$tag]"
 
 	companion object {
-		val TYPE: StructurePredicateType<BlockTagPredicate> by lazy { StructurePredicateType.register(GTCEu.id("block_tag"), CODEC) }
+		val TYPE: StructurePredicateType<BlockTagPredicate> by lazy { REGISTRATE.structurePredicate("block_tag", CODEC) }
 		val CODEC: MapCodec<BlockTagPredicate> = TagKey.codec(Registries.BLOCK).fieldOf("tag").xmap(::BlockTagPredicate, BlockTagPredicate::tag)
 	}
 }

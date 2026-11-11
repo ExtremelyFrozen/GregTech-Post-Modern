@@ -1,8 +1,8 @@
 package com.gregtechceu.gtceu.api.multiblock.structurepredicate
 
-import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.multiblock.MultiblockBlockInfo
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState
+import com.gregtechceu.gtceu.common.registry.GTRegistration.REGISTRATE
 import com.gregtechceu.gtceu.data.recipe.CustomTags
 
 import net.minecraft.world.level.block.Block
@@ -33,7 +33,7 @@ enum class CleanroomDoorPredicate : StructurePredicate {
 	override fun blockCandidates(): ObjectList<Block> = ObjectList.of(Blocks.IRON_DOOR)
 
 	companion object {
-		val TYPE: StructurePredicateType<CleanroomDoorPredicate> by lazy { StructurePredicateType.register(GTCEu.id("cleanroom_doors"), CODEC) }
+		val TYPE: StructurePredicateType<CleanroomDoorPredicate> by lazy { REGISTRATE.structurePredicate("cleanroom_doors", CODEC) }
 
 		@JvmField
 		val CODEC: MapCodec<CleanroomDoorPredicate> = MapCodec.unit(INSTANCE)

@@ -7,6 +7,12 @@ import com.gregtechceu.gtceu.api.item.MetaMachineItem;
 import com.gregtechceu.gtceu.api.machine.MachineDefinition;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
+import com.gregtechceu.gtceu.api.multiblock.structurepredicate.PatternPredicate;
+import com.gregtechceu.gtceu.api.multiblock.structurepredicate.PredicateRegistry;
+import com.gregtechceu.gtceu.api.multiblock.structurepredicate.PredicateType;
+import com.gregtechceu.gtceu.api.multiblock.structurepredicate.StructurePredicate;
+import com.gregtechceu.gtceu.api.multiblock.structurepredicate.StructurePredicateType;
+import com.gregtechceu.gtceu.api.registry.GTRegistries;
 import com.gregtechceu.gtceu.core.mixins.registrate.AbstractRegistrateAccessor;
 
 import net.minecraft.core.Registry;
@@ -28,6 +34,7 @@ import net.neoforged.neoforge.data.event.GatherDataEvent;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.RegisterEvent;
 
+import com.mojang.serialization.MapCodec;
 import com.tterrag.registrate.AbstractRegistrate;
 import com.tterrag.registrate.builders.Builder;
 import com.tterrag.registrate.builders.NoConfigBuilder;
@@ -191,6 +198,18 @@ public class GTRegistrate extends AbstractRegistrate<GTRegistrate> {
                                                                                Function<BlockEntityCreationInfo, MetaMachine> blockEntityFactory) {
         return new MultiblockMachineBuilder<>(this, name, MetaMachineBlock::new, MetaMachineItem::new,
                 blockEntityFactory);
+    }
+
+    /**
+     * Registers a structure predicate and its runtime compiler under this mod's namespace.
+     * The returned type can be used by definitions before the registry event publishes it.
+     */
+    public <T extends StructurePredicate> StructurePredicateType<T> structurePredicate(String name, MapCodec<T> codec) {
+        ResourceLocation id = makeResourceLocation(name);
+        StructurePredicateType<T> type = new StructurePredicateType<>(id, codec);
+        PredicateRegistry.register(id, new PredicateType<>(codec, PatternPredicate::new));
+        generic(name, GTRegistries.STRUCTURE_PREDICATE_REGISTRY, () -> type).register();
+        return type;
     }
 
     public SoundEntryBuilder sound(String name) {

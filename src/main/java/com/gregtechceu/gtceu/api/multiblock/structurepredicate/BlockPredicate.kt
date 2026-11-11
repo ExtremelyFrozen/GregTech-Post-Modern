@@ -1,8 +1,8 @@
 package com.gregtechceu.gtceu.api.multiblock.structurepredicate
 
-import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.multiblock.MultiblockBlockInfo
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState
+import com.gregtechceu.gtceu.common.registry.GTRegistration.REGISTRATE
 
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.resources.ResourceLocation
@@ -37,7 +37,7 @@ class BlockPredicate(blockIds: Supplier<ObjectList<ResourceLocation>>) : Structu
 	override fun toString(): String = "BlockPredicate[blockIds=$blockIds]"
 
 	companion object {
-		val TYPE: StructurePredicateType<BlockPredicate> by lazy { StructurePredicateType.register(GTCEu.id("block"), CODEC) }
+		val TYPE: StructurePredicateType<BlockPredicate> by lazy { REGISTRATE.structurePredicate("block", CODEC) }
 		val CODEC: MapCodec<BlockPredicate> = PredicateCodecs.oneOrMore(ResourceLocation.CODEC).fieldOf("ids").xmap(::BlockPredicate, BlockPredicate::blockIds)
 
 		private fun resolveBlock(id: ResourceLocation): Block {

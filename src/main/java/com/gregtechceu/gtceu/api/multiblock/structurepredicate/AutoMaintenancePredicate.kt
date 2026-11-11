@@ -1,8 +1,8 @@
 package com.gregtechceu.gtceu.api.multiblock.structurepredicate
 
-import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.machine.multiblock.PartAbility
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState
+import com.gregtechceu.gtceu.common.registry.GTRegistration.REGISTRATE
 import com.gregtechceu.gtceu.config.ConfigHolder
 
 import com.mojang.serialization.Codec
@@ -21,7 +21,7 @@ data class AutoMaintenancePredicate(val checkMaintenance: Boolean, val checkMuff
 	}
 
 	companion object {
-		val TYPE: StructurePredicateType<AutoMaintenancePredicate> by lazy { StructurePredicateType.register(GTCEu.id("auto_maintenance"), CODEC) }
+		val TYPE: StructurePredicateType<AutoMaintenancePredicate> by lazy { REGISTRATE.structurePredicate("auto_maintenance", CODEC) }
 		private val MUFFLER = RestrictedPredicate.builder().base(AbilityPredicate(ObjectList.of(PartAbility.MUFFLER))).exactCount(1).build()
 		private val PARALLEL = RestrictedPredicate.builder().base(AbilityPredicate(ObjectList.of(PartAbility.PARALLEL_HATCH))).maxCount(1).previewCount(1).build()
 		private val MAINTENANCE_ENABLED = RestrictedPredicate.builder().base(AbilityPredicate(ObjectList.of(PartAbility.MAINTENANCE))).minCount(1).maxCount(1).build()

@@ -1,6 +1,5 @@
 package com.gregtechceu.gtceu.api.multiblock.structurepredicate
 
-import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.machine.MetaMachine
 import com.gregtechceu.gtceu.api.machine.SimpleGeneratorMachine
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState
@@ -15,6 +14,7 @@ import com.gregtechceu.gtceu.common.machine.multiblock.primitive.PrimitiveBlastF
 import com.gregtechceu.gtceu.common.machine.multiblock.primitive.PrimitivePumpMachine
 import com.gregtechceu.gtceu.common.machine.trait.CleanroomProviderTrait
 import com.gregtechceu.gtceu.common.machine.trait.CleanroomReceiverTrait
+import com.gregtechceu.gtceu.common.registry.GTRegistration.REGISTRATE
 
 import net.minecraft.world.level.block.state.BlockState
 
@@ -58,7 +58,7 @@ enum class CleanroomInnerPredicate : StructurePredicate {
 	override fun addCache(): Boolean = true
 
 	companion object {
-		val TYPE: StructurePredicateType<CleanroomInnerPredicate> by lazy { StructurePredicateType.register(GTCEu.id("cleanroom_inner"), CODEC) }
+		val TYPE: StructurePredicateType<CleanroomInnerPredicate> by lazy { REGISTRATE.structurePredicate("cleanroom_inner", CODEC) }
 
 		@JvmField
 		val CODEC: MapCodec<CleanroomInnerPredicate> = MapCodec.unit(INSTANCE)

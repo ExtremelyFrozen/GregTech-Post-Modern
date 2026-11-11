@@ -1,8 +1,8 @@
 package com.gregtechceu.gtceu.api.multiblock.structurepredicate
 
-import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.multiblock.MultiblockBlockInfo
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState
+import com.gregtechceu.gtceu.common.registry.GTRegistration.REGISTRATE
 
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.core.registries.Registries
@@ -33,7 +33,7 @@ class FluidTagPredicate(val tag: TagKey<Fluid>) : StructurePredicate {
 	override fun toString(): String = "FluidTagPredicate[tag=$tag]"
 
 	companion object {
-		val TYPE: StructurePredicateType<FluidTagPredicate> by lazy { StructurePredicateType.register(GTCEu.id("fluid_tag"), CODEC) }
+		val TYPE: StructurePredicateType<FluidTagPredicate> by lazy { REGISTRATE.structurePredicate("fluid_tag", CODEC) }
 		val CODEC: MapCodec<FluidTagPredicate> = TagKey.codec(Registries.FLUID).fieldOf("tag").xmap(::FluidTagPredicate, FluidTagPredicate::tag)
 	}
 }

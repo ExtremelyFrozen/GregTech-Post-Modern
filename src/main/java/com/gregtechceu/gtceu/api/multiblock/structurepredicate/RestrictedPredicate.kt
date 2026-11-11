@@ -1,10 +1,10 @@
 package com.gregtechceu.gtceu.api.multiblock.structurepredicate
 
-import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition
 import com.gregtechceu.gtceu.api.multiblock.MultiblockBlockInfo
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState
 import com.gregtechceu.gtceu.api.multiblock.error.PatternStringError
+import com.gregtechceu.gtceu.common.registry.GTRegistration.REGISTRATE
 
 import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.ComponentSerialization
@@ -101,7 +101,7 @@ data class RestrictedPredicate(val predicate: StructurePredicate, val minCount: 
 	}
 
 	companion object {
-		val TYPE: StructurePredicateType<RestrictedPredicate> by lazy { StructurePredicateType.register(GTCEu.id("restricted"), CODEC) }
+		val TYPE: StructurePredicateType<RestrictedPredicate> by lazy { REGISTRATE.structurePredicate("restricted", CODEC) }
 
 		@JvmStatic
 		fun builder(): Builder = Builder()

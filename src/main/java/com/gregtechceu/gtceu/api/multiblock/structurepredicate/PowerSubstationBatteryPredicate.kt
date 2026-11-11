@@ -1,6 +1,5 @@
 package com.gregtechceu.gtceu.api.multiblock.structurepredicate
 
-import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.GTCEuAPI
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition
 import com.gregtechceu.gtceu.api.machine.multiblock.IBatteryData
@@ -9,6 +8,7 @@ import com.gregtechceu.gtceu.api.multiblock.MultiblockState
 import com.gregtechceu.gtceu.api.multiblock.autobuild.BlockCategories
 import com.gregtechceu.gtceu.common.machine.multiblock.electric.PowerSubstationMachine
 import com.gregtechceu.gtceu.common.machine.multiblock.electric.PowerSubstationMachine.PMC_BATTERY_HEADER
+import com.gregtechceu.gtceu.common.registry.GTRegistration.REGISTRATE
 
 import net.minecraft.world.level.block.state.BlockState
 
@@ -67,7 +67,7 @@ enum class PowerSubstationBatteryPredicate : CategoryPredicate {
 	private fun sortedBatteries(): ObjectList<IBatteryData> = GTCEuAPI.PSS_BATTERIES.keys.stream().sorted(compareBy { it.tier }).collect(ObjectImmutableList.toList())
 
 	companion object {
-		val TYPE: StructurePredicateType<PowerSubstationBatteryPredicate> by lazy { StructurePredicateType.register(GTCEu.id("power_substation_batteries"), CODEC) }
+		val TYPE: StructurePredicateType<PowerSubstationBatteryPredicate> by lazy { REGISTRATE.structurePredicate("power_substation_batteries", CODEC) }
 
 		@JvmField
 		val CODEC: MapCodec<PowerSubstationBatteryPredicate> = MapCodec.unit(INSTANCE)

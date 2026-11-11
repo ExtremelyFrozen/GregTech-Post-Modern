@@ -1,10 +1,10 @@
 package com.gregtechceu.gtceu.api.multiblock.structurepredicate
 
-import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.GTCEuAPI
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState
 import com.gregtechceu.gtceu.api.multiblock.autobuild.BlockCategories
 import com.gregtechceu.gtceu.api.multiblock.error.PatternStringError
+import com.gregtechceu.gtceu.common.registry.GTRegistration.REGISTRATE
 
 import net.minecraft.world.level.block.state.BlockState
 
@@ -51,7 +51,7 @@ enum class CleanroomFilterPredicate : CategoryPredicate {
 	}
 
 	companion object {
-		val TYPE: StructurePredicateType<CleanroomFilterPredicate> by lazy { StructurePredicateType.register(GTCEu.id("filter"), CODEC) }
+		val TYPE: StructurePredicateType<CleanroomFilterPredicate> by lazy { REGISTRATE.structurePredicate("filter", CODEC) }
 
 		@JvmField
 		val CODEC: MapCodec<CleanroomFilterPredicate> = MapCodec.unit(INSTANCE)

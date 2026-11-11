@@ -1,7 +1,7 @@
 package com.gregtechceu.gtceu.api.multiblock.structurepredicate
 
-import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState
+import com.gregtechceu.gtceu.common.registry.GTRegistration.REGISTRATE
 
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
@@ -14,7 +14,7 @@ data class ConcatenatedPredicate(val predicates: ObjectList<StructurePredicate>)
 	override fun alternatives(state: MultiblockState?): ObjectList<StructurePredicate> = predicates
 
 	companion object {
-		val TYPE: StructurePredicateType<ConcatenatedPredicate> by lazy { StructurePredicateType.register(GTCEu.id("concatenated"), CODEC) }
+		val TYPE: StructurePredicateType<ConcatenatedPredicate> by lazy { REGISTRATE.structurePredicate("concatenated", CODEC) }
 
 		@JvmField
 		val CODEC: MapCodec<ConcatenatedPredicate> = RecordCodecBuilder.mapCodec { instance ->

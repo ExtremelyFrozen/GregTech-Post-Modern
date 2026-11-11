@@ -8,6 +8,7 @@ import com.gregtechceu.gtceu.api.multiblock.MultiblockState
 import com.gregtechceu.gtceu.api.pipenet.IPipeNode
 import com.gregtechceu.gtceu.api.registry.GTRegistries
 import com.gregtechceu.gtceu.common.data.GTMaterialBlocks
+import com.gregtechceu.gtceu.common.registry.GTRegistration.REGISTRATE
 
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.level.block.Block
@@ -49,7 +50,7 @@ class FramePredicate(val materialIds: ObjectList<ResourceLocation>) : StructureP
 	}
 
 	companion object {
-		val TYPE: StructurePredicateType<FramePredicate> by lazy { StructurePredicateType.register(GTCEu.id("frame"), CODEC) }
+		val TYPE: StructurePredicateType<FramePredicate> by lazy { REGISTRATE.structurePredicate("frame", CODEC) }
 
 		@JvmField
 		val CODEC: MapCodec<FramePredicate> = RecordCodecBuilder.mapCodec { instance ->

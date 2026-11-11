@@ -1,8 +1,8 @@
 package com.gregtechceu.gtceu.api.multiblock.structurepredicate
 
-import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.multiblock.MultiblockBlockInfo
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState
+import com.gregtechceu.gtceu.common.registry.GTRegistration.REGISTRATE
 
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.world.level.block.Block
@@ -23,7 +23,7 @@ data class FluidPredicate(val fluids: ObjectList<Fluid>) : StructurePredicate {
 	override fun test(multiblockState: MultiblockState, mutateCount: Boolean): Boolean = observeCandidate(multiblockState.blockState).matched
 
 	companion object {
-		val TYPE: StructurePredicateType<FluidPredicate> by lazy { StructurePredicateType.register(GTCEu.id("fluids"), CODEC) }
+		val TYPE: StructurePredicateType<FluidPredicate> by lazy { REGISTRATE.structurePredicate("fluids", CODEC) }
 
 		@JvmField
 		val CODEC: MapCodec<FluidPredicate> = RecordCodecBuilder.mapCodec { instance ->

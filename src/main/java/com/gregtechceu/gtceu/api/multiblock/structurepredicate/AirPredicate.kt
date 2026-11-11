@@ -1,7 +1,7 @@
 package com.gregtechceu.gtceu.api.multiblock.structurepredicate
 
-import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState
+import com.gregtechceu.gtceu.common.registry.GTRegistration.REGISTRATE
 
 import net.minecraft.world.level.block.state.BlockState
 
@@ -17,7 +17,7 @@ enum class AirPredicate : StructurePredicate {
 	override fun hasAir(): Boolean = true
 
 	companion object {
-		val TYPE: StructurePredicateType<AirPredicate> by lazy { StructurePredicateType.register(GTCEu.id("air"), CODEC) }
+		val TYPE: StructurePredicateType<AirPredicate> by lazy { REGISTRATE.structurePredicate("air", CODEC) }
 
 		@JvmField
 		val CODEC: MapCodec<AirPredicate> = MapCodec.unit(INSTANCE)

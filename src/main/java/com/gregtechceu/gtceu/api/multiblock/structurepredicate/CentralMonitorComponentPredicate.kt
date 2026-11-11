@@ -1,11 +1,11 @@
 package com.gregtechceu.gtceu.api.multiblock.structurepredicate
 
-import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.machine.MachineDefinition
 import com.gregtechceu.gtceu.api.machine.multiblock.PartAbility
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState
 import com.gregtechceu.gtceu.common.data.GTBlocks
 import com.gregtechceu.gtceu.common.data.GTMachines
+import com.gregtechceu.gtceu.common.registry.GTRegistration.REGISTRATE
 
 import net.minecraft.resources.ResourceLocation
 import net.neoforged.neoforge.common.util.Lazy
@@ -22,7 +22,7 @@ enum class CentralMonitorComponentPredicate : AlternativePredicate {
 	override fun alternatives(state: MultiblockState?): ObjectList<StructurePredicate> = PREDICATES.get()
 
 	companion object {
-		val TYPE: StructurePredicateType<CentralMonitorComponentPredicate> by lazy { StructurePredicateType.register(GTCEu.id("central_monitor_components"), CODEC) }
+		val TYPE: StructurePredicateType<CentralMonitorComponentPredicate> by lazy { REGISTRATE.structurePredicate("central_monitor_components", CODEC) }
 		private val PREDICATES = Lazy.of {
 			ObjectList.of(
 				RestrictedPredicate.builder().base(AbilityPredicate(ObjectList.of(PartAbility.INPUT_ENERGY))).minCount(1).maxCount(2).previewCount(1).build(),

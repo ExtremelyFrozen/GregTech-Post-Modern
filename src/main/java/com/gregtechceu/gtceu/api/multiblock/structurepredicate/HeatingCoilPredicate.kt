@@ -1,10 +1,10 @@
 package com.gregtechceu.gtceu.api.multiblock.structurepredicate
 
-import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.GTCEuAPI
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState
 import com.gregtechceu.gtceu.api.multiblock.autobuild.BlockCategories
 import com.gregtechceu.gtceu.api.multiblock.error.PatternStringError
+import com.gregtechceu.gtceu.common.registry.GTRegistration.REGISTRATE
 
 import net.minecraft.world.level.block.state.BlockState
 
@@ -55,7 +55,7 @@ enum class HeatingCoilPredicate : CategoryPredicate {
 	}
 
 	companion object {
-		val TYPE: StructurePredicateType<HeatingCoilPredicate> by lazy { StructurePredicateType.register(GTCEu.id("coil"), CODEC) }
+		val TYPE: StructurePredicateType<HeatingCoilPredicate> by lazy { REGISTRATE.structurePredicate("coil", CODEC) }
 
 		@JvmField
 		val CODEC: MapCodec<HeatingCoilPredicate> = MapCodec.unit(INSTANCE)

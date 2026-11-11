@@ -1,6 +1,5 @@
 package com.gregtechceu.gtceu.api.multiblock.structurepredicate
 
-import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.capability.recipe.EURecipeCapability
 import com.gregtechceu.gtceu.api.capability.recipe.FluidRecipeCapability
 import com.gregtechceu.gtceu.api.capability.recipe.ItemRecipeCapability
@@ -9,6 +8,7 @@ import com.gregtechceu.gtceu.api.machine.multiblock.PartAbility
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState
 import com.gregtechceu.gtceu.api.multiblock.pattern.layout.PatternLayout
 import com.gregtechceu.gtceu.api.recipe.GTRecipeType
+import com.gregtechceu.gtceu.common.registry.GTRegistration.REGISTRATE
 
 import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
@@ -41,7 +41,7 @@ data class AutoRecipeAbilityPredicate(val checkEnergyIn: Boolean, val checkEnerg
 	}
 
 	companion object {
-		val TYPE: StructurePredicateType<AutoRecipeAbilityPredicate> by lazy { StructurePredicateType.register(GTCEu.id("auto_recipe_abilities"), CODEC) }
+		val TYPE: StructurePredicateType<AutoRecipeAbilityPredicate> by lazy { REGISTRATE.structurePredicate("auto_recipe_abilities", CODEC) }
 		private val ABILITY_PREDICATES: Object2ObjectMap<PartAbility, StructurePredicate> = Object2ObjectOpenHashMap<PartAbility, StructurePredicate>().also { result ->
 			result[PartAbility.INPUT_ENERGY] = energy(PartAbility.INPUT_ENERGY)
 			result[PartAbility.OUTPUT_ENERGY] = energy(PartAbility.OUTPUT_ENERGY)

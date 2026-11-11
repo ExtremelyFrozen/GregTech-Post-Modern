@@ -1,7 +1,7 @@
 package com.gregtechceu.gtceu.api.multiblock.structurepredicate
 
-import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState
+import com.gregtechceu.gtceu.common.registry.GTRegistration.REGISTRATE
 
 import net.minecraft.world.level.block.state.BlockState
 
@@ -16,7 +16,7 @@ enum class AnyPredicate : StructurePredicate {
 	override fun test(multiblockState: MultiblockState, mutateCount: Boolean): Boolean = true
 
 	companion object {
-		val TYPE: StructurePredicateType<AnyPredicate> by lazy { StructurePredicateType.register(GTCEu.id("any"), CODEC) }
+		val TYPE: StructurePredicateType<AnyPredicate> by lazy { REGISTRATE.structurePredicate("any", CODEC) }
 
 		@JvmField
 		val CODEC: MapCodec<AnyPredicate> = MapCodec.unit(INSTANCE)

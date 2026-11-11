@@ -1,8 +1,8 @@
 package com.gregtechceu.gtceu.api.multiblock.structurepredicate
 
-import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.machine.multiblock.PartAbility
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState
+import com.gregtechceu.gtceu.common.registry.GTRegistration.REGISTRATE
 import com.gregtechceu.gtceu.config.ConfigHolder
 
 import net.neoforged.neoforge.common.util.Lazy
@@ -47,7 +47,7 @@ class DataHatchOrPredicate(val alternative: StructurePredicate) : AlternativePre
 	override fun hasAir(): Boolean = alternative.hasAir()
 
 	companion object {
-		val TYPE: StructurePredicateType<DataHatchOrPredicate> by lazy { StructurePredicateType.register(GTCEu.id("data_hatch_or"), CODEC) }
+		val TYPE: StructurePredicateType<DataHatchOrPredicate> by lazy { REGISTRATE.structurePredicate("data_hatch_or", CODEC) }
 
 		@JvmField
 		val CODEC: MapCodec<DataHatchOrPredicate> = RecordCodecBuilder.mapCodec { instance ->

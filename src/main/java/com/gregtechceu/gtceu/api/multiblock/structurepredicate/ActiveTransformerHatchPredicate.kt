@@ -1,10 +1,10 @@
 package com.gregtechceu.gtceu.api.multiblock.structurepredicate
 
-import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition
 import com.gregtechceu.gtceu.api.machine.multiblock.PartAbility
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState
 import com.gregtechceu.gtceu.api.multiblock.pattern.layout.PatternLayout
+import com.gregtechceu.gtceu.common.registry.GTRegistration.REGISTRATE
 
 import com.mojang.serialization.MapCodec
 import it.unimi.dsi.fastutil.objects.ObjectArrayList
@@ -20,7 +20,7 @@ enum class ActiveTransformerHatchPredicate : AlternativePredicate {
 	override fun previewAlternatives(definition: MultiblockMachineDefinition, layout: PatternLayout?): ObjectList<StructurePredicate> = PREVIEW_PREDICATES
 
 	companion object {
-		val TYPE: StructurePredicateType<ActiveTransformerHatchPredicate> by lazy { StructurePredicateType.register(GTCEu.id("active_transformer_hatches"), CODEC) }
+		val TYPE: StructurePredicateType<ActiveTransformerHatchPredicate> by lazy { REGISTRATE.structurePredicate("active_transformer_hatches", CODEC) }
 
 		@JvmField
 		val CODEC: MapCodec<ActiveTransformerHatchPredicate> = MapCodec.unit(INSTANCE)

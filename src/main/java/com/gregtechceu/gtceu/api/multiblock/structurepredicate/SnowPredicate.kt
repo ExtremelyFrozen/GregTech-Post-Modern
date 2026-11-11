@@ -1,8 +1,8 @@
 package com.gregtechceu.gtceu.api.multiblock.structurepredicate
 
-import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.multiblock.MultiblockBlockInfo
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState
+import com.gregtechceu.gtceu.common.registry.GTRegistration.REGISTRATE
 import com.gregtechceu.gtceu.utils.GTUtil
 
 import net.minecraft.world.level.block.Block
@@ -23,7 +23,7 @@ enum class SnowPredicate : StructurePredicate {
 	override fun blockCandidates(): ObjectList<Block> = ObjectList.of(Blocks.SNOW_BLOCK)
 
 	companion object {
-		val TYPE: StructurePredicateType<SnowPredicate> by lazy { StructurePredicateType.register(GTCEu.id("snow"), CODEC) }
+		val TYPE: StructurePredicateType<SnowPredicate> by lazy { REGISTRATE.structurePredicate("snow", CODEC) }
 
 		@JvmField
 		val CODEC: MapCodec<SnowPredicate> = MapCodec.unit(INSTANCE)

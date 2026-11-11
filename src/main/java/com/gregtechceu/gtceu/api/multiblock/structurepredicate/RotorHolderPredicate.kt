@@ -1,12 +1,12 @@
 package com.gregtechceu.gtceu.api.multiblock.structurepredicate
 
-import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.block.MetaMachineBlock
 import com.gregtechceu.gtceu.api.machine.MetaMachine
 import com.gregtechceu.gtceu.api.machine.multiblock.PartAbility
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState
 import com.gregtechceu.gtceu.api.multiblock.autobuild.BlockCategories
 import com.gregtechceu.gtceu.common.machine.multiblock.part.RotorHolderPartMachine
+import com.gregtechceu.gtceu.common.registry.GTRegistration.REGISTRATE
 
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.BlockState
@@ -34,7 +34,7 @@ data class RotorHolderPredicate(val tier: Int) : CategoryPredicate {
 	}
 
 	companion object {
-		val TYPE: StructurePredicateType<RotorHolderPredicate> by lazy { StructurePredicateType.register(GTCEu.id("rotor_holder"), CODEC) }
+		val TYPE: StructurePredicateType<RotorHolderPredicate> by lazy { REGISTRATE.structurePredicate("rotor_holder", CODEC) }
 
 		@JvmField
 		val CODEC: MapCodec<RotorHolderPredicate> = RecordCodecBuilder.mapCodec { instance ->

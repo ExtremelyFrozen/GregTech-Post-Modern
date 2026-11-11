@@ -1,6 +1,5 @@
 package com.gregtechceu.gtceu.api.multiblock.structurepredicate
 
-import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition
 import com.gregtechceu.gtceu.api.machine.multiblock.PartAbility
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState
@@ -8,6 +7,7 @@ import com.gregtechceu.gtceu.api.multiblock.pattern.layout.PatternAxis
 import com.gregtechceu.gtceu.api.multiblock.pattern.layout.PatternLayout
 import com.gregtechceu.gtceu.common.data.GTBlocks
 import com.gregtechceu.gtceu.common.data.GTMachines
+import com.gregtechceu.gtceu.common.registry.GTRegistration.REGISTRATE
 import com.gregtechceu.gtceu.config.ConfigHolder
 import com.gregtechceu.gtceu.data.recipe.CustomTags
 
@@ -42,7 +42,7 @@ data class CleanroomBasePredicate(val allowFloorBlocks: Boolean, val allowDoors:
 	}
 
 	companion object {
-		val TYPE: StructurePredicateType<CleanroomBasePredicate> by lazy { StructurePredicateType.register(GTCEu.id("cleanroom_base"), CODEC) }
+		val TYPE: StructurePredicateType<CleanroomBasePredicate> by lazy { REGISTRATE.structurePredicate("cleanroom_base", CODEC) }
 		private val WALL_BLOCKS = Lazy.of<StructurePredicate> { BlockPredicate(Supplier(::wallBlocks)) }
 		private val INPUT_ENERGY = Lazy.of<StructurePredicate> { RestrictedPredicate.builder().base(AbilityPredicate(ObjectList.of(PartAbility.INPUT_ENERGY))).minCount(1).maxCount(2).build() }
 		private val MAINTENANCE_ENABLED = Lazy.of<StructurePredicate> { RestrictedPredicate.builder().base(BlockPredicate(Supplier(::maintenanceBlocks))).minCount(1).maxCount(1).build() }
