@@ -521,10 +521,9 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         focusButton.getStyle().tooltips(focus == null ?
                 Component.translatable("gtpm.multiblock.preview.tooltip.focus") :
                 structureName(focus));
-        Integer layer = state.getVisibleLayer();
-        layerButton.setText(layer == null ?
+        layerButton.setText(state.isAllLayers() ?
                 Component.translatable("gtpm.multiblock.preview.button.layer_all") :
-                Component.translatable("gtpm.multiblock.preview.button.layer", layer));
+                Component.translatable("gtpm.multiblock.preview.button.layer", state.getVisibleLayer()));
         hatchButton.textStyle(style -> style.textColor(state.isHighlightHatches() ? 0xff167129 : 0xff404040));
     }
 

@@ -26,8 +26,9 @@ public final class PreviewVisibility {
     @Nullable
     private String focusedStructure;
     @Getter
-    @Nullable
-    private Integer visibleLayer;
+    private int visibleLayer;
+    @Getter
+    private boolean allLayers = true;
     @Getter
     private boolean highlightHatches;
 
@@ -62,7 +63,7 @@ public final class PreviewVisibility {
         }
         layers.clear();
         layers.addAll(available);
-        if (visibleLayer != null && !layers.contains(visibleLayer.intValue())) visibleLayer = null;
+        if (!allLayers && !layers.contains(visibleLayer)) allLayers = true;
     }
 
     /**
@@ -96,8 +97,9 @@ public final class PreviewVisibility {
      * Cycles through controller-relative Y layers and then returns to the all-layer view.
      */
     public void layerNext() {
-        int index = visibleLayer == null ? -1 : layers.indexOf(visibleLayer.intValue());
-        visibleLayer = index + 1 < layers.size() ? layers.getInt(index + 1) : null;
+        int index = allLayers ? 0 : layers.indexOf(visibleLayer) + 1;
+        allLayers = index == layers.size();
+        if (!allLayers) visibleLayer = layers.getInt(index);
         viewRevision++;
     }
 
@@ -105,7 +107,7 @@ public final class PreviewVisibility {
      * Returns cells in the active layer; focus only changes emphasis.
      */
     public ObjectList<StructurePreview.Cell> visibleCells() {
-        if (visibleLayer == null) {
+        if (allLayers) {
             return preview.cells();
         }
         return preview.cells().stream()
