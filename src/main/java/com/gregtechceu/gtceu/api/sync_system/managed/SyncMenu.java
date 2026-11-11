@@ -3,6 +3,7 @@ package com.gregtechceu.gtceu.api.sync_system.managed;
 import com.gregtechceu.gtceu.common.network.packets.PacketMenuSync;
 
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.player.Player;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 import org.jspecify.annotations.NullMarked;
@@ -29,6 +30,16 @@ public interface SyncMenu {
         if (storage.scanAndMarkChanges(player.registryAccess())) {
             PacketDistributor.sendToPlayer(player,
                     new PacketMenuSync(containerId, fullSync, storage.getPendingChanges()));
+        }
+    }
+
+    /** Sends changes to writable annotated fields from the client tick of this menu opening. */
+    default void syncToServer(Player player, int containerId) {
+        var managed = getSyncManaged();
+        if (managed == null) return;
+        var changes = managed.getSyncDataHolder().collectServerNetworkChanges(player.registryAccess());
+        if (!changes.isEmpty()) {
+            PacketDistributor.sendToServer(new PacketMenuSync(containerId, false, changes));
         }
     }
 }

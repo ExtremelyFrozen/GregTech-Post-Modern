@@ -27,7 +27,7 @@ public class GTNetwork {
         registar.playToServer(CPacketDynamicItemSlotSelectionToServer.TYPE, CPacketDynamicItemSlotSelectionToServer.CODEC, CPacketDynamicItemSlotSelectionToServer::execute);
         registar.playToClient(SPacketImageResponse.TYPE, SPacketImageResponse.CODEC, SPacketImageResponse::execute);
         registar.playToClient(SPacketMachineSyncToClient.TYPE, SPacketMachineSyncToClient.CODEC, SPacketMachineSyncToClient::execute);
-        registar.playToClient(PacketMenuSync.TYPE, PacketMenuSync.CODEC, PacketMenuSync::execute);
+        registar.playBidirectional(PacketMenuSync.TYPE, PacketMenuSync.CODEC, PacketMenuSync::execute);
         registar.playToClient(SPacketDynamicItemSlotManifestToClient.TYPE, SPacketDynamicItemSlotManifestToClient.CODEC, SPacketDynamicItemSlotManifestToClient::execute);
         registar.playToClient(SPacketDynamicItemSlotActivationToClient.TYPE, SPacketDynamicItemSlotActivationToClient.CODEC, SPacketDynamicItemSlotActivationToClient::execute);
         registar.playToClient(SPacketDynamicItemSlotSelectionToClient.TYPE, SPacketDynamicItemSlotSelectionToClient.CODEC, SPacketDynamicItemSlotSelectionToClient::execute);

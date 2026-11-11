@@ -7,9 +7,10 @@ import com.gregtechceu.gtceu.api.sync_system.managed.SyncMenu;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-/** Delivers changed annotated fields to the matching client menu. */
+/** Synchronizes annotated fields through the matching menu opening in either direction. */
 public record PacketMenuSync(int containerId, boolean fullSync, SyncFieldData fields) implements CustomPacketPayload {
 
     public static final Type<PacketMenuSync> TYPE = new Type<>(GTCEu.id("menu_sync"));
@@ -29,8 +30,13 @@ public record PacketMenuSync(int containerId, boolean fullSync, SyncFieldData fi
         var menu = player.containerMenu;
         if (menu.containerId == containerId && menu instanceof SyncMenu synced) {
             var managed = synced.getSyncManaged();
-            if (managed != null)
-                managed.getSyncDataHolder().applyClientNetworkUpdate(player.registryAccess(), fields, fullSync);
+            if (managed == null) return;
+            var storage = managed.getSyncDataHolder();
+            if (player instanceof ServerPlayer) {
+                if (menu.stillValid(player)) storage.applyServerNetworkUpdate(player.registryAccess(), fields);
+            } else {
+                storage.applyClientNetworkUpdate(player.registryAccess(), fields, fullSync);
+            }
         }
     }
 

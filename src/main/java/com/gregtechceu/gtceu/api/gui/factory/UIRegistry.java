@@ -1,6 +1,7 @@
 package com.gregtechceu.gtceu.api.gui.factory;
 
 import com.gregtechceu.gtceu.GTCEu;
+import com.gregtechceu.gtceu.api.sync_system.managed.SyncMenu;
 
 import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerMenu;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
@@ -93,11 +94,14 @@ public final class UIRegistry {
         var modularUI = ModularUI.of(ui, player);
         if (player != null && player.level().isClientSide()) {
             UIEventListener sync = event -> {
-                if (modularUI.getMenu() instanceof ModularUIContainerMenu menu &&
-                        menu.uiHolder instanceof MachineUIHolder holder) {
-                    var machine = holder.getMachine();
-                    if (machine != null) machine.sendServerSyncChanges();
-                }
+                var menu = modularUI.getMenu();
+                if (menu instanceof SyncMenu synced) {
+                    synced.syncToServer(player, menu.containerId);
+                } else if (menu instanceof ModularUIContainerMenu container &&
+                        container.uiHolder instanceof MachineUIHolder holder) {
+                            var machine = holder.getMachine();
+                            if (machine != null) machine.sendServerSyncChanges();
+                        }
             };
             ui.getRootElement().addEventListener(UIEvents.TICK, sync);
             ui.getRootElement().addEventListener(UIEvents.REMOVED, sync);
