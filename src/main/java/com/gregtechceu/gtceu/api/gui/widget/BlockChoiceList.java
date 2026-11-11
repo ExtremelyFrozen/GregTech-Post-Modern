@@ -6,7 +6,6 @@ import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTButtonElement;
 import com.gregtechceu.gtceu.api.gui.element.GTImageElement;
 import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
-import com.gregtechceu.gtceu.api.gui.texture.ColorRectTexture;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.gui.texture.ItemStackTexture;
 
@@ -128,19 +127,11 @@ public final class BlockChoiceList extends UIElement {
         list.getLayout().paddingAll(4);
         list.getStyle().backgroundTexture(GuiTextures.BACKGROUND_INVERSE);
         list.scrollerStyle(style -> style.mode(ScrollerMode.VERTICAL)
-                .verticalScrollDisplay(ScrollDisplay.AUTO).horizontalScrollDisplay(ScrollDisplay.NEVER)
+                .verticalScrollDisplay(ScrollDisplay.NEVER).horizontalScrollDisplay(ScrollDisplay.NEVER)
                 .scrollerViewStyle(0));
         list.viewPort(port -> {
             port.getLayout().paddingAll(0);
             port.getStyle().backgroundTexture(IGuiTexture.EMPTY);
-        });
-        list.verticalScroller(scroll -> {
-            scroll.getLayout().width(2);
-            scroll.getStyle().backgroundTexture(IGuiTexture.EMPTY);
-            scroll.headButton.setDisplay(false);
-            scroll.tailButton.setDisplay(false);
-            var bar = new ColorRectTexture(0xffffffff).setRadius(1);
-            scroll.scrollBar.buttonStyle(style -> style.baseTexture(bar).hoverTexture(bar).pressedTexture(bar));
         });
         return list;
     }
