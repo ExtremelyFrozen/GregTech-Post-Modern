@@ -13,7 +13,6 @@ import it.unimi.dsi.fastutil.objects.ObjectList;
 import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 
-import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 /**
@@ -32,26 +31,20 @@ public final class MaterialRequest {
     private final LongList remaining;
     @Getter
     private final ItemStack excludedContainer;
-    private final Predicate<ResourceLocation> includedSources;
     @Getter
     private final @Nullable ObjectList<Result> bindings;
     private ResourceLocation currentProviderId;
     private @Nullable Result currentBinding;
 
     public MaterialRequest(ObjectList<Demand> demands, ItemStack excludedContainer,
-                           Predicate<ResourceLocation> includedSources, @Nullable ObjectList<Result> bindings) {
+                           @Nullable ObjectList<Result> bindings) {
         this.demands = demands;
         this.remaining = new LongArrayList(demands.size());
         for (Demand demand : demands) {
             remaining.add(demand.amount());
         }
         this.excludedContainer = excludedContainer;
-        this.includedSources = includedSources;
         this.bindings = bindings;
-    }
-
-    public boolean includes(ResourceLocation id) {
-        return includedSources.test(id);
     }
 
     public long remaining(int demandIndex) {

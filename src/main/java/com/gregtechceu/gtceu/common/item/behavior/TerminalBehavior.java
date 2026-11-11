@@ -69,7 +69,6 @@ import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ObjectList;
-import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ObjectSet;
 import lombok.Getter;
 import lombok.Setter;
@@ -100,9 +99,6 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
     @Getter
     @SyncBoth
     private boolean noHatchMode = true;
-    @Getter
-    @SyncBoth
-    private ObjectSet<ResourceLocation> sources = new ObjectOpenHashSet<>();
     @Getter
     @SyncToClient
     private final Object2ObjectMap<String, StructureRequest> structures = new Object2ObjectLinkedOpenHashMap<>();
@@ -136,7 +132,7 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
         super(stack, registries);
     }
 
-    @ClientFieldChangeListener(fieldName = { "replaceMode", "noHatchMode", "sources", "structures", "included",
+    @ClientFieldChangeListener(fieldName = { "replaceMode", "noHatchMode", "structures", "included",
             "preview",
             "status", "placed", "removed" })
     public void onTerminalChanged() {
@@ -234,14 +230,11 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                 .map(structures::get).collect(ObjectArrayList.toList()), replaceMode, noHatchMode, sources);
     }
 
-    @ServerFieldChangeListener(fieldName = { "replaceMode", "noHatchMode", "sources" })
+    @ServerFieldChangeListener(fieldName = { "replaceMode", "noHatchMode" })
     public void refresh() {
         var definition = openedController.getDefinition();
         if (patternGeneration != StructurePatternRegistry.generation()) initialize(definition);
-        boolean build = included.stream()
-                .anyMatch(name -> structures.get(name).mode() == StructureOperation.BUILD);
-        boundSources = build ? MaterialSources.request(openedPlayer, new MaterialRequest(ObjectList.of(), getStack(),
-                sources::contains, null)) : ObjectList.of();
+        boundSources = MaterialSources.request(openedPlayer, new MaterialRequest(ObjectList.of(), getStack(), null));
         preview = StructurePreview.bound(definition.getId(),
                 new BatchPlanner().resolveBatch(openedController, openedPlayer, createRequest(boundSources)));
     }
@@ -465,20 +458,6 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                 controls.add(replace);
                 controls.add(casings);
                 int y = 40;
-                for (var provider : MaterialSources.getProviders()) {
-                    if (provider.label() == null) continue;
-                    var id = GTRegistries.MATERIAL_SOURCES.getKey(provider);
-                    var source = button(0, y, contentWidth, provider.label());
-                    source.textStyle(style -> style.textColor(terminal.sources.contains(id) ? 0xff167129 : 0xff404040));
-                    source.setOnClick(event -> {
-                        if (!terminal.sources.remove(id)) terminal.sources.add(id);
-                        rebuildOptions();
-                        event.stopPropagation();
-                    });
-                    options.addScrollViewChild(source);
-                    controls.add(source);
-                    y += 20;
-                }
                 var order = definition.getStructureOrder();
                 if (order.size() > 1) {
                     addStep(y, contentWidth, displayName(name), () -> {

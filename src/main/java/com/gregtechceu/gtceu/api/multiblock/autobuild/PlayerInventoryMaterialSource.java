@@ -4,8 +4,6 @@ import com.gregtechceu.gtceu.GTCEu;
 
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.item.ItemEntity;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.items.IItemHandler;
@@ -30,24 +28,20 @@ public final class PlayerInventoryMaterialSource implements MaterialSource {
 
     private final @Nullable IItemHandler root;
     private final ItemStack excludedContainer;
-    @Nullable
-    private final Player refundOwner;
 
-    public PlayerInventoryMaterialSource(@Nullable IItemHandler root, ItemStack excludedContainer,
-                                         @Nullable Player refundOwner) {
+    public PlayerInventoryMaterialSource(@Nullable IItemHandler root, ItemStack excludedContainer) {
         this.root = root;
         this.excludedContainer = excludedContainer;
-        this.refundOwner = refundOwner;
     }
 
     public static MaterialRequest.Result request(ServerPlayer player, MaterialRequest request) {
         return request.fulfill(() -> new PlayerInventoryMaterialSource(
-                player.getCapability(Capabilities.ItemHandler.ENTITY), request.getExcludedContainer(), player));
+                player.getCapability(Capabilities.ItemHandler.ENTITY), request.getExcludedContainer()));
     }
 
     @Override
     public Session openSession() {
-        return new PlayerInventorySession(root, excludedContainer, refundOwner);
+        return new PlayerInventorySession(root, excludedContainer);
     }
 
     private static final class PlayerInventorySession implements Session {
@@ -58,18 +52,14 @@ public final class PlayerInventoryMaterialSource implements MaterialSource {
         private final Object2IntMap<MaterialKey> nextMaterialSlot = new Object2IntOpenHashMap<>();
         private final ObjectList<InsertionHandler> insertionHandlers = new ObjectArrayList<>();
         private final ItemStack excludedContainer;
-        @Nullable
-        private final Player refundOwner;
         private final ReferenceSet<IItemHandler> visitedHandlers = new ReferenceOpenHashSet<>();
         private final Reference2LongMap<SlotRef> reservations = new Reference2LongOpenHashMap<>();
         @Nullable
         private BuildProblem problem;
 
-        private PlayerInventorySession(@Nullable IItemHandler root, ItemStack excludedContainer,
-                                       @Nullable Player refundOwner) {
+        private PlayerInventorySession(@Nullable IItemHandler root, ItemStack excludedContainer) {
             this.root = root;
             this.excludedContainer = excludedContainer;
-            this.refundOwner = refundOwner;
             if (root != null) collectSlots(root);
         }
 
@@ -201,17 +191,6 @@ public final class PlayerInventoryMaterialSource implements MaterialSource {
             return amount - remaining;
         }
 
-        private ItemStack returnUnexpected(ItemStack stack) {
-            ItemStack remainder = insert(stack, false);
-            if (!remainder.isEmpty() && refundOwner != null) {
-                ItemEntity dropped = refundOwner.drop(remainder, false);
-                if (dropped != null) {
-                    return ItemStack.EMPTY;
-                }
-            }
-            return remainder;
-        }
-
         private void release(ObjectList<SlotAllocation> allocations) {
             for (SlotAllocation allocation : allocations) {
                 long reserved = reservations.getLong(allocation.slot());
@@ -341,7 +320,7 @@ public final class PlayerInventoryMaterialSource implements MaterialSource {
                             false);
                     if (!key.matches(extracted) || extracted.getCount() != 1) {
                         if (!extracted.isEmpty()) {
-                            ItemStack rejected = session.returnUnexpected(extracted);
+                            ItemStack rejected = session.insert(extracted, false);
                             if (!rejected.isEmpty()) {
                                 rejectedStacks.add(rejected.copy());
                                 commitProblem = problem("gtpm.multiblock.autobuild.refund_failed");

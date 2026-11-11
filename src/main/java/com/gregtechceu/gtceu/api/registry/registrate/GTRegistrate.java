@@ -19,7 +19,6 @@ import com.gregtechceu.gtceu.core.mixins.registrate.AbstractRegistrateAccessor;
 
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.CreativeModeTab;
@@ -216,14 +215,13 @@ public class GTRegistrate extends AbstractRegistrate<GTRegistrate> {
     }
 
     /**
-     * Creates a material-source registration under this mod's namespace. Lower priorities supply materials first;
-     * a label adds an optional terminal toggle, while a null label keeps the provider enabled for every request.
+     * Creates a material-source registration under this mod's namespace. Lower priorities supply materials first
+     * and receive returned materials last.
      */
     public NoConfigBuilder<Registration, Registration, GTRegistrate> materialSource(String name, int priority,
-                                                                                    @Nullable Component label,
                                                                                     MaterialRequestProvider provider) {
         return generic(name, GTRegistries.MATERIAL_SOURCE_REGISTRY,
-                () -> new Registration(priority, label, provider));
+                () -> new Registration(priority, provider));
     }
 
     public SoundEntryBuilder sound(String name) {

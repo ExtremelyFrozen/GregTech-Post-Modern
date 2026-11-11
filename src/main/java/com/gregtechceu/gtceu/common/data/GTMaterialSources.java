@@ -12,7 +12,7 @@ import static com.gregtechceu.gtceu.common.registry.GTRegistration.REGISTRATE;
 public class GTMaterialSources {
 
     public static final RegistryEntry<Registration, Registration> PLAYER_INVENTORY = REGISTRATE
-            .materialSource("player_inventory", 100, null, PlayerInventoryMaterialSource::request).register();
+            .materialSource("player_inventory", 0, PlayerInventoryMaterialSource::request).register();
 
     public static void init() {
         if (GTCEu.MODS.AE2.isLoaded()) {
