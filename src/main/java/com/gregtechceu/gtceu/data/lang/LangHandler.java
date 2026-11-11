@@ -1274,17 +1274,6 @@ public class LangHandler {
         provider.add("gtpm.multiblock.autobuild.place_failed", "Could not place block at %s.");
         provider.add("gtpm.multiblock.autobuild.controller_protected", "The controller cannot be removed.");
         provider.add("gtpm.multiblock.autobuild.unbreakable", "Target block is unbreakable: %s.");
-        provider.add("gtpm.multiblock.autobuild.me_unavailable", "ME network is unavailable.");
-        provider.add("gtpm.multiblock.autobuild.me_no_player_inventory", "Could not access player inventory for ME.");
-        provider.add("gtpm.multiblock.autobuild.me_no_linked_terminal", "No linked ME terminal found.");
-        provider.add("gtpm.multiblock.autobuild.me_linked_level_missing", "Linked ME dimension is unavailable.");
-        provider.add("gtpm.multiblock.autobuild.me_wrong_dimension", "Linked ME access point is in another dimension.");
-        provider.add("gtpm.multiblock.autobuild.me_access_point_missing", "Linked ME access point is missing.");
-        provider.add("gtpm.multiblock.autobuild.me_access_point_unloaded",
-                "The linked ME access point's chunk is not loaded.");
-        provider.add("gtpm.multiblock.autobuild.me_access_point_inactive", "Linked ME access point is inactive.");
-        provider.add("gtpm.multiblock.autobuild.me_out_of_range", "Linked ME access point is out of range.");
-        provider.add("gtpm.multiblock.autobuild.me_grid_missing", "Linked ME grid is missing.");
         provider.add("gtpm.multiblock.autobuild.me_source_changed",
                 "The ME material source changed before extraction.");
         provider.add("gtpm.multiblock.autobuild.structure_check_failed",

@@ -26,12 +26,7 @@ public class IntegrationLang {
         provider.add("gtpm.jei.multiblock_info", "Multiblock Info");
         provider.add("gtpm.multiblock.preview.material.required", "Required: %s");
         provider.add("gtpm.multiblock.preview.material.structure", "  %s: %s");
-        provider.add("gtpm.multiblock.preview.material.me", "ME available: %s; allocated: %s");
-        provider.add("gtpm.multiblock.preview.material.player", "Player available: %s; allocated: %s");
         provider.add("gtpm.multiblock.preview.material.missing", "Missing: %s");
-        provider.add("gtpm.multiblock.preview.material.unlimited", "Materials are unlimited for this plan");
-        provider.add("gtpm.multiblock.preview.material.availability_unknown",
-                "Availability is unknown in recipe previews");
         provider.add("gtpm.multiblock.preview.tooltip.previous_materials", "Previous materials");
         provider.add("gtpm.multiblock.preview.tooltip.next_materials", "Next materials");
         provider.add("gtpm.multiblock.preview.cell.position", "Relative position: %s, %s, %s");
@@ -180,44 +175,7 @@ public class IntegrationLang {
         provider.add("gtpm.multiblock.preview.tooltip.tier_value", "Select an exact legal tier");
         provider.add("gtpm.multiblock.preview.tooltip.tier_group_selected", "Tier group: %s");
         provider.add("gtpm.multiblock.preview.tooltip.tier_value_selected", "Exact tier candidate: %s (%s)");
-        provider.add("gtpm.multiblock.preview.diagnostic", "Plan diagnostic: %s");
-        provider.add("gtpm.multiblock.preview.diagnostic.unknown_structure", "Unknown structure");
-        provider.add("gtpm.multiblock.preview.diagnostic.invalid_options", "Invalid configuration");
-        provider.add("gtpm.multiblock.preview.diagnostic.pattern_unavailable", "Pattern unavailable");
-        provider.add("gtpm.multiblock.preview.diagnostic.permission_denied", "Permission denied");
-        provider.add("gtpm.multiblock.preview.diagnostic.unloaded", "Target area is not loaded");
-        provider.add("gtpm.multiblock.preview.diagnostic.outside_build_height",
-                "Structure exceeds the world's build height");
-        provider.add("gtpm.multiblock.preview.diagnostic.blocked", "Target is blocked");
-        provider.add("gtpm.multiblock.preview.diagnostic.unsupported", "Unsupported pattern target");
         provider.add("gtpm.multiblock.preview.diagnostic.missing_material", "Missing material");
-        provider.add("gtpm.multiblock.preview.diagnostic.place_failed", "Placement failed");
-        provider.add("gtpm.multiblock.preview.diagnostic.demolition_failed", "Demolition failed");
-        provider.add("gtpm.multiblock.preview.diagnostic.me_unavailable", "ME network unavailable");
-        provider.add("gtpm.multiblock.preview.diagnostic.player_inventory_unavailable",
-                "Player inventory unavailable");
-        provider.add("gtpm.multiblock.preview.diagnostic.ae_not_installed", "AE2 is not installed");
-        provider.add("gtpm.multiblock.preview.diagnostic.ae_not_linked", "No linked wireless terminal");
-        provider.add("gtpm.multiblock.preview.diagnostic.ae_linked_dimension_missing",
-                "Linked AE dimension unavailable");
-        provider.add("gtpm.multiblock.preview.diagnostic.ae_wrong_dimension",
-                "Linked AE access point is in another dimension");
-        provider.add("gtpm.multiblock.preview.diagnostic.ae_access_point_missing",
-                "Linked AE access point missing");
-        provider.add("gtpm.multiblock.preview.diagnostic.ae_access_point_inactive",
-                "Linked AE access point inactive");
-        provider.add("gtpm.multiblock.preview.diagnostic.ae_out_of_range", "Linked AE access point out of range");
-        provider.add("gtpm.multiblock.preview.diagnostic.ae_grid_unavailable", "Linked AE grid unavailable");
-        provider.add("gtpm.multiblock.preview.diagnostic.stale_plan", "Preview is stale; refresh before executing");
-        provider.add("gtpm.multiblock.preview.diagnostic.source_changed", "Material source changed");
-        provider.add("gtpm.multiblock.preview.diagnostic.extraction_failed", "Material extraction failed");
-        provider.add("gtpm.multiblock.preview.diagnostic.refund_failed", "Material refund failed");
-        provider.add("gtpm.multiblock.preview.diagnostic.count_overflow", "Material count overflow");
-        provider.add("gtpm.multiblock.preview.diagnostic.invalid_tier_selection", "Invalid tier selection");
-        provider.add("gtpm.multiblock.preview.diagnostic.structure_check_failed",
-                "Final structure validation failed");
-        provider.add("gtpm.multiblock.preview.diagnostic.pattern_reload_incompatible",
-                "The pattern changed incompatibly; reopen this preview after fixing the definition");
         provider.add("gtpm.jei.ore_processing_diagram", "Ore Processing Diagram");
         provider.add("gtpm.jei.ore_vein_diagram", "Ore Vein Diagram");
         provider.add("gtpm.jei.programmed_circuit", "Programmed Circuit Page");
