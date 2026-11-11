@@ -48,6 +48,7 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
 import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollerMode;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.math.Size;
 
 import net.minecraft.core.BlockPos;
@@ -567,13 +568,22 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                     if (minimum == maximum) continue;
                     var title = text("axis." + axis.name().toLowerCase(Locale.ROOT));
                     options.addScrollViewChild(label(0, y, contentWidth, title));
-                    var input = new GTTextFieldElement(0, y + 10, contentWidth, 16) {
+                    var input = new GTTextFieldElement(0, y + 10, contentWidth, 12) {
 
                         @Override
                         protected void onRawTextUpdate() {
                             super.onRawTextUpdate();
                             dimensionTicks = 5;
                             updateInteractivity();
+                        }
+
+                        @Override
+                        protected void onMouseWheel(UIEvent event) {
+                            if (isEditable() && !isError()) {
+                                setRawText(Integer.toString(Math.clamp((long) Integer.parseInt(getText()) +
+                                        (event.deltaY > 0 ? 1 : -1), minimum, maximum)));
+                                event.stopPropagation();
+                            }
                         }
                     };
                     input.setNumbersOnlyInt(minimum, maximum);
@@ -582,8 +592,8 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                             false);
                     input.setTextResponder(value -> pendingDimensions.put(axis, Integer.parseInt(value)));
                     input.textFieldStyle(style -> style.fontSize(8).textColor(0xff404040).textShadow(false)
-                            .focusOverlay(GuiTextures.SLOT));
-                    input.getStyle().backgroundTexture(GuiTextures.BACKGROUND_INVERSE).tooltips(title);
+                            .focusOverlay(IGuiTexture.EMPTY));
+                    input.getStyle().backgroundTexture(GuiTextures.BACKGROUND_INVERSE).tooltips(Component.empty());
                     options.addScrollViewChild(input);
                     dimensionInputs.add(input);
                     controls.add(input);
