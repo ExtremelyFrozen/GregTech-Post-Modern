@@ -310,35 +310,31 @@ public class ComponentItem extends Item
 
     @Override
     public boolean canCreateUI(Player entityPlayer, HeldItemUIHolder holder) {
-        for (IItemComponent component : components) {
-            if (component instanceof IItemUIFactory uiFactory) {
-                return uiFactory.canCreateUI(holder, entityPlayer);
-            }
-        }
-        return false;
+        var factory = getUIFactory(holder);
+        return factory != null && factory.canCreateUI(holder, entityPlayer);
     }
 
     @Override
     public UI createUI(Player entityPlayer, HeldItemUIHolder holder) {
-        for (IItemComponent component : components) {
-            if (component instanceof IItemUIFactory uiFactory) {
-                if (!uiFactory.canCreateUI(holder, entityPlayer)) {
-                    break;
-                }
-                return uiFactory.createUI(holder, entityPlayer);
-            }
-        }
+        var factory = getUIFactory(holder);
+        if (factory != null) return factory.createUI(holder, entityPlayer);
         throw new IllegalStateException("No item component exposes an LDLib2 UI for the opened stack.");
     }
 
     @Override
     public boolean isUIStillValid(Player entityPlayer, HeldItemUIHolder holder) {
+        var factory = getUIFactory(holder);
+        return factory == null ? HeldItemUIProvider.super.isUIStillValid(entityPlayer, holder) :
+                factory.isUIStillValid(holder, entityPlayer);
+    }
+
+    /** Uses the opened stack's stateful component so UI callbacks can update its annotated fields directly. */
+    public @Nullable IItemUIFactory getUIFactory(HeldItemUIHolder holder) {
+        if (holder.getSyncHolder() instanceof IItemUIFactory factory) return factory;
         for (IItemComponent component : components) {
-            if (component instanceof IItemUIFactory uiFactory) {
-                return uiFactory.isUIStillValid(holder, entityPlayer);
-            }
+            if (component instanceof IItemUIFactory factory) return factory;
         }
-        return HeldItemUIProvider.super.isUIStillValid(entityPlayer, holder);
+        return null;
     }
 
     @Nullable
