@@ -4,6 +4,10 @@ import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.multiblock.index.ChunkStructureAccess;
 import com.gregtechceu.gtceu.api.multiblock.index.ChunkStructureIndex;
+import com.gregtechceu.gtceu.api.multiblock.index.StructureSearchIndex;
+import com.gregtechceu.gtceu.api.multiblock.pattern.match.MultiBlockPattern;
+import com.gregtechceu.gtceu.api.multiblock.pattern.match.PatternCheckSession;
+import com.gregtechceu.gtceu.data.pattern.StructurePatternRegistry;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
@@ -16,6 +20,7 @@ import net.minecraft.world.level.saveddata.SavedData;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayFIFOQueue;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectHeapPriorityQueue;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
@@ -26,7 +31,6 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -51,14 +55,17 @@ public class MultiblockWorldSavedData extends SavedData {
     private final Reference2ObjectOpenHashMap<MultiblockState, LongOpenHashSet> changedPositions = new Reference2ObjectOpenHashMap<>();
     private final ObjectArrayFIFOQueue<MultiblockState> changedStates = new ObjectArrayFIFOQueue<>();
     private final ReferenceOpenHashSet<MultiblockControllerMachine> controllers = new ReferenceOpenHashSet<>();
+    private final StructureSearchIndex searchRegions = new StructureSearchIndex();
     private final Reference2ObjectOpenHashMap<MultiblockState, PendingPatternCheck> scheduledChecks = new Reference2ObjectOpenHashMap<>();
     private final Reference2IntOpenHashMap<MultiblockState> retryDelays = new Reference2IntOpenHashMap<>();
+    private long queueOrder;
+    private long patternGeneration = StructurePatternRegistry.generation();
     private final ObjectHeapPriorityQueue<PendingPatternCheck> pendingChecks = new ObjectHeapPriorityQueue<>(
-            Comparator.comparingLong(PendingPatternCheck::dueTick));
+            Comparator.comparingLong(PendingPatternCheck::dueTick).thenComparingLong(check -> check.queueOrder));
 
     private MultiblockWorldSavedData() {
         this.mapping = new Object2ObjectOpenHashMap<>();
-        this.chunkPosMapping = new HashMap<>();
+        this.chunkPosMapping = new Object2ObjectOpenHashMap<>();
     }
 
     private MultiblockWorldSavedData(CompoundTag tag, HolderLookup.Provider provider) {
@@ -93,6 +100,7 @@ public class MultiblockWorldSavedData extends SavedData {
 
     public void removeMapping(MultiblockState state) {
         this.mapping.remove(StructureMappingKey.from(state));
+        searchRegions.remove(state);
         LongOpenHashSet positions = indexedPositions.remove(state);
         if (positions != null) {
             var iterator = positions.iterator();
@@ -125,8 +133,26 @@ public class MultiblockWorldSavedData extends SavedData {
         positions.add(position);
     }
 
+    public void onChunkPositionChanged(BlockPos position) {
+        searchRegions.changed(position, this);
+    }
+
     public void queuePatternCheck(MultiblockState state) {
         if (!scheduledChecks.containsKey(state)) schedulePatternCheck(state, state.world.getGameTime());
+    }
+
+    public void requestPatternCheck(MultiblockState state) {
+        requestPatternCheck(state, new LongOpenHashSet());
+    }
+
+    public void requestPatternCheck(MultiblockState state, LongOpenHashSet positions) {
+        PendingPatternCheck previous = scheduledChecks.get(state);
+        LongOpenHashSet changes = new LongOpenHashSet(positions);
+        if (previous != null) changes.addAll(previous.changes);
+        scheduledChecks.remove(state);
+        retryDelays.removeInt(state);
+        schedulePatternCheck(state, state.world.getGameTime());
+        scheduledChecks.get(state).changes.addAll(changes);
     }
 
     public void rebuildChunkIndex(LevelChunk chunk) {
@@ -143,12 +169,17 @@ public class MultiblockWorldSavedData extends SavedData {
                     index.add(ChunkStructureIndex.localPosition(pos), state);
                 }
             }
+            requestPatternCheck(state);
         }
     }
 
     public void clearChunkIndex(LevelChunk chunk) {
         ChunkStructureIndex index = ((ChunkStructureAccess) chunk).gtceu$getStructureIndex();
         if (index != null) index.clear();
+        for (MultiblockState state : getControllersInChunk(chunk.getPos())) {
+            state.setError(MultiblockState.UNLOAD_ERROR);
+            requestPatternCheck(state);
+        }
     }
 
     private void schedulePatternCheck(MultiblockState state, long dueTick) {
@@ -156,16 +187,26 @@ public class MultiblockWorldSavedData extends SavedData {
         if (current != null && current.dueTick() <= dueTick) return;
         PendingPatternCheck pending = new PendingPatternCheck(state, dueTick, retryDelays.getOrDefault(state, 20));
         scheduledChecks.put(state, pending);
+        pending.queueOrder = queueOrder++;
         pendingChecks.enqueue(pending);
     }
 
     public void tickFormationChecks(ServerLevel level, long deadline) {
-        periodID++;
-        if (periodID % 200 == 0) {
+        long generation = StructurePatternRegistry.generation();
+        if (generation != patternGeneration) {
+            patternGeneration = generation;
+            for (MultiblockState state : mapping.values()) requestPatternCheck(state);
             for (MultiblockControllerMachine controller : controllers) {
-                controller.asyncCheckPattern(periodID);
+                for (String structureName : controller.getDefinition().getStructureNames()) {
+                    MultiblockState state = controller.getMultiblockState(structureName);
+                    if (!controller.isStructureFormed(structureName)) {
+                        searchRegions.add(state, controller.getPattern(structureName).getSearchRadius());
+                    }
+                    requestPatternCheck(state);
+                }
             }
         }
+        periodID++;
 
         boolean changeNext = true;
         while (System.nanoTime() < deadline) {
@@ -177,7 +218,8 @@ public class MultiblockWorldSavedData extends SavedData {
             if (hasChanges && (changeNext || !hasDueCheck)) {
                 MultiblockState state = changedStates.dequeue();
                 LongOpenHashSet positions = changedPositions.remove(state);
-                if (positions != null && indexedPositions.containsKey(state)) state.onBlockStateChanged(positions);
+                if (positions != null && (indexedPositions.containsKey(state) || searchRegions.contains(state)))
+                    state.onBlockStateChanged(positions);
                 changeNext = false;
             } else {
                 PendingPatternCheck pending = pendingChecks.dequeue();
@@ -197,6 +239,11 @@ public class MultiblockWorldSavedData extends SavedData {
 
     private void checkPattern(PendingPatternCheck pending, ServerLevel level) {
         MultiblockState state = pending.state();
+        LongOpenHashSet queuedChanges = changedPositions.remove(state);
+        if (queuedChanges != null) {
+            pending.changes.addAll(queuedChanges);
+            pending.session = null;
+        }
         MultiblockControllerMachine controller = state.getController();
         if (controller == null) return;
         var lock = controller.getPatternLock();
@@ -206,17 +253,50 @@ public class MultiblockWorldSavedData extends SavedData {
         }
         try {
             String structureName = state.getStructureName();
-            if (!controller.checkPattern(structureName)) {
-                scheduleRetry(pending, level.getGameTime());
+            MultiBlockPattern pattern = controller.getPattern(structureName);
+            long generation = StructurePatternRegistry.generation();
+            if (pending.session == null || pending.pattern != pattern || pending.generation != generation ||
+                    !pending.session.isSourceCurrent()) {
+                pending.pattern = pattern;
+                pending.generation = generation;
+                pending.session = pattern.beginCheck(state, pending.changes);
+            }
+            PatternCheckSession session = pending.session;
+            if (!session.advance()) {
+                pending.dueTick = level.getGameTime();
+                pending.queueOrder = queueOrder++;
+                scheduledChecks.put(state, pending);
+                pendingChecks.enqueue(pending);
                 return;
             }
+            if (!session.getState().isMatchCurrent() || session.getState().lastController != state.getController()) {
+                requestPatternCheck(state, pending.changes);
+                return;
+            }
+            boolean matched = controller.validatePatternResult(session.getState(), session.matched());
+            if (!matched) {
+                if (controller.isStructureFormed(structureName)) controller.invalidateStructure(structureName);
+                state.applyMatch(session.getState());
+                addMapping(state);
+                searchRegions.add(state, pattern.getSearchRadius());
+                if (!pattern.isEventDriven()) scheduleRetry(pending, level.getGameTime());
+                return;
+            }
+            boolean refresh = session.requiresRefresh();
+            state.applyMatch(session.getState());
+            searchRegions.remove(state);
             retryDelays.remove(state);
             if (MultiblockControllerMachine.DEFAULT_STRUCTURE.equals(structureName)) {
                 controller.setFlipped(state.isNeededFlip());
             }
-            controller.formStructure(structureName);
-            addMapping(state);
-            if (!hasPendingStructureSearch(controller)) removeAsyncLogic(controller);
+            if (refresh) {
+                controller.formStructure(structureName);
+                addMapping(state);
+            }
+            if (!hasPendingStructureSearch(controller)) {
+                controllers.remove(controller);
+            }
+            if (!pattern.isEventDriven()) schedulePatternCheck(state, level.getGameTime() + 200);
         } catch (RuntimeException exception) {
             GTCEu.LOGGER.error("Error while assembling multiblock {} at {}", controller, state.controllerPos,
                     exception);
@@ -229,8 +309,8 @@ public class MultiblockWorldSavedData extends SavedData {
     private void scheduleRetry(PendingPatternCheck pending, long currentTick) {
         MultiblockState state = pending.state();
         int delay = pending.delay();
-        schedulePatternCheck(state, currentTick + delay);
         retryDelays.put(state, Math.min(200, delay * 2));
+        schedulePatternCheck(state, currentTick + delay);
     }
 
     private static boolean hasPendingStructureSearch(MultiblockControllerMachine controller) {
@@ -251,7 +331,7 @@ public class MultiblockWorldSavedData extends SavedData {
     private long periodID;
 
     public void createExecutorService() {
-        // Retained for binary compatibility. Formation checks run on the server tick scheduler.
+        for (MultiblockControllerMachine controller : controllers) controller.asyncCheckPattern(periodID);
     }
 
     /**
@@ -263,7 +343,11 @@ public class MultiblockWorldSavedData extends SavedData {
         controllers.add(controller);
         for (String structureName : controller.getDefinition().getStructureNames()) {
             MultiblockState state = controller.getMultiblockState(structureName);
-            if (state.hasError() || !controller.isStructureFormed(structureName)) queuePatternCheck(state);
+            state.lastController = controller;
+            if (state.hasError() || !controller.isStructureFormed(structureName)) {
+                searchRegions.add(state, controller.getPattern(structureName).getSearchRadius());
+                queuePatternCheck(state);
+            }
         }
     }
 
@@ -278,7 +362,13 @@ public class MultiblockWorldSavedData extends SavedData {
             MultiblockState state = controller.getMultiblockState(structureName);
             scheduledChecks.remove(state);
             retryDelays.remove(state);
+            changedPositions.remove(state);
+            searchRegions.remove(state);
+            removeMapping(state);
         }
+        ObjectArrayList<PendingPatternCheck> retained = new ObjectArrayList<>(scheduledChecks.values());
+        pendingChecks.clear();
+        for (PendingPatternCheck pending : retained) pendingChecks.enqueue(pending);
     }
 
     public static boolean isThreadService() {
@@ -292,6 +382,11 @@ public class MultiblockWorldSavedData extends SavedData {
         scheduledChecks.clear();
         pendingChecks.clear();
         retryDelays.clear();
+        searchRegions.clear();
+        mapping.clear();
+        chunkPosMapping.clear();
+        indexedPositions.clear();
+        indexedChunks.clear();
     }
 
     public record StructureMappingKey(BlockPos controllerPos, String structureName) {
@@ -301,10 +396,33 @@ public class MultiblockWorldSavedData extends SavedData {
         }
     }
 
-    private record PendingPatternCheck(MultiblockState state, long dueTick, int delay) {
+    private static final class PendingPatternCheck {
 
-        private PendingPatternCheck(MultiblockState state, long dueTick) {
-            this(state, dueTick, 20);
+        private final MultiblockState state;
+        private long dueTick;
+        private final int delay;
+        private long queueOrder;
+        private PatternCheckSession session;
+        private MultiBlockPattern pattern;
+        private long generation;
+        private final LongOpenHashSet changes = new LongOpenHashSet();
+
+        private PendingPatternCheck(MultiblockState state, long dueTick, int delay) {
+            this.state = state;
+            this.dueTick = dueTick;
+            this.delay = delay;
+        }
+
+        private MultiblockState state() {
+            return state;
+        }
+
+        private long dueTick() {
+            return dueTick;
+        }
+
+        private int delay() {
+            return delay;
         }
     }
 }

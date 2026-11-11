@@ -30,6 +30,7 @@ import java.util.Optional
 /** One ability definition owns block candidates, real part/tier checks and all published ability facts. */
 @JvmRecord
 data class AbilityPredicate(val abilities: ObjectList<PartAbility>, val range: Optional<TierRange>, val allowedTiers: Optional<IntSet>, val io: Optional<String>, val facing: Optional<RelativeDirection>) : StructurePredicate {
+	override fun hasPositionDependencies(): Boolean = true
 	constructor(abilities: ObjectList<PartAbility>) : this(abilities, Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty())
 
 	override fun type(): StructurePredicateType<*> = TYPE
@@ -38,7 +39,7 @@ data class AbilityPredicate(val abilities: ObjectList<PartAbility>, val range: O
 		return observe(candidateState, block?.definition?.tier, block != null)
 	}
 	override fun observePosition(state: MultiblockState): PatternObservation {
-		val machine = MetaMachine.getMachine(state.world, state.pos)
+		val machine = state.blockEntity as? MetaMachine
 		val required = facing.orElse(null)
 		if (required != null) {
 			val controller = state.controller ?: return PatternObservation.of(false)

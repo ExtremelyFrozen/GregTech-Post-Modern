@@ -18,6 +18,8 @@ import it.unimi.dsi.fastutil.objects.ObjectList
 /** One block plus the properties actually constrained by this definition, shared by candidates and world matching. */
 @JvmRecord
 data class BlockStatePredicate(val block: Block, val properties: Map<String, String>) : StructurePredicate {
+	override fun hasPositionDependencies(): Boolean = true
+	override fun canReuseObservation(): Boolean = true
 	private fun preview(): BlockState {
 		var state = block.defaultBlockState()
 		for ((name, value) in properties) {

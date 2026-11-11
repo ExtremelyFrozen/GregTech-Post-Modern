@@ -2,6 +2,7 @@ package com.gregtechceu.gtceu.api.multiblock.pattern.layout
 
 import com.gregtechceu.gtceu.api.multiblock.pattern.compile.PatternCompileException
 import com.gregtechceu.gtceu.api.multiblock.pattern.fragment.FragmentRegistry
+import com.gregtechceu.gtceu.api.multiblock.pattern.match.PatternWork
 import com.gregtechceu.gtceu.api.multiblock.pattern.model.*
 import com.gregtechceu.gtceu.api.multiblock.structurepredicate.PatternPredicate
 import com.gregtechceu.gtceu.api.multiblock.structurepredicate.PatternPredicateCompiler
@@ -13,6 +14,9 @@ import it.unimi.dsi.fastutil.chars.Char2ObjectLinkedOpenHashMap
 import it.unimi.dsi.fastutil.chars.Char2ObjectMap
 import it.unimi.dsi.fastutil.chars.CharOpenHashSet
 import it.unimi.dsi.fastutil.chars.CharSet
+import it.unimi.dsi.fastutil.ints.Int2ObjectAVLTreeMap
+import it.unimi.dsi.fastutil.ints.IntArrayList
+import it.unimi.dsi.fastutil.ints.IntList
 import it.unimi.dsi.fastutil.objects.Object2IntMap
 import it.unimi.dsi.fastutil.objects.Object2IntMaps
 import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap
@@ -24,6 +28,7 @@ import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet
 import it.unimi.dsi.fastutil.objects.ObjectSet
 
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.math.abs
 
 /** Resolves recursive structure declarations once; each expansion owns its mutable scratch data. */
 class PatternLayoutResolver(private val definition: PatternDefinition) {
@@ -31,6 +36,9 @@ class PatternLayoutResolver(private val definition: PatternDefinition) {
 	private val choices = ObjectArrayList<PatternChoiceDescriptor>()
 	private val rootSymbols = compileSymbols(definition.predicates)
 	private val localByDeclaration = ConcurrentHashMap<String, Char2ObjectMap<PatternPredicate>>()
+	private data class LayoutKey(val repetitions: IntList, val choices: Map<String, String>)
+	private val layouts = Object2ObjectLinkedOpenHashMap<LayoutKey, PatternLayout>()
+	private var cachedCellCount = 0
 	var maximumDepth: Int = 0
 		private set
 
@@ -62,9 +70,37 @@ class PatternLayoutResolver(private val definition: PatternDefinition) {
 	fun repeatDescriptors(): ObjectList<PatternRepeatDescriptor> = ObjectLists.unmodifiable(repeats)
 	fun choiceDescriptors(): ObjectList<PatternChoiceDescriptor> = ObjectLists.unmodifiable(choices)
 
+	/** Conservative distances from any possible origin, without enumerating repeated cells or choice products. */
+	fun searchRadius(): IntArray {
+		fun extent(node: PatternNode): LongArray = when (node) {
+			is PatternNode.Fixed -> longArrayOf(node.depth().toLong(), node.height().toLong(), node.width().toLong())
+
+			is PatternNode.Sequence -> LongArray(3).also { out -> node.children.forEach { child -> extent(child).forEachIndexed { axis, value -> out[axis] = Math.addExact(out[axis], value) } } }
+
+			is PatternNode.Repeat -> extent(node.body).also { out -> out[PatternAxis.of(node.axis).ordinal] = Math.multiplyExact(out[PatternAxis.of(node.axis).ordinal], node.maximum.toLong()) }
+
+			is PatternNode.Choice -> LongArray(3).also { out -> node.alternatives.forEach { branch -> extent(branch.node).forEachIndexed { axis, value -> out[axis] = maxOf(out[axis], value) } } }
+
+			is PatternNode.Fragment -> extent(bind(fragment(node.id).body, node.bindings))
+
+			is PatternNode.Placed -> extent(node.body).also { out ->
+				out[0] += 2L * abs(node.offset.depth.toLong())
+				out[1] += 2L * abs(node.offset.height.toLong())
+				out[2] += 2L * abs(node.offset.width.toLong())
+			}
+		}
+		val extent = extent(definition.body)
+		val origin = definition.origin.offset
+		return intArrayOf(
+			minOf(Int.MAX_VALUE.toLong(), extent[0] * 2 + abs(origin.depth.toLong())).toInt(),
+			minOf(Int.MAX_VALUE.toLong(), extent[1] * 2 + abs(origin.height.toLong())).toInt(),
+			minOf(Int.MAX_VALUE.toLong(), extent[2] * 2 + abs(origin.width.toLong())).toInt(),
+		)
+	}
+
 	/** Measures the same layout bounds without expanding its cells, predicates or instance metadata. */
 	fun dimensions(repetitions: IntArray, choices: Map<String, String>): IntArray {
-		val box = expandNode(definition.body, "$", "$", rootSymbols, emptyMap(), repetitions, choices, ObjectArrayList(), "", -1, 0, 0, true)
+		val box = PatternWork { expandNode(this, definition.body, "$", "$", rootSymbols, emptyMap(), repetitions, choices, ObjectArrayList(), "", -1, 0, 0, true) }.finish()
 		return IntArray(3) { box.size(it) }
 	}
 
@@ -159,13 +195,21 @@ class PatternLayoutResolver(private val definition: PatternDefinition) {
 		return layout
 	}
 
-	internal fun expandResolved(repetitions: IntArray, selected: Map<String, String>): PatternLayout {
+	internal fun expandResolved(repetitions: IntArray, selected: Map<String, String>): PatternLayout = PatternWork { expandResolved(this, repetitions, selected) }.finish()
+
+	internal suspend fun expandResolved(work: PatternWork<*>, repetitions: IntArray, selected: Map<String, String>): PatternLayout {
 		require(repetitions.size == repeats.size) { "Expected ${repeats.size} repetition counts, got ${repetitions.size}" }
 		repeats.forEach { require(repetitions[it.index] in it.minimum..it.maximum) { "Repetition outside bounds at ${it.path}" } }
+		val key = LayoutKey(IntArrayList(repetitions), Object2ObjectLinkedOpenHashMap(selected))
+		synchronized(layouts) { layouts.getAndMoveToLast(key)?.let { return it } }
 		val root = rootSymbols
-		val box = expandNode(definition.body, "$", "$", root, emptyMap(), repetitions, selected, ObjectArrayList(), "", -1, 0, 0)
+		val box = expandNode(work, definition.body, "$", "$", root, emptyMap(), repetitions, selected, ObjectArrayList(), "", -1, 0, 0)
 		val origin = definition.origin
-		val controllers = box.cells.filter { it.predicate is PredicateController || (origin.token != "controller" && it.token == origin.token) }
+		val controllers = ObjectArrayList<PatternLayoutCell>()
+		for (cell in box.cells) {
+			work.checkpoint()
+			if (cell.predicate is PredicateController || (origin.token != "controller" && cell.token == origin.token)) controllers.add(cell)
+		}
 		val center = if (origin.token == "offset") {
 			intArrayOf(origin.offset.depth, origin.offset.height, origin.offset.width)
 		} else {
@@ -173,10 +217,31 @@ class PatternLayoutResolver(private val definition: PatternDefinition) {
 			controllers.single().let { intArrayOf(it.depth + origin.offset.depth, it.height + origin.offset.height, it.width + origin.offset.width) }
 		}
 		val cells = ObjectArrayList<PatternLayoutCell>(box.cells.size)
-		box.cells.forEach { cells.add(it.copy(depth = it.depth - center[0], height = it.height - center[1], width = it.width - center[2])) }
+		val layers = Int2ObjectAVLTreeMap<ObjectArrayList<PatternLayoutCell>>()
+		box.cells.forEach {
+			work.checkpoint()
+			val cell = it.copy(depth = it.depth - center[0], height = it.height - center[1], width = it.width - center[2])
+			layers.computeIfAbsent(cell.depth) { ObjectArrayList() }.add(cell)
+		}
+		for (layer in layers.values) {
+			for (cell in layer) {
+				work.checkpoint()
+				cells.add(cell)
+			}
+		}
 		val instances = ObjectArrayList<PatternRepeatInstance>(box.repeats.size)
 		box.repeats.forEach { instances.add(it.copy(depth = it.depth - center[0], height = it.height - center[1], width = it.width - center[2])) }
-		return PatternLayout(ObjectLists.unmodifiable(cells), ObjectLists.unmodifiable(instances), ObjectLists.unmodifiable(box.choices))
+		val layout = PatternLayout(ObjectLists.unmodifiable(cells), ObjectLists.unmodifiable(instances), ObjectLists.unmodifiable(box.choices))
+		if (cells.size <= 65536) {
+			synchronized(layouts) {
+				if (!layouts.containsKey(key)) {
+					while (layouts.size >= 32 || cachedCellCount + cells.size > 65536) cachedCellCount -= layouts.removeFirst().cells.size
+					layouts[key] = layout
+					cachedCellCount += cells.size
+				}
+			}
+		}
+		return layout
 	}
 
 	private fun fragment(id: String): PatternFragment = definition.fragments[id]
@@ -318,7 +383,8 @@ class PatternLayoutResolver(private val definition: PatternDefinition) {
 		fun size(axis: Int): Int = Math.subtractExact(maximum[axis], minimum[axis])
 	}
 
-	private fun expandNode(
+	private suspend fun expandNode(
+		work: PatternWork<*>,
 		node: PatternNode,
 		declaration: String,
 		path: String,
@@ -333,6 +399,7 @@ class PatternLayoutResolver(private val definition: PatternDefinition) {
 		level: Int,
 		boundsOnly: Boolean = false,
 	): Box {
+		work.checkpoint()
 		val descriptor = if (node is PatternNode.Repeat && node.count != null) repeats.first { it.parameter == node.count.parameter } else repeats.firstOrNull { it.path == declaration }
 		val currentUnit = if (unit < 0 && descriptor != null) descriptor.index else unit
 		return when (node) {
@@ -342,6 +409,7 @@ class PatternLayoutResolver(private val definition: PatternDefinition) {
 				node.layers.forEachIndexed { d, layer ->
 					layer.forEachIndexed { h, row ->
 						row.forEachIndexed { w, symbol ->
+							work.checkpoint()
 							val predicate = symbols[symbol] ?: throw PatternCompileException("Undeclared local token '$symbol' at $path")
 							cells.add(PatternLayoutCell("$path/[$d,$h,$w]", repeatPath, d, h, w, predicate, symbol.toString(), ObjectArrayList(scopes), currentUnit.coerceAtLeast(0), repetition, d, h, w, declaration))
 						}
@@ -352,8 +420,8 @@ class PatternLayoutResolver(private val definition: PatternDefinition) {
 
 			is PatternNode.Sequence -> {
 				val children = ObjectArrayList<Box>()
-				node.children.forEachIndexed { i, child -> children.add(expandNode(child, "$declaration/sequence[$i]", "$path/sequence[$i]", symbols, bindings, repetitions, selected, scopes, repeatPath, currentUnit, repetition, level + 1, boundsOnly)) }
-				join(children, PatternAxis.of(node.axis).ordinal, false)
+				node.children.forEachIndexed { i, child -> children.add(expandNode(work, child, "$declaration/sequence[$i]", "$path/sequence[$i]", symbols, bindings, repetitions, selected, scopes, repeatPath, currentUnit, repetition, level + 1, boundsOnly)) }
+				join(work, children, PatternAxis.of(node.axis).ordinal, false)
 			}
 
 			is PatternNode.Repeat -> {
@@ -362,7 +430,7 @@ class PatternLayoutResolver(private val definition: PatternDefinition) {
 				require(count in node.minimum..node.maximum) { "Instance repetition outside bounds at $path" }
 				if (boundsOnly && selected.keys.none { it.startsWith("$path/repeat:${node.id}[") }) {
 					if (count == 0) return Box(ObjectArrayList(), IntArray(3), IntArray(3))
-					val child = expandNode(node.body, "$declaration/repeat:${node.id}", "$path/repeat:${node.id}[0]", symbols, bindings, repetitions, selected, scopes, repeatPath, currentUnit, 0, level + 1, true)
+					val child = expandNode(work, node.body, "$declaration/repeat:${node.id}", "$path/repeat:${node.id}[0]", symbols, bindings, repetitions, selected, scopes, repeatPath, currentUnit, 0, level + 1, true)
 					if (child.placed) return child.copy(placed = false)
 					val axis = PatternAxis.of(node.axis).ordinal
 					val length = Math.multiplyExact(child.size(axis), count)
@@ -388,9 +456,9 @@ class PatternLayoutResolver(private val definition: PatternDefinition) {
 					val childScopes = ObjectArrayList(scopes)
 					childScopes.add("node:${node.id}@$instance")
 					childScopes.add("repeat:${node.id}@$path")
-					children.add(expandNode(node.body, "$declaration/repeat:${node.id}", instance, symbols, bindings, repetitions, selected, childScopes, instance, currentUnit, i, level + 1, boundsOnly))
+					children.add(expandNode(work, node.body, "$declaration/repeat:${node.id}", instance, symbols, bindings, repetitions, selected, childScopes, instance, currentUnit, i, level + 1, boundsOnly))
 				}
-				join(children, PatternAxis.of(node.axis).ordinal, node.direction == PatternRepeatDirection.NEGATIVE).also { it.repeats.add(PatternRepeatInstance(path, declared)) }
+				join(work, children, PatternAxis.of(node.axis).ordinal, node.direction == PatternRepeatDirection.NEGATIVE).also { it.repeats.add(PatternRepeatInstance(path, declared)) }
 			}
 
 			is PatternNode.Choice -> {
@@ -398,7 +466,7 @@ class PatternLayoutResolver(private val definition: PatternDefinition) {
 				val branch = node.alternatives.firstOrNull { it.id == id } ?: error("Unknown branch '$id' at $path")
 				val childScopes = ObjectArrayList(scopes)
 				childScopes.add("node:${node.id}@$path")
-				expandNode(branch.node, "$declaration/choice:${node.id}/${branch.id}", "$path/choice:${node.id}/${branch.id}", symbols, bindings, repetitions, selected, childScopes, repeatPath, currentUnit, repetition, level + 1, boundsOnly).also {
+				expandNode(work, branch.node, "$declaration/choice:${node.id}/${branch.id}", "$path/choice:${node.id}/${branch.id}", symbols, bindings, repetitions, selected, childScopes, repeatPath, currentUnit, repetition, level + 1, boundsOnly).also {
 					it.choices.add(
 						PatternChoiceInstance(
 							path,
@@ -417,17 +485,17 @@ class PatternLayoutResolver(private val definition: PatternDefinition) {
 				val local = localByDeclaration.computeIfAbsent(declaration) { localSymbols(target, node, symbols) }
 				val childScopes = ObjectArrayList(scopes)
 				childScopes.add("fragment:$targetId@$path")
-				expandNode(bind(target.body, node.bindings), "$declaration/fragment:${node.id}", "$path/fragment:$targetId", local, node.bindings, repetitions, selected, childScopes, repeatPath, currentUnit, repetition, level + 1, boundsOnly)
+				expandNode(work, bind(target.body, node.bindings), "$declaration/fragment:${node.id}", "$path/fragment:$targetId", local, node.bindings, repetitions, selected, childScopes, repeatPath, currentUnit, repetition, level + 1, boundsOnly)
 			}
 
 			is PatternNode.Placed -> {
-				val child = expandNode(node.body, "$declaration/placed", "$path/placed", symbols, bindings, repetitions, selected, scopes, repeatPath, currentUnit, repetition, level + 1, boundsOnly)
-				shift(child, intArrayOf(node.offset.depth, node.offset.height, node.offset.width)).copy(placed = true)
+				val child = expandNode(work, node.body, "$declaration/placed", "$path/placed", symbols, bindings, repetitions, selected, scopes, repeatPath, currentUnit, repetition, level + 1, boundsOnly)
+				shift(work, child, intArrayOf(node.offset.depth, node.offset.height, node.offset.width)).copy(placed = true)
 			}
 		}
 	}
 
-	private fun join(children: ObjectList<Box>, axis: Int, negative: Boolean): Box {
+	private suspend fun join(work: PatternWork<*>, children: ObjectList<Box>, axis: Int, negative: Boolean): Box {
 		val crossSize = IntArray(3)
 		children.forEach { box -> if (!box.placed) for (i in 0..2) crossSize[i] = maxOf(crossSize[i], box.size(i)) }
 		val cells = ObjectArrayList<PatternLayoutCell>()
@@ -449,7 +517,7 @@ class PatternLayoutResolver(private val definition: PatternDefinition) {
 					Math.subtractExact((crossSize[i] - box.size(i)) / 2, box.minimum[i])
 				}
 			}
-			val shifted = shift(box, offset)
+			val shifted = shift(work, box, offset)
 			cells.addAll(shifted.cells)
 			repeatInstances.addAll(shifted.repeats)
 			choiceInstances.addAll(shifted.choices)
@@ -462,9 +530,12 @@ class PatternLayoutResolver(private val definition: PatternDefinition) {
 		return Box(cells, if (children.isEmpty()) IntArray(3) else minimum, if (children.isEmpty()) IntArray(3) else maximum, repeatInstances, choiceInstances, occupied = children.any { it.occupied })
 	}
 
-	private fun shift(box: Box, offset: IntArray): Box {
+	private suspend fun shift(work: PatternWork<*>, box: Box, offset: IntArray): Box {
 		val cells = ObjectArrayList<PatternLayoutCell>(box.cells.size)
-		box.cells.forEach { cells.add(it.copy(depth = Math.addExact(it.depth, offset[0]), height = Math.addExact(it.height, offset[1]), width = Math.addExact(it.width, offset[2]))) }
+		box.cells.forEach {
+			work.checkpoint()
+			cells.add(it.copy(depth = Math.addExact(it.depth, offset[0]), height = Math.addExact(it.height, offset[1]), width = Math.addExact(it.width, offset[2])))
+		}
 		val repeats = ObjectArrayList<PatternRepeatInstance>(box.repeats.size)
 		box.repeats.forEach { repeats.add(it.copy(depth = Math.addExact(it.depth, offset[0]), height = Math.addExact(it.height, offset[1]), width = Math.addExact(it.width, offset[2]))) }
 		return Box(cells, IntArray(3) { Math.addExact(box.minimum[it], offset[it]) }, IntArray(3) { Math.addExact(box.maximum[it], offset[it]) }, repeats, box.choices, box.placed, box.occupied)

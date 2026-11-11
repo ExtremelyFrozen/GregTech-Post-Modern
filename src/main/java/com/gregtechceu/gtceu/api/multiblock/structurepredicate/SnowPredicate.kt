@@ -16,6 +16,9 @@ enum class SnowPredicate : StructurePredicate {
 	INSTANCE,
 	;
 
+	override fun hasPositionDependencies(): Boolean = true
+	override fun canReuseObservation(): Boolean = true
+
 	override fun type(): StructurePredicateType<*> = TYPE
 	override fun observeCandidate(state: BlockState): PatternObservation = PatternObservation.of(GTUtil.isBlockSnow(state))
 	override fun test(multiblockState: MultiblockState, mutateCount: Boolean): Boolean = GTUtil.isBlockSnow(multiblockState.blockState)

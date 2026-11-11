@@ -19,6 +19,8 @@ import it.unimi.dsi.fastutil.objects.ObjectList
 import java.util.stream.StreamSupport
 
 class FluidTagPredicate(val tag: TagKey<Fluid>) : StructurePredicate {
+	override fun hasPositionDependencies(): Boolean = true
+	override fun canReuseObservation(): Boolean = true
 	private val fluids = Lazy.of {
 		StreamSupport.stream(BuiltInRegistries.FLUID.getTagOrEmpty(tag).spliterator(), false)
 			.map { it.value() }.collect(ObjectImmutableList.toList())

@@ -19,6 +19,8 @@ import it.unimi.dsi.fastutil.objects.ObjectList
 import java.util.stream.StreamSupport
 
 class BlockTagPredicate(val tag: TagKey<Block>) : StructurePredicate {
+	override fun hasPositionDependencies(): Boolean = true
+	override fun canReuseObservation(): Boolean = true
 	private val blocks = Lazy.of {
 		BuiltInRegistries.BLOCK.getTagOrEmpty(tag).spliterator().let {
 			StreamSupport.stream(it, false).map { holder -> holder.value() }.collect(ObjectImmutableList.toList())

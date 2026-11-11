@@ -13,6 +13,8 @@ import java.util.function.Predicate
 
 /** Marks the origin while retaining the same actual machine identity in Java and serialized forms. */
 open class PredicateController : PatternPredicate {
+	override fun hasPositionDependencies(): Boolean = javaClass == PredicateController::class.java && rulesHavePositionDependencies()
+
 	var owner: MachineDefinition? = null
 		private set
 	private var machineId: ResourceLocation? = null

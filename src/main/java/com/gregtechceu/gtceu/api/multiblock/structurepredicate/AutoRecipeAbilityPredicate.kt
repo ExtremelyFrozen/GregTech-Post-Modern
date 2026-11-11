@@ -21,6 +21,7 @@ import it.unimi.dsi.fastutil.objects.ObjectList
 /** Recipe capabilities select the actual counted hatch rules for the owning machine definition. */
 @JvmRecord
 data class AutoRecipeAbilityPredicate(val checkEnergyIn: Boolean, val checkEnergyOut: Boolean, val checkItemIn: Boolean, val checkItemOut: Boolean, val checkFluidIn: Boolean, val checkFluidOut: Boolean) : AlternativePredicate {
+	override fun hasPositionDependencies(): Boolean = true
 	override fun type(): StructurePredicateType<*> = TYPE
 	override fun alternatives(state: MultiblockState?): ObjectList<StructurePredicate> {
 		if (state == null) return ObjectList.of()

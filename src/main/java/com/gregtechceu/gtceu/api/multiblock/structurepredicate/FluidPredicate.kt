@@ -16,6 +16,8 @@ import it.unimi.dsi.fastutil.objects.ObjectList
 
 @JvmRecord
 data class FluidPredicate(val fluids: ObjectList<Fluid>) : StructurePredicate {
+	override fun hasPositionDependencies(): Boolean = true
+	override fun canReuseObservation(): Boolean = true
 	override fun type(): StructurePredicateType<*> = TYPE
 	override fun observeCandidate(candidateState: BlockState): PatternObservation = PatternObservation.of(fluids.contains(candidateState.fluidState.type))
 	override fun candidates(): ObjectList<MultiblockBlockInfo> = fluids.stream().map(::blockInfoFromFluid).collect(ObjectImmutableList.toList())

@@ -1,11 +1,13 @@
 package com.gregtechceu.gtceu.api.multiblock;
 
 import com.gregtechceu.gtceu.GTCEu;
-import com.gregtechceu.gtceu.api.block.ActiveBlock;
 import com.gregtechceu.gtceu.api.capability.recipe.IO;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.multiblock.error.PatternError;
 import com.gregtechceu.gtceu.api.multiblock.error.PatternStringError;
+import com.gregtechceu.gtceu.api.multiblock.index.ChunkStructureAccess;
+import com.gregtechceu.gtceu.api.multiblock.pattern.match.PatternMatchResult;
+import com.gregtechceu.gtceu.api.multiblock.pattern.match.PatternMatchSnapshot;
 import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternFacts;
 import com.gregtechceu.gtceu.api.multiblock.structurepredicate.PatternPredicate;
 import com.gregtechceu.gtceu.api.multiblock.structurepredicate.PredicateRule;
@@ -14,17 +16,17 @@ import com.gregtechceu.gtceu.api.multiblock.structurepredicate.StructurePredicat
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 
+import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
-import it.unimi.dsi.fastutil.longs.LongSet;
-import it.unimi.dsi.fastutil.longs.LongSets;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import lombok.Getter;
 import lombok.Setter;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Collection;
 import java.util.stream.Collectors;
@@ -39,7 +41,12 @@ public class MultiblockState {
     private BlockEntity blockEntity;
     private boolean blockEntityInitialized;
     @Getter
-    private final PatternFacts facts;
+    private PatternFacts facts;
+    @Getter
+    private PatternMatchResult matchResult;
+    @Getter
+    private PatternMatchSnapshot matchSnapshot;
+    private Long2LongOpenHashMap readRevisions = new Long2LongOpenHashMap();
     @Getter
     private Object2IntOpenHashMap<PredicateRule> globalCount;
     @Getter
@@ -73,12 +80,81 @@ public class MultiblockState {
     }
 
     public void clean() {
-        this.facts.reset();
+        this.facts = new PatternFacts();
         this.globalCount = new Object2IntOpenHashMap<>();
         this.layerCount = new Object2IntOpenHashMap<>();
         this.structureGlobalCount = new Object2IntOpenHashMap<>();
         this.structureLayerCount = new Object2IntOpenHashMap<>();
         cache = new LongOpenHashSet();
+    }
+
+    /** Transfers a completed attempt. The source is thereafter frozen and never reused as scratch state. */
+    public void applyMatch(MultiblockState source) {
+        facts = source.facts;
+        matchResult = source.matchResult;
+        matchSnapshot = source.matchSnapshot;
+        globalCount = source.globalCount;
+        layerCount = source.layerCount;
+        structureGlobalCount = source.structureGlobalCount;
+        structureLayerCount = source.structureLayerCount;
+        cache = source.cache;
+        neededFlip = source.neededFlip;
+        pos = source.pos;
+        predicate = source.predicate;
+        blockState = source.blockState;
+        blockEntity = source.blockEntity;
+        blockEntityInitialized = source.blockEntityInitialized;
+        readRevisions = source.readRevisions;
+        setError(source.error);
+    }
+
+    public void setMatchResult(PatternMatchResult result) {
+        matchResult = result;
+    }
+
+    public void setMatchSnapshot(PatternMatchSnapshot snapshot) {
+        matchSnapshot = snapshot;
+    }
+
+    public MultiblockState captureMatch() {
+        MultiblockState captured = new MultiblockState(world, controllerPos, structureName);
+        captured.lastController = lastController;
+        captured.applyMatch(this);
+        return captured;
+    }
+
+    public void inheritReadRevisions(MultiblockState source) {
+        readRevisions = source.readRevisions;
+    }
+
+    public void beginReadTracking() {
+        readRevisions = new Long2LongOpenHashMap();
+    }
+
+    public void applyCachedMatch(MultiblockState source) {
+        Long2LongOpenHashMap revisions = readRevisions;
+        applyMatch(source);
+        readRevisions = revisions;
+    }
+
+    public void recordRead(BlockPos position) {
+        int chunkX = position.getX() >> 4;
+        int chunkZ = position.getZ() >> 4;
+        long key = ChunkPos.asLong(chunkX, chunkZ);
+        if (readRevisions.containsKey(key)) return;
+        var chunk = world.getChunkSource().getChunkNow(chunkX, chunkZ);
+        if (chunk instanceof ChunkStructureAccess access) readRevisions.put(key, access.gtceu$getStructureRevision());
+    }
+
+    public boolean isMatchCurrent() {
+        for (var entry : readRevisions.long2LongEntrySet()) {
+            var chunk = world.getChunkSource().getChunkNow(ChunkPos.getX(entry.getLongKey()),
+                    ChunkPos.getZ(entry.getLongKey()));
+            if (!(chunk instanceof ChunkStructureAccess access) ||
+                    access.gtceu$getStructureRevision() != entry.getLongValue())
+                return false;
+        }
+        return true;
     }
 
     public boolean update(BlockPos posIn, PatternPredicate predicate) {
@@ -92,6 +168,16 @@ public class MultiblockState {
             error = UNLOAD_ERROR;
             return false;
         }
+        recordRead(posIn);
+        return true;
+    }
+
+    public boolean updateCached(BlockPos position, PatternPredicate predicate, BlockState block,
+                                @Nullable BlockEntity entity) {
+        if (!update(position, predicate)) return false;
+        blockState = block;
+        blockEntity = entity;
+        blockEntityInitialized = true;
         return true;
     }
 
@@ -174,52 +260,16 @@ public class MultiblockState {
 
     public void onBlockStateChanged(LongOpenHashSet changedPositions) {
         if (world instanceof ServerLevel serverLevel) {
-            if (changedPositions.contains(controllerPos.asLong())) {
-                if (lastController != null) {
-                    if (!world.getBlockState(controllerPos).is(lastController.self().getBlockState().getBlock())) {
-                        lastController.invalidateStructure(structureName);
-                        var mwsd = MultiblockWorldSavedData.getOrCreate(serverLevel);
-                        mwsd.removeMapping(this);
-                        mwsd.removeAsyncLogic(lastController);
-                    }
-                }
+            if (lastController != null && changedPositions.contains(controllerPos.asLong()) &&
+                    world.getBlockEntity(controllerPos) != lastController) {
+                lastController.invalidateAllStructures();
+                var data = MultiblockWorldSavedData.getOrCreate(serverLevel);
+                data.removeAsyncLogic(lastController);
                 return;
             }
-
             MultiblockControllerMachine controller = getController();
-            if (controller == null && error == UNLOAD_ERROR) {
-                if (!serverLevel.isLoaded(controllerPos)) {
-                    GTCEu.LOGGER.info("Controller not loaded, pos {}", controllerPos);
-                }
-            }
             if (controller == null) return;
-
-            if (controller.isStructureFormed(structureName)) {
-                LongSet activeBlocks = getFacts().getOrDefault("vaBlocks", LongSets.emptySet());
-                boolean onlyActiveChanges = !changedPositions.isEmpty();
-                for (long changedPosition : changedPositions) {
-                    BlockPos changedPos = BlockPos.of(changedPosition);
-                    onlyActiveChanges &= activeBlocks.contains(changedPosition) &&
-                            world.getBlockState(changedPos).getBlock() instanceof ActiveBlock;
-                }
-                if (onlyActiveChanges) return;
-            }
-
-            if (controller.checkPatternWithLock(structureName)) {
-                if (MultiblockControllerMachine.DEFAULT_STRUCTURE.equals(structureName)) {
-                    controller.setFlipped(this.neededFlip);
-                }
-                controller.formStructure(structureName);
-                MultiblockWorldSavedData.getOrCreate(serverLevel).addMapping(this);
-            } else {
-                if (MultiblockControllerMachine.DEFAULT_STRUCTURE.equals(structureName)) {
-                    controller.setFlipped(false);
-                }
-                controller.invalidateStructure(structureName);
-                MultiblockWorldSavedData mwsd = MultiblockWorldSavedData.getOrCreate(serverLevel);
-                mwsd.removeMapping(this);
-                mwsd.addAsyncLogic(controller);
-            }
+            MultiblockWorldSavedData.getOrCreate(serverLevel).requestPatternCheck(this, changedPositions);
         }
     }
 }

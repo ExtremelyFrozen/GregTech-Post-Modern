@@ -16,6 +16,8 @@ enum class CleanroomFilterPredicate : CategoryPredicate {
 	INSTANCE,
 	;
 
+	override fun hasPositionDependencies(): Boolean = true
+
 	override val category: String = BlockCategories.CLEANROOM_FILTERS
 	override fun type(): StructurePredicateType<*> = TYPE
 

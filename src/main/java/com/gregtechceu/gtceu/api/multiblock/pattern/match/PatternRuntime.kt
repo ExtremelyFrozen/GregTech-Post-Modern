@@ -14,16 +14,26 @@ import net.minecraft.core.Direction
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
+import it.unimi.dsi.fastutil.longs.LongSet
+import it.unimi.dsi.fastutil.longs.LongSets
 import it.unimi.dsi.fastutil.objects.*
 
 /** Evaluates layouts transactionally per attempt; the controller remains responsible for lifecycle changes. */
-internal class PatternRuntime(private val pattern: MultiBlockPattern, private val definition: PatternDefinition) {
+internal class PatternRuntime(private val pattern: MultiBlockPattern, private val definition: PatternDefinition, private val previous: PatternMatchSnapshot? = null, private val changed: LongSet = LongSets.emptySet()) {
 	var lastResult: PatternMatchResult? = null
 		private set
 	var lastRepetitions: IntArray = IntArray(0)
 		private set
 
 	fun match(state: MultiblockState, center: BlockPos, front: Direction, up: Direction, flipped: Boolean, save: Boolean, repetitions: IntArray, choices: Map<String, String>): PatternMatchResult {
+		state.beginReadTracking()
+		return PatternWork { match(this, state, center, front, up, flipped, save, repetitions, choices) }.finish()
+	}
+
+	internal suspend fun match(work: PatternWork<*>, target: MultiblockState, center: BlockPos, front: Direction, up: Direction, flipped: Boolean, save: Boolean, repetitions: IntArray, choices: Map<String, String>): PatternMatchResult {
+		val state = MultiblockState(target.world, target.controllerPos, target.structureName)
+		state.lastController = target.lastController
+		state.inheritReadRevisions(target)
 		state.clean()
 		state.isNeededFlip = flipped
 		val errors = ObjectArrayList<PatternDiagnostic>()
@@ -41,14 +51,20 @@ internal class PatternRuntime(private val pattern: MultiBlockPattern, private va
 			error("$", "", 0, 0, 0, center, "orientation")
 		}
 		var previousDepth: Int? = null
-		val layout = pattern.expandLayoutForMatch(repetitions, choices)
+		val layout = pattern.expandLayoutForMatch(work, repetitions, choices)
 		facts.set("pattern.width", layout.size(PatternAxis.WIDTH))
 		facts.set("pattern.height", layout.size(PatternAxis.HEIGHT))
 		facts.set("pattern.depth", layout.size(PatternAxis.DEPTH))
 		layout.repeats.forEach { facts.ensureScopes(ObjectLists.singleton("repeat:${it.descriptor.id}@${it.path}")) }
-		val cells = ObjectArrayList(layout.cells)
-		cells.sortWith(compareBy { it.depth })
+		val cells = layout.cells
+		val widthOffset = pattern.getActualRelativeOffset(1, 0, 0, front, up, flipped)
+		val heightOffset = pattern.getActualRelativeOffset(0, 1, 0, front, up, flipped)
+		val depthOffset = pattern.getActualRelativeOffset(0, 0, 1, front, up, flipped)
+		val snapshot = PatternMatchSnapshot(pattern, layout, center, front, up, flipped, repetitions.copyOf(), Object2ObjectOpenHashMap(choices))
+		val reusable = previous?.takeIf { changed.isNotEmpty() && it.layout === layout && it.center == center && it.front == front && it.up == up && it.flipped == flipped }
+		var cellIndex = 0
 		for ((path, repeatPath, depth, height, width, predicate, token, scopes) in cells) {
+			work.checkpoint()
 			if (previousDepth != depth) {
 				if (previousDepth != null && !pattern.checkLayerMinimums(state, state.layerCount, state.structureLayerCount)) {
 					error(
@@ -66,13 +82,21 @@ internal class PatternRuntime(private val pattern: MultiBlockPattern, private va
 				state.structureLayerCount.clear()
 				previousDepth = depth
 			}
-			val position = center.offset(pattern.getActualRelativeOffset(width, height, depth, front, up, flipped))
-			if (!state.update(position, predicate)) {
+			val position = BlockPos(
+				center.x + width * widthOffset.x + height * heightOffset.x + depth * depthOffset.x,
+				center.y + width * widthOffset.y + height * heightOffset.y + depth * depthOffset.y,
+				center.z + width * widthOffset.z + height * heightOffset.z + depth * depthOffset.z,
+			)
+			state.addPosCache(position)
+			val cached = reusable?.positions?.get(cellIndex)?.takeIf { predicate.hasPositionDependencies() && reusable.unchanged(it, changed) }
+			cellIndex++
+			if (!(if (cached == null) state.update(position, predicate) else state.updateCached(position, predicate, cached.block, cached.entity))) {
+				state.addPosCache(position)
 				error(path, repeatPath, depth, height, width, position, "loaded position")
 				break
 			}
 			state.io = IO.BOTH
-			val observation = predicate.observePosition(state)
+			val observation = if (cached != null && predicate.canReuseObservation()) cached.observation else predicate.observePosition(state)
 			val accepted = predicate.acceptPosition(state, observation)
 			if (!accepted || !pattern.matchesDirectionalPredicate(predicate, state, front, up, flipped) || !pattern.checkPartSharing(
 					facts,
@@ -80,6 +104,15 @@ internal class PatternRuntime(private val pattern: MultiBlockPattern, private va
 					predicate,
 				)
 			) {
+				val failedDependencies = LongOpenHashSet()
+				predicate.collectDependencies(state, failedDependencies)
+				val dependencies = failedDependencies.iterator()
+				while (dependencies.hasNext()) {
+					val dependency = BlockPos.of(dependencies.nextLong())
+					state.addPosCache(dependency)
+					state.recordRead(dependency)
+				}
+				state.addPosCache(position)
 				val failure = PatternDiagnostic(path, repeatPath, PatternCoordinate(depth, height, width), position, if (state.world.isLoaded(position)) state.world.getBlockState(position) else null, token, "", 0)
 				errors.add(predicate.diagnose(failure))
 				break
@@ -112,6 +145,7 @@ internal class PatternRuntime(private val pattern: MultiBlockPattern, private va
 			pattern.saveMatch(facts, state, predicate, position, save)
 			if (state.blockState.block is ActiveBlock) facts.getOrCreate("vaBlocks") { LongOpenHashSet() }.add(position.asLong())
 			facts.getOrCreate("ioMap") { Long2ObjectOpenHashMap<Any?>() }[position.asLong()] = state.io
+			snapshot.add(state, cells[cellIndex - 1], observation)
 		}
 		if (errors.isEmpty && (!pattern.checkLayerMinimums(state, state.layerCount, state.structureLayerCount) || !pattern.checkGlobalMinimums(state, state.globalCount, state.structureGlobalCount))) error("$", "", 0, 0, 0, center, "minimum count", "", 1)
 		definition.constraints.forEach { constraint ->
@@ -135,15 +169,24 @@ internal class PatternRuntime(private val pattern: MultiBlockPattern, private va
 		state.facts.set("pattern.diagnostics", result.diagnostics)
 		state.setError(if (result.matched) null else PatternStringError("gtpm.multiblock.pattern.error.constraint"))
 		state.isNeededFlip = flipped
+		state.setMatchResult(result)
+		if (result.matched) state.matchSnapshot = snapshot
+		target.applyMatch(state)
 		return result
 	}
 
 	fun search(state: MultiblockState, center: BlockPos, front: Direction, up: Direction, flipped: Boolean, save: Boolean): Boolean {
+		state.beginReadTracking()
+		return PatternWork { search(this, state, center, front, up, flipped, save) }.finish()
+	}
+
+	internal suspend fun search(work: PatternWork<*>, state: MultiblockState, center: BlockPos, front: Direction, up: Direction, flipped: Boolean, save: Boolean): Boolean {
 		val descriptors = pattern.getRepeatDescriptors()
 		val repetitions = IntArray(descriptors.size) { descriptors[it].minimum }
 		val selected = Object2ObjectOpenHashMap<String, String>()
-		fun explore(): Boolean {
-			val layout = pattern.expandLayoutForMatch(repetitions, selected)
+		suspend fun explore(): Boolean {
+			work.checkpoint()
+			val layout = pattern.expandLayoutForMatch(work, repetitions, selected)
 			val repeat = layout.repeats.firstOrNull { it.descriptor.parameter.isEmpty() && !selected.containsKey("${it.path}#repeat") }
 			if (repeat != null) {
 				val baseline = Object2ObjectOpenHashMap(selected)
@@ -158,10 +201,11 @@ internal class PatternRuntime(private val pattern: MultiBlockPattern, private va
 				return false
 			}
 			val choice = layout.choices.firstOrNull { !selected.containsKey(it.path) }
-			if (choice == null) return match(state, center, front, up, flipped, save, repetitions, selected).matched
+			if (choice == null) return match(work, state, center, front, up, flipped, save, repetitions, selected).matched
 			val branch = choice.descriptor
 			val baseline = Object2ObjectOpenHashMap(selected)
 			var solution: Object2ObjectOpenHashMap<String, String>? = null
+			var solutionState: MultiblockState? = null
 			for (alternative in if (branch.priority.isEmpty()) branch.alternatives else branch.priority) {
 				selected.clear()
 				selected.putAll(baseline)
@@ -171,18 +215,23 @@ internal class PatternRuntime(private val pattern: MultiBlockPattern, private va
 					if (solution != null) {
 						val error = PatternDiagnostic(choice.path, "", PatternCoordinate(0, 0, 0), center, null, "unique choice branch", "", 1)
 						lastResult = PatternMatchResult(false, state.facts.copy(), ObjectLists.singleton(error))
+						state.setMatchResult(lastResult)
 						state.setError(PatternStringError("gtpm.multiblock.pattern.error.ambiguous_choice"))
 						return false
 					}
 					solution = Object2ObjectOpenHashMap(selected)
+					solutionState = state.captureMatch()
 				}
 			}
 			selected.clear()
 			selected.putAll(solution ?: baseline)
-			return solution != null && match(state, center, front, up, flipped, save, repetitions, selected).matched
+			if (solutionState == null) return false
+			state.applyMatch(solutionState)
+			lastResult = state.matchResult
+			return true
 		}
 		val parameters = descriptors.filter { it.parameter.isNotEmpty() }
-		fun dimensions(index: Int): Boolean {
+		suspend fun dimensions(index: Int): Boolean {
 			if (index == parameters.size) return explore()
 			val parameter = parameters[index]
 			for (count in parameter.minimum..parameter.maximum) {
@@ -194,7 +243,7 @@ internal class PatternRuntime(private val pattern: MultiBlockPattern, private va
 		val matched = dimensions(0)
 		if (matched) {
 			val resolved = BooleanArray(descriptors.size)
-			pattern.expandLayoutForMatch(repetitions, selected).repeats.forEach { instance ->
+			pattern.expandLayoutForMatch(work, repetitions, selected).repeats.forEach { instance ->
 				val index = instance.descriptor.index
 				if (instance.descriptor.parameter.isEmpty() && !resolved[index]) {
 					repetitions[index] = selected.getValue("${instance.path}#repeat").toInt()
@@ -202,7 +251,11 @@ internal class PatternRuntime(private val pattern: MultiBlockPattern, private va
 				}
 			}
 			lastRepetitions = repetitions.copyOf()
-			return match(state, center, front, up, flipped, save, repetitions, selected).matched
+			state.facts.set("pattern.repetitions", lastRepetitions)
+			state.matchResult.facts.set("pattern.repetitions", lastRepetitions)
+			state.matchSnapshot?.repetitions?.let { lastRepetitions.copyInto(it) }
+			lastResult = state.matchResult
+			return true
 		}
 		return matched
 	}

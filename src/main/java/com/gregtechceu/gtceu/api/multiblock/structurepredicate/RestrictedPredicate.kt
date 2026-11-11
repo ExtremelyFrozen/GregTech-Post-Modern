@@ -14,6 +14,7 @@ import net.minecraft.world.level.block.state.BlockState
 import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
+import it.unimi.dsi.fastutil.longs.LongSet
 import it.unimi.dsi.fastutil.objects.ObjectArrayList
 import it.unimi.dsi.fastutil.objects.ObjectImmutableList
 import it.unimi.dsi.fastutil.objects.ObjectList
@@ -22,6 +23,8 @@ import java.util.Optional
 
 @JvmRecord
 data class RestrictedPredicate(val predicate: StructurePredicate, val minCount: Optional<Int>, val maxCount: Optional<Int>, val minCountByLayer: Optional<Int>, val maxCountByLayer: Optional<Int>, val previewCount: Optional<Int>, val tooltips: Optional<ObjectList<Component>>) : StructurePredicate {
+	override fun hasPositionDependencies(): Boolean = predicate.hasPositionDependencies()
+	override fun collectDependencies(state: MultiblockState, positions: LongSet) = predicate.collectDependencies(state, positions)
 	override fun type(): StructurePredicateType<*> = TYPE
 	override fun observeCandidate(candidateState: BlockState): PatternObservation = predicate.observeCandidate(candidateState)
 	private data class Position(val child: PatternObservation) : PatternObservation.PositionMatch

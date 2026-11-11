@@ -27,6 +27,8 @@ enum class CleanroomInnerPredicate : StructurePredicate {
 	INSTANCE,
 	;
 
+	override fun hasPositionDependencies(): Boolean = true
+
 	override fun type(): StructurePredicateType<*> = TYPE
 	override fun observeCandidate(candidateState: BlockState): PatternObservation = PatternObservation.of(true)
 	private data class Position(val hasMachine: Boolean, val receiver: CleanroomReceiverTrait?) : PatternObservation.PositionMatch

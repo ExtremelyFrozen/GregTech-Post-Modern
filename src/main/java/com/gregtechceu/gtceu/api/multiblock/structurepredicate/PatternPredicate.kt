@@ -32,6 +32,7 @@ import net.minecraft.world.level.material.Fluid
 
 import com.tterrag.registrate.util.entry.BlockEntry
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet
+import it.unimi.dsi.fastutil.longs.LongSet
 import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap
 import it.unimi.dsi.fastutil.objects.ObjectArrayList
 import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet
@@ -47,6 +48,19 @@ import java.util.function.Supplier
 
 /** Composite runtime predicate used by the matcher and structure planner. */
 open class PatternPredicate {
+	/** Unknown Java rules keep their full observation; registered rules explicitly describe reusable inputs. */
+	open fun hasPositionDependencies(): Boolean = javaClass == PatternPredicate::class.java && rulesHavePositionDependencies()
+
+	protected fun rulesHavePositionDependencies(): Boolean = common.all { it.source?.hasPositionDependencies() == true } && limited.all { it.source?.hasPositionDependencies() == true }
+
+	open fun canReuseObservation(): Boolean = javaClass == PatternPredicate::class.java && limited.isEmpty() && common.all { it.source?.canReuseObservation() == true }
+
+	fun collectDependencies(state: MultiblockState, positions: LongSet) {
+		positions.add(state.pos.asLong())
+		for (rule in common) rule.source?.collectDependencies(state, positions)
+		for (rule in limited) rule.source?.collectDependencies(state, positions)
+	}
+
 	/** Builds the failure shown at this position; extensions retain its path and coordinates when adding detail. */
 	open fun diagnose(failure: PatternDiagnostic): PatternDiagnostic = (limited.asSequence() + common.asSequence()).firstNotNullOfOrNull { it.source }?.diagnose(failure) ?: failure
 

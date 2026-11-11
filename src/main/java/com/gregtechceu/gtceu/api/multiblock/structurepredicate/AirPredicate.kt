@@ -11,6 +11,9 @@ enum class AirPredicate : StructurePredicate {
 	INSTANCE,
 	;
 
+	override fun hasPositionDependencies(): Boolean = true
+	override fun canReuseObservation(): Boolean = true
+
 	override fun type(): StructurePredicateType<*> = TYPE
 	override fun observeCandidate(candidateState: BlockState): PatternObservation = PatternObservation.of(candidateState.isAir)
 	override fun test(multiblockState: MultiblockState, mutateCount: Boolean): Boolean = multiblockState.blockState.isAir

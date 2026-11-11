@@ -57,6 +57,8 @@ public class MultiblockControllerMachine extends MetaMachine {
     private final Map<String, Boolean> formedStructures = new LinkedHashMap<>();
     private final Map<String, List<IMultiPart>> structureParts = new LinkedHashMap<>();
     private final List<IMultiPart> parts = new ArrayList<>();
+    private @Nullable MultiblockState checkedPatternState;
+    private boolean checkedPatternMatched;
     private @Nullable ParallelHatchPartMachine parallelHatch = null;
     @Getter
     @SyncToClient
@@ -209,6 +211,9 @@ public class MultiblockControllerMachine extends MetaMachine {
      * Get the named MultiblockState. It records all structure-related information.
      */
     public MultiblockState getMultiblockState(String structureName) {
+        if (checkedPatternState != null && checkedPatternState.getStructureName().equals(structureName)) {
+            return checkedPatternState;
+        }
         structureName = validateStructureName(structureName);
         return multiblockStates.computeIfAbsent(structureName,
                 name -> new MultiblockState(getLevel(), getBlockPos(), name));
@@ -424,9 +429,23 @@ public class MultiblockControllerMachine extends MetaMachine {
      * @return whether it can be formed.
      */
     public boolean checkPattern(String structureName) {
+        if (checkedPatternState != null && checkedPatternState.getStructureName().equals(structureName)) {
+            return checkedPatternMatched;
+        }
         structureName = validateStructureName(structureName);
         MultiBlockPattern pattern = getPattern(structureName);
         return pattern.checkPatternAt(getMultiblockState(structureName), false);
+    }
+
+    /** Runs existing controller overrides once against a completed server-thread candidate, without rematching. */
+    public boolean validatePatternResult(MultiblockState candidate, boolean matched) {
+        checkedPatternState = candidate;
+        checkedPatternMatched = matched;
+        try {
+            return checkPattern(candidate.getStructureName());
+        } finally {
+            checkedPatternState = null;
+        }
     }
 
     /**

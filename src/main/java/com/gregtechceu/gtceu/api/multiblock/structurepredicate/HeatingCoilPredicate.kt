@@ -16,6 +16,8 @@ enum class HeatingCoilPredicate : CategoryPredicate {
 	INSTANCE,
 	;
 
+	override fun hasPositionDependencies(): Boolean = true
+
 	override val category: String = BlockCategories.HEATING_COILS
 	override fun type(): StructurePredicateType<*> = TYPE
 

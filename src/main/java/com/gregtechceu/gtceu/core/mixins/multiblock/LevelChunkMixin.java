@@ -1,9 +1,11 @@
 package com.gregtechceu.gtceu.core.mixins.multiblock;
 
+import com.gregtechceu.gtceu.api.multiblock.MultiblockWorldSavedData;
 import com.gregtechceu.gtceu.api.multiblock.index.ChunkStructureAccess;
 import com.gregtechceu.gtceu.api.multiblock.index.ChunkStructureIndex;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -28,6 +30,17 @@ public abstract class LevelChunkMixin implements ChunkStructureAccess {
 
     @Unique
     private @Nullable ChunkStructureIndex gtceu$structureIndex;
+
+    @Unique
+    private long gtceu$structureRevision;
+
+    @Unique
+    private @Nullable MultiblockWorldSavedData gtceu$structureData;
+
+    @Override
+    public long gtceu$getStructureRevision() {
+        return gtceu$structureRevision;
+    }
 
     @Override
     public @Nullable ChunkStructureIndex gtceu$getStructureIndex() {
@@ -58,6 +71,11 @@ public abstract class LevelChunkMixin implements ChunkStructureAccess {
 
     @Unique
     private void gtceu$notifyStructure(BlockPos pos) {
-        if (!level.isClientSide && gtceu$structureIndex != null) gtceu$structureIndex.changed(pos);
+        gtceu$structureRevision++;
+        if (level instanceof ServerLevel serverLevel) {
+            if (gtceu$structureIndex != null) gtceu$structureIndex.changed(pos);
+            if (gtceu$structureData == null) gtceu$structureData = MultiblockWorldSavedData.getOrCreate(serverLevel);
+            gtceu$structureData.onChunkPositionChanged(pos);
+        }
     }
 }

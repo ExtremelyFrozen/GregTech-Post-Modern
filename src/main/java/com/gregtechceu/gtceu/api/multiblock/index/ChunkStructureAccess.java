@@ -14,4 +14,7 @@ public interface ChunkStructureAccess {
 
     /** Creates the index on first registration. Called only for loaded server chunks. */
     ChunkStructureIndex gtceu$createStructureIndex();
+
+    /** Returns the chunk's mutation revision for validating an attempt that yielded between server ticks. */
+    long gtceu$getStructureRevision();
 }

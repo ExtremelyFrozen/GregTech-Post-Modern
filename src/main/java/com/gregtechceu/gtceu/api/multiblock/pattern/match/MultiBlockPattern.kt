@@ -32,6 +32,8 @@ import net.minecraft.world.level.block.state.properties.Property
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
+import it.unimi.dsi.fastutil.longs.LongSet
+import it.unimi.dsi.fastutil.longs.LongSets
 import it.unimi.dsi.fastutil.objects.Object2IntMap
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap
 import it.unimi.dsi.fastutil.objects.ObjectList
@@ -44,6 +46,8 @@ import java.util.function.Consumer
 open class MultiBlockPattern private constructor(private val sourceDefinition: PatternDefinition) {
 	private val compiledPattern: CompiledPattern = PatternCompiler().compile(sourceDefinition)
 	private val layoutResolver = compiledPattern.layout
+	private val cachedSearchRadius by lazy { layoutResolver.searchRadius() }
+	private val eventDriven by lazy { layoutResolver.allPredicates().all { it.hasPositionDependencies() } }
 	private val runtime = PatternRuntime(this, sourceDefinition)
 
 	private val minimumDepth = compiledPattern.cells.minOf { it.depth }
@@ -106,11 +110,61 @@ open class MultiBlockPattern private constructor(private val sourceDefinition: P
 
 	fun getSourceDefinition(): PatternDefinition = sourceDefinition
 
+	fun getSearchRadius(): IntArray = cachedSearchRadius
+
+	fun isEventDriven(): Boolean = eventDriven
+
 	fun getCompiledPattern(): CompiledPattern = compiledPattern
 
 	fun expandLayout(repetitions: IntArray, choices: Map<String, String>, instanceRepetitions: Object2IntMap<String>): PatternLayout = layoutResolver.expand(repetitions, choices, instanceRepetitions)
 
 	internal fun expandLayoutForMatch(repetitions: IntArray, selections: Map<String, String>): PatternLayout = layoutResolver.expandResolved(repetitions, selections)
+
+	internal suspend fun expandLayoutForMatch(work: PatternWork<*>, repetitions: IntArray, selections: Map<String, String>): PatternLayout = layoutResolver.expandResolved(work, repetitions, selections)
+
+	/** Creates a resumable server-thread search whose intermediate state is isolated from the machine. */
+	@JvmOverloads
+	fun beginCheck(worldState: MultiblockState, changedPositions: LongSet = LongSets.emptySet()): PatternCheckSession {
+		val candidate = MultiblockState(worldState.world, worldState.controllerPos, worldState.structureName)
+		val controller = worldState.controller
+		candidate.lastController = controller
+		val previous = worldState.matchSnapshot?.takeIf { it.pattern === this }
+		val check = PatternWork {
+			if (controller == null) {
+				candidate.setError(PatternStringError("no controller found"))
+				false
+			} else {
+				candidate.clean()
+				if (previous != null && getChoiceDescriptors().isEmpty() && getRepeatDescriptors().all { it.minimum == it.maximum } && previous.eventDriven && !worldState.hasError() && changedPositions.isNotEmpty() &&
+					previous.front == controller.frontFacing && previous.up == controller.upwardsFacing && previous.flipped == controller.isFlipped &&
+					previous.checkLocal(this, candidate, changedPositions)
+				) {
+					candidate.applyCachedMatch(worldState)
+					return@PatternWork true
+				}
+				val matcher = PatternRuntime(this@MultiBlockPattern, sourceDefinition, previous, changedPositions)
+				if (previous != null && getChoiceDescriptors().isEmpty() && getRepeatDescriptors().all { it.minimum == it.maximum } && previous.front == controller.frontFacing && previous.up == controller.upwardsFacing &&
+					matcher.match(this, candidate, controller.blockPos, previous.front, previous.up, previous.flipped, false, previous.repetitions, previous.selections).matched
+				) {
+					return@PatternWork true
+				}
+				val facings = if (controller.hasFrontFacing()) arrayOf(controller.frontFacing) else arrayOf(Direction.SOUTH, Direction.NORTH, Direction.EAST, Direction.WEST)
+				val upwardsFacing = controller.upwardsFacing
+				val allowFlip = controller.allowFlip()
+				var matched = false
+				for (facing in facings) {
+					if (matcher.search(this, candidate, controller.blockPos, facing, upwardsFacing, false, false) ||
+						(allowFlip && matcher.search(this, candidate, controller.blockPos, facing, upwardsFacing, true, false))
+					) {
+						matched = true
+						break
+					}
+				}
+				matched
+			}
+		}
+		return PatternCheckSession(candidate, check, worldState)
+	}
 
 	fun getFingerLength(): Int = fingerLength
 
