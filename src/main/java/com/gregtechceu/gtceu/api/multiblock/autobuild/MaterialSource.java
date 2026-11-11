@@ -2,8 +2,6 @@ package com.gregtechceu.gtceu.api.multiblock.autobuild;
 
 import com.gregtechceu.gtceu.GTCEu;
 
-import net.minecraft.core.GlobalPos;
-import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 
 import it.unimi.dsi.fastutil.objects.Object2LongLinkedOpenHashMap;
@@ -23,49 +21,19 @@ import org.jspecify.annotations.Nullable;
 public interface MaterialSource {
 
     /**
-     * Describes how this source should be presented and ordered in material diagnostics.
-     */
-    default SourceKind kind() {
-        return SourceKind.OTHER;
-    }
-
-    /** Returns optional, display-only identity for the concrete source selected by this operation. */
-    @Nullable
-    default SourceDescriptor descriptor() {
-        return null;
-    }
-
-    /**
      * Opens a per-stage reservation session.
      */
     Session openSession();
 
     /**
-     * Describes why this source cannot be used before a build starts.
-     *
-     * @return null when the source is available
-     */
-    @Nullable
-    default BuildProblem unavailableProblem() {
-        return null;
-    }
-
-    /**
      * Reads exact availability for the requested keys without changing backing storage.
      */
     default Availability availability(ObjectCollection<MaterialKey> keys) {
-        SourceDescriptor sourceDescriptor = descriptor();
         long sourceBindingFingerprint = bindingFingerprint();
-        BuildProblem problem = unavailableProblem();
-        if (problem != null) {
-            return new Availability(kind(), Object2LongMaps.emptyMap(), problem, sourceDescriptor,
-                    sourceBindingFingerprint);
-        }
         Session session = openSession();
         BuildProblem sessionProblem = session.problem();
         if (sessionProblem != null) {
-            return new Availability(kind(), Object2LongMaps.emptyMap(), sessionProblem, sourceDescriptor,
-                    sourceBindingFingerprint);
+            return new Availability(Object2LongMaps.emptyMap(), sourceBindingFingerprint);
         }
         Object2LongMap<MaterialKey> availability = new Object2LongLinkedOpenHashMap<>();
         try {
@@ -74,10 +42,11 @@ public interface MaterialSource {
             }
         } catch (ArithmeticException exception) {
             GTCEu.LOGGER.error("Automatic-build material availability overflow", exception);
-            return new Availability(kind(), availability, countOverflow(), sourceDescriptor, sourceBindingFingerprint);
+            return new Availability(Object2LongMaps.emptyMap(), sourceBindingFingerprint);
         }
         sessionProblem = session.problem();
-        return new Availability(kind(), availability, sessionProblem, sourceDescriptor, sourceBindingFingerprint);
+        return new Availability(sessionProblem == null ? availability : Object2LongMaps.emptyMap(),
+                sourceBindingFingerprint);
     }
 
     /**
@@ -101,17 +70,7 @@ public interface MaterialSource {
      */
     default long planFingerprint(ObjectCollection<MaterialKey> keys, Availability availability) {
         long result = 0xcbf29ce484222325L;
-        result = fingerprint(result, availability.kind().ordinal());
-        SourceDescriptor descriptor = availability.descriptor();
-        if (descriptor != null) {
-            result = fingerprint(result, descriptor.displayName().hashCode());
-            result = fingerprint(result, descriptor.selectionIdentity().hashCode());
-            result = fingerprint(result, descriptor.linkTarget() == null ? 0 : descriptor.linkTarget().hashCode());
-        }
         result = fingerprint(result, availability.bindingFingerprint());
-        if (availability.problem() != null) {
-            result = fingerprint(result, availability.problem().type().ordinal());
-        }
         for (MaterialKey key : keys) {
             result = fingerprint(result, key.hashCode());
             result = fingerprint(result, availability.available(key));
@@ -121,11 +80,6 @@ public interface MaterialSource {
 
     private static long fingerprint(long current, long value) {
         return (current ^ value) * 0x100000001b3L;
-    }
-
-    private static BuildProblem countOverflow() {
-        return new BuildProblem(BuildProblem.Type.COUNT_OVERFLOW, null,
-                Component.translatable("gtpm.multiblock.autobuild.count_overflow"));
     }
 
     interface Session {
@@ -209,30 +163,10 @@ public interface MaterialSource {
         ObjectList<ItemStack> rejectedStacks();
     }
 
-    enum SourceKind {
-        ME,
-        PLAYER,
-        OTHER,
-        UNAVAILABLE
-    }
-
-    /** Display-only source identity that never grants storage authority. */
-    record SourceDescriptor(SourceKind kind, String displayName, String selectionIdentity,
-                            @Nullable GlobalPos linkTarget) {
-
-    }
-
     /**
      * Immutable availability values for one material source.
      */
-    record Availability(SourceKind kind, Object2LongMap<MaterialKey> available,
-                        @Nullable BuildProblem problem, @Nullable SourceDescriptor descriptor,
-                        long bindingFingerprint) {
-
-        public Availability(SourceKind kind, Object2LongMap<MaterialKey> available,
-                            @Nullable BuildProblem problem) {
-            this(kind, available, problem, null, 0);
-        }
+    record Availability(Object2LongMap<MaterialKey> available, long bindingFingerprint) {
 
         public long available(MaterialKey key) {
             return available.getLong(key);

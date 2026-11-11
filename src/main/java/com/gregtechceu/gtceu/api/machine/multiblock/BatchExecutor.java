@@ -10,7 +10,6 @@ import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialRequest;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialSource;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialSource.Reservation;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialSource.Session;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialSource.SourceKind;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialSources;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.BatchRequest;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.BatchResult;
@@ -67,23 +66,12 @@ public final class BatchExecutor {
             return failAll(plan, targetProblem);
         }
         if (plan.fingerprint() != expectedFingerprint) {
-            return failAll(plan, problem(BuildProblem.Type.STALE_PLAN, controller.getBlockPos(),
+            return failAll(plan, problem(controller.getBlockPos(),
                     "gtpm.multiblock.autobuild.stale_plan"));
         }
         if (!plan.sharedProblems().isEmpty()) {
             return failAll(plan, plan.sharedProblems());
         }
-        if (!plan.buildPlans().isEmpty()) {
-            for (MaterialRequest.Result binding : request.materialSources()) {
-                MaterialSource source = binding.source();
-                if (!request.sharedOptions().useME() || !isSharedRequiredSource(source)) continue;
-                BuildProblem sessionProblem = source.unavailableProblem();
-                if (sessionProblem != null) {
-                    return failAll(plan, sessionProblem);
-                }
-            }
-        }
-
         Object2ObjectLinkedOpenHashMap<String, StructureRequest> optionsByName = new Object2ObjectLinkedOpenHashMap<>();
         for (StructureRequest options : request.structures()) {
             optionsByName.put(options.structureName(), options);
@@ -98,47 +86,33 @@ public final class BatchExecutor {
 
     static @Nullable BuildProblem validateTarget(MultiblockControllerMachine controller, ServerPlayer player) {
         if (player.isSpectator()) {
-            return new BuildProblem(BuildProblem.Type.PERMISSION_DENIED, controller.getBlockPos(),
+            return new BuildProblem(controller.getBlockPos(),
                     Component.translatable("gtpm.multiblock.autobuild.spectator_denied"));
         }
         if (!(player.level() instanceof ServerLevel level) || controller.getLevel() != level) {
-            return new BuildProblem(BuildProblem.Type.INVALID_OPTIONS, controller.getBlockPos(),
+            return new BuildProblem(controller.getBlockPos(),
                     Component.translatable("gtpm.multiblock.autobuild.invalid_target_level"));
         }
         BlockPos controllerPos = controller.getBlockPos();
         if (!level.isLoaded(controllerPos)) {
-            return new BuildProblem(BuildProblem.Type.UNLOADED, controllerPos,
+            return new BuildProblem(controllerPos,
                     Component.translatable("gtpm.multiblock.autobuild.controller_unloaded"));
         }
         if (MetaMachine.getMachine(level, controllerPos) != controller) {
-            return new BuildProblem(BuildProblem.Type.SOURCE_CHANGED, controllerPos,
+            return new BuildProblem(controllerPos,
                     Component.translatable("gtpm.multiblock.autobuild.controller_changed"));
         }
         if (player.distanceToSqr(Vec3.atCenterOf(controllerPos)) > 64) {
-            return new BuildProblem(BuildProblem.Type.PERMISSION_DENIED, controllerPos,
+            return new BuildProblem(controllerPos,
                     Component.translatable("gtpm.multiblock.autobuild.too_far"));
         }
         if (!level.mayInteract(player, controllerPos) ||
                 !MachineOwner.canBreakOwnerMachine(player, controller)) {
-            return new BuildProblem(BuildProblem.Type.PERMISSION_DENIED, controllerPos,
+            return new BuildProblem(controllerPos,
                     Component.translatable("gtpm.multiblock.autobuild.permission_denied",
                             controllerPos.toShortString()));
         }
         return null;
-    }
-
-    private static boolean isSharedRequiredSource(MaterialSource source) {
-        if (source.kind() == SourceKind.ME) return true;
-        if (source.kind() != SourceKind.UNAVAILABLE) return false;
-        BuildProblem unavailable = source.unavailableProblem();
-        return unavailable != null && isStrictAEProblem(unavailable.type());
-    }
-
-    private static boolean isStrictAEProblem(BuildProblem.Type type) {
-        return switch (type) {
-            case ME_UNAVAILABLE, AE_NOT_INSTALLED, AE_NOT_LINKED, AE_LINKED_DIMENSION_MISSING, AE_WRONG_DIMENSION, AE_ACCESS_POINT_MISSING, AE_ACCESS_POINT_INACTIVE, AE_OUT_OF_RANGE, AE_GRID_UNAVAILABLE -> true;
-            default -> false;
-        };
     }
 
     private static StructureResult executeStructure(MultiblockControllerMachine controller,
@@ -149,7 +123,7 @@ public final class BatchExecutor {
             return failed(structure, structure.problems());
         }
         if (!(player.level() instanceof ServerLevel level)) {
-            return failed(structure, problem(BuildProblem.Type.INVALID_OPTIONS, controller.getBlockPos(),
+            return failed(structure, problem(controller.getBlockPos(),
                     "gtpm.multiblock.autobuild.server_only"));
         }
 
@@ -160,12 +134,7 @@ public final class BatchExecutor {
                 MaterialSource source = binding.source();
                 MaterialSource.Session session = source.openSession();
                 BuildProblem sessionProblem = session.problem();
-                if (sessionProblem != null) {
-                    if (request.sharedOptions().useME() && isSharedRequiredSource(source)) {
-                        return failed(structure, sessionProblem);
-                    }
-                    continue;
-                }
+                if (sessionProblem != null) continue;
                 sessions.add(session);
                 bindings.add(new MaterialRequest.Result(binding.providerId(), source, session,
                         binding.excludedContainer(), binding.materials()));
@@ -243,7 +212,7 @@ public final class BatchExecutor {
         for (PlannedCell cell : structure.cells()) {
             BlockPos pos = cell.worldPos();
             if (pos == null || !level.isLoaded(pos)) {
-                work.problems().add(problem(BuildProblem.Type.UNLOADED, pos,
+                work.problems().add(problem(pos,
                         "gtpm.multiblock.autobuild.unloaded", position(pos)));
                 return work;
             }
@@ -266,7 +235,7 @@ public final class BatchExecutor {
             if (cell.blockState().isAir()) {
                 if (!current.isAir()) {
                     if (!request.sharedOptions().replaceMode()) {
-                        work.problems().add(problem(BuildProblem.Type.BLOCKED, pos,
+                        work.problems().add(problem(pos,
                                 "gtpm.multiblock.autobuild.blocked", position(pos)));
                         return work;
                     }
@@ -292,7 +261,7 @@ public final class BatchExecutor {
             }
             boolean replaceable = current.isAir() || current.canBeReplaced();
             if (!current.isAir() && !request.sharedOptions().replaceMode()) {
-                work.problems().add(problem(BuildProblem.Type.BLOCKED, pos,
+                work.problems().add(problem(pos,
                         "gtpm.multiblock.autobuild.blocked", position(pos)));
                 return work;
             }
@@ -306,7 +275,7 @@ public final class BatchExecutor {
             }
             MaterialKey materialKey = cell.materialKey();
             if (materialKey == null || !(materialKey.prototype().getItem() instanceof BlockItem)) {
-                work.problems().add(problem(BuildProblem.Type.UNSUPPORTED, pos,
+                work.problems().add(problem(pos,
                         "gtpm.multiblock.autobuild.no_candidate", position(pos)));
                 return work;
             }
@@ -329,10 +298,6 @@ public final class BatchExecutor {
         ItemStack excluded = bindings.isEmpty() ? ItemStack.EMPTY : bindings.getFirst().excludedContainer();
         MaterialRequest request = new MaterialRequest(demands, excluded, kind -> true, bindings);
         for (MaterialRequest.Result result : MaterialSources.request(player, request)) {
-            if (result.materials().problem() != null) {
-                work.problems().add(result.materials().problem());
-                return false;
-            }
             MaterialSource.Session session = result.session();
             for (MaterialRequest.Allocation allocation : result.materials().allocations()) {
                 work.placements().get(allocation.demandIndex()).reservations()
@@ -342,7 +307,7 @@ public final class BatchExecutor {
         int missing = request.firstUnfulfilled();
         if (missing >= 0) {
             BlockPos pos = work.placements().get(missing).cell().worldPos();
-            work.problems().add(problem(BuildProblem.Type.MISSING_MATERIAL, pos,
+            work.problems().add(problem(pos,
                     "gtpm.multiblock.autobuild.missing_material", position(pos)));
             return false;
         }
@@ -354,7 +319,7 @@ public final class BatchExecutor {
             BlockState state = level.getBlockState(pos);
             if (!state.isAir() && CommonHooks.fireBlockBreak(level, player.gameMode.getGameModeForPlayer(), player,
                     pos, state).isCanceled()) {
-                work.problems().add(problem(BuildProblem.Type.PERMISSION_DENIED, pos,
+                work.problems().add(problem(pos,
                         "gtpm.multiblock.autobuild.break_event_denied", position(pos)));
                 return false;
             }
@@ -374,8 +339,7 @@ public final class BatchExecutor {
                 }
                 if (!work.problems().isEmpty()) return false;
                 if (!result.complete()) {
-                    work.problems().add(problem(BuildProblem.Type.EXTRACTION_FAILED,
-                            placement.cell().worldPos(),
+                    work.problems().add(problem(placement.cell().worldPos(),
                             "gtpm.multiblock.autobuild.extraction_changed",
                             position(placement.cell().worldPos())));
                     return false;
@@ -393,7 +357,7 @@ public final class BatchExecutor {
             var drops = Block.getDrops(state, level, pos, level.getBlockEntity(pos), player,
                     player.getMainHandItem());
             if (!level.destroyBlock(pos, false, player)) {
-                work.problems().add(problem(BuildProblem.Type.DEMOLITION_FAILED, pos,
+                work.problems().add(problem(pos,
                         "gtpm.multiblock.autobuild.demolition_failed", position(pos)));
                 return removed;
             }
@@ -408,7 +372,7 @@ public final class BatchExecutor {
             if (!level.setBlock(correction.pos(), correction.state(),
                     Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE) ||
                     !level.getBlockState(correction.pos()).equals(correction.state())) {
-                work.problems().add(problem(BuildProblem.Type.PLACE_FAILED, correction.pos(),
+                work.problems().add(problem(correction.pos(),
                         "gtpm.multiblock.autobuild.direction_update_failed", position(correction.pos())));
                 return false;
             }
@@ -422,7 +386,7 @@ public final class BatchExecutor {
             PlannedCell cell = placement.cell();
             ItemStack stack = cell.materialKey().prototype();
             if (!(stack.getItem() instanceof BlockItem blockItem)) {
-                work.problems().add(problem(BuildProblem.Type.PLACE_FAILED, cell.worldPos(),
+                work.problems().add(problem(cell.worldPos(),
                         "gtpm.multiblock.autobuild.not_placeable", position(cell.worldPos())));
                 return placed;
             }
@@ -432,7 +396,7 @@ public final class BatchExecutor {
             InteractionResult result = blockItem.place(context);
             if (result == InteractionResult.FAIL) {
                 work.activePlacement = null;
-                work.problems().add(problem(BuildProblem.Type.PLACE_FAILED, cell.worldPos(),
+                work.problems().add(problem(cell.worldPos(),
                         "gtpm.multiblock.autobuild.place_failed", position(cell.worldPos())));
                 return placed;
             }
@@ -440,26 +404,26 @@ public final class BatchExecutor {
             work.activePlacement = null;
             BlockState actual = level.getBlockState(cell.worldPos());
             if (!actual.is(cell.blockState().getBlock())) {
-                work.problems().add(problem(BuildProblem.Type.PLACE_FAILED, cell.worldPos(),
+                work.problems().add(problem(cell.worldPos(),
                         "gtpm.multiblock.autobuild.place_failed", position(cell.worldPos())));
                 return placed;
             }
             if (!actual.equals(cell.blockState()) &&
                     !level.setBlock(cell.worldPos(), cell.blockState(),
                             Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE)) {
-                work.problems().add(problem(BuildProblem.Type.PLACE_FAILED, cell.worldPos(),
+                work.problems().add(problem(cell.worldPos(),
                         "gtpm.multiblock.autobuild.place_failed", position(cell.worldPos())));
                 return placed;
             }
             if (!level.getBlockState(cell.worldPos()).equals(cell.blockState())) {
-                work.problems().add(problem(BuildProblem.Type.PLACE_FAILED, cell.worldPos(),
+                work.problems().add(problem(cell.worldPos(),
                         "gtpm.multiblock.autobuild.place_failed", position(cell.worldPos())));
                 return placed;
             }
             if (cell.blockInfo().hasBlockEntity()) {
                 BlockEntity blockEntity = level.getBlockEntity(cell.worldPos());
                 if (blockEntity == null) {
-                    work.problems().add(problem(BuildProblem.Type.PLACE_FAILED, cell.worldPos(),
+                    work.problems().add(problem(cell.worldPos(),
                             "gtpm.multiblock.autobuild.place_failed", position(cell.worldPos())));
                     return placed;
                 }
@@ -469,13 +433,13 @@ public final class BatchExecutor {
                 } catch (RuntimeException exception) {
                     GTCEu.LOGGER.error("Failed to initialize automatic-build block entity at {}", cell.worldPos(),
                             exception);
-                    work.problems().add(problem(BuildProblem.Type.PLACE_FAILED, cell.worldPos(),
+                    work.problems().add(problem(cell.worldPos(),
                             "gtpm.multiblock.autobuild.place_failed", position(cell.worldPos())));
                     return placed;
                 }
             }
             if (!level.getBlockState(cell.worldPos()).equals(cell.blockState())) {
-                work.problems().add(problem(BuildProblem.Type.PLACE_FAILED, cell.worldPos(),
+                work.problems().add(problem(cell.worldPos(),
                         "gtpm.multiblock.autobuild.place_failed", position(cell.worldPos())));
                 return placed;
             }
@@ -505,7 +469,7 @@ public final class BatchExecutor {
                 drainRejectedStacks(level, fallbackPos, work, sourced);
                 if (rollback.problem() != null || restored < rollback.requested()) {
                     BuildProblem rollbackProblem = rollback.problem() == null ?
-                            problem(BuildProblem.Type.REFUND_FAILED, fallbackPos,
+                            problem(fallbackPos,
                                     "gtpm.multiblock.autobuild.refund_failed") :
                             rollback.problem();
                     GTCEu.LOGGER.error("Failed to return automatic-build material at {}: {}", fallbackPos,
@@ -527,7 +491,7 @@ public final class BatchExecutor {
         }
         int newlyRejected = rejected.size() - sourced.rejectedStacksDrained;
         sourced.rejectedStacksDrained = rejected.size();
-        BuildProblem problem = problem(BuildProblem.Type.REFUND_FAILED, fallbackPos,
+        BuildProblem problem = problem(fallbackPos,
                 "gtpm.multiblock.autobuild.rejected_stacks");
         GTCEu.LOGGER.error("Material source returned {} rejected stack(s) during automatic building at {}",
                 newlyRejected, fallbackPos);
@@ -555,25 +519,25 @@ public final class BatchExecutor {
                                                         ServerPlayer player, ServerLevel level,
                                                         BlockPos pos, BlockState state) {
         if (pos.equals(controller.getBlockPos())) {
-            return problem(BuildProblem.Type.PERMISSION_DENIED, pos,
+            return problem(pos,
                     "gtpm.multiblock.autobuild.controller_protected");
         }
         if (!level.isLoaded(pos)) {
-            return problem(BuildProblem.Type.UNLOADED, pos, "gtpm.multiblock.autobuild.unloaded",
+            return problem(pos, "gtpm.multiblock.autobuild.unloaded",
                     position(pos));
         }
         if (!level.mayInteract(player, pos) ||
                 !player.mayUseItemAt(pos.relative(Direction.UP), Direction.UP, player.getMainHandItem())) {
-            return problem(BuildProblem.Type.PERMISSION_DENIED, pos,
+            return problem(pos,
                     "gtpm.multiblock.autobuild.permission_denied", position(pos));
         }
         if (state.hasBlockEntity() && level.getBlockEntity(pos) instanceof MetaMachine machine &&
                 !MachineOwner.canBreakOwnerMachine(player, machine)) {
-            return problem(BuildProblem.Type.PERMISSION_DENIED, pos,
+            return problem(pos,
                     "gtpm.multiblock.autobuild.permission_denied", position(pos));
         }
         if (state.getDestroySpeed(level, pos) < 0) {
-            return problem(BuildProblem.Type.DEMOLITION_FAILED, pos,
+            return problem(pos,
                     "gtpm.multiblock.autobuild.unbreakable", position(pos));
         }
         return null;
@@ -584,17 +548,17 @@ public final class BatchExecutor {
         ItemStack stack = cell.materialKey() == null ? player.getMainHandItem() : cell.materialKey().prototype();
         if (!level.mayInteract(player, pos) ||
                 !player.mayUseItemAt(pos.relative(Direction.UP), Direction.UP, stack)) {
-            return problem(BuildProblem.Type.PERMISSION_DENIED, pos,
+            return problem(pos,
                     "gtpm.multiblock.autobuild.permission_denied", position(pos));
         }
         if (level.getBlockEntity(pos) instanceof MetaMachine machine &&
                 !MachineOwner.canBreakOwnerMachine(player, machine)) {
-            return problem(BuildProblem.Type.PERMISSION_DENIED, pos,
+            return problem(pos,
                     "gtpm.multiblock.autobuild.permission_denied", position(pos));
         }
         if (!cell.blockState().canSurvive(level, pos) ||
                 !level.isUnobstructed(cell.blockState(), pos, CollisionContext.of(player))) {
-            return problem(BuildProblem.Type.PLACE_FAILED, pos,
+            return problem(pos,
                     "gtpm.multiblock.autobuild.not_placeable", position(pos));
         }
         return null;
@@ -606,28 +570,28 @@ public final class BatchExecutor {
         if (!(stack.getItem() instanceof BlockItem blockItem) ||
                 !blockItem.getBlock().isEnabled(level.enabledFeatures()) ||
                 !cell.blockState().is(blockItem.getBlock())) {
-            return problem(BuildProblem.Type.PLACE_FAILED, pos, "gtpm.multiblock.autobuild.not_placeable",
+            return problem(pos, "gtpm.multiblock.autobuild.not_placeable",
                     position(pos));
         }
         if (!level.mayInteract(player, pos) ||
                 !player.mayUseItemAt(pos.relative(Direction.UP), Direction.UP, stack)) {
-            return problem(BuildProblem.Type.PERMISSION_DENIED, pos,
+            return problem(pos,
                     "gtpm.multiblock.autobuild.permission_denied", position(pos));
         }
         BlockPlaceContext context = new ExactPlaceContext(level, player, stack, pos);
         if (!willClear && !context.canPlace()) {
-            return problem(BuildProblem.Type.PLACE_FAILED, pos,
+            return problem(pos,
                     "gtpm.multiblock.autobuild.not_placeable", position(pos));
         }
         BlockPlaceContext updated = blockItem.updatePlacementContext(context);
         if (updated == null) {
-            return problem(BuildProblem.Type.PLACE_FAILED, pos,
+            return problem(pos,
                     "gtpm.multiblock.autobuild.not_placeable", position(pos));
         }
         BlockState placementState = blockItem.getBlock().getStateForPlacement(updated);
         if (placementState == null || !cell.blockState().canSurvive(level, pos) ||
                 !level.isUnobstructed(cell.blockState(), pos, CollisionContext.of(player))) {
-            return problem(BuildProblem.Type.PLACE_FAILED, pos,
+            return problem(pos,
                     "gtpm.multiblock.autobuild.not_placeable", position(pos));
         }
         return null;
@@ -660,7 +624,7 @@ public final class BatchExecutor {
             if (!matchesExactStructure(controller, options)) {
                 controller.invalidateStructure(result.structureName());
                 ObjectArrayList<BuildProblem> problems = new ObjectArrayList<>(result.problems());
-                problems.add(problem(BuildProblem.Type.STRUCTURE_CHECK_FAILED, controller.getBlockPos(),
+                problems.add(problem(controller.getBlockPos(),
                         "gtpm.multiblock.autobuild.structure_check_failed", result.structureName()));
                 results.set(index, new StructureResult(result.structureName(), result.mode(), false,
                         result.placed(), result.removed(), problems));
@@ -705,9 +669,9 @@ public final class BatchExecutor {
         return new StructureResult(structure.structureName(), structure.mode(), false, 0, 0, problems);
     }
 
-    private static BuildProblem problem(BuildProblem.Type type, @Nullable BlockPos pos,
+    private static BuildProblem problem(@Nullable BlockPos pos,
                                         String translationKey, Object... args) {
-        return new BuildProblem(type, pos, Component.translatable(translationKey, args));
+        return new BuildProblem(pos, Component.translatable(translationKey, args));
     }
 
     private static String position(@Nullable BlockPos pos) {

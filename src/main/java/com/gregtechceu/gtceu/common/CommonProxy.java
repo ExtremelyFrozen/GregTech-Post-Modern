@@ -27,8 +27,6 @@ import com.gregtechceu.gtceu.api.item.MetaMachineItem;
 import com.gregtechceu.gtceu.api.machine.MachineDefinition;
 import com.gregtechceu.gtceu.api.misc.forge.QuantumFluidHandlerItemStack;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.BlockCategories;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialSource.SourceKind;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialSources;
 import com.gregtechceu.gtceu.api.multiblock.structurepredicate.StructurePredicateType;
 import com.gregtechceu.gtceu.api.recipe.chance.logic.ChanceLogic;
 import com.gregtechceu.gtceu.api.recipe.ingredient.IntCircuitIngredient;
@@ -71,6 +69,7 @@ import com.gregtechceu.gtceu.common.data.GTItems;
 import com.gregtechceu.gtceu.common.data.GTMachines;
 import com.gregtechceu.gtceu.common.data.GTMaterialBlocks;
 import com.gregtechceu.gtceu.common.data.GTMaterialItems;
+import com.gregtechceu.gtceu.common.data.GTMaterialSources;
 import com.gregtechceu.gtceu.common.data.GTMaterials;
 import com.gregtechceu.gtceu.common.data.GTMobEffects;
 import com.gregtechceu.gtceu.common.data.GTParticleTypes;
@@ -108,7 +107,6 @@ import com.gregtechceu.gtceu.data.pattern.StructureCache;
 import com.gregtechceu.gtceu.data.pattern.StructurePatternRegistry;
 import com.gregtechceu.gtceu.data.placeholder.GTPlaceholders;
 import com.gregtechceu.gtceu.data.recipe.GTIngredientTypes;
-import com.gregtechceu.gtceu.integration.ae2.autobuild.MEWirelessMaterialSource;
 import com.gregtechceu.gtceu.integration.cctweaked.CCTweakedPlugin;
 import com.gregtechceu.gtceu.integration.map.WaypointManager;
 import com.gregtechceu.gtceu.utils.input.SyncedKeyMappings;
@@ -178,11 +176,6 @@ public class CommonProxy {
         modBus.register(CommonProxy.class);
         modBus.addListener(AlloyBlastPropertyAddition::addAlloyBlastProperties);
 
-        if (GTCEu.MODS.AE2.isLoaded()) {
-            MaterialSources.register(GTCEu.id("ae2_wireless"), 0, SourceKind.ME,
-                    MEWirelessMaterialSource::request);
-        }
-
         // Initialize the model generator before any content is loaded so machine models can use the generated data
         GregTechDatagen.initPre();
 
@@ -224,6 +217,7 @@ public class CommonProxy {
 
         GTDimensionMarkers.init();
         GTRecipeCapabilities.init();
+        GTMaterialSources.init();
         GTRecipeConditions.init();
         ChanceLogic.init();
         GTRecipeTypes.init();

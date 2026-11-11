@@ -33,8 +33,7 @@ public final class StructurePlanner {
                                                  MaterialAllocation materials) {
         ObjectArrayList<BuildProblem> problems = new ObjectArrayList<>(pending.problems());
         // World access failures block execution without discarding the requested preview geometry.
-        if (problems.stream().anyMatch(problem -> problem.type() != BuildProblem.Type.UNLOADED &&
-                problem.type() != BuildProblem.Type.OUTSIDE_BUILD_HEIGHT)) {
+        if (problems.stream().anyMatch(BuildProblem::preventsPreview)) {
             return new StructurePlan(pending.options().structureName(), pending.options().mode(),
                     pending.repetitions(), pending.options().flipMode(), ObjectList.of(), Object2LongMaps.emptyMap(),
                     problems);
@@ -86,8 +85,7 @@ public final class StructurePlanner {
         }
         PlannedCell missingCell = buildMode && worldProblems == 0 ? materials.commitStructure(planned) : null;
         if (missingCell != null) {
-            problems.addAll(materials.structureProblems());
-            problems.add(problem(BuildProblem.Type.MISSING_MATERIAL, missingCell.worldPos(),
+            problems.add(problem(missingCell.worldPos(),
                     "gtpm.multiblock.autobuild.missing_material", position(missingCell.worldPos())));
         }
         StructurePlan result = new StructurePlan(pending.options().structureName(),

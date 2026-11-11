@@ -13,6 +13,7 @@ import com.gregtechceu.gtceu.api.data.worldgen.bedrockfluid.BedrockFluidDefiniti
 import com.gregtechceu.gtceu.api.data.worldgen.bedrockore.BedrockOreDefinition;
 import com.gregtechceu.gtceu.api.item.tool.behavior.ToolBehaviorType;
 import com.gregtechceu.gtceu.api.machine.MachineDefinition;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialSources;
 import com.gregtechceu.gtceu.api.multiblock.structurepredicate.PredicateType;
 import com.gregtechceu.gtceu.api.multiblock.structurepredicate.StructurePredicateType;
 import com.gregtechceu.gtceu.api.recipe.GTRecipeType;
@@ -70,6 +71,7 @@ public final class GTRegistries {
 
     public static final ResourceKey<Registry<StructurePredicateType<?>>> STRUCTURE_PREDICATE_REGISTRY = makeRegistryKey(GTCEu.id("block_predicate"));
     public static final ResourceKey<Registry<PredicateType<?>>> PREDICATE_TYPE_REGISTRY = makeRegistryKey(GTCEu.id("predicate_type"));
+    public static final ResourceKey<Registry<MaterialSources.Registration>> MATERIAL_SOURCE_REGISTRY = makeRegistryKey(GTCEu.id("material_source"));
 
     // GT Registries
     public static final Registry<Element> ELEMENTS = makeRegistry(ELEMENT_REGISTRY);
@@ -90,6 +92,7 @@ public final class GTRegistries {
 
     public static final Registry<StructurePredicateType<?>> STRUCTURE_PREDICATE_TYPES = makeRegistry(STRUCTURE_PREDICATE_REGISTRY);
     public static final Registry<PredicateType<?>> PREDICATE_TYPES = makeRegistry(PREDICATE_TYPE_REGISTRY);
+    public static final Registry<MaterialSources.Registration> MATERIAL_SOURCES = makeRegistry(MATERIAL_SOURCE_REGISTRY);
     // spotless:on
 
     public static <T> ResourceKey<Registry<T>> makeRegistryKey(ResourceLocation registryId) {

@@ -219,7 +219,8 @@ public final class PatternPreviewWidget extends UIElement {
         var noHatches = button(0, 0, width, text("casings"));
         noHatches.textStyle(style -> style.textColor(policy.noHatchMode() ? 0xff167129 : 0xff404040));
         noHatches.setOnClick(event -> {
-            applyChange(() -> info.setPolicy(new BuildPolicy(policy.replaceMode(), !policy.noHatchMode(), false)));
+            applyChange(() -> info
+                    .setPolicy(new BuildPolicy(policy.replaceMode(), !policy.noHatchMode(), policy.sources())));
             event.stopPropagation();
         });
         options.addScrollViewChild(noHatches);
@@ -377,8 +378,7 @@ public final class PatternPreviewWidget extends UIElement {
         observedGeneration = StructurePatternRegistry.generation();
         GTCEu.LOGGER.error("Failed to resolve multiblock preview for {}", definition.getId(), exception);
         preview.setPreview(new StructurePreview(definition.getId(), "reload-" + observedGeneration, false,
-                ObjectList.of(), ObjectList.of(), ObjectList.of(),
-                ObjectList.of(new StructurePreview.Diagnostic("PATTERN_RELOAD_INCOMPATIBLE", null, null))));
+                ObjectList.of(), ObjectList.of(), ObjectList.of()));
         blocks.setInteractive(false);
         controls.forEach(button -> button.setActive(false));
     }

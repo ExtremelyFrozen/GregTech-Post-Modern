@@ -26,6 +26,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.SectionPos;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -102,7 +103,7 @@ public final class CandidateExpansion {
         try {
             layout = pattern.expandLayout(options.repetitions().toIntArray(), options.choices());
         } catch (IllegalArgumentException exception) {
-            problems.add(problem(BuildProblem.Type.INVALID_OPTIONS, context.worldPos(),
+            problems.add(problem(context.worldPos(),
                     "gtpm.multiblock.autobuild.invalid_layout", options.structureName(), exception.getMessage()));
             return cells;
         }
@@ -126,14 +127,18 @@ public final class CandidateExpansion {
                 Level level = context.level();
                 if (level.isOutsideBuildHeight(worldPos)) {
                     if (unavailable == null) {
-                        unavailable = problem(BuildProblem.Type.OUTSIDE_BUILD_HEIGHT, worldPos,
-                                "gtpm.multiblock.autobuild.outside_build_height", position(worldPos));
+                        unavailable = new BuildProblem(worldPos,
+                                Component.translatable("gtpm.multiblock.autobuild.outside_build_height",
+                                        position(worldPos)),
+                                false);
                     }
                 } else if (!level.getChunkSource().hasChunk(SectionPos.blockToSectionCoord(worldPos.getX()),
                         SectionPos.blockToSectionCoord(worldPos.getZ()))) {
                             if (unavailable == null) {
-                                unavailable = problem(BuildProblem.Type.UNLOADED, worldPos,
-                                        "gtpm.multiblock.autobuild.unloaded", position(worldPos));
+                                unavailable = new BuildProblem(worldPos,
+                                        Component.translatable("gtpm.multiblock.autobuild.unloaded",
+                                                position(worldPos)),
+                                        false);
                             }
                         } else {
                             observed = level.getBlockState(worldPos);
@@ -213,7 +218,7 @@ public final class CandidateExpansion {
                     materialKey, false, candidate.observation()));
         }
         if (result.isEmpty()) {
-            problems.add(problem(BuildProblem.Type.UNSUPPORTED, pos,
+            problems.add(problem(pos,
                     "gtpm.multiblock.autobuild.no_candidate", position(pos)));
         }
         return result;
@@ -360,7 +365,7 @@ public final class CandidateExpansion {
         for (var entry : selections.entrySet()) {
             var candidates = declared.get(entry.getKey());
             if (candidates == null || !candidates.contains(entry.getValue())) {
-                problems.add(problem(BuildProblem.Type.INVALID_TIER_SELECTION, pos,
+                problems.add(problem(pos,
                         "gtpm.multiblock.autobuild.tier_candidate_invalid", entry.getValue().toString(),
                         entry.getKey(), options.structureName()));
             }
@@ -378,7 +383,7 @@ public final class CandidateExpansion {
                 return true;
             }).collect(ObjectImmutableList.toList());
             if (filtered.isEmpty() && !cell.predicate().isAny()) {
-                problems.add(problem(BuildProblem.Type.INVALID_TIER_SELECTION, cell.worldPos(),
+                problems.add(problem(cell.worldPos(),
                         "gtpm.multiblock.autobuild.tier_domain_empty", cell.cellKey().toString()));
             } else {
                 cells.set(index, cell.withCandidates(filtered));

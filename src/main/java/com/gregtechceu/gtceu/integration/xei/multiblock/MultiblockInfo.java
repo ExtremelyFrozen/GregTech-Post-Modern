@@ -131,9 +131,9 @@ public final class MultiblockInfo {
             var result = StructurePreview.canonical(definition.getId(), plan);
             var materials = new ObjectArrayList<>(result.materials());
             materials.addFirst(new StructurePreview.Material(ObjectList.of(definition.asStack()),
-                    1, 0, 0, 0, 0, 0, false, ObjectList.of()));
+                    1, 0, false, ObjectList.of()));
             return new StructurePreview(result.definitionId(), result.fingerprint(), result.availabilityKnown(),
-                    result.structures(), result.cells(), new ObjectImmutableList<>(materials), result.diagnostics());
+                    result.structures(), result.cells(), new ObjectImmutableList<>(materials));
         });
         generation = resolved.generation();
         preview = resolved;

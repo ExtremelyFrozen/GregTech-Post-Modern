@@ -1,6 +1,5 @@
 package com.gregtechceu.gtceu.api.multiblock.autobuild.plan;
 
-import com.gregtechceu.gtceu.api.multiblock.autobuild.BuildProblem;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialKey;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialRequest;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialSource;
@@ -22,10 +21,6 @@ import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectCollection;
 import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
 import it.unimi.dsi.fastutil.objects.ObjectList;
-import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
-import it.unimi.dsi.fastutil.objects.ObjectSet;
-import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
-import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 
 import static com.gregtechceu.gtceu.api.multiblock.autobuild.plan.BatchPlanner.*;
@@ -36,78 +31,41 @@ public final class MaterialAllocation {
 
     public final ObjectList<Object2LongMap<MaterialKey>> remaining;
     public final ObjectList<Object2LongMap<MaterialKey>> allocated;
-    @Getter
-    public final ObjectList<MaterialSource.Availability> availability;
     public final LongList sourceFingerprints;
-    public final ObjectList<BuildProblem> structureProblems;
     public final boolean unlimited;
     public final Object2ObjectMap<BlockPos, BlockState> virtualWorld = new Object2ObjectOpenHashMap<>();
 
     public MaterialAllocation(ObjectList<Object2LongMap<MaterialKey>> remaining,
                               ObjectList<Object2LongMap<MaterialKey>> allocated,
-                              ObjectList<MaterialSource.Availability> availability,
                               LongList sourceFingerprints,
-                              ObjectList<BuildProblem> structureProblems,
                               boolean unlimited) {
         this.remaining = remaining;
         this.allocated = allocated;
-        this.availability = availability;
         this.sourceFingerprints = sourceFingerprints;
-        this.structureProblems = structureProblems;
         this.unlimited = unlimited;
     }
 
     public static MaterialAllocation create(ObjectList<MaterialRequest.Result> sources,
                                             ObjectCollection<MaterialKey> keys,
                                             ResolutionContext context,
-                                            ObjectList<BuildProblem> problems,
-                                            boolean hasBuild,
-                                            boolean requireME) {
+                                            boolean hasBuild) {
         boolean creative = context.player() != null && context.player().isCreative();
-        if (!hasBuild || context.unlimitedMaterials() || creative && !requireME) {
-            return new MaterialAllocation(ObjectList.of(), ObjectList.of(), ObjectList.of(), LongList.of(),
-                    ObjectList.of(), true);
+        if (!hasBuild || context.unlimitedMaterials() || creative) {
+            return new MaterialAllocation(ObjectList.of(), ObjectList.of(), LongList.of(), true);
         }
         ObjectArrayList<Object2LongMap<MaterialKey>> remaining = new ObjectArrayList<>();
         ObjectArrayList<Object2LongMap<MaterialKey>> allocated = new ObjectArrayList<>();
-        ObjectArrayList<MaterialSource.Availability> availability = new ObjectArrayList<>();
         LongList sourceFingerprints = new LongArrayList();
-        ObjectArrayList<BuildProblem> structureProblems = new ObjectArrayList<>();
-        Reference2ObjectOpenHashMap<MaterialSource, ObjectSet<ProblemIdentity>> reportedProblems = new Reference2ObjectOpenHashMap<>();
         for (MaterialRequest.Result binding : sources) {
             MaterialSource source = binding.source();
-            if (creative && source.kind() != MaterialSource.SourceKind.ME &&
-                    source.kind() != MaterialSource.SourceKind.UNAVAILABLE) {
-                continue;
-            }
             MaterialSource.Availability sourceAvailability = source.availability(keys);
-            if (creative && source.kind() == MaterialSource.SourceKind.UNAVAILABLE &&
-                    (sourceAvailability.problem() == null || !isStrictAEProblem(sourceAvailability.problem().type()))) {
-                continue;
-            }
-            availability.add(sourceAvailability);
-            sourceFingerprints.add(source.planFingerprint(keys, sourceAvailability));
-            BuildProblem sourceProblem = sourceAvailability.problem();
-            if (sourceProblem != null) {
-                ProblemIdentity identity = new ProblemIdentity(sourceProblem.type(), sourceProblem.pos());
-                if (reportedProblems.computeIfAbsent(source, ignored -> new ObjectOpenHashSet<>()).add(identity)) {
-                    if (requireME && isStrictAEProblem(sourceProblem.type()) &&
-                            (source.kind() == MaterialSource.SourceKind.ME ||
-                                    source.kind() == MaterialSource.SourceKind.UNAVAILABLE)) {
-                        problems.add(sourceProblem);
-                    } else {
-                        structureProblems.add(sourceProblem);
-                    }
-                }
-            }
+            sourceFingerprints
+                    .add(hash(binding.providerId().hashCode(), source.planFingerprint(keys, sourceAvailability)));
             remaining.add(new Object2LongLinkedOpenHashMap<>(sourceAvailability.available()));
             allocated.add(new Object2LongLinkedOpenHashMap<>());
         }
-        return new MaterialAllocation(remaining, allocated, new ObjectImmutableList<>(availability),
-                new LongImmutableList(sourceFingerprints), new ObjectImmutableList<>(structureProblems), creative);
+        return new MaterialAllocation(remaining, allocated, new LongImmutableList(sourceFingerprints), false);
     }
-
-    private record ProblemIdentity(BuildProblem.Type type, @Nullable BlockPos pos) {}
 
     @Nullable
     public PlannedCell commitStructure(ObjectList<PlannedCell> cells) {
@@ -143,10 +101,6 @@ public final class MaterialAllocation {
         return null;
     }
 
-    public ObjectList<BuildProblem> structureProblems() {
-        return structureProblems;
-    }
-
     public LongList sourceFingerprints() {
         return sourceFingerprints;
     }
@@ -165,8 +119,10 @@ public final class MaterialAllocation {
             long count = entry.getLongValue();
             LongList bySource = new LongArrayList(allocated.size());
             long assigned = 0;
-            for (Object2LongMap<MaterialKey> source : allocated) {
-                long value = source.getLong(key);
+            for (int index = 0; index < allocated.size(); index++) {
+                // Incomplete structures leave stock unallocated; include it when projecting their actual shortage.
+                long available = allocated.get(index).getLong(key) + remaining.get(index).getLong(key);
+                long value = Math.min(count - assigned, available);
                 bySource.add(value);
                 assigned = Math.addExact(assigned, value);
             }

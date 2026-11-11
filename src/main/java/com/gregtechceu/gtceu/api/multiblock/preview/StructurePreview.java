@@ -1,9 +1,7 @@
 package com.gregtechceu.gtceu.api.multiblock.preview;
 
 import com.gregtechceu.gtceu.api.multiblock.MultiblockBlockInfo;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.BuildProblem;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialKey;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialSource;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.BatchPlan;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.BatchResolution;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.CellAction;
@@ -55,7 +53,7 @@ import java.util.Comparator;
 public record StructurePreview(ResourceLocation definitionId, String fingerprint,
                                boolean availabilityKnown, ObjectList<Structure> structures,
                                ObjectList<Cell> cells,
-                               ObjectList<Material> materials, ObjectList<Diagnostic> diagnostics) {
+                               ObjectList<Material> materials) {
 
     private static final BlockState AIR_CONFLICT_MARKER_STATE = Blocks.WHITE_STAINED_GLASS.defaultBlockState();
 
@@ -91,9 +89,8 @@ public record StructurePreview(ResourceLocation definitionId, String fingerprint
             ObjectList<Structure> structures = readList(buffer, Structure.STREAM_CODEC);
             ObjectList<Cell> cells = readList(buffer, Cell.STREAM_CODEC);
             ObjectList<Material> materials = readList(buffer, Material.STREAM_CODEC);
-            ObjectList<Diagnostic> diagnostics = readList(buffer, Diagnostic.STREAM_CODEC);
             return new StructurePreview(definitionId, fingerprint, availabilityKnown,
-                    structures, cells, materials, diagnostics);
+                    structures, cells, materials);
         }
 
         @Override
@@ -104,7 +101,6 @@ public record StructurePreview(ResourceLocation definitionId, String fingerprint
             writeList(buffer, value.structures, Structure.STREAM_CODEC);
             writeList(buffer, value.cells, Cell.STREAM_CODEC);
             writeList(buffer, value.materials, Material.STREAM_CODEC);
-            writeList(buffer, value.diagnostics, Diagnostic.STREAM_CODEC);
         }
     };
 
@@ -134,9 +130,8 @@ public record StructurePreview(ResourceLocation definitionId, String fingerprint
         ObjectList<Structure> structures = projectStructures(plan);
         ObjectList<Cell> cells = projectCells(plan, executionOrder);
         ObjectList<Material> materials = projectMaterials(plan, resolved, retainCandidateGroups);
-        ObjectList<Diagnostic> diagnostics = projectDiagnostics(plan);
         return new StructurePreview(definitionId, Long.toUnsignedString(plan.fingerprint(), 16),
-                resolved != null, structures, cells, materials, diagnostics);
+                resolved != null, structures, cells, materials);
     }
 
     private static ObjectList<Structure> projectStructures(BatchPlan plan) {
@@ -188,12 +183,6 @@ public record StructurePreview(ResourceLocation definitionId, String fingerprint
         for (var entry : requirements.object2ObjectEntrySet()) {
             ObjectList<MaterialKey> candidates = entry.getKey();
             MaterialRequirement requirement = entry.getValue();
-            long meAvailable = resolved == null ? 0 :
-                    availability(candidates, resolved.availability(), MaterialSource.SourceKind.ME);
-            long playerAvailable = resolved == null ? 0 : availability(
-                    candidates, resolved.availability(), MaterialSource.SourceKind.PLAYER);
-            long meAllocated = 0;
-            long playerAllocated = 0;
             long missing = 0;
             boolean unlimited = false;
             if (resolved != null) {
@@ -203,17 +192,14 @@ public record StructurePreview(ResourceLocation definitionId, String fingerprint
                     if (cursor == null) {
                         throw new IllegalStateException("Resolver omitted a required material allocation");
                     }
-                    AllocationPart part = cursor.take(keyRequirement.getLongValue(), resolved.availability());
-                    meAllocated = checkedAdd(meAllocated, part.meAllocated, "ME allocation");
-                    playerAllocated = checkedAdd(playerAllocated, part.playerAllocated, "player allocation");
+                    AllocationPart part = cursor.take(keyRequirement.getLongValue());
                     missing = checkedAdd(missing, part.missing, "missing material count");
                     unlimited |= part.unlimited;
                 }
             }
             materials.add(new Material(
                     candidates.stream().map(MaterialKey::prototype).collect(ObjectImmutableList.toList()),
-                    requirement.total, meAvailable, meAllocated, playerAvailable, playerAllocated, missing,
-                    unlimited, requirement.structureAmounts()));
+                    requirement.total, missing, unlimited, requirement.structureAmounts()));
         }
         allocations.values().forEach(AllocationCursor::verifyConsumed);
         return new ObjectImmutableList<>(materials);
@@ -257,44 +243,6 @@ public record StructurePreview(ResourceLocation definitionId, String fingerprint
         Object2ObjectLinkedOpenHashMap<MaterialKey, AllocationCursor> cursors = new Object2ObjectLinkedOpenHashMap<>();
         resolved.materials().forEach((key, allocation) -> cursors.put(key, new AllocationCursor(allocation)));
         return cursors;
-    }
-
-    private static long availability(ObjectList<MaterialKey> keys,
-                                     ObjectList<MaterialSource.Availability> snapshots,
-                                     MaterialSource.SourceKind kind) {
-        long total = 0;
-        for (MaterialSource.Availability snapshot : snapshots) {
-            if (snapshot.kind() != kind || snapshot.problem() != null) continue;
-            for (MaterialKey key : keys) {
-                total = checkedAdd(total, snapshot.available(key), kind + " availability");
-            }
-        }
-        return total;
-    }
-
-    private static ObjectList<Diagnostic> projectDiagnostics(BatchPlan plan) {
-        ObjectList<Diagnostic> diagnostics = new ObjectArrayList<>();
-        for (BuildProblem problem : plan.sharedProblems()) {
-            diagnostics.add(new Diagnostic(problem.type().name(), null, relativeProblemPos(problem, plan)));
-        }
-        for (StructurePlan structure : plan.executionOrder()) {
-            for (BuildProblem problem : structure.problems()) {
-                diagnostics.add(new Diagnostic(problem.type().name(), structure.structureName(),
-                        relativeProblemPos(problem, plan)));
-            }
-        }
-        return diagnostics;
-    }
-
-    @Nullable
-    private static BlockPos relativeProblemPos(BuildProblem problem, BatchPlan plan) {
-        if (problem.pos() == null) return null;
-        for (MergedPlanCell cell : plan.mergedCells().values()) {
-            if (problem.pos().equals(cell.worldPos()) || problem.pos().equals(cell.relativePos())) {
-                return cell.relativePos();
-            }
-        }
-        return null;
     }
 
     /**
@@ -560,8 +508,6 @@ public record StructurePreview(ResourceLocation definitionId, String fingerprint
      * One complete, never-truncated material row.
      */
     public record Material(ObjectList<ItemStack> candidates, long required,
-                           long meAvailable, long meAllocated,
-                           long playerAvailable, long playerAllocated,
                            long missing, boolean unlimited, ObjectList<StructureAmount> structures) {
 
         private static final StreamCodec<RegistryFriendlyByteBuf, Material> STREAM_CODEC = new StreamCodec<>() {
@@ -574,15 +520,10 @@ public record StructurePreview(ResourceLocation definitionId, String fingerprint
                     candidates.add(ItemStack.OPTIONAL_STREAM_CODEC.decode(buffer));
                 }
                 long required = buffer.readVarLong();
-                long meAvailable = buffer.readVarLong();
-                long meAllocated = buffer.readVarLong();
-                long playerAvailable = buffer.readVarLong();
-                long playerAllocated = buffer.readVarLong();
                 long missing = buffer.readVarLong();
                 boolean unlimited = buffer.readBoolean();
                 ObjectList<StructureAmount> structures = readList(buffer, StructureAmount.STREAM_CODEC);
-                return new Material(candidates, required, meAvailable, meAllocated, playerAvailable,
-                        playerAllocated, missing, unlimited, structures);
+                return new Material(candidates, required, missing, unlimited, structures);
             }
 
             @Override
@@ -592,10 +533,6 @@ public record StructurePreview(ResourceLocation definitionId, String fingerprint
                     ItemStack.OPTIONAL_STREAM_CODEC.encode(buffer, candidate);
                 }
                 buffer.writeVarLong(value.required);
-                buffer.writeVarLong(value.meAvailable);
-                buffer.writeVarLong(value.meAllocated);
-                buffer.writeVarLong(value.playerAvailable);
-                buffer.writeVarLong(value.playerAllocated);
                 buffer.writeVarLong(value.missing);
                 buffer.writeBoolean(value.unlimited);
                 writeList(buffer, value.structures, StructureAmount.STREAM_CODEC);
@@ -630,34 +567,6 @@ public record StructurePreview(ResourceLocation definitionId, String fingerprint
             public void encode(RegistryFriendlyByteBuf buffer, StructureAmount value) {
                 buffer.writeUtf(value.structureName);
                 buffer.writeVarLong(value.required);
-            }
-        };
-    }
-
-    /**
-     * Stable diagnostic code plus optional structure/cell focus target.
-     */
-    public record Diagnostic(String code, @Nullable String structureName, @Nullable BlockPos relativePos) {
-
-        private static final StreamCodec<RegistryFriendlyByteBuf, Diagnostic> STREAM_CODEC = new StreamCodec<>() {
-
-            @Override
-            public Diagnostic decode(RegistryFriendlyByteBuf buffer) {
-                String code = buffer.readUtf();
-                @Nullable
-                String structure = buffer.readBoolean() ? buffer.readUtf() : null;
-                @Nullable
-                BlockPos pos = buffer.readBoolean() ? buffer.readBlockPos() : null;
-                return new Diagnostic(code, structure, pos);
-            }
-
-            @Override
-            public void encode(RegistryFriendlyByteBuf buffer, Diagnostic value) {
-                buffer.writeUtf(value.code);
-                buffer.writeBoolean(value.structureName != null);
-                if (value.structureName != null) buffer.writeUtf(value.structureName);
-                buffer.writeBoolean(value.relativePos != null);
-                if (value.relativePos != null) buffer.writeBlockPos(value.relativePos);
             }
         };
     }
@@ -707,57 +616,36 @@ public record StructurePreview(ResourceLocation definitionId, String fingerprint
     private static final class AllocationCursor {
 
         private long remainingRequired;
-        private final long[] remainingBySource;
+        private long remainingAllocated;
         private long remainingMissing;
         private final boolean unlimited;
 
         private AllocationCursor(BatchResolution.MaterialAllocation allocation) {
             remainingRequired = allocation.required();
-            remainingBySource = allocation.allocatedBySource().toLongArray();
+            remainingAllocated = allocation.allocatedBySource().longStream().sum();
             remainingMissing = allocation.missing();
             unlimited = allocation.unlimited();
         }
 
-        private AllocationPart take(long requested, ObjectList<MaterialSource.Availability> snapshots) {
+        private AllocationPart take(long requested) {
             if (requested < 0 || requested > remainingRequired) {
                 throw new IllegalStateException("Preview requested more material allocation than the resolver made");
             }
             remainingRequired -= requested;
-            if (unlimited) return new AllocationPart(0, 0, 0, true);
-            long remaining = requested;
-            long me = 0;
-            long player = 0;
-            for (int index = 0; index < remainingBySource.length && remaining > 0; index++) {
-                long allocated = Math.min(remaining, remainingBySource[index]);
-                remainingBySource[index] -= allocated;
-                remaining -= allocated;
-                MaterialSource.SourceKind kind = snapshots.get(index).kind();
-                if (kind == MaterialSource.SourceKind.ME) {
-                    me = checkedAdd(me, allocated, "ME allocation");
-                } else if (kind == MaterialSource.SourceKind.PLAYER) {
-                    player = checkedAdd(player, allocated, "player allocation");
-                }
-            }
-            long missing = Math.min(remaining, remainingMissing);
+            if (unlimited) return new AllocationPart(0, true);
+            long allocated = Math.min(requested, remainingAllocated);
+            remainingAllocated -= allocated;
+            long missing = Math.min(requested - allocated, remainingMissing);
             remainingMissing -= missing;
-            remaining -= missing;
-            if (remaining != 0) {
-                throw new IllegalStateException("Resolver allocation contains an unsupported material source kind");
-            }
-            return new AllocationPart(me, player, missing, false);
+            return new AllocationPart(missing, false);
         }
 
         private void verifyConsumed() {
-            if (remainingRequired != 0 || remainingMissing != 0) {
+            if (remainingRequired != 0 || remainingMissing != 0 || remainingAllocated != 0) {
                 throw new IllegalStateException("Resolver material allocation was not fully projected");
-            }
-            for (long remaining : remainingBySource) {
-                if (remaining != 0) {
-                    throw new IllegalStateException("Resolver source allocation was not fully projected");
-                }
             }
         }
     }
 
-    private record AllocationPart(long meAllocated, long playerAllocated, long missing, boolean unlimited) {}
+    private record AllocationPart(long missing, boolean unlimited) {}
 }

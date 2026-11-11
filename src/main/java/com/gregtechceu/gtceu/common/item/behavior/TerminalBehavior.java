@@ -16,7 +16,6 @@ import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialRequest;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialSource;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialSources;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.BatchRequest;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.BatchStatus;
@@ -70,6 +69,7 @@ import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ObjectList;
+import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ObjectSet;
 import lombok.Getter;
 import lombok.Setter;
@@ -155,7 +155,7 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
         var selected = included.get(binding.definitionId());
         if (value) {
             selected.add(name);
-            includeDependencies((MultiblockMachineDefinition) openedController.getDefinition(), name);
+            includeDependencies(openedController.getDefinition(), name);
         } else {
             if (isRequired(name) || selected.size() == 1) return;
             selected.remove(name);
@@ -247,7 +247,7 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
         boolean build = included.get(binding.definitionId()).stream()
                 .anyMatch(name -> structures.get(binding.definitionId()).get(name).mode() == StructureOperation.BUILD);
         boundSources = build ? MaterialSources.request(player, new MaterialRequest(ObjectList.of(), getStack(),
-                kind -> policy.useME() || kind != MaterialSource.SourceKind.ME, null)) : ObjectList.of();
+                policy.sources()::contains, null)) : ObjectList.of();
         preview = StructurePreview.bound(definition.getId(),
                 new BatchPlanner().resolveBatch(openedController, player, createRequest(boundSources)));
     }
@@ -315,8 +315,7 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
         var definition = (MultiblockMachineDefinition) GTRegistries.MACHINES.get(binding.definitionId());
         terminal.initialize(definition);
         if (player instanceof ServerPlayer serverPlayer) {
-            var controller = (MultiblockControllerMachine) MetaMachine.getMachine(player.level(), binding.position());
-            terminal.openedController = controller;
+            terminal.openedController = (MultiblockControllerMachine) MetaMachine.getMachine(player.level(), binding.position());
             terminal.refresh(serverPlayer);
             var root = new UIElement() {
 
@@ -369,7 +368,7 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
 
             Page() {
                 var empty = new StructurePreview(definition.getId(), "awaiting-server", false,
-                        ObjectList.of(), ObjectList.of(), ObjectList.of(), ObjectList.of());
+                        ObjectList.of(), ObjectList.of(), ObjectList.of());
 
                 UITemplate.setBounds(this, 0, 0, width, height);
                 setOverflowVisible(true);
@@ -458,30 +457,34 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                 replace.textStyle(style -> style.textColor(shared.replaceMode() ? 0xff167129 : 0xff404040));
                 replace.setOnClick(event -> {
                     terminal.rpcToServer("setPolicy",
-                            new BuildPolicy(!shared.replaceMode(), shared.noHatchMode(), shared.useME()));
+                            new BuildPolicy(!shared.replaceMode(), shared.noHatchMode(), shared.sources()));
                     event.stopPropagation();
                 });
                 var casings = button(0, 20, contentWidth, text("casings"));
                 casings.textStyle(style -> style.textColor(shared.noHatchMode() ? 0xff167129 : 0xff404040));
                 casings.setOnClick(event -> {
                     terminal.rpcToServer("setPolicy",
-                            new BuildPolicy(shared.replaceMode(), !shared.noHatchMode(), shared.useME()));
+                            new BuildPolicy(shared.replaceMode(), !shared.noHatchMode(), shared.sources()));
                     event.stopPropagation();
                 });
                 options.addScrollViewChildren(replace, casings);
                 controls.add(replace);
                 controls.add(casings);
                 int y = 40;
-                if (GTCEu.MODS.AE2.isLoaded()) {
-                    var me = button(0, y, contentWidth, text("me"));
-                    me.textStyle(style -> style.textColor(shared.useME() ? 0xff167129 : 0xff404040));
-                    me.setOnClick(event -> {
+                for (var provider : MaterialSources.getProviders()) {
+                    if (provider.label() == null) continue;
+                    var id = GTRegistries.MATERIAL_SOURCES.getKey(provider);
+                    var source = button(0, y, contentWidth, provider.label());
+                    source.textStyle(style -> style.textColor(shared.sources().contains(id) ? 0xff167129 : 0xff404040));
+                    source.setOnClick(event -> {
+                        var selectedSources = new ObjectOpenHashSet<>(shared.sources());
+                        if (!selectedSources.remove(id)) selectedSources.add(id);
                         terminal.rpcToServer("setPolicy",
-                                new BuildPolicy(shared.replaceMode(), shared.noHatchMode(), !shared.useME()));
+                                new BuildPolicy(shared.replaceMode(), shared.noHatchMode(), selectedSources));
                         event.stopPropagation();
                     });
-                    options.addScrollViewChild(me);
-                    controls.add(me);
+                    options.addScrollViewChild(source);
+                    controls.add(source);
                     y += 20;
                 }
                 var order = definition.getStructureOrder();

@@ -1,15 +1,15 @@
 package com.gregtechceu.gtceu.api.multiblock.autobuild;
 
-import com.gregtechceu.gtceu.GTCEu;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialSource.SourceKind;
+import com.gregtechceu.gtceu.api.registry.GTRegistries;
 
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 
-import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
-import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
 import it.unimi.dsi.fastutil.objects.ObjectList;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Comparator;
 
@@ -18,26 +18,12 @@ import java.util.Comparator;
  */
 public final class MaterialSources {
 
-    private static final Object2ObjectMap<ResourceLocation, Registration> PROVIDERS = new Object2ObjectLinkedOpenHashMap<>();
-    private static final ObjectList<ResourceLocation> ORDERED = new ObjectArrayList<>();
-
-    static {
-        register(GTCEu.id("player_inventory"), 100, SourceKind.PLAYER, PlayerInventoryMaterialSource::request);
-    }
-
     private MaterialSources() {}
 
-    /**
-     * Registers a provider during common initialization; lower priorities are allocated first.
-     * Equal priorities retain registration order, and duplicate identifiers are rejected.
-     */
-    public static void register(ResourceLocation id, int priority, SourceKind kind,
-                                MaterialRequestProvider provider) {
-        if (PROVIDERS.putIfAbsent(id, new Registration(priority, kind, provider)) != null) {
-            throw new IllegalStateException("Material request provider already registered: " + id);
-        }
-        ORDERED.add(id);
-        ORDERED.sort(Comparator.comparingInt(key -> PROVIDERS.get(key).priority()));
+    /** Registered providers in allocation order; a null label marks an always-enabled source. */
+    public static ObjectList<Registration> getProviders() {
+        return GTRegistries.MATERIAL_SOURCES.stream().sorted(Comparator.comparingInt(Registration::priority))
+                .collect(ObjectImmutableList.toList());
     }
 
     /**
@@ -47,9 +33,9 @@ public final class MaterialSources {
     public static ObjectList<MaterialRequest.Result> request(ServerPlayer player, MaterialRequest request) {
         ObjectList<MaterialRequest.Result> results = new ObjectArrayList<>();
         if (request.getBindings() == null) {
-            for (ResourceLocation id : ORDERED) {
-                Registration registration = PROVIDERS.get(id);
-                if (request.includes(registration.kind())) {
+            for (Registration registration : getProviders()) {
+                ResourceLocation id = GTRegistries.MATERIAL_SOURCES.getKey(registration);
+                if (registration.label() == null || request.includes(id)) {
                     request.select(id, null);
                     results.add(registration.provider().request(player, request));
                 }
@@ -57,11 +43,13 @@ public final class MaterialSources {
         } else {
             for (MaterialRequest.Result binding : request.getBindings()) {
                 request.select(binding.providerId(), binding);
-                results.add(PROVIDERS.get(binding.providerId()).provider().request(player, request));
+                results.add(
+                        GTRegistries.MATERIAL_SOURCES.get(binding.providerId()).provider().request(player, request));
             }
         }
         return results;
     }
 
-    private record Registration(int priority, SourceKind kind, MaterialRequestProvider provider) {}
+    /** A common-init provider; optional sources supply the label used by the terminal's generated toggle. */
+    public record Registration(int priority, @Nullable Component label, MaterialRequestProvider provider) {}
 }

@@ -382,7 +382,7 @@ public class MultiblockControllerMachine extends MetaMachine {
             return BatchExecutor.execute(this, player, request, plan, expectedPlanFingerprint);
         } catch (RuntimeException exception) {
             GTCEu.LOGGER.error("Failed to execute automatic-build batch for {}", getDefinition().getId(), exception);
-            return batchFailure(request, new BuildProblem(BuildProblem.Type.INVALID_OPTIONS, getBlockPos(),
+            return batchFailure(request, new BuildProblem(getBlockPos(),
                     Component.translatable("gtpm.multiblock.autobuild.planning_failed")));
         }
     }

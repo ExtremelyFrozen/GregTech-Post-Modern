@@ -83,7 +83,7 @@ public final class CandidateSearch {
         search(groups, 0, budget, SelectionScore.ZERO, groupCounts);
         int[][] selectedCounts = bestGroupCounts;
         if (selectedCounts == null) {
-            problems.add(problem(BuildProblem.Type.INVALID_OPTIONS, null,
+            problems.add(problem(null,
                     "gtpm.multiblock.autobuild.constraint_unsatisfied"));
             return ObjectList.of();
         }

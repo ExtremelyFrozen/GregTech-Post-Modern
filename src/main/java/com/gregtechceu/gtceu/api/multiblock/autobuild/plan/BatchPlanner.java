@@ -5,7 +5,6 @@ import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.BuildProblem;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialKey;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialSource;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.BatchRequest;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.BuildPolicy;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.StructureOperation;
@@ -134,7 +133,7 @@ public final class BatchPlanner {
                                         ServerPlayer player,
                                         BatchRequest request) {
         if (controller.getLevel() != player.level()) {
-            BuildProblem problem = problem(BuildProblem.Type.INVALID_OPTIONS, controller.getBlockPos(),
+            BuildProblem problem = problem(controller.getBlockPos(),
                     "gtpm.multiblock.autobuild.invalid_target_level");
             return sharedFailure(request, problem);
         }
@@ -150,8 +149,7 @@ public final class BatchPlanner {
             return resolveChecked(definition, request, context);
         } catch (ArithmeticException exception) {
             GTCEu.LOGGER.error("Automatic-build material count overflow for {}", definition.getId(), exception);
-            return sharedFailure(request, problem(BuildProblem.Type.COUNT_OVERFLOW,
-                    context.worldPos(), "gtpm.multiblock.autobuild.count_overflow"));
+            return sharedFailure(request, problem(context.worldPos(), "gtpm.multiblock.autobuild.count_overflow"));
         }
     }
 
@@ -161,7 +159,6 @@ public final class BatchPlanner {
         Object2IntMap<String> order = structureOrder(definition);
         ObjectArrayList<PendingStructure> pending = new ObjectArrayList<>(request.structures().size());
         ObjectArrayList<BuildProblem> sharedProblems = new ObjectArrayList<>();
-        validateSharedSources(request, context, sharedProblems);
 
         ObjectSet<String> requestedBuilds = new ObjectOpenHashSet<>();
         ObjectSet<String> requestedDemolitions = new ObjectOpenHashSet<>();
@@ -176,13 +173,13 @@ public final class BatchPlanner {
             MultiBlockPattern pattern = null;
             IntList repetitions = IntList.of();
             if (!order.containsKey(options.structureName())) {
-                problems.add(problem(BuildProblem.Type.UNKNOWN_STRUCTURE, context.worldPos(),
+                problems.add(problem(context.worldPos(),
                         "gtpm.multiblock.autobuild.unknown_structure", options.structureName()));
             } else {
                 pattern = definition.getPattern(options.structureName());
                 repetitions = options.repetitions();
                 if (options.flipMode() && !definition.isAllowFlip()) {
-                    problems.add(problem(BuildProblem.Type.INVALID_OPTIONS, context.worldPos(),
+                    problems.add(problem(context.worldPos(),
                             "gtpm.multiblock.autobuild.flip_not_allowed"));
                 }
                 validateDependencies(definition, options, requestedBuilds, requestedDemolitions, problems,
@@ -212,7 +209,7 @@ public final class BatchPlanner {
         boolean hasBuild = pending.stream().anyMatch(
                 structure -> structure.options().mode() == StructureOperation.BUILD);
         MaterialAllocation materials = MaterialAllocation.create(request.materialSources(), materialKeys, context,
-                sharedProblems, hasBuild, request.sharedOptions().useME());
+                hasBuild);
 
         ObjectArrayList<StructurePlan> demolitionPlans = new ObjectArrayList<>();
         ObjectArrayList<StructurePlan> buildPlans = new ObjectArrayList<>();
@@ -232,7 +229,7 @@ public final class BatchPlanner {
         long fingerprint = fingerprint(demolitionPlans, buildPlans, merged, materials.sourceFingerprints(),
                 allocations);
         BatchPlan plan = new BatchPlan(demolitionPlans, buildPlans, merged, sharedProblems, fingerprint);
-        return new BatchResolution(plan, materials.getAvailability(), allocations);
+        return new BatchResolution(plan, allocations);
     }
 
     private static BatchResolution sharedFailure(BatchRequest request,
@@ -247,7 +244,7 @@ public final class BatchPlanner {
         }
         BatchPlan plan = new BatchPlan(demolitions, builds, Object2ObjectMaps.emptyMap(),
                 ObjectList.of(problem), FINGERPRINT_OFFSET);
-        return new BatchResolution(plan, ObjectList.of(), Object2ObjectMaps.emptyMap());
+        return new BatchResolution(plan, Object2ObjectMaps.emptyMap());
     }
 
     private static Object2IntMap<String> structureOrder(MultiblockMachineDefinition definition) {
@@ -268,42 +265,6 @@ public final class BatchPlanner {
                 });
     }
 
-    private static void validateSharedSources(BatchRequest request, ResolutionContext context,
-                                              ObjectList<BuildProblem> problems) {
-        if (context.canonical() || request.structures().stream()
-                .noneMatch(options -> options.mode() == StructureOperation.BUILD)) {
-            return;
-        }
-        boolean hasME = isHasME(request);
-        if (request.sharedOptions().useME() && !hasME) {
-            problems.add(problem(BuildProblem.Type.ME_UNAVAILABLE, context.worldPos(),
-                    "gtpm.multiblock.autobuild.me_unavailable"));
-        }
-    }
-
-    private static boolean isHasME(BatchRequest request) {
-        boolean hasME = false;
-        for (var binding : request.materialSources()) {
-            MaterialSource source = binding.source();
-            if (source.kind() == MaterialSource.SourceKind.ME) {
-                hasME = true;
-                continue;
-            }
-            if (source.kind() == MaterialSource.SourceKind.UNAVAILABLE) {
-                BuildProblem unavailable = source.unavailableProblem();
-                hasME |= unavailable != null && isStrictAEProblem(unavailable.type());
-            }
-        }
-        return hasME;
-    }
-
-    public static boolean isStrictAEProblem(BuildProblem.Type type) {
-        return switch (type) {
-            case ME_UNAVAILABLE, AE_NOT_INSTALLED, AE_NOT_LINKED, AE_LINKED_DIMENSION_MISSING, AE_WRONG_DIMENSION, AE_ACCESS_POINT_MISSING, AE_ACCESS_POINT_INACTIVE, AE_OUT_OF_RANGE, AE_GRID_UNAVAILABLE -> true;
-            default -> false;
-        };
-    }
-
     private static void validateDependencies(MultiblockMachineDefinition definition,
                                              StructureRequest options,
                                              ObjectSet<String> requestedBuilds,
@@ -313,19 +274,19 @@ public final class BatchPlanner {
         if (options.mode() != StructureOperation.BUILD) return;
         for (String dependency : definition.getRequiredStructures(options.structureName())) {
             if (!requestedBuilds.contains(dependency)) {
-                problems.add(problem(BuildProblem.Type.INVALID_OPTIONS, pos,
+                problems.add(problem(pos,
                         "gtpm.multiblock.autobuild.missing_dependency", options.structureName(), dependency));
             }
             if (requestedDemolitions.contains(dependency)) {
-                problems.add(problem(BuildProblem.Type.INVALID_OPTIONS, pos,
+                problems.add(problem(pos,
                         "gtpm.multiblock.autobuild.dependency_mode_conflict", dependency));
             }
         }
     }
 
-    public static BuildProblem problem(BuildProblem.Type type, @Nullable BlockPos pos,
+    public static BuildProblem problem(@Nullable BlockPos pos,
                                        String translationKey, Object... args) {
-        return new BuildProblem(type, pos, Component.translatable(translationKey, args));
+        return new BuildProblem(pos, Component.translatable(translationKey, args));
     }
 
     public static String position(@Nullable BlockPos pos) {

@@ -454,18 +454,9 @@ public final class ClientMultiblockPreviewElement extends UIElement {
                     structureName(structure.structureName()), structure.required()));
         }
         if (showAvailability && state.getPreview().availabilityKnown()) {
-            if (GTCEu.MODS.AE2.isLoaded()) {
-                tooltips.add(Component.translatable("gtpm.multiblock.preview.material.me",
-                        material.meAvailable(), material.meAllocated()));
+            if (material.missing() > 0) {
+                tooltips.add(Component.translatable("gtpm.multiblock.preview.material.missing", material.missing()));
             }
-            tooltips.add(Component.translatable("gtpm.multiblock.preview.material.player",
-                    material.playerAvailable(), material.playerAllocated()));
-            tooltips.add(Component.translatable("gtpm.multiblock.preview.material.missing", material.missing()));
-            if (material.unlimited()) {
-                tooltips.add(Component.translatable("gtpm.multiblock.preview.material.unlimited"));
-            }
-        } else if (!state.getPreview().availabilityKnown()) {
-            tooltips.add(Component.translatable("gtpm.multiblock.preview.material.availability_unknown"));
         }
     }
 
@@ -533,18 +524,8 @@ public final class ClientMultiblockPreviewElement extends UIElement {
     }
 
     private void updateDiagnosticText() {
-        ObjectList<StructurePreview.Diagnostic> diagnostics = state.getPreview().diagnostics();
-        diagnosticLabel.setText(diagnostics.isEmpty() ? Component.empty() :
-                Component.translatable("gtpm.multiblock.preview.diagnostic",
-                        diagnosticDescription(diagnostics.getFirst())));
-        diagnosticLabel.getStyle().tooltips(diagnostics.stream()
-                .map(ClientMultiblockPreviewElement::diagnosticDescription).toArray(Component[]::new));
-        diagnosticLabel.setAllowHitTest(!diagnostics.isEmpty());
-    }
-
-    private static Component diagnosticDescription(StructurePreview.Diagnostic diagnostic) {
-        return Component.translatable("gtpm.multiblock.preview.diagnostic." +
-                diagnostic.code().toLowerCase(Locale.ROOT));
+        diagnosticLabel.setText(state.getPreview().materials().stream().anyMatch(material -> material.missing() > 0) ?
+                Component.translatable("gtpm.multiblock.preview.diagnostic.missing_material") : Component.empty());
     }
 
     private void releaseLoadedBlocks() {

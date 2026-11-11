@@ -2,7 +2,6 @@ package com.gregtechceu.gtceu.api.multiblock.autobuild;
 
 import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialSource.Reservation;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialSource.Session;
-import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialSource.SourceKind;
 
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
@@ -33,14 +32,14 @@ public final class MaterialRequest {
     private final LongList remaining;
     @Getter
     private final ItemStack excludedContainer;
-    private final Predicate<SourceKind> includedSources;
+    private final Predicate<ResourceLocation> includedSources;
     @Getter
     private final @Nullable ObjectList<Result> bindings;
     private ResourceLocation currentProviderId;
     private @Nullable Result currentBinding;
 
     public MaterialRequest(ObjectList<Demand> demands, ItemStack excludedContainer,
-                           Predicate<SourceKind> includedSources, @Nullable ObjectList<Result> bindings) {
+                           Predicate<ResourceLocation> includedSources, @Nullable ObjectList<Result> bindings) {
         this.demands = demands;
         this.remaining = new LongArrayList(demands.size());
         for (Demand demand : demands) {
@@ -51,8 +50,8 @@ public final class MaterialRequest {
         this.bindings = bindings;
     }
 
-    public boolean includes(SourceKind kind) {
-        return includedSources.test(kind);
+    public boolean includes(ResourceLocation id) {
+        return includedSources.test(id);
     }
 
     public long remaining(int demandIndex) {

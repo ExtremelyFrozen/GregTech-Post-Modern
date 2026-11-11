@@ -7,6 +7,8 @@ import com.gregtechceu.gtceu.api.item.MetaMachineItem;
 import com.gregtechceu.gtceu.api.machine.MachineDefinition;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialRequestProvider;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialSources.Registration;
 import com.gregtechceu.gtceu.api.multiblock.structurepredicate.PatternPredicate;
 import com.gregtechceu.gtceu.api.multiblock.structurepredicate.PredicateRegistry;
 import com.gregtechceu.gtceu.api.multiblock.structurepredicate.PredicateType;
@@ -17,6 +19,7 @@ import com.gregtechceu.gtceu.core.mixins.registrate.AbstractRegistrateAccessor;
 
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.CreativeModeTab;
@@ -45,7 +48,7 @@ import com.tterrag.registrate.util.nullness.NonNullFunction;
 import com.tterrag.registrate.util.nullness.NonNullSupplier;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.jetbrains.annotations.ApiStatus;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -210,6 +213,17 @@ public class GTRegistrate extends AbstractRegistrate<GTRegistrate> {
         PredicateRegistry.register(id, new PredicateType<>(codec, PatternPredicate::new));
         generic(name, GTRegistries.STRUCTURE_PREDICATE_REGISTRY, () -> type).register();
         return type;
+    }
+
+    /**
+     * Creates a material-source registration under this mod's namespace. Lower priorities supply materials first;
+     * a label adds an optional terminal toggle, while a null label keeps the provider enabled for every request.
+     */
+    public NoConfigBuilder<Registration, Registration, GTRegistrate> materialSource(String name, int priority,
+                                                                                    @Nullable Component label,
+                                                                                    MaterialRequestProvider provider) {
+        return generic(name, GTRegistries.MATERIAL_SOURCE_REGISTRY,
+                () -> new Registration(priority, label, provider));
     }
 
     public SoundEntryBuilder sound(String name) {
