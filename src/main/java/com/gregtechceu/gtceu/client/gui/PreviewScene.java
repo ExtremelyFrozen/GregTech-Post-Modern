@@ -15,8 +15,6 @@ import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 
 import it.unimi.dsi.fastutil.longs.LongList;
-import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
-import it.unimi.dsi.fastutil.longs.LongSet;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
@@ -25,8 +23,6 @@ import org.jspecify.annotations.Nullable;
 @NullMarked
 public final class PreviewScene extends GTSceneElement {
 
-    private final LongSet visible = new LongOpenHashSet();
-
     public PreviewScene(int x, int y, int width, int height) {
         super(x, y, width, height);
         setTickWorld(false);
@@ -34,10 +30,8 @@ public final class PreviewScene extends GTSceneElement {
 
     public void setLevel(MultiblockPreviewLevel world) {
         releaseRendererResource();
-        visible.clear();
         level = dummyWorld = world;
         renderer = new PreviewRenderer(world, this::renderBlockOverLay);
-        world.setBlockFilter(pos -> visible.contains(pos.asLong()));
         renderer.useOrtho(useOrtho);
         renderer.setClipBlock(clipBlock);
         renderer.setClipFluid(clipFluid);
@@ -47,8 +41,7 @@ public final class PreviewScene extends GTSceneElement {
 
     /** The supplied positions remain unchanged while the renderer compiles them across frames. */
     public void setBlocks(LongList positions, @Nullable ISceneBlockRenderHook hook, boolean resetCamera) {
-        visible.clear();
-        visible.addAll(positions);
+        ((MultiblockPreviewLevel) level).setRenderBlocks(positions);
         int minX = Integer.MAX_VALUE, minY = Integer.MAX_VALUE, minZ = Integer.MAX_VALUE;
         int maxX = Integer.MIN_VALUE, maxY = Integer.MIN_VALUE, maxZ = Integer.MIN_VALUE;
         for (int i = 0; i < positions.size(); i++) {
@@ -76,8 +69,7 @@ public final class PreviewScene extends GTSceneElement {
     public void renderBlockOverLay(WorldSceneRenderer renderer) {
         lastHoverPosFace = null;
         var hit = renderer.getLastTraceResult();
-        if (isHover() && hit != null && hit.getType() == HitResult.Type.BLOCK &&
-                visible.contains(hit.getBlockPos().asLong())) {
+        if (isHover() && hit != null && hit.getType() == HitResult.Type.BLOCK) {
             lastHoverPosFace = new BlockPosFace(hit.getBlockPos(), hit.getDirection());
         }
         if (afterWorldRender != null) afterWorldRender.accept(this);

@@ -12,7 +12,7 @@ import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.block.ModelBlockRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.texture.OverlayTexture;
-import net.minecraft.client.resources.model.BakedModel;
+import net.minecraft.client.resources.model.ModelBakery;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.block.RenderShape;
@@ -51,9 +51,9 @@ public final class PreviewMesh implements AutoCloseable {
     private final @Nullable Layer[] layers = new Layer[RenderType.chunkBufferLayers().size()];
     private final ObjectList<RenderedBlockEntity> blockEntities = new ObjectArrayList<>();
     private int cursor;
+    private int uploadCursor;
     private boolean compiled;
-    // The missing model is replaced with the baked model set, including on F3+T reloads.
-    private BakedModel models = Minecraft.getInstance().getModelManager().getMissingModel();
+    private ModelBakery models = Minecraft.getInstance().getModelManager().getModelBakery();
 
     public PreviewMesh(MultiblockPreviewLevel level, LongList positions,
                        @Nullable ISceneBlockRenderHook hook, float scale) {
@@ -65,7 +65,7 @@ public final class PreviewMesh implements AutoCloseable {
 
     /** Advances only changed geometry, yielding after a frame's 2 ms compile budget. */
     public boolean compile() {
-        var currentModels = Minecraft.getInstance().getModelManager().getMissingModel();
+        var currentModels = Minecraft.getInstance().getModelManager().getModelBakery();
         if (models != currentModels) {
             close();
             models = currentModels;
@@ -78,8 +78,10 @@ public final class PreviewMesh implements AutoCloseable {
                 compileBlock(position.set(positions.getLong(cursor++)));
                 if (System.nanoTime() >= deadline) return false;
             }
-            for (var layer : layers) {
+            while (uploadCursor < layers.length) {
+                var layer = layers[uploadCursor++];
                 if (layer != null) layer.upload();
+                if (System.nanoTime() >= deadline && uploadCursor < layers.length) return false;
             }
             compiled = true;
             return true;
@@ -116,7 +118,7 @@ public final class PreviewMesh implements AutoCloseable {
                 var vertices = layer(type).vertices;
                 if (hook != null) hook.applyVertexConsumerWrapper(level, pos, state, vertices, type, 0);
                 dispatcher.getModelRenderer().tesselateBlock(level, model, state, pos, pose, vertices,
-                        scale == 1, random, seed, OverlayTexture.NO_OVERLAY, data, type);
+                        false, random, seed, OverlayTexture.NO_OVERLAY, data, type);
                 vertices.clearColor();
             }
             pose.popPose();
@@ -183,6 +185,7 @@ public final class PreviewMesh implements AutoCloseable {
         blockEntities.clear();
         compiled = false;
         cursor = 0;
+        uploadCursor = 0;
     }
 
     private record RenderedBlockEntity(BlockEntity entity, BlockEntityRenderer<BlockEntity> renderer) {}

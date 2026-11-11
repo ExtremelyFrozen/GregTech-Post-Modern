@@ -508,7 +508,6 @@ public final class ClientMultiblockPreviewElement extends UIElement {
 
     private void selectCell(BlockPos scenePos) {
         Cell cell = sceneCells.get(scenePos.asLong());
-        if (cell == null || cell.contributions().isEmpty()) return;
         state.setFocusedStructure(cell.representative().structureName());
         rebuildRenderedCore(false);
         updateNavigationText();
@@ -684,7 +683,6 @@ public final class ClientMultiblockPreviewElement extends UIElement {
                                                WorldSceneRenderer.VertexConsumerWrapper wrapper,
                                                RenderType layer, float partialTicks) {
             Cell cell = sceneCells.get(pos.asLong());
-            if (cell == null) return;
             float red;
             float green;
             float blue;

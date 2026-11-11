@@ -32,6 +32,7 @@ import java.util.function.Consumer;
 public final class PreviewRenderer extends ImmediateWorldSceneRenderer {
 
     private final Consumer<WorldSceneRenderer> afterRender;
+    private final PoseStack pose = new PoseStack();
     private final Matrix4f transform = new Matrix4f();
     private final Matrix4f previousTransform = new Matrix4f().zero();
     private final Matrix4f inverse = new Matrix4f();
@@ -114,7 +115,7 @@ public final class PreviewRenderer extends ImmediateWorldSceneRenderer {
             try {
                 if (mesh.compile()) {
                     mesh.render(RenderSystem.getModelViewMatrix(), RenderSystem.getProjectionMatrix(),
-                            new PoseStack(), Minecraft.getInstance().getTimer().getGameTimeDeltaPartialTick(false));
+                            pose, Minecraft.getInstance().getTimer().getGameTimeDeltaPartialTick(false));
                 }
             } catch (RuntimeException exception) {
                 GTCEu.LOGGER.error("Could not render multiblock preview", exception);
