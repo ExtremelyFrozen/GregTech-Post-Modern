@@ -1,5 +1,6 @@
 package com.gregtechceu.gtceu.api.multiblock.autobuild.batch;
 
+import com.gregtechceu.gtceu.api.multiblock.pattern.match.PatternSelections;
 import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 
 import net.minecraft.resources.ResourceLocation;
@@ -63,8 +64,7 @@ public record StructureRequest(String structureName, IntList repetitions,
     }
 
     public StructureRequest withChoice(String path, String branch) {
-        var values = new Object2ObjectLinkedOpenHashMap<>(choices);
-        values.put(path, branch);
+        var values = PatternSelections.of(choices).with(path, branch);
         return new StructureRequest(structureName, repetitions, tierChoices, flipMode, mode, values);
     }
 }

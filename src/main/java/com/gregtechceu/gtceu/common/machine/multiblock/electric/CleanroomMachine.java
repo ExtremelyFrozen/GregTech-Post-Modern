@@ -25,14 +25,12 @@ import com.gregtechceu.gtceu.api.machine.multiblock.WorkableElectricMultiblockMa
 import com.gregtechceu.gtceu.api.misc.EnergyContainerList;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
-import com.gregtechceu.gtceu.common.data.GTBlocks;
 import com.gregtechceu.gtceu.common.item.behavior.PortableScannerBehavior;
 import com.gregtechceu.gtceu.common.machine.electric.HullMachine;
 import com.gregtechceu.gtceu.common.machine.multiblock.part.DiodePartMachine;
 import com.gregtechceu.gtceu.common.machine.trait.CleanroomLogic;
 import com.gregtechceu.gtceu.common.machine.trait.CleanroomProviderTrait;
 import com.gregtechceu.gtceu.common.machine.trait.CleanroomReceiverTrait;
-import com.gregtechceu.gtceu.data.recipe.CustomTags;
 import com.gregtechceu.gtceu.utils.GTUtil;
 
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
@@ -42,19 +40,17 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollerMode;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 
 import net.minecraft.ChatFormatting;
-import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.Style;
 import net.minecraft.util.Mth;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.state.BlockState;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMaps;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import lombok.AccessLevel;
 import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
@@ -128,13 +124,12 @@ public class CleanroomMachine extends WorkableElectricMultiblockMachine
         super.formStructure(structureName);
         if (!DEFAULT_STRUCTURE.equals(structureName)) return;
         var facts = getMultiblockState(DEFAULT_STRUCTURE).getFacts();
-        int width = facts.getInt("pattern.width");
-        int depth = facts.getInt("pattern.depth");
-        lDist = (width - 1) / 2;
-        rDist = width - lDist - 1;
-        fDist = (depth - 1) / 2;
-        bDist = depth - fDist - 1;
-        hDist = facts.getInt("pattern.height") - 1;
+        Object2IntMap<String> measurements = facts.get("pattern.measurements");
+        lDist = measurements.getInt("left");
+        rDist = measurements.getInt("right");
+        fDist = measurements.getInt("front");
+        bDist = measurements.getInt("back");
+        hDist = measurements.getInt("down");
         initializeAbilities();
         IFilterType filterType = getMultiblockState(DEFAULT_STRUCTURE).getFacts().get("FilterType");
         if (filterType != null) {
@@ -250,97 +245,6 @@ public class CleanroomMachine extends WorkableElectricMultiblockMachine
         if (part instanceof HullMachine) return true;
 
         return false;
-    }
-
-    /**
-     * Scans for blocks around the controller to update the dimensions
-     */
-    public void updateStructureDimensions() {
-        Level world = getLevel();
-        if (world == null) return;
-        Direction front = getFrontFacing();
-        Direction back = front.getOpposite();
-        Direction left = front.getCounterClockWise();
-        Direction right = left.getOpposite();
-
-        BlockPos.MutableBlockPos lPos = getBlockPos().mutable();
-        BlockPos.MutableBlockPos rPos = getBlockPos().mutable();
-        BlockPos.MutableBlockPos fPos = getBlockPos().mutable();
-        BlockPos.MutableBlockPos bPos = getBlockPos().mutable();
-        BlockPos.MutableBlockPos hPos = getBlockPos().mutable();
-
-        // find the distances from the controller to the plascrete blocks on one horizontal axis and the Y axis
-        // repeatable aisles take care of the second horizontal axis
-        int lDist = 0;
-        int rDist = 0;
-        int bDist = 0;
-        int fDist = 0;
-        int hDist = 0;
-
-        // find the left, right, back, and front distances for the structure pattern
-        // maximum size is 15x15x15 including walls, so check 7 block radius around the controller for blocks
-        for (int i = 1; i < 8; i++) {
-            if (lDist == 0 && isBlockEdge(world, lPos, left)) lDist = i;
-            if (rDist == 0 && isBlockEdge(world, rPos, right)) rDist = i;
-            if (bDist == 0 && isBlockEdge(world, bPos, back)) bDist = i;
-            if (fDist == 0 && isBlockEdge(world, fPos, front)) fDist = i;
-            if (lDist != 0 && rDist != 0 && bDist != 0 && fDist != 0) break;
-        }
-
-        // height is diameter instead of radius, so it needs to be done separately
-        for (int i = 1; i < 15; i++) {
-            if (isBlockFloor(world, hPos, Direction.DOWN)) hDist = i;
-            if (hDist != 0) break;
-        }
-
-        if (Math.abs(lDist - rDist) > 1 || Math.abs(bDist - fDist) > 1) {
-            this.isFormed = false;
-            return;
-        }
-
-        if (lDist < MIN_RADIUS || rDist < MIN_RADIUS || bDist < MIN_RADIUS || fDist < MIN_RADIUS || hDist < MIN_DEPTH) {
-            this.isFormed = false;
-            return;
-        }
-
-        this.lDist = lDist;
-        this.rDist = rDist;
-        this.bDist = bDist;
-        this.fDist = fDist;
-        this.hDist = hDist;
-    }
-
-    /**
-     * @param world     the world to check
-     * @param pos       the pos to check and move
-     * @param direction the direction to move
-     * @return if a block is a valid wall block at pos moved in direction
-     */
-    public boolean isBlockEdge(Level world, BlockPos.MutableBlockPos pos,
-                               Direction direction) {
-        var state = world.getBlockState(pos.move(direction));
-        return state == getCasingState() || state == getGlassState();
-    }
-
-    /**
-     * @param world     the world to check
-     * @param pos       the pos to check and move
-     * @param direction the direction to move
-     * @return if a block is a valid floor block at pos moved in direction
-     */
-    public boolean isBlockFloor(Level world, BlockPos.MutableBlockPos pos,
-                                Direction direction) {
-        var state = world.getBlockState(pos.move(direction));
-        return state == getCasingState() || state == getGlassState() || state.is(CustomTags.CLEANROOM_FLOORS);
-    }
-
-    // protected to allow easy addition of addon "cleanrooms"
-    protected BlockState getCasingState() {
-        return GTBlocks.PLASTCRETE.getDefaultState();
-    }
-
-    protected BlockState getGlassState() {
-        return GTBlocks.CLEANROOM_GLASS.getDefaultState();
     }
 
     public int getDynamicPatternFloorArea() {

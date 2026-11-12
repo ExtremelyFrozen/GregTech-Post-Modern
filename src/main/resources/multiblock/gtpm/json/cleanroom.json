@@ -13,22 +13,121 @@
 		"token": "controller"
 	},
 	"parameters": {
-		"width": {
+		"left": {
 			"type": "integer",
-			"min": 5,
-			"max": 15
+			"min": 2,
+			"max": 7
 		},
-		"depth": {
+		"right": {
 			"type": "integer",
-			"min": 5,
-			"max": 15
+			"min": 2,
+			"max": 7
 		},
-		"height": {
+		"front": {
 			"type": "integer",
-			"min": 5,
-			"max": 15
+			"min": 2,
+			"max": 7
+		},
+		"back": {
+			"type": "integer",
+			"min": 2,
+			"max": 7
+		},
+		"down": {
+			"type": "integer",
+			"min": 4,
+			"max": 14
 		}
 	},
+	"measurements": [
+		{
+			"id": "left_edge",
+			"parameter": "left",
+			"direction": "left",
+			"min": 2,
+			"max": 7,
+			"boundary": {
+				"type": "gtpm:block",
+				"ids": ["gtpm:plascrete", "gtpm:cleanroom_glass"]
+			}
+		},
+		{
+			"id": "right_edge",
+			"parameter": "right",
+			"direction": "right",
+			"min": 2,
+			"max": 7,
+			"boundary": {
+				"type": "gtpm:block",
+				"ids": ["gtpm:plascrete", "gtpm:cleanroom_glass"]
+			}
+		},
+		{
+			"id": "front_edge",
+			"parameter": "front",
+			"direction": "front",
+			"min": 2,
+			"max": 7,
+			"boundary": {
+				"type": "gtpm:block",
+				"ids": ["gtpm:plascrete", "gtpm:cleanroom_glass"]
+			}
+		},
+		{
+			"id": "back_edge",
+			"parameter": "back",
+			"direction": "back",
+			"min": 2,
+			"max": 7,
+			"boundary": {
+				"type": "gtpm:block",
+				"ids": ["gtpm:plascrete", "gtpm:cleanroom_glass"]
+			}
+		},
+		{
+			"id": "floor",
+			"parameter": "down",
+			"direction": "down",
+			"min": 4,
+			"max": 14,
+			"boundary": {
+				"type": "gtpm:concatenated",
+				"predicates": [
+					{
+						"type": "gtpm:block",
+						"ids": ["gtpm:plascrete", "gtpm:cleanroom_glass"]
+					},
+					{ "type": "gtpm:block_tag", "tag": "gtpm:cleanroom_floors" }
+				]
+			}
+		}
+	],
+	"sizeConstraints": [
+		{
+			"left": { "type": "subtract", "left": "$left", "right": "$right" },
+			"comparison": "less_or_equal",
+			"right": 1,
+			"message": "Cleanroom left and right radii differ by more than one"
+		},
+		{
+			"left": { "type": "subtract", "left": "$right", "right": "$left" },
+			"comparison": "less_or_equal",
+			"right": 1,
+			"message": "Cleanroom left and right radii differ by more than one"
+		},
+		{
+			"left": { "type": "subtract", "left": "$front", "right": "$back" },
+			"comparison": "less_or_equal",
+			"right": 1,
+			"message": "Cleanroom front and back radii differ by more than one"
+		},
+		{
+			"left": { "type": "subtract", "left": "$back", "right": "$front" },
+			"comparison": "less_or_equal",
+			"right": 1,
+			"message": "Cleanroom front and back radii differ by more than one"
+		}
+	],
 	"fragments": {
 		"row": {
 			"parameters": {
@@ -51,10 +150,10 @@
 						"direction": "positive",
 						"min": 1,
 						"max": 6,
-						"count": {
-							"parameter": "width",
-							"offset": -3,
-							"divisor": 2
+						"countExpression": {
+							"type": "subtract",
+							"left": "$right",
+							"right": 1
 						},
 						"body": {
 							"type": "fixed",
@@ -72,10 +171,10 @@
 						"direction": "positive",
 						"min": 1,
 						"max": 6,
-						"count": {
-							"parameter": "width",
-							"offset": -2,
-							"divisor": 2
+						"countExpression": {
+							"type": "subtract",
+							"left": "$left",
+							"right": 1
 						},
 						"body": {
 							"type": "fixed",
@@ -115,10 +214,10 @@
 						"direction": "positive",
 						"min": 1,
 						"max": 6,
-						"count": {
-							"parameter": "depth",
-							"offset": -3,
-							"divisor": 2
+						"countExpression": {
+							"type": "subtract",
+							"left": "$back",
+							"right": 1
 						},
 						"body": {
 							"type": "fragment",
@@ -146,10 +245,10 @@
 						"direction": "positive",
 						"min": 1,
 						"max": 6,
-						"count": {
-							"parameter": "depth",
-							"offset": -2,
-							"divisor": 2
+						"countExpression": {
+							"type": "subtract",
+							"left": "$front",
+							"right": 1
 						},
 						"body": {
 							"type": "fragment",
@@ -234,11 +333,7 @@
 				"direction": "positive",
 				"min": 3,
 				"max": 13,
-				"count": {
-					"parameter": "height",
-					"offset": -2,
-					"divisor": 1
-				},
+				"countExpression": { "type": "subtract", "left": "$down", "right": 1 },
 				"body": {
 					"type": "fragment",
 					"id": "plane",
