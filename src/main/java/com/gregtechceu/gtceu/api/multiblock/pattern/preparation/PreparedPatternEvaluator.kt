@@ -45,7 +45,7 @@ internal class PreparedPatternEvaluator(private val input: PreparedPatternInput,
 			val cell = input.cells[index]
 			if (previousLayer != input.layerRuns[index]) {
 				if (previousLayer >= 0 && !minimums(layer, true)) {
-					problem(index, "layer minimum", position = input.center)
+					problem(index, "layer minimum", atCenter = true)
 					if (!diagnose) break
 				}
 				layer.fill(-1)
@@ -424,10 +424,10 @@ internal class PreparedPatternEvaluator(private val input: PreparedPatternInput,
 		)
 	}
 
-	private fun problem(index: Int, expected: String, fact: String = "", difference: Int = 0, position: Long? = null) {
+	private fun problem(index: Int, expected: String, fact: String = "", difference: Int = 0, atCenter: Boolean = false) {
 		if (!diagnose && problems.isNotEmpty()) return
 		val cell = input.cells.getOrNull(index)
-		addProblem(PreparedPatternProblem(index, cell?.path ?: "$", cell?.repeatPath ?: "", cell?.depth ?: 0, cell?.height ?: 0, cell?.width ?: 0, position ?: cell?.position ?: input.center, expected, fact, difference))
+		addProblem(PreparedPatternProblem(index, cell?.path ?: "$", cell?.repeatPath ?: "", cell?.depth ?: 0, cell?.height ?: 0, cell?.width ?: 0, if (atCenter) input.center else cell?.position ?: input.center, expected, fact, difference))
 	}
 
 	private fun addProblem(problem: PreparedPatternProblem) {

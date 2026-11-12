@@ -1324,6 +1324,28 @@ public class LangHandler {
         provider.add("gtpm.multiblock.autobuild.terminal.controller_missing",
                 "The bound controller is missing or has been replaced.");
         provider.add("gtpm.multiblock.autobuild.terminal.execute", "Execute");
+        provider.add("gtpm.multiblock.diagnosis.title", "Structure diagnosis");
+        provider.add("gtpm.multiblock.diagnosis.options", "Options");
+        provider.add("gtpm.multiblock.diagnosis.automatic", "Automatic");
+        provider.add("gtpm.multiblock.diagnosis.flip", "Mirrored: %s");
+        provider.add("gtpm.multiblock.diagnosis.start", "Diagnose");
+        provider.add("gtpm.multiblock.diagnosis.cancel", "Cancel");
+        provider.add("gtpm.multiblock.diagnosis.running", "Diagnosing structure");
+        provider.add("gtpm.multiblock.diagnosis.complete", "Diagnosis complete");
+        provider.add("gtpm.multiblock.diagnosis.stale", "Structure changed; refresh diagnosis");
+        provider.add("gtpm.multiblock.diagnosis.failed", "Diagnosis failed");
+        provider.add("gtpm.multiblock.diagnosis.cancelled", "Diagnosis cancelled");
+        provider.add("gtpm.multiblock.diagnosis.checking", "Checking structure");
+        provider.add("gtpm.multiblock.diagnosis.expected", "Expected: %s");
+        provider.add("gtpm.multiblock.diagnosis.direction", "Block facing does not match the structure");
+        provider.add("gtpm.multiblock.diagnosis.actual", "Found: %s");
+        provider.add("gtpm.multiblock.diagnosis.position", "Position: %s");
+        provider.add("gtpm.multiblock.diagnosis.difference", "%s difference: %s");
+        provider.add("gtpm.multiblock.diagnosis.basis", "Facing %s · Mirrored %s · Dimensions %s");
+        provider.add("gtpm.multiblock.diagnosis.incomplete", "Some custom rules do not provide full diagnosis");
+        provider.add("gtpm.multiblock.diagnosis.truncated",
+                "Diagnosis or display limit reached; some results were omitted");
+        provider.add("gtpm.multiblock.diagnosis.highlight_all", "Highlight all problem positions");
         provider.add("gtpm.multiblock.autobuild.terminal.open_failed", "Could not open the terminal interface.");
         provider.add("gtpm.multiblock.autobuild.terminal.out_of_range", "The bound controller is out of reach.");
         provider.add("gtpm.multiblock.autobuild.terminal.result", "%s · P:%s R:%s");

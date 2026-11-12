@@ -35,7 +35,7 @@ class StructureDiagnosis @JvmOverloads constructor(
 	private val name: String,
 	repetitions: IntArray? = null,
 	selections: Object2ObjectMap<String, String> = Object2ObjectMaps.emptyMap(),
-	flip: Boolean? = null,
+	mirror: DiagnosisMirror = DiagnosisMirror.AUTOMATIC,
 	measurements: Object2IntMap<String> = Object2IntMaps.emptyMap(),
 ) : AutoCloseable {
 	private val pattern = controller.getPattern(name)
@@ -61,7 +61,7 @@ class StructureDiagnosis @JvmOverloads constructor(
 		val unsupported: Boolean = false,
 		val probe: PatternModuleSearch.Step.Probe? = null,
 	)
-	private val candidates = candidates(repetitions, PatternSelections.of(selections), flip, measurements).iterator()
+	private val candidates = candidates(repetitions, PatternSelections.of(selections), mirror, measurements).iterator()
 	private var pending: CompletableFuture<PreparedPatternResult>? = null
 	private var pendingInput: PreparedPatternInput? = null
 	private var current: Candidate? = null
@@ -244,9 +244,9 @@ class StructureDiagnosis @JvmOverloads constructor(
 		close()
 	}
 
-	private fun candidates(exact: IntArray?, selected: Object2ObjectMap<String, String>, flip: Boolean?, manualMeasurements: Object2IntMap<String>): Sequence<Candidate> = sequence {
+	private fun candidates(exact: IntArray?, selected: Object2ObjectMap<String, String>, mirror: DiagnosisMirror, manualMeasurements: Object2IntMap<String>): Sequence<Candidate> = sequence {
 		val confirmed = controller.getMultiblockState(name).matchCache
-		if (exact == null && selected.isEmpty() && flip == null && manualMeasurements.isEmpty() && controller.isStructureFormed(name) && confirmed != null) {
+		if (exact == null && selected.isEmpty() && mirror == DiagnosisMirror.AUTOMATIC && manualMeasurements.isEmpty() && controller.isStructureFormed(name) && confirmed != null) {
 			val measurements = controller.getMultiblockState(name).facts.getOrDefault("pattern.measurements", Object2IntMaps.emptyMap<String>())
 			yield(Candidate(confirmed.repetitions, PatternSelections.of(confirmed.selections), confirmed.front, confirmed.flipped, confirmed.layout, measurements, "confirmed"))
 			return@sequence
@@ -292,7 +292,7 @@ class StructureDiagnosis @JvmOverloads constructor(
 				for (branch in if (choice.descriptor.priority.isEmpty()) choice.descriptor.alternatives else choice.descriptor.priority) explore(facing, mirrored, PatternSelections.of(choices).with(choice.path, branch), measured)
 				return
 			}
-			yield(Candidate(counts.copyOf(), choices, facing, mirrored, layout, measured, if (exact != null || selected.isNotEmpty() || flip != null || manualMeasurements.isNotEmpty()) "manual" else "search"))
+			yield(Candidate(counts.copyOf(), choices, facing, mirrored, layout, measured, if (exact != null || selected.isNotEmpty() || mirror != DiagnosisMirror.AUTOMATIC || manualMeasurements.isNotEmpty()) "manual" else "search"))
 		}
 		suspend fun SequenceScope<Candidate>.dimensions(index: Int, facing: Direction, mirrored: Boolean, measured: Object2IntMap<String>) {
 			if (index == descriptors.size) {
@@ -310,12 +310,10 @@ class StructureDiagnosis @JvmOverloads constructor(
 			}
 		}
 		for (facing in if (controller.hasFrontFacing()) arrayOf(front) else arrayOf(Direction.SOUTH, Direction.NORTH, Direction.EAST, Direction.WEST)) {
-			for (mirrored in if (flip != null) {
-				arrayOf(flip)
-			} else if (controller.allowFlip()) {
-				arrayOf(false, true)
-			} else {
-				arrayOf(false)
+			for (mirrored in when (mirror) {
+				DiagnosisMirror.AUTOMATIC -> if (controller.allowFlip()) booleanArrayOf(false, true) else booleanArrayOf(false)
+				DiagnosisMirror.UNMIRRORED -> booleanArrayOf(false)
+				DiagnosisMirror.MIRRORED -> booleanArrayOf(true)
 			}) {
 				if (!measurementsTrusted) {
 					yield(Candidate(counts.copyOf(), selected, facing, mirrored, null, manualMeasurements, "measurement", safeExistingIssues(), true))

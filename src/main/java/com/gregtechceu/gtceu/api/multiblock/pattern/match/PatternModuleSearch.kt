@@ -229,7 +229,7 @@ internal class PatternModuleSearch(private val pattern: MultiBlockPattern, priva
 			scratch.clean()
 			scratch.isNeededFlip = flipped
 			for (axis in PatternAxis.entries) scratch.facts.set("pattern.${axis.name.lowercase()}", step.layout.size(axis))
-			var previousDepth: Int? = null
+			var previousDepth = 0
 			fun failed(cell: PatternLayoutCell, position: BlockPos, expected: String): Boolean {
 				val diagnostic = PatternDiagnostic(cell.path, cell.repeatPath, PatternCoordinate(cell.depth, cell.height, cell.width), position, null, expected, "", 0)
 				target.matchResult = PatternMatchResult(false, target.facts, ObjectArrayList<PatternDiagnostic>().also { it.add(diagnostic) })

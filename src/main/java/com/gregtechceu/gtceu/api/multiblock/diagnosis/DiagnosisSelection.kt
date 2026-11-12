@@ -1,13 +1,26 @@
 package com.gregtechceu.gtceu.api.multiblock.diagnosis
 
+import net.minecraft.network.chat.Component
+
 import it.unimi.dsi.fastutil.objects.Object2IntMap
 import it.unimi.dsi.fastutil.objects.Object2IntMaps
 import it.unimi.dsi.fastutil.objects.Object2ObjectMap
 import it.unimi.dsi.fastutil.objects.Object2ObjectMaps
 import it.unimi.dsi.fastutil.objects.ObjectList
 
-/** Menu-owned parameters; an empty selection diagnoses the confirmed structure or searches the closest candidate. */
-data class DiagnosisSelection @JvmOverloads constructor(val repetitions: IntArray? = null, val choices: Object2ObjectMap<String, String> = Object2ObjectMaps.emptyMap(), val flipped: Boolean? = null, val measurements: Object2IntMap<String> = Object2IntMaps.emptyMap())
+enum class DiagnosisMirror(key: String) {
+	AUTOMATIC("gtpm.multiblock.diagnosis.automatic"),
+	UNMIRRORED("gui.no"),
+	MIRRORED("gui.yes"),
+	;
+
+	val label: Component = Component.translatable(key)
+
+	fun next(): DiagnosisMirror = entries[(ordinal + 1) % entries.size]
+}
+
+/** Menu-owned parameters; an automatic selection diagnoses the confirmed structure or searches the closest candidate. */
+data class DiagnosisSelection @JvmOverloads constructor(val repetitions: IntArray? = null, val choices: Object2ObjectMap<String, String> = Object2ObjectMaps.emptyMap(), val mirror: DiagnosisMirror = DiagnosisMirror.AUTOMATIC, val measurements: Object2IntMap<String> = Object2IntMaps.emptyMap())
 
 enum class DiagnosisStatus { RUNNING, COMPLETE, STALE, FAILED, CANCELLED }
 

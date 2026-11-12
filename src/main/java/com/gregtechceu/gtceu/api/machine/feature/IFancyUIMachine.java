@@ -12,6 +12,7 @@ import com.gregtechceu.gtceu.api.gui.fancy.IFancyTooltip;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
 import com.gregtechceu.gtceu.api.gui.fancy.TabsWidget;
 import com.gregtechceu.gtceu.api.gui.fancy.TooltipsPanel;
+import com.gregtechceu.gtceu.api.gui.multiblock.StructureDiagnosisPage;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.AutoOutputConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.BatchModeConfigurator;
@@ -23,6 +24,7 @@ import com.gregtechceu.gtceu.api.machine.fancyconfigurator.VoidingModeConfigurat
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.BatchModeMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.DistinctPart;
+import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.client.gui.fancy.PreviewScene;
 import com.gregtechceu.gtceu.common.machine.trait.AutoOutputTrait;
 
@@ -114,6 +116,9 @@ public interface IFancyUIMachine extends IUIMachine, IFancyUIProvider {
      */
     @Override
     default void attachSideTabs(TabsWidget tabs) {
+        if (this instanceof MultiblockControllerMachine controller) {
+            tabs.attachCachedSubTab(GTCEu.id("structure_diagnosis"), () -> new StructureDiagnosisPage(controller));
+        }
         if (this instanceof IRecipeLogicMachine recipeLogicMachine &&
                 recipeLogicMachine.getRecipeTypes().length > 1) {
             tabs.attachCachedSubTab(GTCEu.id("machine_mode"),

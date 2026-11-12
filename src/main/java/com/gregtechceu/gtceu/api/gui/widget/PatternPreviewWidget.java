@@ -338,7 +338,7 @@ public final class PatternPreviewWidget extends UIElement {
         var measurementValues = pattern.getMeasurementValues(structure.choices());
         for (var measurement : pattern.getMeasurements()) {
             String key = "@measure:" + measurement.getParameter();
-            int value = measurementValues.get(measurement.getParameter());
+            int value = measurementValues.getInt(measurement.getParameter());
             addStep(y, width, Component.literal(measurement.getParameter() + ": " + value),
                     () -> changeStructure(current -> current.withChoice(key, Integer.toString(value - 1))),
                     () -> changeStructure(current -> current.withChoice(key, Integer.toString(value + 1))),

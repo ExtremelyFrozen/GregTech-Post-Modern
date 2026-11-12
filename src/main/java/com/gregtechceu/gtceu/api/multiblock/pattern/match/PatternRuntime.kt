@@ -75,7 +75,7 @@ internal class PatternRuntime(private val pattern: MultiBlockPattern, private va
 		if ((flipped && !definition.orientation.allowMirror) || (front.axis == Direction.Axis.Y && !definition.orientation.allowExtendedFacing)) {
 			error("$", "", 0, 0, 0, center, "orientation")
 		}
-		var previousDepth: Int? = null
+		var previousDepth = 0
 		val layout = pattern.expandLayoutForMatch(work, repetitions, choices, measured)
 		facts.set("pattern.measurements", measured)
 		layout.rejections.forEach { rejection -> error("$", "", 0, 0, 0, center, rejection.message) }
@@ -113,8 +113,8 @@ internal class PatternRuntime(private val pattern: MultiBlockPattern, private va
 		var cellIndex = 0
 		for ((path, repeatPath, depth, height, width, predicate, token, scopes) in cells) {
 			work.checkpoint()
-			if (previousDepth != depth) {
-				if (previousDepth != null && !pattern.checkLayerMinimums(state, state.layerCount, state.structureLayerCount)) {
+			if (cellIndex == 0 || previousDepth != depth) {
+				if (cellIndex > 0 && !pattern.checkLayerMinimums(state, state.layerCount, state.structureLayerCount)) {
 					error(
 						path,
 						repeatPath,
