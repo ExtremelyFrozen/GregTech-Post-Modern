@@ -5,6 +5,8 @@ import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolderContext;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.StructureCheckConfigurator;
+import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 
 import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerScreen;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
@@ -235,6 +237,9 @@ public class FancyMachineUIWidget extends UIElement {
 
         configuratorPanel.setHolder(fancyUI instanceof MetaMachine machine ? getHolder(machine) : holder);
         fancyUI.attachConfigurators(configuratorPanel);
+        if (fancyUI instanceof MultiblockControllerMachine controller) {
+            configuratorPanel.attachConfigurators(new StructureCheckConfigurator(controller));
+        }
         configuratorPanel.moveTo(-26, rootHeight - configuratorPanel.getPanelContentHeight() - border);
         fancyUI.attachTooltips(tooltipsPanel);
 

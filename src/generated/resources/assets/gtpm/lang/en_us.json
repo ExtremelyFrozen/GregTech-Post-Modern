@@ -6177,6 +6177,7 @@
     "gtpm.multiblock.ability.data_access": "Data access",
     "gtpm.multiblock.ability.hpca_component": "HPCA component",
     "gtpm.multiblock.ability.object_holder": "Object holder",
+    "gtpm.multiblock.check_structure": "Check structure",
     "gtpm.multiblock.diagnosis.expected": "Expected: %s",
     "gtpm.multiblock.diagnosis.actual": "Found: %s",
     "gtpm.multiblock.diagnosis.position": "Position: %s",

@@ -6164,6 +6164,7 @@
 	"gtpm.multiblock.ability.data_access": "数据访问",
 	"gtpm.multiblock.ability.hpca_component": "高性能计算组件",
 	"gtpm.multiblock.ability.object_holder": "物品容器",
+	"gtpm.multiblock.check_structure": "检测结构",
 	"gtpm.multiblock.diagnosis.expected": "需要：%s",
 	"gtpm.multiblock.diagnosis.actual": "实际：%s",
 	"gtpm.multiblock.diagnosis.position": "位置：%s",

@@ -1324,6 +1324,7 @@ public class LangHandler {
         provider.add("gtpm.multiblock.autobuild.terminal.controller_missing",
                 "The bound controller is missing or has been replaced.");
         provider.add("gtpm.multiblock.autobuild.terminal.execute", "Execute");
+        provider.add("gtpm.multiblock.check_structure", "Check structure");
         provider.add("gtpm.multiblock.diagnosis.expected", "Expected: %s");
         provider.add("gtpm.multiblock.diagnosis.actual", "Found: %s");
         provider.add("gtpm.multiblock.diagnosis.position", "Position: %s");

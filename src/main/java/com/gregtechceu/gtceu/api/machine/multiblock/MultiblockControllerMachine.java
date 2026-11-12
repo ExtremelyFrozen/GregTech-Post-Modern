@@ -4,6 +4,7 @@ import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.block.MetaMachineBlock;
 import com.gregtechceu.gtceu.api.block.property.GTBlockStateProperties;
 import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo;
+import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMultiPart;
@@ -24,12 +25,16 @@ import com.gregtechceu.gtceu.api.sync_system.annotations.ClientFieldChangeListen
 import com.gregtechceu.gtceu.api.sync_system.annotations.RerenderOnChanged;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCSender;
 import com.gregtechceu.gtceu.client.model.machine.MachineRenderState;
 import com.gregtechceu.gtceu.client.renderer.MultiblockInWorldPreviewRenderer;
 import com.gregtechceu.gtceu.common.machine.multiblock.part.ParallelHatchPartMachine;
 import com.gregtechceu.gtceu.config.ConfigHolder;
 import com.gregtechceu.gtceu.data.pattern.StructurePatternRegistry;
 import com.gregtechceu.gtceu.utils.ExtendedUseOnContext;
+
+import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerMenu;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -480,6 +485,18 @@ public class MultiblockControllerMachine extends MetaMachine {
      */
     @Getter
     private final Lock patternLock = new ReentrantLock();
+
+    /** Accepts manual checks only from the player whose valid menu still owns this controller. */
+    @RPCMethod
+    public void requestStructureCheck(RPCSender sender) {
+        var player = sender.asPlayer();
+        if (player == null || !(player.containerMenu instanceof ModularUIContainerMenu menu) ||
+                !(menu.uiHolder instanceof MachineUIHolder holder) || holder.getMachine() != this ||
+                !menu.stillValid(player))
+            return;
+        var data = MultiblockWorldSavedData.getOrCreate((ServerLevel) getLevel());
+        for (String name : getDefinition().getStructureOrder()) data.requestPatternCheck(getMultiblockState(name));
+    }
 
     /**
      * Check a named MultiBlock Pattern. Just checking pattern without any other logic.
