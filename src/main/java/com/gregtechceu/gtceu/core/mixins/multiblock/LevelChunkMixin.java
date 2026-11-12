@@ -80,12 +80,15 @@ public abstract class LevelChunkMixin implements ChunkStructureAccess {
         if (cir.getReturnValue() != null) gtceu$notifyStructureChange(pos);
     }
 
-    @Inject(method = "setBlockEntity", at = @At("RETURN"))
+    @Inject(method = "setBlockEntity",
+            at = @At(value = "INVOKE",
+                     target = "Ljava/util/Map;put(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;"))
     private void gtceu$blockEntityChanged(BlockEntity entity, CallbackInfo ci) {
-        gtceu$notifyStructureChange(entity.getBlockPos());
+        if (getBlockEntities().get(entity.getBlockPos()) != entity) gtceu$notifyStructureChange(entity.getBlockPos());
     }
 
-    @Inject(method = "removeBlockEntity", at = @At("RETURN"))
+    @Inject(method = "removeBlockEntity",
+            at = @At(value = "INVOKE", target = "Ljava/util/Map;remove(Ljava/lang/Object;)Ljava/lang/Object;"))
     private void gtceu$blockEntityRemoved(BlockPos pos, CallbackInfo ci) {
         gtceu$notifyStructureChange(pos);
     }
@@ -106,14 +109,19 @@ public abstract class LevelChunkMixin implements ChunkStructureAccess {
 
     @Override
     public void gtceu$notifyStructureChange(BlockPos pos) {
+        if (!(level instanceof ServerLevel serverLevel)) return;
+        var server = serverLevel.getServer();
+        if (!server.isSameThread()) {
+            BlockPos position = pos.immutable();
+            server.execute(() -> gtceu$notifyStructureChange(position));
+            return;
+        }
         gtceu$structureRevision++;
         if (gtceu$structureChanges != null) {
             gtceu$structureChanges[(int) gtceu$structureRevision & 255] = pos.asLong();
         }
-        if (level instanceof ServerLevel serverLevel) {
-            if (gtceu$structureData == null) gtceu$structureData = MultiblockWorldSavedData.getOrCreate(serverLevel);
-            if (gtceu$structureIndex != null) gtceu$structureIndex.changed(pos, gtceu$structureData);
-            gtceu$structureData.onChunkPositionChanged(pos);
-        }
+        if (gtceu$structureData == null) gtceu$structureData = MultiblockWorldSavedData.getOrCreate(serverLevel);
+        if (gtceu$structureIndex != null) gtceu$structureIndex.changed(pos, gtceu$structureData);
+        gtceu$structureData.onChunkPositionChanged(pos);
     }
 }

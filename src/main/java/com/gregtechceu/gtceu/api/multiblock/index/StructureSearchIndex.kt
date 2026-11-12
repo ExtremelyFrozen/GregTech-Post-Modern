@@ -111,7 +111,7 @@ class StructureSearchIndex {
 		visit(node.left, position, data)
 		if (position.x < region.minimumX) return
 		if (position.x <= region.maximumX && position.y >= region.minimumY && position.y <= region.maximumY && position.z >= region.minimumZ && position.z <= region.maximumZ) {
-			data.queueChangedPosition(region.state, position.asLong())
+			data.queueSearchPosition(region.state, position.asLong())
 		}
 		visit(node.right, position, data)
 	}

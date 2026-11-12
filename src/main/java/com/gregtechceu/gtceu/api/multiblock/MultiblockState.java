@@ -24,6 +24,7 @@ import net.minecraft.world.level.chunk.LevelChunk;
 
 import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.longs.LongConsumer;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import lombok.Getter;
@@ -44,8 +45,10 @@ public class MultiblockState {
     private boolean blockEntityInitialized;
     @Getter
     private PatternFacts facts;
+    @Setter
     @Getter
     private PatternMatchResult matchResult;
+    @Setter
     @Getter
     private PatternMatchCache matchCache;
     private Long2LongOpenHashMap readRevisions = new Long2LongOpenHashMap();
@@ -114,14 +117,6 @@ public class MultiblockState {
         setError(source.error);
     }
 
-    public void setMatchResult(PatternMatchResult result) {
-        matchResult = result;
-    }
-
-    public void setMatchCache(PatternMatchCache cache) {
-        matchCache = cache;
-    }
-
     public MultiblockState captureMatch() {
         MultiblockState captured = new MultiblockState(world, controllerPos, structureName);
         captured.lastController = lastController;
@@ -139,6 +134,17 @@ public class MultiblockState {
         readRevisions = new Long2LongOpenHashMap();
         readChunks = new Long2ObjectOpenHashMap<>();
         readPositions = new Long2ObjectOpenHashMap<>();
+    }
+
+    /** Visits the read frontier without adding rejected candidates to the confirmed structure's geometry. */
+    public void forEachReadPosition(LongConsumer consumer) {
+        for (LongOpenHashSet positions : readPositions.values()) positions.forEach(consumer);
+    }
+
+    public boolean hasReadPosition(long position) {
+        long key = ChunkPos.asLong(BlockPos.getX(position) >> 4, BlockPos.getZ(position) >> 4);
+        LongOpenHashSet positions = readPositions.get(key);
+        return positions != null && positions.contains(position);
     }
 
     public void applyCachedMatch(MultiblockState source) {
@@ -161,6 +167,8 @@ public class MultiblockState {
         if (chunk instanceof ChunkStructureAccess access) {
             readChunks.put(key, chunk);
             readRevisions.put(key, access.gtceu$getStructureRevision());
+        } else {
+            readRevisions.put(key, -1);
         }
     }
 
@@ -168,6 +176,10 @@ public class MultiblockState {
         for (var entry : readRevisions.long2LongEntrySet()) {
             var chunk = world.getChunkSource().getChunkNow(ChunkPos.getX(entry.getLongKey()),
                     ChunkPos.getZ(entry.getLongKey()));
+            if (entry.getLongValue() == -1) {
+                if (chunk != null) return false;
+                continue;
+            }
             if (!(chunk instanceof ChunkStructureAccess access) || chunk != readChunks.get(entry.getLongKey()) ||
                     access.gtceu$hasStructureChangesSince(entry.getLongValue(), readPositions.get(entry.getLongKey())))
                 return false;
@@ -182,11 +194,11 @@ public class MultiblockState {
         this.blockEntityInitialized = false;
         this.predicate = predicate;
         this.error = null;
+        recordRead(posIn);
         if (!world.isLoaded(posIn)) {
             error = UNLOAD_ERROR;
             return false;
         }
-        recordRead(posIn);
         return true;
     }
 
