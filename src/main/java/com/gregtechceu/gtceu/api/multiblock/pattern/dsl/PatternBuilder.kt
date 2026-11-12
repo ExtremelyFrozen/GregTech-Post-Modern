@@ -17,6 +17,9 @@ import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternOrigin
 import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternParameter
 import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternPredicateDefinition
 import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternRepeatDirection
+import com.gregtechceu.gtceu.api.multiblock.pattern.model.expression.PatternSizeConstraint
+import com.gregtechceu.gtceu.api.multiblock.pattern.model.measurement.PatternMeasurement
+import com.gregtechceu.gtceu.api.multiblock.pattern.model.module.PatternModuleSlot
 import com.gregtechceu.gtceu.api.multiblock.structurepredicate.ObservedPatternPredicate
 import com.gregtechceu.gtceu.api.multiblock.structurepredicate.PatternPredicate
 import com.gregtechceu.gtceu.api.multiblock.structurepredicate.PredicateController
@@ -24,13 +27,13 @@ import com.gregtechceu.gtceu.api.multiblock.util.RelativeDirection
 import com.gregtechceu.gtceu.data.pattern.StructurePatternKey
 import com.gregtechceu.gtceu.data.pattern.StructurePatternResolver
 
-import com.google.common.base.Joiner
 import it.unimi.dsi.fastutil.chars.Char2ObjectArrayMap
 import it.unimi.dsi.fastutil.chars.Char2ObjectLinkedOpenHashMap
 import it.unimi.dsi.fastutil.chars.Char2ObjectMap
-import it.unimi.dsi.fastutil.chars.CharArrayList
 import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap
+import it.unimi.dsi.fastutil.objects.Object2ObjectMaps
 import it.unimi.dsi.fastutil.objects.ObjectArrayList
+import it.unimi.dsi.fastutil.objects.ObjectList
 import it.unimi.dsi.fastutil.objects.ObjectLists
 
 import java.util.function.Predicate
@@ -51,6 +54,12 @@ class PatternBuilder private constructor(charDir: RelativeDirection, stringDir: 
 	private var orientation = PatternOrientation(true, true)
 	private var origin = PatternOrigin.controller()
 	private val parameters = Object2ObjectLinkedOpenHashMap<String, PatternParameter>()
+	private val measurements = ObjectArrayList<PatternMeasurement>()
+	private val sizeConstraints = ObjectArrayList<PatternSizeConstraint>()
+
+	fun measurement(measurement: PatternMeasurement): PatternBuilder = apply { measurements.add(measurement) }
+	fun sizeConstraint(constraint: PatternSizeConstraint): PatternBuilder = apply { sizeConstraints.add(constraint) }
+	fun assembly(root: PatternNode.Fragment, slots: List<PatternModuleSlot>): PatternBuilder = node(PatternNode.Assembly(root, slots))
 
 	fun axes(axes: PatternAxes): PatternBuilder {
 		structureDir = StructureDir(RelativeDirection.valueOf(axes.width.name), RelativeDirection.valueOf(axes.height.name), RelativeDirection.valueOf(axes.depth.name))
@@ -73,7 +82,7 @@ class PatternBuilder private constructor(charDir: RelativeDirection, stringDir: 
 	}
 
 	fun fragment(id: String, fragment: PatternFragment): PatternBuilder {
-		require(fragments.putIfAbsent(id, fragment) == null) { "Duplicate fragment '$id'" }
+		fragments[id] = fragment
 		return this
 	}
 
@@ -82,10 +91,9 @@ class PatternBuilder private constructor(charDir: RelativeDirection, stringDir: 
 		return this
 	}
 
-	private data class AisleUnit(val slices: List<Array<String>>, val minRepeat: Int, val maxRepeat: Int)
+	private data class AisleUnit(val slices: ObjectList<Array<String>>, val minRepeat: Int, val maxRepeat: Int)
 
 	init {
-		structureDir.check()
 		symbolMap[' '] = PatternPredicate.any()
 		symbolMap['~'] = PatternPredicate.controller(PatternPredicate.blocks(definition.block))
 	}
@@ -112,7 +120,7 @@ class PatternBuilder private constructor(charDir: RelativeDirection, stringDir: 
 	}
 
 	fun place(fragmentId: String, anchor: PatternOrigin.Offset): PatternBuilder {
-		extraNodes.add(PatternNode.Placed(PatternNode.Fragment(fragmentId, emptyMap()), anchor))
+		extraNodes.add(PatternNode.Placed(PatternNode.Fragment(fragmentId, Object2ObjectMaps.emptyMap()), anchor))
 		return this
 	}
 
@@ -126,17 +134,12 @@ class PatternBuilder private constructor(charDir: RelativeDirection, stringDir: 
 	fun appendDefinition(key: StructurePatternKey): PatternBuilder = StructurePatternResolver.appendDefinition(this, key)
 
 	fun beginRepeatable(): PatternBuilder {
-		check(repeatableGroup == null) { "Cannot begin a nested repeatable aisle group" }
 		repeatableGroup = ObjectArrayList()
 		return this
 	}
 
 	fun endRepeatable(minRepeat: Int, maxRepeat: Int): PatternBuilder {
-		val group = repeatableGroup ?: error("No repeatable aisle group has been started")
-		check(group.isNotEmpty()) { "Repeatable aisle group must contain at least one aisle" }
-		require(minRepeat <= maxRepeat) {
-			"Lower bound of repeat counting must smaller than upper bound!"
-		}
+		val group = repeatableGroup!!
 		units.add(AisleUnit(ObjectArrayList(group), minRepeat, maxRepeat))
 		repeatableGroup = null
 		return this
@@ -145,18 +148,11 @@ class PatternBuilder private constructor(charDir: RelativeDirection, stringDir: 
 	fun endRepeatable(repeatCount: Int): PatternBuilder = endRepeatable(repeatCount, repeatCount)
 
 	private fun validateAisle(aisle: Array<out String>) {
-		require(aisle.isNotEmpty() && aisle[0].isNotEmpty()) { "Empty pattern for aisle" }
 		if (units.isEmpty() && (repeatableGroup == null || repeatableGroup!!.isEmpty())) {
 			aisleHeight = aisle.size
 			rowWidth = aisle[0].length
 		}
-		require(aisle.size == aisleHeight) {
-			"Expected aisle with height of $aisleHeight, but was given one with a height of ${aisle.size})"
-		}
 		aisle.forEach { row ->
-			require(row.length == rowWidth) {
-				"Not all rows in the given aisle are the correct width (expected $rowWidth, found one with ${row.length})"
-			}
 			row.forEach { symbol ->
 				if (!symbolMap.containsKey(symbol)) symbolMap[symbol] = null
 			}
@@ -184,26 +180,14 @@ class PatternBuilder private constructor(charDir: RelativeDirection, stringDir: 
 		return this
 	}
 
-	private fun checkMissingPatternPredicates() {
-		val missing = CharArrayList()
-		symbolMap.char2ObjectEntrySet().forEach { entry ->
-			if (entry.value == null) missing.add(entry.charKey)
-		}
-		check(missing.isEmpty()) {
-			"PatternPredicates for character(s) ${Joiner.on(',').join(missing)} are missing"
-		}
-	}
-
 	fun build(): MultiBlockPattern = MultiBlockPattern.fromDefinition(buildDefinition()).also { it.condition = condition }
 
 	/** Builds the canonical AST consumed by JSON, binary and compiler paths. */
 	fun buildDefinition(): PatternDefinition {
-		checkMissingPatternPredicates()
-		check(repeatableGroup == null) { "Repeatable group must be closed before building" }
 		val nodes = ObjectArrayList<PatternNode>(units.size + extraNodes.size)
 		units.forEachIndexed { index, unit ->
-			val layers = ObjectArrayList<List<String>>(unit.slices.size)
-			unit.slices.forEach { slice -> layers.add(ObjectArrayList(slice.asList())) }
+			val layers = ObjectArrayList<ObjectList<String>>(unit.slices.size)
+			unit.slices.forEach { slice -> layers.add(ObjectArrayList(slice)) }
 			val fixed = PatternNode.Fixed(layers)
 			nodes.add(
 				if (unit.minRepeat == 1 && unit.maxRepeat == 1) {
@@ -224,7 +208,7 @@ class PatternBuilder private constructor(charDir: RelativeDirection, stringDir: 
 		val body = if (nodes.size == 1) nodes.first() else PatternNode.Sequence(PatternDirection.FRONT, nodes)
 		val predicates = Char2ObjectLinkedOpenHashMap<PatternPredicateDefinition>()
 		symbolMap.char2ObjectEntrySet().forEach { entry ->
-			predicates[entry.charKey] = PatternPredicateDefinition("java", "", mapOf("runtime" to requireNotNull(entry.value)), emptyList())
+			predicates[entry.charKey] = PatternPredicateDefinition("java", "", Object2ObjectMaps.singleton<String, Any>("runtime", entry.value!!), ObjectLists.emptyList())
 		}
 		return PatternDefinition(
 			definition.id,
@@ -241,6 +225,8 @@ class PatternBuilder private constructor(charDir: RelativeDirection, stringDir: 
 			predicates,
 			body,
 			constraints,
+			measurements,
+			sizeConstraints,
 		)
 	}
 

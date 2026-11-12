@@ -199,7 +199,7 @@ public final class PatternPreviewWidget extends UIElement {
             var layout = definition.getPattern(contribution.structureName())
                     .expandLayout(request.repetitions().toIntArray(), request.choices());
             var key = contribution.cellKey();
-            for (var cell : layout.cells()) {
+            for (var cell : layout.getCells()) {
                 if (cell.unit() != key.unitIndex() || cell.repetition() != key.repetition() ||
                         cell.inner() != key.innerSlice() || cell.row() != key.row() || cell.column() != key.column())
                     continue;

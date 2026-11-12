@@ -113,9 +113,9 @@ public final class CandidateExpansion {
                     requirement.minimum(), requirement.maximum(), -1, -1, -1);
             requirements.add(limit);
         }
-        int minimumDepth = layout.cells().stream().mapToInt(PatternLayoutCell::depth).min().orElse(0);
+        int minimumDepth = layout.getCells().stream().mapToInt(PatternLayoutCell::depth).min().orElse(0);
         BuildProblem unavailable = null;
-        for (var cell : layout.cells()) {
+        for (var cell : layout.getCells()) {
             PatternPredicate predicate = cell.predicate();
             PatternCellKey cellKey = new PatternCellKey(cell.unit(), cell.repetition(), cell.inner(), cell.row(),
                     cell.column());

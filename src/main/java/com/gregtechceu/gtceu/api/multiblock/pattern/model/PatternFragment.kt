@@ -1,9 +1,9 @@
 package com.gregtechceu.gtceu.api.multiblock.pattern.model
 
-import it.unimi.dsi.fastutil.chars.Char2ObjectLinkedOpenHashMap
+import com.gregtechceu.gtceu.api.multiblock.pattern.model.module.PatternPortBoundary
+
 import it.unimi.dsi.fastutil.chars.Char2ObjectMap
 import it.unimi.dsi.fastutil.chars.Char2ObjectMaps
-import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap
 import it.unimi.dsi.fastutil.objects.Object2ObjectMap
 import org.jspecify.annotations.NullMarked
 
@@ -22,8 +22,8 @@ data class PatternFragment @JvmOverloads constructor(
 		anchors: Map<String, PatternOrigin.Offset>,
 		ports: Map<String, Port>,
 		body: PatternNode,
-		predicates: Map<Char, PatternPredicateDefinition> = emptyMap(),
-	) : this(Object2ObjectLinkedOpenHashMap(parameters), Object2ObjectLinkedOpenHashMap(anchors), Object2ObjectLinkedOpenHashMap(ports), body, Char2ObjectLinkedOpenHashMap(predicates))
+		predicates: Map<Char, PatternPredicateDefinition> = Char2ObjectMaps.emptyMap(),
+	) : this(PatternSourceEntries.objects(parameters), PatternSourceEntries.objects(anchors), PatternSourceEntries.objects(ports), body, PatternSourceEntries.characters(predicates))
 
-	data class Port(val offset: PatternOrigin.Offset, val direction: PatternDirection)
+	data class Port @JvmOverloads constructor(val offset: PatternOrigin.Offset, val direction: PatternDirection, val up: PatternDirection = if (direction.isHeight()) PatternDirection.FRONT else PatternDirection.UP, val boundary: PatternPortBoundary? = null)
 }

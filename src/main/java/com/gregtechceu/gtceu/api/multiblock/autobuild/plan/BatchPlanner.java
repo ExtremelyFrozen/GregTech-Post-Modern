@@ -102,8 +102,9 @@ public final class BatchPlanner {
                                                                                           StructureRequest options) {
         var layout = definition.getPattern(options.structureName()).expandLayout(options.repetitions().toIntArray(),
                 options.choices());
-        return tierChoicesForPredicates(definition, layout.cells().stream().map(PatternLayoutCell::predicate).distinct()
-                .collect(ObjectArrayList.toList()));
+        return tierChoicesForPredicates(definition,
+                layout.getCells().stream().map(PatternLayoutCell::predicate).distinct()
+                        .collect(ObjectArrayList.toList()));
     }
 
     /**

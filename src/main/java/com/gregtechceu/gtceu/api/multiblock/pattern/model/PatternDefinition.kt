@@ -1,13 +1,15 @@
 package com.gregtechceu.gtceu.api.multiblock.pattern.model
 
+import com.gregtechceu.gtceu.api.multiblock.pattern.model.expression.PatternSizeConstraint
+import com.gregtechceu.gtceu.api.multiblock.pattern.model.measurement.PatternMeasurement
+
 import net.minecraft.resources.ResourceLocation
 
-import it.unimi.dsi.fastutil.chars.Char2ObjectLinkedOpenHashMap
 import it.unimi.dsi.fastutil.chars.Char2ObjectMap
-import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap
 import it.unimi.dsi.fastutil.objects.Object2ObjectMap
 import it.unimi.dsi.fastutil.objects.ObjectArrayList
 import it.unimi.dsi.fastutil.objects.ObjectList
+import it.unimi.dsi.fastutil.objects.ObjectLists
 import org.jspecify.annotations.NullMarked
 
 /** Canonical source model shared by Java DSL, JSON and compressed binary definitions. */
@@ -23,6 +25,8 @@ data class PatternDefinition(
 	val predicates: Char2ObjectMap<PatternPredicateDefinition>,
 	val body: PatternNode,
 	val constraints: ObjectList<PatternConstraint>,
+	val measurements: ObjectList<PatternMeasurement> = ObjectLists.emptyList(),
+	val sizeConstraints: ObjectList<PatternSizeConstraint> = ObjectLists.emptyList(),
 ) {
 	/** Collection conversion is confined to the source/codec interoperability boundary. */
 	constructor(
@@ -36,5 +40,7 @@ data class PatternDefinition(
 		predicates: Map<Char, PatternPredicateDefinition>,
 		body: PatternNode,
 		constraints: List<PatternConstraint>,
-	) : this(machine, structure, axes, orientation, origin, Object2ObjectLinkedOpenHashMap(parameters), Object2ObjectLinkedOpenHashMap(fragments), Char2ObjectLinkedOpenHashMap(predicates), body, ObjectArrayList(constraints))
+		measurements: List<PatternMeasurement> = ObjectLists.emptyList(),
+		sizeConstraints: List<PatternSizeConstraint> = ObjectLists.emptyList(),
+	) : this(machine, structure, axes, orientation, origin, PatternSourceEntries.objects(parameters), PatternSourceEntries.objects(fragments), PatternSourceEntries.characters(predicates), body, ObjectArrayList(constraints), ObjectArrayList(measurements), ObjectArrayList(sizeConstraints))
 }
