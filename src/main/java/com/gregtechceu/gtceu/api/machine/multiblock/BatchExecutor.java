@@ -3,7 +3,6 @@ package com.gregtechceu.gtceu.api.machine.multiblock;
 import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState;
-import com.gregtechceu.gtceu.api.multiblock.MultiblockWorldSavedData;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.BuildProblem;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialKey;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialRequest;
@@ -597,17 +596,21 @@ public final class BatchExecutor {
         return null;
     }
 
-    private static boolean matchesExactStructure(MultiblockControllerMachine controller,
-                                                 StructureRequest options) {
+    private static boolean commitExactStructure(MultiblockControllerMachine controller,
+                                                StructureRequest options) {
         MultiBlockPattern pattern = controller.getPattern(options.structureName());
         if (options.repetitions().size() != pattern.getRepeatDescriptors().size()) return false;
         int[] repetitions = options.repetitions().toIntArray();
         var lock = controller.getPatternLock();
         lock.lock();
         try {
-            MultiblockState state = controller.getMultiblockState(options.structureName());
-            return pattern.checkPatternAtExact(state, controller.getBlockPos(), controller.getFrontFacing(),
+            MultiblockState candidate = new MultiblockState(controller.getLevel(), controller.getBlockPos(),
+                    options.structureName());
+            candidate.lastController = controller;
+            boolean matched = pattern.checkPatternAtExact(candidate, controller.getBlockPos(),
+                    controller.getFrontFacing(),
                     controller.getUpwardsFacing(), options.flipMode(), true, repetitions, options.choices());
+            return controller.commitStructure(candidate, matched);
         } finally {
             lock.unlock();
         }
@@ -616,29 +619,17 @@ public final class BatchExecutor {
     private static void finalizeSuccessfulBuilds(MultiblockControllerMachine controller,
                                                  ObjectList<StructureResult> results,
                                                  Object2ObjectMap<String, StructureRequest> optionsByName) {
-        if (!(controller.getLevel() instanceof ServerLevel level)) return;
         for (int index = 0; index < results.size(); index++) {
             StructureResult result = results.get(index);
             if (!result.success() || result.mode() != StructureOperation.BUILD) continue;
             StructureRequest options = optionsByName.get(result.structureName());
-            if (!matchesExactStructure(controller, options)) {
-                controller.invalidateStructure(result.structureName());
+            if (!commitExactStructure(controller, options)) {
                 ObjectArrayList<BuildProblem> problems = new ObjectArrayList<>(result.problems());
                 problems.add(problem(controller.getBlockPos(),
                         "gtpm.multiblock.autobuild.structure_check_failed", result.structureName()));
                 results.set(index, new StructureResult(result.structureName(), result.mode(), false,
                         result.placed(), result.removed(), problems));
             }
-        }
-        for (StructureResult result : results) {
-            if (!result.success() || result.mode() != StructureOperation.BUILD) continue;
-            StructureRequest options = optionsByName.get(result.structureName());
-            MultiblockState state = controller.getMultiblockState(result.structureName());
-            if (MultiblockControllerMachine.DEFAULT_STRUCTURE.equals(result.structureName())) {
-                controller.setFlipped(options.flipMode());
-            }
-            controller.formStructure(result.structureName());
-            MultiblockWorldSavedData.getOrCreate(level).addMapping(state);
         }
     }
 

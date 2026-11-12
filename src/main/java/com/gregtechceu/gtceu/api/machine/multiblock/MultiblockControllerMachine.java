@@ -17,6 +17,7 @@ import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.BatchResult;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.StructureResult;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.BatchPlan;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.BatchPlanner;
+import com.gregtechceu.gtceu.api.multiblock.error.PatternStringError;
 import com.gregtechceu.gtceu.api.multiblock.index.ChunkStructureAccess;
 import com.gregtechceu.gtceu.api.multiblock.pattern.match.MultiBlockPattern;
 import com.gregtechceu.gtceu.api.sync_system.annotations.ClientFieldChangeListener;
@@ -27,6 +28,7 @@ import com.gregtechceu.gtceu.client.model.machine.MachineRenderState;
 import com.gregtechceu.gtceu.client.renderer.MultiblockInWorldPreviewRenderer;
 import com.gregtechceu.gtceu.common.machine.multiblock.part.ParallelHatchPartMachine;
 import com.gregtechceu.gtceu.config.ConfigHolder;
+import com.gregtechceu.gtceu.data.pattern.StructurePatternRegistry;
 import com.gregtechceu.gtceu.utils.ExtendedUseOnContext;
 
 import net.minecraft.core.BlockPos;
@@ -60,6 +62,7 @@ public class MultiblockControllerMachine extends MetaMachine {
     private final List<IMultiPart> parts = new ArrayList<>();
     private @Nullable MultiblockState checkedPatternState;
     private boolean checkedPatternMatched;
+    private @Nullable String committingStructure;
     private @Nullable ParallelHatchPartMachine parallelHatch = null;
     @Getter
     @SyncToClient
@@ -123,9 +126,6 @@ public class MultiblockControllerMachine extends MetaMachine {
         setStructureFormed(structureName, true);
 
         MultiblockState state = getMultiblockState(structureName);
-        if (getLevel() instanceof ServerLevel serverLevel) {
-            MultiblockWorldSavedData.getOrCreate(serverLevel).onStructureFormed(state, this);
-        }
         List<IMultiPart> newParts = new ArrayList<>();
         Set<IMultiPart> set = state.getFacts().getOrDefault("parts", Collections.emptySet());
         for (IMultiPart part : set) {
@@ -145,6 +145,66 @@ public class MultiblockControllerMachine extends MetaMachine {
         for (var trait : getAllTraits()) {
             if (trait instanceof MultiblockMachineTrait multiblockMachineTrait)
                 multiblockMachineTrait.onStructureFormed(structureName);
+        }
+        if (committingStructure == null && getLevel() instanceof ServerLevel serverLevel) {
+            MultiblockWorldSavedData.getOrCreate(serverLevel).onStructureFormed(state, this);
+        }
+    }
+
+    /**
+     * Publishes a completed candidate on the server thread after controller-specific validation. Callbacks may
+     * reject formation; only their final accepted state is registered. A stale candidate only requests a new check.
+     */
+    public final boolean commitStructure(MultiblockState candidate, boolean matched) {
+        String structureName = candidate.getStructureName();
+        MultiblockState state = getMultiblockState(structureName);
+        MultiBlockPattern pattern = getPattern(structureName);
+        long generation = StructurePatternRegistry.generation();
+        var initialFacts = state.getFacts();
+        var initialCache = state.getMatchCache();
+        var data = MultiblockWorldSavedData.getOrCreate((ServerLevel) getLevel());
+        boolean accepted = validatePatternResult(candidate, matched);
+        if (generation != StructurePatternRegistry.generation() || getPattern(structureName) != pattern ||
+                state.getFacts() != initialFacts || state.getMatchCache() != initialCache ||
+                candidate.getController() != this || !candidate.isMatchCurrent()) {
+            data.requestPatternCheck(state);
+            return false;
+        }
+        if (!accepted) {
+            if (!candidate.hasError())
+                candidate.setError(new PatternStringError("gtpm.multiblock.pattern.error.constraint"));
+            if (isStructureFormed(structureName)) invalidateStructure(structureName);
+            state.applyMatch(candidate);
+            data.addMapping(state);
+            return false;
+        }
+        boolean refresh = !isStructureFormed(structureName) || candidate.getFacts() != initialFacts;
+        state.applyMatch(candidate);
+        if (DEFAULT_STRUCTURE.equals(structureName)) setFlipped(state.isNeededFlip());
+        if (!refresh) {
+            data.addMapping(state);
+            return true;
+        }
+        committingStructure = structureName;
+        try {
+            formStructure(structureName);
+            if (!isStructureFormed(structureName)) {
+                state.setError(new PatternStringError("gtpm.multiblock.pattern.error.constraint"));
+                data.addMapping(state);
+                return false;
+            }
+            data.onStructureFormed(state, this);
+            return true;
+        } catch (RuntimeException exception) {
+            try {
+                invalidateStructure(structureName);
+            } catch (RuntimeException cleanupException) {
+                exception.addSuppressed(cleanupException);
+                data.onStructureInvalidated(state, this);
+            }
+            throw exception;
+        } finally {
+            committingStructure = null;
         }
     }
 

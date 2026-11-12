@@ -290,41 +290,28 @@ public class MultiblockWorldSavedData extends SavedData {
                 requestPatternCheck(state);
                 return;
             }
-            boolean matched = controller.validatePatternResult(session.getState(), session.matched());
             if (generation != StructurePatternRegistry.generation() ||
                     controller.getPattern(structureName) != pattern ||
                     !session.isSourceCurrent() || !session.getState().isMatchCurrent()) {
                 requestPatternCheck(state);
                 return;
             }
-            if (!matched) {
-                if (controller.isStructureFormed(structureName)) {
-                    invalidatingCheck = state;
-                    try {
-                        controller.invalidateStructure(structureName);
-                    } finally {
-                        invalidatingCheck = null;
-                    }
-                }
-                state.applyMatch(session.getState());
-                addMapping(state);
-                if (!pattern.isEventDriven()) {
+            boolean accepted;
+            invalidatingCheck = state;
+            try {
+                accepted = controller.commitStructure(session.getState(), session.matched());
+            } finally {
+                invalidatingCheck = null;
+            }
+            if (!accepted) {
+                if (!pattern.isEventDriven() || session.matched()) {
                     searchRegions.add(state, pattern.getSearchRadius());
                     scheduleRetry(pending, level.getGameTime());
                 }
                 return;
             }
-            boolean refresh = !controller.isStructureFormed(structureName) || session.requiresRefresh();
-            state.applyMatch(session.getState());
             searchRegions.remove(state);
             retryDelays.removeInt(state);
-            if (MultiblockControllerMachine.DEFAULT_STRUCTURE.equals(structureName)) {
-                controller.setFlipped(state.isNeededFlip());
-            }
-            if (refresh) {
-                controller.formStructure(structureName);
-                addMapping(state);
-            }
             if (!hasPendingStructureSearch(controller)) {
                 controllers.remove(controller);
             }
