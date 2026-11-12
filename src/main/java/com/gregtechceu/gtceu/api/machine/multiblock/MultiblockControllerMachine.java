@@ -162,10 +162,13 @@ public class MultiblockControllerMachine extends MetaMachine {
         long generation = StructurePatternRegistry.generation();
         var initialFacts = state.getFacts();
         var initialCache = state.getMatchCache();
+        var initialFront = getFrontFacing();
+        var initialUp = getUpwardsFacing();
         var data = MultiblockWorldSavedData.getOrCreate((ServerLevel) getLevel());
         boolean accepted = validatePatternResult(candidate, matched);
         if (generation != StructurePatternRegistry.generation() || getPattern(structureName) != pattern ||
                 state.getFacts() != initialFacts || state.getMatchCache() != initialCache ||
+                getFrontFacing() != initialFront || getUpwardsFacing() != initialUp ||
                 candidate.getController() != this || !candidate.isMatchCurrent()) {
             data.requestPatternCheck(state);
             return false;
@@ -189,6 +192,7 @@ public class MultiblockControllerMachine extends MetaMachine {
         try {
             formStructure(structureName);
             if (!isStructureFormed(structureName)) {
+                if (structureParts.containsKey(structureName)) invalidateStructure(structureName);
                 state.setError(new PatternStringError("gtpm.multiblock.pattern.error.constraint"));
                 data.addMapping(state);
                 return false;
@@ -583,13 +587,20 @@ public class MultiblockControllerMachine extends MetaMachine {
 
     private void detachStructureParts(String structureName) {
         List<IMultiPart> oldParts = structureParts.remove(structureName);
+        RuntimeException failure = null;
         if (oldParts != null) {
             for (IMultiPart part : oldParts) {
-                part.removedFromController(this, structureName);
-                notifyPartDependency(part);
+                try {
+                    part.removedFromController(this, structureName);
+                    notifyPartDependency(part);
+                } catch (RuntimeException exception) {
+                    if (failure == null) failure = exception;
+                    else failure.addSuppressed(exception);
+                }
             }
         }
         rebuildParts();
+        if (failure != null) throw failure;
     }
 
     private void notifyPartDependency(IMultiPart part) {
