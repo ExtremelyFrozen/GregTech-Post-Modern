@@ -5,6 +5,7 @@ import com.gregtechceu.gtceu.api.gui.SelectableEnum;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyConfiguratorButton;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Button.State;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 
 import net.minecraft.network.chat.Component;
@@ -56,7 +57,7 @@ public class FancySelectorConfigurator<T extends Enum<T> & SelectableEnum>
      * Returns the button and enum icon for the current value.
      */
     @Override
-    public IGuiTexture getIcon() {
+    public IGuiTexture getIcon(State state) {
         return GuiTextures.group(GuiTextures.VANILLA_BUTTON, currentValue().getIcon());
     }
 

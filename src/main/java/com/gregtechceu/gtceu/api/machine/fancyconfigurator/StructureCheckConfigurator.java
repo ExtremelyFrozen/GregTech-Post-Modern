@@ -5,6 +5,7 @@ import com.gregtechceu.gtceu.api.gui.fancy.IFancyConfiguratorButton;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Button.State;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 
 import net.minecraft.network.chat.Component;
@@ -16,13 +17,15 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public final class StructureCheckConfigurator implements IFancyConfiguratorButton {
 
+    private static final IGuiTexture ICON = GuiTextures.BUTTON_STRUCTURE_CHECK.getSubTexture(0, 0, 1, 0.5);
+    private static final IGuiTexture PRESSED_ICON = GuiTextures.BUTTON_STRUCTURE_CHECK.getSubTexture(0, 0.5, 1, 0.5);
     private static final ObjectList<Component> TOOLTIPS = ObjectList.of(
             Component.translatable("gtpm.multiblock.check_structure"));
     private final MultiblockControllerMachine controller;
 
     @Override
-    public IGuiTexture getIcon() {
-        return GuiTextures.BUTTON_CHECK;
+    public IGuiTexture getIcon(State state) {
+        return state == State.PRESSED ? PRESSED_ICON : ICON;
     }
 
     @Override

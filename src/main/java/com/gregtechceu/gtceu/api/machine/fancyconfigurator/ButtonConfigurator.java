@@ -3,6 +3,7 @@ package com.gregtechceu.gtceu.api.machine.fancyconfigurator;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyConfiguratorButton;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Button.State;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 
 import net.minecraft.network.chat.Component;
@@ -29,7 +30,7 @@ public class ButtonConfigurator implements IFancyConfiguratorButton {
     }
 
     @Override
-    public IGuiTexture getIcon() {
+    public IGuiTexture getIcon(State state) {
         return icon;
     }
 

@@ -202,6 +202,8 @@ public class GuiTextures {
             "gtpm:textures/gui/widget/button_public_private.png");
     public static final ResourceTexture BUTTON_CHECK = new ResourceTexture(
             "gtpm:textures/gui/widget/button_check.png");
+    public static final ResourceTexture BUTTON_STRUCTURE_CHECK = new ResourceTexture(
+            "gtpm:textures/gui/structure_check.png");
     public static final ResourceTexture BUTTON_LIST = new ResourceTexture(
             "gtpm:textures/gui/widget/button_list.png");
     public static final ResourceTexture BUTTON_RIGHT = new ResourceTexture("gtpm:textures/gui/widget/right.png");

@@ -9,6 +9,7 @@ import com.gregtechceu.gtceu.api.transfer.item.CustomItemStackHandler;
 import com.gregtechceu.gtceu.integration.xei.GTXEIHelper;
 
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Button.State;
 
 import net.minecraft.network.chat.Component;
 
@@ -36,7 +37,7 @@ public class FancyInvConfigurator implements IFancyConfigurator {
     }
 
     @Override
-    public IGuiTexture getIcon() {
+    public IGuiTexture getIcon(State state) {
         return GuiTextures.BUTTON_ITEM_OUTPUT;
     }
 
