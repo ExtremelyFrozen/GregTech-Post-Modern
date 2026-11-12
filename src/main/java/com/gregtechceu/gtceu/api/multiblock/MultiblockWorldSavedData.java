@@ -296,7 +296,7 @@ public class MultiblockWorldSavedData extends SavedData {
             if (generation != StructurePatternRegistry.generation() ||
                     controller.getPattern(structureName) != pattern ||
                     session.getState().lastController != state.getController() ||
-                    !session.isSourceCurrent() || !session.getState().isMatchCurrent()) {
+                    !session.isSourceCurrent()) {
                 requestPatternCheck(state);
                 return;
             }

@@ -18,7 +18,7 @@ class PatternCheckSession internal constructor(val state: MultiblockState, priva
 	/** Drives a new explicit check inline; it does not wait for or reuse an automatic task. */
 	fun finish(): Boolean = work.finish()
 	fun matched(): Boolean = work.result()
-	fun isSourceCurrent(): Boolean = original.changeVersion == version && original.facts === initialFacts && original.matchCache === initialCache && controller?.frontFacing == front && controller?.upwardsFacing == up
+	fun isSourceCurrent(): Boolean = original.changeVersion == version && original.facts === initialFacts && original.matchCache === initialCache && controller?.frontFacing == front && controller?.upwardsFacing == up && state.isMatchCurrent
 
 	override fun close() {
 		work.cancel()
