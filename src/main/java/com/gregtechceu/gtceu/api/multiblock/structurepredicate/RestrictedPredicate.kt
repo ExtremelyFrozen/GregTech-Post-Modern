@@ -28,6 +28,7 @@ data class RestrictedPredicate(val predicate: StructurePredicate, val minCount: 
 	override fun type(): StructurePredicateType<*> = TYPE
 	override fun observeCandidate(candidateState: BlockState): PatternObservation = predicate.observeCandidate(candidateState)
 	private data class Position(val child: PatternObservation) : PatternObservation.PositionMatch
+	internal fun restorePreparedPosition(observation: PatternObservation, child: PatternObservation): PatternObservation = observation.withPositionMatch(Position(child))
 	private fun hasCapacity(state: MultiblockState): Boolean = (maxCount.isEmpty || state.structureGlobalCount.getInt(this) < maxCount.get()) &&
 		(maxCountByLayer.isEmpty || state.structureLayerCount.getInt(this) < maxCountByLayer.get())
 	override fun observePosition(state: MultiblockState): PatternObservation = if (hasCapacity(state)) predicate.observePosition(state).let { it.withPositionMatch(Position(it)) } else PatternObservation.of(false)

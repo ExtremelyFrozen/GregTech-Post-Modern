@@ -5,7 +5,7 @@ import com.gregtechceu.gtceu.api.capability.recipe.IO;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.multiblock.error.PatternError;
 import com.gregtechceu.gtceu.api.multiblock.error.PatternStringError;
-import com.gregtechceu.gtceu.api.multiblock.index.ChunkStructureAccess;
+import com.gregtechceu.gtceu.api.multiblock.index.StructureReadTracker;
 import com.gregtechceu.gtceu.api.multiblock.pattern.match.PatternMatchCache;
 import com.gregtechceu.gtceu.api.multiblock.pattern.match.PatternMatchResult;
 import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternFacts;
@@ -16,14 +16,10 @@ import com.gregtechceu.gtceu.api.multiblock.structurepredicate.StructurePredicat
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.chunk.LevelChunk;
 
-import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
-import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongConsumer;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
@@ -51,9 +47,10 @@ public class MultiblockState {
     @Setter
     @Getter
     private PatternMatchCache matchCache;
-    private Long2LongOpenHashMap readRevisions = new Long2LongOpenHashMap();
-    private Long2ObjectOpenHashMap<LevelChunk> readChunks = new Long2ObjectOpenHashMap<>();
-    private Long2ObjectOpenHashMap<LongOpenHashSet> readPositions = new Long2ObjectOpenHashMap<>();
+    private StructureReadTracker readTracker;
+    @Getter
+    private long changeVersion;
+    private boolean ownsReadTracker;
     @Getter
     private Object2IntOpenHashMap<PredicateRule> globalCount;
     @Getter
@@ -84,6 +81,8 @@ public class MultiblockState {
         this.structureName = structureName;
         this.error = UNINIT_ERROR;
         this.facts = new PatternFacts();
+        this.readTracker = new StructureReadTracker(world);
+        this.ownsReadTracker = true;
     }
 
     public void clean() {
@@ -111,9 +110,8 @@ public class MultiblockState {
         blockState = source.blockState;
         blockEntity = source.blockEntity;
         blockEntityInitialized = source.blockEntityInitialized;
-        readRevisions = source.readRevisions;
-        readChunks = source.readChunks;
-        readPositions = source.readPositions;
+        readTracker = source.readTracker;
+        ownsReadTracker = false;
         setError(source.error);
     }
 
@@ -124,67 +122,48 @@ public class MultiblockState {
         return captured;
     }
 
-    public void inheritReadRevisions(MultiblockState source) {
-        readRevisions = source.readRevisions;
-        readChunks = source.readChunks;
-        readPositions = source.readPositions;
+    public void inheritReadTracking(MultiblockState source) {
+        readTracker = source.readTracker;
+        ownsReadTracker = false;
     }
 
     public void beginReadTracking() {
-        readRevisions = new Long2LongOpenHashMap();
-        readChunks = new Long2ObjectOpenHashMap<>();
-        readPositions = new Long2ObjectOpenHashMap<>();
+        if (ownsReadTracker) readTracker.close();
+        readTracker = new StructureReadTracker(world);
+        ownsReadTracker = true;
     }
 
     /** Visits the read frontier without adding rejected candidates to the confirmed structure's geometry. */
     public void forEachReadPosition(LongConsumer consumer) {
-        for (LongOpenHashSet positions : readPositions.values()) positions.forEach(consumer);
+        readTracker.forEach(consumer);
     }
 
     public boolean hasReadPosition(long position) {
-        long key = ChunkPos.asLong(BlockPos.getX(position) >> 4, BlockPos.getZ(position) >> 4);
-        LongOpenHashSet positions = readPositions.get(key);
-        return positions != null && positions.contains(position);
+        return readTracker.contains(position);
     }
 
     public void applyCachedMatch(MultiblockState source) {
-        Long2LongOpenHashMap revisions = readRevisions;
-        Long2ObjectOpenHashMap<LevelChunk> chunks = readChunks;
-        Long2ObjectOpenHashMap<LongOpenHashSet> positions = readPositions;
+        StructureReadTracker tracker = readTracker;
+        boolean owns = ownsReadTracker;
         applyMatch(source);
-        readRevisions = revisions;
-        readChunks = chunks;
-        readPositions = positions;
+        readTracker = tracker;
+        ownsReadTracker = owns;
     }
 
     public void recordRead(BlockPos position) {
-        int chunkX = position.getX() >> 4;
-        int chunkZ = position.getZ() >> 4;
-        long key = ChunkPos.asLong(chunkX, chunkZ);
-        readPositions.computeIfAbsent(key, ignored -> new LongOpenHashSet()).add(position.asLong());
-        if (readRevisions.containsKey(key)) return;
-        var chunk = world.getChunkSource().getChunkNow(chunkX, chunkZ);
-        if (chunk instanceof ChunkStructureAccess access) {
-            readChunks.put(key, chunk);
-            readRevisions.put(key, access.gtceu$getStructureRevision());
-        } else {
-            readRevisions.put(key, -1);
-        }
+        readTracker.read(position);
+    }
+
+    public void recordChange() {
+        changeVersion++;
     }
 
     public boolean isMatchCurrent() {
-        for (var entry : readRevisions.long2LongEntrySet()) {
-            var chunk = world.getChunkSource().getChunkNow(ChunkPos.getX(entry.getLongKey()),
-                    ChunkPos.getZ(entry.getLongKey()));
-            if (entry.getLongValue() == -1) {
-                if (chunk != null) return false;
-                continue;
-            }
-            if (!(chunk instanceof ChunkStructureAccess access) || chunk != readChunks.get(entry.getLongKey()) ||
-                    access.gtceu$hasStructureChangesSince(entry.getLongValue(), readPositions.get(entry.getLongKey())))
-                return false;
-        }
-        return true;
+        return readTracker.isCurrent();
+    }
+
+    public void closeReadTracking() {
+        readTracker.close();
     }
 
     public boolean update(BlockPos posIn, PatternPredicate predicate) {
@@ -294,7 +273,7 @@ public class MultiblockState {
                     world.getBlockEntity(controllerPos) != lastController) {
                 lastController.invalidateAllStructures();
                 var data = MultiblockWorldSavedData.getOrCreate(serverLevel);
-                data.removeAsyncLogic(lastController);
+                data.unregisterController(lastController);
                 return;
             }
             MultiblockControllerMachine controller = getController();

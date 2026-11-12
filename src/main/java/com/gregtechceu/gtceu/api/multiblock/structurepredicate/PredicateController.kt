@@ -34,6 +34,7 @@ open class PredicateController : PatternPredicate {
 		common.first().predicate = Predicate { state ->
 			MetaMachine.getMachine(state.world, state.pos)?.definition?.id == machine
 		}
+		common.first().sealPreparedCallbacks()
 	}
 
 	companion object {

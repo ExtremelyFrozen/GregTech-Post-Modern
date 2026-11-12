@@ -8,6 +8,8 @@ import com.gregtechceu.gtceu.api.multiblock.index.StructureSearchIndex;
 import com.gregtechceu.gtceu.api.multiblock.pattern.match.MultiBlockPattern;
 import com.gregtechceu.gtceu.api.multiblock.pattern.match.PatternCheckSession;
 import com.gregtechceu.gtceu.api.multiblock.scheduling.FormationCheckQueue;
+import com.gregtechceu.gtceu.api.multiblock.scheduling.FormationExecutors;
+import com.gregtechceu.gtceu.api.multiblock.scheduling.FormationLane;
 import com.gregtechceu.gtceu.data.pattern.StructurePatternRegistry;
 
 import net.minecraft.core.BlockPos;
@@ -22,6 +24,7 @@ import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
@@ -129,7 +132,11 @@ public class MultiblockWorldSavedData extends SavedData {
 
     public void queueChangedPosition(MultiblockState state, long position) {
         LongOpenHashSet positions = changedPositions.computeIfAbsent(state, k -> new LongOpenHashSet());
-        positions.add(position);
+        if (positions.add(position)) state.recordChange();
+    }
+
+    public boolean isChecking(MultiblockState state) {
+        return scheduledChecks.containsKey(state) || changedPositions.containsKey(state);
     }
 
     public void onChunkPositionChanged(BlockPos position) {
@@ -152,7 +159,7 @@ public class MultiblockWorldSavedData extends SavedData {
         removeMapping(state);
         if (state != invalidatingCheck && state.world.getBlockEntity(state.controllerPos) == controller &&
                 !controller.isRemoved()) {
-            addAsyncLogic(controller);
+            registerController(controller);
             requestPatternCheck(state);
         }
     }
@@ -160,7 +167,10 @@ public class MultiblockWorldSavedData extends SavedData {
     /** Synchronous construction and automatic checks publish through the same registration boundary. */
     public void onStructureFormed(MultiblockState state, MultiblockControllerMachine controller) {
         PendingPatternCheck pending = scheduledChecks.remove(state);
-        if (pending != null) pendingChecks.remove(pending);
+        if (pending != null) {
+            pendingChecks.remove(pending);
+            pending.cancel();
+        }
         changedPositions.remove(state);
         retryDelays.removeInt(state);
         addMapping(state);
@@ -184,8 +194,9 @@ public class MultiblockWorldSavedData extends SavedData {
     public void requestPatternCheck(MultiblockState state, LongOpenHashSet positions) {
         PendingPatternCheck pending = scheduledChecks.get(state);
         if (pending == null) pending = new PendingPatternCheck(state, 20);
-        pending.session = null;
+        pending.cancel();
         pending.delay = 20;
+        pending.priority = FormationLane.Priority.CHANGE;
         pending.changes.addAll(positions);
         if (positions.isEmpty()) pending.fullCheck = true;
         retryDelays.removeInt(state);
@@ -213,7 +224,7 @@ public class MultiblockWorldSavedData extends SavedData {
         }
     }
 
-    public void tickFormationChecks(ServerLevel level, long deadline) {
+    public void tickFormationChecks(ServerLevel level) {
         long generation = StructurePatternRegistry.generation();
         if (generation != patternGeneration) {
             patternGeneration = generation;
@@ -228,40 +239,35 @@ public class MultiblockWorldSavedData extends SavedData {
                 }
             }
         }
-        periodID++;
 
-        boolean changeNext = true;
-        while (System.nanoTime() < deadline) {
-            boolean hasChanges = !changedPositions.isEmpty();
-            boolean hasDueCheck = pendingChecks.hasDue(level.getGameTime());
-            if (!hasChanges && !hasDueCheck) return;
-
-            if (hasChanges && (changeNext || !hasDueCheck)) {
-                MultiblockState state = changedPositions.firstKey();
-                LongOpenHashSet positions = changedPositions.remove(state);
-                if (positions != null && (indexedPositions.containsKey(state) || searchRegions.contains(state)))
-                    state.onBlockStateChanged(positions);
-                changeNext = false;
-            } else {
-                PendingPatternCheck pending = pendingChecks.poll(level.getGameTime());
-                if (pending != null) {
-                    scheduledChecks.remove(pending.getState());
-                    checkPattern(pending, level, deadline);
-                }
-                changeNext = true;
-            }
+        int changes = changedPositions.size();
+        for (int index = 0; index < changes; index++) {
+            MultiblockState state = changedPositions.firstKey();
+            LongOpenHashSet positions = changedPositions.remove(state);
+            if (indexedPositions.containsKey(state) || searchRegions.contains(state))
+                state.onBlockStateChanged(positions);
+        }
+        ObjectArrayList<PendingPatternCheck> ready = new ObjectArrayList<>();
+        while (pendingChecks.hasDue(level.getGameTime())) ready.add(pendingChecks.poll(level.getGameTime()));
+        for (PendingPatternCheck pending : ready) {
+            if (scheduledChecks.get(pending.getState()) != pending) continue;
+            scheduledChecks.remove(pending.getState());
+            checkPattern(pending, level);
         }
     }
 
-    private void checkPattern(PendingPatternCheck pending, ServerLevel level, long deadline) {
+    private void checkPattern(PendingPatternCheck pending, ServerLevel level) {
         MultiblockState state = pending.getState();
         LongOpenHashSet queuedChanges = changedPositions.remove(state);
         if (queuedChanges != null) {
             pending.changes.addAll(queuedChanges);
-            pending.session = null;
+            pending.cancel();
         }
         MultiblockControllerMachine controller = state.getController();
-        if (controller == null) return;
+        if (controller == null) {
+            pending.cancel();
+            return;
+        }
         var lock = controller.getPatternLock();
         if (!lock.tryLock()) {
             schedulePatternCheck(pending, level.getGameTime() + 1, !pending.changes.isEmpty());
@@ -273,25 +279,23 @@ public class MultiblockWorldSavedData extends SavedData {
             long generation = StructurePatternRegistry.generation();
             if (pending.session != null && !pending.session.isSourceCurrent()) {
                 pending.fullCheck = true;
-                pending.session = null;
+                pending.cancel();
             }
             if (pending.session == null || pending.pattern != pattern || pending.generation != generation) {
+                pending.cancel();
                 pending.pattern = pattern;
                 pending.generation = generation;
                 pending.session = pending.fullCheck ? pattern.beginCheck(state) :
                         pattern.beginCheck(state, pending.changes);
             }
             PatternCheckSession session = pending.session;
-            if (!session.advance(deadline)) {
-                schedulePatternCheck(pending, level.getGameTime(), !pending.changes.isEmpty());
-                return;
-            }
-            if (!session.getState().isMatchCurrent() || session.getState().lastController != state.getController()) {
-                requestPatternCheck(state);
+            if (!session.advance(FormationExecutors.get(level.getServer()).getFormation().executor(pending.priority))) {
+                schedulePatternCheck(pending, level.getGameTime() + 1, !pending.changes.isEmpty());
                 return;
             }
             if (generation != StructurePatternRegistry.generation() ||
                     controller.getPattern(structureName) != pattern ||
+                    session.getState().lastController != state.getController() ||
                     !session.isSourceCurrent() || !session.getState().isMatchCurrent()) {
                 requestPatternCheck(state);
                 return;
@@ -321,6 +325,7 @@ public class MultiblockWorldSavedData extends SavedData {
                     exception);
             scheduleRetry(pending, level.getGameTime());
         } finally {
+            if (scheduledChecks.get(state) != pending) pending.cancel();
             lock.unlock();
         }
     }
@@ -329,9 +334,10 @@ public class MultiblockWorldSavedData extends SavedData {
         MultiblockState state = pending.getState();
         int delay = pending.getDelay();
         pending.delay = Math.min(200, delay * 2);
-        pending.session = null;
+        pending.cancel();
         pending.fullCheck = true;
         pending.changes.clear();
+        pending.priority = FormationLane.Priority.RECHECK;
         retryDelays.put(state, pending.delay);
         schedulePatternCheck(pending, currentTick + delay, false);
     }
@@ -342,6 +348,7 @@ public class MultiblockWorldSavedData extends SavedData {
         if (current != null && current != pending) {
             pendingChecks.remove(current);
             pending.changes.addAll(current.changes);
+            current.cancel();
         }
         pendingChecks.schedule(pending, dueTick, priority);
         scheduledChecks.put(pending.getState(), pending);
@@ -351,6 +358,7 @@ public class MultiblockWorldSavedData extends SavedData {
         PendingPatternCheck pending = scheduledChecks.get(state);
         if (pending != null && pending.dueTick() <= dueTick) return;
         if (pending == null) pending = new PendingPatternCheck(state, retryDelays.getOrDefault(state, 20));
+        pending.priority = FormationLane.Priority.RECHECK;
         pending.fullCheck = true;
         schedulePatternCheck(pending, dueTick, !pending.changes.isEmpty());
     }
@@ -369,19 +377,8 @@ public class MultiblockWorldSavedData extends SavedData {
         return compound;
     }
 
-    @Getter
-    private long periodID;
-
-    public void createExecutorService() {
-        for (MultiblockControllerMachine controller : controllers) controller.asyncCheckPattern(periodID);
-    }
-
-    /**
-     * add a async logic runnable
-     *
-     * @param controller controller
-     */
-    public void addAsyncLogic(MultiblockControllerMachine controller) {
+    /** Registers a loaded controller's named structures for changes and pending searches. */
+    public void registerController(MultiblockControllerMachine controller) {
         controllers.add(controller);
         for (String structureName : controller.getDefinition().getStructureNames()) {
             MultiblockState state = controller.getMultiblockState(structureName);
@@ -393,17 +390,16 @@ public class MultiblockWorldSavedData extends SavedData {
         }
     }
 
-    /**
-     * remove async controller
-     *
-     * @param controller controller
-     */
-    public void removeAsyncLogic(MultiblockControllerMachine controller) {
+    /** Cancels a controller's checks and releases all its subscriptions before unload or replacement. */
+    public void unregisterController(MultiblockControllerMachine controller) {
         controllers.remove(controller);
         for (String structureName : controller.getDefinition().getStructureNames()) {
             MultiblockState state = controller.getMultiblockState(structureName);
             PendingPatternCheck pending = scheduledChecks.remove(state);
-            if (pending != null) pendingChecks.remove(pending);
+            if (pending != null) {
+                pendingChecks.remove(pending);
+                pending.cancel();
+            }
             retryDelays.removeInt(state);
             changedPositions.remove(state);
             searchRegions.remove(state);
@@ -411,13 +407,10 @@ public class MultiblockWorldSavedData extends SavedData {
         }
     }
 
-    public static boolean isThreadService() {
-        return false;
-    }
-
-    public void releaseExecutorService() {
+    public void clear() {
         controllers.clear();
         changedPositions.clear();
+        for (PendingPatternCheck pending : scheduledChecks.values()) pending.cancel();
         scheduledChecks.clear();
         pendingChecks.clear();
         retryDelays.clear();
@@ -445,11 +438,17 @@ public class MultiblockWorldSavedData extends SavedData {
         private PatternCheckSession session;
         private MultiBlockPattern pattern;
         private long generation;
+        private FormationLane.Priority priority = FormationLane.Priority.SEARCH;
         private final LongOpenHashSet changes = new LongOpenHashSet();
 
         private PendingPatternCheck(MultiblockState state, int delay) {
             this.state = state;
             this.delay = delay;
+        }
+
+        private void cancel() {
+            if (session != null) session.close();
+            session = null;
         }
     }
 }

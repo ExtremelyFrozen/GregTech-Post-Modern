@@ -36,6 +36,14 @@ class PatternFacts {
 		counts.addTo(fact, 1)
 	}
 
+	internal fun addFactCount(fact: String, count: Int) {
+		counts.addTo(fact, count)
+	}
+
+	internal fun addScopedCount(scope: String, fact: String, count: Int) {
+		scoped.computeIfAbsent(scope) { Object2IntOpenHashMap() }.addTo(fact, count)
+	}
+
 	fun addScopedFact(fact: String, scopes: List<String>) {
 		scopes.forEach { scope -> scoped.computeIfAbsent(scope) { Object2IntOpenHashMap() }.addTo(fact, 1) }
 	}
@@ -49,16 +57,6 @@ class PatternFacts {
 
 	fun ensureScopes(scopes: List<String>) {
 		scopes.forEach { scoped.computeIfAbsent(it) { Object2IntOpenHashMap() } }
-	}
-
-	fun copy(): PatternFacts = PatternFacts().also { target ->
-		target.merge(this)
-		scoped.forEach { (scope, values) -> target.scoped[scope] = Object2IntOpenHashMap(values) }
-	}
-
-	fun merge(other: PatternFacts) {
-		other.counts.object2IntEntrySet().forEach { counts.addTo(it.key, it.intValue) }
-		data.putAll(other.data)
 	}
 
 	fun count(fact: String): Int = counts.getInt(fact)

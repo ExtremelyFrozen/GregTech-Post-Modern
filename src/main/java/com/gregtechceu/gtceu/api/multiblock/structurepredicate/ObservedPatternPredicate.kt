@@ -36,6 +36,7 @@ open class ObservedPatternPredicate(
 		common.first().positionObserver = Function { observer.apply(it).withAliases(facts) }
 		common.first().observedPredicate = this
 		common.first().previewStates = states
+		common.first().sealPreparedCallbacks()
 	}
 	override fun observeCandidate(state: BlockState): PatternObservation = (candidateObservation?.apply(state) ?: PatternObservation.of(candidateBlocks.get().contains(state.block))).withAliases(facts)
 

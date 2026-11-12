@@ -11,7 +11,6 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.LevelChunk;
 
-import it.unimi.dsi.fastutil.longs.LongSet;
 import org.jspecify.annotations.Nullable;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -39,29 +38,7 @@ public abstract class LevelChunkMixin implements ChunkStructureAccess {
     private @Nullable ChunkStructureIndex gtceu$structureIndex;
 
     @Unique
-    private long gtceu$structureRevision;
-
-    @Unique
-    private long @Nullable [] gtceu$structureChanges;
-
-    @Unique
     private @Nullable MultiblockWorldSavedData gtceu$structureData;
-
-    @Override
-    public long gtceu$getStructureRevision() {
-        if (gtceu$structureChanges == null) gtceu$structureChanges = new long[256];
-        return gtceu$structureRevision;
-    }
-
-    @Override
-    public boolean gtceu$hasStructureChangesSince(long revision, LongSet positions) {
-        long changes = gtceu$structureRevision - revision;
-        if (changes > 256 || changes < 0) return true;
-        for (long offset = 1; offset <= changes; offset++) {
-            if (positions.contains(gtceu$structureChanges[(int) (revision + offset) & 255])) return true;
-        }
-        return false;
-    }
 
     @Override
     public @Nullable ChunkStructureIndex gtceu$getStructureIndex() {
@@ -115,10 +92,6 @@ public abstract class LevelChunkMixin implements ChunkStructureAccess {
             BlockPos position = pos.immutable();
             server.execute(() -> gtceu$notifyStructureChange(position));
             return;
-        }
-        gtceu$structureRevision++;
-        if (gtceu$structureChanges != null) {
-            gtceu$structureChanges[(int) gtceu$structureRevision & 255] = pos.asLong();
         }
         if (gtceu$structureData == null) gtceu$structureData = MultiblockWorldSavedData.getOrCreate(serverLevel);
         if (gtceu$structureIndex != null) gtceu$structureIndex.changed(pos, gtceu$structureData);

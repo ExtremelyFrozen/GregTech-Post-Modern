@@ -38,6 +38,17 @@ open class PredicateRule {
 	/** Retains the real observed runtime when OR/copy flattens its metadata rule. */
 	internal var observedPredicate: ObservedPatternPredicate? = null
 
+	private var preparedPredicate: Predicate<MultiblockState>? = null
+	private var preparedObserver: Function<MultiblockState, PatternObservation>? = null
+
+	internal fun supportsPreparation(): Boolean = javaClass == PredicateRule::class.java &&
+		(source != null || observedPredicate is CombinedPredicate) && predicate === preparedPredicate && positionObserver === preparedObserver
+
+	internal fun sealPreparedCallbacks() {
+		preparedPredicate = predicate
+		preparedObserver = positionObserver
+	}
+
 	var candidateObserver: Function<BlockState, PatternObservation>? = null
 	var positionObserver: Function<MultiblockState, PatternObservation>? = null
 	var previewStates: Supplier<ObjectList<BlockState>>? = null
@@ -107,6 +118,8 @@ open class PredicateRule {
 		candidateObserver = Function(source::observeCandidate)
 		positionObserver = Function(source::observePosition)
 		previewStates = Supplier(source::candidateStates)
+		preparedPredicate = predicate
+		preparedObserver = positionObserver
 	}
 
 	constructor(

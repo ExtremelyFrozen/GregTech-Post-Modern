@@ -59,6 +59,8 @@ open class PatternPredicate {
 		positions.add(state.pos.asLong())
 		for (rule in common) rule.source?.collectDependencies(state, positions)
 		for (rule in limited) rule.source?.collectDependencies(state, positions)
+		for (rule in common) (rule.observedPredicate as? CombinedPredicate)?.preparedBranches?.forEach { it.collectDependencies(state, positions) }
+		for (rule in limited) (rule.observedPredicate as? CombinedPredicate)?.preparedBranches?.forEach { it.collectDependencies(state, positions) }
 	}
 
 	/** Builds the failure shown at this position; extensions retain its path and coordinates when adding detail. */
@@ -224,7 +226,20 @@ open class PatternPredicate {
 	var facts: ObjectList<String> = ObjectArrayList()
 
 	@JvmField
-	var direction: Function<MultiblockState, Direction?> = Function { null }
+	var direction: Function<MultiblockState, Direction?> = DEFAULT_DIRECTION
+
+	internal fun supportsPreparedDirection(): Boolean = relativeDirection != null || fixedDirection != null || direction === DEFAULT_DIRECTION
+
+	/** Rebuilds the native cache payload from a previously computed rule selection without observing the world. */
+	internal fun restorePreparedPosition(observation: PatternObservation, children: List<PatternObservation>, available: BooleanArray): PatternObservation {
+		val positions = ObjectArrayList<RulePosition>(children.size)
+		for (index in children.indices) {
+			val counted = index < limited.size
+			val rule = if (counted) limited[index] else common[index - limited.size]
+			positions.add(RulePosition(rule, counted, children[index], available[index]))
+		}
+		return observation.withPositionMatch(Position(positions))
+	}
 
 	@JvmField
 	var fixedDirection: Direction? = null
@@ -438,6 +453,8 @@ open class PatternPredicate {
 	}
 
 	companion object {
+		private val DEFAULT_DIRECTION = Function<MultiblockState, Direction?> { null }
+
 		@JvmStatic
 		fun controller(definition: MachineDefinition): PatternPredicate = PredicateController(definition)
 

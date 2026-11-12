@@ -8,6 +8,7 @@ import com.gregtechceu.gtceu.api.multiblock.pattern.layout.PatternLayout
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.BlockState
 
+import it.unimi.dsi.fastutil.longs.LongSet
 import it.unimi.dsi.fastutil.objects.ObjectArrayList
 import it.unimi.dsi.fastutil.objects.ObjectImmutableList
 import it.unimi.dsi.fastutil.objects.ObjectList
@@ -21,6 +22,15 @@ import it.unimi.dsi.fastutil.objects.ObjectList
 interface AlternativePredicate : StructurePredicate {
 	/** Returns the actual ordered branches; null state requests the context-free candidate domain. */
 	fun alternatives(state: MultiblockState?): ObjectList<StructurePredicate>
+
+	override fun collectDependencies(state: MultiblockState, positions: LongSet) {
+		positions.add(state.pos.asLong())
+		alternatives(state).forEach { it.collectDependencies(state, positions) }
+	}
+
+	companion object {
+		internal fun restorePreparedPosition(observation: PatternObservation, children: ObjectList<Pair<StructurePredicate, PatternObservation>>): PatternObservation = observation.withPositionMatch(Position(children))
+	}
 
 	/** Supplies definition-aware branches without creating or inspecting a world. */
 	fun previewAlternatives(definition: MultiblockMachineDefinition, layout: PatternLayout?): ObjectList<StructurePredicate> = alternatives(null)

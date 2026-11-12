@@ -2,7 +2,6 @@ package com.gregtechceu.gtceu.api.machine.multiblock;
 
 import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
-import com.gregtechceu.gtceu.api.multiblock.MultiblockState;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.BuildProblem;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialKey;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialRequest;
@@ -604,13 +603,12 @@ public final class BatchExecutor {
         var lock = controller.getPatternLock();
         lock.lock();
         try {
-            MultiblockState candidate = new MultiblockState(controller.getLevel(), controller.getBlockPos(),
-                    options.structureName());
-            candidate.lastController = controller;
-            boolean matched = pattern.checkPatternAtExact(candidate, controller.getBlockPos(),
-                    controller.getFrontFacing(),
-                    controller.getUpwardsFacing(), options.flipMode(), true, repetitions, options.choices());
-            return controller.commitStructure(candidate, matched);
+            try (var check = pattern.beginExactCheck(controller.getMultiblockState(options.structureName()),
+                    controller.getFrontFacing(), controller.getUpwardsFacing(), options.flipMode(), repetitions,
+                    options.choices())) {
+                boolean matched = check.finish();
+                return controller.commitStructure(check.getState(), matched);
+            }
         } finally {
             lock.unlock();
         }

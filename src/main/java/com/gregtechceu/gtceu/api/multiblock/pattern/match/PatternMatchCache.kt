@@ -4,6 +4,7 @@ import com.gregtechceu.gtceu.api.block.ActiveBlock
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState
 import com.gregtechceu.gtceu.api.multiblock.pattern.layout.PatternLayout
 import com.gregtechceu.gtceu.api.multiblock.pattern.layout.PatternLayoutCell
+import com.gregtechceu.gtceu.api.multiblock.pattern.preparation.PatternPreparation
 import com.gregtechceu.gtceu.api.multiblock.structurepredicate.PatternObservation
 
 import net.minecraft.core.BlockPos
@@ -30,6 +31,8 @@ class PatternMatchCache internal constructor(
 	internal val repetitions: IntArray,
 	internal val selections: Map<String, String>,
 ) {
+	internal var preparation: PatternPreparation? = null
+
 	internal data class Position(val cell: PatternLayoutCell, val pos: BlockPos, val block: BlockState, val entity: BlockEntity?, val observation: PatternObservation, val dependencies: LongArray)
 	internal val positions = ObjectArrayList<Position>()
 	private val byDependency = Long2IntOpenHashMap().also { it.defaultReturnValue(-1) }
@@ -66,7 +69,8 @@ class PatternMatchCache internal constructor(
 			work.checkpoint()
 			val dependency = changes.nextLong()
 			val affected = byDependency.get(dependency)
-			if (affected >= 0) indices.add(affected)
+			if (affected < 0) return false
+			indices.add(affected)
 			overlaps[dependency]?.let { indices.addAll(it) }
 		}
 		val affected = indices.iterator()

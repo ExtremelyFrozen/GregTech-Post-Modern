@@ -16,6 +16,7 @@ import com.gregtechceu.gtceu.api.item.tool.ToolHelper;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.api.misc.virtualregistry.VirtualEnderRegistry;
 import com.gregtechceu.gtceu.api.multiblock.MultiblockWorldSavedData;
+import com.gregtechceu.gtceu.api.multiblock.scheduling.FormationExecutors;
 import com.gregtechceu.gtceu.api.registry.GTRegistries;
 import com.gregtechceu.gtceu.api.sync_system.managed.ManagedSyncBlockEntity;
 import com.gregtechceu.gtceu.client.TooltipsHandler;
@@ -227,10 +228,9 @@ public class CommonEventListener {
         event.getServer().getAllLevels().forEach(levels::add);
         if (levels.isEmpty()) return;
         int start = Math.floorMod(multiblockLevelStart++, levels.size());
-        long deadline = System.nanoTime() + 5_000_000L;
-        for (int index = 0; index < levels.size() && System.nanoTime() < deadline; index++) {
+        for (int index = 0; index < levels.size(); index++) {
             ServerLevel level = levels.get((start + index) % levels.size());
-            MultiblockWorldSavedData.getOrCreate(level).tickFormationChecks(level, deadline);
+            MultiblockWorldSavedData.getOrCreate(level).tickFormationChecks(level);
         }
     }
 
@@ -262,7 +262,7 @@ public class CommonEventListener {
         if (event.getLevel() instanceof ServerLevel serverLevel) {
             TaskHandler.onWorldUnLoad(serverLevel);
             ComputationNetworkManager.unload(serverLevel);
-            MultiblockWorldSavedData.getOrCreate(serverLevel).releaseExecutorService();
+            MultiblockWorldSavedData.getOrCreate(serverLevel).clear();
             ServerCache.instance.invalidateWorld(serverLevel);
         } else if (event.getLevel().isClientSide()) {
             ClientCacheManager.saveCaches(event.getLevel().registryAccess());
@@ -278,6 +278,7 @@ public class CommonEventListener {
 
     @SubscribeEvent
     public static void serverStopped(ServerStoppedEvent event) {
+        FormationExecutors.release(event.getServer());
         ServerCache.instance.clear();
         VirtualEnderRegistry.release();
     }
@@ -287,7 +288,7 @@ public class CommonEventListener {
         var levels = event.getServer().getAllLevels();
         for (var level : levels) {
             if (!level.isClientSide()) {
-                MultiblockWorldSavedData.getOrCreate(level).releaseExecutorService();
+                MultiblockWorldSavedData.getOrCreate(level).clear();
             }
         }
     }
