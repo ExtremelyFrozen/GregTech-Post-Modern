@@ -45,10 +45,19 @@ internal class PatternRuntime(private val pattern: MultiBlockPattern, private va
 		val selections = PatternSelections.of(choices)
 		state.clean()
 		measured = PatternMeasurements.read(pattern, state, center, front, up, flipped) ?: return state.matchResult
-		for (measurement in pattern.getMeasurements()) {
-			val requested = choices["@measure:${measurement.parameter}"] ?: continue
-			if (requested.toInt() != measured.getValue(measurement.parameter)) {
-				val problem = PatternDiagnostic("$/measurement:${measurement.id}", "", PatternCoordinate(0, 0, 0), center, null, "measured ${measurement.parameter}", measurement.parameter, requested.toInt() - measured.getValue(measurement.parameter))
+		for ((id, parameter) in pattern.getMeasurements()) {
+			val requested = choices["@measure:$parameter"] ?: continue
+			if (requested.toInt() != measured.getValue(parameter)) {
+				val problem = PatternDiagnostic(
+					"$/measurement:$id",
+					"",
+					PatternCoordinate(0, 0, 0),
+					center,
+					null,
+					"measured $parameter",
+					parameter,
+					requested.toInt() - measured.getValue(parameter),
+				)
 				state.setError(PatternStringError("gtpm.multiblock.pattern.error.constraint"))
 				return PatternMatchResult(false, state.facts, ObjectLists.singleton(problem)).also { state.matchResult = it }
 			}
@@ -150,12 +159,9 @@ internal class PatternRuntime(private val pattern: MultiBlockPattern, private va
 				else -> predicate.observePosition(state, cached.observation)
 			}
 			val accepted = predicate.acceptPosition(state, observation)
-			if (!accepted || !pattern.matchesDirectionalPredicate(predicate, state, front, up, flipped) || !pattern.checkPartSharing(
-					facts,
-					state,
-					predicate,
-				)
-			) {
+			val directional = accepted && pattern.matchesDirectionalPredicate(predicate, state, front, up, flipped)
+			val shareable = directional && pattern.checkPartSharing(facts, state, predicate)
+			if (!shareable) {
 				val failedDependencies = LongOpenHashSet()
 				predicate.collectDependencies(state, failedDependencies)
 				val dependencies = failedDependencies.iterator()
@@ -165,7 +171,12 @@ internal class PatternRuntime(private val pattern: MultiBlockPattern, private va
 					state.recordRead(dependency)
 				}
 				state.addPosCache(position)
-				val failure = PatternDiagnostic(path, repeatPath, PatternCoordinate(depth, height, width), position, if (state.world.isLoaded(position)) state.world.getBlockState(position) else null, token, "", 0)
+				val expected = when {
+					!accepted -> token
+					!directional -> "gtpm.structure.issue.orientation"
+					else -> "multiblocked.pattern.error.share"
+				}
+				val failure = PatternDiagnostic(path, repeatPath, PatternCoordinate(depth, height, width), position, if (state.world.isLoaded(position)) state.world.getBlockState(position) else null, expected, "", 0)
 				errors.add(predicate.diagnose(failure))
 				break
 			}

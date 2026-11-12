@@ -15,7 +15,7 @@ import it.unimi.dsi.fastutil.objects.ObjectLists
 
 /** Boundary probes use the same explicit dependency tracking as ordinary layout positions. */
 internal object PatternMeasurements {
-	fun read(pattern: MultiBlockPattern, state: MultiblockState, center: BlockPos, front: Direction, up: Direction, flipped: Boolean, probe: (() -> Boolean)? = null): Object2IntMap<String>? {
+	fun read(pattern: MultiBlockPattern, state: MultiblockState, center: BlockPos, front: Direction, up: Direction, flipped: Boolean): Object2IntMap<String>? {
 		val measurements = pattern.getMeasurements()
 		if (measurements.isEmpty()) return Object2IntMaps.emptyMap()
 		val values = Object2IntLinkedOpenHashMap<String>()
@@ -36,7 +36,6 @@ internal object PatternMeasurements {
 				val height = start.height + if (direction == PatternDirection.UP || direction == PatternDirection.DOWN) sign * distance else 0
 				val width = start.width + if (direction == PatternDirection.LEFT || direction == PatternDirection.RIGHT) sign * distance else 0
 				val position = center.offset(pattern.getActualRelativeOffset(width, height, depth, front, up, flipped))
-				if (probe?.invoke() == false) return failure(id, position, depth, height, width, "measurement work limit")
 				state.addPosCache(position)
 				if (!state.update(position, predicate)) return failure(id, position, depth, height, width, "loaded measurement position")
 				dependencies.clear()

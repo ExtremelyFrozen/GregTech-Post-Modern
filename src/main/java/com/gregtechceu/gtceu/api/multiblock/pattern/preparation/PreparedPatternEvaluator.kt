@@ -46,8 +46,16 @@ internal class PreparedPatternEvaluator(private val input: PreparedPatternInput,
 			}
 			io = 0
 			val observation = observe(cell.root)
-			if (!accept(cell.root, observation) || !cell.directional || !cell.shareable) {
-				problem(index, cell.token)
+			val acceptedPosition = accept(cell.root, observation)
+			if (!acceptedPosition || !cell.directional || !cell.shareable) {
+				problem(
+					index,
+					when {
+						!acceptedPosition -> cell.token
+						!cell.directional -> "gtpm.structure.issue.orientation"
+						else -> "multiblocked.pattern.error.share"
+					},
+				)
 				continue
 			}
 			for (property in observation.properties) {
