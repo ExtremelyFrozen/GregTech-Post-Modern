@@ -9,7 +9,6 @@ import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
 import com.gregtechceu.gtceu.api.gui.element.GTTextFieldElement;
 import com.gregtechceu.gtceu.api.gui.factory.HeldItemUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.HeldItemUIHolder;
-import com.gregtechceu.gtceu.api.gui.multiblock.StructureDiagnosisPanel;
 import com.gregtechceu.gtceu.api.gui.texture.ColorRectTexture;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.gui.widget.BlockChoiceList;
@@ -24,8 +23,6 @@ import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.BatchStatus;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.StructureOperation;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.StructureRequest;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.BatchPlanner;
-import com.gregtechceu.gtceu.api.multiblock.diagnosis.DiagnosisMirror;
-import com.gregtechceu.gtceu.api.multiblock.diagnosis.DiagnosisSelection;
 import com.gregtechceu.gtceu.api.multiblock.pattern.layout.PatternAxis;
 import com.gregtechceu.gtceu.api.multiblock.pattern.match.PatternSelections;
 import com.gregtechceu.gtceu.api.multiblock.preview.PreviewVisibility;
@@ -368,7 +365,6 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                 }
             };
             UITemplate.setBounds(root, 0, 0, 300, 200);
-            root.addChild(createDiagnosisPanel(holder, player));
             return UI.of(root);
         }
 
@@ -403,10 +399,6 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
 
                 UITemplate.setBounds(this, 0, 0, width, height);
                 setOverflowVisible(true);
-                StructureDiagnosisPanel diagnosis = createDiagnosisPanel(holder, player);
-                diagnosis.setVisible(false);
-                diagnosis.setActive(false);
-                addChild(diagnosis);
                 main.getStyle().backgroundTexture(GuiTextures.BACKGROUND);
                 main.setOverflowVisible(false);
                 addChild(main);
@@ -448,24 +440,6 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                     event.stopPropagation();
                 });
                 main.addChildren(title, preview, options, result, execute, edit, fullscreen);
-                GTButtonElement diagnose = button(184, 180, 54,
-                        Component.translatable("gtpm.multiblock.diagnosis.title"));
-                diagnose.setOnClick(event -> {
-                    main.setVisible(false);
-                    main.setActive(false);
-                    diagnosis.setVisible(true);
-                    diagnosis.setActive(true);
-                });
-                main.addChild(diagnose);
-                GTButtonElement back = button(270, 30, 24, Component.literal("←"));
-                back.setOnClick(event -> {
-                    diagnosis.cancelDiagnosis();
-                    diagnosis.setVisible(false);
-                    diagnosis.setActive(false);
-                    main.setVisible(true);
-                    main.setActive(true);
-                });
-                diagnosis.addChild(back);
                 title.getStyle().zIndex(1);
                 options.getStyle().zIndex(1);
                 result.getStyle().zIndex(1);
@@ -803,16 +777,6 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                 .textColor(0xff404040).textShadow(false).textWrap(TextWrap.HIDE));
         button.getStyle().tooltips(text);
         return button;
-    }
-
-    private StructureDiagnosisPanel createDiagnosisPanel(HeldItemUIHolder holder, Player player) {
-        MultiblockControllerMachine controller = boundController(player);
-        return new StructureDiagnosisPanel(controller, player, () -> isUIStillValid(holder, player), name -> {
-            StructureRequest request = structures.get(name);
-            return new DiagnosisSelection(request.repetitions().toIntArray(), request.choices(),
-                    request.flipMode() ? DiagnosisMirror.MIRRORED : DiagnosisMirror.UNMIRRORED,
-                    controller.getPattern(name).getMeasurementValues(request.choices()));
-        });
     }
 
     private static GTLabelElement label(int x, int y, int width, Component text) {

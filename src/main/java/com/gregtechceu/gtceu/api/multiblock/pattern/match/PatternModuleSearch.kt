@@ -167,30 +167,17 @@ internal class PatternModuleSearch(private val pattern: MultiBlockPattern, priva
 
 	companion object {
 		/** A view copied in original layout order; no unrelated module or whole-layout rejection is probed. */
-		fun scopedLayout(step: Step.Probe, maximumCells: Int = Int.MAX_VALUE): PatternLayout = PatternLayout(
+		private fun scopedLayout(step: Step.Probe): PatternLayout = PatternLayout(
 			ObjectArrayList<PatternLayoutCell>().also { out ->
 				for (cell in step.layout.cells) {
-					if (out.size == maximumCells) break
 					if (cell.path == step.prefix || cell.path.startsWith("${step.prefix}/")) out.add(cell)
 				}
 			},
 		)
 
-		fun prepare(
-			pattern: MultiBlockPattern,
-			target: MultiblockState,
-			center: BlockPos,
-			front: Direction,
-			up: Direction,
-			flipped: Boolean,
-			repetitions: IntArray,
-			step: Step.Probe,
-			diagnostic: Boolean = false,
-			collection: PatternWorldCollection? = null,
-			maximumCells: Int = Int.MAX_VALUE,
-		): PreparedPatternInput? {
-			val scoped = scopedLayout(step, maximumCells)
-			val preparation = PatternPreparation.prepare(pattern, pattern.getSourceDefinition(), scoped, target, center, front, up, flipped, false, repetitions, step.selections, bounds = step.layout, diagnostic = diagnostic, collection = collection) ?: return null
+		private fun prepare(pattern: MultiBlockPattern, target: MultiblockState, center: BlockPos, front: Direction, up: Direction, flipped: Boolean, repetitions: IntArray, step: Step.Probe, collection: PatternWorldCollection? = null): PreparedPatternInput? {
+			val scoped = scopedLayout(step)
+			val preparation = PatternPreparation.prepare(pattern, pattern.getSourceDefinition(), scoped, target, center, front, up, flipped, false, repetitions, step.selections, bounds = step.layout, collection = collection) ?: return null
 			return preparation.input.forModuleProbe()
 		}
 

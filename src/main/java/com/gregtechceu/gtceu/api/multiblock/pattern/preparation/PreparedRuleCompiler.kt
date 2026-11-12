@@ -260,11 +260,11 @@ internal class PreparedRuleCompiler(private val capturedBlocks: CapturedPatternB
 	companion object {
 		private fun ruleAt(predicate: PatternPredicate, index: Int): PredicateRule = if (index < predicate.limited.size) predicate.limited[index] else predicate.common[index - predicate.limited.size]
 
-		fun trusted(predicate: PatternPredicate, diagnostic: Boolean = false): Boolean {
+		fun trusted(predicate: PatternPredicate): Boolean {
 			if (predicate.javaClass != PatternPredicate::class.java && predicate.javaClass != PredicateController::class.java && predicate.javaClass != CombinedPredicate::class.java) return false
 			if (!predicate.supportsPreparedDirection()) return false
 			if (predicate is CombinedPredicate) {
-				for (branch in predicate.preparedBranches) if (!trusted(branch, diagnostic)) return false
+				for (branch in predicate.preparedBranches) if (!trusted(branch)) return false
 				for (index in 0 until predicate.limited.size + predicate.common.size) {
 					val rule = ruleAt(predicate, index)
 					if (!rule.supportsPreparation() || rule.observedPredicate !== predicate) return false
@@ -276,24 +276,24 @@ internal class PreparedRuleCompiler(private val capturedBlocks: CapturedPatternB
 				if (!rule.supportsPreparation()) return false
 				val source = rule.source
 				if (source != null) {
-					if (!trusted(source, diagnostic)) return false
+					if (!trusted(source)) return false
 				} else {
 					val observed = rule.observedPredicate as? CombinedPredicate ?: return false
-					if (!trusted(observed, diagnostic)) return false
+					if (!trusted(observed)) return false
 				}
 			}
 			return true
 		}
 
-		private fun trusted(source: StructurePredicate, diagnostic: Boolean): Boolean = when (source) {
-			is PreparedPositionRule -> !diagnostic || source.supportsCompleteDiagnosis
+		private fun trusted(source: StructurePredicate): Boolean = when (source) {
+			is PreparedPositionRule -> true
 
-			is RestrictedPredicate -> trusted(source.predicate, diagnostic)
+			is RestrictedPredicate -> trusted(source.predicate)
 
 			is ConcatenatedPredicate -> {
 				var supported = true
 				for (child in source.predicates) {
-					if (!trusted(child, diagnostic)) {
+					if (!trusted(child)) {
 						supported = false
 						break
 					}
@@ -301,7 +301,7 @@ internal class PreparedRuleCompiler(private val capturedBlocks: CapturedPatternB
 				supported
 			}
 
-			is DataHatchOrPredicate -> trusted(source.alternative, diagnostic)
+			is DataHatchOrPredicate -> trusted(source.alternative)
 
 			is AnyPredicate, is AirPredicate, is BlockPredicate, is BlockStatePredicate, is BlockTagPredicate,
 			is FluidPredicate, is FluidTagPredicate, is SnowPredicate, is FramePredicate, is AbilityPredicate,

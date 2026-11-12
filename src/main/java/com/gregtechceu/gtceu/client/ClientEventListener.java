@@ -10,7 +10,6 @@ import com.gregtechceu.gtceu.api.recipe.GTRecipeType;
 import com.gregtechceu.gtceu.api.registry.GTRegistries;
 import com.gregtechceu.gtceu.client.renderer.BlockHighlightRenderer;
 import com.gregtechceu.gtceu.client.renderer.MultiblockInWorldPreviewRenderer;
-import com.gregtechceu.gtceu.client.renderer.StructureIssueOverlay;
 import com.gregtechceu.gtceu.client.renderer.cover.FacadeCoverRenderer;
 import com.gregtechceu.gtceu.client.util.TooltipHelper;
 import com.gregtechceu.gtceu.common.commands.GTClientCommands;
@@ -69,7 +68,6 @@ public class ClientEventListener {
         float partialTick = event.getPartialTick().getGameTimeDeltaPartialTick(false);
 
         if (event.getStage() == RenderLevelStageEvent.Stage.AFTER_BLOCK_ENTITIES) {
-            StructureIssueOverlay.render(event);
             // to render the preview after block entities, before the translucent. so it can be seen through the
             // transparent blocks.
             MultiblockInWorldPreviewRenderer.renderInWorldPreview(event.getPoseStack(), event.getCamera(),
@@ -79,7 +77,6 @@ public class ClientEventListener {
 
     @SubscribeEvent
     public static void onLevelUnload(LevelEvent.Unload event) {
-        StructureIssueOverlay.clear();
         FacadeCoverRenderer.clearItemModelCache();
     }
 

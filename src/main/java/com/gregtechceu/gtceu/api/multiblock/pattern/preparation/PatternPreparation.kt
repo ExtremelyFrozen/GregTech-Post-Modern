@@ -163,11 +163,10 @@ class PatternPreparation private constructor(
 			previous: PatternPreparation? = null,
 			changed: LongSet = LongSets.emptySet(),
 			bounds: PatternLayout = layout,
-			diagnostic: Boolean = false,
 			collection: PatternWorldCollection? = null,
 		): PatternPreparation? {
 			if (layout.rejections.isNotEmpty()) return null
-			for (index in layout.cells.indices) if (!PreparedRuleCompiler.trusted(layout.predicate(index), diagnostic)) return null
+			for (index in layout.cells.indices) if (!PreparedRuleCompiler.trusted(layout.predicate(index))) return null
 			val flags = (if (ConfigHolder.INSTANCE.machines.enableMaintenance) 1 else 0) or (if (ConfigHolder.INSTANCE.machines.enableResearch) 2 else 0)
 			val reusable = previous?.takeIf {
 				changed.isNotEmpty() && it.confirmed != null && it.pattern === pattern && it.layout === layout && it.target.world === target.world &&

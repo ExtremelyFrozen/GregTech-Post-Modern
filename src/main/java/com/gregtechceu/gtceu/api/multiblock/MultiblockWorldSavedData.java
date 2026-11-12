@@ -135,10 +135,6 @@ public class MultiblockWorldSavedData extends SavedData {
         if (positions.add(position)) state.recordChange();
     }
 
-    public boolean isChecking(MultiblockState state) {
-        return scheduledChecks.containsKey(state) || changedPositions.containsKey(state);
-    }
-
     public void onChunkPositionChanged(BlockPos position) {
         searchRegions.changed(position, this);
     }

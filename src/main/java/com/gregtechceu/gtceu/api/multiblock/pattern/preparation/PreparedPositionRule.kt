@@ -22,7 +22,4 @@ interface PreparedPositionRule {
 
 	/** Stable names for shared aggregate contributions; matching names merge their incremental dependency groups. */
 	val aggregationKeys: ObjectSet<String> get() = ObjectSets.emptySet()
-
-	/** Opts into independent full probing; false reports this custom rule as diagnostically incomplete. */
-	val supportsCompleteDiagnosis: Boolean get() = false
 }

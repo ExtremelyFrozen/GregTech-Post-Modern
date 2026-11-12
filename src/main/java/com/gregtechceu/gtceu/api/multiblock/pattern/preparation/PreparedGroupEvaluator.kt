@@ -10,8 +10,6 @@ import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet
 /** Only affected independent groups execute rule programs; successful unchanged groups contribute frozen data. */
 internal class PreparedGroupEvaluator(private val input: PreparedPatternInput, private val plan: PreparedGroupPlan) {
 	private val contributions = ObjectArrayList<PreparedGroupContribution>(plan.groups.size)
-	private var evaluatedCells = 0
-	private var reusedCells = 0
 	private var nextGroup = 0
 	private var stage = Stage.GROUPS
 	private var completed: PreparedPatternResult? = null
@@ -25,7 +23,7 @@ internal class PreparedGroupEvaluator(private val input: PreparedPatternInput, p
 		input.checkpoint()
 		when (stage) {
 			Stage.FINISHED -> return completed!!
-			Stage.FALLBACK -> return finish(PreparedPatternEvaluator(input, false, Int.MAX_VALUE).evaluate())
+			Stage.FALLBACK -> return finish(PreparedPatternEvaluator(input).evaluate())
 			Stage.MERGE -> return merge()?.let(::finish)
 			Stage.GROUPS -> Unit
 		}
@@ -38,12 +36,10 @@ internal class PreparedGroupEvaluator(private val input: PreparedPatternInput, p
 		val cached = group.cached
 		if (cached != null) {
 			contributions.add(cached)
-			reusedCells += group.indices.size
 			if (nextGroup == plan.groups.size) stage = Stage.MERGE
 			return null
 		}
-		val result = PreparedPatternEvaluator(input, false, Int.MAX_VALUE, group.indices, false).evaluate()
-		evaluatedCells += result.evaluatedCells
+		val result = PreparedPatternEvaluator(input, group.indices, false).evaluate()
 		// Full ordered evaluation retains the exact first-failure path and partial state if any group fails.
 		if (!result.matched) return deferFull()
 		val activeCounters = IntArrayList()
@@ -119,11 +115,11 @@ internal class PreparedGroupEvaluator(private val input: PreparedPatternInput, p
 			}
 		}
 		return PreparedPatternResult(
-			true, accepted.size, emptyArray(), accepted.toTypedArray(), effects.toTypedArray(),
+			true, emptyArray(), accepted.toTypedArray(), effects.toTypedArray(),
 			PreparedContributionArrays.facts(counts), scopes.toTypedArray(),
 			PreparedContributionArrays.scoped(scoped),
-			properties.values.toTypedArray(), global, layer, if (accepted.isEmpty) -1 else accepted[accepted.size - 1].cell, if (accepted.isEmpty) 0 else accepted[accepted.size - 1].io, input,
-			contributions.toTypedArray(), evaluatedCells, reusedCells,
+			properties.values.toTypedArray(), global, layer, if (accepted.isEmpty) -1 else accepted[accepted.size - 1].cell, if (accepted.isEmpty) 0 else accepted[accepted.size - 1].io,
+			contributions.toTypedArray(),
 		)
 	}
 

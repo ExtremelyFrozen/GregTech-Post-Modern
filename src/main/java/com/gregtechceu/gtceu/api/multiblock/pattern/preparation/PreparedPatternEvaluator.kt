@@ -2,14 +2,13 @@ package com.gregtechceu.gtceu.api.multiblock.pattern.preparation
 
 import it.unimi.dsi.fastutil.booleans.BooleanArrayList
 import it.unimi.dsi.fastutil.ints.IntArrayList
-import it.unimi.dsi.fastutil.longs.LongArrayList
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap
 import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap
 import it.unimi.dsi.fastutil.objects.ObjectArrayList
 import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenHashSet
 
 /** Interprets detached rules in layout order. No game or predicate API is available in this file. */
-internal class PreparedPatternEvaluator(private val input: PreparedPatternInput, private val diagnose: Boolean, private val maximumCells: Int, private val indices: IntArray? = null, private val evaluateConstraints: Boolean = true) {
+internal class PreparedPatternEvaluator(private val input: PreparedPatternInput, private val indices: IntArray? = null, private val evaluateConstraints: Boolean = true) {
 	private val global = IntArray(input.counters.size) { -1 }
 	private val layer = IntArray(input.counters.size) { -1 }
 	private val properties = Object2IntOpenHashMap<String>().also { it.defaultReturnValue(-1) }
@@ -17,11 +16,6 @@ internal class PreparedPatternEvaluator(private val input: PreparedPatternInput,
 	private val counts = Object2IntOpenHashMap<String>()
 	private val scopes = Object2ObjectLinkedOpenHashMap<String, Object2IntOpenHashMap<String>>()
 	private val problems = ObjectArrayList<PreparedPatternProblem>()
-	private val diagnosticGroups = Object2ObjectLinkedOpenHashMap<String, DiagnosticGroup>()
-	private var diagnosticPositions = 0
-	private var problemCount = 0
-	private var problemsTruncated = false
-	private var evaluatedCells = 0
 	private val accepted = ObjectArrayList<PreparedAcceptedCell>()
 	private val effects = ObjectArrayList<PreparedEffect>()
 	private val positionFacts = ObjectLinkedOpenHashSet<String>()
@@ -35,18 +29,13 @@ internal class PreparedPatternEvaluator(private val input: PreparedPatternInput,
 		var previousLayer = -1
 		for (index in indices ?: IntArray(input.cells.size) { it }) {
 			input.checkpoint()
-			if (!diagnose && problems.isNotEmpty()) break
-			if (index >= maximumCells) {
-				problem(index, "diagnostic cell limit")
-				break
-			}
-			evaluatedCells++
+			if (problems.isNotEmpty()) break
 			currentCell = index
 			val cell = input.cells[index]
 			if (previousLayer != input.layerRuns[index]) {
 				if (previousLayer >= 0 && !minimums(layer, true)) {
 					problem(index, "layer minimum", atCenter = true)
-					if (!diagnose) break
+					break
 				}
 				layer.fill(-1)
 				previousLayer = input.layerRuns[index]
@@ -57,15 +46,8 @@ internal class PreparedPatternEvaluator(private val input: PreparedPatternInput,
 			}
 			io = 0
 			val observation = observe(cell.root)
-			val acceptedPosition = accept(cell.root, observation)
-			if (!acceptedPosition || !cell.directional || !cell.shareable) {
-				if (diagnose) {
-					if (!acceptedPosition) problem(index, cell.token)
-					if (!cell.directional) problem(index, "gtpm.multiblock.diagnosis.direction")
-					if (!cell.shareable) problem(index, "multiblocked.pattern.error.share")
-				} else {
-					problem(index, cell.token)
-				}
+			if (!accept(cell.root, observation) || !cell.directional || !cell.shareable) {
+				problem(index, cell.token)
 				continue
 			}
 			for (property in observation.properties) {
@@ -91,10 +73,10 @@ internal class PreparedPatternEvaluator(private val input: PreparedPatternInput,
 			}
 			accepted.add(PreparedAcceptedCell(index, observation, io))
 		}
-		if ((diagnose || problems.isEmpty) && (!minimums(layer, true) || !minimums(global, false))) problem(-1, "minimum count", difference = 1)
+		if (problems.isEmpty && (!minimums(layer, true) || !minimums(global, false))) problem(-1, "minimum count", difference = 1)
 		for (requirement in input.requirements) {
 			if (!evaluateConstraints) break
-			if (!diagnose && problems.isNotEmpty()) break
+			if (problems.isNotEmpty()) break
 			if (requirement.prefix == "all") {
 				constraint(requirement, "all", counts.getInt(requirement.fact))
 			} else {
@@ -103,25 +85,17 @@ internal class PreparedPatternEvaluator(private val input: PreparedPatternInput,
 					if (scope.startsWith("${requirement.prefix}@")) {
 						found = true
 						constraint(requirement, scope, values.getInt(requirement.fact))
-						if (!diagnose && problems.isNotEmpty()) break
+						if (problems.isNotEmpty()) break
 					}
 				}
 				if (!found) constraint(requirement, requirement.prefix, 0)
 			}
 		}
 		return PreparedPatternResult(
-			problemCount == 0, accepted.size, problems.toTypedArray(), accepted.toTypedArray(), effects.toTypedArray(),
+			problems.isEmpty, problems.toTypedArray(), accepted.toTypedArray(), effects.toTypedArray(),
 			PreparedContributionArrays.facts(counts), scopes.keys.toTypedArray(),
 			PreparedContributionArrays.scoped(scopes),
-			propertyReferences.values.toTypedArray(), global, layer, currentCell, io, input,
-			evaluatedCells = evaluatedCells,
-			problemGroups = diagnosticGroups.values.iterator().let { groups ->
-				Array(diagnosticGroups.size) {
-					val group = groups.next()
-					PreparedProblemGroup(group.representative, group.occurrences, group.positions.toLongArray())
-				}
-			},
-			problemsTruncated = problemsTruncated,
+			propertyReferences.values.toTypedArray(), global, layer, currentCell, io,
 		)
 	}
 
@@ -409,12 +383,12 @@ internal class PreparedPatternEvaluator(private val input: PreparedPatternInput,
 
 	private fun constraint(requirement: PreparedRequirement, scope: String, count: Int) {
 		input.checkpoint()
-		if (!diagnose && problems.isNotEmpty()) return
+		if (problems.isNotEmpty()) return
 		if (count in requirement.minimum..requirement.maximum) return
 		val cellIndex = input.cells.indexOfFirst { it.scopes.contains(scope) }
 		val instance = input.initialScopes.firstOrNull { it.name == scope }
 		val cell = input.cells.getOrNull(cellIndex)
-		addProblem(
+		problems.add(
 			PreparedPatternProblem(
 				cellIndex, scope.substringAfter('@', "$/constraint:$scope"), cell?.repeatPath ?: instance?.repeatPath ?: "",
 				cell?.depth ?: instance?.depth ?: 0, cell?.height ?: instance?.height ?: 0, cell?.width ?: instance?.width ?: 0,
@@ -425,38 +399,10 @@ internal class PreparedPatternEvaluator(private val input: PreparedPatternInput,
 	}
 
 	private fun problem(index: Int, expected: String, fact: String = "", difference: Int = 0, atCenter: Boolean = false) {
-		if (!diagnose && problems.isNotEmpty()) return
+		if (problems.isNotEmpty()) return
 		val cell = input.cells.getOrNull(index)
-		addProblem(PreparedPatternProblem(index, cell?.path ?: "$", cell?.repeatPath ?: "", cell?.depth ?: 0, cell?.height ?: 0, cell?.width ?: 0, if (atCenter) input.center else cell?.position ?: input.center, expected, fact, difference))
+		problems.add(PreparedPatternProblem(index, cell?.path ?: "$", cell?.repeatPath ?: "", cell?.depth ?: 0, cell?.height ?: 0, cell?.width ?: 0, if (atCenter) input.center else cell?.position ?: input.center, expected, fact, difference))
 	}
-
-	private fun addProblem(problem: PreparedPatternProblem) {
-		problemCount++
-		if (!diagnose) {
-			problems.add(problem)
-			return
-		}
-		val key = "${problem.expected}\u0000${problem.missingFact}\u0000${problem.difference}\u0000${problem.repeatPath}"
-		var group = diagnosticGroups[key]
-		if (group == null) {
-			if (diagnosticGroups.size >= 64) {
-				problemsTruncated = true
-				return
-			}
-			group = DiagnosticGroup(problem)
-			diagnosticGroups[key] = group
-			problems.add(problem)
-		}
-		group.occurrences++
-		if (group.positions.size < 256 && diagnosticPositions < 2048) {
-			group.positions.add(problem.position)
-			diagnosticPositions++
-		} else {
-			problemsTruncated = true
-		}
-	}
-
-	private class DiagnosticGroup(val representative: PreparedPatternProblem, var occurrences: Int = 0, val positions: LongArrayList = LongArrayList())
 
 	private fun failed(node: PreparedNode): PreparedObservation = PreparedObservation(node.id, false)
 }

@@ -47,7 +47,6 @@ class PreparedPatternInput internal constructor(
 			runs[index] = run
 		}
 	}
-	val cellCount: Int get() = cells.size
 
 	/** Module presence uses position rules and upper bounds, without whole-structure minimums. */
 	fun forModuleProbe(): PreparedPatternInput = PreparedPatternInput(
@@ -67,9 +66,8 @@ class PreparedPatternInput internal constructor(
 		if (cancelled.get()) throw CancellationException("Prepared pattern evaluation cancelled")
 	}
 
-	@JvmOverloads
-	fun evaluate(diagnose: Boolean = false, maximumCells: Int = Int.MAX_VALUE): PreparedPatternResult = if (diagnose || maximumCells < cells.size || groups == null) {
-		PreparedPatternEvaluator(this, diagnose, maximumCells).evaluate()
+	fun evaluate(): PreparedPatternResult = if (groups == null) {
+		PreparedPatternEvaluator(this).evaluate()
 	} else {
 		PreparedGroupEvaluator(this, groups).evaluate()
 	}
@@ -89,9 +87,6 @@ data class PreparedObservation(
 /** Serializable diagnostics retain both coordinates and the original structure path. */
 data class PreparedPatternProblem(val cell: Int, val path: String, val repeatPath: String, val depth: Int, val height: Int, val width: Int, val position: Long, val expected: String, val missingFact: String = "", val difference: Int = 0)
 
-/** Bounded diagnostic coordinates; occurrences includes omitted positions in the same group. */
-data class PreparedProblemGroup(val representative: PreparedPatternProblem, val occurrences: Int, val positions: LongArray)
-
 data class PreparedFactCount(val fact: String, val count: Int)
 data class PreparedScopedCount(val scope: String, val fact: String, val count: Int)
 data class PreparedAcceptedCell(val cell: Int, val observation: PreparedObservation, val io: Int)
@@ -101,7 +96,6 @@ data class PreparedEffect(val cell: Int, val leaf: Int = -1, val renderMask: Boo
 
 class PreparedPatternResult internal constructor(
 	val matched: Boolean,
-	val matchedCells: Int,
 	val problems: Array<PreparedPatternProblem>,
 	internal val accepted: Array<PreparedAcceptedCell>,
 	internal val effects: Array<PreparedEffect>,
@@ -113,10 +107,5 @@ class PreparedPatternResult internal constructor(
 	internal val layerCounts: IntArray,
 	internal val lastCell: Int,
 	internal val lastIO: Int,
-	internal val input: PreparedPatternInput,
 	internal val contributions: Array<PreparedGroupContribution>? = null,
-	val evaluatedCells: Int = matchedCells,
-	val reusedCells: Int = 0,
-	val problemGroups: Array<PreparedProblemGroup> = emptyArray(),
-	val problemsTruncated: Boolean = false,
 )
