@@ -35,7 +35,9 @@ import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 public class ResearchStationMachine extends WorkableElectricMultiblockMachine {
 
@@ -94,11 +96,14 @@ public class ResearchStationMachine extends WorkableElectricMultiblockMachine {
 
     @Override
     public boolean checkPattern(String structureName) {
-        boolean isFormed = super.checkPattern(structureName);
-        if (isFormed && objectHolder != null && objectHolder.getFrontFacing() != getFrontFacing().getOpposite()) {
-            invalidateStructure(structureName);
+        if (!super.checkPattern(structureName)) return false;
+        Set<IMultiPart> candidateParts = getMultiblockState(structureName).getFacts().getOrDefault("parts",
+                Collections.emptySet());
+        for (IMultiPart part : candidateParts) {
+            if (part instanceof ObjectHolderMachine holder && holder.getFrontFacing() != getFrontFacing().getOpposite())
+                return false;
         }
-        return isFormed;
+        return true;
     }
 
     @Override

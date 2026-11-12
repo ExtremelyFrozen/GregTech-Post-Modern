@@ -31,6 +31,7 @@ import java.util.Optional
 @JvmRecord
 data class AbilityPredicate(val abilities: ObjectList<PartAbility>, val range: Optional<TierRange>, val allowedTiers: Optional<IntSet>, val io: Optional<String>, val facing: Optional<RelativeDirection>) : StructurePredicate {
 	override fun hasPositionDependencies(): Boolean = true
+	override fun canReuseObservation(): Boolean = true
 	constructor(abilities: ObjectList<PartAbility>) : this(abilities, Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty())
 
 	override fun type(): StructurePredicateType<*> = TYPE

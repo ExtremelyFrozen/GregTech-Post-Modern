@@ -4,7 +4,6 @@ import com.gregtechceu.gtceu.api.multiblock.MultiblockState;
 import com.gregtechceu.gtceu.api.multiblock.MultiblockWorldSavedData;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.server.level.ServerLevel;
 
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
@@ -16,6 +15,10 @@ public final class ChunkStructureIndex {
 
     public static int localPosition(BlockPos pos) {
         return pos.getY() << 8 | (pos.getZ() & 15) << 4 | pos.getX() & 15;
+    }
+
+    public static int localPosition(long position) {
+        return BlockPos.getY(position) << 8 | (BlockPos.getZ(position) & 15) << 4 | BlockPos.getX(position) & 15;
     }
 
     public void add(int position, MultiblockState state) {
@@ -33,12 +36,11 @@ public final class ChunkStructureIndex {
         positions.clear();
     }
 
-    public void changed(BlockPos pos) {
+    public void changed(BlockPos pos, MultiblockWorldSavedData data) {
         var structures = positions.get(localPosition(pos));
         if (structures == null) return;
         for (MultiblockState state : structures) {
-            MultiblockWorldSavedData.getOrCreate((ServerLevel) state.world)
-                    .queueChangedPosition(state, pos.asLong());
+            data.queueChangedPosition(state, pos.asLong());
         }
     }
 }

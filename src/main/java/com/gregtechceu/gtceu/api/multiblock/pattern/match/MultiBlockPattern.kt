@@ -128,7 +128,7 @@ open class MultiBlockPattern private constructor(private val sourceDefinition: P
 		val candidate = MultiblockState(worldState.world, worldState.controllerPos, worldState.structureName)
 		val controller = worldState.controller
 		candidate.lastController = controller
-		val previous = worldState.matchSnapshot?.takeIf { it.pattern === this }
+		val previous = worldState.matchCache?.takeIf { it.pattern === this }
 		val check = PatternWork {
 			if (controller == null) {
 				candidate.setError(PatternStringError("no controller found"))
@@ -136,18 +136,13 @@ open class MultiBlockPattern private constructor(private val sourceDefinition: P
 			} else {
 				candidate.clean()
 				if (previous != null && getChoiceDescriptors().isEmpty() && getRepeatDescriptors().all { it.minimum == it.maximum } && previous.eventDriven && !worldState.hasError() && changedPositions.isNotEmpty() &&
-					previous.front == controller.frontFacing && previous.up == controller.upwardsFacing && previous.flipped == controller.isFlipped &&
+					previous.front == (if (controller.hasFrontFacing()) controller.frontFacing else Direction.SOUTH) && previous.up == controller.upwardsFacing && !previous.flipped &&
 					previous.checkLocal(this, candidate, changedPositions)
 				) {
 					candidate.applyCachedMatch(worldState)
 					return@PatternWork true
 				}
 				val matcher = PatternRuntime(this@MultiBlockPattern, sourceDefinition, previous, changedPositions)
-				if (previous != null && getChoiceDescriptors().isEmpty() && getRepeatDescriptors().all { it.minimum == it.maximum } && previous.front == controller.frontFacing && previous.up == controller.upwardsFacing &&
-					matcher.match(this, candidate, controller.blockPos, previous.front, previous.up, previous.flipped, false, previous.repetitions, previous.selections).matched
-				) {
-					return@PatternWork true
-				}
 				val facings = if (controller.hasFrontFacing()) arrayOf(controller.frontFacing) else arrayOf(Direction.SOUTH, Direction.NORTH, Direction.EAST, Direction.WEST)
 				val upwardsFacing = controller.upwardsFacing
 				val allowFlip = controller.allowFlip()

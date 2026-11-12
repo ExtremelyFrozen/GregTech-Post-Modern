@@ -171,8 +171,10 @@ open class PredicateRule {
 
 	internal fun observePosition(state: MultiblockState, limited: Boolean): PatternObservation {
 		if (!canAcceptPosition(state, limited)) return PatternObservation.of(false)
-		return positionObserver?.apply(state) ?: PatternObservation.of(predicate.test(state))
+		return observeAvailablePosition(state)
 	}
+
+	internal fun observeAvailablePosition(state: MultiblockState): PatternObservation = positionObserver?.apply(state) ?: PatternObservation.of(predicate.test(state))
 
 	internal fun canAcceptPosition(state: MultiblockState, limited: Boolean): Boolean = (
 		!limited || (

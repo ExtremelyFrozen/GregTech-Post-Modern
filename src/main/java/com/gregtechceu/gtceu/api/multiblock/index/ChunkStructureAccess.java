@@ -1,5 +1,8 @@
 package com.gregtechceu.gtceu.api.multiblock.index;
 
+import net.minecraft.core.BlockPos;
+
+import it.unimi.dsi.fastutil.longs.LongSet;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -17,4 +20,10 @@ public interface ChunkStructureAccess {
 
     /** Returns the chunk's mutation revision for validating an attempt that yielded between server ticks. */
     long gtceu$getStructureRevision();
+
+    /** Checks the bounded mutation history against an attempt's reads; an exhausted history requests a retry. */
+    boolean gtceu$hasStructureChangesSince(long revision, LongSet positions);
+
+    /** Records a server-thread dependency change, including part ownership changes without block replacement. */
+    void gtceu$notifyStructureChange(BlockPos position);
 }

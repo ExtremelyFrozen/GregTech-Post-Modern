@@ -11,6 +11,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.LevelChunk;
 
+import it.unimi.dsi.fastutil.longs.LongSet;
 import org.jspecify.annotations.Nullable;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -18,8 +19,11 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.Slice;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+
+import java.util.Map;
 
 @Mixin(LevelChunk.class)
 public abstract class LevelChunkMixin implements ChunkStructureAccess {
@@ -28,6 +32,9 @@ public abstract class LevelChunkMixin implements ChunkStructureAccess {
     @Final
     private Level level;
 
+    @Shadow
+    public abstract Map<BlockPos, BlockEntity> getBlockEntities();
+
     @Unique
     private @Nullable ChunkStructureIndex gtceu$structureIndex;
 
@@ -35,11 +42,25 @@ public abstract class LevelChunkMixin implements ChunkStructureAccess {
     private long gtceu$structureRevision;
 
     @Unique
+    private long @Nullable [] gtceu$structureChanges;
+
+    @Unique
     private @Nullable MultiblockWorldSavedData gtceu$structureData;
 
     @Override
     public long gtceu$getStructureRevision() {
+        if (gtceu$structureChanges == null) gtceu$structureChanges = new long[256];
         return gtceu$structureRevision;
+    }
+
+    @Override
+    public boolean gtceu$hasStructureChangesSince(long revision, LongSet positions) {
+        long changes = gtceu$structureRevision - revision;
+        if (changes > 256 || changes < 0) return true;
+        for (long offset = 1; offset <= changes; offset++) {
+            if (positions.contains(gtceu$structureChanges[(int) (revision + offset) & 255])) return true;
+        }
+        return false;
     }
 
     @Override
@@ -56,25 +77,42 @@ public abstract class LevelChunkMixin implements ChunkStructureAccess {
     @Inject(method = "setBlockState", at = @At("RETURN"))
     private void gtceu$blockChanged(BlockPos pos, BlockState state, boolean moving,
                                     CallbackInfoReturnable<BlockState> cir) {
-        if (cir.getReturnValue() != null) gtceu$notifyStructure(pos);
+        if (cir.getReturnValue() != null) gtceu$notifyStructureChange(pos);
     }
 
     @Inject(method = "setBlockEntity", at = @At("RETURN"))
     private void gtceu$blockEntityChanged(BlockEntity entity, CallbackInfo ci) {
-        gtceu$notifyStructure(entity.getBlockPos());
+        gtceu$notifyStructureChange(entity.getBlockPos());
     }
 
     @Inject(method = "removeBlockEntity", at = @At("RETURN"))
     private void gtceu$blockEntityRemoved(BlockPos pos, CallbackInfo ci) {
-        gtceu$notifyStructure(pos);
+        gtceu$notifyStructureChange(pos);
     }
 
-    @Unique
-    private void gtceu$notifyStructure(BlockPos pos) {
+    @Inject(method = "getBlockEntity(Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/level/chunk/LevelChunk$EntityCreationType;)Lnet/minecraft/world/level/block/entity/BlockEntity;",
+            slice = @Slice(from = @At(value = "INVOKE",
+                                      target = "Lnet/minecraft/world/level/block/entity/BlockEntity;isRemoved()Z")),
+            at = @At(value = "INVOKE", target = "Ljava/util/Map;remove(Ljava/lang/Object;)Ljava/lang/Object;"))
+    private void gtceu$removedBlockEntityDropped(BlockPos pos, LevelChunk.EntityCreationType type,
+                                                 CallbackInfoReturnable<BlockEntity> cir) {
+        gtceu$notifyStructureChange(pos);
+    }
+
+    @Inject(method = "clearAllBlockEntities", at = @At("HEAD"))
+    private void gtceu$blockEntitiesCleared(CallbackInfo ci) {
+        for (BlockPos pos : getBlockEntities().keySet()) gtceu$notifyStructureChange(pos);
+    }
+
+    @Override
+    public void gtceu$notifyStructureChange(BlockPos pos) {
         gtceu$structureRevision++;
+        if (gtceu$structureChanges != null) {
+            gtceu$structureChanges[(int) gtceu$structureRevision & 255] = pos.asLong();
+        }
         if (level instanceof ServerLevel serverLevel) {
-            if (gtceu$structureIndex != null) gtceu$structureIndex.changed(pos);
             if (gtceu$structureData == null) gtceu$structureData = MultiblockWorldSavedData.getOrCreate(serverLevel);
+            if (gtceu$structureIndex != null) gtceu$structureIndex.changed(pos, gtceu$structureData);
             gtceu$structureData.onChunkPositionChanged(pos);
         }
     }

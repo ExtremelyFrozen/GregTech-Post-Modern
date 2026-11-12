@@ -20,6 +20,7 @@ import it.unimi.dsi.fastutil.objects.ObjectList
 @JvmRecord
 data class RotorHolderPredicate(val tier: Int) : CategoryPredicate {
 	override fun hasPositionDependencies(): Boolean = true
+	override fun canReuseObservation(): Boolean = true
 	override fun collectDependencies(state: MultiblockState, positions: LongSet) {
 		val rotor = state.blockEntity as? RotorHolderPartMachine ?: return
 		positions.add(state.pos.relative(rotor.self().frontFacing).asLong())

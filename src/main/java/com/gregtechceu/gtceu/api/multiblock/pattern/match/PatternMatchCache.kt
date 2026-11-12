@@ -20,7 +20,7 @@ import it.unimi.dsi.fastutil.longs.LongSet
 import it.unimi.dsi.fastutil.objects.ObjectArrayList
 
 /** Frozen observations for one controller's selected layout; mutable aggregation objects stay in its state. */
-class PatternMatchSnapshot internal constructor(
+class PatternMatchCache internal constructor(
 	val pattern: MultiBlockPattern,
 	internal val layout: PatternLayout,
 	internal val center: BlockPos,
@@ -74,11 +74,14 @@ class PatternMatchSnapshot internal constructor(
 			work.checkpoint()
 			val position = positions[affected.nextInt()]
 			val predicate = position.cell.predicate
-			if (!predicate.canReuseObservation() || position.entity != null) return false
+			if (position.entity != null) return false
 			if (!state.update(position.pos, predicate) || state.blockState.hasBlockEntity()) return false
 			if ((state.blockState.block is ActiveBlock) != (position.block.block is ActiveBlock)) return false
-			val observation = predicate.observePosition(state)
-			if (observation != position.observation || !pattern.matchesDirectionalPredicate(predicate, state, front, up, flipped)) return false
+			if (!predicate.matchesObservation(state, position.observation) || !pattern.matchesDirectionalPredicate(predicate, state, front, up, flipped)) return false
+			dependencyScratch.clear()
+			predicate.collectDependencies(state, dependencyScratch)
+			if (dependencyScratch.size != position.dependencies.size) return false
+			for (dependency in position.dependencies) if (!dependencyScratch.contains(dependency)) return false
 		}
 		return true
 	}

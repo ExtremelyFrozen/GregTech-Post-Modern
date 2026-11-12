@@ -6,6 +6,7 @@ import com.gregtechceu.gtceu.api.multiblock.MultiblockState
 import com.gregtechceu.gtceu.api.multiblock.error.PatternStringError
 import com.gregtechceu.gtceu.api.multiblock.pattern.constraint.PatternConstraintEvaluator
 import com.gregtechceu.gtceu.api.multiblock.pattern.layout.PatternAxis
+import com.gregtechceu.gtceu.api.multiblock.pattern.layout.PatternLayoutCell
 import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternConstraint
 import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternDefinition
 
@@ -19,7 +20,7 @@ import it.unimi.dsi.fastutil.longs.LongSets
 import it.unimi.dsi.fastutil.objects.*
 
 /** Evaluates layouts transactionally per attempt; the controller remains responsible for lifecycle changes. */
-internal class PatternRuntime(private val pattern: MultiBlockPattern, private val definition: PatternDefinition, private val previous: PatternMatchSnapshot? = null, private val changed: LongSet = LongSets.emptySet()) {
+internal class PatternRuntime(private val pattern: MultiBlockPattern, private val definition: PatternDefinition, private val previous: PatternMatchCache? = null, private val changed: LongSet = LongSets.emptySet()) {
 	var lastResult: PatternMatchResult? = null
 		private set
 	var lastRepetitions: IntArray = IntArray(0)
@@ -55,12 +56,15 @@ internal class PatternRuntime(private val pattern: MultiBlockPattern, private va
 		facts.set("pattern.width", layout.size(PatternAxis.WIDTH))
 		facts.set("pattern.height", layout.size(PatternAxis.HEIGHT))
 		facts.set("pattern.depth", layout.size(PatternAxis.DEPTH))
-		layout.repeats.forEach { facts.ensureScopes(ObjectLists.singleton("repeat:${it.descriptor.id}@${it.path}")) }
+		for ((path, descriptor) in layout.repeats) {
+			work.checkpoint()
+			facts.ensureScopes(ObjectLists.singleton("repeat:${descriptor.id}@$path"))
+		}
 		val cells = layout.cells
 		val widthOffset = pattern.getActualRelativeOffset(1, 0, 0, front, up, flipped)
 		val heightOffset = pattern.getActualRelativeOffset(0, 1, 0, front, up, flipped)
 		val depthOffset = pattern.getActualRelativeOffset(0, 0, 1, front, up, flipped)
-		val snapshot = PatternMatchSnapshot(pattern, layout, center, front, up, flipped, repetitions.copyOf(), Object2ObjectOpenHashMap(choices))
+		val matchCache = PatternMatchCache(pattern, layout, center, front, up, flipped, repetitions.copyOf(), Object2ObjectOpenHashMap(choices))
 		val reusable = previous?.takeIf { changed.isNotEmpty() && it.layout === layout && it.center == center && it.front == front && it.up == up && it.flipped == flipped }
 		var cellIndex = 0
 		for ((path, repeatPath, depth, height, width, predicate, token, scopes) in cells) {
@@ -96,7 +100,11 @@ internal class PatternRuntime(private val pattern: MultiBlockPattern, private va
 				break
 			}
 			state.io = IO.BOTH
-			val observation = if (cached != null && predicate.canReuseObservation()) cached.observation else predicate.observePosition(state)
+			val observation = when {
+				cached == null -> predicate.observePosition(state)
+				predicate.canReuseObservation() -> cached.observation
+				else -> predicate.observePosition(state, cached.observation)
+			}
 			val accepted = predicate.acceptPosition(state, observation)
 			if (!accepted || !pattern.matchesDirectionalPredicate(predicate, state, front, up, flipped) || !pattern.checkPartSharing(
 					facts,
@@ -145,15 +153,24 @@ internal class PatternRuntime(private val pattern: MultiBlockPattern, private va
 			pattern.saveMatch(facts, state, predicate, position, save)
 			if (state.blockState.block is ActiveBlock) facts.getOrCreate("vaBlocks") { LongOpenHashSet() }.add(position.asLong())
 			facts.getOrCreate("ioMap") { Long2ObjectOpenHashMap<Any?>() }[position.asLong()] = state.io
-			snapshot.add(state, cells[cellIndex - 1], observation)
+			matchCache.add(state, cells[cellIndex - 1], observation)
 		}
 		if (errors.isEmpty && (!pattern.checkLayerMinimums(state, state.layerCount, state.structureLayerCount) || !pattern.checkGlobalMinimums(state, state.globalCount, state.structureGlobalCount))) error("$", "", 0, 0, 0, center, "minimum count", "", 1)
-		definition.constraints.forEach { constraint ->
+		for (constraint in definition.constraints) {
+			work.checkpoint()
 			if (constraint is PatternConstraint.Count) {
-				PatternConstraintEvaluator.entries(constraint, facts).object2IntEntrySet().forEach { entry ->
+				for (entry in PatternConstraintEvaluator.entries(constraint, facts).object2IntEntrySet()) {
+					work.checkpoint()
 					val count = entry.intValue
 					if (count !in constraint.minimum..constraint.maximum) {
-						val cell = cells.firstOrNull { it.scopes.contains(entry.key) }
+						var cell: PatternLayoutCell? = null
+						for (candidate in cells) {
+							work.checkpoint()
+							if (candidate.scopes.contains(entry.key)) {
+								cell = candidate
+								break
+							}
+						}
 						val instance = layout.repeats.firstOrNull { entry.key == "repeat:${it.descriptor.id}@${it.path}" }
 						val depth = cell?.depth ?: instance?.depth ?: 0
 						val height = cell?.height ?: instance?.height ?: 0
@@ -169,8 +186,8 @@ internal class PatternRuntime(private val pattern: MultiBlockPattern, private va
 		state.facts.set("pattern.diagnostics", result.diagnostics)
 		state.setError(if (result.matched) null else PatternStringError("gtpm.multiblock.pattern.error.constraint"))
 		state.isNeededFlip = flipped
-		state.setMatchResult(result)
-		if (result.matched) state.matchSnapshot = snapshot
+		state.matchResult = result
+		if (result.matched) state.matchCache = matchCache
 		target.applyMatch(state)
 		return result
 	}
@@ -253,7 +270,7 @@ internal class PatternRuntime(private val pattern: MultiBlockPattern, private va
 			lastRepetitions = repetitions.copyOf()
 			state.facts.set("pattern.repetitions", lastRepetitions)
 			state.matchResult.facts.set("pattern.repetitions", lastRepetitions)
-			state.matchSnapshot?.repetitions?.let { lastRepetitions.copyInto(it) }
+			state.matchCache?.repetitions?.let { lastRepetitions.copyInto(it) }
 			lastResult = state.matchResult
 			return true
 		}

@@ -92,38 +92,62 @@ open class PatternPredicate {
 		return null
 	}
 
-	private data class RulePosition(val rule: PredicateRule, val limited: Boolean, val observation: PatternObservation)
+	private data class RulePosition(val rule: PredicateRule, val limited: Boolean, val observation: PatternObservation, val available: Boolean)
 	private data class Position(val rules: ObjectList<RulePosition>) : PatternObservation.PositionMatch
 
 	/** Captures selected rules once; failed limited rules retain only their minimum-count bookkeeping. */
-	open fun observePosition(state: MultiblockState): PatternObservation {
+	open fun observePosition(state: MultiblockState): PatternObservation = observeRules(state, null)
+
+	/** Count reservations are replayed in layout order; only independent, unchanged rule inputs are reused. */
+	internal fun observePosition(state: MultiblockState, previous: PatternObservation): PatternObservation = if (javaClass == PatternPredicate::class.java) observeRules(state, previous.positionMatch as Position) else observePosition(state)
+
+	private fun observeRules(state: MultiblockState, previous: Position?): PatternObservation {
 		val rules = ObjectArrayList<RulePosition>()
 		val observations = ObjectArrayList<PatternObservation>()
+		var index = 0
+		fun observe(rule: PredicateRule, available: Boolean): PatternObservation {
+			val cached = previous?.rules?.getOrNull(index++)
+			if (!available) return PatternObservation.of(false)
+			if (cached != null && cached.rule === rule && cached.available && rule.source?.canReuseObservation() == true) return cached.observation
+			return rule.observeAvailablePosition(state)
+		}
 		for (rule in limited) {
-			val observation = rule.observePosition(state, true)
-			rules.add(RulePosition(rule, true, observation))
+			val available = rule.canAcceptPosition(state, true)
+			val observation = observe(rule, available)
+			rules.add(RulePosition(rule, true, observation, available))
 			if (observation.matched) observations.add(observation)
 		}
-		if (observations.isEmpty()) {
+		if (observations.isEmpty) {
 			for (rule in common) {
-				val observation = rule.observePosition(state, false)
-				rules.add(RulePosition(rule, false, observation))
+				val observation = observe(rule, true)
+				rules.add(RulePosition(rule, false, observation, true))
 				if (!observation.matched) continue
 				observations.add(observation)
 				break
 			}
 		}
-		if (observations.isEmpty()) return PatternObservation.of(false).withPositionMatch(Position(rules))
+		if (observations.isEmpty) return PatternObservation.of(false).withPositionMatch(Position(rules))
 		val observedFacts = ObjectOpenHashSet<String>()
 		val properties = Object2ObjectLinkedOpenHashMap<String, Any>()
-		for (observation in observations) {
-			observedFacts.addAll(observation.facts)
-			for ((key, value) in observation.properties) {
+		for ((_, facts1, properties1) in observations) {
+			observedFacts.addAll(facts1)
+			for ((key, value) in properties1) {
 				val previous = properties.putIfAbsent(key, value)
 				if (previous != null && previous != value) return PatternObservation.of(false)
 			}
 		}
 		return PatternObservation(true, observedFacts, properties, Position(rules)).withAliases(facts)
+	}
+
+	/** Equal rule inputs retain the old count reservations and OR selection, including exhausted branches. */
+	internal fun matchesObservation(state: MultiblockState, observation: PatternObservation): Boolean {
+		if (javaClass != PatternPredicate::class.java) return false
+		val position = observation.positionMatch as Position
+		for ((rule, _, observation1, available) in position.rules) {
+			if (!available) continue
+			if (rule.source?.canReuseObservation() != true || rule.observeAvailablePosition(state) != observation1) return false
+		}
+		return true
 	}
 
 	/** Consumes only this position's captured selection, without evaluating its rules again. */
@@ -439,7 +463,15 @@ open class PatternPredicate {
 		}
 
 		@JvmStatic
-		fun blocks(vararg blocks: Block): PatternPredicate = PatternPredicate(BlockPredicate(Supplier { ObjectArrayList(blocks.map(BuiltInRegistries.BLOCK::getKey)) }))
+		fun blocks(vararg blocks: Block): PatternPredicate = PatternPredicate(
+			BlockPredicate {
+				ObjectArrayList(
+					blocks.map(
+						BuiltInRegistries.BLOCK::getKey,
+					),
+				)
+			},
+		)
 
 		@JvmStatic
 		fun machines(vararg definitions: MachineDefinition): PatternPredicate {
@@ -468,8 +500,8 @@ open class PatternPredicate {
 
 		@JvmStatic
 		fun lamps(vararg lampEntries: BlockEntry<LampBlock>): PatternPredicate = fromBlockInfos(
-			Predicate { state -> lampEntries.any { state.blockState.`is`(it.get()) } },
-			Supplier {
+			{ state -> lampEntries.any { state.blockState.`is`(it.get()) } },
+			{
 				lampEntries.map { MultiblockBlockInfo(it.get().defaultBlockState(), null) }.toTypedArray()
 			},
 		)
@@ -573,11 +605,11 @@ open class PatternPredicate {
 
 		private fun fromBlockInfos(predicate: Predicate<MultiblockState>, candidates: Supplier<Array<MultiblockBlockInfo>>): PatternPredicate = PatternPredicate(
 			predicate,
-			Supplier {
+			{
 				val infos = candidates.get()
 				if (infos.isEmpty()) MultiblockBlockInfo.EMPTY else infos[0]
 			},
-			Supplier { candidates.get().map { it.blockState.block }.toTypedArray() },
+			{ candidates.get().map { it.blockState.block }.toTypedArray() },
 		)
 	}
 }

@@ -158,8 +158,8 @@ class PatternLayoutResolver(private val definition: PatternDefinition) {
 			is PatternBinding.Predicate -> binding.definition?.let(PatternPredicateCompiler::compile) ?: caller[binding.value.single()] ?: error("Unknown caller predicate ${binding.value}")
 			else -> error("Parameter $name is not a predicate")
 		}
-		fun bound(value: Any): Any = when {
-			value is String && value.startsWith("$") -> when (val binding = reference.bindings[value.substring(1)] ?: error("Unknown parameter $value")) {
+		fun bound(value: Any): Any = when (value) {
+			is String if value.startsWith("$") -> when (val binding = reference.bindings[value.substring(1)] ?: error("Unknown parameter $value")) {
 				is PatternBinding.IntegerValue -> binding.value
 				is PatternBinding.Direction -> binding.value.name.lowercase()
 				is PatternBinding.Token -> binding.value
@@ -167,9 +167,9 @@ class PatternLayoutResolver(private val definition: PatternDefinition) {
 				is PatternBinding.Predicate -> binding.value
 			}
 
-			value is Map<*, *> -> Object2ObjectLinkedOpenHashMap<String, Any>().also { out -> value.forEach { (key, child) -> out[key.toString()] = bound(requireNotNull(child)) } }
+			is Map<*, *> -> Object2ObjectLinkedOpenHashMap<String, Any>().also { out -> value.forEach { (key, child) -> out[key.toString()] = bound(requireNotNull(child)) } }
 
-			value is List<*> -> ObjectArrayList<Any>().also { out -> value.forEach { out.add(bound(requireNotNull(it))) } }
+			is List<*> -> ObjectArrayList<Any>().also { out -> value.forEach { out.add(bound(requireNotNull(it))) } }
 
 			else -> value
 		}
@@ -518,9 +518,18 @@ class PatternLayoutResolver(private val definition: PatternDefinition) {
 				}
 			}
 			val shifted = shift(work, box, offset)
-			cells.addAll(shifted.cells)
-			repeatInstances.addAll(shifted.repeats)
-			choiceInstances.addAll(shifted.choices)
+			for (cell in shifted.cells) {
+				work.checkpoint()
+				cells.add(cell)
+			}
+			for (instance in shifted.repeats) {
+				work.checkpoint()
+				repeatInstances.add(instance)
+			}
+			for (instance in shifted.choices) {
+				work.checkpoint()
+				choiceInstances.add(instance)
+			}
 			for (i in 0..2) {
 				minimum[i] = minOf(minimum[i], shifted.minimum[i])
 				maximum[i] = maxOf(maximum[i], shifted.maximum[i])
@@ -537,7 +546,10 @@ class PatternLayoutResolver(private val definition: PatternDefinition) {
 			cells.add(it.copy(depth = Math.addExact(it.depth, offset[0]), height = Math.addExact(it.height, offset[1]), width = Math.addExact(it.width, offset[2])))
 		}
 		val repeats = ObjectArrayList<PatternRepeatInstance>(box.repeats.size)
-		box.repeats.forEach { repeats.add(it.copy(depth = Math.addExact(it.depth, offset[0]), height = Math.addExact(it.height, offset[1]), width = Math.addExact(it.width, offset[2]))) }
+		for (repeat in box.repeats) {
+			work.checkpoint()
+			repeats.add(repeat.copy(depth = Math.addExact(repeat.depth, offset[0]), height = Math.addExact(repeat.height, offset[1]), width = Math.addExact(repeat.width, offset[2])))
+		}
 		return Box(cells, IntArray(3) { Math.addExact(box.minimum[it], offset[it]) }, IntArray(3) { Math.addExact(box.maximum[it], offset[it]) }, repeats, box.choices, box.placed, box.occupied)
 	}
 }

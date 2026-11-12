@@ -6,8 +6,8 @@ import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.multiblock.error.PatternError;
 import com.gregtechceu.gtceu.api.multiblock.error.PatternStringError;
 import com.gregtechceu.gtceu.api.multiblock.index.ChunkStructureAccess;
+import com.gregtechceu.gtceu.api.multiblock.pattern.match.PatternMatchCache;
 import com.gregtechceu.gtceu.api.multiblock.pattern.match.PatternMatchResult;
-import com.gregtechceu.gtceu.api.multiblock.pattern.match.PatternMatchSnapshot;
 import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternFacts;
 import com.gregtechceu.gtceu.api.multiblock.structurepredicate.PatternPredicate;
 import com.gregtechceu.gtceu.api.multiblock.structurepredicate.PredicateRule;
@@ -20,8 +20,10 @@ import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.LevelChunk;
 
 import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import lombok.Getter;
@@ -45,8 +47,10 @@ public class MultiblockState {
     @Getter
     private PatternMatchResult matchResult;
     @Getter
-    private PatternMatchSnapshot matchSnapshot;
+    private PatternMatchCache matchCache;
     private Long2LongOpenHashMap readRevisions = new Long2LongOpenHashMap();
+    private Long2ObjectOpenHashMap<LevelChunk> readChunks = new Long2ObjectOpenHashMap<>();
+    private Long2ObjectOpenHashMap<LongOpenHashSet> readPositions = new Long2ObjectOpenHashMap<>();
     @Getter
     private Object2IntOpenHashMap<PredicateRule> globalCount;
     @Getter
@@ -92,7 +96,7 @@ public class MultiblockState {
     public void applyMatch(MultiblockState source) {
         facts = source.facts;
         matchResult = source.matchResult;
-        matchSnapshot = source.matchSnapshot;
+        matchCache = source.matchCache;
         globalCount = source.globalCount;
         layerCount = source.layerCount;
         structureGlobalCount = source.structureGlobalCount;
@@ -105,6 +109,8 @@ public class MultiblockState {
         blockEntity = source.blockEntity;
         blockEntityInitialized = source.blockEntityInitialized;
         readRevisions = source.readRevisions;
+        readChunks = source.readChunks;
+        readPositions = source.readPositions;
         setError(source.error);
     }
 
@@ -112,8 +118,8 @@ public class MultiblockState {
         matchResult = result;
     }
 
-    public void setMatchSnapshot(PatternMatchSnapshot snapshot) {
-        matchSnapshot = snapshot;
+    public void setMatchCache(PatternMatchCache cache) {
+        matchCache = cache;
     }
 
     public MultiblockState captureMatch() {
@@ -125,33 +131,45 @@ public class MultiblockState {
 
     public void inheritReadRevisions(MultiblockState source) {
         readRevisions = source.readRevisions;
+        readChunks = source.readChunks;
+        readPositions = source.readPositions;
     }
 
     public void beginReadTracking() {
         readRevisions = new Long2LongOpenHashMap();
+        readChunks = new Long2ObjectOpenHashMap<>();
+        readPositions = new Long2ObjectOpenHashMap<>();
     }
 
     public void applyCachedMatch(MultiblockState source) {
         Long2LongOpenHashMap revisions = readRevisions;
+        Long2ObjectOpenHashMap<LevelChunk> chunks = readChunks;
+        Long2ObjectOpenHashMap<LongOpenHashSet> positions = readPositions;
         applyMatch(source);
         readRevisions = revisions;
+        readChunks = chunks;
+        readPositions = positions;
     }
 
     public void recordRead(BlockPos position) {
         int chunkX = position.getX() >> 4;
         int chunkZ = position.getZ() >> 4;
         long key = ChunkPos.asLong(chunkX, chunkZ);
+        readPositions.computeIfAbsent(key, ignored -> new LongOpenHashSet()).add(position.asLong());
         if (readRevisions.containsKey(key)) return;
         var chunk = world.getChunkSource().getChunkNow(chunkX, chunkZ);
-        if (chunk instanceof ChunkStructureAccess access) readRevisions.put(key, access.gtceu$getStructureRevision());
+        if (chunk instanceof ChunkStructureAccess access) {
+            readChunks.put(key, chunk);
+            readRevisions.put(key, access.gtceu$getStructureRevision());
+        }
     }
 
     public boolean isMatchCurrent() {
         for (var entry : readRevisions.long2LongEntrySet()) {
             var chunk = world.getChunkSource().getChunkNow(ChunkPos.getX(entry.getLongKey()),
                     ChunkPos.getZ(entry.getLongKey()));
-            if (!(chunk instanceof ChunkStructureAccess access) ||
-                    access.gtceu$getStructureRevision() != entry.getLongValue())
+            if (!(chunk instanceof ChunkStructureAccess access) || chunk != readChunks.get(entry.getLongKey()) ||
+                    access.gtceu$hasStructureChangesSince(entry.getLongValue(), readPositions.get(entry.getLongKey())))
                 return false;
         }
         return true;
