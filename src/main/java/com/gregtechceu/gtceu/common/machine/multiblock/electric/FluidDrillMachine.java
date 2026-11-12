@@ -58,15 +58,15 @@ public class FluidDrillMachine extends WorkableElectricMultiblockMachine {
     @Getter
     private final int tier;
     @Getter(AccessLevel.PACKAGE)
-    private final ConditionalSubscriptionHandler displaySnapshotSubscription;
+    private final ConditionalSubscriptionHandler displaySubscription;
     @Getter(AccessLevel.PACKAGE)
     @SyncToClient
-    private List<Component> displaySnapshot = List.of();
+    private List<Component> displayText = List.of();
 
     public FluidDrillMachine(BlockEntityCreationInfo info, int tier) {
         super(info, new FluidDrillLogic());
         this.tier = tier;
-        this.displaySnapshotSubscription = new ConditionalSubscriptionHandler(this, this::refreshDisplaySnapshot,
+        this.displaySubscription = new ConditionalSubscriptionHandler(this, this::refreshDisplayText,
                 this::isFormed);
     }
 
@@ -89,8 +89,8 @@ public class FluidDrillMachine extends WorkableElectricMultiblockMachine {
     public void onLoad() {
         super.onLoad();
         if (!isRemote()) {
-            refreshDisplaySnapshot();
-            displaySnapshotSubscription.initialize(getLevel());
+            refreshDisplayText();
+            displaySubscription.initialize(getLevel());
         }
     }
 
@@ -98,8 +98,8 @@ public class FluidDrillMachine extends WorkableElectricMultiblockMachine {
     public void formStructure(String structureName) {
         super.formStructure(structureName);
         if (DEFAULT_STRUCTURE.equals(structureName) && !isRemote()) {
-            refreshDisplaySnapshot();
-            displaySnapshotSubscription.updateSubscription();
+            refreshDisplayText();
+            displaySubscription.updateSubscription();
         }
     }
 
@@ -107,8 +107,8 @@ public class FluidDrillMachine extends WorkableElectricMultiblockMachine {
     public void invalidateStructure(String structureName) {
         super.invalidateStructure(structureName);
         if (DEFAULT_STRUCTURE.equals(structureName) && !isRemote()) {
-            refreshDisplaySnapshot();
-            displaySnapshotSubscription.updateSubscription();
+            refreshDisplayText();
+            displaySubscription.updateSubscription();
         }
     }
 
@@ -125,19 +125,19 @@ public class FluidDrillMachine extends WorkableElectricMultiblockMachine {
     }
 
     private void clearDisplayRuntimeState() {
-        displaySnapshot = List.of();
-        displaySnapshotSubscription.unsubscribe();
+        displayText = List.of();
+        displaySubscription.unsubscribe();
     }
 
     @Override
     public void addDisplayText(List<Component> textList) {
-        textList.addAll(displaySnapshot);
+        textList.addAll(displayText);
     }
 
-    void refreshDisplaySnapshot() {
-        List<Component> nextSnapshot = createDisplaySnapshot(captureDisplayState());
-        if (!displaySnapshot.equals(nextSnapshot)) {
-            displaySnapshot = nextSnapshot;
+    void refreshDisplayText() {
+        List<Component> nextText = createDisplayText(captureDisplayState());
+        if (!displayText.equals(nextText)) {
+            displayText = nextText;
         }
     }
 
@@ -164,7 +164,7 @@ public class FluidDrillMachine extends WorkableElectricMultiblockMachine {
         return new DisplayState(formed, energyTier, veinFluid, fluidPerSecond);
     }
 
-    static List<Component> createDisplaySnapshot(DisplayState state) {
+    static List<Component> createDisplayText(DisplayState state) {
         List<Component> text = new ArrayList<>(3);
         if (state.formed()) {
             long maxVoltage = GTValues.V[state.energyTier()];

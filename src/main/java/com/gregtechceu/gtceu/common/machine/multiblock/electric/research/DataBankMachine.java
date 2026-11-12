@@ -66,15 +66,15 @@ public class DataBankMachine extends WorkableElectricMultiblockMachine
 
     @Nullable
     protected TickableSubscription tickSubs;
-    private final ConditionalSubscriptionHandler displaySnapshotSubscription;
+    private final ConditionalSubscriptionHandler displaySubscription;
     @Getter(AccessLevel.PACKAGE)
     @SyncToClient
-    private List<Component> displaySnapshot = List.of();
+    private List<Component> displayText = List.of();
 
     public DataBankMachine(BlockEntityCreationInfo info) {
         super(info);
         this.energyContainer = EnergyContainerList.EMPTY;
-        this.displaySnapshotSubscription = new ConditionalSubscriptionHandler(this, this::refreshDisplaySnapshot,
+        this.displaySubscription = new ConditionalSubscriptionHandler(this, this::refreshDisplayText,
                 this::isFormed);
     }
 
@@ -123,8 +123,8 @@ public class DataBankMachine extends WorkableElectricMultiblockMachine
         updateTickSubscription();
         notifyListeners();
         if (!isRemote()) {
-            refreshDisplaySnapshot();
-            displaySnapshotSubscription.updateSubscription();
+            refreshDisplayText();
+            displaySubscription.updateSubscription();
         }
     }
 
@@ -163,8 +163,8 @@ public class DataBankMachine extends WorkableElectricMultiblockMachine
             this.transmitters.clear();
             updateTickSubscription();
             if (!isRemote()) {
-                refreshDisplaySnapshot();
-                displaySnapshotSubscription.updateSubscription();
+                refreshDisplayText();
+                displaySubscription.updateSubscription();
             }
         }
     }
@@ -214,8 +214,8 @@ public class DataBankMachine extends WorkableElectricMultiblockMachine
     public void onLoad() {
         super.onLoad();
         if (!isRemote()) {
-            refreshDisplaySnapshot();
-            displaySnapshotSubscription.initialize(getLevel());
+            refreshDisplayText();
+            displaySubscription.initialize(getLevel());
         }
         scheduleForNextServerTick(this::updateTickSubscription);
     }
@@ -237,8 +237,8 @@ public class DataBankMachine extends WorkableElectricMultiblockMachine
             tickSubs.unsubscribe();
             tickSubs = null;
         }
-        displaySnapshot = List.of();
-        displaySnapshotSubscription.unsubscribe();
+        displayText = List.of();
+        displaySubscription.unsubscribe();
     }
 
     protected void updateTickSubscription() {
@@ -280,7 +280,7 @@ public class DataBankMachine extends WorkableElectricMultiblockMachine
         if (wasProviding != getWorkLogic().isWorking()) {
             notifyListeners();
         }
-        refreshDisplaySnapshot();
+        refreshDisplayText();
         updateTickSubscription();
     }
 
@@ -288,20 +288,20 @@ public class DataBankMachine extends WorkableElectricMultiblockMachine
     public void setWorkingEnabled(boolean isWorkingAllowed) {
         super.setWorkingEnabled(isWorkingAllowed);
         if (!isRemote()) {
-            refreshDisplaySnapshot();
+            refreshDisplayText();
         }
     }
 
     @Override
     public void addDisplayText(List<Component> textList) {
-        textList.addAll(displaySnapshot);
+        textList.addAll(displayText);
     }
 
-    void refreshDisplaySnapshot() {
+    void refreshDisplayText() {
         DisplayState state = captureDisplayState(isFormed(), isWorkingEnabled(), isActive(), getEnergyUsage());
-        List<Component> nextSnapshot = createDisplaySnapshot(state);
-        if (!displaySnapshot.equals(nextSnapshot)) {
-            displaySnapshot = nextSnapshot;
+        List<Component> nextText = createDisplayText(state);
+        if (!displayText.equals(nextText)) {
+            displayText = nextText;
         }
     }
 
@@ -309,7 +309,7 @@ public class DataBankMachine extends WorkableElectricMultiblockMachine
         return new DisplayState(formed, workingEnabled, active, energyUsage);
     }
 
-    static List<Component> createDisplaySnapshot(DisplayState state) {
+    static List<Component> createDisplayText(DisplayState state) {
         List<Component> text = new ArrayList<>(2);
         MultiblockDisplayText.builder(text, state.formed())
                 .setWorkingStatus(true, state.active() && state.workingEnabled())

@@ -200,10 +200,10 @@ public class TextModuleBehaviour implements IMonitorModuleItem, IAddInformation 
 
     /** Captures editable data without placeholder identity and server-derived display text. */
     public static ItemStack captureExpectedModule(ItemStack module) {
-        ItemStack snapshot = module.copy();
-        snapshot.remove(GTDataComponents.TEXT_LINE_LIST.get());
-        snapshot.remove(GTDataComponents.PLACEHOLDER_UUID.get());
-        return snapshot;
+        ItemStack moduleCopy = module.copy();
+        moduleCopy.remove(GTDataComponents.TEXT_LINE_LIST.get());
+        moduleCopy.remove(GTDataComponents.PLACEHOLDER_UUID.get());
+        return moduleCopy;
     }
 
     /** Compares stable module data while allowing derived display components to change. */

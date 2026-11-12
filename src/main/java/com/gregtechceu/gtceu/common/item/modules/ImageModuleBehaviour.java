@@ -89,9 +89,9 @@ public class ImageModuleBehaviour implements IMonitorModuleItem {
 
     /** Captures editable module data without the server-derived display text. */
     public static ItemStack captureExpectedModule(ItemStack module) {
-        ItemStack snapshot = module.copy();
-        snapshot.remove(GTDataComponents.TEXT_LINE_LIST.get());
-        return snapshot;
+        ItemStack moduleCopy = module.copy();
+        moduleCopy.remove(GTDataComponents.TEXT_LINE_LIST.get());
+        return moduleCopy;
     }
 
     /** Compares stable module data so server-derived display changes do not invalidate an editor. */

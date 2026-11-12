@@ -50,14 +50,14 @@ public class NetworkSwitchMachine extends WorkableElectricMultiblockMachine {
 
     @Nullable
     protected TickableSubscription tickSubs;
-    private final ConditionalSubscriptionHandler displaySnapshotSubscription;
+    private final ConditionalSubscriptionHandler displaySubscription;
     @Getter(AccessLevel.PACKAGE)
     @SyncToClient
-    private List<Component> displaySnapshot = List.of();
+    private List<Component> displayText = List.of();
 
     public NetworkSwitchMachine(BlockEntityCreationInfo info) {
         super(info);
-        this.displaySnapshotSubscription = new ConditionalSubscriptionHandler(this, this::refreshDisplaySnapshot,
+        this.displaySubscription = new ConditionalSubscriptionHandler(this, this::refreshDisplayText,
                 this::isFormed);
     }
 
@@ -84,8 +84,8 @@ public class NetworkSwitchMachine extends WorkableElectricMultiblockMachine {
         updateTickSubscription();
         markComputationTopologyDirty();
         if (!isRemote()) {
-            refreshDisplaySnapshot();
-            displaySnapshotSubscription.updateSubscription();
+            refreshDisplayText();
+            displaySubscription.updateSubscription();
         }
     }
 
@@ -97,8 +97,8 @@ public class NetworkSwitchMachine extends WorkableElectricMultiblockMachine {
         updateComputationBridgeActive(false);
         updateTickSubscription();
         if (!isRemote()) {
-            refreshDisplaySnapshot();
-            displaySnapshotSubscription.updateSubscription();
+            refreshDisplayText();
+            displaySubscription.updateSubscription();
         }
     }
 
@@ -106,8 +106,8 @@ public class NetworkSwitchMachine extends WorkableElectricMultiblockMachine {
     public void onLoad() {
         super.onLoad();
         if (!isRemote()) {
-            refreshDisplaySnapshot();
-            displaySnapshotSubscription.initialize(getLevel());
+            refreshDisplayText();
+            displaySubscription.initialize(getLevel());
         }
         scheduleForNextServerTick(this::updateTickSubscription);
     }
@@ -131,8 +131,8 @@ public class NetworkSwitchMachine extends WorkableElectricMultiblockMachine {
             tickSubs.unsubscribe();
             tickSubs = null;
         }
-        displaySnapshot = List.of();
-        displaySnapshotSubscription.unsubscribe();
+        displayText = List.of();
+        displaySubscription.unsubscribe();
     }
 
     protected void updateTickSubscription() {
@@ -149,7 +149,7 @@ public class NetworkSwitchMachine extends WorkableElectricMultiblockMachine {
             updateComputationBridgeActive(false);
             getWorkLogic().setWaiting(Component.translatable("gtpm.recipe_logic.insufficient_in").append(": ")
                     .append(EURecipeCapability.CAP.getName()));
-            refreshDisplaySnapshot();
+            refreshDisplayText();
             updateTickSubscription();
             return;
         }
@@ -164,7 +164,7 @@ public class NetworkSwitchMachine extends WorkableElectricMultiblockMachine {
                     .append(EURecipeCapability.CAP.getName()));
             updateComputationBridgeActive(false);
         }
-        refreshDisplaySnapshot();
+        refreshDisplayText();
         updateTickSubscription();
     }
 
@@ -231,21 +231,21 @@ public class NetworkSwitchMachine extends WorkableElectricMultiblockMachine {
         }
         updateTickSubscription();
         if (!isRemote()) {
-            refreshDisplaySnapshot();
+            refreshDisplayText();
         }
     }
 
     @Override
     public void addDisplayText(List<Component> textList) {
-        textList.addAll(displaySnapshot);
+        textList.addAll(displayText);
     }
 
-    void refreshDisplaySnapshot() {
+    void refreshDisplayText() {
         DisplayState state = captureDisplayState(isFormed(), isWorkingEnabled(), isActive(),
                 computationBridgeActive, getEnergyUsage(), getMaxCWUt(), getUsedCWUt());
-        List<Component> nextSnapshot = createDisplaySnapshot(state);
-        if (!displaySnapshot.equals(nextSnapshot)) {
-            displaySnapshot = nextSnapshot;
+        List<Component> nextText = createDisplayText(state);
+        if (!displayText.equals(nextText)) {
+            displayText = nextText;
         }
     }
 
@@ -258,7 +258,7 @@ public class NetworkSwitchMachine extends WorkableElectricMultiblockMachine {
                 computationAvailable ? rawUsedCWUt : 0);
     }
 
-    static List<Component> createDisplaySnapshot(DisplayState state) {
+    static List<Component> createDisplayText(DisplayState state) {
         List<Component> text = new ArrayList<>(4);
         MultiblockDisplayText.builder(text, state.formed())
                 .setWorkingStatus(true, state.active() && state.workingEnabled())

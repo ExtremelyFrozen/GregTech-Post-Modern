@@ -49,15 +49,15 @@ public class ResearchStationMachine extends WorkableElectricMultiblockMachine {
     @Getter
     private @Nullable ObjectHolderMachine objectHolder;
     @Getter(AccessLevel.PACKAGE)
-    private final ConditionalSubscriptionHandler displaySnapshotSubscription;
+    private final ConditionalSubscriptionHandler displaySubscription;
     @Getter(AccessLevel.PACKAGE)
     @SyncToClient
-    private List<Component> displaySnapshot = List.of();
+    private List<Component> displayText = List.of();
 
     public ResearchStationMachine(BlockEntityCreationInfo info) {
         super(info);
         this.importComputation = attachTrait(new NetworkedComputationContainer(IO.IN));
-        this.displaySnapshotSubscription = new ConditionalSubscriptionHandler(this, this::refreshDisplaySnapshot,
+        this.displaySubscription = new ConditionalSubscriptionHandler(this, this::refreshDisplayText,
                 this::isFormed);
     }
 
@@ -65,8 +65,8 @@ public class ResearchStationMachine extends WorkableElectricMultiblockMachine {
     public void onLoad() {
         super.onLoad();
         if (!isRemote()) {
-            refreshDisplaySnapshot();
-            displaySnapshotSubscription.initialize(getLevel());
+            refreshDisplayText();
+            displaySubscription.initialize(getLevel());
         }
     }
 
@@ -89,8 +89,8 @@ public class ResearchStationMachine extends WorkableElectricMultiblockMachine {
             return;
         }
         if (!isRemote()) {
-            refreshDisplaySnapshot();
-            displaySnapshotSubscription.updateSubscription();
+            refreshDisplayText();
+            displaySubscription.updateSubscription();
         }
     }
 
@@ -119,8 +119,8 @@ public class ResearchStationMachine extends WorkableElectricMultiblockMachine {
         }
         super.invalidateStructure(structureName);
         if (defaultStructure && !isRemote()) {
-            refreshDisplaySnapshot();
-            displaySnapshotSubscription.updateSubscription();
+            refreshDisplayText();
+            displaySubscription.updateSubscription();
         }
     }
 
@@ -137,8 +137,8 @@ public class ResearchStationMachine extends WorkableElectricMultiblockMachine {
     }
 
     private void clearDisplayRuntimeState() {
-        displaySnapshot = List.of();
-        displaySnapshotSubscription.unsubscribe();
+        displayText = List.of();
+        displaySubscription.unsubscribe();
     }
 
     @Override
@@ -163,19 +163,19 @@ public class ResearchStationMachine extends WorkableElectricMultiblockMachine {
     public void setWorkingEnabled(boolean isWorkingAllowed) {
         super.setWorkingEnabled(isWorkingAllowed);
         if (!isRemote()) {
-            refreshDisplaySnapshot();
+            refreshDisplayText();
         }
     }
 
     @Override
     public void addDisplayText(List<Component> textList) {
-        textList.addAll(displaySnapshot);
+        textList.addAll(displayText);
     }
 
-    void refreshDisplaySnapshot() {
-        List<Component> nextSnapshot = createDisplaySnapshot(captureDisplayState());
-        if (!displaySnapshot.equals(nextSnapshot)) {
-            displaySnapshot = nextSnapshot;
+    void refreshDisplayText() {
+        List<Component> nextText = createDisplayText(captureDisplayState());
+        if (!displayText.equals(nextText)) {
+            displayText = nextText;
         }
     }
 
@@ -192,7 +192,7 @@ public class ResearchStationMachine extends WorkableElectricMultiblockMachine {
                 progressPercent);
     }
 
-    static List<Component> createDisplaySnapshot(DisplayState state) {
+    static List<Component> createDisplayText(DisplayState state) {
         List<Component> text = new ArrayList<>(5);
         MultiblockDisplayText.builder(text, state.formed())
                 .setWorkingStatus(state.workingEnabled(), state.active())

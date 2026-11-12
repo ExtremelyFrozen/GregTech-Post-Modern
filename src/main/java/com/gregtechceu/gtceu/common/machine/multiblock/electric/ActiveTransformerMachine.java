@@ -54,9 +54,9 @@ public class ActiveTransformerMachine extends WorkableElectricMultiblockMachine 
     private EnergyContainerList powerOutput;
     private EnergyContainerList powerInput;
     protected ConditionalSubscriptionHandler converterSubscription;
-    private final ConditionalSubscriptionHandler displaySnapshotSubscription;
+    private final ConditionalSubscriptionHandler displaySubscription;
     @SyncToClient
-    private List<Component> displaySnapshot = List.of();
+    private List<Component> displayText = List.of();
 
     public ActiveTransformerMachine(BlockEntityCreationInfo info) {
         super(info);
@@ -65,7 +65,7 @@ public class ActiveTransformerMachine extends WorkableElectricMultiblockMachine 
 
         this.converterSubscription = new ConditionalSubscriptionHandler(this, this::convertEnergyTick,
                 this::isSubscriptionActive);
-        this.displaySnapshotSubscription = new ConditionalSubscriptionHandler(this, this::refreshDisplaySnapshot,
+        this.displaySubscription = new ConditionalSubscriptionHandler(this, this::refreshDisplayText,
                 this::isFormed);
     }
 
@@ -135,8 +135,8 @@ public class ActiveTransformerMachine extends WorkableElectricMultiblockMachine 
         this.powerInput = new EnergyContainerList(powerInput);
 
         if (!isRemote()) {
-            refreshDisplaySnapshot();
-            displaySnapshotSubscription.updateSubscription();
+            refreshDisplayText();
+            displaySubscription.updateSubscription();
         }
         converterSubscription.updateSubscription();
     }
@@ -190,10 +190,10 @@ public class ActiveTransformerMachine extends WorkableElectricMultiblockMachine 
     private void resetTransferRuntimeState() {
         this.powerOutput = EnergyContainerList.EMPTY;
         this.powerInput = EnergyContainerList.EMPTY;
-        this.displaySnapshot = List.of();
+        this.displayText = List.of();
         getWorkLogic().setStatus(WorkLogic.Status.SUSPEND);
         converterSubscription.unsubscribe();
-        displaySnapshotSubscription.unsubscribe();
+        displaySubscription.unsubscribe();
     }
 
     public static PatternPredicate getHatchPatternPredicates() {
@@ -207,15 +207,15 @@ public class ActiveTransformerMachine extends WorkableElectricMultiblockMachine 
 
     @Override
     public void addDisplayText(@NotNull List<Component> textList) {
-        textList.addAll(displaySnapshot);
+        textList.addAll(displayText);
     }
 
-    private void refreshDisplaySnapshot() {
+    private void refreshDisplayText() {
         DisplayState state = captureDisplayState(isFormed(), isWorkingEnabled(), isActive(), powerInput, powerOutput,
                 !ConfigHolder.INSTANCE.machines.harmlessActiveTransformers);
-        List<Component> nextSnapshot = createDisplaySnapshot(state);
-        if (!displaySnapshot.equals(nextSnapshot)) {
-            displaySnapshot = nextSnapshot;
+        List<Component> nextText = createDisplayText(state);
+        if (!displayText.equals(nextText)) {
+            displayText = nextText;
         }
     }
 
@@ -228,7 +228,7 @@ public class ActiveTransformerMachine extends WorkableElectricMultiblockMachine 
                 Math.abs(powerOutput.getOutputPerSec() / 20), dangerEnabled);
     }
 
-    static List<Component> createDisplaySnapshot(DisplayState state) {
+    static List<Component> createDisplayText(DisplayState state) {
         if (!state.formed()) {
             return List.of();
         }

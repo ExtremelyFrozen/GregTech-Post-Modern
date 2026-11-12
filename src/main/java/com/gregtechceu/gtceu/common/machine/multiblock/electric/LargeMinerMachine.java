@@ -80,17 +80,17 @@ public class LargeMinerMachine extends WorkableElectricMultiblockMachine
     @Getter(AccessLevel.PACKAGE)
     private final int drillingFluidConsumePerTick;
     @Getter(AccessLevel.PACKAGE)
-    private final ConditionalSubscriptionHandler displaySnapshotSubscription;
+    private final ConditionalSubscriptionHandler displaySubscription;
     @Getter(AccessLevel.PACKAGE)
     @SyncToClient
-    private List<Component> displaySnapshot = List.of();
+    private List<Component> displayText = List.of();
 
     public LargeMinerMachine(BlockEntityCreationInfo info, int tier, int speed, int maximumChunkDiameter, int fortune,
                              int drillingFluidConsumePerTick) {
         super(info, new LargeMinerLogic(fortune, speed, maximumChunkDiameter * CHUNK_LENGTH / 2));
         this.tier = tier;
         this.drillingFluidConsumePerTick = drillingFluidConsumePerTick;
-        this.displaySnapshotSubscription = new ConditionalSubscriptionHandler(this, this::refreshDisplaySnapshot,
+        this.displaySubscription = new ConditionalSubscriptionHandler(this, this::refreshDisplayText,
                 this::isFormed);
     }
 
@@ -121,8 +121,8 @@ public class LargeMinerMachine extends WorkableElectricMultiblockMachine
     public void onLoad() {
         super.onLoad();
         if (!isRemote()) {
-            refreshDisplaySnapshot();
-            displaySnapshotSubscription.initialize(getLevel());
+            refreshDisplayText();
+            displaySubscription.initialize(getLevel());
         }
     }
 
@@ -134,8 +134,8 @@ public class LargeMinerMachine extends WorkableElectricMultiblockMachine
         getRecipeLogic().setDir(opposite == Direction.NORTH ? Direction.UP : Direction.DOWN);
         initializeAbilities();
         if (!isRemote()) {
-            refreshDisplaySnapshot();
-            displaySnapshotSubscription.updateSubscription();
+            refreshDisplayText();
+            displaySubscription.updateSubscription();
         }
     }
 
@@ -143,8 +143,8 @@ public class LargeMinerMachine extends WorkableElectricMultiblockMachine
     public void invalidateStructure(String structureName) {
         super.invalidateStructure(structureName);
         if (DEFAULT_STRUCTURE.equals(structureName) && !isRemote()) {
-            refreshDisplaySnapshot();
-            displaySnapshotSubscription.updateSubscription();
+            refreshDisplayText();
+            displaySubscription.updateSubscription();
         }
     }
 
@@ -161,8 +161,8 @@ public class LargeMinerMachine extends WorkableElectricMultiblockMachine
     }
 
     private void clearDisplayRuntimeState() {
-        displaySnapshot = List.of();
-        displaySnapshotSubscription.unsubscribe();
+        displayText = List.of();
+        displaySubscription.unsubscribe();
     }
 
     @Override
@@ -248,15 +248,15 @@ public class LargeMinerMachine extends WorkableElectricMultiblockMachine
     //////////////////////////////////////
     @Override
     public void addDisplayText(List<Component> textList) {
-        textList.addAll(displaySnapshot);
+        textList.addAll(displayText);
     }
 
-    void refreshDisplaySnapshot() {
-        List<Component> nextSnapshot = new ArrayList<>();
-        collectServerDisplayText(nextSnapshot);
-        nextSnapshot = List.copyOf(nextSnapshot);
-        if (!displaySnapshot.equals(nextSnapshot)) {
-            displaySnapshot = nextSnapshot;
+    void refreshDisplayText() {
+        List<Component> nextText = new ArrayList<>();
+        collectServerDisplayText(nextText);
+        nextText = List.copyOf(nextText);
+        if (!displayText.equals(nextText)) {
+            displayText = nextText;
         }
     }
 
@@ -335,7 +335,7 @@ public class LargeMinerMachine extends WorkableElectricMultiblockMachine
             return;
         }
         logic.setSilkTouchMode(!logic.isSilkTouchMode());
-        refreshDisplaySnapshot();
+        refreshDisplayText();
     }
 
     @RPCMethod
@@ -345,7 +345,7 @@ public class LargeMinerMachine extends WorkableElectricMultiblockMachine
             return;
         }
         logic.setChunkMode(!logic.isChunkMode());
-        refreshDisplaySnapshot();
+        refreshDisplayText();
     }
 
     //////////////////////////////////////

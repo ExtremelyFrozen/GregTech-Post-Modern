@@ -70,18 +70,18 @@ public class LargeCombustionEngineMachine extends WorkableElectricMultiblockMach
     private boolean isOxygenBoosted = false;
     private int runningTimer = 0;
     @Getter(AccessLevel.PACKAGE)
-    private final ConditionalSubscriptionHandler displaySnapshotSubscription;
+    private final ConditionalSubscriptionHandler displaySubscription;
     @Getter(AccessLevel.PACKAGE)
     @SyncToClient
-    private List<Component> displaySnapshot = List.of();
+    private List<Component> displayText = List.of();
     @Getter(AccessLevel.PACKAGE)
     @SyncToClient
-    private boolean intakeObstructionSnapshot;
+    private boolean intakeObstructed;
 
     public LargeCombustionEngineMachine(BlockEntityCreationInfo info, int tier) {
         super(info);
         this.tier = tier;
-        displaySnapshotSubscription = new ConditionalSubscriptionHandler(this, this::refreshDisplaySnapshot,
+        displaySubscription = new ConditionalSubscriptionHandler(this, this::refreshDisplayText,
                 this::isFormed);
     }
 
@@ -105,8 +105,8 @@ public class LargeCombustionEngineMachine extends WorkableElectricMultiblockMach
     public void onLoad() {
         super.onLoad();
         if (!isRemote()) {
-            refreshDisplaySnapshot();
-            displaySnapshotSubscription.initialize(getLevel());
+            refreshDisplayText();
+            displaySubscription.initialize(getLevel());
         }
     }
 
@@ -114,34 +114,34 @@ public class LargeCombustionEngineMachine extends WorkableElectricMultiblockMach
     public void formStructure(String structureName) {
         super.formStructure(structureName);
         if (!DEFAULT_STRUCTURE.equals(structureName) || isRemote()) return;
-        refreshDisplaySnapshot();
-        displaySnapshotSubscription.updateSubscription();
+        refreshDisplayText();
+        displaySubscription.updateSubscription();
     }
 
     @Override
     public void invalidateStructure(String structureName) {
         super.invalidateStructure(structureName);
         if (!DEFAULT_STRUCTURE.equals(structureName) || isRemote()) return;
-        refreshDisplaySnapshot();
-        displaySnapshotSubscription.updateSubscription();
+        refreshDisplayText();
+        displaySubscription.updateSubscription();
     }
 
     @Override
     public void onUnload() {
         super.onUnload();
-        resetDisplaySnapshot();
+        resetDisplayText();
     }
 
     @Override
     public void onPartUnload() {
         super.onPartUnload();
-        resetDisplaySnapshot();
+        resetDisplayText();
     }
 
-    private void resetDisplaySnapshot() {
-        displaySnapshot = List.of();
-        intakeObstructionSnapshot = false;
-        displaySnapshotSubscription.unsubscribe();
+    private void resetDisplayText() {
+        displayText = List.of();
+        intakeObstructed = false;
+        displaySubscription.unsubscribe();
     }
 
     private boolean isExtreme() {
@@ -254,18 +254,18 @@ public class LargeCombustionEngineMachine extends WorkableElectricMultiblockMach
 
     @Override
     public void addDisplayText(List<Component> textList) {
-        textList.addAll(displaySnapshot);
+        textList.addAll(displayText);
     }
 
-    void refreshDisplaySnapshot() {
-        List<Component> nextSnapshot = createDisplaySnapshot(captureDisplayState());
-        if (!displaySnapshot.equals(nextSnapshot)) {
-            displaySnapshot = nextSnapshot;
+    void refreshDisplayText() {
+        List<Component> nextText = createDisplayText(captureDisplayState());
+        if (!displayText.equals(nextText)) {
+            displayText = nextText;
         }
 
         boolean nextIntakeObstruction = isFormed() && isIntakesObstructed();
-        if (intakeObstructionSnapshot != nextIntakeObstruction) {
-            intakeObstructionSnapshot = nextIntakeObstruction;
+        if (intakeObstructed != nextIntakeObstruction) {
+            intakeObstructed = nextIntakeObstruction;
         }
     }
 
@@ -280,7 +280,7 @@ public class LargeCombustionEngineMachine extends WorkableElectricMultiblockMach
                 recipeLogic.getDuration(), isOxygenBoosted);
     }
 
-    static List<Component> createDisplaySnapshot(DisplayState state) {
+    static List<Component> createDisplayText(DisplayState state) {
         List<Component> text = new ArrayList<>();
         MultiblockDisplayText.Builder builder = MultiblockDisplayText.builder(text, state.formed())
                 .setWorkingStatus(state.workingEnabled(), state.active());
@@ -379,7 +379,7 @@ public class LargeCombustionEngineMachine extends WorkableElectricMultiblockMach
                 () -> GuiTextures.INDICATOR_NO_STEAM.get(false),
                 () -> List.of(Component.translatable("gtpm.multiblock.large_combustion_engine.obstructed")
                         .setStyle(Style.EMPTY.withColor(ChatFormatting.RED))),
-                LargeCombustionEngineMachine.this::isIntakeObstructionSnapshot,
+                LargeCombustionEngineMachine.this::isIntakeObstructed,
                 () -> null));
     }
 }

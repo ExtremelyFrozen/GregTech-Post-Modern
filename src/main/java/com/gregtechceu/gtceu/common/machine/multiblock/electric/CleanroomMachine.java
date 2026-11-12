@@ -89,17 +89,17 @@ public class CleanroomMachine extends WorkableElectricMultiblockMachine
 
     private final CleanroomProviderTrait cleanroomProviderTrait;
     @Getter(AccessLevel.PACKAGE)
-    private final ConditionalSubscriptionHandler displaySnapshotSubscription;
+    private final ConditionalSubscriptionHandler displaySubscription;
     @Getter(AccessLevel.PACKAGE)
     @SyncToClient
-    private List<Component> displaySnapshot = List.of();
+    private List<Component> displayText = List.of();
     private boolean displayControllerLoaded;
     private boolean displayStructureAvailable;
 
     public CleanroomMachine(BlockEntityCreationInfo info) {
         super(info, new CleanroomLogic());
         this.cleanroomProviderTrait = attachTrait(new CleanroomProviderTrait());
-        this.displaySnapshotSubscription = new ConditionalSubscriptionHandler(this, this::refreshDisplaySnapshot,
+        this.displaySubscription = new ConditionalSubscriptionHandler(this, this::refreshDisplayText,
                 () -> displayControllerLoaded && displayStructureAvailable && isFormed());
     }
 
@@ -118,8 +118,8 @@ public class CleanroomMachine extends WorkableElectricMultiblockMachine
         if (!isRemote()) {
             displayControllerLoaded = true;
             displayStructureAvailable = isFormed();
-            refreshDisplaySnapshot();
-            displaySnapshotSubscription.initialize(getLevel());
+            refreshDisplayText();
+            displaySubscription.initialize(getLevel());
         }
     }
 
@@ -165,8 +165,8 @@ public class CleanroomMachine extends WorkableElectricMultiblockMachine
         this.getRecipeLogic().setDuration(Math.max(100, (int) duration));
         if (!isRemote()) {
             displayStructureAvailable = true;
-            refreshDisplaySnapshot();
-            displaySnapshotSubscription.updateSubscription();
+            refreshDisplayText();
+            displaySubscription.updateSubscription();
         }
     }
 
@@ -183,8 +183,8 @@ public class CleanroomMachine extends WorkableElectricMultiblockMachine
         }
         if (!isRemote()) {
             displayStructureAvailable = false;
-            refreshDisplaySnapshot();
-            displaySnapshotSubscription.updateSubscription();
+            refreshDisplayText();
+            displaySubscription.updateSubscription();
         }
     }
 
@@ -203,8 +203,8 @@ public class CleanroomMachine extends WorkableElectricMultiblockMachine
 
     private void suspendDisplayRuntimeState() {
         displayStructureAvailable = false;
-        displaySnapshot = List.of();
-        displaySnapshotSubscription.unsubscribe();
+        displayText = List.of();
+        displaySubscription.unsubscribe();
     }
 
     @Override
@@ -349,20 +349,20 @@ public class CleanroomMachine extends WorkableElectricMultiblockMachine
 
     @Override
     public void addDisplayText(List<Component> textList) {
-        textList.addAll(displaySnapshot);
+        textList.addAll(displayText);
     }
 
-    void refreshDisplaySnapshot() {
-        List<Component> nextSnapshot = new ArrayList<>();
-        collectServerDisplayText(nextSnapshot);
-        nextSnapshot = List.copyOf(nextSnapshot);
-        if (!displaySnapshot.equals(nextSnapshot)) {
-            displaySnapshot = nextSnapshot;
+    void refreshDisplayText() {
+        List<Component> nextText = new ArrayList<>();
+        collectServerDisplayText(nextText);
+        nextText = List.copyOf(nextText);
+        if (!displayText.equals(nextText)) {
+            displayText = nextText;
         }
     }
 
     protected void collectServerDisplayText(List<Component> textList) {
-        textList.addAll(createDisplaySnapshot(captureDisplayState()));
+        textList.addAll(createDisplayText(captureDisplayState()));
     }
 
     protected DisplayState captureDisplayState() {
@@ -373,7 +373,7 @@ public class CleanroomMachine extends WorkableElectricMultiblockMachine
                 lDist + rDist + 1, hDist + 1, fDist + bDist + 1);
     }
 
-    static List<Component> createDisplaySnapshot(DisplayState state) {
+    static List<Component> createDisplayText(DisplayState state) {
         List<Component> text = new ArrayList<>();
         if (state.formed()) {
             if (state.maxVoltage() > 0) {

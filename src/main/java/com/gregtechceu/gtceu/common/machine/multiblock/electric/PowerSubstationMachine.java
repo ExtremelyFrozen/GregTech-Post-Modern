@@ -101,16 +101,16 @@ public class PowerSubstationMachine extends WorkableMultiblockMachine
     private long outputPerSec;
 
     protected final ConditionalSubscriptionHandler tickSubscription;
-    private final ConditionalSubscriptionHandler displaySnapshotSubscription;
+    private final ConditionalSubscriptionHandler displaySubscription;
     @SyncToClient
-    private List<Component> displaySnapshot = List.of();
+    private List<Component> displayText = List.of();
 
     public PowerSubstationMachine(BlockEntityCreationInfo info) {
         super(info);
         this.inputHatches = EnergyContainerList.EMPTY;
         this.outputHatches = EnergyContainerList.EMPTY;
         this.tickSubscription = new ConditionalSubscriptionHandler(this, this::transferEnergyTick, this::isFormed);
-        this.displaySnapshotSubscription = new ConditionalSubscriptionHandler(this, this::refreshDisplaySnapshot,
+        this.displaySubscription = new ConditionalSubscriptionHandler(this, this::refreshDisplayText,
                 this::isFormed);
         this.energyBank = attachTrait(new PowerStationEnergyBank(List.of()));
     }
@@ -170,8 +170,8 @@ public class PowerSubstationMachine extends WorkableMultiblockMachine
         this.passiveDrain = this.energyBank.getPassiveDrainPerTick();
 
         if (!isRemote()) {
-            refreshDisplaySnapshot();
-            displaySnapshotSubscription.updateSubscription();
+            refreshDisplayText();
+            displaySubscription.updateSubscription();
         }
         tickSubscription.updateSubscription();
     }
@@ -208,9 +208,9 @@ public class PowerSubstationMachine extends WorkableMultiblockMachine
         this.inputPerSec = 0;
         this.netOutLastSec = 0;
         this.outputPerSec = 0;
-        this.displaySnapshot = List.of();
+        this.displayText = List.of();
         tickSubscription.unsubscribe();
-        displaySnapshotSubscription.unsubscribe();
+        displaySubscription.unsubscribe();
     }
 
     protected void transferEnergyTick() {
@@ -246,10 +246,10 @@ public class PowerSubstationMachine extends WorkableMultiblockMachine
 
     @Override
     public void addDisplayText(List<Component> textList) {
-        textList.addAll(displaySnapshot);
+        textList.addAll(displayText);
     }
 
-    void refreshDisplaySnapshot() {
+    void refreshDisplayText() {
         List<Component> partDisplay = new ArrayList<>();
         for (IMultiPart part : getParts()) {
             part.addMultiText(partDisplay);
@@ -261,14 +261,14 @@ public class PowerSubstationMachine extends WorkableMultiblockMachine
         DisplayState state = new DisplayState(formed, isWorkingEnabled(), isActive(), getWorkLogic().isWaiting(),
                 energyBank.getStored(), energyBank.getCapacity(), formed ? getPassiveDrain() : 0,
                 inputPerSec, outputPerSec, getLevel().tickRateManager().tickrate());
-        List<Component> nextSnapshot = createDisplaySnapshot(state, partDisplay, additionalDisplay);
-        if (!displaySnapshot.equals(nextSnapshot)) {
-            displaySnapshot = nextSnapshot;
+        List<Component> nextText = createDisplayText(state, partDisplay, additionalDisplay);
+        if (!displayText.equals(nextText)) {
+            displayText = nextText;
         }
     }
 
-    static List<Component> createDisplaySnapshot(DisplayState state, List<Component> partDisplay,
-                                                 List<Component> additionalDisplay) {
+    static List<Component> createDisplayText(DisplayState state, List<Component> partDisplay,
+                                             List<Component> additionalDisplay) {
         List<Component> text = new ArrayList<>(partDisplay.size() + additionalDisplay.size() + 8);
         text.addAll(partDisplay);
         if (state.formed()) {
@@ -341,8 +341,8 @@ public class PowerSubstationMachine extends WorkableMultiblockMachine
                         long inputPerSec, long outputPerSec, float tickRate) {}
 
     @VisibleForTesting
-    List<Component> getDisplaySnapshot() {
-        return displaySnapshot;
+    List<Component> getDisplayText() {
+        return displayText;
     }
 
     private static MutableComponent getTimeToFillDrainText(BigInteger timeToFillSeconds) {
