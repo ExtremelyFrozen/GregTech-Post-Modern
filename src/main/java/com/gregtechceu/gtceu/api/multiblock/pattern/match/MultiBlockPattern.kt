@@ -181,14 +181,20 @@ open class MultiBlockPattern private constructor(private val sourceDefinition: P
 				val upwardsFacing = controller.upwardsFacing
 				val allowFlip = controller.allowFlip()
 				var matched = false
+				val failures = PatternFailureSelection()
 				for (facing in facings) {
-					if (matcher.search(this, candidate, controller.blockPos, facing, upwardsFacing, false, false) ||
-						(allowFlip && matcher.search(this, candidate, controller.blockPos, facing, upwardsFacing, true, false))
-					) {
+					if (matcher.search(this, candidate, controller.blockPos, facing, upwardsFacing, false, false)) {
 						matched = true
 						break
 					}
+					failures.include(candidate)
+					if (allowFlip && matcher.search(this, candidate, controller.blockPos, facing, upwardsFacing, true, false)) {
+						matched = true
+						break
+					}
+					if (allowFlip) failures.include(candidate)
 				}
+				if (!matched) failures.apply(candidate)
 				matched
 			}
 		}
@@ -218,13 +224,17 @@ open class MultiBlockPattern private constructor(private val sourceDefinition: P
 		}
 		val upwardsFacing = controller.upwardsFacing
 		val allowsFlip = controller.allowFlip()
+		val failures = PatternFailureSelection()
 		for (direction in facings) {
 			val result = checkPatternAt(worldState, centerPos, direction, upwardsFacing, false, savePredicate)
 			if (result) return true
+			failures.include(worldState)
 			if (allowsFlip && checkPatternAt(worldState, centerPos, direction, upwardsFacing, true, savePredicate)) {
 				return true
 			}
+			if (allowsFlip) failures.include(worldState)
 		}
+		failures.apply(worldState)
 		return false
 	}
 

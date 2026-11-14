@@ -98,6 +98,7 @@ class PatternPreparation private constructor(
 		for ((scope, fact, count) in result.scopedCounts) facts.addScopedCount(scope, fact, count)
 		for ((key, _, reference) in result.properties) facts.set(key, compiler.value(reference))
 		val cache = PatternMatchCache(pattern, layout, center, front, up, flipped, repetitions.copyOf(), selections)
+		var matchedPositions = 0
 		for ((cell1, observation, io) in result.accepted) {
 			val capture = captures[cell1]
 			val cell = layout.cells[cell1]
@@ -109,6 +110,7 @@ class PatternPreparation private constructor(
 			if (capture.block.block is ActiveBlock) facts.getOrCreate("vaBlocks") { LongOpenHashSet() }.add(capture.position.asLong())
 			facts.getOrCreate("ioMap") { Long2ObjectOpenHashMap<IO?>() }[capture.position.asLong()] = state.io
 			cache.add(state, cell, compiler.restore(observation))
+			if (!cell.predicate.isAny()) matchedPositions++
 		}
 		// A failed position is part of the observed frontier, even when it contributed no successful cell.
 		for (capture in captures) for (dependency in capture.dependencies) state.addPosCache(BlockPos.of(dependency))
@@ -132,7 +134,7 @@ class PatternPreparation private constructor(
 			)
 			diagnostics.add(if (capture != null && expected == layout.cells[cell].token) layout.cells[cell].predicate.diagnose(diagnostic) else diagnostic)
 		}
-		val match = PatternMatchResult(result.matched, facts, ObjectLists.unmodifiable(diagnostics))
+		val match = PatternMatchResult(result.matched, facts, ObjectLists.unmodifiable(diagnostics), matchedPositions)
 		facts.set("pattern.diagnostics", match.diagnostics)
 		state.matchResult = match
 		if (result.matched) {

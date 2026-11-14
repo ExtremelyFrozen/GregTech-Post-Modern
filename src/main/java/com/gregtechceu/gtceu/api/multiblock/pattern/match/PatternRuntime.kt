@@ -120,6 +120,7 @@ internal class PatternRuntime(private val pattern: MultiBlockPattern, private va
 		val matchCache = PatternMatchCache(pattern, layout, center, front, up, flipped, repetitions.copyOf(), choices)
 		val reusable = previous?.takeIf { changed.isNotEmpty() && it.layout === layout && it.center == center && it.front == front && it.up == up && it.flipped == flipped }
 		var cellIndex = 0
+		var matchedPositions = 0
 		for ((path, repeatPath, depth, height, width, predicate, token, scopes) in cells) {
 			work.checkpoint()
 			if (cellIndex == 0 || previousDepth != depth) {
@@ -209,6 +210,7 @@ internal class PatternRuntime(private val pattern: MultiBlockPattern, private va
 			if (state.blockState.block is ActiveBlock) facts.getOrCreate("vaBlocks") { LongOpenHashSet() }.add(position.asLong())
 			facts.getOrCreate("ioMap") { Long2ObjectOpenHashMap<Any?>() }[position.asLong()] = state.io
 			matchCache.add(state, cells[cellIndex - 1], observation)
+			if (!predicate.isAny()) matchedPositions++
 		}
 		if (errors.isEmpty && (!pattern.checkLayerMinimums(state, state.layerCount, state.structureLayerCount) || !pattern.checkGlobalMinimums(state, state.globalCount, state.structureGlobalCount))) error("$", "", 0, 0, 0, center, "minimum count", "", 1)
 		for (constraint in definition.constraints) {
@@ -236,7 +238,7 @@ internal class PatternRuntime(private val pattern: MultiBlockPattern, private va
 				}
 			}
 		}
-		val result = PatternMatchResult(errors.isEmpty, facts, ObjectLists.unmodifiable(errors))
+		val result = PatternMatchResult(errors.isEmpty, facts, ObjectLists.unmodifiable(errors), matchedPositions)
 		lastResult = result
 		state.facts.set("pattern.diagnostics", result.diagnostics)
 		state.setError(if (result.matched) null else PatternStringError("gtpm.multiblock.pattern.error.constraint"))
@@ -262,6 +264,7 @@ internal class PatternRuntime(private val pattern: MultiBlockPattern, private va
 		val descriptors = pattern.getRepeatDescriptors()
 		val repetitions = IntArray(descriptors.size) { descriptors[it].minimum }
 		var selected = PatternSelections.empty()
+		val failures = PatternFailureSelection()
 		suspend fun explore(): Boolean {
 			work.checkpoint()
 			val layout = pattern.expandLayoutForMatch(work, repetitions, selected, measured)
@@ -274,7 +277,7 @@ internal class PatternRuntime(private val pattern: MultiBlockPattern, private va
 				for (step in search.steps) {
 					work.checkpoint()
 					val matched = when (step) {
-						is PatternModuleSearch.Step.Probe -> PatternModuleSearch.evaluate(work, pattern, state, center, front, up, flipped, repetitions, step, collection)
+						is PatternModuleSearch.Step.Probe -> PatternModuleSearch.evaluate(work, pattern, state, center, front, up, flipped, repetitions, step, collection).also { if (!it) failures.include(state) }
 
 						is PatternModuleSearch.Step.Continue -> {
 							selected = PatternSelections.of(step.selections)
@@ -296,11 +299,12 @@ internal class PatternRuntime(private val pattern: MultiBlockPattern, private va
 				}
 				search.failurePath?.let { path ->
 					val error = PatternDiagnostic(path, "", PatternCoordinate(0, 0, 0), center, null, "unique choice branch", "", 1)
-					lastResult = PatternMatchResult(false, state.facts, ObjectLists.singleton(error))
+					lastResult = PatternMatchResult(false, state.facts, ObjectLists.singleton(error), state.matchResult?.matchedPositions ?: 0)
 					state.matchResult = lastResult
 					state.setError(PatternStringError("gtpm.multiblock.pattern.error.ambiguous_choice"))
 				}
 				lastResult = state.matchResult
+				failures.include(state)
 				selected = baseline
 				return false
 			}
@@ -315,7 +319,7 @@ internal class PatternRuntime(private val pattern: MultiBlockPattern, private va
 				return false
 			}
 			val choice = layout.choices.firstOrNull { !selected.containsKey(it.path) }
-			if (choice == null) return match(work, state, center, front, up, flipped, save, repetitions, selected).matched
+			if (choice == null) return match(work, state, center, front, up, flipped, save, repetitions, selected).matched.also { if (!it) failures.include(state) }
 			val branch = choice.descriptor
 			val baseline = selected
 			var solution: PatternSelections? = null
@@ -326,9 +330,10 @@ internal class PatternRuntime(private val pattern: MultiBlockPattern, private va
 					if (branch.priority.isNotEmpty()) return true
 					if (solution != null) {
 						val error = PatternDiagnostic(choice.path, "", PatternCoordinate(0, 0, 0), center, null, "unique choice branch", "", 1)
-						lastResult = PatternMatchResult(false, state.facts, ObjectLists.singleton(error))
+						lastResult = PatternMatchResult(false, state.facts, ObjectLists.singleton(error), state.matchResult.matchedPositions)
 						state.setMatchResult(lastResult)
 						state.setError(PatternStringError("gtpm.multiblock.pattern.error.ambiguous_choice"))
+						failures.include(state)
 						return false
 					}
 					solution = selected
@@ -370,6 +375,8 @@ internal class PatternRuntime(private val pattern: MultiBlockPattern, private va
 			lastResult = state.matchResult
 			return true
 		}
-		return matched
+		failures.apply(state)
+		lastResult = state.matchResult
+		return false
 	}
 }
