@@ -1351,8 +1351,8 @@ public class LangHandler {
         provider.add("gtpm.structure.issue.variants", "%s (%s variants)");
         provider.add("gtpm.structure.issue.matching", "matching blocks");
         provider.add("gtpm.structure.issue.orientation", "Block facing does not match the structure");
-        provider.add("gtpm.structure.issue.coils", "coil types");
-        provider.add("gtpm.structure.issue.filters", "filter types");
+        provider.add("gtpm.structure.issue.coils", "Heating coils");
+        provider.add("gtpm.structure.issue.filters", "Filters");
         provider.add("gtpm.multiblock.autobuild.terminal.open_failed", "Could not open the terminal interface.");
         provider.add("gtpm.multiblock.autobuild.terminal.out_of_range", "The bound controller is out of reach.");
         provider.add("gtpm.multiblock.autobuild.terminal.result", "%s · P:%s R:%s");

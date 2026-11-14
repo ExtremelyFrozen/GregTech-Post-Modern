@@ -6203,6 +6203,6 @@
     "gtpm.structure.issue.variants": "%s (%s variants)",
     "gtpm.structure.issue.matching": "matching blocks",
     "gtpm.structure.issue.orientation": "Block facing does not match the structure",
-    "gtpm.structure.issue.coils": "coil types",
-    "gtpm.structure.issue.filters": "filter types"
+    "gtpm.structure.issue.coils": "Heating coils",
+    "gtpm.structure.issue.filters": "Filters"
 }
