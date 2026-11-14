@@ -58,6 +58,7 @@ import net.neoforged.neoforge.fluids.crafting.SizedFluidIngredient;
 import com.google.gson.JsonObject;
 import com.mojang.serialization.JsonOps;
 import dev.ftb.mods.ftbquests.quest.QuestObjectBase;
+import it.unimi.dsi.fastutil.objects.ObjectList;
 import it.unimi.dsi.fastutil.objects.Reference2LongOpenHashMap;
 import lombok.Getter;
 import lombok.Setter;
@@ -1569,8 +1570,8 @@ public class GTRecipeBuilder {
     }
 
     private void addOutputMaterialInfo() {
-        var itemOutputs = output.getOrDefault(ItemRecipeCapability.CAP, new ArrayList<>());
-        var itemInputs = input.getOrDefault(ItemRecipeCapability.CAP, new ArrayList<>());
+        var itemOutputs = output.getOrDefault(ItemRecipeCapability.CAP, ObjectList.of());
+        var itemInputs = input.getOrDefault(ItemRecipeCapability.CAP, ObjectList.of());
         if (itemOutputs.size() == 1 && (!itemInputs.isEmpty() || !tempFluidStacks.isEmpty())) {
             var currOutput = ItemRecipeCapability.CAP.of(itemOutputs.getFirst().content);
             Item out = null;
