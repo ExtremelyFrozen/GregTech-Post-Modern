@@ -64,10 +64,10 @@ open class PatternPredicate {
 		for (rule in limited) (rule.observedPredicate as? CombinedPredicate)?.preparedBranches?.forEach { it.collectDependencies(state, positions) }
 	}
 
-	open fun description(): Component = StructureIssue.alternatives(
-		ObjectArrayList<Component>().also { labels ->
-			for (rule in common) labels.add(rule.description())
-			for (rule in limited) labels.add(rule.description())
+	open fun description(state: MultiblockState, excluded: Block? = null): Component? = StructureIssue.alternatives(
+		ObjectArrayList<Component?>().also { labels ->
+			for (rule in common) labels.add(rule.description(state, excluded))
+			for (rule in limited) labels.add(rule.description(state, excluded))
 		},
 	)
 
@@ -76,7 +76,7 @@ open class PatternPredicate {
 		for (rule in limited) if (rule.observeCandidate(state.blockState).matched) return rule.diagnose(state, failure)
 		for (rule in common) if (rule.observeCandidate(state.blockState).matched) return rule.diagnose(state, failure)
 		if (limited.size + common.size == 1) (limited.firstOrNull() ?: common[0]).source?.let { return it.diagnose(state, failure) }
-		return failure.copy(issue = StructureIssue.mismatch(failure, description()))
+		return failure.copy(issue = StructureIssue.mismatch(failure, description(state, failure.actual?.block)))
 	}
 
 	/** Observes the actual rule without constructing entities or mutating runtime metadata. */

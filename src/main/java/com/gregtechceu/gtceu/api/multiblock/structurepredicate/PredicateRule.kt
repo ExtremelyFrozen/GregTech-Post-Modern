@@ -40,12 +40,15 @@ open class PredicateRule {
 	/** Retains the real observed runtime when OR/copy flattens its metadata rule. */
 	internal var observedPredicate: ObservedPatternPredicate? = null
 
-	fun description(): Component = source?.description() ?: StructureIssue.blocks(candidateStates().mapTo(ObjectArrayList()) { it.block })
+	fun description(state: MultiblockState, excluded: Block? = null): Component? {
+		val source = source
+		return if (source == null) StructureIssue.blocks(candidateStates().mapTo(ObjectArrayList()) { it.block }, excluded) else source.description(state, excluded)
+	}
 
 	internal fun diagnose(state: MultiblockState, failure: PatternDiagnostic): PatternDiagnostic {
-		if (maxCount >= 0 && state.globalCount.getInt(this) >= maxCount) return failure.copy(issue = StructureIssue.count(failure, StructureIssue.Count.MAXIMUM, description(), maxCount, maxCount + 1))
-		if (maxLayerCount >= 0 && state.layerCount.getInt(this) >= maxLayerCount) return failure.copy(issue = StructureIssue.count(failure, StructureIssue.Count.LAYER_MAXIMUM, description(), maxLayerCount, maxLayerCount + 1))
-		return source?.diagnose(state, failure) ?: observedPredicate?.diagnose(state, failure) ?: failure.copy(issue = StructureIssue.mismatch(failure, description()))
+		if (maxCount >= 0 && state.globalCount.getInt(this) >= maxCount) return failure.copy(issue = StructureIssue.count(failure, StructureIssue.Count.MAXIMUM, description(state), maxCount, maxCount + 1))
+		if (maxLayerCount >= 0 && state.layerCount.getInt(this) >= maxLayerCount) return failure.copy(issue = StructureIssue.count(failure, StructureIssue.Count.LAYER_MAXIMUM, description(state), maxLayerCount, maxLayerCount + 1))
+		return source?.diagnose(state, failure) ?: observedPredicate?.diagnose(state, failure) ?: failure.copy(issue = StructureIssue.mismatch(failure, state.predicate.description(state, failure.actual?.block)))
 	}
 
 	private var preparedPredicate: Predicate<MultiblockState>? = null

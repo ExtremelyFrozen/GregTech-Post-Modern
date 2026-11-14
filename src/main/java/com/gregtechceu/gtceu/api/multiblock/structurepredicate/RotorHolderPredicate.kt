@@ -31,7 +31,7 @@ data class RotorHolderPredicate(val tier: Int) : CategoryPredicate {
 	override fun type(): StructurePredicateType<*> = TYPE
 	override fun diagnose(state: MultiblockState, failure: PatternDiagnostic): PatternDiagnostic {
 		val rotor = state.blockEntity as? RotorHolderPartMachine
-		if (rotor == null || rotor.tier != tier) return failure.copy(issue = StructureIssue.mismatch(failure, description()))
+		if (rotor == null || rotor.tier != tier) return failure.copy(issue = StructureIssue.mismatch(failure, state.predicate.description(state, failure.actual?.block)))
 		val front = state.pos.relative(rotor.self().frontFacing)
 		state.recordRead(front)
 		val loaded = state.world.isLoaded(front)

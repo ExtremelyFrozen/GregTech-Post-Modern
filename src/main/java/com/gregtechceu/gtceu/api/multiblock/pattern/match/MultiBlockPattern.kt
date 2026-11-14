@@ -274,7 +274,7 @@ open class MultiBlockPattern private constructor(private val sourceDefinition: P
 	internal fun checkLayerMinimums(worldState: MultiblockState, layerCount: Object2IntMap<PredicateRule>, structureLayerCount: Object2IntMap<StructurePredicate>): Boolean {
 		for (entry in layerCount.object2IntEntrySet()) {
 			if (entry.intValue < entry.key.minLayerCount) {
-				worldState.setError(StructureIssue.count(null, StructureIssue.Count.LAYER_MINIMUM, entry.key.description(), entry.key.minLayerCount, entry.intValue))
+				worldState.setError(StructureIssue.count(null, StructureIssue.Count.LAYER_MINIMUM, entry.key.description(worldState), entry.key.minLayerCount, entry.intValue))
 				return false
 			}
 		}
@@ -283,7 +283,7 @@ open class MultiBlockPattern private constructor(private val sourceDefinition: P
 			if (predicate is RestrictedPredicate && predicate.minCountByLayer.isPresent &&
 				entry.intValue < predicate.minCountByLayer.get()
 			) {
-				worldState.setError(StructureIssue.count(null, StructureIssue.Count.LAYER_MINIMUM, predicate.description(), predicate.minCountByLayer.get(), entry.intValue))
+				worldState.setError(StructureIssue.count(null, StructureIssue.Count.LAYER_MINIMUM, predicate.description(worldState), predicate.minCountByLayer.get(), entry.intValue))
 				return false
 			}
 		}
@@ -293,7 +293,7 @@ open class MultiBlockPattern private constructor(private val sourceDefinition: P
 	internal fun checkGlobalMinimums(worldState: MultiblockState, globalCount: Object2IntMap<PredicateRule>, structureGlobalCount: Object2IntMap<StructurePredicate>): Boolean {
 		for (entry in globalCount.object2IntEntrySet()) {
 			if (entry.intValue < entry.key.minCount) {
-				worldState.setError(StructureIssue.count(null, StructureIssue.Count.MINIMUM, entry.key.description(), entry.key.minCount, entry.intValue))
+				worldState.setError(StructureIssue.count(null, StructureIssue.Count.MINIMUM, entry.key.description(worldState), entry.key.minCount, entry.intValue))
 				return false
 			}
 		}
@@ -302,7 +302,7 @@ open class MultiBlockPattern private constructor(private val sourceDefinition: P
 			if (predicate is RestrictedPredicate && predicate.minCount.isPresent &&
 				entry.intValue < predicate.minCount.get()
 			) {
-				worldState.setError(StructureIssue.count(null, StructureIssue.Count.MINIMUM, predicate.description(), predicate.minCount.get(), entry.intValue))
+				worldState.setError(StructureIssue.count(null, StructureIssue.Count.MINIMUM, predicate.description(worldState), predicate.minCount.get(), entry.intValue))
 				return false
 			}
 		}

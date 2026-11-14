@@ -148,7 +148,7 @@ class PatternPreparation private constructor(
 
 				PreparedProblemKind.SHARED -> diagnostic.copy(issue = StructureIssue.shared(diagnostic))
 
-				PreparedProblemKind.MINIMUM -> diagnostic.copy(issue = StructureIssue.count(null, if (problem.scope == PreparedCountScope.LAYER) StructureIssue.Count.LAYER_MINIMUM else StructureIssue.Count.MINIMUM, compiler.counterDescription(problem.counter), problem.limit, problem.actual))
+				PreparedProblemKind.MINIMUM -> diagnostic.copy(issue = StructureIssue.count(null, if (problem.scope == PreparedCountScope.LAYER) StructureIssue.Count.LAYER_MINIMUM else StructureIssue.Count.MINIMUM, compiler.counterDescription(problem.counter, state), problem.limit, problem.actual))
 
 				PreparedProblemKind.CONSTRAINT -> diagnostic.copy(issue = StructureIssue.count(diagnostic, if (difference > 0) StructureIssue.Count.MINIMUM else StructureIssue.Count.MAXIMUM, Component.translatable(missingFact), problem.limit, problem.actual))
 			}

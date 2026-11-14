@@ -7,6 +7,7 @@ import com.gregtechceu.gtceu.api.multiblock.MultiblockState
 import com.gregtechceu.gtceu.api.multiblock.error.StructureIssue
 import com.gregtechceu.gtceu.api.multiblock.pattern.match.PatternDiagnostic
 
+import net.minecraft.network.chat.Component
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.BlockState
 
@@ -46,10 +47,11 @@ open class ObservedPatternPredicate(
 	override fun observeCandidate(state: BlockState, definition: MultiblockMachineDefinition): PatternObservation = observeCandidate(state)
 	override fun getPreviewCandidates(definition: MultiblockMachineDefinition): ObjectList<PatternPreviewCandidate> = getPreviewCandidates()
 	override fun isAny(): Boolean = kind == "any" || super.isAny()
+	override fun description(state: MultiblockState, excluded: Block?): Component? = if (isAny()) null else super.description(state, excluded)
 	override fun isAir(): Boolean = kind == "air" || super.isAir()
 	override fun addCache(): Boolean = kind != "any" && super.addCache()
 	fun observe(state: MultiblockState): PatternObservation = if (canAcceptObserved(state)) observer.apply(state).withAliases(facts) else PatternObservation.of(false)
-	override fun diagnose(state: MultiblockState, failure: PatternDiagnostic): PatternDiagnostic = diagnostic?.apply(state, failure) ?: failure.copy(issue = StructureIssue.mismatch(failure, description()))
+	override fun diagnose(state: MultiblockState, failure: PatternDiagnostic): PatternDiagnostic = diagnostic?.apply(state, failure) ?: failure.copy(issue = StructureIssue.mismatch(failure, state.predicate.description(state, failure.actual?.block)))
 
 	/** Applies legacy limit/IO metadata only after a pure observation has succeeded. */
 	open fun accept(state: MultiblockState, observation: PatternObservation): Boolean = observation.matched && acceptObservation(state, observation) && acceptObserved(state)

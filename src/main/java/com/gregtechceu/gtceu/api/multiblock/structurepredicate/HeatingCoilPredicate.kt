@@ -24,7 +24,7 @@ enum class HeatingCoilPredicate : CategoryPredicate {
 	override fun type(): StructurePredicateType<*> = TYPE
 	override fun diagnose(state: MultiblockState, failure: PatternDiagnostic): PatternDiagnostic {
 		val actual = observeCandidate(state.blockState)
-		return failure.copy(issue = if (actual.matched && state.facts.get<Any>("CoilType") != actual.properties["CoilType"]) StructureIssue.mixed(failure, StructureIssue.text("coils")) else StructureIssue.mismatch(failure, description()))
+		return failure.copy(issue = if (actual.matched && state.facts.get<Any>("CoilType") != actual.properties["CoilType"]) StructureIssue.mixed(failure, StructureIssue.text("coils")) else StructureIssue.mismatch(failure, state.predicate.description(state, failure.actual?.block)))
 	}
 
 	override fun observeCandidate(candidateState: BlockState): PatternObservation {

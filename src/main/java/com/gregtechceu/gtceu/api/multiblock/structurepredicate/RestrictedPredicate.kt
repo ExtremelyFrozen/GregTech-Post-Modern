@@ -28,11 +28,11 @@ data class RestrictedPredicate(val predicate: StructurePredicate, val minCount: 
 	override fun hasPositionDependencies(): Boolean = predicate.hasPositionDependencies()
 	override fun collectDependencies(state: MultiblockState, positions: LongSet) = predicate.collectDependencies(state, positions)
 	override fun type(): StructurePredicateType<*> = TYPE
-	override fun description(): Component = predicate.description()
+	override fun description(state: MultiblockState, excluded: Block?): Component? = predicate.description(state, excluded)
 	override fun diagnose(state: MultiblockState, failure: PatternDiagnostic): PatternDiagnostic {
 		if (predicate.observeCandidate(state.blockState).matched) {
-			if (maxCount.isPresent && state.structureGlobalCount.getInt(this) >= maxCount.get()) return failure.copy(issue = StructureIssue.count(failure, StructureIssue.Count.MAXIMUM, description(), maxCount.get(), maxCount.get() + 1))
-			if (maxCountByLayer.isPresent && state.structureLayerCount.getInt(this) >= maxCountByLayer.get()) return failure.copy(issue = StructureIssue.count(failure, StructureIssue.Count.LAYER_MAXIMUM, description(), maxCountByLayer.get(), maxCountByLayer.get() + 1))
+			if (maxCount.isPresent && state.structureGlobalCount.getInt(this) >= maxCount.get()) return failure.copy(issue = StructureIssue.count(failure, StructureIssue.Count.MAXIMUM, description(state), maxCount.get(), maxCount.get() + 1))
+			if (maxCountByLayer.isPresent && state.structureLayerCount.getInt(this) >= maxCountByLayer.get()) return failure.copy(issue = StructureIssue.count(failure, StructureIssue.Count.LAYER_MAXIMUM, description(state), maxCountByLayer.get(), maxCountByLayer.get() + 1))
 		}
 		return predicate.diagnose(state, failure)
 	}

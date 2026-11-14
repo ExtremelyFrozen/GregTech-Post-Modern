@@ -46,14 +46,15 @@ interface StructurePredicate {
 	/** Reads existing domain limits before a composite selects this branch; it never reserves counts. */
 	fun canAcceptPosition(state: MultiblockState): Boolean = true
 
-	/** Names this rule's expected input; wrappers keep the domain rule's description. */
-	fun description(): Component = StructureIssue.blocks(blockCandidates())
+	/** Describes visible candidates in the owning machine's context; null means no concrete candidate remains. */
+	fun description(state: MultiblockState, excluded: Block? = null): Component? = if (isAny()) null else StructureIssue.blocks(blockCandidates(), excluded)
 
 	/**
 	 * Runs on the world thread at the failed cell, after count restoration and before publication. The returned
 	 * diagnostic owns its explanation; describing a failure must not change world state, facts or counts.
 	 */
-	fun diagnose(state: MultiblockState, failure: PatternDiagnostic): PatternDiagnostic = failure.copy(issue = if (failure.missingFact.isEmpty()) StructureIssue.mismatch(failure, description()) else StructureIssue.mixed(failure, Component.translatable(failure.missingFact)))
+	fun diagnose(state: MultiblockState, failure: PatternDiagnostic): PatternDiagnostic =
+		failure.copy(issue = if (failure.missingFact.isEmpty()) StructureIssue.mismatch(failure, state.predicate.description(state, failure.actual?.block)) else StructureIssue.mixed(failure, Component.translatable(failure.missingFact)))
 
 	/** Supplies representative full states; state-sensitive rules override this with their candidate observer. */
 	fun candidateStates(): ObjectList<BlockState> = ObjectArrayList<BlockState>().also { states ->

@@ -50,12 +50,12 @@ internal class PreparedRuleCompiler(private val capturedBlocks: CapturedPatternB
 		return layer.values[id - layer.valueOffset]
 	}
 
-	fun counterDescription(id: Int): Component {
+	fun counterDescription(id: Int, state: MultiblockState): Component? {
 		var layer = this
 		while (id < layer.counterOffset) layer = layer.confirmed!!
 		return when (val key = layer.counterKeys[id - layer.counterOffset]) {
-			is PredicateRule -> key.description()
-			else -> (key as StructurePredicate).description()
+			is PredicateRule -> key.description(state)
+			else -> (key as StructurePredicate).description(state)
 		}
 	}
 

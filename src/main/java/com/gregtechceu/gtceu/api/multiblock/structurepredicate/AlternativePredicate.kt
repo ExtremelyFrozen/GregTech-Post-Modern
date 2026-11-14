@@ -26,11 +26,11 @@ interface AlternativePredicate : StructurePredicate {
 	/** Returns the actual ordered branches; null state requests the context-free candidate domain. */
 	fun alternatives(state: MultiblockState?): ObjectList<StructurePredicate>
 
-	override fun description(): Component = StructureIssue.alternatives(alternatives(null).mapTo(ObjectArrayList()) { it.description() })
+	override fun description(state: MultiblockState, excluded: Block?): Component? = StructureIssue.alternatives(alternatives(state).mapTo(ObjectArrayList()) { it.description(state, excluded) })
 
 	override fun diagnose(state: MultiblockState, failure: PatternDiagnostic): PatternDiagnostic {
 		for (child in alternatives(state)) if (child.observeCandidate(state.blockState).matched) return child.diagnose(state, failure)
-		return failure.copy(issue = StructureIssue.mismatch(failure, description()))
+		return failure.copy(issue = StructureIssue.mismatch(failure, state.predicate.description(state, failure.actual?.block)))
 	}
 
 	override fun collectDependencies(state: MultiblockState, positions: LongSet) {

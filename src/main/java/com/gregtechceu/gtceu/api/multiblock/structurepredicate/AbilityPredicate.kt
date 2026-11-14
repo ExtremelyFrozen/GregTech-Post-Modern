@@ -38,9 +38,16 @@ data class AbilityPredicate(val abilities: ObjectList<PartAbility>, val range: O
 	constructor(abilities: ObjectList<PartAbility>) : this(abilities, Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty())
 
 	override fun type(): StructurePredicateType<*> = TYPE
-	override fun description(): Component = StructureIssue.alternatives(abilities.mapTo(ObjectArrayList()) { Component.translatable("gtpm.multiblock.ability.${it.name}") })
+	override fun description(state: MultiblockState, excluded: Block?): Component? {
+		val existing = excluded?.takeIf { observeCandidate(it.defaultBlockState()).matched }
+		return StructureIssue.alternatives(
+			ObjectArrayList<Component?>().also { labels ->
+				for (ability in abilities) if (existing == null || !ability.isApplicable(existing)) labels.add(Component.translatable("gtpm.multiblock.ability.${ability.name}"))
+			},
+		)
+	}
 	override fun diagnose(state: MultiblockState, failure: PatternDiagnostic): PatternDiagnostic = failure.copy(
-		issue = if (facing.isPresent && observeCandidate(state.blockState).matched) StructureIssue.condition(failure, StructureIssue.text("orientation")) else StructureIssue.mismatch(failure, description()),
+		issue = if (facing.isPresent && observeCandidate(state.blockState).matched) StructureIssue.condition(failure, StructureIssue.text("orientation")) else StructureIssue.mismatch(failure, state.predicate.description(state, failure.actual?.block)),
 	)
 	override fun observeCandidate(candidateState: BlockState): PatternObservation {
 		val block = candidateState.block as? MetaMachineBlock
