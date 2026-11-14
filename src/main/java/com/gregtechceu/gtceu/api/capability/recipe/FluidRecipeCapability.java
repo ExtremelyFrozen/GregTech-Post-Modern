@@ -41,6 +41,7 @@ import net.neoforged.neoforge.fluids.crafting.*;
 
 import it.unimi.dsi.fastutil.objects.*;
 import lombok.experimental.ExtensionMethod;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.UnknownNullability;
@@ -449,8 +450,12 @@ public class FluidRecipeCapability extends RecipeCapability<SizedFluidIngredient
         return ingredient.ingredient() instanceof IntProviderFluidIngredient ? 1 : Math.max(ingredient.amount(), 1);
     }
 
-    // Maps ingredients to an FluidEntryList for XEI: either an FluidTagList or a FluidStackList
-    private static FluidEntryList mapFluid(final SizedFluidIngredient ingredient) {
+    /**
+     * Projects a resolved ingredient using the same tag, component and ranged-count rules as XEI slots.
+     * Internal recipe-viewer use; returned entries must not mutate the recipe ingredient.
+     */
+    @ApiStatus.Internal
+    public static FluidEntryList mapFluid(final SizedFluidIngredient ingredient) {
         int amount;
         if (ingredient.ingredient() instanceof IntProviderFluidIngredient) {
             amount = 1;

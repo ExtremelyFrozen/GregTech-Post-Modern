@@ -46,6 +46,7 @@ import net.neoforged.neoforge.items.IItemHandlerModifiable;
 
 import it.unimi.dsi.fastutil.objects.*;
 import lombok.experimental.ExtensionMethod;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.UnknownNullability;
@@ -505,13 +506,7 @@ public class ItemRecipeCapability extends RecipeCapability<SizedIngredient> {
         if (condition == null) {
             return;
         }
-        List<ItemStack> dataItems = new ArrayList<>();
-        for (ResearchData.ResearchEntry entry : condition.data) {
-            ItemStack dataStick = entry.dataItem().copy();
-            dataStick.set(GTDataComponents.RESEARCH_ITEM,
-                    new ResearchManager.ResearchItem(entry.researchId(), recipeType));
-            dataItems.add(dataStick);
-        }
+        List<ItemStack> dataItems = mapResearchItems(condition, recipeType);
         CycleItemEntryHandler handler = CycleItemEntryHandler.createFromStacks(List.of(dataItems));
         slot.setHandlerSlot(handler, 0);
         slot.setIngredientIO(GTXEIHelper.catalyst());
@@ -520,6 +515,22 @@ public class ItemRecipeCapability extends RecipeCapability<SizedIngredient> {
         slot.setXEIAmount(1);
         slot.xeiRecipeIngredient();
         slot.xeiRecipeSlot();
+    }
+
+    /**
+     * Copies the selected research condition's display items with their recipe-type component.
+     * Internal recipe-viewer projection; callers select the condition and honor the research setting.
+     */
+    @ApiStatus.Internal
+    public static ObjectList<ItemStack> mapResearchItems(ResearchCondition condition, GTRecipeType recipeType) {
+        ObjectList<ItemStack> dataItems = new ObjectArrayList<>();
+        for (ResearchData.ResearchEntry entry : condition.data) {
+            ItemStack dataStick = entry.dataItem().copy();
+            dataStick.set(GTDataComponents.RESEARCH_ITEM,
+                    new ResearchManager.ResearchItem(entry.researchId(), recipeType));
+            dataItems.add(dataStick);
+        }
+        return dataItems;
     }
 
     private void appendCountRangeTooltip(SizedIngredient ingredient, List<Component> tooltips) {
@@ -538,8 +549,12 @@ public class ItemRecipeCapability extends RecipeCapability<SizedIngredient> {
         return ingredient.getContainedCustom() instanceof IntProviderIngredient ? 1 : Math.max(ingredient.count(), 1);
     }
 
-    // Maps ingredients to an ItemEntryList for XEI: either an ItemTagList or an ItemStackList
-    private static ItemEntryList mapItem(final SizedIngredient ingredient) {
+    /**
+     * Projects a resolved ingredient using the same tag, intersection and ranged-count rules as XEI slots.
+     * Internal recipe-viewer use; returned entries must not mutate the recipe ingredient.
+     */
+    @ApiStatus.Internal
+    public static ItemEntryList mapItem(final SizedIngredient ingredient) {
         if (ingredient.getContainedCustom() instanceof IntProviderIngredient intProvider) {
             var mapped = tryMapInner(intProvider.getInner(), 1);
             if (mapped != null) return mapped;
