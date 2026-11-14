@@ -2,38 +2,37 @@ package com.gregtechceu.gtceu.api.multiblock.scheduling
 
 import it.unimi.dsi.fastutil.objects.ObjectArrayList
 
-/** Server-thread queue with cancellable entries; yielded checks rotate behind peers at the same priority. */
+/** Server-thread indexed heaps ordered by priority and due tick; new manual rechecks go first. */
 class FormationCheckQueue<T : FormationCheckQueue.Entry> {
 
-	private val changes = ObjectArrayList<T>()
-	private val searches = ObjectArrayList<T>()
+	private val queues = Array(FormationLane.Priority.entries.size) { ObjectArrayList<T>() }
 	private var order = 0L
+	private var manualOrder = 0L
 
 	/** Schedules an owned entry, replacing its previous slot without retaining cancelled sessions. */
-	fun schedule(entry: T, dueTick: Long, priority: Boolean) {
+	fun schedule(entry: T, dueTick: Long, priority: FormationLane.Priority) {
 		remove(entry)
 		entry.dueTick = dueTick
-		entry.order = order++
-		entry.priority = priority
-		val heap = if (priority) changes else searches
+		entry.order = if (priority == FormationLane.Priority.MANUAL) --manualOrder else order++
+		entry.lane = priority
+		val heap = queues[priority.ordinal]
 		entry.index = heap.size
 		heap.add(entry)
 		siftUp(heap, entry.index)
 	}
 
-	fun hasDue(tick: Long): Boolean = isDue(changes, tick) || isDue(searches, tick)
+	fun hasDue(tick: Long): Boolean = queues.any { isDue(it, tick) }
 
-	/** Returns a due change check before a first-formation search, or null when both queues are idle. */
+	/** Manual rechecks run before changes, first searches and periodic rechecks. */
 	fun poll(tick: Long): T? {
-		val heap = if (isDue(changes, tick)) changes else searches
-		if (!isDue(heap, tick)) return null
-		return heap.first().also(::remove)
+		for (heap in queues) if (isDue(heap, tick)) return heap.first().also(::remove)
+		return null
 	}
 
 	fun remove(entry: T) {
 		val index = entry.index
 		if (index < 0) return
-		val heap = if (entry.priority) changes else searches
+		val heap = queues[entry.lane.ordinal]
 		val last = heap.removeLast()
 		entry.index = -1
 		if (index == heap.size) return
@@ -43,10 +42,10 @@ class FormationCheckQueue<T : FormationCheckQueue.Entry> {
 	}
 
 	fun clear() {
-		for (entry in changes) entry.index = -1
-		for (entry in searches) entry.index = -1
-		changes.clear()
-		searches.clear()
+		for (heap in queues) {
+			for (entry in heap) entry.index = -1
+			heap.clear()
+		}
 	}
 
 	private fun isDue(heap: ObjectArrayList<T>, tick: Long): Boolean = heap.isNotEmpty() && heap.first().dueTick <= tick
@@ -88,7 +87,7 @@ class FormationCheckQueue<T : FormationCheckQueue.Entry> {
 	abstract class Entry {
 		internal var dueTick = 0L
 		internal var order = 0L
-		internal var priority = false
+		internal var lane = FormationLane.Priority.SEARCH
 		internal var index = -1
 		fun dueTick(): Long = dueTick
 	}

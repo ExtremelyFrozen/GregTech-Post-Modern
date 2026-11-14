@@ -6165,6 +6165,7 @@
 	"gtpm.multiblock.ability.hpca_component": "高性能计算组件",
 	"gtpm.multiblock.ability.object_holder": "物品容器",
 	"gtpm.multiblock.check_structure": "检测结构",
+	"gtpm.multiblock.check_structure.recheck": "Shift 点击重新检测结构",
 	"gtpm.structure.issue.at_least": "至少需要 %s 个，当前 %s 个",
 	"gtpm.structure.issue.at_most": "最多允许 %s 个",
 	"gtpm.structure.issue.condition": "结构条件不满足",

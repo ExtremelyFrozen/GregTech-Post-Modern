@@ -488,14 +488,18 @@ public class MultiblockControllerMachine extends MetaMachine {
 
     /** Accepts manual checks only from the player whose valid menu still owns this controller. */
     @RPCMethod
-    public void requestStructureCheck(RPCSender sender) {
+    public void requestStructureCheck(RPCSender sender, boolean recheck) {
         var player = sender.asPlayer();
         if (player == null || !(player.containerMenu instanceof ModularUIContainerMenu menu) ||
                 !(menu.uiHolder instanceof MachineUIHolder holder) || holder.getMachine() != this ||
                 !menu.stillValid(player))
             return;
+        if (!recheck && isFormed()) return;
         var data = MultiblockWorldSavedData.getOrCreate((ServerLevel) getLevel());
-        for (String name : getDefinition().getStructureOrder()) data.requestPatternCheck(getMultiblockState(name));
+        for (String name : getDefinition().getStructureOrder()) {
+            if (recheck) data.recheckPatternFirst(getMultiblockState(name));
+            else data.requestPatternCheck(getMultiblockState(name));
+        }
     }
 
     /**

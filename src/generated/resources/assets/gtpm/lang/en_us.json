@@ -6178,6 +6178,7 @@
     "gtpm.multiblock.ability.hpca_component": "HPCA component",
     "gtpm.multiblock.ability.object_holder": "Object holder",
     "gtpm.multiblock.check_structure": "Check structure",
+    "gtpm.multiblock.check_structure.recheck": "Shift-click to recheck the structure",
     "gtpm.structure.issue.at_least": "At least %s, found %s",
     "gtpm.structure.issue.at_most": "At most %s",
     "gtpm.structure.issue.condition": "Requirement not met",
