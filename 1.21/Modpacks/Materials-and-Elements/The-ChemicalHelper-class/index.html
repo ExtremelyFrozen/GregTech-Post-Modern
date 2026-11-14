@@ -21,7 +21,7 @@
       
       
       <link rel="icon" href="../../../assets/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.1">
     
     
       
@@ -29,10 +29,10 @@
       
     
     
-      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -4436,8 +4436,8 @@ that <code>TagPrefix</code>-<code>Material</code> combination.</p>
 <p>Takes a <code>TagPrefix</code>, a <code>Material</code> and optionally an item count that otherwise defaults to 1, and returns an
 ItemStack representing that <code>TagPrefix</code>-<code>Material</code> combination with the specified item count.</p>
 <h2 id="usage-examples">Usage Examples</h2>
-<div class="highlight"><span class="filename">chemicalhelper_example_script.js</span><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kd">var</span><span class="w"> </span><span class="nx">ironMaterial</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">ChemicalHelper</span><span class="p">.</span><span class="nx">getMaterial</span><span class="p">(</span><span class="nx">Item</span><span class="p">.</span><span class="k">of</span><span class="p">(</span><span class="s2">&quot;gtceu:double_iron_plate&quot;</span><span class="p">).</span><span class="nx">asItem</span><span class="p">())</span><span class="w"> </span><span class="c1">// (1)</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kd">var</span><span class="w"> </span><span class="nx">rawOrePrefix</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">ChemicalHelper</span><span class="p">.</span><span class="nx">getPrefix</span><span class="p">(</span><span class="nx">Item</span><span class="p">.</span><span class="k">of</span><span class="p">(</span><span class="s2">&quot;gtceu:raw_platinum&quot;</span><span class="p">).</span><span class="nx">asItem</span><span class="p">())</span><span class="w"> </span><span class="c1">// (2)</span>
+<div class="highlight"><span class="filename">chemicalhelper_example_script.js</span><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kd">var</span><span class="w"> </span><span class="nx">ironMaterial</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">ChemicalHelper</span><span class="p">.</span><span class="nx">getMaterial</span><span class="p">(</span><span class="nx">Item</span><span class="p">.</span><span class="k">of</span><span class="p">(</span><span class="s2">"gtceu:double_iron_plate"</span><span class="p">).</span><span class="nx">asItem</span><span class="p">())</span><span class="w"> </span><span class="c1">// (1)</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kd">var</span><span class="w"> </span><span class="nx">rawOrePrefix</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">ChemicalHelper</span><span class="p">.</span><span class="nx">getPrefix</span><span class="p">(</span><span class="nx">Item</span><span class="p">.</span><span class="k">of</span><span class="p">(</span><span class="s2">"gtceu:raw_platinum"</span><span class="p">).</span><span class="nx">asItem</span><span class="p">())</span><span class="w"> </span><span class="c1">// (2)</span>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kd">var</span><span class="w"> </span><span class="nx">cobaltIngotStack</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">ChemicalHelper</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="nx">TagPrefix</span><span class="p">.</span><span class="nx">ingot</span><span class="p">,</span><span class="w"> </span><span class="nx">GTMaterials</span><span class="p">.</span><span class="nx">Cobalt</span><span class="p">,</span><span class="w"> </span><span class="mf">32</span><span class="p">)</span><span class="w"> </span><span class="c1">// (3)</span>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="kd">var</span><span class="w"> </span><span class="nx">goldNugget</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">ChemicalHelper</span><span class="p">.</span><span class="nx">getIngot</span><span class="p">(</span><span class="nx">GTMaterials</span><span class="p">.</span><span class="nx">Gold</span><span class="p">,</span><span class="w"> </span><span class="nx">GTValues</span><span class="p">.</span><span class="nx">M</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mf">9</span><span class="p">)</span><span class="w"> </span><span class="c1">// (4)</span>
@@ -4559,10 +4559,10 @@ ItemStack representing that <code>TagPrefix</code>-<code>Material</code> combina
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.sections", "navigation.indexes", "navigation.tabs", "navigation.tabs.sticky", "navigation.top", "toc.follow", "content.code.annotate", "content.action.view"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.sections", "navigation.indexes", "navigation.tabs", "navigation.tabs.sticky", "navigation.top", "toc.follow", "content.code.annotate", "content.action.view"], "search": "../../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
     
   </body>

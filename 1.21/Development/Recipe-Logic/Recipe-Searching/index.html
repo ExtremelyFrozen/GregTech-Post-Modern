@@ -21,7 +21,7 @@
       
       
       <link rel="icon" href="../../../assets/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.1">
     
     
       
@@ -29,10 +29,10 @@
       
     
     
-      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -4356,9 +4356,9 @@ A lot of code will be referenced, redacted and simplified. </p>
 <p>This lookup is effectively a Trie. It holds a Branch, and every branch has a <code>Map&lt;AbstractMapIngredient, Either&lt;GTRecipe, Branch&gt;&gt;</code>. 
 When you add the recipe to the lookup, you effectively add the ingredients one by one until you arrive at the recipe.  </p>
 <p>So a simplified assembler(8) trie could be 
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>   Map { &quot;8 cobblestone&quot; -&gt; Left(FurnaceRecipe),
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>         &quot;4 iron rods&quot; -&gt; Right(Map {
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>               &quot;4 iron plates&quot; -&gt; Left(Iron Machine Hull)
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>   Map { "8 cobblestone" -&gt; Left(FurnaceRecipe),
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>         "4 iron rods" -&gt; Right(Map {
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>               "4 iron plates" -&gt; Left(Iron Machine Hull)
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>               })
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>        } 
 </code></pre></div></p>
@@ -4408,7 +4408,7 @@ These are used by our GTRecipeLookup to find the correct ingredients inside our 
 <p class="admonition-title">Note</p>
 <p>while two objects that should match should also have return true on .equals check and have the same hash code, <code>.equals</code> does NOT have to be a correct <code>.equals</code> implementation, for example for matching of partial NBT:<br />
 (the following code is psuedocode)<br />
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>PartialNBTItemStackMapIngredient(Iron, {foo: bar, bar: baz}).equals(PartialNBTItemStackMapIngredient(Iron, {foo: bar}) = True&quot;
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>PartialNBTItemStackMapIngredient(Iron, {foo: bar, bar: baz}).equals(PartialNBTItemStackMapIngredient(Iron, {foo: bar}) = True"
 </code></pre></div></p>
 </div>
 <div class="admonition note">
@@ -4431,7 +4431,7 @@ These are used by our GTRecipeLookup to find the correct ingredients inside our 
 <a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="w">    </span><span class="kd">public</span><span class="w"> </span><span class="n">GTRecipe</span><span class="w"> </span><span class="nf">recurseIngredientTreeFindRecipe</span><span class="p">(</span><span class="nd">@NotNull</span><span class="w"> </span><span class="n">List</span><span class="o">&lt;</span><span class="n">List</span><span class="o">&lt;</span><span class="n">AbstractMapIngredient</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">ingredients</span><span class="p">,</span>
 <a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="w">                                                    </span><span class="nd">@NotNull</span><span class="w"> </span><span class="n">Branch</span><span class="w"> </span><span class="n">branchMap</span><span class="p">,</span><span class="w"> </span><span class="nd">@NotNull</span><span class="w"> </span><span class="n">Predicate</span><span class="o">&lt;</span><span class="n">GTRecipe</span><span class="o">&gt;</span><span class="w"> </span><span class="n">canHandle</span><span class="p">,</span>
 <a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a><span class="w">                                                    </span><span class="kt">int</span><span class="w"> </span><span class="n">index</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">count</span><span class="p">,</span><span class="w"> </span><span class="n">BitSet</span><span class="w"> </span><span class="n">skip</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a><span class="w">        </span><span class="c1">// exhausted all the ingredients, and didn&#39;t find anything</span>
+<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a><span class="w">        </span><span class="c1">// exhausted all the ingredients, and didn't find anything</span>
 <a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">count</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">ingredients</span><span class="p">.</span><span class="na">size</span><span class="p">())</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="kc">null</span><span class="p">;</span>
 <a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a>
 <a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a><span class="w">        </span><span class="c1">// Iterate over current level of nodes.</span>
@@ -4612,10 +4612,10 @@ If after this, the recipe is running, we return true and have found a recipe. Ou
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.sections", "navigation.indexes", "navigation.tabs", "navigation.tabs.sticky", "navigation.top", "toc.follow", "content.code.annotate", "content.action.view"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.sections", "navigation.indexes", "navigation.tabs", "navigation.tabs.sticky", "navigation.top", "toc.follow", "content.code.annotate", "content.action.view"], "search": "../../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
     
   </body>

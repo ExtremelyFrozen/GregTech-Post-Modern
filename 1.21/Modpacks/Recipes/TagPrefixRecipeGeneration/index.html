@@ -21,7 +21,7 @@
       
       
       <link rel="icon" href="../../../assets/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.1">
     
     
       
@@ -29,10 +29,10 @@
       
     
     
-      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -4217,12 +4217,12 @@
 <a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>
 <a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">material</span><span class="p">.</span><span class="na">hasFlag</span><span class="p">(</span><span class="n">GENERATE_FRAME</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">            </span><span class="kt">boolean</span><span class="w"> </span><span class="n">isWoodenFrame</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">material</span><span class="p">.</span><span class="na">hasProperty</span><span class="p">(</span><span class="n">PropertyKey</span><span class="p">.</span><span class="na">WOOD</span><span class="p">);</span>
-<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w">            </span><span class="n">VanillaRecipeHelper</span><span class="p">.</span><span class="na">addShapedRecipe</span><span class="p">(</span><span class="n">provider</span><span class="p">,</span><span class="w"> </span><span class="n">String</span><span class="p">.</span><span class="na">format</span><span class="p">(</span><span class="s">&quot;frame_%s&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">material</span><span class="p">.</span><span class="na">getName</span><span class="p">()),</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w">            </span><span class="n">VanillaRecipeHelper</span><span class="p">.</span><span class="na">addShapedRecipe</span><span class="p">(</span><span class="n">provider</span><span class="p">,</span><span class="w"> </span><span class="n">String</span><span class="p">.</span><span class="na">format</span><span class="p">(</span><span class="s">"frame_%s"</span><span class="p">,</span><span class="w"> </span><span class="n">material</span><span class="p">.</span><span class="na">getName</span><span class="p">()),</span>
 <a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="w">                    </span><span class="n">ChemicalHelper</span><span class="p">.</span><span class="na">get</span><span class="p">(</span><span class="n">frameGt</span><span class="p">,</span><span class="w"> </span><span class="n">material</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">),</span>
-<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="w">                    </span><span class="s">&quot;SSS&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">isWoodenFrame</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="s">&quot;SsS&quot;</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="s">&quot;SwS&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;SSS&quot;</span><span class="p">,</span>
-<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="w">                    </span><span class="sc">&#39;S&#39;</span><span class="p">,</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">UnificationEntry</span><span class="p">(</span><span class="n">rod</span><span class="p">,</span><span class="w"> </span><span class="n">material</span><span class="p">));</span>
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="w">                    </span><span class="s">"SSS"</span><span class="p">,</span><span class="w"> </span><span class="n">isWoodenFrame</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="s">"SsS"</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="s">"SwS"</span><span class="p">,</span><span class="w"> </span><span class="s">"SSS"</span><span class="p">,</span>
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="w">                    </span><span class="sc">'S'</span><span class="p">,</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">UnificationEntry</span><span class="p">(</span><span class="n">rod</span><span class="p">,</span><span class="w"> </span><span class="n">material</span><span class="p">));</span>
 <a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>
-<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="w">            </span><span class="n">ASSEMBLER_RECIPES</span><span class="p">.</span><span class="na">recipeBuilder</span><span class="p">(</span><span class="s">&quot;assemble_&quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">material</span><span class="p">.</span><span class="na">getName</span><span class="p">()</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s">&quot;_frame&quot;</span><span class="p">)</span>
+<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="w">            </span><span class="n">ASSEMBLER_RECIPES</span><span class="p">.</span><span class="na">recipeBuilder</span><span class="p">(</span><span class="s">"assemble_"</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">material</span><span class="p">.</span><span class="na">getName</span><span class="p">()</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="s">"_frame"</span><span class="p">)</span>
 <a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="w">                    </span><span class="p">.</span><span class="na">inputItems</span><span class="p">(</span><span class="n">rod</span><span class="p">,</span><span class="w"> </span><span class="n">material</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="p">)</span>
 <a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="w">                    </span><span class="p">.</span><span class="na">circuitMeta</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
 <a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a><span class="w">                    </span><span class="p">.</span><span class="na">outputItems</span><span class="p">(</span><span class="n">frameGt</span><span class="p">,</span><span class="w"> </span><span class="n">material</span><span class="p">)</span>
@@ -4339,10 +4339,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.sections", "navigation.indexes", "navigation.tabs", "navigation.tabs.sticky", "navigation.top", "toc.follow", "content.code.annotate", "content.action.view"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.sections", "navigation.indexes", "navigation.tabs", "navigation.tabs.sticky", "navigation.top", "toc.follow", "content.code.annotate", "content.action.view"], "search": "../../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
     
   </body>

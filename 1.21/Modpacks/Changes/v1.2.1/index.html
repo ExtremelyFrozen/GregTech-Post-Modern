@@ -21,7 +21,7 @@
       
       
       <link rel="icon" href="../../../assets/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.1">
     
     
       
@@ -29,10 +29,10 @@
       
     
     
-      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -4307,10 +4307,10 @@
 <h2 id="custom-coils">Custom Coils</h2>
 <p>The <code>coilMaterial</code> function now uses a supplier instead of taking a material directly.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1">// Before:</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="p">.</span><span class="nx">coilMaterial</span><span class="p">(</span><span class="nx">GTMaterials</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;infinity&#39;</span><span class="p">))</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="p">.</span><span class="nx">coilMaterial</span><span class="p">(</span><span class="nx">GTMaterials</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">'infinity'</span><span class="p">))</span>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1">// After:</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">.</span><span class="nx">coilMaterial</span><span class="p">(()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nx">GTMaterials</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;infinity&#39;</span><span class="p">))</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">.</span><span class="nx">coilMaterial</span><span class="p">(()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nx">GTMaterials</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">'infinity'</span><span class="p">))</span>
 </code></pre></div>
 <h2 id="recipe-modifiers">Recipe Modifiers</h2>
 <p>If any of your machines had a custom recipe modifier, its syntax has changed slightly.</p>
@@ -4327,13 +4327,13 @@ Recipe modifiers must be supplied as a JavaScript array, as this is what Rhino t
 <p>Bedrock ore veins are no longer automatically generated.<br />
 They are now entirely up to modpack developers to define, and offer more flexibility than the previous system.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nx">GTCEuServerEvents</span><span class="p">.</span><span class="nx">oreVeins</span><span class="p">(</span><span class="nx">event</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">    </span><span class="nx">event</span><span class="p">.</span><span class="nx">add</span><span class="p">(</span><span class="s1">&#39;kubejs:my_custom_bedrock_vein&#39;</span><span class="p">,</span><span class="w"> </span><span class="nx">vein</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">    </span><span class="nx">event</span><span class="p">.</span><span class="nx">add</span><span class="p">(</span><span class="s1">'kubejs:my_custom_bedrock_vein'</span><span class="p">,</span><span class="w"> </span><span class="nx">vein</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">        </span><span class="c1">// ...</span>
 <a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">    </span><span class="p">})</span>
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">    </span><span class="nx">event</span><span class="p">.</span><span class="nx">modify</span><span class="p">(</span><span class="s1">&#39;kubejs:other_custom_vein&#39;</span><span class="p">,</span><span class="w"> </span><span class="nx">vein</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">    </span><span class="nx">event</span><span class="p">.</span><span class="nx">modify</span><span class="p">(</span><span class="s1">'kubejs:other_custom_vein'</span><span class="p">,</span><span class="w"> </span><span class="nx">vein</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">        </span><span class="c1">// ...</span>
 <a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">    </span><span class="p">})</span>
-<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">    </span><span class="nx">event</span><span class="p">.</span><span class="nx">remove</span><span class="p">(</span><span class="s1">&#39;kubejs:other_custom_vein&#39;</span><span class="p">)</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">    </span><span class="nx">event</span><span class="p">.</span><span class="nx">remove</span><span class="p">(</span><span class="s1">'kubejs:other_custom_vein'</span><span class="p">)</span>
 <a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="p">})</span>
 </code></pre></div>
 <p>The documentation for how to use the add and modify events will follow soon.
@@ -4445,10 +4445,10 @@ For now, please reference the <a href="https://github.com/GregTechCEu/GregTech-M
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.sections", "navigation.indexes", "navigation.tabs", "navigation.tabs.sticky", "navigation.top", "toc.follow", "content.code.annotate", "content.action.view"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.sections", "navigation.indexes", "navigation.tabs", "navigation.tabs.sticky", "navigation.top", "toc.follow", "content.code.annotate", "content.action.view"], "search": "../../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
       
     
   </body>
