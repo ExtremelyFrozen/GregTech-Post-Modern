@@ -9,16 +9,12 @@ import com.gregtechceu.gtceu.api.item.datacomponents.*;
 import com.gregtechceu.gtceu.api.placeholder.PlaceholderRenderData;
 import com.gregtechceu.gtceu.api.registry.GTRegistries;
 import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
-import com.gregtechceu.gtceu.common.data.datacomponents.AE2GridNodeData;
 import com.gregtechceu.gtceu.common.data.datacomponents.AEInputConfigCopyData;
 import com.gregtechceu.gtceu.common.data.datacomponents.CapeData;
-import com.gregtechceu.gtceu.common.data.datacomponents.CoverConfigCopyData;
 import com.gregtechceu.gtceu.common.data.datacomponents.FluidProspectionCache;
 import com.gregtechceu.gtceu.common.data.datacomponents.MedicalConditionTrackerData;
 import com.gregtechceu.gtceu.common.data.datacomponents.OreProspectionCache;
 import com.gregtechceu.gtceu.common.data.datacomponents.PipeNetData;
-import com.gregtechceu.gtceu.common.data.datacomponents.TransferData;
-import com.gregtechceu.gtceu.common.data.datacomponents.VirtualEntryData;
 import com.gregtechceu.gtceu.common.item.LampBlockItem;
 import com.gregtechceu.gtceu.common.item.behavior.ItemMagnetBehavior;
 import com.gregtechceu.gtceu.common.item.datacomponents.*;
@@ -28,10 +24,8 @@ import com.gregtechceu.gtceu.utils.ResearchManager;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.UUIDUtil;
-import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.util.Unit;
@@ -44,17 +38,11 @@ import net.neoforged.neoforge.registries.DeferredRegister;
 import com.mojang.serialization.Codec;
 import io.netty.buffer.ByteBuf;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.UUID;
 
 public class GTDataComponents {
 
     private static final StreamCodec<ByteBuf, Unit> UNIT_STREAM_CODEC = StreamCodec.unit(Unit.INSTANCE);
-    private static final Codec<Map<String, DataComponentMap>> VIRTUAL_ENTRY_MAP_CODEC = Codec.unboundedMap(Codec.STRING,
-            DataComponentMap.CODEC);
-    private static final StreamCodec<RegistryFriendlyByteBuf, Map<String, DataComponentMap>> VIRTUAL_ENTRY_MAP_STREAM_CODEC = ByteBufCodecs
-            .map(HashMap::new, ByteBufCodecs.STRING_UTF8, SyncFieldData.DATA_COMPONENT_MAP_STREAM_CODEC);
     public static final DeferredRegister.DataComponents DATA_COMPONENTS = DeferredRegister
             .createDataComponents(Registries.DATA_COMPONENT_TYPE, GTCEu.MOD_ID);
 
@@ -148,9 +136,6 @@ public class GTDataComponents {
     public static final DeferredHolder<DataComponentType<?>, DataComponentType<MachineConfigCopyData>> DATA_COPY_TAG = DATA_COMPONENTS
             .registerComponentType("data_copy_tag", builder -> builder.persistent(MachineConfigCopyData.CODEC)
                     .networkSynchronized(MachineConfigCopyData.STREAM_CODEC));
-    public static final DeferredHolder<DataComponentType<?>, DataComponentType<CoverConfigCopyData>> COVER_CONFIG_COPY_DATA = DATA_COMPONENTS
-            .registerComponentType("cover_config_copy_data", builder -> builder.persistent(CoverConfigCopyData.CODEC)
-                    .networkSynchronized(CoverConfigCopyData.STREAM_CODEC));
     public static final DeferredHolder<DataComponentType<?>, DataComponentType<AEInputConfigCopyData>> AE_INPUT_CONFIG_COPY_DATA = DATA_COMPONENTS
             .registerComponentType("ae_input_config_copy_data", builder -> builder
                     .persistent(AEInputConfigCopyData.CODEC)
@@ -222,16 +207,9 @@ public class GTDataComponents {
             .registerComponentType("lighter_open",
                     builder -> builder.persistent(Codec.BOOL).networkSynchronized(ByteBufCodecs.BOOL));
 
-    public static final DeferredHolder<DataComponentType<?>, DataComponentType<TerminalAutoBuildConfig>> TERMINAL_AUTO_BUILD = DATA_COMPONENTS
-            .registerComponentType("terminal_auto_build",
-                    builder -> builder.persistent(TerminalAutoBuildConfig.CODEC));
-
-    public static final DeferredHolder<DataComponentType<?>, DataComponentType<SyncFieldData>> SYNC_FIELD_DATA = DATA_COMPONENTS
-            .registerComponentType("sync_field_data", builder -> builder.persistent(SyncFieldData.CODEC)
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<SyncFieldData>> ITEM_DATA = DATA_COMPONENTS
+            .registerComponentType("item_data", builder -> builder.persistent(SyncFieldData.CODEC)
                     .networkSynchronized(SyncFieldData.STREAM_CODEC));
-    public static final DeferredHolder<DataComponentType<?>, DataComponentType<DataComponentMap>> BLOCK_ITEM_DATA = DATA_COMPONENTS
-            .registerComponentType("block_item_data", builder -> builder.persistent(DataComponentMap.CODEC)
-                    .networkSynchronized(SyncFieldData.DATA_COMPONENT_MAP_STREAM_CODEC));
     public static final DeferredHolder<DataComponentType<?>, DataComponentType<FluidProspectionCache>> FLUID_PROSPECTION_CACHE = DATA_COMPONENTS
             .registerComponentType("fluid_prospection_cache", builder -> builder
                     .persistent(FluidProspectionCache.CODEC)
@@ -264,56 +242,8 @@ public class GTDataComponents {
             .registerComponentType("pipe_net_duct_pipe", builder -> builder
                     .persistent(PipeNetData.DuctPipe.CODEC)
                     .networkSynchronized(PipeNetData.DuctPipe.STREAM_CODEC));
-    public static final DeferredHolder<DataComponentType<?>, DataComponentType<TransferData.FluidTank>> TRANSFER_FLUID_TANK = DATA_COMPONENTS
-            .registerComponentType("transfer_fluid_tank", builder -> builder
-                    .persistent(TransferData.FluidTank.CODEC)
-                    .networkSynchronized(TransferData.FluidTank.STREAM_CODEC));
-    public static final DeferredHolder<DataComponentType<?>, DataComponentType<TransferData.FluidHandlers>> TRANSFER_FLUID_HANDLERS = DATA_COMPONENTS
-            .registerComponentType("transfer_fluid_handlers", builder -> builder
-                    .persistent(TransferData.FluidHandlers.CODEC)
-                    .networkSynchronized(TransferData.FluidHandlers.STREAM_CODEC));
-    public static final DeferredHolder<DataComponentType<?>, DataComponentType<TransferData.ItemHandler>> TRANSFER_ITEM_HANDLER = DATA_COMPONENTS
-            .registerComponentType("transfer_item_handler", builder -> builder
-                    .persistent(TransferData.ItemHandler.CODEC)
-                    .networkSynchronized(TransferData.ItemHandler.STREAM_CODEC));
-    public static final DeferredHolder<DataComponentType<?>, DataComponentType<AE2GridNodeData>> AE2_GRID_NODE = DATA_COMPONENTS
-            .registerComponentType("ae2_grid_node", builder -> builder
-                    .persistent(AE2GridNodeData.CODEC)
-                    .networkSynchronized(AE2GridNodeData.STREAM_CODEC));
     public static final DeferredHolder<DataComponentType<?>, DataComponentType<CapeData.Registry>> CAPE_REGISTRY = DATA_COMPONENTS
             .registerComponentType("cape_registry", builder -> builder
                     .persistent(CapeData.Registry.CODEC)
                     .networkSynchronized(CapeData.Registry.STREAM_CODEC));
-    public static final DeferredHolder<DataComponentType<?>, DataComponentType<VirtualEntryData.RegistryRoot>> VIRTUAL_REGISTRY_ROOT = DATA_COMPONENTS
-            .registerComponentType("virtual_registry_root", builder -> builder
-                    .persistent(VirtualEntryData.RegistryRoot.CODEC)
-                    .networkSynchronized(VirtualEntryData.RegistryRoot.STREAM_CODEC));
-    public static final DeferredHolder<DataComponentType<?>, DataComponentType<VirtualEntryData.Base>> VIRTUAL_ENTRY_BASE = DATA_COMPONENTS
-            .registerComponentType("virtual_entry_base", builder -> builder
-                    .persistent(VirtualEntryData.Base.CODEC)
-                    .networkSynchronized(VirtualEntryData.Base.STREAM_CODEC));
-    public static final DeferredHolder<DataComponentType<?>, DataComponentType<VirtualEntryData.Tank>> VIRTUAL_TANK = DATA_COMPONENTS
-            .registerComponentType("virtual_tank", builder -> builder
-                    .persistent(VirtualEntryData.Tank.CODEC)
-                    .networkSynchronized(VirtualEntryData.Tank.STREAM_CODEC));
-    public static final DeferredHolder<DataComponentType<?>, DataComponentType<VirtualEntryData.Items>> VIRTUAL_ITEM_STORAGE = DATA_COMPONENTS
-            .registerComponentType("virtual_item_storage", builder -> builder
-                    .persistent(VirtualEntryData.Items.CODEC)
-                    .networkSynchronized(VirtualEntryData.Items.STREAM_CODEC));
-    public static final DeferredHolder<DataComponentType<?>, DataComponentType<VirtualEntryData.Redstone>> VIRTUAL_REDSTONE = DATA_COMPONENTS
-            .registerComponentType("virtual_redstone", builder -> builder
-                    .persistent(VirtualEntryData.Redstone.CODEC)
-                    .networkSynchronized(VirtualEntryData.Redstone.STREAM_CODEC));
-    public static final DeferredHolder<DataComponentType<?>, DataComponentType<Map<String, DataComponentMap>>> VIRTUAL_FLUID_ENTRIES = DATA_COMPONENTS
-            .registerComponentType("virtual_fluid_entries", builder -> builder
-                    .persistent(VIRTUAL_ENTRY_MAP_CODEC)
-                    .networkSynchronized(VIRTUAL_ENTRY_MAP_STREAM_CODEC));
-    public static final DeferredHolder<DataComponentType<?>, DataComponentType<Map<String, DataComponentMap>>> VIRTUAL_ITEM_ENTRIES = DATA_COMPONENTS
-            .registerComponentType("virtual_item_entries", builder -> builder
-                    .persistent(VIRTUAL_ENTRY_MAP_CODEC)
-                    .networkSynchronized(VIRTUAL_ENTRY_MAP_STREAM_CODEC));
-    public static final DeferredHolder<DataComponentType<?>, DataComponentType<Map<String, DataComponentMap>>> VIRTUAL_REDSTONE_ENTRIES = DATA_COMPONENTS
-            .registerComponentType("virtual_redstone_entries", builder -> builder
-                    .persistent(VIRTUAL_ENTRY_MAP_CODEC)
-                    .networkSynchronized(VIRTUAL_ENTRY_MAP_STREAM_CODEC));
 }

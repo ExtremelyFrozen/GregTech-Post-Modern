@@ -13,22 +13,11 @@ import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTComponentPanelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
-import com.gregtechceu.gtceu.api.gui.factory.LDLib2MachineUIProvider;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolderContext;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2ConfiguratorPanelElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyMachineUIElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyTabsElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyUIProvider;
-import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
+import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
 import com.gregtechceu.gtceu.api.machine.ConditionalSubscriptionHandler;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2DirectionalFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2VoidingModeFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2WorkingEnabledFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.feature.ITieredMachine;
-import com.gregtechceu.gtceu.api.machine.feature.LDLib2FancyActionMachine;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMultiPart;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.LDLib2FancyPartUIProvider;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.VoidingModeConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
 import com.gregtechceu.gtceu.api.machine.multiblock.WorkableElectricMultiblockMachine;
 import com.gregtechceu.gtceu.api.misc.EnergyContainerList;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
@@ -40,7 +29,6 @@ import com.gregtechceu.gtceu.common.machine.trait.FluidDrillLogic;
 import com.gregtechceu.gtceu.utils.FormattingUtil;
 import com.gregtechceu.gtceu.utils.GTUtil;
 
-import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
@@ -53,7 +41,6 @@ import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.Style;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.Block;
 
 import lombok.AccessLevel;
@@ -64,21 +51,23 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
-public class BedrockOreMinerMachine extends WorkableElectricMultiblockMachine
-                                    implements ITieredMachine, LDLib2MachineUIProvider, LDLib2FancyActionMachine {
+public class BedrockOreMinerMachine extends WorkableElectricMultiblockMachine {
+
+    private static final int PAGE_WIDTH = 190;
+    private static final int PAGE_HEIGHT = 125;
 
     @Getter
     private final int tier;
     @Getter(AccessLevel.PACKAGE)
-    private final ConditionalSubscriptionHandler displaySnapshotSubscription;
+    private final ConditionalSubscriptionHandler displaySubscription;
     @Getter(AccessLevel.PACKAGE)
     @SyncToClient
-    private List<Component> displaySnapshot = List.of();
+    private List<Component> displayText = List.of();
 
     public BedrockOreMinerMachine(BlockEntityCreationInfo info, int tier) {
         super(info, new BedrockOreMinerLogic());
         this.tier = tier;
-        this.displaySnapshotSubscription = new ConditionalSubscriptionHandler(this, this::refreshDisplaySnapshot,
+        this.displaySubscription = new ConditionalSubscriptionHandler(this, this::refreshDisplayText,
                 this::isFormed);
     }
 
@@ -101,8 +90,8 @@ public class BedrockOreMinerMachine extends WorkableElectricMultiblockMachine
     public void onLoad() {
         super.onLoad();
         if (!isRemote()) {
-            refreshDisplaySnapshot();
-            displaySnapshotSubscription.initialize(getLevel());
+            refreshDisplayText();
+            displaySubscription.initialize(getLevel());
         }
     }
 
@@ -110,8 +99,8 @@ public class BedrockOreMinerMachine extends WorkableElectricMultiblockMachine
     public void formStructure(String structureName) {
         super.formStructure(structureName);
         if (DEFAULT_STRUCTURE.equals(structureName) && !isRemote()) {
-            refreshDisplaySnapshot();
-            displaySnapshotSubscription.updateSubscription();
+            refreshDisplayText();
+            displaySubscription.updateSubscription();
         }
     }
 
@@ -119,8 +108,8 @@ public class BedrockOreMinerMachine extends WorkableElectricMultiblockMachine
     public void invalidateStructure(String structureName) {
         super.invalidateStructure(structureName);
         if (DEFAULT_STRUCTURE.equals(structureName) && !isRemote()) {
-            refreshDisplaySnapshot();
-            displaySnapshotSubscription.updateSubscription();
+            refreshDisplayText();
+            displaySubscription.updateSubscription();
         }
     }
 
@@ -137,19 +126,19 @@ public class BedrockOreMinerMachine extends WorkableElectricMultiblockMachine
     }
 
     private void clearDisplayRuntimeState() {
-        displaySnapshot = List.of();
-        displaySnapshotSubscription.unsubscribe();
+        displayText = List.of();
+        displaySubscription.unsubscribe();
     }
 
     @Override
     public void addDisplayText(List<Component> textList) {
-        textList.addAll(displaySnapshot);
+        textList.addAll(displayText);
     }
 
-    void refreshDisplaySnapshot() {
-        List<Component> nextSnapshot = createDisplaySnapshot(captureDisplayState());
-        if (!displaySnapshot.equals(nextSnapshot)) {
-            displaySnapshot = nextSnapshot;
+    void refreshDisplayText() {
+        List<Component> nextText = createDisplayText(captureDisplayState());
+        if (!displayText.equals(nextText)) {
+            displayText = nextText;
         }
     }
 
@@ -177,7 +166,7 @@ public class BedrockOreMinerMachine extends WorkableElectricMultiblockMachine
         return new DisplayState(formed, energyTier, veinMaterials, orePerSecond);
     }
 
-    static List<Component> createDisplaySnapshot(DisplayState state) {
+    static List<Component> createDisplayText(DisplayState state) {
         List<Component> text = new ArrayList<>();
         if (state.formed()) {
             long maxVoltage = GTValues.V[state.energyTier()];
@@ -219,134 +208,6 @@ public class BedrockOreMinerMachine extends WorkableElectricMultiblockMachine
             if (veinMaterials != null) {
                 veinMaterials = List.copyOf(veinMaterials);
             }
-        }
-    }
-
-    @Override
-    public boolean canCreateLDLib2UI(Player player, MachineUIHolder holder) {
-        return holder.getMachine() == this;
-    }
-
-    @Override
-    public UI createLDLib2UI(Player player, MachineUIHolder holder) {
-        LDLib2FancyUIProvider page = createLDLib2Page(player, holder);
-        return UI.of(new LDLib2FancyMachineUIElement(page, player.getInventory(), holder,
-                page.getLDLib2PageWidth(), page.getLDLib2PageHeight()));
-    }
-
-    LDLib2FancyUIProvider createLDLib2Page(Player player, MachineUIHolder holder) {
-        requireMatchingHolder(holder);
-        return new BedrockOreMinerFancyPage(player, holder);
-    }
-
-    private void requireMatchingHolder(MachineUIHolder holder) {
-        if (holder.getMachine() != this) {
-            throw new IllegalArgumentException("Bedrock Ore Miner UI holder must resolve the opened controller.");
-        }
-    }
-
-    private final class BedrockOreMinerFancyPage implements LDLib2FancyUIProvider {
-
-        private static final int PAGE_WIDTH = 190;
-        private static final int PAGE_HEIGHT = 125;
-
-        private final MachineUIHolder holder;
-        private final LDLib2DirectionalFancyConfigurator directionalPage;
-        private final List<LDLib2FancyUIProvider> partPages;
-
-        private BedrockOreMinerFancyPage(Player player, MachineUIHolder holder) {
-            requireMatchingHolder(holder);
-            this.holder = holder;
-            this.directionalPage = new LDLib2DirectionalFancyConfigurator(BedrockOreMinerMachine.this, player,
-                    holder);
-
-            List<LDLib2FancyUIProvider> pages = new ArrayList<>();
-            for (IMultiPart part : getParts()) {
-                if (!(part instanceof LDLib2FancyPartUIProvider pageProvider)) {
-                    throw new IllegalStateException("Bedrock Ore Miner part has no LDLib2 Fancy page: " +
-                            part.self().getDefinition().getId());
-                }
-                MachineUIHolder partHolder = new MachineUIHolderContext(player, part.self());
-                pages.add(pageProvider.createLDLib2FancyPage(player, partHolder));
-            }
-            this.partPages = List.copyOf(pages);
-        }
-
-        @Override
-        public UIElement createLDLib2MainPage(LDLib2FancyMachineUIElement shell) {
-            if (holder.getMachine() != BedrockOreMinerMachine.this) {
-                throw new IllegalStateException("Bedrock Ore Miner page holder no longer resolves its controller.");
-            }
-
-            UIElement root = UITemplate.setLDLib2Bounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
-            UITemplate.setLDLib2BackgroundTexture(root, GuiTextures.BACKGROUND_INVERSE);
-
-            GTScrollerViewElement screen = new GTScrollerViewElement(4, 4, 182, 117);
-            UITemplate.setLDLib2BackgroundTexture(screen, getScreenTexture());
-            screen.viewPort.layout(layout -> layout.paddingAll(0));
-            UITemplate.setLDLib2BackgroundTexture(screen.viewPort, getScreenTexture());
-            screen.scrollerStyle(style -> style
-                    .mode(ScrollerMode.VERTICAL)
-                    .verticalScrollDisplay(ScrollDisplay.AUTO)
-                    .horizontalScrollDisplay(ScrollDisplay.NEVER));
-
-            GTLabelElement title = new GTLabelElement(4, 5, 174, 10,
-                    getBlockState().getBlock().getDescriptionId(), true);
-            title.textStyle(style -> style
-                    .textColor(0x404040)
-                    .textShadow(false)
-                    .textAlignHorizontal(Horizontal.LEFT)
-                    .textAlignVertical(Vertical.CENTER));
-            screen.addScrollViewChild(title);
-            screen.addScrollViewChild(new GTComponentPanelElement(4, 17,
-                    BedrockOreMinerMachine.this::addDisplayText)
-                    .setMaxWidthLimit(200)
-                    .clickHandler(BedrockOreMinerMachine.this::handleDisplayClick));
-            root.addChild(screen);
-            return root;
-        }
-
-        @Override
-        public IGuiTexture getTabIcon() {
-            return GuiTextures.itemStack(getDefinition().getItem());
-        }
-
-        @Override
-        public Component getTitle() {
-            return Component.translatable(getDefinition().getDescriptionId());
-        }
-
-        @Override
-        public int getLDLib2PageWidth() {
-            return PAGE_WIDTH;
-        }
-
-        @Override
-        public int getLDLib2PageHeight() {
-            return PAGE_HEIGHT;
-        }
-
-        @Override
-        public void attachSideTabs(LDLib2FancyTabsElement tabs) {
-            tabs.attachSubTab(directionalPage);
-        }
-
-        @Override
-        public void attachConfigurators(LDLib2ConfiguratorPanelElement configuratorPanel) {
-            LDLib2VoidingModeFancyConfigurator.attachConfigurators(configuratorPanel,
-                    BedrockOreMinerMachine.this);
-            configuratorPanel.attachConfigurators(new LDLib2WorkingEnabledFancyConfigurator(
-                    BedrockOreMinerMachine.this, holder));
-        }
-
-        @Override
-        public List<LDLib2FancyUIProvider> getSubTabs() {
-            return partPages;
-        }
-
-        @Override
-        public List<Component> getTabTooltips() {
-            return List.of(Component.translatable(getDefinition().getDescriptionId()));
         }
     }
 
@@ -399,5 +260,43 @@ public class BedrockOreMinerMachine extends WorkableElectricMultiblockMachine
         if (tier == GTValues.EV)
             return GTCEu.id("block/casings/solid/machine_casing_robust_tungstensteel");
         return GTCEu.id("block/casings/solid/machine_casing_solid_steel");
+    }
+
+    @Override
+    public UIElement createUIWidget(FancyMachineUIWidget shell) {
+        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
+        UITemplate.setBackgroundTexture(root, GuiTextures.BACKGROUND_INVERSE);
+
+        GTScrollerViewElement screen = new GTScrollerViewElement(4, 4, 182, 117);
+        UITemplate.setBackgroundTexture(screen, getScreenTexture());
+        screen.viewPort.layout(layout -> layout.paddingAll(0));
+        UITemplate.setBackgroundTexture(screen.viewPort, getScreenTexture());
+        screen.scrollerStyle(style -> style
+                .mode(ScrollerMode.VERTICAL)
+                .verticalScrollDisplay(ScrollDisplay.AUTO)
+                .horizontalScrollDisplay(ScrollDisplay.NEVER));
+
+        GTLabelElement title = new GTLabelElement(4, 5, 174, 10,
+                getBlockState().getBlock().getDescriptionId(), true);
+        title.textStyle(style -> style
+                .textColor(0x404040)
+                .textShadow(false)
+                .textAlignHorizontal(Horizontal.LEFT)
+                .textAlignVertical(Vertical.CENTER));
+        screen.addScrollViewChild(title);
+        screen.addScrollViewChild(new GTComponentPanelElement(4, 17,
+                BedrockOreMinerMachine.this::addDisplayText)
+                .setMaxWidthLimit(200)
+                .clickHandler(BedrockOreMinerMachine.this::handleDisplayClick));
+        root.addChild(screen);
+        return root;
+    }
+
+    @Override
+    public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
+        VoidingModeConfigurator.attachConfigurators(configuratorPanel,
+                BedrockOreMinerMachine.this);
+        configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
+                BedrockOreMinerMachine.this));
     }
 }

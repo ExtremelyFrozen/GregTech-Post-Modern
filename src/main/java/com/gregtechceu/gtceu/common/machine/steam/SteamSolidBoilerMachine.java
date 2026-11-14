@@ -116,36 +116,36 @@ public class SteamSolidBoilerMachine extends SteamBoilerMachine {
     }
 
     @Override
-    protected void addLDLib2AdditionalWidgets(UIElement root, Player player, MachineUIHolder holder) {
-        root.addChild(createLDLib2FuelSlot());
-        root.addChild(createLDLib2AshSlot());
-        root.addChild(createLDLib2FuelProgressBar());
+    protected void addAdditionalWidgets(UIElement root, Player player, MachineUIHolder holder) {
+        root.addChild(createFuelSlot());
+        root.addChild(createAshSlot());
+        root.addChild(createFuelProgressBar());
     }
 
-    private GTItemSlotElement createLDLib2FuelSlot() {
+    private GTItemSlotElement createFuelSlot() {
         GTItemSlotElement slot = new GTItemSlotElement(this.fuelHandler.storage, 0)
                 .setBackgroundTexture(GuiTextures.group(GuiTextures.SLOT_STEAM.get(isHighPressure),
                         GuiTextures.COAL_OVERLAY_STEAM.get(isHighPressure)))
                 .setCanTakeItems(true)
                 .setCanPutItems(true);
-        return UITemplate.setLDLib2Bounds(slot, 115, 62, 18, 18);
+        return UITemplate.setBounds(slot, 115, 62, 18, 18);
     }
 
-    private GTItemSlotElement createLDLib2AshSlot() {
+    private GTItemSlotElement createAshSlot() {
         GTItemSlotElement slot = new GTItemSlotElement(this.ashHandler.storage, 0)
                 .setBackgroundTexture(GuiTextures.group(GuiTextures.SLOT_STEAM.get(isHighPressure),
                         GuiTextures.DUST_OVERLAY_STEAM.get(isHighPressure)))
                 .setCanTakeItems(true)
                 .setCanPutItems(false);
-        return UITemplate.setLDLib2Bounds(slot, 115, 26, 18, 18);
+        return UITemplate.setBounds(slot, 115, 26, 18, 18);
     }
 
-    private GTProgressBarElement createLDLib2FuelProgressBar() {
+    private GTProgressBarElement createFuelProgressBar() {
         var progressTexture = GuiTextures.progressBar(
                 (ResourceTexture) GuiTextures.PROGRESS_BAR_BOILER_FUEL.get(isHighPressure));
         GTProgressBarElement progressBar = new GTProgressBarElement(recipeLogic::getProgressPercent)
                 .setProgressTexture(progressTexture.getEmptyBarArea(), progressTexture.getFilledBarArea())
                 .setFillDirection(FillDirection.DOWN_TO_UP);
-        return UITemplate.setLDLib2Bounds(progressBar, 115, 44, 18, 18);
+        return UITemplate.setBounds(progressBar, 115, 44, 18, 18);
     }
 }

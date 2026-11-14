@@ -9,10 +9,10 @@ import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTProgressBarElement;
-import com.gregtechceu.gtceu.api.gui.factory.LDLib2MachineUIProvider;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.TickableSubscription;
+import com.gregtechceu.gtceu.api.machine.feature.IUIMachine;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler;
 import com.gregtechceu.gtceu.api.machine.trait.WorkLogic;
 import com.gregtechceu.gtceu.api.multiblock.util.RelativeDirection;
@@ -50,7 +50,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-public class PrimitiveBlastFurnaceMachine extends PrimitiveWorkableMachine implements LDLib2MachineUIProvider {
+public class PrimitiveBlastFurnaceMachine extends PrimitiveWorkableMachine implements IUIMachine {
 
     private @Nullable TickableSubscription hurtSubscription;
 
@@ -132,35 +132,30 @@ public class PrimitiveBlastFurnaceMachine extends PrimitiveWorkableMachine imple
     }
 
     @Override
-    public boolean canCreateLDLib2UI(Player player, MachineUIHolder holder) {
-        return holder.getMachine() == this;
-    }
-
-    @Override
-    public UI createLDLib2UI(Player player, MachineUIHolder holder) {
+    public UI createUI(Player player, MachineUIHolder holder) {
         UIElement root = new UIElement();
-        UITemplate.setLDLib2Bounds(root, 0, 0, 176, 166);
+        UITemplate.setBounds(root, 0, 0, 176, 166);
         root.style(style -> style.backgroundTexture(GuiTextures.PRIMITIVE_BACKGROUND));
-        root.addChild(createLDLib2TitleLabel());
-        root.addChild(createLDLib2ImportSlot(0, 20,
+        root.addChild(createTitleLabel());
+        root.addChild(createImportSlot(0, 20,
                 GuiTextures.group(GuiTextures.PRIMITIVE_SLOT, GuiTextures.PRIMITIVE_INGOT_OVERLAY)));
-        root.addChild(createLDLib2ImportSlot(1, 38,
+        root.addChild(createImportSlot(1, 38,
                 GuiTextures.group(GuiTextures.PRIMITIVE_SLOT, GuiTextures.PRIMITIVE_DUST_OVERLAY)));
-        root.addChild(createLDLib2ImportSlot(2, 56,
+        root.addChild(createImportSlot(2, 56,
                 GuiTextures.group(GuiTextures.PRIMITIVE_SLOT, GuiTextures.PRIMITIVE_FURNACE_OVERLAY)));
-        root.addChild(createLDLib2ProgressBar());
-        root.addChild(createLDLib2ExportSlot(0, 104,
+        root.addChild(createProgressBar());
+        root.addChild(createExportSlot(0, 104,
                 GuiTextures.group(GuiTextures.PRIMITIVE_SLOT, GuiTextures.PRIMITIVE_INGOT_OVERLAY)));
-        root.addChild(createLDLib2ExportSlot(1, 122,
+        root.addChild(createExportSlot(1, 122,
                 GuiTextures.group(GuiTextures.PRIMITIVE_SLOT, GuiTextures.PRIMITIVE_DUST_OVERLAY)));
-        root.addChild(createLDLib2ExportSlot(2, 140,
+        root.addChild(createExportSlot(2, 140,
                 GuiTextures.group(GuiTextures.PRIMITIVE_SLOT, GuiTextures.PRIMITIVE_DUST_OVERLAY)));
-        root.addChild(UITemplate.bindPlayerInventoryLDLib2(player.getInventory(),
+        root.addChild(UITemplate.bindPlayerInventory(player.getInventory(),
                 GuiTextures.PRIMITIVE_SLOT, 7, 84, true));
         return UI.of(root);
     }
 
-    private GTLabelElement createLDLib2TitleLabel() {
+    private GTLabelElement createTitleLabel() {
         GTLabelElement label = new GTLabelElement(5, 5, 166, 10,
                 getBlockState().getBlock().getDescriptionId(), true);
         label.textStyle(style -> style
@@ -171,29 +166,29 @@ public class PrimitiveBlastFurnaceMachine extends PrimitiveWorkableMachine imple
         return label;
     }
 
-    private GTItemSlotElement createLDLib2ImportSlot(int slotIndex, int y, IGuiTexture backgroundTexture) {
+    private GTItemSlotElement createImportSlot(int slotIndex, int y, IGuiTexture backgroundTexture) {
         GTItemSlotElement slot = new GTItemSlotElement(importItems.storage, slotIndex)
                 .setBackgroundTexture(backgroundTexture)
                 .setCanTakeItems(true)
                 .setCanPutItems(true);
-        UITemplate.setLDLib2Bounds(slot, 52, y, 18, 18);
+        UITemplate.setBounds(slot, 52, y, 18, 18);
         return slot;
     }
 
-    private GTItemSlotElement createLDLib2ExportSlot(int slotIndex, int x, IGuiTexture backgroundTexture) {
+    private GTItemSlotElement createExportSlot(int slotIndex, int x, IGuiTexture backgroundTexture) {
         GTItemSlotElement slot = new GTItemSlotElement(exportItems.storage, slotIndex)
                 .setBackgroundTexture(backgroundTexture)
                 .setCanTakeItems(true)
                 .setCanPutItems(false);
-        UITemplate.setLDLib2Bounds(slot, x, 38, 18, 18);
+        UITemplate.setBounds(slot, x, 38, 18, 18);
         return slot;
     }
 
-    private GTProgressBarElement createLDLib2ProgressBar() {
+    private GTProgressBarElement createProgressBar() {
         var progressTexture = GuiTextures.progressBar(GuiTextures.PRIMITIVE_BLAST_FURNACE_PROGRESS_BAR);
         GTProgressBarElement progressBar = new GTProgressBarElement(recipeLogic::getProgressPercent)
                 .setProgressTexture(progressTexture.getEmptyBarArea(), progressTexture.getFilledBarArea());
-        UITemplate.setLDLib2Bounds(progressBar, 77, 39, 20, 15);
+        UITemplate.setBounds(progressBar, 77, 39, 20, 15);
         return progressBar;
     }
 

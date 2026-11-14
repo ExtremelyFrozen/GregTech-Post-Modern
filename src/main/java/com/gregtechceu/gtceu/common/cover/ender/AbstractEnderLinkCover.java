@@ -16,9 +16,9 @@ import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
 import com.gregtechceu.gtceu.api.gui.element.GTTextFieldElement;
 import com.gregtechceu.gtceu.api.gui.element.GTToggleButtonElement;
-import com.gregtechceu.gtceu.api.gui.factory.CoverUIHelper;
-import com.gregtechceu.gtceu.api.gui.factory.LDLib2CoverUIProvider;
+import com.gregtechceu.gtceu.api.gui.factory.CoverUIProvider;
 import com.gregtechceu.gtceu.api.gui.factory.UICoverHolder;
+import com.gregtechceu.gtceu.api.gui.sync.StreamAccessor;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.ConditionalSubscriptionHandler;
 import com.gregtechceu.gtceu.api.machine.MachineCoverContainer;
@@ -29,9 +29,12 @@ import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.RerenderOnChanged;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCSender;
 import com.gregtechceu.gtceu.common.cover.data.ManualIOMode;
-import com.gregtechceu.gtceu.common.network.packets.SPacketEnderLinkChannelsToClient;
 
+import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerMenu;
+import com.lowdragmc.lowdraglib2.gui.sync.SyncValue;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
@@ -39,26 +42,24 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
+import com.lowdragmc.lowdraglib2.syncdata.AccessorRegistries;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
-import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.neoforge.network.PacketDistributor;
 
-import com.google.gson.JsonElement;
 import lombok.Getter;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
@@ -71,8 +72,7 @@ import java.util.regex.Pattern;
 
 @SuppressWarnings("SameParameterValue")
 public abstract class AbstractEnderLinkCover<T extends VirtualEntry> extends CoverBehavior
-                                            implements LDLib2CoverUIProvider, IControllable,
-                                            EnderLinkCoverActionTarget {
+                                            implements CoverUIProvider, IControllable {
 
     public static final Pattern COLOR_INPUT_PATTERN = Pattern.compile("^[0-9a-fA-F]{0,8}$");
 
@@ -82,7 +82,7 @@ public abstract class AbstractEnderLinkCover<T extends VirtualEntry> extends Cov
     private static final int BUTTON_SIZE = 16;
 
     static {
-        EnderLinkCoverActions.initialize();
+        AccessorRegistries.registerAccessor(new StreamAccessor<>(VirtualEntry.class, VirtualEntry.STREAM_CODEC));
     }
 
     protected final ConditionalSubscriptionHandler subscriptionHandler;
@@ -157,16 +157,15 @@ public abstract class AbstractEnderLinkCover<T extends VirtualEntry> extends Cov
     }
 
     @Override
-    public boolean canCreateLDLib2UI(Player player, UICoverHolder holder) {
+    public boolean canCreateUI(Player player, UICoverHolder holder) {
         return holder.getCover() == this;
     }
 
     @Override
-    public UI createLDLib2UI(Player player, UICoverHolder holder) {
+    public UI createUI(Player player, UICoverHolder holder) {
         return UI.of(new EnderLinkRootElement(player, holder, this));
     }
 
-    @Override
     public void setIo(@NotNull IO io) {
         if (io == IO.IN || io == IO.OUT) {
             this.io = io;
@@ -197,7 +196,6 @@ public abstract class AbstractEnderLinkCover<T extends VirtualEntry> extends Cov
         return identifier() + this.colorStr;
     }
 
-    @Override
     public void setChannelName(@NotNull String name) {
         if (coverHolder.isRemote()) return;
         VirtualEnderRegistry.getInstance().deleteEntryIf(getOwner(), getEntryType(), getChannelName(),
@@ -211,7 +209,6 @@ public abstract class AbstractEnderLinkCover<T extends VirtualEntry> extends Cov
         return identifier() + entry.getColorStr();
     }
 
-    @Override
     public void setPermission(@NotNull Permissions permission) {
         if (coverHolder.isRemote()) return;
         VirtualEnderRegistry.getInstance().deleteEntryIf(getOwner(), getEntryType(), getChannelName(),
@@ -255,7 +252,6 @@ public abstract class AbstractEnderLinkCover<T extends VirtualEntry> extends Cov
 
     protected abstract void transfer();
 
-    @Override
     public void setManualIOMode(@NotNull ManualIOMode manualIOMode) {
         this.manualIOMode = manualIOMode;
         syncDataHolder.markClientSyncFieldDirty("manualIOMode");
@@ -267,8 +263,8 @@ public abstract class AbstractEnderLinkCover<T extends VirtualEntry> extends Cov
         return null;
     }
 
-    protected abstract UIElement addVirtualEntryLDLib2Element(VirtualEntry entry, int x, int y, int width, int height,
-                                                              boolean canClick);
+    protected abstract UIElement addVirtualEntryElement(VirtualEntry entry, int x, int y, int width, int height,
+                                                        boolean canClick);
 
     protected abstract String getUITitle();
 
@@ -277,20 +273,20 @@ public abstract class AbstractEnderLinkCover<T extends VirtualEntry> extends Cov
     }
 
     @Override
-    public DataComponentMap copyConfig(HolderLookup.Provider registries) {
+    public SyncFieldData copyConfig(HolderLookup.Provider registries) {
         return ConfigCopyHelper.withFields(super.copyConfig(registries), fields -> fields
                 .put(SyncFieldData.key("colorStr"),
-                        ConfigCopyHelper.stringValue(colorStr))
+                        colorStr)
                 .put(SyncFieldData.key("permission"),
-                        ConfigCopyHelper.intValue(getPermission().ordinal()))
+                        getPermission().ordinal())
                 .put(SyncFieldData.key("io"),
-                        ConfigCopyHelper.intValue(getIo().ordinal()))
+                        getIo().ordinal())
                 .put(SyncFieldData.key("manualIO"),
-                        ConfigCopyHelper.intValue(getManualIOMode().ordinal())));
+                        getManualIOMode().ordinal()));
     }
 
     @Override
-    public void pasteConfig(ServerPlayer player, HolderLookup.Provider registries, DataComponentMap config) {
+    public void pasteConfig(ServerPlayer player, HolderLookup.Provider registries, SyncFieldData config) {
         setChannelName(ConfigCopyHelper.getString(config, "colorStr"));
         setPermission(Permissions.values()[ConfigCopyHelper.getInt(config, "permission")]);
         setIo(IO.values()[ConfigCopyHelper.getInt(config, "io")]);
@@ -298,128 +294,167 @@ public abstract class AbstractEnderLinkCover<T extends VirtualEntry> extends Cov
         super.pasteConfig(player, registries, config);
     }
 
-    private void setLDLib2ChannelColor(Player player, UICoverHolder holder, String channelColor) {
+    @RPCMethod
+    public void configureAbstractEnderLink(String channelColor, Permissions permission, IO io,
+                                           ManualIOMode manualIOMode, boolean workingEnabled) {
+        setChannelName(normalizeColorInput(channelColor));
+        setPermission(permission);
+        setIo(io);
+        setManualIOMode(manualIOMode);
+        setWorkingEnabled(workingEnabled);
+        markEnderLinkUIChanged();
+    }
+
+    @RPCMethod
+    public void setChannelDescription(String channelName, String description) {
+        VirtualEntry entry = findEnderLinkActionChannel(channelName);
+        if (entry == null) {
+            throw new IllegalStateException("Ender link channel is missing: " + channelName);
+        }
+        setEnderLinkActionChannelDescription(entry, description);
+        markEnderLinkUIChanged();
+    }
+
+    @RPCMethod
+    public void requestChannels(RPCSender sender) {
+        sendChannelList(sender);
+    }
+
+    @RPCMethod
+    public void clearChannelDescription(RPCSender sender, String channelName) {
+        VirtualEntry entry = findEnderLinkActionChannel(channelName);
+        if (entry == null) {
+            throw new IllegalStateException("Ender link channel is missing: " + channelName);
+        }
+        setEnderLinkActionChannelDescription(entry, "");
+        sendChannelList(sender);
+    }
+
+    private void sendChannelList(RPCSender sender) {
+        BlockPos pos = coverHolder.getBlockPos();
+        Direction side = attachedSide;
+        List<VirtualEntry> entries = getEnderLinkActionChannelNames().stream()
+                .map(name -> {
+                    VirtualEntry entry = findEnderLinkActionChannel(name);
+                    if (entry == null) {
+                        throw new IllegalStateException("Ender link channel is missing: " + name);
+                    }
+                    return entry;
+                })
+                .sorted(Comparator.comparing(this::getEnderLinkActionChannelColor))
+                .toList();
+        sendEnderLinkActionChannelList(sender.asPlayer(), pos, side, entries);
+    }
+
+    private void setChannelColor(Player player, UICoverHolder holder, String channelColor) {
         String normalized = normalizeColorInput(channelColor);
         if (player.level().isClientSide()) {
             colorStr = normalized;
-            CoverUIHelper.sendAction(holder, EnderLinkCoverActions.createSetConfigAction(colorStr, permission, io,
-                    manualIOMode, isWorkingEnabled));
+            holder.getCover().rpcToServer("configureAbstractEnderLink", colorStr, permission, io, manualIOMode,
+                    isWorkingEnabled);
         } else {
             setChannelName(normalized);
         }
     }
 
-    private void setLDLib2Permission(Player player, UICoverHolder holder, Permissions permission) {
+    private void setPermission(Player player, UICoverHolder holder, Permissions permission) {
         if (player.level().isClientSide()) {
             this.permission = permission;
-            CoverUIHelper.sendAction(holder, EnderLinkCoverActions.createSetConfigAction(colorStr, permission, io,
-                    manualIOMode, isWorkingEnabled));
+            holder.getCover().rpcToServer("configureAbstractEnderLink", colorStr, permission, io, manualIOMode,
+                    isWorkingEnabled);
         } else {
             setPermission(permission);
         }
     }
 
-    private void setLDLib2Io(Player player, UICoverHolder holder, IO io) {
+    private void setIo(Player player, UICoverHolder holder, IO io) {
         if (player.level().isClientSide()) {
             this.io = io;
-            CoverUIHelper.sendAction(holder, EnderLinkCoverActions.createSetConfigAction(colorStr, permission, io,
-                    manualIOMode, isWorkingEnabled));
+            holder.getCover().rpcToServer("configureAbstractEnderLink", colorStr, permission, io, manualIOMode,
+                    isWorkingEnabled);
         } else {
             setIo(io);
         }
     }
 
-    private void setLDLib2ManualIOMode(Player player, UICoverHolder holder, ManualIOMode manualIOMode) {
+    private void setManualIOMode(Player player, UICoverHolder holder, ManualIOMode manualIOMode) {
         if (player.level().isClientSide()) {
             this.manualIOMode = manualIOMode;
-            CoverUIHelper.sendAction(holder, EnderLinkCoverActions.createSetConfigAction(colorStr, permission, io,
-                    manualIOMode, isWorkingEnabled));
+            holder.getCover().rpcToServer("configureAbstractEnderLink", colorStr, permission, io, manualIOMode,
+                    isWorkingEnabled);
         } else {
             setManualIOMode(manualIOMode);
         }
     }
 
-    private void setLDLib2WorkingEnabled(Player player, UICoverHolder holder, boolean workingEnabled) {
+    private void setWorkingEnabled(Player player, UICoverHolder holder, boolean workingEnabled) {
         if (player.level().isClientSide()) {
             isWorkingEnabled = workingEnabled;
-            CoverUIHelper.sendAction(holder, EnderLinkCoverActions.createSetConfigAction(colorStr, permission, io,
-                    manualIOMode, isWorkingEnabled));
+            holder.getCover().rpcToServer("configureAbstractEnderLink", colorStr, permission, io, manualIOMode,
+                    isWorkingEnabled);
         } else {
             setWorkingEnabled(workingEnabled);
         }
     }
 
-    private void setLDLib2Description(Player player, UICoverHolder holder, String description) {
+    private void setDescription(Player player, UICoverHolder holder, String description) {
         VirtualEntry entry = getEntry();
         if (entry != null) {
             entry.setDescription(description);
         }
         if (player.level().isClientSide()) {
-            CoverUIHelper.sendAction(holder,
-                    EnderLinkCoverActions.createSetDescriptionAction(getChannelName(), description));
+            holder.getCover().rpcToServer("setChannelDescription", getChannelName(), description);
         } else {
             markEnderLinkUIChanged();
         }
     }
 
-    private void requestLDLib2Channels(Player player, UICoverHolder holder) {
+    private void requestChannels(Player player, UICoverHolder holder) {
         if (player.level().isClientSide()) {
-            CoverUIHelper.sendAction(holder, EnderLinkCoverActions.createRequestChannelsAction());
+            holder.getCover().rpcToServer("requestChannels");
         }
     }
 
-    private void clearLDLib2Description(Player player, UICoverHolder holder, VirtualEntry entry) {
+    private void clearDescription(Player player, UICoverHolder holder, VirtualEntry entry) {
         entry.setDescription("");
         if (player.level().isClientSide()) {
-            CoverUIHelper.sendAction(holder, EnderLinkCoverActions.createClearDescriptionAction(getChannelName(entry)));
-            requestLDLib2Channels(player, holder);
+            holder.getCover().rpcToServer("clearChannelDescription", getChannelName(entry));
+            requestChannels(player, holder);
         }
     }
 
-    @Override
     public void markEnderLinkUIChanged() {
         syncDataHolder.markClientSyncFieldDirty("isAnyChanged");
         this.isAnyChanged = true;
     }
 
-    @Override
     public @NotNull List<String> getEnderLinkActionChannelNames() {
         return List.copyOf(VirtualEnderRegistry.getInstance().getEntryNames(getOwner(), getEntryType()));
     }
 
     @Nullable
-    @Override
     public VirtualEntry findEnderLinkActionChannel(@NotNull String channelName) {
         return VirtualEnderRegistry.getInstance().getEntry(getOwner(), getEntryType(), channelName);
     }
 
-    @Override
     public void setEnderLinkActionChannelDescription(@NotNull VirtualEntry entry, @NotNull String description) {
         entry.setDescription(description);
     }
 
-    @Override
     public @NotNull String getEnderLinkActionChannelColor(@NotNull VirtualEntry entry) {
         return entry.getColorStr();
     }
 
-    @Override
     public void sendEnderLinkActionChannelList(@NotNull ServerPlayer player, @NotNull BlockPos pos,
                                                @NotNull Direction side,
                                                @NotNull List<? extends VirtualEntry> entries) {
-        List<JsonElement> serializedEntries = entries.stream()
-                .map(entry -> serializeEntry(entry, player.registryAccess()))
-                .toList();
-        PacketDistributor.sendToPlayer(player, new SPacketEnderLinkChannelsToClient(pos, side,
-                coverDefinition.getId(), serializedEntries));
-    }
-
-    private static JsonElement serializeEntry(VirtualEntry entry, HolderLookup.Provider registries) {
-        return entry.serializeJson(registries);
-    }
-
-    private static void deserializeEntry(VirtualEntry entry, JsonElement data, HolderLookup.Provider registries) {
-        entry.deserializeJson(registries, data);
+        if (!(player.containerMenu instanceof ModularUIContainerMenu menu)) return;
+        List<VirtualEntry> channelCopies = entries.stream().map(VirtualEntry::copy).toList();
+        menu.getModularUI().ui.rootElement.selfAndAllChildren()
+                .filter(EnderLinkChannelListReceiver.class::isInstance)
+                .map(EnderLinkChannelListReceiver.class::cast)
+                .filter(receiver -> receiver.acceptsEnderLinkChannelList(pos, side, coverDefinition.getId()))
+                .forEach(receiver -> receiver.receiveEnderLinkChannelList(channelCopies, player.registryAccess()));
     }
 
     private static String normalizeColorInput(String color) {
@@ -464,19 +499,26 @@ public abstract class AbstractEnderLinkCover<T extends VirtualEntry> extends Cov
         private final UIElement mainGroup;
         private final UIElement mainChannelGroup;
         private final GTScrollerViewElement channelsGroup;
+        // Each server menu owns this value; its native UI transport publishes only to that opening's player.
+        private final SyncValue<VirtualEntry[]> channelEntries;
         private boolean showChannels;
 
         EnderLinkRootElement(Player player, UICoverHolder holder, AbstractEnderLinkCover<?> cover) {
             this.player = player;
             this.holder = holder;
             this.cover = cover;
-            this.mainGroup = UITemplate.setLDLib2Bounds(new UIElement(), 0, 0, GROUP_WIDTH, 137);
+            this.mainGroup = UITemplate.setBounds(new UIElement(), 0, 0, GROUP_WIDTH, 137);
             this.channelsGroup = new GTScrollerViewElement(0, 20, 170, 110);
-            this.mainChannelGroup = UITemplate.setLDLib2Bounds(new UIElement(), 10, 20, 156, 20);
+            this.mainChannelGroup = UITemplate.setBounds(new UIElement(), 10, 20, 156, 20);
             setId("ender_link_root");
-            UITemplate.setLDLib2Bounds(this, 0, 0, GROUP_WIDTH, 137 + 82);
+            UITemplate.setBounds(this, 0, 0, GROUP_WIDTH, 137 + 82);
             style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));
             initWidgets();
+            channelEntries = new SyncValue<>("ender_link_channels", VirtualEntry[].class, new VirtualEntry[0]);
+            channelEntries.setToSync(!player.level().isClientSide());
+            channelEntries.setAcceptSync(player.level().isClientSide());
+            channelEntries.addListener(entries -> addChannelWidgets(Arrays.asList(entries)));
+            addSyncValue(channelEntries);
         }
 
         @Override
@@ -487,28 +529,23 @@ public abstract class AbstractEnderLinkCover<T extends VirtualEntry> extends Cov
         }
 
         @Override
-        public void receiveEnderLinkChannelList(List<JsonElement> entries, HolderLookup.Provider registries) {
-            List<VirtualEntry> deserialized = new ArrayList<>(entries.size());
-            for (JsonElement data : entries) {
-                VirtualEntry entry = cover.getEntryType().createInstance();
-                deserializeEntry(entry, data, registries);
-                deserialized.add(entry);
-            }
-            addChannelWidgets(deserialized);
+        public void receiveEnderLinkChannelList(List<VirtualEntry> entries, HolderLookup.Provider registries) {
+            channelEntries.setValue(entries.toArray(VirtualEntry[]::new));
+            channelEntries.markAsChanged();
         }
 
         private void initWidgets() {
             int currentX = 0;
-            UIElement titleGroup = UITemplate.setLDLib2Bounds(new UIElement(), 10, 5, GROUP_WIDTH, 20);
+            UIElement titleGroup = UITemplate.setBounds(new UIElement(), 10, 5, GROUP_WIDTH, 20);
 
             addChild(titleGroup);
             addChild(mainGroup);
             addChild(channelsGroup);
-            addChild(UITemplate.bindPlayerInventoryLDLib2(player.getInventory(), GuiTextures.SLOT, 7, 137, true));
+            addChild(UITemplate.bindPlayerInventory(player.getInventory(), GuiTextures.SLOT, 7, 137, true));
 
             channelsGroup.setVisible(false);
             titleGroup.addChild(createToggleButton());
-            titleGroup.addChild(createLDLib2Label(15, 3, GROUP_WIDTH - 15, 10, cover.getUITitle(), true));
+            titleGroup.addChild(createLabel(15, 3, GROUP_WIDTH - 15, 10, cover.getUITitle(), true));
 
             mainChannelGroup.addChild(createToggleButtonForPrivacy(currentX));
             currentX += WIDGET_BOARD + 2;
@@ -519,20 +556,20 @@ public abstract class AbstractEnderLinkCover<T extends VirtualEntry> extends Cov
             mainChannelGroup.addChild(new ConfirmTextInputElement(0, WIDGET_BOARD + 2, GROUP_WIDTH - WIDGET_BOARD,
                     WIDGET_BOARD, getEntryDescription(), description -> description,
                     description -> description,
-                    value -> cover.setLDLib2Description(player, holder, value))
+                    value -> cover.setDescription(player, holder, value))
                     .setTooltip("cover.ender_fluid_link.tooltip.channel_description"));
 
             mainGroup.addChild(mainChannelGroup);
             mainGroup.addChild(createWorkingEnabledButton());
             addEnumSelectorElements();
             mainGroup.addChild(
-                    cover.addVirtualEntryLDLib2Element(cover.getEntry(), 146, WIDGET_BOARD, WIDGET_BOARD,
+                    cover.addVirtualEntryElement(cover.getEntry(), 146, WIDGET_BOARD, WIDGET_BOARD,
                             WIDGET_BOARD, true));
 
             FilterHandler<?, ?> filterHandler = cover.getFilterHandler();
             if (filterHandler != null) {
-                mainGroup.addChild(filterHandler.createFilterSlotLDLib2UI(117, 108));
-                mainGroup.addChild(filterHandler.createFilterConfigLDLib2UI(10, 72, 156, 60));
+                mainGroup.addChild(filterHandler.createFilterSlotUI(117, 108));
+                mainGroup.addChild(filterHandler.createFilterConfigUI(10, 72, 156, 60));
             }
         }
 
@@ -553,7 +590,7 @@ public abstract class AbstractEnderLinkCover<T extends VirtualEntry> extends Cov
         @Contract("_ -> new")
         private @NotNull UIElement createToggleButtonForPrivacy(int currentX) {
             return GTEnumSelectorElement.selectable(currentX, 0, WIDGET_BOARD, WIDGET_BOARD, Permissions.values(),
-                    cover::getPermission, value -> cover.setLDLib2Permission(player, holder, value));
+                    cover::getPermission, value -> cover.setPermission(player, holder, value));
         }
 
         private ColorBlockElement createColorBlockElement(int currentX, IntSupplier colorSupplier) {
@@ -566,22 +603,22 @@ public abstract class AbstractEnderLinkCover<T extends VirtualEntry> extends Cov
             return new ConfirmTextInputElement(currentX, 0, textInputWidth, WIDGET_BOARD, cover.colorStr,
                     value -> isValidColorInput(value) ? value : VirtualEntry.DEFAULT_COLOR,
                     AbstractEnderLinkCover::normalizeColorInput,
-                    value -> cover.setLDLib2ChannelColor(player, holder, value))
+                    value -> cover.setChannelColor(player, holder, value))
                     .setTooltip("cover.ender_fluid_link.tooltip.channel_name");
         }
 
         @Contract(" -> new")
         private @NotNull GTToggleButtonElement createWorkingEnabledButton() {
             return new GTToggleButtonElement(116, 82, WIDGET_BOARD, WIDGET_BOARD, GuiTextures.BUTTON_POWER,
-                    cover::isWorkingEnabled, value -> cover.setLDLib2WorkingEnabled(player, holder, value));
+                    cover::isWorkingEnabled, value -> cover.setWorkingEnabled(player, holder, value));
         }
 
         private void addEnumSelectorElements() {
             mainGroup.addChild(GTEnumSelectorElement.selectable(146, 82, WIDGET_BOARD, WIDGET_BOARD,
-                    List.of(IO.IN, IO.OUT), cover::getIo, value -> cover.setLDLib2Io(player, holder, value)));
+                    List.of(IO.IN, IO.OUT), cover::getIo, value -> cover.setIo(player, holder, value)));
             mainGroup.addChild(GTEnumSelectorElement.selectable(146, 107, WIDGET_BOARD, WIDGET_BOARD,
                     ManualIOMode.VALUES, cover::getManualIOMode,
-                    value -> cover.setLDLib2ManualIOMode(player, holder, value)));
+                    value -> cover.setManualIOMode(player, holder, value)));
         }
 
         private void addChannelWidgets(List<? extends VirtualEntry> entries) {
@@ -600,30 +637,30 @@ public abstract class AbstractEnderLinkCover<T extends VirtualEntry> extends Cov
             String description = entry.getDescription();
             ChannelElement channel = new ChannelElement(x, y, TOTAL_WIDTH, BUTTON_SIZE,
                     () -> cover.getChannelName().equals(cover.getChannelName(entry)),
-                    () -> cover.setLDLib2ChannelColor(player, holder, entry.getColorStr()));
+                    () -> cover.setChannelColor(player, holder, entry.getColorStr()));
 
             channel.addChild(new ColorBlockElement(currentX, 0, BUTTON_SIZE, BUTTON_SIZE,
                     () -> VirtualEntry.parseColor(entry.getColorStr())));
             currentX += BUTTON_SIZE + margin;
 
-            GTLabelElement channelName = createLDLib2Label(BUTTON_SIZE + margin, !description.isEmpty() ? 0 : 4,
+            GTLabelElement channelName = createLabel(BUTTON_SIZE + margin, !description.isEmpty() ? 0 : 4,
                     availableWidth, 8, Component.literal(entry.getColorStr()));
             channelName.textStyle(style -> style.textAlignHorizontal(Horizontal.CENTER));
             channel.addChild(channelName);
             currentX += availableWidth + margin;
 
             if (!description.isEmpty()) {
-                GTLabelElement descriptionLabel = createLDLib2Label(BUTTON_SIZE + margin, 10, availableWidth, 8,
+                GTLabelElement descriptionLabel = createLabel(BUTTON_SIZE + margin, 10, availableWidth, 8,
                         Component.literal(ChatFormatting.DARK_GRAY + description));
                 descriptionLabel.setFontSize(6.0f);
                 channel.addChild(descriptionLabel);
             }
 
-            channel.addChild(cover.addVirtualEntryLDLib2Element(entry, currentX, 0, BUTTON_SIZE, BUTTON_SIZE, false));
+            channel.addChild(cover.addVirtualEntryElement(entry, currentX, 0, BUTTON_SIZE, BUTTON_SIZE, false));
             currentX += BUTTON_SIZE + margin;
 
             GTButtonElement clearButton = new GTButtonElement(currentX, 0, BUTTON_SIZE, BUTTON_SIZE,
-                    GuiTextures.BUTTON_CLEAR_GRID, event -> cover.clearLDLib2Description(player, holder, entry));
+                    GuiTextures.BUTTON_CLEAR_GRID, event -> cover.clearDescription(player, holder, entry));
             clearButton.noText();
             clearButton.style(style -> style.tooltips("cover.ender_fluid_link.tooltip.clear_button"));
             channel.addChild(clearButton);
@@ -635,7 +672,7 @@ public abstract class AbstractEnderLinkCover<T extends VirtualEntry> extends Cov
             this.showChannels = showChannels;
             updateVisibility();
             if (showChannels) {
-                cover.requestLDLib2Channels(player, holder);
+                cover.requestChannels(player, holder);
             }
         }
 
@@ -666,7 +703,7 @@ public abstract class AbstractEnderLinkCover<T extends VirtualEntry> extends Cov
             this.returnValidator = returnValidator;
             this.textResponder = textResponder;
             this.inputText = text == null ? "" : text;
-            UITemplate.setLDLib2Bounds(this, x, y, width, height);
+            UITemplate.setBounds(this, x, y, width, height);
 
             GTButtonElement button = new GTButtonElement(width - height, 0, height, height,
                     GuiTextures.group(GuiTextures.VANILLA_BUTTON, GuiTextures.BUTTON_CHECK), event -> confirm());
@@ -703,7 +740,7 @@ public abstract class AbstractEnderLinkCover<T extends VirtualEntry> extends Cov
 
         ColorBlockElement(int x, int y, int width, int height, IntSupplier colorSupplier) {
             this.colorSupplier = colorSupplier;
-            UITemplate.setLDLib2Bounds(this, x, y, width, height);
+            UITemplate.setBounds(this, x, y, width, height);
             addEventListener(UIEvents.MOUSE_DOWN, event -> {
                 showAlpha = !showAlpha;
                 event.stopPropagation();
@@ -733,7 +770,7 @@ public abstract class AbstractEnderLinkCover<T extends VirtualEntry> extends Cov
                        Runnable onSelected) {
             this.selectedSupplier = selectedSupplier;
             this.onSelected = onSelected;
-            UITemplate.setLDLib2Bounds(this, x, y, width, height);
+            UITemplate.setBounds(this, x, y, width, height);
             addEventListener(UIEvents.MOUSE_DOWN, event -> {
                 this.onSelected.run();
                 event.stopPropagation();
@@ -751,20 +788,20 @@ public abstract class AbstractEnderLinkCover<T extends VirtualEntry> extends Cov
         }
     }
 
-    private static GTLabelElement createLDLib2Label(int x, int y, int width, int height, String text,
-                                                    boolean translate) {
+    private static GTLabelElement createLabel(int x, int y, int width, int height, String text,
+                                              boolean translate) {
         GTLabelElement label = new GTLabelElement(x, y, width, height, text, translate);
-        styleLDLib2Label(label);
+        styleLabel(label);
         return label;
     }
 
-    private static GTLabelElement createLDLib2Label(int x, int y, int width, int height, Component text) {
+    private static GTLabelElement createLabel(int x, int y, int width, int height, Component text) {
         GTLabelElement label = new GTLabelElement(x, y, width, height, text);
-        styleLDLib2Label(label);
+        styleLabel(label);
         return label;
     }
 
-    private static void styleLDLib2Label(GTLabelElement label) {
+    private static void styleLabel(GTLabelElement label) {
         label.textStyle(style -> style
                 .textColor(0x404040)
                 .textShadow(false)

@@ -22,8 +22,6 @@ import net.neoforged.neoforge.gametest.GameTestHolder;
 import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 import net.neoforged.testframework.annotation.TestHolder;
 
-import static com.gregtechceu.gtceu.common.data.GTRecipeTypes.ASSEMBLY_LINE_RECIPES;
-
 @PrefixGameTestTemplate(false)
 @GameTestHolder(GTCEu.MOD_ID)
 public class AssemblyLineTests {
@@ -32,7 +30,7 @@ public class AssemblyLineTests {
 
     @BeforeBatch(batch = "Assline")
     public static void prepare(ServerLevel level) {
-        ASSLINE_RECIPE_TYPE = TestUtils.createRecipeType("assline_tests", ASSEMBLY_LINE_RECIPES);
+        ASSLINE_RECIPE_TYPE = TestUtils.getRecipeType("assline_tests");
         var assLineHandler = ASSLINE_RECIPE_TYPE.getAdditionHandler();
         assLineHandler.beginStaging();
 

@@ -25,7 +25,7 @@ Below is an example of a multiblock using the CoilWorkableElectricMultiblockMach
                 ]
             )
             .appearanceBlock(GTBlocks.CASING_STEEL_SOLID)
-            .pattern(definition => FactoryBlockPattern.start()
+            .pattern(definition => PatternBuilder.start()
                 .aisle("BBCCCBB", "BBCDCBB", "BBCCCBB", "BBCCCBB", "BBEEEBB", "BBEEEBB")
                 .aisle("BCCCCCB", "BCAFACB", "BCAFACB", "BCGGGCB", "BEAAAEB", "BEHHHEB")
                 .aisle("CCCCCCC", "CAAFAAC", "CAAFAAC", "CGGGGGC", "EAAAAAE", "EHHHHHE")
@@ -64,7 +64,7 @@ Below is an example of a multiblock using the CoilWorkableElectricMultiblockMach
             .recipeModifiers(GTRecipeModifiers.PARALLEL_HATCH,
                 (machine, recipe) -> GTRecipeModifiers.pyrolyseOvenOverclock(machine, recipe))
             .appearanceBlock(GTBlocks.CASING_STEEL_SOLID)
-            .pattern(definition -> FactoryBlockPattern.start()
+            .pattern(definition -> PatternBuilder.start()
                 .aisle("BBCCCBB", "BBCDCBB", "BBCCCBB", "BBCCCBB", "BBEEEBB", "BBEEEBB")
                 .aisle("BCCCCCB", "BCAFACB", "BCAFACB", "BCGGGCB", "BEAAAEB", "BEHHHEB")
                 .aisle("CCCCCCC", "CAAFAAC", "CAAFAAC", "CGGGGGC", "EAAAAAE", "EHHHHHE")

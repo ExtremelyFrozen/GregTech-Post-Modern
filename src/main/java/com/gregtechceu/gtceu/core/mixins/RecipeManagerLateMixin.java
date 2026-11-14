@@ -3,7 +3,7 @@ package com.gregtechceu.gtceu.core.mixins;
 import com.gregtechceu.gtceu.api.recipe.GTRecipe;
 import com.gregtechceu.gtceu.api.recipe.GTRecipeDefinition;
 import com.gregtechceu.gtceu.api.recipe.GTRecipeType;
-import com.gregtechceu.gtceu.api.recipe.lookup.StagingRecipeDB;
+import com.gregtechceu.gtceu.api.recipe.lookup.RecipeAdditionHandler;
 import com.gregtechceu.gtceu.data.recipe.builder.GTRecipeBuilder;
 
 import net.minecraft.advancements.Advancement;
@@ -80,7 +80,8 @@ public abstract class RecipeManagerLateMixin {
 
         for (RecipeType<?> recipeType : BuiltInRegistries.RECIPE_TYPE) {
             if (recipeType instanceof GTRecipeType gtRecipeType) {
-                var stagingDB = new StagingRecipeDB();
+                gtRecipeType.beginStagingRecipes();
+                RecipeAdditionHandler additionHandler = gtRecipeType.getAdditionHandler();
 
                 var proxyRecipes = gtRecipeType.getProxyRecipes();
                 for (Map.Entry<RecipeType<?>, List<RecipeHolder<GTRecipe>>> entry : proxyRecipes.entrySet()) {
@@ -99,27 +100,27 @@ public abstract class RecipeManagerLateMixin {
                             this.byType.get(gtRecipeType).stream(),
                             proxyRecipes.entrySet().stream().flatMap(entry -> entry.getValue().stream()))
                             .filter(Objects::nonNull)
-                            .forEach(holder -> gtceu$addRecipeToStaging(stagingDB, holder));
+                            .forEach(holder -> gtceu$addRecipeToStaging(additionHandler, holder));
                 } else if (!proxyRecipes.isEmpty()) {
                     proxyRecipes.values().stream()
                             .flatMap(List::stream)
-                            .forEach(gtRecipe -> stagingDB.addRuntime(gtRecipe.value()));
+                            .forEach(gtRecipe -> additionHandler.addRuntimeStaging(gtRecipe.value()));
                 }
 
-                stagingDB.populateDB(gtRecipeType.db());
+                gtRecipeType.completeStagingRecipes();
             }
         }
     }
 
     @Unique
-    private static void gtceu$addRecipeToStaging(StagingRecipeDB stagingDB, RecipeHolder<?> holder) {
+    private static void gtceu$addRecipeToStaging(RecipeAdditionHandler additionHandler, RecipeHolder<?> holder) {
         Recipe<?> recipe = holder.value();
         if (recipe instanceof GTRecipeDefinition definition) {
             definition.setId(holder.id());
-            stagingDB.add(definition);
+            additionHandler.addStaging(definition);
         } else if (recipe instanceof GTRecipe gtRecipe) {
             gtRecipe.setId(holder.id());
-            stagingDB.addRuntime(gtRecipe);
+            additionHandler.addRuntimeStaging(gtRecipe);
         }
     }
 

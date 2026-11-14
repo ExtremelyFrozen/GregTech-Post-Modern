@@ -3,6 +3,7 @@ package com.gregtechceu.gtceu.common.item.tool.behavior;
 import com.gregtechceu.gtceu.api.item.datacomponents.ToolBehaviors;
 import com.gregtechceu.gtceu.api.item.tool.behavior.IToolBehavior;
 import com.gregtechceu.gtceu.api.item.tool.behavior.ToolBehaviorType;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 import com.gregtechceu.gtceu.common.data.GTDataComponents;
 import com.gregtechceu.gtceu.common.data.GTToolBehaviors;
 import com.gregtechceu.gtceu.utils.TagUtil;
@@ -40,6 +41,11 @@ public class TorchPlaceBehavior implements IToolBehavior<TorchPlaceBehavior> {
             ByteBufCodecs.BOOL, val -> val.cacheSlotKey,
             ByteBufCodecs.VAR_INT, val -> val.cachedTorchSlot,
             TorchPlaceBehavior::new);
+
+    static {
+        FieldCodecs.register(TorchPlaceBehavior.class, CODEC);
+        FieldCodecs.registerStream(TorchPlaceBehavior.class, STREAM_CODEC);
+    }
 
     private final boolean cacheSlotKey;
     private final int cachedTorchSlot;

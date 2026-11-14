@@ -58,7 +58,7 @@ GTCEuStartupEvents.registry('gtceu:machine', event => {
 		.recipeType('alchemy')
 		.recipeModifiers([(machine, recipe) => TemperatureModifier(machine, recipe)]) // (2)
 		.appearanceBlock(() => Block.getBlock("gtceu:solid_machine_casing"))
-		.pattern(definition => FactoryBlockPattern.start()
+		.pattern(definition => PatternBuilder.start()
 			.aisle('###','HHH','###')
 			.aisle('###','H H','###')
 			.aisle('#C#','HHH','###')

@@ -1,6 +1,5 @@
 package com.gregtechceu.gtceu.common.machine.storage;
 
-import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo;
 import com.gregtechceu.gtceu.api.capability.IOpticalComputationProvider;
 import com.gregtechceu.gtceu.api.computation.ComputationProducer;
@@ -9,15 +8,14 @@ import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTButtonElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTTextFieldElement;
-import com.gregtechceu.gtceu.api.gui.factory.LDLib2MachineUIProvider;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.api.machine.TickableSubscription;
+import com.gregtechceu.gtceu.api.machine.feature.IUIMachine;
 import com.gregtechceu.gtceu.api.machine.trait.DirectComputationPortTrait;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.ServerFieldChangeListener;
-import com.gregtechceu.gtceu.api.sync_system.annotations.ServerFieldNormalizer;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncBoth;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
 
@@ -36,7 +34,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Collection;
 
 public class CreativeComputationProviderMachine extends MetaMachine
-                                                implements LDLib2MachineUIProvider, IOpticalComputationProvider,
+                                                implements IUIMachine, IOpticalComputationProvider,
                                                 ComputationProducer {
 
     @SaveField
@@ -63,6 +61,7 @@ public class CreativeComputationProviderMachine extends MetaMachine
         updateComputationSubscription();
     }
 
+    @ServerFieldChangeListener(fieldName = "active")
     protected void updateComputationSubscription() {
         if (active) {
             this.computationSubs = subscribeServerTick(this::updateComputationTick);
@@ -122,31 +121,21 @@ public class CreativeComputationProviderMachine extends MetaMachine
         updateComputationSubscription();
     }
 
-    @ServerFieldChangeListener(fieldName = "active")
-    private void onActiveChanged(boolean oldActive, boolean newActive) {
-        updateComputationSubscription();
-    }
-
     @Override
-    public boolean canCreateLDLib2UI(Player player, MachineUIHolder holder) {
-        return holder.getMachine() == this;
-    }
-
-    @Override
-    public UI createLDLib2UI(Player player, MachineUIHolder holder) {
+    public UI createUI(Player player, MachineUIHolder holder) {
         UIElement root = new UIElement();
-        UITemplate.setLDLib2Bounds(root, 0, 0, 140, 95);
+        UITemplate.setBounds(root, 0, 0, 140, 95);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));
-        root.addChild(createLDLib2Label(7, 7, 126, 10, Component.literal("CWUt")));
-        root.addChild(createLDLib2MaxCWUtField());
-        root.addChild(createLDLib2Label(7, 42, 126, 10,
+        root.addChild(createLabel(7, 7, 126, 10, Component.literal("CWUt")));
+        root.addChild(createMaxCWUtField());
+        root.addChild(createLabel(7, 42, 126, 10,
                 Component.translatable("gtpm.creative.computation.average")));
-        root.addChild(createLDLib2LastRequestedCWUtLabel());
-        root.addChild(createLDLib2ActivityButton());
+        root.addChild(createLastRequestedCWUtLabel());
+        root.addChild(createActivityButton());
         return UI.of(root);
     }
 
-    private GTLabelElement createLDLib2Label(int x, int y, int width, int height, Component text) {
+    private GTLabelElement createLabel(int x, int y, int width, int height, Component text) {
         GTLabelElement label = new GTLabelElement(x, y, width, height, text);
         label.textStyle(style -> style
                 .textColor(0x404040)
@@ -156,7 +145,7 @@ public class CreativeComputationProviderMachine extends MetaMachine
         return label;
     }
 
-    private GTTextFieldElement createLDLib2MaxCWUtField() {
+    private GTTextFieldElement createMaxCWUtField() {
         GTTextFieldElement field = new GTTextFieldElement(9, 20, 122, 16) {
 
             @Override
@@ -172,11 +161,13 @@ public class CreativeComputationProviderMachine extends MetaMachine
         field.textFieldStyle(style -> style
                 .textColor(0x404040)
                 .textShadow(false));
-        field.setTextResponder(this::setLDLib2MaxCWUt);
+        field.setTextResponder(value -> {
+            if (!value.isEmpty()) maxCWUt = Integer.parseInt(value);
+        });
         return field;
     }
 
-    private GTLabelElement createLDLib2LastRequestedCWUtLabel() {
+    private GTLabelElement createLastRequestedCWUtLabel() {
         GTLabelElement label = new GTLabelElement(7, 54, 126, 10) {
 
             @Override
@@ -194,53 +185,21 @@ public class CreativeComputationProviderMachine extends MetaMachine
         return label;
     }
 
-    private GTButtonElement createLDLib2ActivityButton() {
-        return new GTButtonElement(9, 66, 122, 20, createLDLib2ActivityButtonTexture(),
-                event -> setLDLib2Active(!isActive())) {
+    private GTButtonElement createActivityButton() {
+        return new GTButtonElement(9, 66, 122, 20, createActivityButtonTexture(),
+                event -> active = !active) {
 
             @Override
             public void screenTick() {
-                setButtonTexture(createLDLib2ActivityButtonTexture());
+                setButtonTexture(createActivityButtonTexture());
                 super.screenTick();
             }
         };
     }
 
-    private IGuiTexture createLDLib2ActivityButtonTexture() {
+    private IGuiTexture createActivityButtonTexture() {
         return GuiTextures.group(GuiTextures.BUTTON,
                 GuiTextures.text(active ? "gtpm.creative.activity.on" : "gtpm.creative.activity.off"));
-    }
-
-    private void setLDLib2MaxCWUt(String value) {
-        if (value.isEmpty()) {
-            return;
-        }
-        int parsedValue;
-        try {
-            parsedValue = Integer.parseInt(value);
-        } catch (NumberFormatException e) {
-            GTCEu.LOGGER.error("Invalid creative computation max CWUt input: {}", value, e);
-            throw e;
-        }
-        setMaxCWUt(parsedValue);
-        sendServerSyncChanges();
-    }
-
-    private void setLDLib2Active(boolean active) {
-        setActive(active);
-        sendServerSyncChanges();
-    }
-
-    private void setMaxCWUt(int maxCWUt) {
-        this.maxCWUt = normalizeMaxCWUt(maxCWUt);
-    }
-
-    @ServerFieldNormalizer(fieldName = "maxCWUt")
-    private int normalizeMaxCWUt(int maxCWUt) {
-        if (maxCWUt < 0) {
-            throw new IllegalArgumentException("Creative computation max CWUt cannot be negative.");
-        }
-        return maxCWUt;
     }
 
     private void setLastRequestedCWUt(int lastRequestedCWUt) {

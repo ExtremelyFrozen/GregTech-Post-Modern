@@ -1,5 +1,6 @@
 package com.gregtechceu.gtceu.api.data.worldgen.bedrockfluid;
 
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 import com.gregtechceu.gtceu.config.ConfigHolder;
 
 import net.minecraft.core.Holder;
@@ -21,6 +22,10 @@ public class FluidVeinWorldEntry {
             Codec.INT.fieldOf("fluidYield").forGetter(FluidVeinWorldEntry::getFluidYield),
             Codec.INT.fieldOf("operationsRemaining").forGetter(FluidVeinWorldEntry::getOperationsRemaining)
     ).apply(instance, FluidVeinWorldEntry::newEntry));
+
+    static {
+        FieldCodecs.register(FluidVeinWorldEntry.class, CODEC);
+    }
     // spotless:on
 
     @Setter

@@ -6,14 +6,15 @@ import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTFluidSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHelper;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyMachineUIElement;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
 import com.gregtechceu.gtceu.api.machine.TieredMachine;
-import com.gregtechceu.gtceu.api.machine.feature.LDLib2FancyUIMachine;
+import com.gregtechceu.gtceu.api.machine.feature.IFancyUIMachine;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableFluidTank;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCSender;
 import com.gregtechceu.gtceu.common.machine.trait.AutoOutputTrait;
 import com.gregtechceu.gtceu.utils.GTUtil;
 
@@ -36,13 +37,9 @@ import org.lwjgl.glfw.GLFW;
 
 import java.util.List;
 
-public class BufferMachine extends TieredMachine implements LDLib2FancyUIMachine, BufferFluidSlotActionTarget {
+public class BufferMachine extends TieredMachine implements IFancyUIMachine {
 
     public static final int TANK_SIZE = 64000;
-
-    static {
-        BufferMachineActions.initialize();
-    }
 
     @SaveField
     @Getter
@@ -79,24 +76,24 @@ public class BufferMachine extends TieredMachine implements LDLib2FancyUIMachine
     ////////////////////////////////
 
     @Override
-    public UIElement createLDLib2MainPage(LDLib2FancyMachineUIElement shell) {
+    public UIElement createUIWidget(FancyMachineUIWidget shell) {
         int invTier = getTankSize(tier);
-        UIElement root = UITemplate.setLDLib2Bounds(new UIElement(), 0, 0,
-                getLDLib2PageWidth(), getLDLib2PageHeight());
-        UIElement container = UITemplate.setLDLib2Bounds(new UIElement(), 4, 4,
+        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0,
+                getPageWidth(), getPageHeight());
+        UIElement container = UITemplate.setBounds(new UIElement(), 4, 4,
                 18 * (invTier + 1) + 8, 18 * invTier + 8);
         container.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
 
         int index = 0;
         for (int y = 0; y < invTier; y++) {
             for (int x = 0; x < invTier; x++) {
-                container.addChild(createLDLib2ItemSlot(index++, 4 + x * 18, 4 + y * 18));
+                container.addChild(createItemSlot(index++, 4 + x * 18, 4 + y * 18));
             }
         }
 
         index = 0;
         for (int y = 0; y < invTier; y++) {
-            container.addChild(createLDLib2FluidSlot(shell, index++, 4 + invTier * 18, 4 + y * 18));
+            container.addChild(createFluidSlot(shell, index++, 4 + invTier * 18, 4 + y * 18));
         }
 
         root.addChild(container);
@@ -104,24 +101,24 @@ public class BufferMachine extends TieredMachine implements LDLib2FancyUIMachine
     }
 
     @Override
-    public int getLDLib2PageWidth() {
+    public int getPageWidth() {
         return 18 * (getTankSize(tier) + 1) + 16;
     }
 
     @Override
-    public int getLDLib2PageHeight() {
+    public int getPageHeight() {
         return 18 * getTankSize(tier) + 16;
     }
 
-    private GTItemSlotElement createLDLib2ItemSlot(int slot, int x, int y) {
+    private GTItemSlotElement createItemSlot(int slot, int x, int y) {
         GTItemSlotElement slotElement = new GTItemSlotElement(getInventory().storage, slot)
                 .setCanPutItems(true)
                 .setCanTakeItems(true)
                 .setBackgroundTexture(GuiTextures.SLOT);
-        return UITemplate.setLDLib2Bounds(slotElement, x, y, 18, 18);
+        return UITemplate.setBounds(slotElement, x, y, 18, 18);
     }
 
-    private GTFluidSlotElement createLDLib2FluidSlot(LDLib2FancyMachineUIElement shell, int tankIndex, int x, int y) {
+    private GTFluidSlotElement createFluidSlot(FancyMachineUIWidget shell, int tankIndex, int x, int y) {
         GTFluidSlotElement fluidSlot = new GTFluidSlotElement()
                 .setFluidTank(tank.getStorages()[tankIndex], 0)
                 .setShowAmount(true)
@@ -132,21 +129,19 @@ public class BufferMachine extends TieredMachine implements LDLib2FancyUIMachine
         fluidSlot.addEventListener(UIEvents.MOUSE_DOWN, event -> {
             ItemStack carried = openingPlayer.containerMenu.getCarried();
             if (canSendFluidSlotAction(event.button, openingPlayer.level().isClientSide(), carried)) {
-                MachineUIHelper.sendAction(shell.getHolder(),
-                        BufferMachineActions.createClickFluidSlotAction(tankIndex, GTUtil.isShiftDown()));
+                boolean shiftDown = GTUtil.isShiftDown();
+                shell.getHolder().getMachine().rpcToServer("clickBufferFluidSlot", tankIndex, shiftDown);
                 event.stopImmediatePropagation();
                 event.hasHandler = true;
             }
         });
-        return UITemplate.setLDLib2Bounds(fluidSlot, x, y, 18, 18);
+        return UITemplate.setBounds(fluidSlot, x, y, 18, 18);
     }
 
-    @Override
-    public void clickBufferFluidSlot(ServerPlayer player, int tankIndex, boolean shiftDown) {
-        if (tankIndex < 0 || tankIndex >= tank.getStorages().length) {
-            throw new IllegalArgumentException("Invalid buffer fluid tank index: " + tankIndex);
-        }
-        new LDLib2FluidClickTarget(tank.getStorages()[tankIndex], true, true).click(player, shiftDown);
+    @RPCMethod
+    public void clickBufferFluidSlot(RPCSender sender, int tankIndex, boolean shiftDown) {
+        var player = sender.asPlayer();
+        new FluidClickTarget(tank.getStorages()[tankIndex], true, true).click(player, shiftDown);
     }
 
     static boolean canSendFluidSlotAction(int button, boolean clientSide, ItemStack carried) {
@@ -157,8 +152,8 @@ public class BufferMachine extends TieredMachine implements LDLib2FancyUIMachine
         return FluidUtil.getFluidHandler(stack).isPresent();
     }
 
-    private record LDLib2FluidClickTarget(IFluidHandler fluidTank, boolean allowClickFilled,
-                                          boolean allowClickDrained) {
+    private record FluidClickTarget(IFluidHandler fluidTank, boolean allowClickFilled,
+                                    boolean allowClickDrained) {
 
         private void click(ServerPlayer player, boolean shiftDown) {
             ItemStack currentStack = player.containerMenu.getCarried();

@@ -1,0 +1,51 @@
+package com.gregtechceu.gtceu.api.machine.fancyconfigurator;
+
+import com.gregtechceu.gtceu.api.gui.fancy.IFancyConfiguratorButton;
+import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
+
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Button.State;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
+
+import net.minecraft.network.chat.Component;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.function.Consumer;
+
+/**
+ * LDLib2 Fancy collapsed button configurator with caller-owned click behavior.
+ *
+ * <p>
+ * Callers that mutate business state must dispatch a GTM action packet from the click handler.
+ */
+public class ButtonConfigurator implements IFancyConfiguratorButton {
+
+    private final IGuiTexture icon;
+    private final Consumer<UIEvent> onClick;
+    private List<Component> tooltips = Collections.emptyList();
+
+    public ButtonConfigurator(IGuiTexture icon, Consumer<UIEvent> onClick) {
+        this.icon = icon;
+        this.onClick = onClick;
+    }
+
+    @Override
+    public IGuiTexture getIcon(State state) {
+        return icon;
+    }
+
+    @Override
+    public List<Component> getTooltips() {
+        return tooltips;
+    }
+
+    public ButtonConfigurator setTooltips(List<Component> tooltips) {
+        this.tooltips = tooltips;
+        return this;
+    }
+
+    @Override
+    public void onClick(UIEvent event) {
+        onClick.accept(event);
+    }
+}

@@ -1,6 +1,5 @@
 package com.gregtechceu.gtceu.api.machine.multiblock;
 
-import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.GTValues;
 import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo;
 import com.gregtechceu.gtceu.api.capability.IEnergyContainer;
@@ -12,33 +11,26 @@ import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTComponentPanelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
-import com.gregtechceu.gtceu.api.gui.factory.LDLib2MachineUIProvider;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolderContext;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2ConfiguratorPanelElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyMachineUIElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyTabsElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyTooltipsPanelElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyUIProvider;
-import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
+import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
+import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.TooltipsPanel;
 import com.gregtechceu.gtceu.api.machine.ConditionalSubscriptionHandler;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2BatchModeFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2DirectionalFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2MachineModeFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2VoidingModeFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2WorkingEnabledFancyConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.BatchModeConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.StructureCheckConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.VoidingModeConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
+import com.gregtechceu.gtceu.api.machine.feature.IFancyUIMachine;
 import com.gregtechceu.gtceu.api.machine.feature.IOverclockMachine;
 import com.gregtechceu.gtceu.api.machine.feature.ITieredMachine;
-import com.gregtechceu.gtceu.api.machine.feature.LDLib2FancyActionMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.BatchModeMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IDisplayUIMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMultiPart;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.LDLib2FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.trait.RecipeLogic;
 import com.gregtechceu.gtceu.api.misc.EnergyContainerList;
 import com.gregtechceu.gtceu.api.recipe.modifier.RecipeModifierList;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
-import com.gregtechceu.gtceu.api.sync_system.annotations.ServerFieldNormalizer;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncBoth;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
 import com.gregtechceu.gtceu.common.data.GTRecipeModifiers;
@@ -56,6 +48,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import lombok.AccessLevel;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
@@ -68,9 +61,10 @@ import java.util.List;
 import java.util.Map;
 
 public class WorkableElectricMultiblockMachine extends WorkableMultiblockMachine implements BatchModeMachine,
-                                               IDisplayUIMachine, ITieredMachine,
-                                               IOverclockMachine, LDLib2MachineUIProvider,
-                                               LDLib2FancyActionMachine {
+                                               IDisplayUIMachine, ITieredMachine, IOverclockMachine, IFancyUIMachine {
+
+    private static final int PAGE_WIDTH = 190;
+    private static final int PAGE_HEIGHT = 125;
 
     // runtime
     protected @Nullable EnergyContainerList energyContainer;
@@ -80,24 +74,24 @@ public class WorkableElectricMultiblockMachine extends WorkableMultiblockMachine
     @SyncBoth
     @Getter
     protected boolean batchEnabled;
-    private final ConditionalSubscriptionHandler ldlib2DisplaySnapshotSubscription;
+    private final ConditionalSubscriptionHandler displaySubscription;
     @Getter(AccessLevel.PACKAGE)
     @SyncToClient
-    private List<Component> ldlib2DisplaySnapshot = List.of();
-    private final Map<WorkableElectricMultiblockFancyPage, LDLib2DisplayOpening> ldlib2DisplayOpenings = new IdentityHashMap<>();
+    private List<Component> display = List.of();
+    private final Map<FancyMachineUIWidget, DisplayOpening> displayOpenings = new IdentityHashMap<>();
 
     public WorkableElectricMultiblockMachine(BlockEntityCreationInfo info, RecipeLogic recipeLogic) {
         super(info, recipeLogic);
-        ldlib2DisplaySnapshotSubscription = new ConditionalSubscriptionHandler(this,
-                this::tickLDLib2DisplayTracking,
-                () -> !ldlib2DisplayOpenings.isEmpty());
+        displaySubscription = new ConditionalSubscriptionHandler(this,
+                this::tickDisplayTracking,
+                () -> !displayOpenings.isEmpty());
     }
 
     public WorkableElectricMultiblockMachine(BlockEntityCreationInfo info) {
         super(info);
-        ldlib2DisplaySnapshotSubscription = new ConditionalSubscriptionHandler(this,
-                this::tickLDLib2DisplayTracking,
-                () -> !ldlib2DisplayOpenings.isEmpty());
+        displaySubscription = new ConditionalSubscriptionHandler(this,
+                this::tickDisplayTracking,
+                () -> !displayOpenings.isEmpty());
     }
 
     @Override
@@ -114,7 +108,7 @@ public class WorkableElectricMultiblockMachine extends WorkableMultiblockMachine
         if (DEFAULT_STRUCTURE.equals(structureName)) {
             this.energyContainer = null;
             this.tier = 0;
-            refreshLDLib2DisplayTracking();
+            refreshDisplayTracking();
         }
     }
 
@@ -124,14 +118,14 @@ public class WorkableElectricMultiblockMachine extends WorkableMultiblockMachine
         if (DEFAULT_STRUCTURE.equals(structureName)) {
             this.energyContainer = getEnergyContainer();
             this.tier = energyContainer.getTier();
-            refreshLDLib2DisplayTracking();
+            refreshDisplayTracking();
         }
     }
 
     @Override
     public void onUnload() {
         super.onUnload();
-        clearLDLib2DisplayOpenings();
+        clearDisplayOpenings();
     }
 
     @Override
@@ -139,42 +133,42 @@ public class WorkableElectricMultiblockMachine extends WorkableMultiblockMachine
         super.onPartUnload();
         this.energyContainer = null;
         this.tier = 0;
-        clearLDLib2DisplayOpenings();
+        clearDisplayOpenings();
     }
 
-    private void refreshLDLib2DisplayTracking() {
-        if (ldlib2DisplayOpenings.isEmpty() || isRemote()) return;
-        ldlib2DisplaySnapshotSubscription.updateSubscription();
-        refreshLDLib2DisplaySnapshot();
+    private void refreshDisplayTracking() {
+        if (displayOpenings.isEmpty() || isRemote()) return;
+        displaySubscription.updateSubscription();
+        refreshDisplay();
     }
 
-    private void startLDLib2DisplayTracking(WorkableElectricMultiblockFancyPage page, Player player,
-                                            AbstractContainerMenu menu) {
+    private void startDisplayTracking(FancyMachineUIWidget page, Player player,
+                                      AbstractContainerMenu menu) {
         if (isRemote()) return;
-        boolean firstAttach = !ldlib2DisplayOpenings.containsKey(page);
-        ldlib2DisplayOpenings.put(page, new LDLib2DisplayOpening(player, menu));
+        boolean firstAttach = !displayOpenings.containsKey(page);
+        displayOpenings.put(page, new DisplayOpening(player, menu));
         if (firstAttach) {
-            refreshLDLib2DisplayTracking();
+            refreshDisplayTracking();
         }
     }
 
-    private void tickLDLib2DisplayTracking() {
-        ldlib2DisplayOpenings.values().removeIf(opening -> opening.player().containerMenu != opening.menu());
-        if (ldlib2DisplayOpenings.isEmpty()) {
-            clearLDLib2DisplayRuntimeState();
+    private void tickDisplayTracking() {
+        displayOpenings.values().removeIf(opening -> opening.player().containerMenu != opening.menu());
+        if (displayOpenings.isEmpty()) {
+            stopDisplayTracking();
         } else if (isFormed()) {
-            refreshLDLib2DisplaySnapshot();
+            refreshDisplay();
         }
     }
 
-    private void clearLDLib2DisplayOpenings() {
-        ldlib2DisplayOpenings.clear();
-        clearLDLib2DisplayRuntimeState();
+    private void clearDisplayOpenings() {
+        displayOpenings.clear();
+        stopDisplayTracking();
     }
 
-    private void clearLDLib2DisplayRuntimeState() {
-        ldlib2DisplaySnapshot = List.of();
-        ldlib2DisplaySnapshotSubscription.unsubscribe();
+    private void stopDisplayTracking() {
+        display = List.of();
+        displaySubscription.unsubscribe();
     }
 
     @Override
@@ -189,193 +183,40 @@ public class WorkableElectricMultiblockMachine extends WorkableMultiblockMachine
         this.batchEnabled = batchEnabled;
     }
 
-    @ServerFieldNormalizer(fieldName = "batchEnabled")
-    private boolean normalizeBatchEnabled(boolean candidate) {
-        if (!supportsBatchMode()) {
-            throw new IllegalArgumentException("Machine does not support batch mode.");
-        }
-        return candidate;
-    }
-
     //////////////////////////////////////
     // ********** GUI ***********//
     //////////////////////////////////////
 
     @Override
-    public boolean canCreateLDLib2UI(Player player, MachineUIHolder holder) {
-        if (holder.getMachine() != this) return false;
-        for (IMultiPart part : getParts()) {
-            if (!(part instanceof LDLib2FancyPartUIProvider)) return false;
-        }
-        return true;
-    }
-
-    @Override
-    public UI createLDLib2UI(Player player, MachineUIHolder holder) {
-        requireMatchingLDLib2Holder(holder);
-        WorkableElectricMultiblockFancyPage page = new WorkableElectricMultiblockFancyPage(player, holder);
-        LDLib2FancyMachineUIElement shell = new LDLib2FancyMachineUIElement(page, player.getInventory(), holder,
-                page.getLDLib2PageWidth(), page.getLDLib2PageHeight());
+    public UI createUI(Player player, MachineUIHolder holder) {
+        FancyMachineUIWidget shell = new FancyMachineUIWidget(this, player.getInventory(), holder,
+                getPageWidth(), getPageHeight());
         shell.addEventListener(UIEvents.MUI_CHANGED, event -> {
             var modularUI = shell.getModularUI();
             if (modularUI != null) {
                 var menu = modularUI.getMenu();
                 if (menu != null) {
-                    startLDLib2DisplayTracking(page, player, menu);
+                    startDisplayTracking(shell, player, menu);
                 }
             }
         });
         return UI.of(shell);
     }
 
-    private void requireMatchingLDLib2Holder(MachineUIHolder holder) {
-        if (holder.getMachine() != this) {
-            GTCEu.LOGGER.error("Workable multiblock UI holder no longer resolves controller at {}", getBlockPos());
-            throw new IllegalArgumentException("Workable multiblock UI holder must resolve the opened controller.");
+    void refreshDisplay() {
+        List<Component> nextDisplay = new ArrayList<>();
+        addDisplayText(nextDisplay);
+        nextDisplay = List.copyOf(nextDisplay);
+        if (!display.equals(nextDisplay)) {
+            display = nextDisplay;
         }
     }
 
-    void refreshLDLib2DisplaySnapshot() {
-        List<Component> nextSnapshot = new ArrayList<>();
-        addDisplayText(nextSnapshot);
-        nextSnapshot = List.copyOf(nextSnapshot);
-        if (!ldlib2DisplaySnapshot.equals(nextSnapshot)) {
-            ldlib2DisplaySnapshot = nextSnapshot;
-        }
+    private void appendSyncedDisplay(List<Component> textList) {
+        textList.addAll(display);
     }
 
-    private void addLDLib2DisplayText(List<Component> textList) {
-        textList.addAll(ldlib2DisplaySnapshot);
-    }
-
-    private record LDLib2DisplayOpening(Player player, AbstractContainerMenu menu) {}
-
-    private final class WorkableElectricMultiblockFancyPage implements LDLib2FancyUIProvider {
-
-        private static final int PAGE_WIDTH = 190;
-        private static final int PAGE_HEIGHT = 125;
-
-        private final MachineUIHolder holder;
-        private final List<IMultiPart> openingParts;
-        private final List<LDLib2FancyUIProvider> sidePages;
-        private final List<LDLib2FancyUIProvider> partPages;
-
-        private WorkableElectricMultiblockFancyPage(Player player, MachineUIHolder holder) {
-            this.holder = holder;
-            openingParts = List.copyOf(getParts());
-
-            List<LDLib2FancyUIProvider> openingSidePages = new ArrayList<>();
-            if (getRecipeTypes().length > 1) {
-                openingSidePages.add(new LDLib2MachineModeFancyConfigurator(
-                        WorkableElectricMultiblockMachine.this));
-            }
-            openingSidePages.add(new LDLib2DirectionalFancyConfigurator(
-                    WorkableElectricMultiblockMachine.this, player, holder));
-            sidePages = List.copyOf(openingSidePages);
-
-            List<LDLib2FancyUIProvider> openingPartPages = new ArrayList<>();
-            for (IMultiPart part : openingParts) {
-                if (!(part instanceof LDLib2FancyPartUIProvider pageProvider)) {
-                    GTCEu.LOGGER.error("Workable multiblock part {} has no LDLib2 Fancy page",
-                            part.self().getDefinition().getId());
-                    throw new IllegalStateException("Workable multiblock part has no LDLib2 Fancy page: " +
-                            part.self().getDefinition().getId());
-                }
-                openingPartPages.add(pageProvider.createLDLib2FancyPage(
-                        player, new MachineUIHolderContext(player, part.self())));
-            }
-            partPages = List.copyOf(openingPartPages);
-        }
-
-        @Override
-        public UIElement createLDLib2MainPage(LDLib2FancyMachineUIElement shell) {
-            if (holder.getMachine() != WorkableElectricMultiblockMachine.this) {
-                GTCEu.LOGGER.error("Workable multiblock page holder changed after opening at {}", getBlockPos());
-                throw new IllegalStateException("Workable multiblock page holder no longer resolves its controller.");
-            }
-
-            UIElement root = UITemplate.setLDLib2Bounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
-            root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
-
-            GTScrollerViewElement screen = new GTScrollerViewElement(4, 4, 182, 117);
-            screen.style(style -> style.backgroundTexture(getScreenTexture()));
-            screen.viewPort(viewPort -> viewPort
-                    .layout(layout -> layout.paddingAll(0))
-                    .style(style -> style.backgroundTexture(getScreenTexture())));
-            screen.scrollerStyle(style -> style
-                    .mode(ScrollerMode.VERTICAL)
-                    .verticalScrollDisplay(ScrollDisplay.AUTO)
-                    .horizontalScrollDisplay(ScrollDisplay.NEVER));
-
-            GTLabelElement title = new GTLabelElement(4, 5, 174, 10,
-                    getBlockState().getBlock().getDescriptionId(), true);
-            title.textStyle(style -> style
-                    .textColor(0x404040)
-                    .textShadow(false)
-                    .textAlignHorizontal(Horizontal.LEFT)
-                    .textAlignVertical(Vertical.CENTER));
-            screen.addScrollViewChild(title);
-            screen.addScrollViewChild(new GTComponentPanelElement(4, 17,
-                    WorkableElectricMultiblockMachine.this::addLDLib2DisplayText)
-                    .setMaxWidthLimit(200)
-                    .clickHandler(WorkableElectricMultiblockMachine.this::handleDisplayClick));
-            root.addChild(screen);
-            return root;
-        }
-
-        @Override
-        public IGuiTexture getTabIcon() {
-            return GuiTextures.itemStack(getDefinition().getItem());
-        }
-
-        @Override
-        public Component getTitle() {
-            return Component.translatable(getDefinition().getDescriptionId());
-        }
-
-        @Override
-        public int getLDLib2PageWidth() {
-            return PAGE_WIDTH;
-        }
-
-        @Override
-        public int getLDLib2PageHeight() {
-            return PAGE_HEIGHT;
-        }
-
-        @Override
-        public void attachSideTabs(LDLib2FancyTabsElement tabs) {
-            sidePages.forEach(tabs::attachSubTab);
-        }
-
-        @Override
-        public void attachConfigurators(LDLib2ConfiguratorPanelElement configuratorPanel) {
-            LDLib2VoidingModeFancyConfigurator.attachConfigurators(
-                    configuratorPanel, WorkableElectricMultiblockMachine.this);
-            LDLib2BatchModeFancyConfigurator.attachConfigurators(
-                    configuratorPanel, WorkableElectricMultiblockMachine.this);
-            configuratorPanel.attachConfigurators(new LDLib2WorkingEnabledFancyConfigurator(
-                    WorkableElectricMultiblockMachine.this, holder));
-        }
-
-        @Override
-        public void attachTooltips(LDLib2FancyTooltipsPanelElement tooltipsPanel) {
-            for (IMultiPart part : openingParts) {
-                part.attachLDLib2FancyTooltipsToController(
-                        WorkableElectricMultiblockMachine.this, tooltipsPanel);
-            }
-        }
-
-        @Override
-        public List<LDLib2FancyUIProvider> getSubTabs() {
-            return partPages;
-        }
-
-        @Override
-        public List<Component> getTabTooltips() {
-            return List.of(Component.translatable(getDefinition().getDescriptionId()));
-        }
-    }
+    private record DisplayOpening(Player player, AbstractContainerMenu menu) {}
 
     @Override
     public void addDisplayText(@NotNull List<Component> textList) {
@@ -485,5 +326,70 @@ public class WorkableElectricMultiblockMachine extends WorkableMultiblockMachine
      */
     public boolean isGenerator() {
         return getDefinition().isGenerator();
+    }
+
+    @Override
+    public UIElement createUIWidget(FancyMachineUIWidget shell) {
+        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
+        root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
+
+        GTScrollerViewElement screen = new GTScrollerViewElement(4, 4, 182, 117);
+        screen.style(style -> style.backgroundTexture(getScreenTexture()));
+        screen.viewPort(viewPort -> viewPort
+                .layout(layout -> layout.paddingAll(0))
+                .style(style -> style.backgroundTexture(getScreenTexture())));
+        screen.scrollerStyle(style -> style
+                .mode(ScrollerMode.VERTICAL)
+                .verticalScrollDisplay(ScrollDisplay.AUTO)
+                .horizontalScrollDisplay(ScrollDisplay.NEVER));
+
+        GTLabelElement title = new GTLabelElement(4, 5, 174, 10,
+                getBlockState().getBlock().getDescriptionId(), true);
+        title.textStyle(style -> style
+                .textColor(0x404040)
+                .textShadow(false)
+                .textAlignHorizontal(Horizontal.LEFT)
+                .textAlignVertical(Vertical.CENTER));
+        screen.addScrollViewChild(title);
+        screen.addScrollViewChild(new GTComponentPanelElement(4, 17,
+                WorkableElectricMultiblockMachine.this::appendSyncedDisplay)
+                .setMaxWidthLimit(200)
+                .clickHandler(WorkableElectricMultiblockMachine.this::handleDisplayClick));
+        root.addChild(screen);
+        return root;
+    }
+
+    @Override
+    public int getPageWidth() {
+        return PAGE_WIDTH;
+    }
+
+    @Override
+    public int getPageHeight() {
+        return PAGE_HEIGHT;
+    }
+
+    @Override
+    public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
+        VoidingModeConfigurator.attachConfigurators(
+                configuratorPanel, WorkableElectricMultiblockMachine.this);
+        BatchModeConfigurator.attachConfigurators(
+                configuratorPanel, WorkableElectricMultiblockMachine.this);
+        configuratorPanel.attachConfigurators(new StructureCheckConfigurator(this));
+        configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
+                WorkableElectricMultiblockMachine.this));
+    }
+
+    @Override
+    public void attachTooltips(TooltipsPanel tooltipsPanel) {
+        for (IMultiPart part : getParts()) {
+            part.attachFancyTooltipsToController(
+                    WorkableElectricMultiblockMachine.this, tooltipsPanel);
+        }
+    }
+
+    @Override
+    public List<IFancyUIProvider> getSubTabs() {
+        return new ObjectArrayList<>(getParts());
     }
 }

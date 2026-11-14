@@ -9,12 +9,12 @@ import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.editor.EditableMachineUI;
 import com.gregtechceu.gtceu.api.gui.editor.MachineUIXmlTemplates;
 import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2ConfiguratorPanelElement;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2AutoOutputFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2CircuitFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2WorkingEnabledFancyConfigurator;
+import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.AutoOutputConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CircuitFancyConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
+import com.gregtechceu.gtceu.api.machine.feature.IFancyUIMachine;
 import com.gregtechceu.gtceu.api.machine.feature.IHasCircuitSlot;
-import com.gregtechceu.gtceu.api.machine.feature.LDLib2RecipeFancyUIMachine;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler;
 import com.gregtechceu.gtceu.api.recipe.GTRecipeType;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
@@ -40,7 +40,7 @@ import java.util.function.BiFunction;
  * All simple single machines are implemented here.
  */
 public class SimpleTieredMachine extends WorkableTieredMachine
-                                 implements LDLib2RecipeFancyUIMachine, IHasCircuitSlot {
+                                 implements IFancyUIMachine, IHasCircuitSlot {
 
     @Getter
     @SaveField
@@ -138,18 +138,13 @@ public class SimpleTieredMachine extends WorkableTieredMachine
     //////////////////////////////////////
 
     @Override
-    public SimpleTieredMachine getLDLib2RecipeMachine() {
-        return this;
-    }
-
-    @Override
-    public void attachConfigurators(LDLib2ConfiguratorPanelElement configuratorPanel) {
-        configuratorPanel.attachConfigurators(new LDLib2WorkingEnabledFancyConfigurator(
-                this, configuratorPanel.getHolder()));
-        LDLib2AutoOutputFancyConfigurator.attachConfigurators(configuratorPanel, autoOutput);
+    public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
+        configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
+                this));
+        AutoOutputConfigurator.attachConfigurators(configuratorPanel, autoOutput);
         if (isCircuitSlotEnabled()) {
-            configuratorPanel.attachConfigurators(new LDLib2CircuitFancyConfigurator(
-                    this, configuratorPanel.getHolder()));
+            configuratorPanel.attachConfigurators(new CircuitFancyConfigurator(
+                    this));
         }
     }
 
@@ -157,21 +152,21 @@ public class SimpleTieredMachine extends WorkableTieredMachine
     public static BiFunction<ResourceLocation, GTRecipeType, EditableMachineUI> EDITABLE_UI_CREATOR = Util
             .memoize((path, recipeType) -> new EditableMachineUI("simple", path,
                     () -> MachineUIXmlTemplates.createSimpleMachineXml(
-                            recipeType.getRecipeUI().createLDLib2TemplateDocument()),
+                            recipeType.getRecipeUI().createTemplateDocument()),
                     (root, machine) -> {
                         if (!(machine instanceof SimpleTieredMachine tieredMachine)) {
                             throw new IllegalArgumentException("Simple machine XML cannot bind " +
                                     machine.getClass().getName());
                         }
-                        tieredMachine.bindLDLib2RecipeElements(root, tieredMachine);
-                        tieredMachine.bindLDLib2BatterySlot(MachineUIXmlTemplates.requireElement(root,
+                        tieredMachine.bindRecipeElements(root);
+                        tieredMachine.bindBatterySlot(MachineUIXmlTemplates.requireElement(root,
                                 MachineUIXmlTemplates.BATTERY_SLOT_ID, GTItemSlotElement.class));
                     }));
 
     /**
      * Binds a parsed LDLib2 battery slot to this machine's charger inventory.
      */
-    protected GTItemSlotElement bindLDLib2BatterySlot(GTItemSlotElement slot) {
+    protected GTItemSlotElement bindBatterySlot(GTItemSlotElement slot) {
         return slot.bind(chargerInventory, 0)
                 .setCanPutItems(true)
                 .setCanTakeItems(true)
@@ -183,9 +178,9 @@ public class SimpleTieredMachine extends WorkableTieredMachine
     /**
      * Create an LDLib2 battery slot element.
      */
-    protected GTItemSlotElement createLDLib2BatterySlot() {
-        var slot = bindLDLib2BatterySlot(new GTItemSlotElement())
+    protected GTItemSlotElement createBatterySlot() {
+        var slot = bindBatterySlot(new GTItemSlotElement())
                 .setBackgroundTexture(GuiTextures.group(GuiTextures.SLOT, GuiTextures.CHARGER_OVERLAY));
-        return UITemplate.setLDLib2Bounds(slot, 0, 0, 18, 18);
+        return UITemplate.setBounds(slot, 0, 0, 18, 18);
     }
 }

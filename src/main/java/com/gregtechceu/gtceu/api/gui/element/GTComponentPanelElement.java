@@ -62,7 +62,7 @@ public class GTComponentPanelElement extends UIElement {
     private int space = 2;
 
     public GTComponentPanelElement() {
-        UITemplate.setLDLib2Bounds(this, 0, 0, 0, 0);
+        UITemplate.setBounds(this, 0, 0, 0, 0);
         addEventListener(UIEvents.MOUSE_DOWN, this::onMouseDown);
         addEventListener(UIEvents.HOVER_TOOLTIPS, this::onHoverTooltips);
     }
@@ -102,9 +102,6 @@ public class GTComponentPanelElement extends UIElement {
     }
 
     public GTComponentPanelElement setMaxWidthLimit(int maxWidthLimit) {
-        if (maxWidthLimit < 0) {
-            throw new IllegalArgumentException("maxWidthLimit must be non-negative");
-        }
         this.maxWidthLimit = maxWidthLimit;
         refreshDisplayText();
         return this;
@@ -117,9 +114,6 @@ public class GTComponentPanelElement extends UIElement {
     }
 
     public GTComponentPanelElement setSpace(int space) {
-        if (space < 0) {
-            throw new IllegalArgumentException("space must be non-negative");
-        }
         this.space = space;
         refreshDisplayText();
         return this;
@@ -270,7 +264,7 @@ public class GTComponentPanelElement extends UIElement {
     }
 
     private void applyBounds() {
-        UITemplate.setLDLib2Bounds(this, x, y, width, height);
+        UITemplate.setBounds(this, x, y, width, height);
     }
 
     @Nullable

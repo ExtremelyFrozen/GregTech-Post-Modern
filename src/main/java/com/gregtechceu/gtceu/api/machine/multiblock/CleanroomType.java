@@ -1,5 +1,7 @@
 package com.gregtechceu.gtceu.api.machine.multiblock;
 
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
+
 import com.mojang.serialization.Codec;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.jetbrains.annotations.NotNull;
@@ -18,6 +20,10 @@ public record CleanroomType(String name, String translationKey) {
             "gtpm.recipe.cleanroom_sterile.display_name");
 
     public static final Codec<CleanroomType> CODEC = Codec.stringResolver(CleanroomType::name, CLEANROOM_TYPES::get);
+
+    static {
+        FieldCodecs.register(CleanroomType.class, CODEC);
+    }
 
     public CleanroomType(@NotNull String name, @NotNull String translationKey) {
         if (CLEANROOM_TYPES.get(name) != null)

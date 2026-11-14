@@ -21,7 +21,7 @@ import com.gregtechceu.gtceu.api.recipe.category.GTRecipeCategory;
 import com.gregtechceu.gtceu.api.recipe.content.Content;
 import com.gregtechceu.gtceu.integration.emi.recipe.GTRecipeEMICategory;
 import com.gregtechceu.gtceu.integration.jei.GTJEIPlugin;
-import com.gregtechceu.gtceu.integration.jei.recipe.GTLDLib2RecipeJEICategory;
+import com.gregtechceu.gtceu.integration.jei.recipe.GTRecipeJEICategory;
 
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
@@ -84,13 +84,13 @@ public class GTRecipeTypeUI {
     private ProgressTexture.FillDirection steamMoveType = ProgressTexture.FillDirection.LEFT_TO_RIGHT;
     @Setter
     @Nullable
-    protected LDLib2UiBuilder ldLib2UiBuilder;
+    protected RecipeUIBuilder uiBuilder;
     @Setter
     @Getter
     protected int maxTooltips = 3;
 
-    private String customLDLib2UICache;
-    private boolean customLDLib2UICacheLoaded;
+    private String customUICache;
+    private boolean customUICacheLoaded;
 
     /**
      * @param recipeType the recipemap corresponding to this ui
@@ -99,88 +99,88 @@ public class GTRecipeTypeUI {
         this.recipeType = recipeType;
     }
 
-    public boolean hasCustomLDLib2UI() {
-        return getCustomLDLib2UIXml() != null;
+    public boolean hasCustomUI() {
+        return getCustomUIXml() != null;
     }
 
     /**
      * Returns the active unbound recipe XML template as a fresh DOM document.
      */
-    public Document createLDLib2TemplateDocument() {
-        String customXml = getCustomLDLib2UIXml();
+    public Document createTemplateDocument() {
+        String customXml = getCustomUIXml();
         if (customXml == null) {
             return RecipeUIXmlTemplate.createDocument(recipeType, this);
         }
-        return parseCustomLDLib2UI(customXml);
+        return parseCustomUI(customXml);
     }
 
     /**
      * Returns the active unbound recipe XML template for the LDLib2 text editor.
      */
-    public String createLDLib2TemplateXml() {
-        String customXml = getCustomLDLib2UIXml();
+    public String createTemplateXml() {
+        String customXml = getCustomUIXml();
         if (customXml == null) {
             return RecipeUIXmlTemplate.serialize(RecipeUIXmlTemplate.createDocument(recipeType, this));
         }
-        parseCustomLDLib2UI(customXml);
+        parseCustomUI(customXml);
         return customXml;
     }
 
-    public UI createCustomLDLib2UI() {
-        String xml = getCustomLDLib2UIXml();
+    public UI createCustomUI() {
+        String xml = getCustomUIXml();
         if (xml == null) {
-            ResourceLocation location = getCustomLDLib2UILocation();
+            ResourceLocation location = getCustomUILocation();
             GTCEu.LOGGER.error("Cannot create custom LDLib2 recipe type UI because {} does not exist", location);
             throw new IllegalStateException("Custom LDLib2 recipe type UI does not exist: " + location);
         }
 
-        Document document = parseCustomLDLib2UI(xml);
+        Document document = parseCustomUI(xml);
         try {
             return UI.of(document);
         } catch (RuntimeException e) {
-            GTCEu.LOGGER.error("Failed to create LDLib2 recipe type UI from {}", getCustomLDLib2UILocation(), e);
-            throw new IllegalStateException("Invalid LDLib2 recipe type UI: " + getCustomLDLib2UILocation(), e);
+            GTCEu.LOGGER.error("Failed to create LDLib2 recipe type UI from {}", getCustomUILocation(), e);
+            throw new IllegalStateException("Invalid LDLib2 recipe type UI: " + getCustomUILocation(), e);
         }
     }
 
-    private Document parseCustomLDLib2UI(String xml) {
+    private Document parseCustomUI(String xml) {
         try {
             return RecipeUIXmlTemplate.parse(xml);
         } catch (IllegalArgumentException e) {
             GTCEu.LOGGER.error("Failed to parse LDLib2 recipe type UI template from {}",
-                    getCustomLDLib2UILocation(), e);
+                    getCustomUILocation(), e);
             throw new IllegalStateException("Invalid LDLib2 recipe type UI template: " +
-                    getCustomLDLib2UILocation(), e);
+                    getCustomUILocation(), e);
         }
     }
 
     @Nullable
-    private String getCustomLDLib2UIXml() {
-        if (!this.customLDLib2UICacheLoaded) {
+    private String getCustomUIXml() {
+        if (!this.customUICacheLoaded) {
             ResourceManager resourceManager = getResourceManager();
             if (resourceManager == null) {
-                ResourceLocation location = getCustomLDLib2UILocation();
+                ResourceLocation location = getCustomUILocation();
                 GTCEu.LOGGER.error("Cannot load LDLib2 recipe type UI {} without an active resource manager",
                         location);
                 throw new IllegalStateException("Cannot load LDLib2 recipe type UI without a resource manager: " +
                         location);
             } else {
-                ResourceLocation location = getCustomLDLib2UILocation();
+                ResourceLocation location = getCustomUILocation();
                 var resource = resourceManager.getResource(location);
                 if (resource.isEmpty()) {
-                    this.customLDLib2UICache = null;
+                    this.customUICache = null;
                 } else {
                     try (InputStream inputStream = resource.get().open()) {
-                        this.customLDLib2UICache = decodeUtf8(inputStream.readAllBytes(), location);
+                        this.customUICache = decodeUtf8(inputStream.readAllBytes(), location);
                     } catch (Exception e) {
                         GTCEu.LOGGER.error("Failed to load LDLib2 recipe type UI from {}", location, e);
                         throw new IllegalStateException("Failed to load LDLib2 recipe type UI from " + location, e);
                     }
                 }
             }
-            this.customLDLib2UICacheLoaded = true;
+            this.customUICacheLoaded = true;
         }
-        return this.customLDLib2UICache;
+        return this.customUICache;
     }
 
     private static String decodeUtf8(byte[] bytes, ResourceLocation location) throws CharacterCodingException {
@@ -194,7 +194,7 @@ public class GTRecipeTypeUI {
         return xml;
     }
 
-    private ResourceLocation getCustomLDLib2UILocation() {
+    private ResourceLocation getCustomUILocation() {
         return ResourceLocation.fromNamespaceAndPath(recipeType.registryName.getNamespace(),
                 "ui/recipe_type/%s.xml".formatted(recipeType.registryName.getPath()));
     }
@@ -210,8 +210,8 @@ public class GTRecipeTypeUI {
     }
 
     public void reloadCustomUI() {
-        this.customLDLib2UICache = null;
-        this.customLDLib2UICacheLoaded = false;
+        this.customUICache = null;
+        this.customUICacheLoaded = false;
     }
 
     public record RecipeHolder(DoubleSupplier progressSupplier,
@@ -221,66 +221,66 @@ public class GTRecipeTypeUI {
                                boolean isSteam,
                                boolean isHighPressure) {}
 
-    public record LDLib2RecipeUISize(int width, int height) {}
+    public record RecipeUISize(int width, int height) {}
 
     @FunctionalInterface
-    public interface LDLib2UiBuilder {
+    public interface RecipeUIBuilder {
 
-        void accept(GTRecipeDefinition recipe, UIElement root, LDLib2RecipeUISize rootSize);
+        void accept(GTRecipeDefinition recipe, UIElement root, RecipeUISize rootSize);
     }
 
-    public UI createLDLib2UITemplate(DoubleSupplier progressSupplier,
-                                     Table<IO, RecipeCapability<?>, Object> storages,
-                                     DataComponentMap data,
-                                     List<RecipeCondition<?>> conditions,
-                                     boolean isSteam,
-                                     boolean isHighPressure) {
-        UI ui = !isSteam && hasCustomLDLib2UI() ? createCustomLDLib2UI() :
-                createDefaultLDLib2UI(isSteam, isHighPressure);
-        bindLDLib2RecipeUI(ui.rootElement,
+    public UI createUITemplate(DoubleSupplier progressSupplier,
+                               Table<IO, RecipeCapability<?>, Object> storages,
+                               DataComponentMap data,
+                               List<RecipeCondition<?>> conditions,
+                               boolean isSteam,
+                               boolean isHighPressure) {
+        UI ui = !isSteam && hasCustomUI() ? createCustomUI() :
+                createDefaultUI(isSteam, isHighPressure);
+        bindRecipeUI(ui.rootElement,
                 new RecipeHolder(progressSupplier, storages, data, conditions, isSteam, isHighPressure));
         return ui;
     }
 
-    public UI createLDLib2UITemplate(DoubleSupplier progressSupplier,
-                                     Table<IO, RecipeCapability<?>, Object> storages,
-                                     DataComponentMap data,
-                                     List<RecipeCondition<?>> conditions) {
-        return createLDLib2UITemplate(progressSupplier, storages, data, conditions, false, false);
+    public UI createUITemplate(DoubleSupplier progressSupplier,
+                               Table<IO, RecipeCapability<?>, Object> storages,
+                               DataComponentMap data,
+                               List<RecipeCondition<?>> conditions) {
+        return createUITemplate(progressSupplier, storages, data, conditions, false, false);
     }
 
-    public LDLib2RecipeUISize getLDLib2XEIRecipeUISize() {
-        LDLib2RecipeUISize rawSize = getLDLib2RecipeUISize(false, false);
-        return new LDLib2RecipeUISize(Math.max(rawSize.width(), 150),
+    public RecipeUISize getXEIRecipeUISize() {
+        RecipeUISize rawSize = getRecipeUISize(false, false);
+        return new RecipeUISize(Math.max(rawSize.width(), 150),
                 rawSize.height() + 5 + getPropertyHeightShift());
     }
 
-    public LDLib2RecipeUISize getLDLib2RecipeUISize(boolean isSteam, boolean isHighPressure) {
+    public RecipeUISize getRecipeUISize(boolean isSteam, boolean isHighPressure) {
         Document document = isSteam ? RecipeUIXmlTemplate.createDocument(recipeType, this) :
-                createLDLib2TemplateDocument();
-        return getLDLib2RecipeUISize(document);
+                createTemplateDocument();
+        return getRecipeUISize(document);
     }
 
     /**
      * Reads the fixed pixel dimensions declared by a recipe XML document.
      */
-    public static LDLib2RecipeUISize getLDLib2RecipeUISize(Document document) {
-        Element root = getLDLib2Root(document);
+    public static RecipeUISize getRecipeUISize(Document document) {
+        Element root = getRoot(document);
         var properties = Stylesheet.parseStyleValues(root.getAttribute("style"));
-        return new LDLib2RecipeUISize(
-                fixedLDLib2RecipeUISize(getLDLib2Dimension(properties.get(LayoutProperties.WIDTH)), "width"),
-                fixedLDLib2RecipeUISize(getLDLib2Dimension(properties.get(LayoutProperties.HEIGHT)), "height"));
+        return new RecipeUISize(
+                fixedRecipeUISize(getDimension(properties.get(LayoutProperties.WIDTH)), "width"),
+                fixedRecipeUISize(getDimension(properties.get(LayoutProperties.HEIGHT)), "height"));
     }
 
     @Nullable
-    private static TaffyDimension getLDLib2Dimension(@Nullable StyleValue<?> styleValue) {
+    private static TaffyDimension getDimension(@Nullable StyleValue<?> styleValue) {
         if (styleValue != null && styleValue.compute() instanceof TaffyDimension dimension) {
             return dimension;
         }
         return null;
     }
 
-    private static Element getLDLib2Root(Document document) {
+    private static Element getRoot(Document document) {
         Element documentRoot = document.getDocumentElement();
         if (documentRoot == null) {
             throw new IllegalArgumentException("LDLib2 recipe UI XML does not contain a document root");
@@ -301,7 +301,7 @@ public class GTRecipeTypeUI {
         return root;
     }
 
-    private static int fixedLDLib2RecipeUISize(TaffyDimension dimension, String axis) {
+    private static int fixedRecipeUISize(TaffyDimension dimension, String axis) {
         if (dimension == null || !dimension.isLength()) {
             GTCEu.LOGGER.error("LDLib2 recipe UI {} must use a fixed pixel size, got {}", axis, dimension);
             throw new IllegalArgumentException("LDLib2 recipe UI " + axis + " must use a fixed pixel size");
@@ -309,9 +309,9 @@ public class GTRecipeTypeUI {
         return Math.round(dimension.getValue());
     }
 
-    private UI createDefaultLDLib2UI(boolean isSteam, boolean isHighPressure) {
-        var inputs = addLDLib2InventorySlotGroup(false, isSteam, isHighPressure);
-        var outputs = addLDLib2InventorySlotGroup(true, isSteam, isHighPressure);
+    private UI createDefaultUI(boolean isSteam, boolean isHighPressure) {
+        var inputs = addInventorySlotGroup(false, isSteam, isHighPressure);
+        var outputs = addInventorySlotGroup(true, isSteam, isHighPressure);
         var maxWidth = Math.max(inputs.width(), outputs.width());
         var width = 2 * maxWidth + 40;
         var height = Math.max(inputs.height(), outputs.height());
@@ -343,7 +343,7 @@ public class GTRecipeTypeUI {
             layout.width(20);
             layout.height(20);
         });
-        configureLDLib2ProgressTexture(progress, isSteam, isHighPressure);
+        configureProgressTexture(progress, isSteam, isHighPressure);
         root.addChild(progress);
         return UI.of(root);
     }
@@ -351,7 +351,7 @@ public class GTRecipeTypeUI {
     /**
      * Binds progress and capability storage to an already parsed recipe XML tree.
      */
-    public void bindLDLib2RecipeUI(UIElement root, RecipeHolder recipeHolder) {
+    public void bindRecipeUI(UIElement root, RecipeHolder recipeHolder) {
         var isXEI = recipeHolder.progressSupplier == XEI_PROGRESS;
         List<UIElement> progressElements = new ArrayList<>();
         root.selectId("progress", GTProgressBarElement.class)
@@ -370,8 +370,8 @@ public class GTRecipeTypeUI {
                     recipeType.registryName);
         }
 
-        if (!isXEI && GTCEu.Mods.isAnyRecipeViewerLoaded()) {
-            progressElements.forEach(this::addLDLib2RecipeViewerButton);
+        if (!isXEI && GTCEu.MODS.isAnyRecipeViewerLoaded()) {
+            progressElements.forEach(this::addRecipeViewerButton);
         }
 
         for (var capabilityEntry : recipeHolder.storages.rowMap().entrySet()) {
@@ -379,12 +379,12 @@ public class GTRecipeTypeUI {
             for (var storagesEntry : capabilityEntry.getValue().entrySet()) {
                 RecipeCapability<?> cap = storagesEntry.getKey();
                 Object storage = storagesEntry.getValue();
-                var elementClass = cap.getLDLib2ElementClass();
+                var elementClass = cap.getElementClass();
                 if (elementClass != null) {
                     root.selectRegex("^%s_[0-9]+$".formatted(cap.slotName(io)), elementClass)
                             .forEach(element -> {
-                                var index = ldLib2ElementIdIndex(element);
-                                cap.applyLDLib2ElementInfo(element, index, isXEI, io, recipeHolder, recipeType, null,
+                                var index = elementIdIndex(element);
+                                cap.applyElementInfo(element, index, isXEI, io, recipeHolder, recipeType, null,
                                         null, storage, 0, 0);
                             });
                 }
@@ -392,7 +392,7 @@ public class GTRecipeTypeUI {
         }
     }
 
-    private void addLDLib2RecipeViewerButton(UIElement progress) {
+    private void addRecipeViewerButton(UIElement progress) {
         GTButtonElement button = new GTButtonElement();
         button.noText();
         button.layout(layout -> {
@@ -413,35 +413,35 @@ public class GTRecipeTypeUI {
     }
 
     private void showRecipeViewerCategory() {
-        if (GTCEu.Mods.isEMILoaded()) {
+        if (GTCEu.MODS.isEMILoaded()) {
             EmiApi.displayRecipeCategory(GTRecipeEMICategory.machineCategory(recipeType.getCategory()));
-        } else if (GTCEu.Mods.isJEILoaded()) {
+        } else if (GTCEu.MODS.isJEILoaded()) {
             GTJEIPlugin.jeiRuntime.getRecipesGui().showTypes(
                     recipeType.getCategories().stream()
                             .filter(GTRecipeCategory::isXEIVisible)
-                            .map(GTLDLib2RecipeJEICategory::machineType)
+                            .map(GTRecipeJEICategory::machineType)
                             .collect(Collectors.toList()));
         }
     }
 
-    public void applyLDLib2RecipeContent(UI ui,
-                                         Table<IO, RecipeCapability<?>, List<Content>> contentTable,
-                                         GTRecipeDefinition recipe,
-                                         int recipeTier,
-                                         int chanceTier) {
-        applyLDLib2RecipeContent(ui.rootElement, contentTable, recipe, recipeTier, chanceTier);
+    public void applyRecipeContent(UI ui,
+                                   Table<IO, RecipeCapability<?>, List<Content>> contentTable,
+                                   GTRecipeDefinition recipe,
+                                   int recipeTier,
+                                   int chanceTier) {
+        applyRecipeContent(ui.rootElement, contentTable, recipe, recipeTier, chanceTier);
     }
 
-    public void applyLDLib2RecipeContent(UIElement root,
-                                         Table<IO, RecipeCapability<?>, List<Content>> contentTable,
-                                         GTRecipeDefinition recipe,
-                                         int recipeTier,
-                                         int chanceTier) {
+    public void applyRecipeContent(UIElement root,
+                                   Table<IO, RecipeCapability<?>, List<Content>> contentTable,
+                                   GTRecipeDefinition recipe,
+                                   int recipeTier,
+                                   int chanceTier) {
         for (var capabilityEntry : contentTable.rowMap().entrySet()) {
             IO io = capabilityEntry.getKey();
             for (var contentsEntry : capabilityEntry.getValue().entrySet()) {
                 RecipeCapability<?> cap = contentsEntry.getKey();
-                var elementClass = cap.getLDLib2ElementClass();
+                var elementClass = cap.getElementClass();
                 if (elementClass == null) {
                     continue;
                 }
@@ -450,12 +450,12 @@ public class GTRecipeTypeUI {
                         .size();
                 root.selectRegex("^%s_[0-9]+$".formatted(cap.slotName(io)), elementClass)
                         .forEach(element -> {
-                            int index = ldLib2ElementIdIndex(element);
+                            int index = elementIdIndex(element);
                             if (index >= 0 && index < contents.size()) {
                                 Content content = contents.get(index);
-                                cap.applyLDLib2ElementInfo(element, index, true, io, null, recipe.getType(), recipe,
+                                cap.applyElementInfo(element, index, true, io, null, recipe.getType(), recipe,
                                         content, null, recipeTier, chanceTier);
-                                setLDLib2ContentOverlay(element,
+                                setContentOverlay(element,
                                         content.createOverlay(index >= nonTickCount, recipeTier, chanceTier,
                                                 recipe.getType().getChanceFunction()));
                             }
@@ -464,8 +464,8 @@ public class GTRecipeTypeUI {
         }
     }
 
-    private LDLib2ElementGroup addLDLib2InventorySlotGroup(boolean isOutputs, boolean isSteam,
-                                                           boolean isHighPressure) {
+    private ElementGroup addInventorySlotGroup(boolean isOutputs, boolean isSteam,
+                                               boolean isHighPressure) {
         int maxCount = 0;
         int totalR = 0;
         Object2IntSortedMap<RecipeCapability<?>> map = new Object2IntAVLTreeMap<>(RecipeCapability.COMPARATOR);
@@ -505,7 +505,7 @@ public class GTRecipeTypeUI {
             RecipeCapability<?> cap = entry.getKey();
             int capCount = entry.getIntValue();
             for (int slotIndex = 0; slotIndex < capCount; slotIndex++) {
-                var slot = cap.createLDLib2Element();
+                var slot = cap.createElement();
                 if (slot == null) {
                     IO io = isOutputs ? IO.OUT : IO.IN;
                     GTCEu.LOGGER.error("Recipe capability '{}' declares a rendered {} slot without a LDLib2 element",
@@ -522,7 +522,7 @@ public class GTRecipeTypeUI {
                     layout.width(18);
                     layout.height(18);
                 });
-                setLDLib2SlotBackground(slot,
+                setSlotBackground(slot,
                         getOverlaysForSlot(isOutputs, cap, slotIndex == capCount - 1, isSteam, isHighPressure));
                 slot.setId(cap.slotName(isOutputs ? IO.OUT : IO.IN, slotIndex));
                 group.addChild(slot);
@@ -530,14 +530,14 @@ public class GTRecipeTypeUI {
             }
             index += (3 - (index % 3)) % 3;
         }
-        return new LDLib2ElementGroup(group, width, height);
+        return new ElementGroup(group, width, height);
     }
 
-    private void configureLDLib2ProgressTexture(GTProgressBarElement progress, boolean isSteam,
-                                                boolean isHighPressure) {
+    private void configureProgressTexture(GTProgressBarElement progress, boolean isSteam,
+                                          boolean isHighPressure) {
         ProgressTexture texture = getProgressTexture(isSteam, isHighPressure);
         progress.setProgressTexture(texture.getEmptyBarArea(), texture.getFilledBarArea())
-                .setFillDirection(toLDLib2FillDirection(texture.getFillDirection()));
+                .setFillDirection(toFillDirection(texture.getFillDirection()));
     }
 
     private ProgressTexture getProgressTexture(boolean isSteam, boolean isHighPressure) {
@@ -554,7 +554,7 @@ public class GTRecipeTypeUI {
                 steamTexture.getClass().getName());
     }
 
-    private static FillDirection toLDLib2FillDirection(ProgressTexture.FillDirection fillDirection) {
+    private static FillDirection toFillDirection(ProgressTexture.FillDirection fillDirection) {
         return switch (fillDirection) {
             case RIGHT_TO_LEFT -> FillDirection.RIGHT_TO_LEFT;
             case UP_TO_DOWN -> FillDirection.UP_TO_DOWN;
@@ -563,7 +563,7 @@ public class GTRecipeTypeUI {
         };
     }
 
-    private static void setLDLib2SlotBackground(UIElement element, IGuiTexture texture) {
+    private static void setSlotBackground(UIElement element, IGuiTexture texture) {
         if (element instanceof GTItemSlotElement slot) {
             slot.setBackgroundTexture(texture);
         } else if (element instanceof GTFluidSlotElement tank) {
@@ -573,7 +573,7 @@ public class GTRecipeTypeUI {
         }
     }
 
-    private static void setLDLib2ContentOverlay(UIElement element, IGuiTexture texture) {
+    private static void setContentOverlay(UIElement element, IGuiTexture texture) {
         if (element instanceof GTItemSlotElement slot) {
             slot.setContentOverlay(texture);
         } else if (element instanceof GTFluidSlotElement tank) {
@@ -585,7 +585,7 @@ public class GTRecipeTypeUI {
         }
     }
 
-    private static int ldLib2ElementIdIndex(UIElement element) {
+    private static int elementIdIndex(UIElement element) {
         var id = element.getId();
         var separator = id.lastIndexOf('_');
         if (separator < 0 || separator == id.length() - 1) {
@@ -600,7 +600,7 @@ public class GTRecipeTypeUI {
         }
     }
 
-    private record LDLib2ElementGroup(UIElement element, int width, int height) {}
+    private record ElementGroup(UIElement element, int width, int height) {}
 
     protected IGuiTexture getOverlaysForSlot(boolean isOutput, RecipeCapability<?> capability, boolean isLast,
                                              boolean isSteam, boolean isHighPressure) {
@@ -622,13 +622,13 @@ public class GTRecipeTypeUI {
         return maxPropertyCount * 10; // GTRecipeXEIHelper#LINE_HEIGHT
     }
 
-    public void appendLDLib2XEIUI(GTRecipeDefinition recipe, UIElement root) {
-        appendLDLib2XEIUI(recipe, root, getLDLib2XEIRecipeUISize());
+    public void appendXEIUI(GTRecipeDefinition recipe, UIElement root) {
+        appendXEIUI(recipe, root, getXEIRecipeUISize());
     }
 
-    public void appendLDLib2XEIUI(GTRecipeDefinition recipe, UIElement root, LDLib2RecipeUISize rootSize) {
-        if (ldLib2UiBuilder != null) {
-            ldLib2UiBuilder.accept(recipe, root, rootSize);
+    public void appendXEIUI(GTRecipeDefinition recipe, UIElement root, RecipeUISize rootSize) {
+        if (uiBuilder != null) {
+            uiBuilder.accept(recipe, root, rootSize);
         }
     }
 

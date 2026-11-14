@@ -6,6 +6,7 @@ import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.recipe.GTRecipeDefinition;
 import com.gregtechceu.gtceu.api.recipe.GTRecipeType;
 import com.gregtechceu.gtceu.api.registry.GTRegistries;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 import com.gregtechceu.gtceu.common.data.GTRecipeTypes;
 
 import net.minecraft.resources.ResourceLocation;
@@ -19,6 +20,10 @@ import org.jetbrains.annotations.Nullable;
 
 @Accessors(chain = true)
 public class GTRecipeCategory {
+
+    static {
+        FieldCodecs.register(GTRecipeCategory.class, GTRegistries.RECIPE_CATEGORIES.byNameCodec());
+    }
 
     // Placeholder category used if category isn't defined for a recipe for registration
     public static final GTRecipeCategory DEFAULT = new GTRecipeCategory(GTCEu.id("default"),

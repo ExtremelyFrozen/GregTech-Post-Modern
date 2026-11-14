@@ -10,10 +10,10 @@ import com.gregtechceu.gtceu.api.capability.compat.FeCompat;
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyMachineUIElement;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.TieredEnergyMachine;
-import com.gregtechceu.gtceu.api.machine.feature.LDLib2FancyUIMachine;
+import com.gregtechceu.gtceu.api.machine.feature.IFancyUIMachine;
 import com.gregtechceu.gtceu.api.machine.property.GTMachineModelProperties;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableEnergyContainer;
 import com.gregtechceu.gtceu.api.sync_system.annotations.RerenderOnChanged;
@@ -38,7 +38,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class BatteryBufferMachine extends TieredEnergyMachine
-                                  implements IControllable, LDLib2FancyUIMachine, IMonitorComponent {
+                                  implements IControllable, IFancyUIMachine, IMonitorComponent {
 
     public static final long AMPS_PER_BATTERY_NORMAL = 2L;
     public static final long AMPS_PER_BATTERY_CHARGER = 4L;
@@ -128,23 +128,23 @@ public class BatteryBufferMachine extends TieredEnergyMachine
     //////////////////////////////////////
 
     @Override
-    public UIElement createLDLib2MainPage(LDLib2FancyMachineUIElement shell) {
-        UIElement root = UITemplate.setLDLib2Bounds(new UIElement(), 0, 0,
-                getLDLib2PageWidth(), getLDLib2PageHeight());
+    public UIElement createUIWidget(FancyMachineUIWidget shell) {
+        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0,
+                getPageWidth(), getPageHeight());
 
-        UIElement energyBar = createLDLib2EnergyBar();
-        UITemplate.setLDLib2Bounds(energyBar, ENERGY_BAR_X,
-                (getLDLib2PageHeight() - ENERGY_BAR_HEIGHT) / 2, ENERGY_BAR_WIDTH, ENERGY_BAR_HEIGHT);
+        UIElement energyBar = createEnergyBar();
+        UITemplate.setBounds(energyBar, ENERGY_BAR_X,
+                (getPageHeight() - ENERGY_BAR_HEIGHT) / 2, ENERGY_BAR_WIDTH, ENERGY_BAR_HEIGHT);
         root.addChild(energyBar);
 
-        UIElement template = UITemplate.setLDLib2Bounds(new UIElement(),
-                getLDLib2BatteryTemplateX(), getLDLib2BatteryTemplateY(),
-                getLDLib2BatteryTemplateWidth(), getLDLib2BatteryTemplateHeight());
+        UIElement template = UITemplate.setBounds(new UIElement(),
+                getBatteryTemplateX(), getBatteryTemplateY(),
+                getBatteryTemplateWidth(), getBatteryTemplateHeight());
         template.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
         int index = 0;
-        for (int y = 0; y < getLDLib2BatteryColSize(); y++) {
-            for (int x = 0; x < getLDLib2BatteryRowSize(); x++) {
-                template.addChild(createLDLib2BatterySlot(index++, TEMPLATE_SLOT_OFFSET + x * SLOT_SIZE,
+        for (int y = 0; y < getBatteryColSize(); y++) {
+            for (int x = 0; x < getBatteryRowSize(); x++) {
+                template.addChild(createBatterySlot(index++, TEMPLATE_SLOT_OFFSET + x * SLOT_SIZE,
                         TEMPLATE_SLOT_OFFSET + y * SLOT_SIZE));
             }
         }
@@ -154,54 +154,54 @@ public class BatteryBufferMachine extends TieredEnergyMachine
     }
 
     @Override
-    public int getLDLib2PageWidth() {
-        return Math.max(ENERGY_BAR_WIDTH + getLDLib2BatteryTemplateWidth() + PAGE_ENERGY_TEMPLATE_GAP +
+    public int getPageWidth() {
+        return Math.max(ENERGY_BAR_WIDTH + getBatteryTemplateWidth() + PAGE_ENERGY_TEMPLATE_GAP +
                 TEMPLATE_PADDING, PAGE_MIN_WIDTH);
     }
 
     @Override
-    public int getLDLib2PageHeight() {
-        return Math.max(getLDLib2BatteryTemplateHeight() + TEMPLATE_PADDING, ENERGY_BAR_HEIGHT + TEMPLATE_PADDING);
+    public int getPageHeight() {
+        return Math.max(getBatteryTemplateHeight() + TEMPLATE_PADDING, ENERGY_BAR_HEIGHT + TEMPLATE_PADDING);
     }
 
-    private GTItemSlotElement createLDLib2BatterySlot(int index, int x, int y) {
+    private GTItemSlotElement createBatterySlot(int index, int x, int y) {
         GTItemSlotElement slot = new GTItemSlotElement(batteryInventory, index)
                 .setCanPutItems(true)
                 .setCanTakeItems(true)
                 .setBackgroundTexture(GuiTextures.group(GuiTextures.SLOT,
                         chargerMode ? GuiTextures.CHARGER_OVERLAY : GuiTextures.BATTERY_OVERLAY));
-        return UITemplate.setLDLib2Bounds(slot, x, y, SLOT_SIZE, SLOT_SIZE);
+        return UITemplate.setBounds(slot, x, y, SLOT_SIZE, SLOT_SIZE);
     }
 
-    private int getLDLib2BatteryTemplateX() {
-        return (getLDLib2PageWidth() - ENERGY_BAR_WIDTH - PAGE_ENERGY_TEMPLATE_GAP -
-                getLDLib2BatteryTemplateWidth()) / 2 + 2 + ENERGY_BAR_WIDTH + 2;
+    private int getBatteryTemplateX() {
+        return (getPageWidth() - ENERGY_BAR_WIDTH - PAGE_ENERGY_TEMPLATE_GAP -
+                getBatteryTemplateWidth()) / 2 + 2 + ENERGY_BAR_WIDTH + 2;
     }
 
-    private int getLDLib2BatteryTemplateY() {
-        return (getLDLib2PageHeight() - getLDLib2BatteryTemplateHeight()) / 2;
+    private int getBatteryTemplateY() {
+        return (getPageHeight() - getBatteryTemplateHeight()) / 2;
     }
 
-    private int getLDLib2BatteryTemplateWidth() {
-        return SLOT_SIZE * getLDLib2BatteryRowSize() + TEMPLATE_PADDING;
+    private int getBatteryTemplateWidth() {
+        return SLOT_SIZE * getBatteryRowSize() + TEMPLATE_PADDING;
     }
 
-    private int getLDLib2BatteryTemplateHeight() {
-        return SLOT_SIZE * getLDLib2BatteryColSize() + TEMPLATE_PADDING;
+    private int getBatteryTemplateHeight() {
+        return SLOT_SIZE * getBatteryColSize() + TEMPLATE_PADDING;
     }
 
-    private int getLDLib2BatteryRowSize() {
+    private int getBatteryRowSize() {
         if (inventorySize == 8) {
             return 4;
         }
         return (int) Math.sqrt(inventorySize);
     }
 
-    private int getLDLib2BatteryColSize() {
+    private int getBatteryColSize() {
         if (inventorySize == 8) {
             return 2;
         }
-        return getLDLib2BatteryRowSize();
+        return getBatteryRowSize();
     }
 
     //////////////////////////////////////

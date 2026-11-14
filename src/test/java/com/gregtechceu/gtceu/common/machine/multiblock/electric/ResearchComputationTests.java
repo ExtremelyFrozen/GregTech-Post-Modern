@@ -24,8 +24,6 @@ import net.neoforged.neoforge.gametest.PrefixGameTestTemplate;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static com.gregtechceu.gtceu.common.data.GTRecipeTypes.RESEARCH_STATION_RECIPES;
-
 /**
  * Tests for the Research Station / HPCA computation system.
  * The structures used here are:
@@ -48,7 +46,7 @@ public class ResearchComputationTests {
 
     @BeforeBatch(batch = "ResearchComputation")
     public static void prepare(ServerLevel level) {
-        RESEARCH_RECIPE_TYPE = TestUtils.createRecipeType("research_computation_tests", RESEARCH_STATION_RECIPES);
+        RESEARCH_RECIPE_TYPE = TestUtils.getRecipeType("research_computation_tests");
         var handler = RESEARCH_RECIPE_TYPE.getAdditionHandler();
         handler.beginStaging();
         // Research a data stick into a data orb so completion is observable in the object holder's data slot.

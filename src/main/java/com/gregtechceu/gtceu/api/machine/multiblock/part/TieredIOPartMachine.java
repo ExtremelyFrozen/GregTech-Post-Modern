@@ -35,17 +35,23 @@ public class TieredIOPartMachine extends TieredPartMachine implements IControlla
         onWorkingEnabledChanged();
     }
 
-    @ServerFieldChangeListener(fieldName = "workingEnabled")
-    private void onWorkingEnabledUpdatedByClient(boolean oldValue, boolean newValue) {
-        onWorkingEnabledChanged();
-    }
-
     /**
      * Rebuilds subclass runtime state after either a direct setter call or an accepted client update.
      */
+    @ServerFieldChangeListener(fieldName = "workingEnabled")
     protected void onWorkingEnabledChanged() {}
 
     //////////////////////////////////////
     // ***** Initialization ******//
     //////////////////////////////////////
+
+    @Override
+    public PageGroupingData getPageGroupingData() {
+        return switch (io) {
+            case IN -> new PageGroupingData("gtpm.multiblock.page_switcher.io.import", 1);
+            case OUT -> new PageGroupingData("gtpm.multiblock.page_switcher.io.export", 2);
+            case BOTH -> new PageGroupingData("gtpm.multiblock.page_switcher.io.both", 3);
+            case NONE -> null;
+        };
+    }
 }

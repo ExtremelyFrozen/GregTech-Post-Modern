@@ -1,7 +1,6 @@
 package com.gregtechceu.gtceu.api.item.component;
 
 import com.gregtechceu.gtceu.api.placeholder.PlaceholderContext;
-import com.gregtechceu.gtceu.api.sync_system.SyncActionData;
 import com.gregtechceu.gtceu.client.renderer.monitor.IMonitorRenderer;
 import com.gregtechceu.gtceu.common.machine.multiblock.electric.CentralMonitorMachine;
 import com.gregtechceu.gtceu.common.machine.multiblock.electric.monitor.MonitorGroup;
@@ -29,10 +28,10 @@ public interface IMonitorModuleItem extends IItemComponent {
     /**
      * Builds the LDLib2 configuration element shown for this monitor module in the current validated opening.
      *
-     * @param actionSender opening-scoped GT action transport; module state changes must use this transport
+     * @param actionSender executes a module RPC from the current client opening
      */
     UIElement createConfigurationElement(ItemStack stack, CentralMonitorMachine machine, MonitorGroup group,
-                                         Consumer<SyncActionData> actionSender);
+                                         Consumer<Runnable> actionSender);
 
     /** Returns the serialized monitor-module category used by existing module dispatch logic. */
     default String getType() {

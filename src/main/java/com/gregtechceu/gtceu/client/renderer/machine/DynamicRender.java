@@ -2,6 +2,7 @@ package com.gregtechceu.gtceu.client.renderer.machine;
 
 import com.gregtechceu.gtceu.api.machine.MachineDefinition;
 import com.gregtechceu.gtceu.api.machine.feature.IMachineFeature;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 import com.gregtechceu.gtceu.client.model.machine.IMachineRendererModel;
 import com.gregtechceu.gtceu.client.model.machine.MachineModel;
 
@@ -15,6 +16,10 @@ public abstract class DynamicRender<T extends IMachineFeature, S extends Dynamic
 
     public static final Codec<DynamicRender<?, ?>> CODEC = DynamicRenderManager.TYPE_CODEC
             .dispatchStable(DynamicRender::getType, DynamicRenderType::codec);
+
+    static {
+        FieldCodecs.register(DynamicRender.class, CODEC);
+    }
 
     @Getter
     @Setter

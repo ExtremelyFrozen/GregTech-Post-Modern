@@ -4,12 +4,12 @@ import com.gregtechceu.gtceu.api.capability.recipe.IO;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableFluidTank;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
+import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
 import com.gregtechceu.gtceu.api.transfer.fluid.CustomFluidTank;
 
 import net.neoforged.neoforge.fluids.FluidStack;
 
 import lombok.Getter;
-import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.function.Supplier;
@@ -18,11 +18,8 @@ public class ExportOnlyAEFluidList extends NotifiableFluidTank implements IConfi
 
     @Getter
     @SaveField
+    @SyncToClient
     protected ExportOnlyAEFluidSlot[] inventory;
-
-    /** Keeps construction-time and standalone slots callable before an owning snapshot subscribes. */
-    @Setter
-    private Runnable snapshotChangeListener = () -> {};
 
     public ExportOnlyAEFluidList(MetaMachine machine, int slots) {
         this(machine, slots, ExportOnlyAEFluidSlot::new);
@@ -33,14 +30,9 @@ public class ExportOnlyAEFluidList extends NotifiableFluidTank implements IConfi
         this.inventory = new ExportOnlyAEFluidSlot[slots];
         for (int i = 0; i < slots; i++) {
             this.inventory[i] = slotFactory.get();
-            this.inventory[i].setOnContentsChanged(this::onSlotContentsChanged);
+            this.inventory[i].setOnContentsChanged(this::onContentsChanged);
             this.storages[i] = new FluidStorageDelegate(inventory[i]);
         }
-    }
-
-    private void onSlotContentsChanged() {
-        onContentsChanged();
-        snapshotChangeListener.run();
     }
 
     @Override

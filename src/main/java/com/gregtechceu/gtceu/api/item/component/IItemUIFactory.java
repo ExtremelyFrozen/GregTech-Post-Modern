@@ -17,19 +17,19 @@ public interface IItemUIFactory extends IInteractionItem {
     /**
      * Returns whether this item component has a migrated LDLib2 held-item UI for the provided context.
      */
-    boolean canCreateLDLib2UI(HeldItemUIHolder holder, Player entityPlayer);
+    boolean canCreateUI(HeldItemUIHolder holder, Player entityPlayer);
 
     /**
      * Returns whether the currently held stack still belongs to this component's opened LDLib2 UI.
      */
-    default boolean isLDLib2UIStillValid(HeldItemUIHolder holder, Player entityPlayer) {
+    default boolean isUIStillValid(HeldItemUIHolder holder, Player entityPlayer) {
         return ItemStack.matches(holder.getHeld(), holder.getOpenedStack());
     }
 
     /**
      * Builds the migrated LDLib2 held-item UI for this component.
      */
-    UI createLDLib2UI(HeldItemUIHolder holder, Player entityPlayer);
+    UI createUI(HeldItemUIHolder holder, Player entityPlayer);
 
     @Override
     default InteractionResultHolder<ItemStack> use(ItemStack item, Level level, Player player,

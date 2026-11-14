@@ -4,81 +4,53 @@ import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo;
 import com.gregtechceu.gtceu.api.capability.recipe.IO;
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
+import com.gregtechceu.gtceu.api.gui.element.GTImageElement;
+import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHelper;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.fancy.IFancyTooltip;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2ConfiguratorPanelElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyMachineUIElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyTabsElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyTooltipsPanelElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2DirectionalFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2WorkingEnabledFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.LDLib2FancyPartUIProvider;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler;
-import com.gregtechceu.gtceu.api.sync_system.SyncActionData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
 import com.gregtechceu.gtceu.api.transfer.item.CustomItemStackHandler;
-import com.gregtechceu.gtceu.common.data.machines.GTAEMachines;
-import com.gregtechceu.gtceu.integration.ae2.gui.element.MEItemOutputWaitingListElement;
 import com.gregtechceu.gtceu.integration.ae2.utils.KeyStorage;
 
-import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
+import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
+import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollerMode;
+import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.VirtualItemHeightMode;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.VirtualScrollerView;
+import com.lowdragmc.lowdraglib2.integration.xei.IngredientIO;
 
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 
 import appeng.api.config.Actionable;
 import appeng.api.stacks.AEItemKey;
-import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.UUID;
-import java.util.function.BiConsumer;
-import java.util.function.BooleanSupplier;
 
 /**
  * The Output Bus that can directly send its contents to ME storage network.
  */
-public class MEOutputBusPartMachine extends MEBusPartMachine
-                                    implements LDLib2FancyPartUIProvider, MEOutputWaitingListActionTarget {
-
-    static {
-        MEOutputWaitingListActions.initialize();
-    }
+public class MEOutputBusPartMachine extends MEBusPartMachine {
 
     private static final int PAGE_WIDTH = 170;
     private static final int PAGE_HEIGHT = 74;
 
     @SaveField
-    private KeyStorage internalBuffer; // Do not use KeyCounter, use our simple implementation
-
-    /**
-     * Keeps queued packets from a removed bus from matching its replacement at the same block position.
-     */
-    @SaveField
     @SyncToClient
-    private UUID waitingListIncarnation = UUID.randomUUID();
-
-    @Getter
-    private final MEOutputWaitingListPublisher waitingListPublisher;
+    private KeyStorage internalBuffer; // Do not use KeyCounter, use our simple implementation
 
     public MEOutputBusPartMachine(BlockEntityCreationInfo info) {
         super(info, IO.OUT);
-        waitingListPublisher = new MEOutputWaitingListPublisher(this, internalBuffer);
-    }
-
-    @Override
-    public MEOutputWaitingListTarget getWaitingListTarget() {
-        return new MEOutputWaitingListTarget(getBlockPos(), getDefinition().getId(), waitingListIncarnation);
     }
 
     /////////////////////////////////
@@ -131,85 +103,65 @@ public class MEOutputBusPartMachine extends MEBusPartMachine
 
     ///////////////////////////////
 
-    @Override
-    public boolean canCreateLDLib2UI(Player player, MachineUIHolder holder) {
-        return holder.getMachine() == this &&
-                holder.getMachineDefinitionId().equals(GTAEMachines.ITEM_EXPORT_BUS_ME.getId()) &&
-                getDefinition() == GTAEMachines.ITEM_EXPORT_BUS_ME;
-    }
-
-    @Override
-    public UI createLDLib2UI(Player player, MachineUIHolder holder) {
-        LDLib2FancyUIProvider page = createLDLib2Page(player, holder);
-        return UI.of(new LDLib2FancyMachineUIElement(page, player.getInventory(), holder,
-                page.getLDLib2PageWidth(), page.getLDLib2PageHeight()));
-    }
-
     /**
      * Creates one opening-scoped page after validating the exact item output bus holder and definition.
      */
-    LDLib2FancyUIProvider createLDLib2Page(Player player, MachineUIHolder holder) {
-        requireMatchingHolder(holder);
-        return new MEItemOutputBusFancyPage(player, holder);
-    }
 
-    @Override
-    public LDLib2FancyUIProvider createLDLib2FancyPage(Player player, MachineUIHolder holder) {
-        return createLDLib2Page(player, holder);
-    }
+    private UIElement createWaitingList() {
+        var view = new VirtualScrollerView<KeyStorage.Entry>() {
 
-    private void requireMatchingHolder(MachineUIHolder holder) {
-        if (holder.getMachine() != this) {
-            throw new IllegalArgumentException("ME item output page holder must resolve the opened bus.");
-        }
-        if (getDefinition() != GTAEMachines.ITEM_EXPORT_BUS_ME ||
-                !holder.getMachineDefinitionId().equals(GTAEMachines.ITEM_EXPORT_BUS_ME.getId())) {
-            throw new IllegalStateException("ME item output page requires the exact output bus definition.");
-        }
-    }
-
-    private UIElement createLDLib2MainElement(Player player, MachineUIHolder holder,
-                                              MachineUIHolder actionHolder) {
-        return createLDLib2MainElement(player, holder, actionHolder, MachineUIHelper::sendAction,
-                () -> player.level().isClientSide() && holder.getMachine() == this &&
-                        actionHolder.getMachine() != null);
-    }
-
-    /**
-     * Builds the directly testable waiting-list body around an injected GT action transport.
-     */
-    UIElement createLDLib2MainElement(Player player, MachineUIHolder holder,
-                                      BiConsumer<MachineUIHolder, SyncActionData> actionSender,
-                                      BooleanSupplier canSendAction) {
-        return createLDLib2MainElement(player, holder, holder, actionSender, canSendAction);
-    }
-
-    /**
-     * Builds the waiting-list body with a part target holder and the real menu-root action holder.
-     */
-    UIElement createLDLib2MainElement(Player player, MachineUIHolder holder, MachineUIHolder actionHolder,
-                                      BiConsumer<MachineUIHolder, SyncActionData> actionSender,
-                                      BooleanSupplier canSendAction) {
-        requireMatchingHolder(holder);
-        UIElement root = UITemplate.setLDLib2Bounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
-        root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
-
-        GTLabelElement status = new GTLabelElement(5, 0, 160, 10, networkStatus()) {
+            private List<KeyStorage.Entry> displayed = List.of();
 
             @Override
             public void screenTick() {
-                setValue(MEOutputBusPartMachine.this.networkStatus());
+                var current = internalBuffer.getEntries();
+                if (current != displayed) {
+                    displayed = current;
+                    setItems(current);
+                }
                 super.screenTick();
             }
         };
-        status.setId("me_network_status");
-        root.addChild(status);
-        GTLabelElement title = new GTLabelElement(5, 10, 160, 10,
-                Component.translatable("gtpm.gui.waiting_list"));
-        title.setId("me_output_waiting_list_label");
-        root.addChild(title);
-        root.addChild(new MEItemOutputWaitingListElement(holder, actionHolder, actionSender, canSendAction));
-        return root;
+        UITemplate.setBounds(view, 5, 20, 158, 54);
+        view.scrollerStyle(style -> style.mode(ScrollerMode.VERTICAL)
+                .verticalScrollDisplay(ScrollDisplay.AUTO).horizontalScrollDisplay(ScrollDisplay.NEVER)
+                .adaptiveWidth(false).adaptiveHeight(false).minScrollPixel(18).maxScrollPixel(18));
+        view.virtualScrollerViewStyle(style -> style.itemHeightMode(VirtualItemHeightMode.FIXED)
+                .estimatedItemHeight(18).overscanPixels(18));
+        view.viewPort.layout(layout -> layout.paddingAll(0));
+        view.viewPort.style(style -> style.backgroundTexture(IGuiTexture.EMPTY));
+        view.setItemUIProvider(this::createWaitingRow);
+        return view;
+    }
+
+    private UIElement createWaitingRow(KeyStorage.Entry entry) {
+        AEItemKey itemKey = (AEItemKey) entry.key();
+
+        UIElement row = UITemplate.setBounds(new UIElement(), 0, 0, 158, 18);
+        GTImageElement amountBackground = new GTImageElement(18, 0, 140, 18,
+                GuiTextures.NUMBER_BACKGROUND);
+        amountBackground.setAllowHitTest(false);
+        row.addChild(amountBackground);
+
+        GTItemSlotElement item = new GTItemSlotElement()
+                .setCanPutItems(false)
+                .setCanTakeItems(false)
+                .setIngredientIO(IngredientIO.NONE)
+                .setBackgroundTexture(GuiTextures.SLOT)
+                .setOnAddedTooltips((slot, tooltips) -> tooltips.add(
+                        Component.literal(String.format("%,d", entry.amount()))));
+        item.setItem(itemKey.toStack(1), false);
+        row.addChild(UITemplate.setBounds(item, 0, 0, 18, 18));
+
+        GTLabelElement amount = new GTLabelElement(21, 0, 134, 18,
+                Component.literal(String.format("x%,d", entry.amount())))
+                .setTextColor(-1)
+                .setTextShadow(true)
+                .setTextAlignHorizontal(Horizontal.LEFT)
+                .setTextAlignVertical(Vertical.CENTER);
+        amount.setAllowHitTest(false);
+        row.addChild(amount);
+        return row;
     }
 
     private Component networkStatus() {
@@ -293,76 +245,43 @@ public class MEOutputBusPartMachine extends MEBusPartMachine
     /**
      * One opening-scoped Fancy page shared by standalone and contextual part navigation.
      */
-    private final class MEItemOutputBusFancyPage implements LDLib2FancyUIProvider {
 
-        private final Player player;
-        private final MachineUIHolder holder;
-        private final LDLib2DirectionalFancyConfigurator directionalPage;
+    @Override
+    public UIElement createUIWidget(FancyMachineUIWidget shell) {
+        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
+        root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
 
-        private MEItemOutputBusFancyPage(Player player, MachineUIHolder holder) {
-            requireMatchingHolder(holder);
-            this.player = player;
-            this.holder = holder;
-            directionalPage = new LDLib2DirectionalFancyConfigurator(MEOutputBusPartMachine.this, player, holder);
-        }
+        GTLabelElement status = new GTLabelElement(5, 0, 160, 10, networkStatus()) {
 
-        @Override
-        public UIElement createLDLib2MainPage(LDLib2FancyMachineUIElement shell) {
-            if (holder.getMachine() != MEOutputBusPartMachine.this) {
-                throw new IllegalStateException("ME item output page holder no longer resolves its bus.");
+            @Override
+            public void screenTick() {
+                setValue(MEOutputBusPartMachine.this.networkStatus());
+                super.screenTick();
             }
-            return createLDLib2MainElement(player, holder, shell.getHolder());
-        }
+        };
+        status.setId("me_network_status");
+        root.addChild(status);
+        GTLabelElement title = new GTLabelElement(5, 10, 160, 10,
+                Component.translatable("gtpm.gui.waiting_list"));
+        title.setId("me_output_waiting_list_label");
+        root.addChild(title);
+        root.addChild(createWaitingList());
+        return root;
+    }
 
-        @Override
-        public IGuiTexture getTabIcon() {
-            return GuiTextures.itemStack(getDefinition().getItem());
-        }
+    @Override
+    public int getPageWidth() {
+        return PAGE_WIDTH;
+    }
 
-        @Override
-        public Component getTitle() {
-            return Component.translatable(getDefinition().getDescriptionId());
-        }
+    @Override
+    public int getPageHeight() {
+        return PAGE_HEIGHT;
+    }
 
-        @Override
-        public int getLDLib2PageWidth() {
-            return PAGE_WIDTH;
-        }
-
-        @Override
-        public int getLDLib2PageHeight() {
-            return PAGE_HEIGHT;
-        }
-
-        @Override
-        public void attachSideTabs(LDLib2FancyTabsElement tabs) {
-            tabs.attachSubTab(directionalPage);
-        }
-
-        @Override
-        public void attachConfigurators(LDLib2ConfiguratorPanelElement configuratorPanel) {
-            configuratorPanel.attachConfigurators(new LDLib2WorkingEnabledFancyConfigurator(
-                    MEOutputBusPartMachine.this, holder));
-        }
-
-        @Override
-        public void attachTooltips(LDLib2FancyTooltipsPanelElement tooltipsPanel) {
-            tooltipsPanel.attachTooltips(MEOutputBusPartMachine.this);
-            for (var trait : getTraitHolder().getAllTraits()) {
-                if (trait instanceof IFancyTooltip tooltip) {
-                    tooltipsPanel.attachTooltips(tooltip);
-                }
-            }
-        }
-
-        @Override
-        public List<Component> getTabTooltips() {
-            return List.of(Component.translatable(getDefinition().getDescriptionId()));
-        }
-
-        @Override
-        public PageGroupingData getPageGroupingData() {
-            return new PageGroupingData("gtpm.multiblock.page_switcher.io.export", 2);
-        }
+    @Override
+    public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
+        configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
+                MEOutputBusPartMachine.this));
     }
 }

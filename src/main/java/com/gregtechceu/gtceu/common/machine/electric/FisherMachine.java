@@ -9,10 +9,10 @@ import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTToggleButtonElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyMachineUIElement;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
 import com.gregtechceu.gtceu.api.machine.TickableSubscription;
 import com.gregtechceu.gtceu.api.machine.TieredEnergyMachine;
-import com.gregtechceu.gtceu.api.machine.feature.LDLib2FancyUIMachine;
+import com.gregtechceu.gtceu.api.machine.feature.IFancyUIMachine;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncBoth;
@@ -52,7 +52,7 @@ import org.jetbrains.annotations.Nullable;
  * @implNote FisherMachine
  */
 public class FisherMachine extends TieredEnergyMachine
-                           implements LDLib2FancyUIMachine, IWorkable {
+                           implements IFancyUIMachine, IWorkable {
 
     private static final int SLOT_SIZE = 18;
     private static final int TEMPLATE_PADDING = 8;
@@ -295,64 +295,64 @@ public class FisherMachine extends TieredEnergyMachine
     //////////////////////////////////////
 
     @Override
-    public UIElement createLDLib2MainPage(LDLib2FancyMachineUIElement shell) {
-        UIElement root = UITemplate.setLDLib2Bounds(new UIElement(), 0, 0,
-                getLDLib2PageWidth(), getLDLib2PageHeight());
+    public UIElement createUIWidget(FancyMachineUIWidget shell) {
+        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0,
+                getPageWidth(), getPageHeight());
 
-        UIElement energyGroup = UITemplate.setLDLib2Bounds(new UIElement(), ENERGY_GROUP_X, getLDLib2EnergyGroupY(),
-                getLDLib2EnergyGroupWidth(), getLDLib2EnergyGroupHeight());
-        energyGroup.addChild(createLDLib2EnergyBar());
-        energyGroup.addChild(createLDLib2BatterySlot(BATTERY_SLOT_X, BATTERY_SLOT_Y));
+        UIElement energyGroup = UITemplate.setBounds(new UIElement(), ENERGY_GROUP_X, getEnergyGroupY(),
+                getEnergyGroupWidth(), getEnergyGroupHeight());
+        energyGroup.addChild(createEnergyBar());
+        energyGroup.addChild(createBatterySlot(BATTERY_SLOT_X, BATTERY_SLOT_Y));
         root.addChild(energyGroup);
 
-        UIElement template = UITemplate.setLDLib2Bounds(new UIElement(), getLDLib2TemplateX(), getLDLib2TemplateY(),
-                getLDLib2TemplateWidth(), getLDLib2TemplateHeight());
+        UIElement template = UITemplate.setBounds(new UIElement(), getTemplateX(), getTemplateY(),
+                getTemplateWidth(), getTemplateHeight());
         template.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
 
-        int rowSize = getLDLib2TemplateRowSize();
+        int rowSize = getTemplateRowSize();
         for (int y = 0; y < rowSize; y++) {
             for (int x = 0; x < rowSize; x++) {
                 int index = y * rowSize + x;
-                template.addChild(createLDLib2CacheSlot(index, OUTPUT_SLOT_X_OFFSET + x * SLOT_SIZE,
+                template.addChild(createCacheSlot(index, OUTPUT_SLOT_X_OFFSET + x * SLOT_SIZE,
                         TEMPLATE_SLOT_OFFSET + y * SLOT_SIZE));
             }
         }
 
-        template.addChild(createLDLib2BaitSlot(BAIT_SLOT_X, getLDLib2BaitSlotY()));
-        template.addChild(createLDLib2JunkButton(JUNK_BUTTON_X, getLDLib2JunkButtonY()));
+        template.addChild(createBaitSlot(BAIT_SLOT_X, getBaitSlotY()));
+        template.addChild(createJunkButton(JUNK_BUTTON_X, getJunkButtonY()));
         root.addChild(template);
         return root;
     }
 
     @Override
-    public int getLDLib2PageWidth() {
-        return Math.max(getLDLib2EnergyGroupWidth() + getLDLib2TemplateWidth() +
+    public int getPageWidth() {
+        return Math.max(getEnergyGroupWidth() + getTemplateWidth() +
                 PAGE_ENERGY_TEMPLATE_GAP + TEMPLATE_PADDING, PAGE_MIN_WIDTH);
     }
 
     @Override
-    public int getLDLib2PageHeight() {
-        return Math.max(getLDLib2TemplateHeight() + TEMPLATE_PADDING,
-                getLDLib2EnergyGroupHeight() + TEMPLATE_PADDING);
+    public int getPageHeight() {
+        return Math.max(getTemplateHeight() + TEMPLATE_PADDING,
+                getEnergyGroupHeight() + TEMPLATE_PADDING);
     }
 
-    private GTItemSlotElement createLDLib2CacheSlot(int index, int x, int y) {
+    private GTItemSlotElement createCacheSlot(int index, int x, int y) {
         GTItemSlotElement slot = new GTItemSlotElement(cache.storage, index)
                 .setCanTakeItems(true)
                 .setCanPutItems(false)
                 .setBackgroundTexture(GuiTextures.SLOT);
-        return UITemplate.setLDLib2Bounds(slot, x, y, SLOT_SIZE, SLOT_SIZE);
+        return UITemplate.setBounds(slot, x, y, SLOT_SIZE, SLOT_SIZE);
     }
 
-    private GTItemSlotElement createLDLib2BaitSlot(int x, int y) {
+    private GTItemSlotElement createBaitSlot(int x, int y) {
         GTItemSlotElement slot = new GTItemSlotElement(baitHandler.storage, 0)
                 .setCanTakeItems(true)
                 .setCanPutItems(true)
                 .setBackgroundTexture(GuiTextures.group(GuiTextures.SLOT, GuiTextures.STRING_SLOT_OVERLAY));
-        return UITemplate.setLDLib2Bounds(slot, x, y, SLOT_SIZE, SLOT_SIZE);
+        return UITemplate.setBounds(slot, x, y, SLOT_SIZE, SLOT_SIZE);
     }
 
-    private GTItemSlotElement createLDLib2BatterySlot(int x, int y) {
+    private GTItemSlotElement createBatterySlot(int x, int y) {
         GTItemSlotElement slot = new GTItemSlotElement(chargerInventory, 0)
                 .setCanPutItems(true)
                 .setCanTakeItems(true)
@@ -360,64 +360,57 @@ public class FisherMachine extends TieredEnergyMachine
                 .setOnAddedTooltips((slotElement, tooltips) -> tooltips.addAll(
                         LangHandler.getMultiLang("gtpm.gui.charger_slot.tooltip",
                                 GTValues.VNF[getTier()], GTValues.VNF[getTier()])));
-        return UITemplate.setLDLib2Bounds(slot, x, y, SLOT_SIZE, SLOT_SIZE);
+        return UITemplate.setBounds(slot, x, y, SLOT_SIZE, SLOT_SIZE);
     }
 
-    GTToggleButtonElement createLDLib2JunkButton(int x, int y) {
+    GTToggleButtonElement createJunkButton(int x, int y) {
         GTToggleButtonElement button = new GTToggleButtonElement(x, y, SLOT_SIZE, SLOT_SIZE,
                 GuiTextures.itemStack(Items.NAME_TAG).scale(0.9F), this::isJunkEnabled,
-                this::requestLDLib2JunkEnabled)
+                value -> junkEnabled = value)
                 .setShouldUseBaseBackground();
         button.style(style -> style.tooltips(LangHandler.getMultiLang("gtpm.gui.fisher_mode.tooltip",
                 GTValues.VNF[getTier()], GTValues.VNF[getTier()]).toArray(Component[]::new)));
         return button;
     }
 
-    private void requestLDLib2JunkEnabled(boolean enabled) {
-        setJunkEnabled(enabled);
-        if (isRemote()) {
-            sendServerSyncChanges();
-        }
-    }
-
-    private int getLDLib2EnergyGroupWidth() {
+    private int getEnergyGroupWidth() {
         return ENERGY_GROUP_WIDTH;
     }
 
-    private int getLDLib2EnergyGroupHeight() {
+    private int getEnergyGroupHeight() {
         return ENERGY_GROUP_HEIGHT;
     }
 
-    private int getLDLib2EnergyGroupY() {
-        return (getLDLib2PageHeight() - getLDLib2EnergyGroupHeight()) / 2;
+    private int getEnergyGroupY() {
+        return (getPageHeight() - getEnergyGroupHeight()) / 2;
     }
 
-    private int getLDLib2TemplateX() {
-        return (getLDLib2PageWidth() - getLDLib2EnergyGroupWidth() - PAGE_ENERGY_TEMPLATE_GAP -
-                getLDLib2TemplateWidth()) / 2 + 2 + getLDLib2EnergyGroupWidth() + 2;
+    private int getTemplateX() {
+        return (getPageWidth() - getEnergyGroupWidth() - PAGE_ENERGY_TEMPLATE_GAP -
+                getTemplateWidth()) / 2 + 2 + getEnergyGroupWidth() + 2;
     }
 
-    private int getLDLib2TemplateY() {
-        return (getLDLib2PageHeight() - getLDLib2TemplateHeight()) / 2;
+    private int getTemplateY() {
+        return (getPageHeight() - getTemplateHeight()) / 2;
     }
 
-    private int getLDLib2TemplateWidth() {
-        return getLDLib2TemplateRowSize() * SLOT_SIZE + TEMPLATE_PADDING + TEMPLATE_CONTROL_COLUMN_WIDTH;
+    private int getTemplateWidth() {
+        return getTemplateRowSize() * SLOT_SIZE + TEMPLATE_PADDING + TEMPLATE_CONTROL_COLUMN_WIDTH;
     }
 
-    private int getLDLib2TemplateHeight() {
-        return getLDLib2TemplateRowSize() * SLOT_SIZE + TEMPLATE_PADDING;
+    private int getTemplateHeight() {
+        return getTemplateRowSize() * SLOT_SIZE + TEMPLATE_PADDING;
     }
 
-    private int getLDLib2TemplateRowSize() {
+    private int getTemplateRowSize() {
         return (int) Math.sqrt(inventorySize);
     }
 
-    private int getLDLib2BaitSlotY() {
-        return (getLDLib2TemplateHeight() - SLOT_SIZE) / 2;
+    private int getBaitSlotY() {
+        return (getTemplateHeight() - SLOT_SIZE) / 2;
     }
 
-    private int getLDLib2JunkButtonY() {
-        return getLDLib2TemplateHeight() - SLOT_SIZE - JUNK_BUTTON_BOTTOM_MARGIN;
+    private int getJunkButtonY() {
+        return getTemplateHeight() - SLOT_SIZE - JUNK_BUTTON_BOTTOM_MARGIN;
     }
 }

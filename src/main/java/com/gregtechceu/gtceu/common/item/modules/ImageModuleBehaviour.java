@@ -1,16 +1,14 @@
 package com.gregtechceu.gtceu.common.item.modules;
 
-import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTButtonElement;
 import com.gregtechceu.gtceu.api.gui.element.GTTextFieldElement;
+import com.gregtechceu.gtceu.api.item.IComponentItem;
 import com.gregtechceu.gtceu.api.item.component.IMonitorModuleItem;
-import com.gregtechceu.gtceu.api.sync_system.SyncActionData;
 import com.gregtechceu.gtceu.client.renderer.monitor.IMonitorRenderer;
 import com.gregtechceu.gtceu.client.renderer.monitor.MonitorImageRenderer;
 import com.gregtechceu.gtceu.common.data.GTDataComponents;
-import com.gregtechceu.gtceu.common.machine.multiblock.electric.CentralMonitorImageModuleActions;
 import com.gregtechceu.gtceu.common.machine.multiblock.electric.CentralMonitorMachine;
 import com.gregtechceu.gtceu.common.machine.multiblock.electric.monitor.MonitorGroup;
 
@@ -30,13 +28,12 @@ public class ImageModuleBehaviour implements IMonitorModuleItem {
 
     @Override
     public UIElement createConfigurationElement(ItemStack stack, CentralMonitorMachine machine, MonitorGroup group,
-                                                Consumer<SyncActionData> actionSender) {
+                                                Consumer<Runnable> actionSender) {
         UIElement builder = new UIElement();
-        UITemplate.setLDLib2Bounds(builder, 0, 0, 248, 42);
+        UITemplate.setBounds(builder, 0, 0, 248, 42);
 
         GTTextFieldElement textField = new GTTextFieldElement(0, 0, 220, 12);
         textField.setAnyString();
-        textField.setTextValidator(CentralMonitorImageModuleActions::isValidUrl);
         textField.setText(stack.getOrDefault(GTDataComponents.IMAGE_MODULE_URL, ""), false);
         ImageEditSession editSession = ImageEditSession.open(machine, group, stack);
 
@@ -44,13 +41,7 @@ public class ImageModuleBehaviour implements IMonitorModuleItem {
                 GuiTextures.group(GuiTextures.VANILLA_BUTTON, GuiTextures.BUTTON_CHECK),
                 event -> {
                     if (!machine.isRemote()) return;
-                    if (textField.isError()) {
-                        GTCEu.LOGGER.error("Central Monitor image module URL exceeds the network limit: {} characters",
-                                textField.getRawText().length());
-                        return;
-                    }
-
-                    sendUrlChange(editSession, textField.getValue(), actionSender);
+                    sendUrlChange(machine, editSession, textField.getValue(), actionSender);
                 });
         saveButton.noText();
 
@@ -58,27 +49,18 @@ public class ImageModuleBehaviour implements IMonitorModuleItem {
         return builder;
     }
 
-    private static void sendUrlChange(ImageEditSession editSession, String requestedUrl,
-                                      Consumer<SyncActionData> actionSender) {
-        if (!CentralMonitorImageModuleActions.isValidUrl(requestedUrl)) {
-            GTCEu.LOGGER.error("Central Monitor image module URL exceeds the network limit: {} characters",
-                    requestedUrl.length());
-            return;
-        }
+    private static void sendUrlChange(CentralMonitorMachine machine, ImageEditSession editSession, String requestedUrl,
+                                      Consumer<Runnable> actionSender) {
         String expectedUrl = editSession.expectedModule.get(GTDataComponents.IMAGE_MODULE_URL);
         if (requestedUrl.equals(expectedUrl)) {
             return;
         }
-        int nextSequence = Math.incrementExact(editSession.sequence);
-        var action = CentralMonitorImageModuleActions.createSetImageModuleUrlAction(
+        actionSender.accept(() -> machine.rpcToServer("setCentralMonitorImageModuleUrl",
                 editSession.holderIncarnation,
                 editSession.groupIdentity,
                 editSession.moduleSlotIncarnation,
                 editSession.expectedModule,
-                requestedUrl,
-                editSession.sequence);
-        actionSender.accept(action);
-        editSession.sequence = nextSequence;
+                requestedUrl));
     }
 
     private static final class ImageEditSession {
@@ -87,7 +69,6 @@ public class ImageModuleBehaviour implements IMonitorModuleItem {
         private final UUID groupIdentity;
         private final UUID moduleSlotIncarnation;
         private final ItemStack expectedModule;
-        private int sequence;
 
         private ImageEditSession(UUID holderIncarnation, UUID groupIdentity, UUID moduleSlotIncarnation,
                                  ItemStack expectedModule) {
@@ -102,8 +83,25 @@ public class ImageModuleBehaviour implements IMonitorModuleItem {
                     machine.getCentralMonitorActionIncarnation(),
                     group.getIdentity(),
                     group.getModuleSlotIncarnation(),
-                    CentralMonitorImageModuleActions.captureExpectedModule(module));
+                    captureExpectedModule(module));
         }
+    }
+
+    /** Captures editable module data without the server-derived display text. */
+    public static ItemStack captureExpectedModule(ItemStack module) {
+        ItemStack moduleCopy = module.copy();
+        moduleCopy.remove(GTDataComponents.TEXT_LINE_LIST.get());
+        return moduleCopy;
+    }
+
+    /** Compares stable module data so server-derived display changes do not invalidate an editor. */
+    public static boolean matchesExpectedModule(ItemStack current, ItemStack expected) {
+        return ItemStack.matches(captureExpectedModule(current), expected);
+    }
+
+    public static boolean isImageModule(ItemStack stack) {
+        return stack.getItem() instanceof IComponentItem componentItem &&
+                componentItem.getComponents().stream().anyMatch(ImageModuleBehaviour.class::isInstance);
     }
 
     @Override

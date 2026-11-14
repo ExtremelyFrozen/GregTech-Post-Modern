@@ -7,6 +7,10 @@ import com.gregtechceu.gtceu.api.cover.CoverBehavior;
 import com.gregtechceu.gtceu.api.item.IComponentItem;
 import com.gregtechceu.gtceu.api.item.component.IItemComponent;
 import com.gregtechceu.gtceu.api.item.component.IMonitorModuleItem;
+import com.gregtechceu.gtceu.api.sync_system.SyncDataHolder;
+import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
+import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
+import com.gregtechceu.gtceu.api.sync_system.managed.ISyncManaged;
 import com.gregtechceu.gtceu.api.transfer.item.CustomItemStackHandler;
 import com.gregtechceu.gtceu.common.data.GTDataComponents;
 import com.gregtechceu.gtceu.common.item.datacomponents.TextLineList;
@@ -25,19 +29,58 @@ import org.jetbrains.annotations.Nullable;
 import java.util.*;
 import java.util.function.UnaryOperator;
 
-public class MonitorGroup {
+public class MonitorGroup implements ISyncManaged {
 
-    private final UUID identity;
-    private final UUID dynamicItemSlotIncarnation;
+    @SaveField
+    @SyncToClient
+    private UUID identity;
+    @SaveField
+    @SyncToClient
+    private UUID dynamicItemSlotIncarnation;
+    @SaveField
+    @SyncToClient
     private UUID moduleSlotIncarnation;
+    @SaveField
+    @SyncToClient
     private long textConfigurationRevision;
+    @SaveField
+    @SyncToClient
     private final Set<BlockPos> monitorPositions = new HashSet<>();
-    private final String name;
+    @SaveField
+    @SyncToClient
+    private String name;
+    @SaveField
+    @SyncToClient
     private final CustomItemStackHandler itemStackHandler;
+    @SaveField
+    @SyncToClient
     private final CustomItemStackHandler placeholderSlotsHandler;
+    @SaveField
+    @SyncToClient
     private @Nullable BlockPos target;
+    @SaveField
+    @SyncToClient
     private @Nullable Direction targetCoverSide;
+    @SaveField
+    @SyncToClient
     private int dataSlot = 0;
+
+    private SyncDataHolder syncDataHolder;
+
+    public MonitorGroup() {
+        this("");
+    }
+
+    @Override
+    public SyncDataHolder getSyncDataHolder() {
+        if (syncDataHolder == null) syncDataHolder = new SyncDataHolder(this);
+        return syncDataHolder;
+    }
+
+    @Override
+    public ISyncManaged getParentSyncObject() {
+        return null;
+    }
 
     public static boolean isModule(ItemStack stack) {
         if (stack.getItem() instanceof IComponentItem componentItem) {

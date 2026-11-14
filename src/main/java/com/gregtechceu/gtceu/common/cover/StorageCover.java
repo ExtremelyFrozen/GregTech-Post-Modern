@@ -7,7 +7,7 @@ import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
-import com.gregtechceu.gtceu.api.gui.factory.LDLib2CoverUIProvider;
+import com.gregtechceu.gtceu.api.gui.factory.CoverUIProvider;
 import com.gregtechceu.gtceu.api.gui.factory.UICoverHolder;
 import com.gregtechceu.gtceu.api.machine.MachineCoverContainer;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
@@ -27,7 +27,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
-public class StorageCover extends CoverBehavior implements LDLib2CoverUIProvider {
+public class StorageCover extends CoverBehavior implements CoverUIProvider {
 
     @SaveField
     @SyncToClient
@@ -73,26 +73,26 @@ public class StorageCover extends CoverBehavior implements LDLib2CoverUIProvider
     }
 
     @Override
-    public boolean canCreateLDLib2UI(Player player, UICoverHolder holder) {
+    public boolean canCreateUI(Player player, UICoverHolder holder) {
         return holder.getCover() == this;
     }
 
     @Override
-    public UI createLDLib2UI(Player player, UICoverHolder holder) {
+    public UI createUI(Player player, UICoverHolder holder) {
         UIElement root = new UIElement();
-        UITemplate.setLDLib2Bounds(root, 0, 0, 176, 87 + 82);
+        UITemplate.setBounds(root, 0, 0, 176, 87 + 82);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));
 
         int centeredGroupX = (176 - 126) / 2;
-        root.addChild(createLDLib2Label(centeredGroupX));
+        root.addChild(createLabel(centeredGroupX));
         for (int slot = 0; slot < SIZE; slot++) {
-            root.addChild(createLDLib2StorageSlot(slot, centeredGroupX));
+            root.addChild(createStorageSlot(slot, centeredGroupX));
         }
-        root.addChild(UITemplate.bindPlayerInventoryLDLib2(player.getInventory(), GuiTextures.SLOT, 7, 87, true));
+        root.addChild(UITemplate.bindPlayerInventory(player.getInventory(), GuiTextures.SLOT, 7, 87, true));
         return UI.of(root);
     }
 
-    private GTLabelElement createLDLib2Label(int groupX) {
+    private GTLabelElement createLabel(int groupX) {
         GTLabelElement label = new GTLabelElement(groupX + 10, 5, 116, 10, getUITitle(), true);
         label.textStyle(style -> style
                 .textColor(0x404040)
@@ -102,9 +102,9 @@ public class StorageCover extends CoverBehavior implements LDLib2CoverUIProvider
         return label;
     }
 
-    private GTItemSlotElement createLDLib2StorageSlot(int slot, int groupX) {
+    private GTItemSlotElement createStorageSlot(int slot, int groupX) {
         GTItemSlotElement element = new GTItemSlotElement(inventory, slot);
-        UITemplate.setLDLib2Bounds(element, groupX + 7 + (slot % 6) * 18, 21 + (slot / 6) * 18, 18, 18);
+        UITemplate.setBounds(element, groupX + 7 + (slot % 6) * 18, 21 + (slot / 6) * 18, 18, 18);
         element.setBackgroundTexture(GuiTextures.SLOT);
         return element;
     }

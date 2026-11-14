@@ -1,0 +1,83 @@
+{
+	"machine": "gtpm:large_engraving_laser",
+	"axes": {
+		"depth": "front",
+		"height": "up",
+		"width": "left"
+	},
+	"orientation": {
+		"allowMirror": false,
+		"allowExtendedFacing": false
+	},
+	"origin": {
+		"token": "controller"
+	},
+	"parameters": {},
+	"fragments": {},
+	"predicates": {
+		"X": {
+			"type": "gtpm:concatenated",
+			"predicates": [
+				{
+					"type": "gtpm:restricted",
+					"predicate": {
+						"type": "gtpm:block",
+						"ids": "gtpm:laser_safe_engraving_casing"
+					},
+					"minCount": 50
+				},
+				{
+					"type": "gtpm:auto_recipe_abilities"
+				},
+				{
+					"type": "gtpm:auto_maintenance",
+					"checkMaintenance": true,
+					"checkMuffler": false,
+					"checkParallel": true
+				}
+			]
+		},
+		"C": {
+			"type": "gtpm:block",
+			"ids": "gtpm:tungstensteel_pipe_casing"
+		},
+		"G": {
+			"type": "gtpm:block",
+			"ids": "gtpm:tempered_glass"
+		},
+		"K": {
+			"type": "gtpm:block",
+			"ids": "gtpm:assembly_line_grating"
+		},
+		"A": {
+			"type": "gtpm:air"
+		}
+	},
+	"body": {
+		"type": "sequence",
+		"axis": "depth",
+		"children": [
+			{
+				"type": "fixed",
+				"layers": [["XXXXX", "XXGXX", "XXGXX", "XXXXX"]]
+			},
+			{
+				"type": "fixed",
+				"layers": [["XXXXX", "XAAAX", "XAAAX", "XKKKX"]]
+			},
+			{
+				"type": "fixed",
+				"layers": [["XXXXX", "GAAAG", "GACAG", "XKXKX"]]
+			},
+			{
+				"type": "fixed",
+				"layers": [["XXXXX", "XAAAX", "XAAAX", "XKKKX"]]
+			},
+			{
+				"type": "fixed",
+				"layers": [["XX~XX", "XXGXX", "XXGXX", "XXXXX"]]
+			}
+		]
+	},
+	"constraints": []
+}

@@ -1,36 +1,43 @@
 package com.gregtechceu.gtceu.api.sync_system
 
+import com.gregtechceu.gtceu.api.sync_system.managed.ISyncManaged
+
 import net.minecraft.core.HolderLookup
 
-import com.google.gson.JsonElement
-import org.jetbrains.annotations.Nullable
+import com.mojang.serialization.Codec
 
-enum class SyncSerializationTarget {
-	NBT,
-	DATA_COMPONENTS,
-}
-
+/**
+ * Supplies a value Codec for a field that must retain its owning object or existing runtime instance.
+ * The context is scoped to a single save or synchronization operation on the owning game thread.
+ * Codec composition controls the data shape; this interface never selects a storage format.
+ */
 interface ContextualFieldCodec<T> {
-	fun serializeField(value: T, context: Context<T>): JsonElement =
-		throw UnsupportedOperationException("Sync: field ${context.fieldName} uses ${javaClass.name}, which does not support DataComponentMap serialization")
+	/** Decoding may update the existing instance in [Context.currentValue] after the payload has decoded. */
+	fun codec(context: Context<T>): Codec<T>
 
-	@Nullable
-	fun deserializeField(value: JsonElement, context: Context<T>): T? =
-		throw UnsupportedOperationException("Sync: field ${context.fieldName} uses ${javaClass.name}, which does not support DataComponentMap deserialization")
+	/** Immutable values encode their complete contents and only change when the field is replaced. */
+	fun isImmutable(): Boolean = false
 
-	fun shouldSyncField(value: T, context: Context<T>, fullSync: Boolean, manuallyDirty: Boolean): Boolean = fullSync || manuallyDirty
+	fun shouldSyncField(value: T, context: Context<T>, fullSync: Boolean, manuallyDirty: Boolean): Boolean {
+		if (!context.isClientSync || value !is ISyncManaged) return fullSync || manuallyDirty
+		if (fullSync || manuallyDirty) {
+			value.getSyncDataHolder().resyncAllFields()
+			return true
+		}
+		return value.getSyncDataHolder().scanAndMarkChanges(context.lookup)
+	}
 
 	@JvmRecord
-	data class Context<T> @JvmOverloads constructor(
+	data class Context<T>(
 		val holder: Any,
 		val type: TypeDeclaration,
-		@field:Nullable val currentValue: T?,
+		val currentValue: T?,
 		val fieldName: String,
 		val isClientSync: Boolean,
 		val isClientFullSyncUpdate: Boolean,
 		val lookup: HolderLookup.Provider,
-		val serializationTarget: SyncSerializationTarget = SyncSerializationTarget.DATA_COMPONENTS,
 		val parseExplicitNull: Boolean = false,
 		val notifyUnchangedOnFullSync: Boolean = true,
+		val readOnly: Boolean = false,
 	)
 }

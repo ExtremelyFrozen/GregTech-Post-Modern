@@ -2,6 +2,7 @@ package com.gregtechceu.gtceu.api.recipe.content;
 
 import com.gregtechceu.gtceu.api.capability.recipe.RecipeCapability;
 import com.gregtechceu.gtceu.api.registry.GTRegistries;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 
 import net.minecraft.network.RegistryFriendlyByteBuf;
 
@@ -24,6 +25,10 @@ public class ContentListMap {
 
     public static final Codec<ContentListMap> CODEC = RecipeCapability.CODEC
             .xmap(ContentListMap::new, ContentListMap::asContentMap);
+
+    static {
+        FieldCodecs.register(ContentListMap.class, CODEC);
+    }
 
     private final Map<RecipeCapability<?>, List<Content>> contentsMap;
 

@@ -5,6 +5,7 @@ import com.gregtechceu.gtceu.api.item.datacomponents.ToolBehaviors;
 import com.gregtechceu.gtceu.api.item.tool.ToolHelper;
 import com.gregtechceu.gtceu.api.item.tool.behavior.IToolBehavior;
 import com.gregtechceu.gtceu.api.item.tool.behavior.ToolBehaviorType;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 import com.gregtechceu.gtceu.common.data.GTToolBehaviors;
 import com.gregtechceu.gtceu.common.data.item.GTItemAbilities;
 
@@ -38,6 +39,11 @@ public class TreeFellingBehavior implements IToolBehavior<TreeFellingBehavior> {
     public static final TreeFellingBehavior INSTANCE = new TreeFellingBehavior(true);
     public static final Codec<TreeFellingBehavior> CODEC = Codec.BOOL.xmap(TreeFellingBehavior::new, TreeFellingBehavior::isEnabled);
     public static final StreamCodec<ByteBuf, TreeFellingBehavior> STREAM_CODEC = ByteBufCodecs.BOOL.map(TreeFellingBehavior::new, TreeFellingBehavior::isEnabled);
+
+    static {
+        FieldCodecs.register(TreeFellingBehavior.class, CODEC);
+        FieldCodecs.registerStream(TreeFellingBehavior.class, STREAM_CODEC);
+    }
     // spotless:on
     @Getter
     private final boolean enabled;

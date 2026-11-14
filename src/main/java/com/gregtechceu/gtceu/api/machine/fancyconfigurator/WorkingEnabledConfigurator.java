@@ -1,0 +1,35 @@
+package com.gregtechceu.gtceu.api.machine.fancyconfigurator;
+
+import com.gregtechceu.gtceu.api.capability.IControllable;
+import com.gregtechceu.gtceu.api.gui.GuiTextures;
+import com.gregtechceu.gtceu.api.gui.fancy.IFancyConfiguratorButton;
+import com.gregtechceu.gtceu.api.machine.MetaMachine;
+
+import net.minecraft.network.chat.Component;
+
+import java.util.List;
+
+/**
+ * LDLib2 Fancy toggle for the common machine working-enabled state.
+ *
+ * <p>
+ * The button sends a GTM machine action for server-side mutation and does not use LDLib2-owned business state
+ * channels.
+ */
+public class WorkingEnabledConfigurator extends IFancyConfiguratorButton.Toggle {
+
+    public WorkingEnabledConfigurator(IControllable controllable) {
+        super(GuiTextures.BUTTON_POWER.getSubTexture(0, 0, 1, 0.5),
+                GuiTextures.BUTTON_POWER.getSubTexture(0, 0.5, 1, 0.5),
+                controllable::isWorkingEnabled, (event, pressed) -> {
+                    var machine = (MetaMachine) controllable;
+                    if (machine.isRemote()) {
+                        machine.rpcToServer("setWorkingEnabled", pressed);
+                        event.stopImmediatePropagation();
+                        event.hasHandler = true;
+                    }
+                });
+        setTooltipsSupplier(pressed -> List.of(Component.translatable(
+                pressed ? "behaviour.soft_hammer.enabled" : "behaviour.soft_hammer.disabled")));
+    }
+}

@@ -129,7 +129,7 @@ public class MixinHelpers {
                 });
             });
 
-            if (!GTCEu.Mods.isAE2Loaded()) {
+            if (!GTCEu.MODS.AE2.isLoaded()) {
                 return;
             }
             // If AE2 is loaded, add the Fluid P2P attunement tag to all the buckets
@@ -372,8 +372,6 @@ public class MixinHelpers {
                     access);
         });
     }
-
-    public static void postKJSVeinEvents(RegistryAccess.Frozen registries) {}
 
     public static void addFluidTexture(Material material, FluidStorage.FluidEntry value) {
         IClientFluidTypeExtensions extensions = IClientFluidTypeExtensions.of(value.getFluid().get());

@@ -1,0 +1,87 @@
+{
+	"machine": "gtpm:large_combustion_engine",
+	"axes": {
+		"depth": "front",
+		"height": "up",
+		"width": "left"
+	},
+	"orientation": {
+		"allowMirror": false,
+		"allowExtendedFacing": false
+	},
+	"origin": {
+		"token": "controller"
+	},
+	"parameters": {},
+	"fragments": {},
+	"predicates": {
+		"X": {
+			"type": "gtpm:block",
+			"ids": "gtpm:stable_machine_casing"
+		},
+		"G": {
+			"type": "gtpm:block",
+			"ids": "gtpm:titanium_gearbox"
+		},
+		"C": {
+			"type": "gtpm:concatenated",
+			"predicates": [
+				{
+					"type": "gtpm:restricted",
+					"predicate": {
+						"type": "gtpm:block",
+						"ids": "gtpm:stable_machine_casing"
+					},
+					"minCount": 3
+				},
+				{
+					"type": "gtpm:auto_recipe_abilities",
+					"checkEnergyIn": false,
+					"checkEnergyOut": false,
+					"checkItemIn": true,
+					"checkItemOut": true,
+					"checkFluidIn": true,
+					"checkFluidOut": true
+				},
+				{
+					"type": "gtpm:auto_maintenance",
+					"checkMaintenance": true,
+					"checkMuffler": true,
+					"checkParallel": false
+				}
+			]
+		},
+		"D": {
+			"type": "gtpm:part",
+			"abilities": "output_energy",
+			"allowedTiers": [4, 5, 6, 7, 8, 9]
+		},
+		"A": {
+			"type": "gtpm:block",
+			"ids": "gtpm:engine_intake_casing"
+		}
+	},
+	"body": {
+		"type": "sequence",
+		"axis": "depth",
+		"children": [
+			{
+				"type": "fixed",
+				"layers": [["XXX", "XDX", "XXX"]]
+			},
+			{
+				"type": "fixed",
+				"layers": [["XCX", "CGC", "XCX"]]
+			},
+			{
+				"type": "fixed",
+				"layers": [["XCX", "CGC", "XCX"]]
+			},
+			{
+				"type": "fixed",
+				"layers": [["AAA", "A~A", "AAA"]]
+			}
+		]
+	},
+	"constraints": []
+}

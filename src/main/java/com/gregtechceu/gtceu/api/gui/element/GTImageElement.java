@@ -36,7 +36,7 @@ public class GTImageElement extends UIElement {
 
     public GTImageElement(int x, int y, int width, int height, IGuiTexture texture) {
         this(texture);
-        UITemplate.setLDLib2Bounds(this, x, y, width, height);
+        UITemplate.setBounds(this, x, y, width, height);
     }
 
     public GTImageElement setTexture(IGuiTexture texture) {

@@ -99,9 +99,7 @@ public abstract class RecipeCapability<T> {
         return copyWithModifier((T) content, modifier);
     }
 
-    /**
-     * used for recipe builder via KubeJs.
-     */
+    /** Converts a recipe builder input to this capability's content type. */
     public T of(Object o) {
         return serializer.of(o);
     }
@@ -191,7 +189,7 @@ public abstract class RecipeCapability<T> {
     }
 
     @Nullable("null when this capability does not have a LDLib2 recipe element")
-    public UIElement createLDLib2Element() {
+    public UIElement createElement() {
         return null;
     }
 
@@ -199,7 +197,7 @@ public abstract class RecipeCapability<T> {
      * Return the class of the supported LDLib2 element that should be used to display this capability.
      */
     @Nullable
-    public Class<? extends UIElement> getLDLib2ElementClass() {
+    public Class<? extends UIElement> getElementClass() {
         return null;
     }
 
@@ -207,19 +205,19 @@ public abstract class RecipeCapability<T> {
      * Creates the unbound XML element used by generated LDLib2 recipe templates.
      */
     @Nullable("null when this capability does not have a LDLib2 recipe element")
-    public Element createLDLib2XmlElement(Document document) {
+    public Element createXmlElement(Document document) {
         return null;
     }
 
-    public void applyLDLib2ElementInfo(@NotNull UIElement element,
-                                       int index,
-                                       boolean isXEI,
-                                       IO io,
-                                       @Nullable("null when storage == null") GTRecipeTypeUI.RecipeHolder recipeHolder,
-                                       @NotNull GTRecipeType recipeType,
-                                       @Nullable("null when content == null") GTRecipeDefinition recipe,
-                                       @Nullable Content content,
-                                       @Nullable Object storage, int recipeTier, int chanceTier) {}
+    public void applyElementInfo(@NotNull UIElement element,
+                                 int index,
+                                 boolean isXEI,
+                                 IO io,
+                                 @Nullable("null when storage == null") GTRecipeTypeUI.RecipeHolder recipeHolder,
+                                 @NotNull GTRecipeType recipeType,
+                                 @Nullable("null when content == null") GTRecipeDefinition recipe,
+                                 @Nullable Content content,
+                                 @Nullable Object storage, int recipeTier, int chanceTier) {}
 
     /**
      * Create a cache map for chanced outputs

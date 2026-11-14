@@ -101,10 +101,10 @@ public class GTPlaceholders {
 
     public static void initPlaceholders() {
         RegistrateDistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> GTPlaceholders::initRenderers);
-        if (GTCEu.Mods.isAE2Loaded()) {
+        if (GTCEu.MODS.AE2.isLoaded()) {
             GTAEPlaceholders.init();
         }
-        if (ConfigHolder.INSTANCE.compat.createCompat && GTCEu.Mods.isCreateLoaded()) {
+        if (ConfigHolder.INSTANCE.compat.createCompat && GTCEu.MODS.CREATE.isLoaded()) {
             GTCreateIntegration.init();
         }
 
@@ -259,7 +259,7 @@ public class GTPlaceholders {
             public MultiLineComponent apply(PlaceholderContext ctx,
                                             List<MultiLineComponent> args) throws PlaceholderException {
                 PlaceholderUtils.checkArgs(args, 2);
-                int count = PlaceholderUtils.toInt(args.get(0));
+                int count = PlaceholderUtils.toInt(args.getFirst());
                 PlaceholderUtils.checkRange("n", 0, 50000, count);
                 MultiLineComponent out = MultiLineComponent.empty();
                 for (int i = 0; i < count; i++) out.append(args.get(1));
@@ -290,7 +290,7 @@ public class GTPlaceholders {
             public MultiLineComponent apply(PlaceholderContext ctx,
                                             List<MultiLineComponent> args) throws PlaceholderException {
                 PlaceholderUtils.checkArgs(args, 1, true);
-                int i = PlaceholderUtils.toInt(args.get(0));
+                int i = PlaceholderUtils.toInt(args.getFirst());
                 PlaceholderUtils.checkArgs(args, i + 1, true);
                 return new MultiLineComponent(args.get(i + 1)).setIgnoreSpaces(true);
             }
@@ -526,7 +526,7 @@ public class GTPlaceholders {
             public MultiLineComponent apply(PlaceholderContext ctx,
                                             List<MultiLineComponent> args) throws PlaceholderException {
                 PlaceholderUtils.checkArgs(args, 1);
-                return MultiLineComponent.literal((char) PlaceholderUtils.toInt(args.get(0))).setIgnoreSpaces(true);
+                return MultiLineComponent.literal((char) PlaceholderUtils.toInt(args.getFirst())).setIgnoreSpaces(true);
             }
         });
         PlaceholderHandler.addPlaceholder(new Placeholder("subList") {
@@ -766,8 +766,8 @@ public class GTPlaceholders {
                 monitor.resetClicked();
                 if (args.isEmpty()) return MultiLineComponent.literal(monitor.isClicked() ? 1 : 0);
                 PlaceholderUtils.checkArgs(args, 1);
-                if (args.get(0).equalsString("x")) return MultiLineComponent.literal(monitor.getClickPosX());
-                if (args.get(0).equalsString("y")) return MultiLineComponent.literal(monitor.getClickPosY());
+                if (args.getFirst().equalsString("x")) return MultiLineComponent.literal(monitor.getClickPosX());
+                if (args.getFirst().equalsString("y")) return MultiLineComponent.literal(monitor.getClickPosY());
                 throw new InvalidArgsException();
             }
         });
@@ -870,7 +870,7 @@ public class GTPlaceholders {
             public MultiLineComponent apply(PlaceholderContext ctx,
                                             List<MultiLineComponent> args) throws PlaceholderException {
                 PlaceholderUtils.checkArgs(args, 1);
-                return PlaceholderHandler.processPlaceholders(args.get(0).toString(), ctx);
+                return PlaceholderHandler.processPlaceholders(args.getFirst().toString(), ctx);
             }
         });
 
@@ -972,7 +972,7 @@ public class GTPlaceholders {
             public MultiLineComponent apply(PlaceholderContext ctx,
                                             List<MultiLineComponent> args) throws PlaceholderException {
                 PlaceholderUtils.checkArgs(args, 1);
-                int slot = PlaceholderUtils.toInt(args.get(0));
+                int slot = PlaceholderUtils.toInt(args.getFirst());
                 if (ctx.itemStackHandler() == null) throw new NotSupportedException();
                 PlaceholderUtils.checkRange("slot index", 1, ctx.itemStackHandler().getSlots(), slot);
                 return MultiLineComponent.literal(ctx.itemStackHandler().getStackInSlot(slot - 1).toString());

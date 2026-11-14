@@ -1,0 +1,162 @@
+{
+	"machine": "gtpm:zpm_fusion_reactor",
+	"axes": {
+		"depth": "front",
+		"height": "up",
+		"width": "left"
+	},
+	"orientation": {
+		"allowMirror": false,
+		"allowExtendedFacing": false
+	},
+	"origin": {
+		"token": "controller"
+	},
+	"parameters": {},
+	"fragments": {},
+	"predicates": {
+		"G": {
+			"type": "gtpm:concatenated",
+			"predicates": [
+				{
+					"type": "gtpm:block",
+					"ids": "gtpm:fusion_glass"
+				},
+				{
+					"type": "gtpm:block",
+					"ids": "gtpm:fusion_casing_mk2"
+				}
+			]
+		},
+		"E": {
+			"type": "gtpm:concatenated",
+			"predicates": [
+				{
+					"type": "gtpm:block",
+					"ids": "gtpm:fusion_casing_mk2"
+				},
+				{
+					"type": "gtpm:restricted",
+					"predicate": {
+						"type": "gtpm:part",
+						"abilities": "input_energy",
+						"allowedTiers": [7, 8]
+					},
+					"minCount": 1,
+					"previewCount": 16
+				}
+			]
+		},
+		"C": {
+			"type": "gtpm:block",
+			"ids": "gtpm:fusion_casing_mk2"
+		},
+		"K": {
+			"type": "gtpm:block",
+			"ids": "gtpm:fusion_coil"
+		},
+		"O": {
+			"type": "gtpm:concatenated",
+			"predicates": [
+				{
+					"type": "gtpm:block",
+					"ids": "gtpm:fusion_casing_mk2"
+				},
+				{
+					"type": "gtpm:part",
+					"abilities": "export_fluids"
+				}
+			]
+		},
+		"A": {
+			"type": "gtpm:air"
+		},
+		"I": {
+			"type": "gtpm:concatenated",
+			"predicates": [
+				{
+					"type": "gtpm:block",
+					"ids": "gtpm:fusion_casing_mk2"
+				},
+				{
+					"type": "gtpm:restricted",
+					"predicate": {
+						"type": "gtpm:part",
+						"abilities": "import_fluids"
+					},
+					"minCount": 2
+				}
+			]
+		},
+		"#": {
+			"type": "gtpm:any"
+		}
+	},
+	"body": {
+		"type": "sequence",
+		"axis": "depth",
+		"children": [
+			{
+				"type": "fixed",
+				"layers": [["###############", "######OGO######", "###############"]]
+			},
+			{
+				"type": "fixed",
+				"layers": [["######ICI######", "####GGAAAGG####", "######ICI######"]]
+			},
+			{
+				"type": "fixed",
+				"layers": [["####CC###CC####", "###EAAOGOAAE###", "####CC###CC####"]]
+			},
+			{
+				"type": "fixed",
+				"layers": [["###C#######C###", "##EKEG###GEKE##", "###C#######C###"]]
+			},
+			{
+				"type": "fixed",
+				"layers": [["##C#########C##", "#GAE#######EAG#", "##C#########C##"]]
+			},
+			{
+				"type": "fixed",
+				"layers": [["##C#########C##", "#GAG#######GAG#", "##C#########C##"]]
+			},
+			{
+				"type": "fixed",
+				"layers": [["#I###########I#", "OAO#########OAO", "#I###########I#"]]
+			},
+			{
+				"type": "fixed",
+				"layers": [["#C###########C#", "GAG#########GAG", "#C###########C#"]]
+			},
+			{
+				"type": "fixed",
+				"layers": [["#I###########I#", "OAO#########OAO", "#I###########I#"]]
+			},
+			{
+				"type": "fixed",
+				"layers": [["##C#########C##", "#GAG#######GAG#", "##C#########C##"]]
+			},
+			{
+				"type": "fixed",
+				"layers": [["##C#########C##", "#GAE#######EAG#", "##C#########C##"]]
+			},
+			{
+				"type": "fixed",
+				"layers": [["###C#######C###", "##EKEG###GEKE##", "###C#######C###"]]
+			},
+			{
+				"type": "fixed",
+				"layers": [["####CC###CC####", "###EAAOGOAAE###", "####CC###CC####"]]
+			},
+			{
+				"type": "fixed",
+				"layers": [["######ICI######", "####GGAAAGG####", "######ICI######"]]
+			},
+			{
+				"type": "fixed",
+				"layers": [["###############", "######O~O######", "###############"]]
+			}
+		]
+	},
+	"constraints": []
+}

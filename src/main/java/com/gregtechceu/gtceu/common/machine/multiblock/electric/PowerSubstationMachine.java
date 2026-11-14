@@ -10,23 +10,16 @@ import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTComponentPanelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
-import com.gregtechceu.gtceu.api.gui.factory.LDLib2MachineUIProvider;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolderContext;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2ConfiguratorPanelElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyMachineUIElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyTabsElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyTooltipsPanelElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyUIProvider;
-import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
+import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
+import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.TooltipsPanel;
 import com.gregtechceu.gtceu.api.machine.ConditionalSubscriptionHandler;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2DirectionalFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2WorkingEnabledFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.feature.LDLib2FancyActionMachine;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
+import com.gregtechceu.gtceu.api.machine.feature.IFancyUIMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IDisplayUIMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMaintenanceMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMultiPart;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.LDLib2FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.multiblock.IBatteryData;
 import com.gregtechceu.gtceu.api.machine.multiblock.WorkableMultiblockMachine;
 import com.gregtechceu.gtceu.api.machine.trait.MachineTrait;
@@ -39,7 +32,6 @@ import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
 import com.gregtechceu.gtceu.config.ConfigHolder;
 import com.gregtechceu.gtceu.utils.FormattingUtil;
 
-import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
@@ -52,13 +44,13 @@ import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 import net.minecraft.util.Mth;
-import net.minecraft.world.entity.player.Player;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMaps;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
 
@@ -71,8 +63,10 @@ import java.util.Map;
 import java.util.stream.LongStream;
 
 public class PowerSubstationMachine extends WorkableMultiblockMachine
-                                    implements IEnergyInfoProvider, IDisplayUIMachine, LDLib2MachineUIProvider,
-                                    LDLib2FancyActionMachine {
+                                    implements IEnergyInfoProvider, IDisplayUIMachine, IFancyUIMachine {
+
+    private static final int PAGE_WIDTH = 190;
+    private static final int PAGE_HEIGHT = 125;
 
     // Structure Constants
     public static final int MAX_BATTERY_LAYERS = 18;
@@ -107,16 +101,16 @@ public class PowerSubstationMachine extends WorkableMultiblockMachine
     private long outputPerSec;
 
     protected final ConditionalSubscriptionHandler tickSubscription;
-    private final ConditionalSubscriptionHandler displaySnapshotSubscription;
+    private final ConditionalSubscriptionHandler displaySubscription;
     @SyncToClient
-    private List<Component> displaySnapshot = List.of();
+    private List<Component> displayText = List.of();
 
     public PowerSubstationMachine(BlockEntityCreationInfo info) {
         super(info);
         this.inputHatches = EnergyContainerList.EMPTY;
         this.outputHatches = EnergyContainerList.EMPTY;
         this.tickSubscription = new ConditionalSubscriptionHandler(this, this::transferEnergyTick, this::isFormed);
-        this.displaySnapshotSubscription = new ConditionalSubscriptionHandler(this, this::refreshDisplaySnapshot,
+        this.displaySubscription = new ConditionalSubscriptionHandler(this, this::refreshDisplayText,
                 this::isFormed);
         this.energyBank = attachTrait(new PowerStationEnergyBank(List.of()));
     }
@@ -128,7 +122,7 @@ public class PowerSubstationMachine extends WorkableMultiblockMachine
         this.maintenance = null;
         List<IEnergyContainer> inputs = new ArrayList<>();
         List<IEnergyContainer> outputs = new ArrayList<>();
-        Long2ObjectMap<IO> ioMap = getMultiblockState(DEFAULT_STRUCTURE).getMatchContext().getOrDefault("ioMap",
+        Long2ObjectMap<IO> ioMap = getMultiblockState(DEFAULT_STRUCTURE).getFacts().getOrDefault("ioMap",
                 Long2ObjectMaps.emptyMap());
         for (IMultiPart part : getParts()) {
             IO io = ioMap.getOrDefault(part.self().getBlockPos().asLong(), IO.BOTH);
@@ -159,7 +153,7 @@ public class PowerSubstationMachine extends WorkableMultiblockMachine
         this.outputHatches = new EnergyContainerList(outputs);
 
         List<IBatteryData> batteries = new ArrayList<>();
-        for (Map.Entry<String, Object> battery : getMultiblockState(DEFAULT_STRUCTURE).getMatchContext().entrySet()) {
+        for (Map.Entry<String, Object> battery : getMultiblockState(DEFAULT_STRUCTURE).getFacts().entrySet()) {
             if (battery.getKey().startsWith(PMC_BATTERY_HEADER) &&
                     battery.getValue() instanceof BatteryMatchWrapper wrapper) {
                 for (int i = 0; i < wrapper.amount; i++) {
@@ -176,8 +170,8 @@ public class PowerSubstationMachine extends WorkableMultiblockMachine
         this.passiveDrain = this.energyBank.getPassiveDrainPerTick();
 
         if (!isRemote()) {
-            refreshDisplaySnapshot();
-            displaySnapshotSubscription.updateSubscription();
+            refreshDisplayText();
+            displaySubscription.updateSubscription();
         }
         tickSubscription.updateSubscription();
     }
@@ -214,9 +208,9 @@ public class PowerSubstationMachine extends WorkableMultiblockMachine
         this.inputPerSec = 0;
         this.netOutLastSec = 0;
         this.outputPerSec = 0;
-        this.displaySnapshot = List.of();
+        this.displayText = List.of();
         tickSubscription.unsubscribe();
-        displaySnapshotSubscription.unsubscribe();
+        displaySubscription.unsubscribe();
     }
 
     protected void transferEnergyTick() {
@@ -252,10 +246,10 @@ public class PowerSubstationMachine extends WorkableMultiblockMachine
 
     @Override
     public void addDisplayText(List<Component> textList) {
-        textList.addAll(displaySnapshot);
+        textList.addAll(displayText);
     }
 
-    void refreshDisplaySnapshot() {
+    void refreshDisplayText() {
         List<Component> partDisplay = new ArrayList<>();
         for (IMultiPart part : getParts()) {
             part.addMultiText(partDisplay);
@@ -267,14 +261,14 @@ public class PowerSubstationMachine extends WorkableMultiblockMachine
         DisplayState state = new DisplayState(formed, isWorkingEnabled(), isActive(), getWorkLogic().isWaiting(),
                 energyBank.getStored(), energyBank.getCapacity(), formed ? getPassiveDrain() : 0,
                 inputPerSec, outputPerSec, getLevel().tickRateManager().tickrate());
-        List<Component> nextSnapshot = createDisplaySnapshot(state, partDisplay, additionalDisplay);
-        if (!displaySnapshot.equals(nextSnapshot)) {
-            displaySnapshot = nextSnapshot;
+        List<Component> nextText = createDisplayText(state, partDisplay, additionalDisplay);
+        if (!displayText.equals(nextText)) {
+            displayText = nextText;
         }
     }
 
-    static List<Component> createDisplaySnapshot(DisplayState state, List<Component> partDisplay,
-                                                 List<Component> additionalDisplay) {
+    static List<Component> createDisplayText(DisplayState state, List<Component> partDisplay,
+                                             List<Component> additionalDisplay) {
         List<Component> text = new ArrayList<>(partDisplay.size() + additionalDisplay.size() + 8);
         text.addAll(partDisplay);
         if (state.formed()) {
@@ -347,8 +341,8 @@ public class PowerSubstationMachine extends WorkableMultiblockMachine
                         long inputPerSec, long outputPerSec, float tickRate) {}
 
     @VisibleForTesting
-    List<Component> getDisplaySnapshot() {
-        return displaySnapshot;
+    List<Component> getDisplayText() {
+        return displayText;
     }
 
     private static MutableComponent getTimeToFillDrainText(BigInteger timeToFillSeconds) {
@@ -422,138 +416,6 @@ public class PowerSubstationMachine extends WorkableMultiblockMachine
         return true;
     }
 
-    @Override
-    public boolean canCreateLDLib2UI(Player player, MachineUIHolder holder) {
-        return holder.getMachine() == this;
-    }
-
-    @Override
-    public UI createLDLib2UI(Player player, MachineUIHolder holder) {
-        requireMatchingHolder(holder);
-        PowerSubstationFancyPage page = new PowerSubstationFancyPage(player, holder);
-        return UI.of(new LDLib2FancyMachineUIElement(page, player.getInventory(), holder,
-                page.getLDLib2PageWidth(), page.getLDLib2PageHeight()));
-    }
-
-    private void requireMatchingHolder(MachineUIHolder holder) {
-        if (holder.getMachine() != this) {
-            throw new IllegalArgumentException("Power Substation UI holder must resolve the opened controller.");
-        }
-    }
-
-    private final class PowerSubstationFancyPage implements LDLib2FancyUIProvider {
-
-        private static final int PAGE_WIDTH = 190;
-        private static final int PAGE_HEIGHT = 125;
-
-        private final MachineUIHolder holder;
-        private final LDLib2DirectionalFancyConfigurator directionalPage;
-        private final List<LDLib2FancyUIProvider> partPages;
-
-        private PowerSubstationFancyPage(Player player, MachineUIHolder holder) {
-            requireMatchingHolder(holder);
-            this.holder = holder;
-            this.directionalPage = new LDLib2DirectionalFancyConfigurator(PowerSubstationMachine.this,
-                    player, holder);
-
-            List<LDLib2FancyUIProvider> pages = new ArrayList<>();
-            for (IMultiPart part : getParts()) {
-                if (!(part instanceof LDLib2FancyPartUIProvider pageProvider)) {
-                    throw new IllegalStateException("Power Substation part has no LDLib2 Fancy page: " +
-                            part.self().getDefinition().getId());
-                }
-                MachineUIHolder partHolder = new MachineUIHolderContext(player, part.self());
-                pages.add(pageProvider.createLDLib2FancyPage(player, partHolder));
-            }
-            this.partPages = List.copyOf(pages);
-        }
-
-        @Override
-        public UIElement createLDLib2MainPage(LDLib2FancyMachineUIElement shell) {
-            if (holder.getMachine() != PowerSubstationMachine.this) {
-                throw new IllegalStateException("Power Substation page holder no longer resolves its controller.");
-            }
-
-            UIElement root = UITemplate.setLDLib2Bounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
-            root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
-
-            GTScrollerViewElement screen = new GTScrollerViewElement(4, 4, 182, 117);
-            screen.style(style -> style.backgroundTexture(getScreenTexture()));
-            screen.viewPort(viewPort -> viewPort
-                    .layout(layout -> layout.paddingAll(0))
-                    .style(style -> style.backgroundTexture(getScreenTexture())));
-            screen.scrollerStyle(style -> style
-                    .mode(ScrollerMode.VERTICAL)
-                    .verticalScrollDisplay(ScrollDisplay.AUTO)
-                    .horizontalScrollDisplay(ScrollDisplay.NEVER));
-
-            GTLabelElement title = new GTLabelElement(4, 5, 174, 10,
-                    getBlockState().getBlock().getDescriptionId(), true);
-            title.textStyle(style -> style
-                    .textColor(0x404040)
-                    .textShadow(false)
-                    .textAlignHorizontal(Horizontal.LEFT)
-                    .textAlignVertical(Vertical.CENTER));
-            screen.addScrollViewChild(title);
-            screen.addScrollViewChild(new GTComponentPanelElement(4, 17,
-                    PowerSubstationMachine.this::addDisplayText)
-                    .setMaxWidthLimit(150)
-                    .clickHandler(PowerSubstationMachine.this::handleDisplayClick));
-            root.addChild(screen);
-            return root;
-        }
-
-        @Override
-        public IGuiTexture getTabIcon() {
-            return GuiTextures.itemStack(getDefinition().getItem());
-        }
-
-        @Override
-        public Component getTitle() {
-            return Component.translatable(getDefinition().getDescriptionId());
-        }
-
-        @Override
-        public int getLDLib2PageWidth() {
-            return PAGE_WIDTH;
-        }
-
-        @Override
-        public int getLDLib2PageHeight() {
-            return PAGE_HEIGHT;
-        }
-
-        @Override
-        public void attachSideTabs(LDLib2FancyTabsElement tabs) {
-            tabs.attachSubTab(directionalPage);
-        }
-
-        @Override
-        public void attachConfigurators(LDLib2ConfiguratorPanelElement configuratorPanel) {
-            configuratorPanel.attachConfigurators(new LDLib2WorkingEnabledFancyConfigurator(
-                    PowerSubstationMachine.this, holder));
-        }
-
-        @Override
-        public void attachTooltips(LDLib2FancyTooltipsPanelElement tooltipsPanel) {
-            for (IMultiPart part : getParts()) {
-                if (part instanceof IMaintenanceMachine maintenanceMachine) {
-                    maintenanceMachine.attachLDLib2MaintenanceTooltips(tooltipsPanel);
-                }
-            }
-        }
-
-        @Override
-        public List<LDLib2FancyUIProvider> getSubTabs() {
-            return partPages;
-        }
-
-        @Override
-        public List<Component> getTabTooltips() {
-            return List.of(Component.translatable(getDefinition().getDescriptionId()));
-        }
-    }
-
     public static class PowerStationEnergyBank extends MachineTrait {
 
         public static final MachineTraitType<PowerStationEnergyBank> TYPE = new MachineTraitType<>(
@@ -624,7 +486,6 @@ public class PowerSubstationMachine extends WorkableMultiblockMachine
          * @return Amount filled into storage
          */
         public long fill(long amount) {
-            if (amount < 0) throw new IllegalArgumentException("Amount cannot be negative!");
             if (storage.length == 0) return 0;
 
             // ensure index
@@ -657,7 +518,6 @@ public class PowerSubstationMachine extends WorkableMultiblockMachine
          * @return Amount drained from storage
          */
         public long drain(long amount) {
-            if (amount < 0) throw new IllegalArgumentException("Amount cannot be negative!");
             if (storage.length == 0) return 0;
 
             // ensure index
@@ -768,5 +628,66 @@ public class PowerSubstationMachine extends WorkableMultiblockMachine
             amount++;
             return this;
         }
+    }
+
+    @Override
+    public UIElement createUIWidget(FancyMachineUIWidget shell) {
+        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
+        root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
+
+        GTScrollerViewElement screen = new GTScrollerViewElement(4, 4, 182, 117);
+        screen.style(style -> style.backgroundTexture(getScreenTexture()));
+        screen.viewPort(viewPort -> viewPort
+                .layout(layout -> layout.paddingAll(0))
+                .style(style -> style.backgroundTexture(getScreenTexture())));
+        screen.scrollerStyle(style -> style
+                .mode(ScrollerMode.VERTICAL)
+                .verticalScrollDisplay(ScrollDisplay.AUTO)
+                .horizontalScrollDisplay(ScrollDisplay.NEVER));
+
+        GTLabelElement title = new GTLabelElement(4, 5, 174, 10,
+                getBlockState().getBlock().getDescriptionId(), true);
+        title.textStyle(style -> style
+                .textColor(0x404040)
+                .textShadow(false)
+                .textAlignHorizontal(Horizontal.LEFT)
+                .textAlignVertical(Vertical.CENTER));
+        screen.addScrollViewChild(title);
+        screen.addScrollViewChild(new GTComponentPanelElement(4, 17,
+                PowerSubstationMachine.this::addDisplayText)
+                .setMaxWidthLimit(150)
+                .clickHandler(PowerSubstationMachine.this::handleDisplayClick));
+        root.addChild(screen);
+        return root;
+    }
+
+    @Override
+    public int getPageWidth() {
+        return PAGE_WIDTH;
+    }
+
+    @Override
+    public int getPageHeight() {
+        return PAGE_HEIGHT;
+    }
+
+    @Override
+    public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
+        configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
+                PowerSubstationMachine.this));
+    }
+
+    @Override
+    public void attachTooltips(TooltipsPanel tooltipsPanel) {
+        for (IMultiPart part : getParts()) {
+            if (part instanceof IMaintenanceMachine maintenanceMachine) {
+                maintenanceMachine.attachMaintenanceTooltips(tooltipsPanel);
+            }
+        }
+    }
+
+    @Override
+    public List<IFancyUIProvider> getSubTabs() {
+        return new ObjectArrayList<>(getParts());
     }
 }

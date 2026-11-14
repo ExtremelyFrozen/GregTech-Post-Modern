@@ -1,5 +1,7 @@
 package com.gregtechceu.gtceu.api.gui.slot;
 
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
+
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 
@@ -17,12 +19,7 @@ import java.util.UUID;
 public record DynamicItemSlotDefinition(UUID targetId, UUID targetIncarnation, int slotCount) {
 
     /**
-     * Maximum number of slots that one target may request.
-     */
-    public static final int MAX_SLOT_COUNT = 256;
-
-    /**
-     * Network codec for a bounded target slot definition.
+     * Network codec for a target slot definition.
      */
     public static final StreamCodec<RegistryFriendlyByteBuf, DynamicItemSlotDefinition> STREAM_CODEC = new StreamCodec<>() {
 
@@ -39,19 +36,7 @@ public record DynamicItemSlotDefinition(UUID targetId, UUID targetIncarnation, i
         }
     };
 
-    public DynamicItemSlotDefinition {
-        if (targetId == null) {
-            throw new IllegalArgumentException("targetId must not be null");
-        }
-        if (targetIncarnation == null) {
-            throw new IllegalArgumentException("targetIncarnation must not be null");
-        }
-        validateSlotCount(slotCount);
-    }
-
-    static void validateSlotCount(int slotCount) {
-        if (slotCount < 1 || slotCount > MAX_SLOT_COUNT) {
-            throw new IllegalArgumentException("slotCount must be between 1 and " + MAX_SLOT_COUNT + ": " + slotCount);
-        }
+    static {
+        FieldCodecs.registerStream(DynamicItemSlotDefinition.class, STREAM_CODEC);
     }
 }

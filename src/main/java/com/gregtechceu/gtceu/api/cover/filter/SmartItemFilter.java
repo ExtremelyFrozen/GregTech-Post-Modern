@@ -6,6 +6,7 @@ import com.gregtechceu.gtceu.api.gui.element.GTButtonElement;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.recipe.GTRecipeType;
 import com.gregtechceu.gtceu.api.recipe.content.Content;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 import com.gregtechceu.gtceu.common.data.GTDataComponents;
 import com.gregtechceu.gtceu.common.data.GTRecipeTypes;
 import com.gregtechceu.gtceu.utils.ItemStackHashStrategy;
@@ -21,7 +22,7 @@ import it.unimi.dsi.fastutil.objects.Object2IntOpenCustomHashMap;
 import java.util.Collections;
 import java.util.function.Consumer;
 
-import static com.gregtechceu.gtceu.api.gui.UITemplate.setLDLib2Bounds;
+import static com.gregtechceu.gtceu.api.gui.UITemplate.setBounds;
 
 public class SmartItemFilter implements ItemFilter {
 
@@ -56,26 +57,26 @@ public class SmartItemFilter implements ItemFilter {
     }
 
     @Override
-    public UIElement openLDLib2Configurator(int x, int y) {
+    public UIElement openConfigurator(int x, int y) {
         UIElement group = new UIElement();
-        setLDLib2Bounds(group, x, y, 18 * 3 + 25, 18 * 3);
-        group.addChild(createLDLib2ModeButton(16, 8));
+        setBounds(group, x, y, 18 * 3 + 25, 18 * 3);
+        group.addChild(createModeButton(16, 8));
         return group;
     }
 
-    private GTButtonElement createLDLib2ModeButton(int x, int y) {
+    private GTButtonElement createModeButton(int x, int y) {
         GTButtonElement button = new GTButtonElement();
         button.noText();
-        updateLDLib2ModeButtonTexture(button);
+        updateModeButtonTexture(button);
         button.setOnClick(event -> {
             setFilterMode(nextMode());
-            updateLDLib2ModeButtonTexture(button);
+            updateModeButtonTexture(button);
         });
-        setLDLib2Bounds(button, x, y, 32, 32);
+        setBounds(button, x, y, 32, 32);
         return button;
     }
 
-    private void updateLDLib2ModeButtonTexture(GTButtonElement button) {
+    private void updateModeButtonTexture(GTButtonElement button) {
         IGuiTexture texture = GuiTextures.group(GuiTextures.VANILLA_BUTTON, filterMode.getIcon());
         button.setButtonTexture(texture);
     }
@@ -131,6 +132,10 @@ public class SmartItemFilter implements ItemFilter {
         SIFTER("sifter", GTRecipeTypes.SIFTER_RECIPES);
 
         public static final Codec<SmartFilteringMode> CODEC = StringRepresentable.fromEnum(SmartFilteringMode::values);
+
+        static {
+            FieldCodecs.register(SmartFilteringMode.class, CODEC);
+        }
         private static final SmartFilteringMode[] VALUES = values();
         private final String name;
         private final GTRecipeType recipeType;

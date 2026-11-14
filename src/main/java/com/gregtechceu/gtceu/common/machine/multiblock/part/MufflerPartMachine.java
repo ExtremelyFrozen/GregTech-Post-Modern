@@ -8,14 +8,10 @@ import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
-import com.gregtechceu.gtceu.api.gui.factory.LDLib2MachineUIProvider;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyPreviewPage;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyUIProvider;
 import com.gregtechceu.gtceu.api.machine.TickableSubscription;
 import com.gregtechceu.gtceu.api.machine.feature.IWorkLogicMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IWorkableMultiController;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.LDLib2FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.machine.multiblock.part.TieredPartMachine;
 import com.gregtechceu.gtceu.api.recipe.GTRecipe;
@@ -49,8 +45,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-public class MufflerPartMachine extends TieredPartMachine
-                                implements LDLib2MachineUIProvider, LDLib2FancyPartUIProvider {
+public class MufflerPartMachine extends TieredPartMachine {
 
     @Getter
     private final int recoveryChance;
@@ -181,29 +176,25 @@ public class MufflerPartMachine extends TieredPartMachine
     //////////////////////////////////////
     // ********** GUI ***********//
     //////////////////////////////////////
-    @Override
-    public boolean canCreateLDLib2UI(Player player, MachineUIHolder holder) {
-        return holder.getMachine() == this;
-    }
 
     @Override
-    public UI createLDLib2UI(Player player, MachineUIHolder holder) {
+    public UI createUI(Player player, MachineUIHolder holder) {
         int rowSize = (int) Math.sqrt(inventory.getSlots());
         int xOffset = rowSize == 10 ? 9 : 0;
         int rootWidth = 176 + xOffset * 2;
         int rootHeight = 18 + 18 * rowSize + 94;
 
         UIElement root = new UIElement();
-        UITemplate.setLDLib2Bounds(root, 0, 0, rootWidth, rootHeight);
+        UITemplate.setBounds(root, 0, 0, rootWidth, rootHeight);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));
-        root.addChild(createLDLib2TitleLabel(rootWidth));
-        root.addChild(UITemplate.bindPlayerInventoryLDLib2(player.getInventory(), GuiTextures.SLOT, 7 + xOffset,
+        root.addChild(createTitleLabel(rootWidth));
+        root.addChild(UITemplate.bindPlayerInventory(player.getInventory(), GuiTextures.SLOT, 7 + xOffset,
                 18 + 18 * rowSize + 12, true));
 
         for (int y = 0; y < rowSize; y++) {
             for (int x = 0; x < rowSize; x++) {
                 int index = y * rowSize + x;
-                root.addChild(createLDLib2MufflerSlot(index,
+                root.addChild(createMufflerSlot(index,
                         (88 - rowSize * 9 + x * 18) + xOffset, 18 + y * 18));
             }
         }
@@ -211,12 +202,8 @@ public class MufflerPartMachine extends TieredPartMachine
     }
 
     /** Creates the holder-scoped default preview used by a surrounding multiblock controller. */
-    @Override
-    public LDLib2FancyUIProvider createLDLib2FancyPage(Player player, MachineUIHolder holder) {
-        return new LDLib2FancyPreviewPage(this, player, holder, null);
-    }
 
-    private GTLabelElement createLDLib2TitleLabel(int rootWidth) {
+    private GTLabelElement createTitleLabel(int rootWidth) {
         GTLabelElement label = new GTLabelElement(10, 5, rootWidth - 20, 10,
                 getBlockState().getBlock().getDescriptionId(), true);
         label.textStyle(style -> style
@@ -227,12 +214,12 @@ public class MufflerPartMachine extends TieredPartMachine
         return label;
     }
 
-    private GTItemSlotElement createLDLib2MufflerSlot(int index, int x, int y) {
+    private GTItemSlotElement createMufflerSlot(int index, int x, int y) {
         GTItemSlotElement slot = new GTItemSlotElement(inventory, index)
                 .setBackgroundTexture(GuiTextures.SLOT)
                 .setCanTakeItems(true)
                 .setCanPutItems(false);
-        UITemplate.setLDLib2Bounds(slot, x, y, 18, 18);
+        UITemplate.setBounds(slot, x, y, 18, 18);
         return slot;
     }
 }

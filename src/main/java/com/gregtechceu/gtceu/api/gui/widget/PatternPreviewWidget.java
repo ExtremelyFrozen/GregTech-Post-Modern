@@ -1,592 +1,523 @@
 package com.gregtechceu.gtceu.api.gui.widget;
 
 import com.gregtechceu.gtceu.GTCEu;
-import com.gregtechceu.gtceu.api.block.MetaMachineBlock;
-import com.gregtechceu.gtceu.api.gui.ColorPattern;
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
+import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTButtonElement;
-import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
-import com.gregtechceu.gtceu.api.gui.element.GTSceneElement;
 import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
+import com.gregtechceu.gtceu.api.gui.element.GTTextFieldElement;
+import com.gregtechceu.gtceu.api.gui.texture.ColorRectTexture;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
-import com.gregtechceu.gtceu.api.multiblock.BlockPattern;
 import com.gregtechceu.gtceu.api.multiblock.MultiblockBlockInfo;
-import com.gregtechceu.gtceu.api.multiblock.MultiblockPreviewLevel;
-import com.gregtechceu.gtceu.api.multiblock.MultiblockShapeInfo;
-import com.gregtechceu.gtceu.api.multiblock.TraceabilityPredicate;
-import com.gregtechceu.gtceu.api.multiblock.predicates.SimplePredicate;
-import com.gregtechceu.gtceu.api.multiblock.structurepredicate.StructurePredicate;
-import com.gregtechceu.gtceu.api.multiblock.structurepredicate.StructurePreviewChoice;
-import com.gregtechceu.gtceu.config.ConfigHolder;
-import com.gregtechceu.gtceu.integration.xei.GTXEIHelper;
-import com.gregtechceu.gtceu.integration.xei.handlers.item.CycleItemEntryHandler;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.StructureOperation;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.StructureRequest;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.BatchPlanner;
+import com.gregtechceu.gtceu.api.multiblock.pattern.layout.PatternAxis;
+import com.gregtechceu.gtceu.api.multiblock.preview.PreviewVisibility;
+import com.gregtechceu.gtceu.api.multiblock.preview.StructurePreview;
+import com.gregtechceu.gtceu.api.multiblock.structurepredicate.PatternPredicate;
+import com.gregtechceu.gtceu.client.gui.ClientMultiblockPreviewElement;
+import com.gregtechceu.gtceu.data.pattern.StructurePatternRegistry;
+import com.gregtechceu.gtceu.integration.xei.multiblock.MultiblockInfo;
 
+import com.lowdragmc.lowdraglib2.gui.holder.ModularUIScreen;
 import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
 import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollerMode;
+import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
-import com.lowdragmc.lowdraglib2.utils.data.ItemStackKey;
+import com.lowdragmc.lowdraglib2.math.Size;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
-import net.minecraft.util.Mth;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.material.Fluid;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 
 import com.mojang.blaze3d.systems.RenderSystem;
-import dev.emi.emi.screen.RecipeScreen;
 import dev.vfyjxf.taffy.style.TaffyPosition;
-import it.unimi.dsi.fastutil.longs.LongSet;
-import it.unimi.dsi.fastutil.longs.LongSets;
-import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
-import org.jetbrains.annotations.NotNull;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
+import it.unimi.dsi.fastutil.objects.ObjectList;
+import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
+import org.jspecify.annotations.NullMarked;
 
-import java.util.*;
-import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Locale;
+import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
 
+/** A recipe-viewer page owns its local choices, controls and client scene. */
 @OnlyIn(Dist.CLIENT)
-public class PatternPreviewWidget extends UIElement {
+@NullMarked
+public final class PatternPreviewWidget extends UIElement {
 
-    private boolean isLoaded;
-    private static MultiblockPreviewLevel LEVEL;
-    private static final int REGION_SIZE = 512;
-    private static int LAST_OFFSET_INDEX = 0;
-    private static final Map<MultiblockMachineDefinition, MBPattern[]> CACHE = new HashMap<>();
-    private final GTSceneElement scene;
-    private final GTScrollerViewElement scrollableView;
-    private final GTButtonElement pageButton;
-    private final GTButtonElement layerButton;
-    public final MultiblockMachineDefinition controllerDefinition;
-    private final MBPattern[] patterns;
-    private final List<SimplePredicate> predicates;
-    private int index;
-    public int layer;
-    private GTItemSlotElement[] materialSlots = new GTItemSlotElement[0];
-    private GTItemSlotElement[] candidates = new GTItemSlotElement[0];
+    public static final int WIDTH = 300;
+    public static final int HEIGHT = 200;
 
-    protected PatternPreviewWidget(MultiblockMachineDefinition controllerDefinition) {
-        layout(layout -> {
-            layout.positionType(TaffyPosition.ABSOLUTE);
-            layout.width(160);
-            layout.height(160);
-        });
-        setOverflowVisible(false);
-        this.controllerDefinition = controllerDefinition;
-        predicates = new ArrayList<>();
-        layer = -1;
+    private final MultiblockMachineDefinition definition;
+    private final MultiblockInfo info;
+    private final UIElement main = new UIElement();
+    private final ClientMultiblockPreviewElement preview;
+    private final BlockChoiceList blocks;
+    private final GTScrollerViewElement options = new GTScrollerViewElement();
+    private final ObjectList<UIElement> controls = new ObjectArrayList<>();
+    private final ObjectList<GTTextFieldElement> dimensionInputs = new ObjectArrayList<>();
+    private final Object2ObjectMap<String, StructureRequest> pendingStructures = new Object2ObjectLinkedOpenHashMap<>();
+    private final GTLabelElement title;
+    private final GTButtonElement edit;
+    private final GTButtonElement fullscreen;
+    private final boolean expanded;
+    private boolean editing;
+    private int selectedStructure;
+    private int pageWidth = WIDTH;
+    private int pageHeight = HEIGHT;
+    private long observedGeneration;
+    private int dimensionTicks;
+    private boolean refreshOptions;
 
-        scene = new GTSceneElement(3, 3, 150, 150);
-        scene.createScene(LEVEL);
-        scene.setOnSelected(this::onPosSelected);
-        scene.setRenderFacing(false);
-        addChild(scene);
-
-        scrollableView = new GTScrollerViewElement(3, 132, 154, 22);
-        scrollableView.scrollerStyle(style -> style
-                .mode(ScrollerMode.HORIZONTAL)
-                .horizontalScrollDisplay(ScrollDisplay.AUTO)
-                .verticalScrollDisplay(ScrollDisplay.NEVER)
+    private PatternPreviewWidget(MultiblockInfo info, boolean expanded) {
+        this.info = info;
+        definition = info.getDefinition();
+        this.expanded = expanded;
+        UITemplate.setBounds(this, 0, 0, WIDTH, HEIGHT);
+        getLayout().positionType(TaffyPosition.RELATIVE);
+        setOverflowVisible(true);
+        main.getStyle().backgroundTexture(GuiTextures.BACKGROUND);
+        main.setOverflowVisible(false);
+        addChild(main);
+        var initial = info.resolvePreview();
+        observedGeneration = initial.generation();
+        title = label(6, 6, 246, definition.getBlock().getName());
+        main.addChild(title);
+        preview = new ClientMultiblockPreviewElement(180, 176, new PreviewVisibility(initial.value()), false);
+        preview.setOnSelected(this::showCandidates);
+        main.addChild(preview);
+        blocks = new BlockChoiceList((group, id) -> changeStructure(structure -> structure.withTierChoice(group, id)));
+        blocks.setDisplay(false);
+        addChild(blocks);
+        options.scrollerStyle(style -> style.mode(ScrollerMode.VERTICAL)
+                .verticalScrollDisplay(ScrollDisplay.NEVER).horizontalScrollDisplay(ScrollDisplay.NEVER)
                 .scrollerViewStyle(0));
-        scrollableView.viewPort(viewPort -> {
-            viewPort.layout(layout -> layout.paddingAll(0));
-            viewPort.style(style -> style.backgroundTexture(IGuiTexture.EMPTY));
+        options.viewPort(port -> {
+            port.getLayout().paddingAll(4);
+            port.getStyle().backgroundTexture(GuiTextures.BACKGROUND_INVERSE);
         });
-        scrollableView.horizontalScroller(scroller -> {
-            scroller.layout(layout -> layout.height(4));
-            scroller.getStyle().backgroundTexture(GuiTextures.SLIDER_BACKGROUND);
+        main.addChild(options);
+        edit = button(238, 4, 16, Component.literal("✎"));
+        edit.getStyle().tooltips(text("edit"));
+        edit.setOnClick(event -> {
+            editing = !editing;
+            edit.setText(Component.literal(editing ? "✘" : "✎"));
+            blocks.setDisplay(editing);
+            if (!editing) blocks.close();
+            event.stopPropagation();
         });
-        addChild(scrollableView);
+        fullscreen = button(256, 4, 16, Component.literal(expanded ? "↙" : "↗"));
+        fullscreen.getStyle().tooltips(text(expanded ? "compact" : "fullscreen"));
+        fullscreen.setOnClick(event -> {
+            if (expanded) Minecraft.getInstance().screen.onClose();
+            else openFullscreen();
+            event.stopPropagation();
+        });
+        main.addChildren(edit, fullscreen);
+        title.getStyle().zIndex(1);
+        options.getStyle().zIndex(1);
+        edit.getStyle().zIndex(1);
+        fullscreen.getStyle().zIndex(1);
+        rebuildOptions();
+    }
 
-        if (ConfigHolder.INSTANCE.client.useVBO) {
-            if (!RenderSystem.isOnRenderThread()) {
-                RenderSystem.recordRenderCall(scene::useCacheBuffer);
-            } else {
-                scene.useCacheBuffer();
+    public static ModularUI createModularUI(MultiblockInfo info) {
+        var root = new PatternPreviewWidget(info, false);
+        return ModularUI.of(UI.of(root, root::resize));
+    }
+
+    /** Starts a new recipe page with default choices, including when LDLib reuses its cached UI. */
+    public void reset() {
+        if (info.isResuming()) return;
+        info.reset();
+        pendingStructures.clear();
+        dimensionTicks = 0;
+        refreshOptions = false;
+        selectedStructure = 0;
+        editing = false;
+        edit.setText(Component.literal("✎"));
+        blocks.setDisplay(false);
+        blocks.close();
+        var resolved = info.resolvePreview();
+        observedGeneration = resolved.generation();
+        preview.reset(resolved.value());
+        rebuildOptions();
+        blocks.setInteractive(true);
+    }
+
+    private Size resize(Size screen) {
+        pageWidth = expanded ? screen.getWidth() : Math.min(WIDTH, screen.getWidth());
+        pageHeight = expanded ? screen.getHeight() : Math.min(HEIGHT, screen.getHeight());
+        int headerRight = pageWidth - (expanded ? 4 : 22);
+        title.getLayout().left(expanded ? 8 : 6).top(expanded ? 10 : 6)
+                .width(expanded ? Math.min(220, pageWidth - 130) : headerRight - 48);
+        title.textStyle(style -> style.textColor(expanded ? 0xffffffff : 0xff404040).textShadow(expanded));
+        edit.getLayout().left(headerRight - 40).top(expanded ? 8 : 4);
+        fullscreen.getLayout().left(headerRight - 22).top(expanded ? 8 : 4);
+        rebuildOptions();
+        return Size.of(pageWidth, pageHeight);
+    }
+
+    private void layoutContent(int optionHeight) {
+        UITemplate.setBounds(main, 0, 0, pageWidth, pageHeight);
+        main.getStyle().backgroundTexture(expanded ? IGuiTexture.EMPTY : GuiTextures.BACKGROUND);
+        preview.setFullscreen(expanded);
+        preview.getLayout().left(expanded ? 0 : 4).top(expanded ? 0 : 20);
+        preview.resize(expanded ? pageWidth : pageWidth - 66, expanded ? pageHeight : pageHeight - 24);
+        options.viewPort(port -> port.getStyle().backgroundTexture(expanded ?
+                new ColorRectTexture(0xA0202020) : GuiTextures.BACKGROUND_INVERSE));
+        UITemplate.setBounds(options, pageWidth - (expanded ? 62 : 58), expanded ? 34 : 20, 54,
+                expanded ? Math.min(optionHeight + 8, pageHeight - 72) : pageHeight - 24);
+        blocks.setFullscreen(expanded);
+        blocks.resize(expanded ? pageWidth - BlockChoiceList.WIDTH - 66 : pageWidth + 4,
+                expanded ? 34 : 20, pageHeight - (expanded ? 38 : 24));
+    }
+
+    private String structureName() {
+        return definition.getStructureOrder().get(selectedStructure);
+    }
+
+    private void showCandidates(StructurePreview.Cell selected) {
+        preview.clearCandidates();
+        var seen = new ReferenceOpenHashSet<PatternPredicate>();
+        for (var contribution : selected.contributions()) {
+            var request = info.getStructures().get(contribution.structureName());
+            var layout = definition.getPattern(contribution.structureName())
+                    .expandLayout(request.repetitions().toIntArray(), request.choices());
+            var key = contribution.cellKey();
+            for (var cell : layout.getCells()) {
+                if (cell.unit() != key.unitIndex() || cell.repetition() != key.repetition() ||
+                        cell.inner() != key.innerSlice() || cell.row() != key.row() || cell.column() != key.column())
+                    continue;
+                var predicate = cell.predicate();
+                if (!seen.add(predicate)) break;
+                Stream.concat(predicate.common.stream(), predicate.limited.stream()).forEach(rule -> {
+                    for (var choice : rule.getPreviewChoices(definition)) {
+                        var items = choice.candidates().stream().map(MultiblockBlockInfo::getItemStackForm)
+                                .filter(item -> !item.isEmpty()).collect(ObjectImmutableList.toList());
+                        var tips = new ObjectArrayList<>(choice.getTooltips(predicate));
+                        tips.addAll(rule.getToolTips(null));
+                        preview.addCandidates(items, tips);
+                    }
+                });
+                break;
             }
         }
+    }
 
-        addChild(createTitle());
-
-        synchronized (CACHE) {
-            this.patterns = CACHE.computeIfAbsent(controllerDefinition, definition -> {
-                HashSet<ItemStackKey> drops = new HashSet<>();
-                drops.add(ItemStackKey.of(this.controllerDefinition.asStack()));
-                return controllerDefinition.getMatchingShapes().stream()
-                        .map(it -> initializePattern(it, drops))
-                        .toArray(MBPattern[]::new);
+    private void rebuildOptions() {
+        options.clearAllScrollViewChildren();
+        controls.clear();
+        dimensionInputs.clear();
+        int width = 44;
+        String name = structureName();
+        var structure = pendingStructures.getOrDefault(name, info.getStructures().get(name));
+        var noHatches = button(0, 0, width, text("casings"));
+        noHatches.textStyle(style -> style.textColor(info.isNoHatchMode() ? 0xff167129 : 0xff404040));
+        noHatches.setOnClick(event -> {
+            applyChange(() -> info.setNoHatchMode(!info.isNoHatchMode()));
+            event.stopPropagation();
+        });
+        options.addScrollViewChild(noHatches);
+        controls.add(noHatches);
+        int y = 20;
+        if (definition.isAllowFlip()) {
+            var flip = button(0, y, width, text("flip", text(structure.flipMode() ? "on" : "off")));
+            flip.setOnClick(event -> {
+                changeStructure(value -> value.withFlipMode(!value.flipMode()));
+                event.stopPropagation();
             });
+            options.addScrollViewChild(flip);
+            controls.add(flip);
+            y += 20;
         }
-
-        pageButton = createButton(138, 30);
-        pageButton.setOnClick(event -> {
-            if (patterns.length > 0) {
-                setPage(index + 1 >= patterns.length ? 0 : index + 1);
+        var order = definition.getStructureOrder();
+        if (order.size() > 1) {
+            addStep(y, width, displayName(name), () -> {
+                selectedStructure = (selectedStructure + order.size() - 1) % order.size();
+                blocks.close();
+                rebuildOptions();
+            }, () -> {
+                selectedStructure = (selectedStructure + 1) % order.size();
+                blocks.close();
+                rebuildOptions();
+            }, true, true);
+            y += 30;
+            boolean selected = info.getIncluded().contains(name);
+            boolean required = info.getIncluded().stream()
+                    .anyMatch(included -> info.getStructures().get(included).mode() == StructureOperation.BUILD &&
+                            definition.getRequiredStructures(included).contains(name));
+            if (!required && (!selected || info.getIncluded().size() > 1)) {
+                var included = button(0, y, width, text(selected ? "selected" : "unselected"));
+                included.setOnClick(event -> {
+                    applyChange(() -> info.setIncluded(name, !selected));
+                    event.stopPropagation();
+                });
+                options.addScrollViewChild(included);
+                controls.add(included);
+                y += 20;
             }
+        }
+        var pattern = definition.getPattern(name);
+        var axes = pattern.getSourceDefinition().getAxes();
+        int[] repetitions = structure.repetitions().toIntArray();
+        int[] sizes = pattern.getDimensions(repetitions, structure.choices());
+        for (var repetition : pattern.getRepeatDescriptors()) {
+            if (repetition.minimum() == repetition.maximum()) continue;
+            int index = repetition.index();
+            var axis = PatternAxis.of(switch (repetition.axis()) {
+                case DEPTH -> axes.getDepth();
+                case HEIGHT -> axes.getHeight();
+                case WIDTH -> axes.getWidth();
+            });
+            int[] bounds = repetitions.clone();
+            bounds[index] = repetition.minimum();
+            int minimum = pattern.getDimensions(bounds, structure.choices())[repetition.axis().ordinal()];
+            bounds[index] = repetition.maximum();
+            int maximum = pattern.getDimensions(bounds, structure.choices())[repetition.axis().ordinal()];
+            if (minimum == maximum) continue;
+            var title = text("axis." + axis.name().toLowerCase(Locale.ROOT));
+            options.addScrollViewChild(label(0, y, width, title));
+            var input = new GTTextFieldElement(0, y + 10, width, 12) {
+
+                @Override
+                protected void onRawTextUpdate() {
+                    super.onRawTextUpdate();
+                    dimensionTicks = 5;
+                }
+
+                @Override
+                protected void onMouseWheel(UIEvent event) {
+                    if (isEditable() && !isError()) {
+                        setRawText(Integer.toString(Math.clamp((long) Integer.parseInt(getText()) +
+                                (event.deltaY > 0 ? 1 : -1), minimum, maximum)));
+                        event.stopPropagation();
+                    }
+                }
+            };
+            input.setNumbersOnlyInt(minimum, maximum);
+            input.setText(Integer.toString(sizes[repetition.axis().ordinal()]), false);
+            input.setTextResponder(value -> {
+                var current = pendingStructures.getOrDefault(name, info.getStructures().get(name));
+                int[] resized = pattern.resizeLayout(current.repetitions().toIntArray(), current.choices(), index,
+                        Integer.parseInt(value));
+                pendingStructures.put(name, new BatchPlanner().normalizeChoices(definition,
+                        current.withRepetitions(new IntArrayList(resized))));
+            });
+            input.textFieldStyle(style -> style.fontSize(8).textColor(0xff404040).textShadow(false)
+                    .focusOverlay(IGuiTexture.EMPTY));
+            input.getStyle().backgroundTexture(GuiTextures.BACKGROUND_INVERSE).tooltips(Component.empty());
+            options.addScrollViewChild(input);
+            dimensionInputs.add(input);
+            controls.add(input);
+            y += 30;
+        }
+        for (var choice : pattern.getChoiceDescriptors()) {
+            var values = choice.alternatives();
+            int index = values.indexOf(structure.choices().getOrDefault(choice.path(), values.getFirst()));
+            addStep(y, width, text("variant_index", index + 1, values.size()),
+                    () -> changeStructure(value -> value.withChoice(choice.path(), values.get(index - 1))),
+                    () -> changeStructure(value -> value.withChoice(choice.path(), values.get(index + 1))),
+                    index > 0, index + 1 < values.size());
+            y += 30;
+        }
+        var measurementValues = pattern.getMeasurementValues(structure.choices());
+        for (var measurement : pattern.getMeasurements()) {
+            String key = "@measure:" + measurement.getParameter();
+            int value = measurementValues.getInt(measurement.getParameter());
+            addStep(y, width, Component.literal(measurement.getParameter() + ": " + value),
+                    () -> changeStructure(current -> current.withChoice(key, Integer.toString(value - 1))),
+                    () -> changeStructure(current -> current.withChoice(key, Integer.toString(value + 1))),
+                    value > measurement.getMinimum(), value < measurement.getMaximum());
+            y += 30;
+        }
+        var layout = pattern.expandLayout(repetitions, structure.choices());
+        for (var instance : layout.getModuleChoices()) {
+            var candidates = instance.getDescriptor().getCandidates();
+            int index = candidates.indexOf(instance.getSelection());
+            addStep(y, width, Component.literal(instance.getDescriptor().getId() + ": " + instance.getSelection()),
+                    () -> changeStructure(current -> current.withChoice(instance.getPath(), candidates.get(index - 1))),
+                    () -> changeStructure(current -> current.withChoice(instance.getPath(), candidates.get(index + 1))),
+                    index > 0, index + 1 < candidates.size());
+            y += 30;
+        }
+        options.viewContainer.getLayout().width(width).height(y);
+        var choices = new BatchPlanner().activeTierChoiceOptions(definition, info.getStructures().get(name));
+        blocks.setChoices(choices, structure.tierChoices());
+        boolean available = !choices.isEmpty();
+        edit.setActive(available);
+        if (!available) {
+            editing = false;
+            edit.setText(Component.literal("✎"));
+            blocks.setDisplay(false);
+            blocks.close();
+        }
+        layoutContent(y);
+    }
+
+    private void addStep(int y, int width, Component name, Runnable previous, Runnable next, boolean hasPrevious,
+                         boolean hasNext) {
+        options.addScrollViewChild(label(0, y, width, name));
+        var back = button(0, y + 10, 16, Component.literal("◀"));
+        back.setActive(hasPrevious);
+        back.setOnClick(event -> {
+            previous.run();
             event.stopPropagation();
         });
-        addChild(pageButton);
-
-        layerButton = createButton(138, 50);
-        layerButton.setOnClick(event -> {
-            updateLayer();
+        var forward = button(width - 16, y + 10, 16, Component.literal("▶"));
+        forward.setActive(hasNext);
+        forward.setOnClick(event -> {
+            next.run();
             event.stopPropagation();
         });
-        addChild(layerButton);
-
-        setPage(0);
+        options.addScrollViewChildren(back, forward);
+        if (hasPrevious) controls.add(back);
+        if (hasNext) controls.add(forward);
     }
 
-    public static ModularUI createModularUI(MultiblockMachineDefinition controllerDefinition) {
-        return ModularUI.of(UI.of(getPatternWidget(controllerDefinition)));
-    }
+    private void openFullscreen() {
+        var client = Minecraft.getInstance();
+        var parent = client.screen;
+        var root = new PatternPreviewWidget(info, true);
+        root.pendingStructures.putAll(pendingStructures);
+        root.dimensionTicks = dimensionTicks;
+        pendingStructures.clear();
+        dimensionTicks = 0;
+        root.rebuildOptions();
+        client.setScreen(new ModularUIScreen(ModularUI.of(UI.of(root, root::resize)), definition.getBlock().getName()) {
 
-    private GTLabelElement createTitle() {
-        GTLabelElement title = new GTLabelElement(3, 3, 154, 10);
-        title.setValue(Component.translatable(controllerDefinition.getDescriptionId()));
-        title.textStyle(style -> {
-            style.textColor(-1);
-            style.textShadow(true);
+            @Override
+            public void onClose() {
+                pendingStructures.putAll(root.pendingStructures);
+                dimensionTicks = root.dimensionTicks;
+                root.pendingStructures.clear();
+                root.dimensionTicks = 0;
+                if (dimensionTicks == 0) publishPreview();
+                else rebuildOptions();
+                info.setResuming(true);
+                try {
+                    client.setScreen(parent);
+                } finally {
+                    info.setResuming(false);
+                }
+            }
         });
-        return title;
     }
 
-    private static GTButtonElement createButton(int x, int y) {
-        GTButtonElement button = new GTButtonElement(x, y, 18, 18);
-        button.textStyle(style -> {
-            style.textColor(-1);
-            style.textShadow(false);
-        });
-        button.setButtonTextures(ColorPattern.T_GRAY.rectTexture(),
-                GuiTextures.group(ColorPattern.T_GRAY.rectTexture(), GuiTextures.colorRect(0x4fffffff)),
-                ColorPattern.T_GRAY.rectTexture());
+    private void changeStructure(UnaryOperator<StructureRequest> update) {
+        if (dimensionTicks > 0) {
+            String name = structureName();
+            pendingStructures.put(name,
+                    new BatchPlanner().normalizeChoices(definition,
+                            update.apply(pendingStructures.getOrDefault(name, info.getStructures().get(name)))));
+            dimensionTicks = 5;
+            rebuildOptions();
+            return;
+        }
+        applyChange(() -> info.setStructure(new BatchPlanner().normalizeChoices(definition,
+                update.apply(info.getStructures().get(structureName())))));
+    }
+
+    private void applyChange(Runnable update) {
+        try {
+            update.run();
+            if (dimensionTicks == 0) publishPreview();
+            else {
+                dimensionTicks = 5;
+                rebuildOptions();
+            }
+        } catch (RuntimeException exception) {
+            showFailure(exception);
+        }
+    }
+
+    private void publishPreview() {
+        var resolved = info.resolvePreview();
+        observedGeneration = resolved.generation();
+        preview.setPreview(resolved.value());
+        if (dimensionInputs.stream().anyMatch(GTTextFieldElement::isFocused)) refreshOptions = true;
+        else rebuildOptions();
+        blocks.setInteractive(true);
+    }
+
+    private void showFailure(RuntimeException exception) {
+        observedGeneration = StructurePatternRegistry.generation();
+        GTCEu.LOGGER.error("Failed to resolve multiblock preview for {}", definition.getId(), exception);
+        preview.setPreview(new StructurePreview(definition.getId(), "reload-" + observedGeneration, false,
+                ObjectList.of(), ObjectList.of(), ObjectList.of()));
+        blocks.setInteractive(false);
+        controls.forEach(button -> button.setActive(false));
+    }
+
+    private static GTButtonElement button(int x, int y, int width, Component text) {
+        var button = new GTButtonElement(x, y, width, 16);
+        button.setButtonTexture(GuiTextures.VANILLA_BUTTON).setText(text);
+        button.getLayout().paddingAll(0);
+        button.text.getLayout().widthPercent(100).heightPercent(100).marginAll(0).minWidth(0);
+        button.textStyle(style -> style.adaptiveWidth(false).adaptiveHeight(false).fontSize(8)
+                .textColor(0xff404040).textShadow(false).textWrap(TextWrap.HIDE));
+        button.getStyle().tooltips(text);
         return button;
     }
 
-    private void updateLayer() {
-        if (patterns.length == 0) {
-            return;
-        }
-        MBPattern pattern = patterns[index];
-        if (layer + 1 >= -1 && layer + 1 <= pattern.maxY - pattern.minY) {
-            layer += 1;
-            if (pattern.controllerBase.isFormed()) {
-                onFormedSwitch(false);
-            }
-        } else {
-            layer = -1;
-            if (!pattern.controllerBase.isFormed()) {
-                onFormedSwitch(true);
-            }
-        }
-        setupScene(pattern);
-        updateButtonText();
+    private static GTLabelElement label(int x, int y, int width, Component text) {
+        var label = new GTLabelElement(x, y, width, 10, text);
+        label.textStyle(style -> style.adaptiveWidth(false).adaptiveHeight(false).fontSize(9)
+                .textColor(0xff404040).textShadow(false).textWrap(TextWrap.HIDE));
+        label.getStyle().tooltips(text);
+        return label;
     }
 
-    private void setupScene(MBPattern pattern) {
-        Stream<BlockPos> stream = pattern.blockMap.keySet().stream()
-                .filter(pos -> layer == -1 || layer + pattern.minY == pos.getY());
-        if (pattern.controllerBase.isFormed()) {
-            LongSet modelDisabled = pattern.controllerBase
-                    .getMultiblockState(MultiblockControllerMachine.DEFAULT_STRUCTURE)
-                    .getMatchContext()
-                    .getOrDefault("renderMask", LongSets.EMPTY_SET);
-            if (!modelDisabled.isEmpty()) {
-                stream = stream.filter(pos -> !modelDisabled.contains(pos.asLong()));
-            }
-        }
-        scene.setRenderedCore(stream.toList(), null);
+    private static Component text(String key, Object... arguments) {
+        return Component.translatable("gtpm.multiblock.configuration." + key, arguments);
     }
 
-    public static PatternPreviewWidget getPatternWidget(MultiblockMachineDefinition controllerDefinition) {
-        if (LEVEL == null) {
-            if (Minecraft.getInstance().level == null) {
-                GTCEu.LOGGER.error("Try to init pattern previews before level load");
-                throw new IllegalStateException();
-            }
-            LEVEL = new MultiblockPreviewLevel();
-        }
-        return new PatternPreviewWidget(controllerDefinition);
-    }
-
-    public static void clearCache() {
-        synchronized (CACHE) {
-            CACHE.clear();
-        }
-    }
-
-    public void setPage(int index) {
-        if (index >= patterns.length || index < 0) return;
-        this.index = index;
-        this.layer = -1;
-        MBPattern pattern = patterns[index];
-        setupScene(pattern);
-        clearMaterialSlots();
-        clearCandidateSlots();
-        materialSlots = new GTItemSlotElement[Math.min(pattern.parts.size(), 18)];
-        var itemHandler = CycleItemEntryHandler.createFromStacks(pattern.parts);
-        int xOffset = 0;
-        for (int i = 0; i < materialSlots.length; i++) {
-            int padding = 1;
-            if (itemHandler.getStackInSlot(i).getCount() / 100_000 >= 1) {
-                padding = 10;
-            } else if (itemHandler.getStackInSlot(i).getCount() / 10_000 >= 1) {
-                padding = 7;
-            } else if (itemHandler.getStackInSlot(i).getCount() / 1_000 >= 1) {
-                padding = 4;
-            }
-
-            materialSlots[i] = createPreviewSlot(itemHandler, i, 4 + xOffset + padding, 0)
-                    .setItemCountDecorationXOffset(PatternPreviewWidget::getCountDecorationXOffset);
-            xOffset += 18 + (2 * padding);
-            scrollableView.addScrollViewChild(materialSlots[i]);
-        }
-        int finalWidth = Math.max(154, xOffset + 18);
-        scrollableView.viewContainer.layout(layout -> {
-            layout.width(finalWidth);
-            layout.height(18);
-        });
-        updateButtonText();
-    }
-
-    private void onFormedSwitch(boolean isFormed) {
-        MBPattern pattern = patterns[index];
-        MultiblockControllerMachine controllerBase = pattern.controllerBase;
-        if (isFormed) {
-            this.layer = -1;
-            loadControllerFormed(pattern.blockMap.keySet(), controllerBase);
-        } else {
-            scene.setRenderedCore(pattern.blockMap.keySet(), null);
-            controllerBase.invalidateStructure(MultiblockControllerMachine.DEFAULT_STRUCTURE);
-        }
-    }
-
-    private void onPosSelected(BlockPos pos, Direction facing) {
-        if (index >= patterns.length || index < 0) return;
-        TraceabilityPredicate predicate = patterns[index].predicateMap.get(pos);
-        if (predicate != null) {
-            predicates.clear();
-            predicates.addAll(predicate.common);
-            predicates.addAll(predicate.limited);
-            predicates.removeIf(p -> p == null || p.candidates == null); // why it happens?
-            clearCandidateSlots();
-            List<List<ItemStack>> candidateStacks = new ArrayList<>();
-            List<List<Component>> predicateTips = new ArrayList<>();
-            for (SimplePredicate simplePredicate : predicates) {
-                List<ItemStack> itemStacks = simplePredicate.getCandidates();
-                if (!itemStacks.isEmpty()) {
-                    candidateStacks.add(itemStacks);
-                    predicateTips.add(simplePredicate.getToolTips(predicate));
-                }
-            }
-            for (StructurePredicate structurePredicate : predicate.structurePredicates) {
-                for (StructurePreviewChoice choice : structurePredicate.previewChoices(controllerDefinition)) {
-                    List<ItemStack> itemStacks = choice.candidates().stream()
-                            .map(info -> SimplePredicate.toItem(info.getBlockState().getBlock()))
-                            .filter(item -> item != Items.AIR)
-                            .map(Item::getDefaultInstance)
-                            .toList();
-                    if (!itemStacks.isEmpty()) {
-                        candidateStacks.add(itemStacks);
-                        predicateTips.add(choice.getTooltips(predicate));
-                    }
-                }
-            }
-            candidates = new GTItemSlotElement[candidateStacks.size()];
-            CycleItemEntryHandler itemHandler = CycleItemEntryHandler.createFromStacks(candidateStacks);
-            int maxCol = (160 - (((materialSlots.length - 1) / 9 + 1) * 18) - 35) % 18;
-            if (maxCol <= 0) {
-                maxCol = 1;
-            }
-            for (int i = 0; i < candidateStacks.size(); i++) {
-                int finalI = i;
-                candidates[i] = createPreviewSlot(itemHandler, i, 3 + (i / maxCol) * 18, 3 + (i % maxCol) * 18)
-                        .setBackgroundTexture(GuiTextures.colorRect(0x4fffffff))
-                        .setOnAddedTooltips((slot, list) -> list.addAll(predicateTips.get(finalI)));
-                addChild(candidates[i]);
-            }
-        }
-    }
-
-    private GTItemSlotElement createPreviewSlot(CycleItemEntryHandler itemHandler, int slot, int x, int y) {
-        GTItemSlotElement element = new GTItemSlotElement(itemHandler, slot);
-        element.layout(layout -> {
-            layout.positionType(TaffyPosition.ABSOLUTE);
-            layout.left(x);
-            layout.top(y);
-            layout.width(18);
-            layout.height(18);
-        });
-        element.setCanTakeItems(false);
-        element.setCanPutItems(false);
-        element.setIngredientIO(GTXEIHelper.input());
-        element.setBackgroundTexture(ColorPattern.T_GRAY.rectTexture());
-        element.xeiRecipeIngredient();
-        element.xeiRecipeSlot();
-        return element;
-    }
-
-    private void clearMaterialSlots() {
-        scrollableView.clearAllScrollViewChildren();
-        materialSlots = new GTItemSlotElement[0];
-    }
-
-    private void clearCandidateSlots() {
-        for (GTItemSlotElement candidate : candidates) {
-            removeChild(candidate);
-        }
-        candidates = new GTItemSlotElement[0];
-    }
-
-    private void updateButtonText() {
-        pageButton.setText("P:" + index);
-        layerButton.setText(layer >= 0 ? "L:" + layer : "ALL");
-    }
-
-    private static int getCountDecorationXOffset(ItemStack itemStack) {
-        int count = itemStack.getCount();
-        if (count >= 100_000) {
-            return 9;
-        }
-        if (count >= 10_000) {
-            return 6;
-        }
-        if (count >= 1_000) {
-            return 3;
-        }
-        return 0;
-    }
-
-    /**
-     * Finds the next section of the dummy preview level to place a multiblock at in a spiral pattern.
-     * <p>
-     * This results in positions that are considerably closer to the world origin than
-     * the one it replaces, which did {@code prevPos.offset(500, 0, 500)},
-     * which results in absurdly high offsets for the later multiblocks.
-     * </p>
-     * The regions being closer to {@code (0,0)} means that Z-fighting should be less likely,
-     * since floating point inaccuracies won't be as large of a factor.
-     *
-     * @return the area to place the current multiblock at
-     */
-    public static BlockPos locateNextRegion() {
-        int currentIndex = LAST_OFFSET_INDEX++;
-
-        // Origin coordinates scaled back to the offset value, from global
-        int x = 0, z = 0;
-        if (currentIndex > 0) {
-            int v = (int) (Mth.sqrt(currentIndex + 0.25f) - 0.5f);
-            int nextV = v + 1;
-            int spiralBaseIndex = v * nextV;
-            // this is 1 or -1 depending on if v is odd or even
-            int flipFlop = (v & 1) * 2 - 1;
-
-            int offset = flipFlop * nextV / 2;
-            x += offset;
-            z += offset;
-
-            int cornerIndex = spiralBaseIndex + nextV;
-            if (currentIndex < cornerIndex) {
-                x -= flipFlop * (currentIndex - spiralBaseIndex + 1);
-            } else {
-                x -= flipFlop * nextV;
-                z -= flipFlop * (currentIndex - cornerIndex + 1);
-            }
-        }
-        return new BlockPos(x * REGION_SIZE, 50, z * REGION_SIZE);
+    private static Component displayName(String name) {
+        return name.equals(MultiblockControllerMachine.DEFAULT_STRUCTURE) ? text("main") : Component.translatable(name);
     }
 
     @Override
     public void screenTick() {
         super.screenTick();
-        // I can only think of this way
-        if (!isLoaded && GTCEu.Mods.isEMILoaded() && Minecraft.getInstance().screen instanceof RecipeScreen) {
-            setPage(0);
-            isLoaded = true;
+        if (dimensionTicks > 0 && dimensionInputs.stream().noneMatch(GTTextFieldElement::isError) &&
+                --dimensionTicks == 0) {
+            applyChange(() -> {
+                pendingStructures.values().forEach(info::setStructure);
+                pendingStructures.clear();
+            });
+        }
+        if (refreshOptions && dimensionInputs.stream().noneMatch(GTTextFieldElement::isFocused)) {
+            refreshOptions = false;
+            rebuildOptions();
+        }
+        if (StructurePatternRegistry.generation() != observedGeneration) {
+            pendingStructures.clear();
+            dimensionTicks = 0;
+            try {
+                publishPreview();
+            } catch (RuntimeException exception) {
+                showFailure(exception);
+            }
         }
     }
 
     @Override
-    public void drawBackgroundAdditional(@NotNull GUIContext guiContext) {
+    public void drawBackgroundAdditional(GUIContext context) {
         RenderSystem.enableBlend();
-        super.drawBackgroundAdditional(guiContext);
-    }
-
-    private MBPattern initializePattern(MultiblockShapeInfo shapeInfo, HashSet<ItemStackKey> blockDrops) {
-        Map<BlockPos, MultiblockBlockInfo> blockMap = new HashMap<>();
-        MultiblockControllerMachine controllerBase = null;
-        Set<BlockEntity> blockEntitiesToAdd = new HashSet<>();
-        BlockPos multiPos = locateNextRegion();
-
-        MultiblockBlockInfo[][][] blocks = shapeInfo.getBlocks();
-        for (int x = 0; x < blocks.length; x++) {
-            MultiblockBlockInfo[][] aisle = blocks[x];
-            for (int y = 0; y < aisle.length; y++) {
-                MultiblockBlockInfo[] column = aisle[y];
-                for (int z = 0; z < column.length; z++) {
-                    MultiblockBlockInfo blockInfo = column[z];
-                    if (blockInfo == null) continue;
-                    BlockPos pos = multiPos.offset(x, y, z);
-                    BlockEntity blockEntity = blockInfo.getBlockEntity(LEVEL.getLevel().registryAccess(), LEVEL, pos);
-                    if (blockEntity != null) {
-                        blockEntitiesToAdd.add(blockEntity);
-                        if (blockEntity instanceof MultiblockControllerMachine controller) {
-                            if (controllerBase != null && controllerBase != controller) {
-                                throw new IllegalStateException(
-                                        "Multiblock preview contains multiple controllers for " +
-                                                controllerDefinition.getId());
-                            }
-                            controllerBase = controller;
-                        }
-                    }
-                    blockMap.put(pos, blockInfo);
-                }
-            }
-        }
-
-        blockMap.forEach(LEVEL::addBlock);
-        for (BlockEntity blockEntity : blockEntitiesToAdd) {
-            LEVEL.setInnerBlockEntity(blockEntity);
-        }
-
-        if (controllerBase == null) {
-            throw new IllegalStateException("Multiblock preview contains no controller for " +
-                    controllerDefinition.getId());
-        }
-
-        Map<ItemStackKey, PartInfo> parts = gatherBlockDrops(blockMap);
-        blockDrops.addAll(parts.keySet());
-
-        Map<BlockPos, TraceabilityPredicate> predicateMap = new HashMap<>();
-        loadControllerFormed(blockMap.keySet(), controllerBase);
-        Map<BlockPos, TraceabilityPredicate> matchedPredicates = controllerBase
-                .getMultiblockState(MultiblockControllerMachine.DEFAULT_STRUCTURE)
-                .getMatchContext().get("predicates");
-        if (matchedPredicates != null) {
-            predicateMap = matchedPredicates;
-        }
-        return new MBPattern(blockMap, parts.values().stream().sorted((one, two) -> {
-            if (one.isController) return -1;
-            if (two.isController) return +1;
-            if (one.isTile && !two.isTile) return -1;
-            if (two.isTile && !one.isTile) return +1;
-            if (one.blockId != two.blockId) return two.blockId - one.blockId;
-            return two.amount - one.amount;
-        }).map(PartInfo::getItemStack).filter(list -> !list.isEmpty()).collect(Collectors.toList()), predicateMap,
-                controllerBase);
-    }
-
-    private void loadControllerFormed(Collection<BlockPos> positions, MultiblockControllerMachine controllerBase) {
-        BlockPattern pattern = controllerDefinition.getPattern(MultiblockControllerMachine.DEFAULT_STRUCTURE);
-        if (pattern == null) {
-            throw new IllegalStateException("Missing preview pattern for " + controllerDefinition.getId());
-        }
-        if (pattern.checkPatternAt(controllerBase.getMultiblockState(MultiblockControllerMachine.DEFAULT_STRUCTURE),
-                true)) {
-            controllerBase.formStructure(MultiblockControllerMachine.DEFAULT_STRUCTURE);
-        }
-        if (controllerBase.isFormed()) {
-            LongSet modelDisabled = controllerBase.getMultiblockState(MultiblockControllerMachine.DEFAULT_STRUCTURE)
-                    .getMatchContext()
-                    .getOrDefault("renderMask", LongSets.EMPTY_SET);
-            if (!modelDisabled.isEmpty()) {
-                positions = new HashSet<>(positions);
-                positions.removeIf(pos -> modelDisabled.contains(pos.asLong()));
-            }
-            scene.setRenderedCore(positions, null);
-        } else {
-            GTCEu.LOGGER.warn("Pattern formed checking failed: {}", controllerBase.self().getDefinition());
-        }
-    }
-
-    private Map<ItemStackKey, PartInfo> gatherBlockDrops(Map<BlockPos, MultiblockBlockInfo> blocks) {
-        Map<ItemStackKey, PartInfo> partsMap = new Object2ObjectOpenHashMap<>();
-        for (Map.Entry<BlockPos, MultiblockBlockInfo> entry : blocks.entrySet()) {
-            BlockPos pos = entry.getKey();
-            BlockState blockState = PatternPreviewWidget.LEVEL.getBlockState(pos);
-            ItemStack itemStack = blockState.getBlock().getCloneItemStack(PatternPreviewWidget.LEVEL, pos, blockState);
-
-            if (itemStack.isEmpty() && !blockState.getFluidState().isEmpty()) {
-                Fluid fluid = blockState.getFluidState().getType();
-                itemStack = fluid.getBucket().getDefaultInstance();
-            }
-
-            ItemStackKey itemStackKey = ItemStackKey.of(itemStack);
-            partsMap.computeIfAbsent(itemStackKey, key -> new PartInfo(key, entry.getValue())).amount++;
-        }
-        return partsMap;
-    }
-
-    private static class PartInfo {
-
-        final ItemStackKey itemStackKey;
-        boolean isController = false;
-        boolean isTile;
-        final int blockId;
-        int amount = 0;
-
-        PartInfo(final ItemStackKey itemStackKey, final MultiblockBlockInfo blockInfo) {
-            this.itemStackKey = itemStackKey;
-            this.blockId = Block.getId(blockInfo.getBlockState());
-            this.isTile = blockInfo.hasBlockEntity();
-
-            if (blockInfo.getBlockState().getBlock() instanceof MetaMachineBlock block) {
-                if (block.definition instanceof MultiblockMachineDefinition)
-                    this.isController = true;
-            }
-        }
-
-        public List<ItemStack> getItemStack() {
-            return Arrays.stream(itemStackKey.getItemStack())
-                    .map(itemStack -> {
-                        var item = itemStack.copy();
-                        item.setCount(amount);
-                        return item;
-                    }).filter((ItemStack item) -> !item.isEmpty()).toList();
-        }
-    }
-
-    public static class MBPattern {
-
-        @NotNull
-        final List<List<ItemStack>> parts;
-        @NotNull
-        final Map<BlockPos, TraceabilityPredicate> predicateMap;
-        @NotNull
-        final Map<BlockPos, MultiblockBlockInfo> blockMap;
-        @NotNull
-        final MultiblockControllerMachine controllerBase;
-        final int maxY, minY;
-
-        public MBPattern(@NotNull Map<BlockPos, MultiblockBlockInfo> blockMap, @NotNull List<List<ItemStack>> parts,
-                         @NotNull Map<BlockPos, TraceabilityPredicate> predicateMap,
-                         @NotNull MultiblockControllerMachine controllerBase) {
-            this.parts = parts;
-            this.blockMap = blockMap;
-            this.predicateMap = predicateMap;
-            this.controllerBase = controllerBase;
-            int min = Integer.MAX_VALUE, max = Integer.MIN_VALUE;
-            for (BlockPos pos : blockMap.keySet()) {
-                min = Math.min(min, pos.getY());
-                max = Math.max(max, pos.getY());
-            }
-            minY = min;
-            maxY = max;
-        }
+        super.drawBackgroundAdditional(context);
     }
 }

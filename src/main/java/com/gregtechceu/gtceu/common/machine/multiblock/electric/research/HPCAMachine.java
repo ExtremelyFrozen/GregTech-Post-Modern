@@ -14,27 +14,15 @@ import com.gregtechceu.gtceu.api.gui.element.GTImageElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTProgressBarElement;
 import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
-import com.gregtechceu.gtceu.api.gui.factory.LDLib2MachineUIProvider;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolderContext;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2ConfiguratorPanelElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyMachineUIElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyTabsElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyTooltipsPanelElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
+import com.gregtechceu.gtceu.api.gui.fancy.TooltipsPanel;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.gui.texture.ProgressTexture;
 import com.gregtechceu.gtceu.api.gui.util.TimedProgressSupplier;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.api.machine.TickableSubscription;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2BatchModeFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2DirectionalFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2VoidingModeFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2WorkingEnabledFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.feature.LDLib2FancyActionMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMaintenanceMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMultiPart;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.LDLib2FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockDisplayText;
 import com.gregtechceu.gtceu.api.machine.multiblock.WorkableElectricMultiblockMachine;
 import com.gregtechceu.gtceu.api.machine.trait.WorkLogic;
@@ -54,7 +42,6 @@ import com.gregtechceu.gtceu.utils.FormattingUtil;
 import com.gregtechceu.gtceu.utils.GTTransferUtils;
 import com.gregtechceu.gtceu.utils.GTUtil;
 
-import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.FillDirection;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
@@ -72,7 +59,6 @@ import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
@@ -101,8 +87,10 @@ import static com.gregtechceu.gtceu.data.recipe.CustomTags.HPCA_COOLANTS;
 @MethodsReturnNonnullByDefault
 @ParametersAreNonnullByDefault
 public class HPCAMachine extends WorkableElectricMultiblockMachine
-                         implements IOpticalComputationProvider, IControllable, ComputationProducer,
-                         LDLib2MachineUIProvider, LDLib2FancyActionMachine {
+                         implements IOpticalComputationProvider, ComputationProducer {
+
+    private static final int PAGE_WIDTH = 190;
+    private static final int PAGE_HEIGHT = 125;
 
     private static final double IDLE_TEMPERATURE = 200;
     private static final double DAMAGE_TEMPERATURE = 1000;
@@ -116,10 +104,10 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
     private final HPCAGridHandler hpcaHandler;
     @Getter(AccessLevel.PACKAGE)
     @SyncToClient
-    private List<Component> hpcaDisplaySnapshot = List.of();
+    private List<Component> hpcaDisplayText = List.of();
     @Getter(AccessLevel.PACKAGE)
     @SyncToClient
-    private List<Component> hpcaInfoSnapshot = List.of();
+    private List<Component> hpcaInfoText = List.of();
 
     private boolean hasNotEnoughEnergy;
 
@@ -145,7 +133,7 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
         List<IEnergyContainer> energyContainers = new ArrayList<>();
         List<IFluidHandler> coolantContainers = new ArrayList<>();
         List<HPCAComponentTrait> componentTraits = new ArrayList<>();
-        Long2ObjectMap<IO> ioMap = getMultiblockState(DEFAULT_STRUCTURE).getMatchContext().getOrDefault("ioMap",
+        Long2ObjectMap<IO> ioMap = getMultiblockState(DEFAULT_STRUCTURE).getFacts().getOrDefault("ioMap",
                 Long2ObjectMaps.emptyMap());
         for (IMultiPart part : getParts()) {
             IO io = ioMap.getOrDefault(part.self().getBlockPos().asLong(), IO.BOTH);
@@ -174,7 +162,7 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
         this.coolantHandler = new FluidHandlerList(coolantContainers);
         this.hpcaHandler.onStructureForm(componentTraits);
         if (!isRemote()) {
-            refreshHPCASnapshots();
+            refreshHPCADisplay();
         }
 
         scheduleForNextServerTick(this::updateTickSubscription);
@@ -184,7 +172,7 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
     public void onLoad() {
         super.onLoad();
         if (!isRemote()) {
-            refreshHPCASnapshots();
+            refreshHPCADisplay();
         }
         scheduleForNextServerTick(this::updateTickSubscription);
     }
@@ -192,7 +180,7 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
     @Override
     public void onUnload() {
         super.onUnload();
-        clearHPCASnapshots();
+        clearHPCADisplay();
         if (tickSubs != null) {
             tickSubs.unsubscribe();
             tickSubs = null;
@@ -216,7 +204,7 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
         this.energyContainer = EnergyContainerList.EMPTY;
         this.hpcaHandler.onStructureInvalidate();
         if (!isRemote()) {
-            refreshHPCASnapshots();
+            refreshHPCADisplay();
         }
     }
 
@@ -277,25 +265,25 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
             // passively cool (slowly) if not active
             temperature = Math.max(IDLE_TEMPERATURE, temperature - 0.25);
         }
-        refreshHPCASnapshots();
+        refreshHPCADisplay();
         this.updateActive(this.getEnergyContainer().getEnergyStored() > 0);
     }
 
     /** Refreshes the server-owned text snapshots consumed by the LDLib2 controller page. */
-    void refreshHPCASnapshots() {
-        List<Component> nextDisplaySnapshot = createHPCADisplaySnapshot();
-        if (!hpcaDisplaySnapshot.equals(nextDisplaySnapshot)) {
-            hpcaDisplaySnapshot = nextDisplaySnapshot;
+    void refreshHPCADisplay() {
+        List<Component> nextDisplayText = createHPCADisplayText();
+        if (!hpcaDisplayText.equals(nextDisplayText)) {
+            hpcaDisplayText = nextDisplayText;
         }
-        List<Component> nextSnapshot = hpcaHandler.createInfoSnapshot();
-        if (!hpcaInfoSnapshot.equals(nextSnapshot)) {
-            hpcaInfoSnapshot = nextSnapshot;
+        List<Component> nextText = hpcaHandler.createInfoText();
+        if (!hpcaInfoText.equals(nextText)) {
+            hpcaInfoText = nextText;
         }
     }
 
-    private void clearHPCASnapshots() {
-        hpcaDisplaySnapshot = List.of();
-        hpcaInfoSnapshot = List.of();
+    private void clearHPCADisplay() {
+        hpcaDisplayText = List.of();
+        hpcaInfoText = List.of();
     }
 
     private void updateActive(boolean active) {
@@ -334,25 +322,6 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
         }
     }
 
-    @Override
-    public boolean canCreateLDLib2UI(Player player, MachineUIHolder holder) {
-        return holder.getMachine() == this;
-    }
-
-    @Override
-    public UI createLDLib2UI(Player player, MachineUIHolder holder) {
-        requireMatchingHolder(holder);
-        HPCAControllerFancyPage page = new HPCAControllerFancyPage(player, holder);
-        return UI.of(new LDLib2FancyMachineUIElement(page, player.getInventory(), holder,
-                page.getLDLib2PageWidth(), page.getLDLib2PageHeight()));
-    }
-
-    private void requireMatchingHolder(MachineUIHolder holder) {
-        if (holder.getMachine() != this) {
-            throw new IllegalArgumentException("HPCA UI holder must resolve the opened controller.");
-        }
-    }
-
     private void gatherClientComponentGrid() {
         if (!isRemote()) {
             return;
@@ -362,127 +331,6 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
                     isFlipped);
         } else {
             hpcaHandler.clearClientComponents();
-        }
-    }
-
-    private final class HPCAControllerFancyPage implements LDLib2FancyUIProvider {
-
-        private static final int PAGE_WIDTH = 190;
-        private static final int PAGE_HEIGHT = 125;
-
-        private final MachineUIHolder holder;
-        private final LDLib2DirectionalFancyConfigurator directionalPage;
-        private final List<LDLib2FancyUIProvider> partPages;
-
-        private HPCAControllerFancyPage(Player player, MachineUIHolder holder) {
-            requireMatchingHolder(holder);
-            this.holder = holder;
-            this.directionalPage = new LDLib2DirectionalFancyConfigurator(HPCAMachine.this, player, holder);
-
-            List<LDLib2FancyUIProvider> pages = new ArrayList<>();
-            for (IMultiPart part : getParts()) {
-                if (!(part instanceof LDLib2FancyPartUIProvider pageProvider)) {
-                    throw new IllegalStateException("HPCA part has no LDLib2 Fancy page: " +
-                            part.self().getDefinition().getId());
-                }
-                MachineUIHolder partHolder = new MachineUIHolderContext(player, part.self());
-                pages.add(pageProvider.createLDLib2FancyPage(player, partHolder));
-            }
-            this.partPages = List.copyOf(pages);
-        }
-
-        @Override
-        public UIElement createLDLib2MainPage(LDLib2FancyMachineUIElement shell) {
-            if (holder.getMachine() != HPCAMachine.this) {
-                throw new IllegalStateException("HPCA page holder no longer resolves its controller.");
-            }
-            gatherClientComponentGrid();
-
-            UIElement root = UITemplate.setLDLib2Bounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
-            root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
-
-            GTScrollerViewElement screen = new GTScrollerViewElement(4, 4, 182, 117);
-            screen.style(style -> style.backgroundTexture(getScreenTexture()));
-            screen.viewPort(viewPort -> viewPort
-                    .layout(layout -> layout.paddingAll(0))
-                    .style(style -> style.backgroundTexture(getScreenTexture())));
-            screen.scrollerStyle(style -> style
-                    .mode(ScrollerMode.VERTICAL)
-                    .verticalScrollDisplay(ScrollDisplay.AUTO)
-                    .horizontalScrollDisplay(ScrollDisplay.NEVER));
-
-            GTLabelElement title = new GTLabelElement(4, 5, 174, 10,
-                    getBlockState().getBlock().getDescriptionId(), true);
-            title.textStyle(style -> style
-                    .textColor(0x404040)
-                    .textShadow(false)
-                    .textAlignHorizontal(Horizontal.LEFT)
-                    .textAlignVertical(Vertical.CENTER));
-            screen.addScrollViewChild(title);
-            screen.addScrollViewChild(new GTComponentPanelElement(4, 17, HPCAMachine.this::addDisplayText)
-                    .setMaxWidthLimit(150)
-                    .clickHandler(HPCAMachine.this::handleDisplayClick));
-            root.addChild(screen);
-
-            ProgressTexture progressTexture = GuiTextures.progressBar(GuiTextures.HPCA_COMPONENT_OUTLINE);
-            root.addChild(new HPCAStatusGridElement(
-                    () -> hpcaHandler.cachedCWUt > 0 ? progressSupplier.getAsDouble() : 0,
-                    () -> hpcaInfoSnapshot,
-                    hpcaHandler::getComponentTexture,
-                    progressTexture));
-            return root;
-        }
-
-        @Override
-        public IGuiTexture getTabIcon() {
-            return GuiTextures.itemStack(getDefinition().getItem());
-        }
-
-        @Override
-        public Component getTitle() {
-            return Component.translatable(getDefinition().getDescriptionId());
-        }
-
-        @Override
-        public int getLDLib2PageWidth() {
-            return PAGE_WIDTH;
-        }
-
-        @Override
-        public int getLDLib2PageHeight() {
-            return PAGE_HEIGHT;
-        }
-
-        @Override
-        public void attachSideTabs(LDLib2FancyTabsElement tabs) {
-            tabs.attachSubTab(directionalPage);
-        }
-
-        @Override
-        public void attachConfigurators(LDLib2ConfiguratorPanelElement configuratorPanel) {
-            LDLib2VoidingModeFancyConfigurator.attachConfigurators(configuratorPanel, HPCAMachine.this);
-            LDLib2BatchModeFancyConfigurator.attachConfigurators(configuratorPanel, HPCAMachine.this);
-            configuratorPanel.attachConfigurators(new LDLib2WorkingEnabledFancyConfigurator(
-                    HPCAMachine.this, holder));
-        }
-
-        @Override
-        public void attachTooltips(LDLib2FancyTooltipsPanelElement tooltipsPanel) {
-            for (IMultiPart part : getParts()) {
-                if (part instanceof IMaintenanceMachine maintenanceMachine) {
-                    maintenanceMachine.attachLDLib2MaintenanceTooltips(tooltipsPanel);
-                }
-            }
-        }
-
-        @Override
-        public List<LDLib2FancyUIProvider> getSubTabs() {
-            return partPages;
-        }
-
-        @Override
-        public List<Component> getTabTooltips() {
-            return List.of(Component.translatable(getDefinition().getDescriptionId()));
         }
     }
 
@@ -502,14 +350,14 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
                                       ProgressTexture progressTexture) {
             this.tooltipSupplier = tooltipSupplier;
             this.componentTextureSupplier = componentTextureSupplier;
-            UITemplate.setLDLib2Bounds(this, 74, 57, 47, 47);
+            UITemplate.setBounds(this, 74, 57, 47, 47);
             setId("hpca_status_grid");
             addEventListener(UIEvents.HOVER_TOOLTIPS, this::addInfoTooltip);
 
             GTProgressBarElement progress = new GTProgressBarElement(progressSupplier);
             progress.setProgressTexture(progressTexture.getEmptyBarArea(), progressTexture.getFilledBarArea());
             progress.setFillDirection(FillDirection.LEFT_TO_RIGHT);
-            UITemplate.setLDLib2Bounds(progress, 0, 0, 47, 47);
+            UITemplate.setBounds(progress, 0, 0, 47, 47);
             addChild(progress);
 
             for (int row = 0; row < GRID_SIZE; row++) {
@@ -545,12 +393,12 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
 
     @Override
     public void addDisplayText(List<Component> textList) {
-        textList.addAll(hpcaDisplaySnapshot);
+        textList.addAll(hpcaDisplayText);
     }
 
-    private List<Component> createHPCADisplaySnapshot() {
-        List<Component> snapshot = new ArrayList<>();
-        MultiblockDisplayText.builder(snapshot, isFormed())
+    private List<Component> createHPCADisplayText() {
+        List<Component> text = new ArrayList<>();
+        MultiblockDisplayText.builder(text, isFormed())
                 .setWorkingStatus(true, hpcaHandler.cachedCWUt > 0) // transform into two-state system for display
                 .setWorkingStatusKeys(
                         "gtpm.multiblock.idling",
@@ -576,7 +424,7 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
                     }
                 })
                 .addWorkingStatusLine();
-        return List.copyOf(snapshot);
+        return List.copyOf(text);
     }
 
     private ChatFormatting getDisplayTemperatureColor() {
@@ -965,10 +813,10 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
         }
 
         /** Captures the authoritative structural statistics sent to the LDLib2 status-grid tooltip. */
-        List<Component> createInfoSnapshot() {
-            List<Component> snapshot = new ArrayList<>();
-            addInfo(snapshot);
-            return List.copyOf(snapshot);
+        List<Component> createInfoText() {
+            List<Component> text = new ArrayList<>();
+            addInfo(text);
+            return List.copyOf(text);
         }
 
         public void addWarnings(List<Component> textList) {
@@ -1034,6 +882,54 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
 
         public void clearClientComponents() {
             components.clear();
+        }
+    }
+
+    @Override
+    public UIElement createUIWidget(FancyMachineUIWidget shell) {
+        gatherClientComponentGrid();
+
+        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
+        root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
+
+        GTScrollerViewElement screen = new GTScrollerViewElement(4, 4, 182, 117);
+        screen.style(style -> style.backgroundTexture(getScreenTexture()));
+        screen.viewPort(viewPort -> viewPort
+                .layout(layout -> layout.paddingAll(0))
+                .style(style -> style.backgroundTexture(getScreenTexture())));
+        screen.scrollerStyle(style -> style
+                .mode(ScrollerMode.VERTICAL)
+                .verticalScrollDisplay(ScrollDisplay.AUTO)
+                .horizontalScrollDisplay(ScrollDisplay.NEVER));
+
+        GTLabelElement title = new GTLabelElement(4, 5, 174, 10,
+                getBlockState().getBlock().getDescriptionId(), true);
+        title.textStyle(style -> style
+                .textColor(0x404040)
+                .textShadow(false)
+                .textAlignHorizontal(Horizontal.LEFT)
+                .textAlignVertical(Vertical.CENTER));
+        screen.addScrollViewChild(title);
+        screen.addScrollViewChild(new GTComponentPanelElement(4, 17, HPCAMachine.this::addDisplayText)
+                .setMaxWidthLimit(150)
+                .clickHandler(HPCAMachine.this::handleDisplayClick));
+        root.addChild(screen);
+
+        ProgressTexture progressTexture = GuiTextures.progressBar(GuiTextures.HPCA_COMPONENT_OUTLINE);
+        root.addChild(new HPCAStatusGridElement(
+                () -> hpcaHandler.cachedCWUt > 0 ? progressSupplier.getAsDouble() : 0,
+                () -> hpcaInfoText,
+                hpcaHandler::getComponentTexture,
+                progressTexture));
+        return root;
+    }
+
+    @Override
+    public void attachTooltips(TooltipsPanel tooltipsPanel) {
+        for (IMultiPart part : getParts()) {
+            if (part instanceof IMaintenanceMachine maintenanceMachine) {
+                maintenanceMachine.attachMaintenanceTooltips(tooltipsPanel);
+            }
         }
     }
 }

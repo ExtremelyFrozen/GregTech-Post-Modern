@@ -1,6 +1,6 @@
 package com.gregtechceu.gtceu.common.data.datacomponents;
 
-import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponentMap;
@@ -33,8 +33,14 @@ public final class PipeNetData {
                 .apply(instance, Nodes::new));
         public static final StreamCodec<RegistryFriendlyByteBuf, Nodes> STREAM_CODEC = StreamCodec.composite(
                 NodeEntry.STREAM_CODEC.apply(ByteBufCodecs.list()), Nodes::nodes,
-                SyncFieldData.DATA_COMPONENT_MAP_STREAM_CODEC.apply(ByteBufCodecs.list()), Nodes::properties,
+                ByteBufCodecs.fromCodecWithRegistries(DataComponentMap.CODEC).apply(ByteBufCodecs.list()),
+                Nodes::properties,
                 Nodes::new);
+
+        static {
+            FieldCodecs.register(Nodes.class, CODEC);
+            FieldCodecs.registerStream(Nodes.class, STREAM_CODEC);
+        }
 
         public Nodes {
             nodes = List.copyOf(nodes);
@@ -72,6 +78,11 @@ public final class PipeNetData {
                 buffer.writeBoolean(value.active);
             }
         };
+
+        static {
+            FieldCodecs.register(NodeEntry.class, CODEC);
+            FieldCodecs.registerStream(NodeEntry.class, STREAM_CODEC);
+        }
     }
 
     public record Wire(long voltage, int amperage, int lossPerBlock) {
@@ -86,6 +97,11 @@ public final class PipeNetData {
                 ByteBufCodecs.VAR_INT, Wire::amperage,
                 ByteBufCodecs.VAR_INT, Wire::lossPerBlock,
                 Wire::new);
+
+        static {
+            FieldCodecs.register(Wire.class, CODEC);
+            FieldCodecs.registerStream(Wire.class, STREAM_CODEC);
+        }
     }
 
     public record FluidPipe(int maxTemperature, int throughput, boolean gasProof, boolean acidProof, boolean cryoProof,
@@ -126,6 +142,11 @@ public final class PipeNetData {
                 buffer.writeVarInt(value.channels);
             }
         };
+
+        static {
+            FieldCodecs.register(FluidPipe.class, CODEC);
+            FieldCodecs.registerStream(FluidPipe.class, STREAM_CODEC);
+        }
     }
 
     public record ItemPipe(int priority, float transferRate) {
@@ -138,6 +159,11 @@ public final class PipeNetData {
                 ByteBufCodecs.VAR_INT, ItemPipe::priority,
                 ByteBufCodecs.FLOAT, ItemPipe::transferRate,
                 ItemPipe::new);
+
+        static {
+            FieldCodecs.register(ItemPipe.class, CODEC);
+            FieldCodecs.registerStream(ItemPipe.class, STREAM_CODEC);
+        }
     }
 
     public record DuctPipe(float transferRate) {
@@ -148,5 +174,10 @@ public final class PipeNetData {
         public static final StreamCodec<RegistryFriendlyByteBuf, DuctPipe> STREAM_CODEC = StreamCodec.composite(
                 ByteBufCodecs.FLOAT, DuctPipe::transferRate,
                 DuctPipe::new);
+
+        static {
+            FieldCodecs.register(DuctPipe.class, CODEC);
+            FieldCodecs.registerStream(DuctPipe.class, STREAM_CODEC);
+        }
     }
 }

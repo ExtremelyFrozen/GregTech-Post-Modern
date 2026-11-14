@@ -10,12 +10,12 @@ import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLongInputElement;
 import com.gregtechceu.gtceu.api.gui.element.GTToggleButtonElement;
-import com.gregtechceu.gtceu.api.gui.factory.CoverUIHelper;
-import com.gregtechceu.gtceu.api.gui.factory.LDLib2CoverUIProvider;
+import com.gregtechceu.gtceu.api.gui.factory.CoverUIProvider;
 import com.gregtechceu.gtceu.api.gui.factory.UICoverHolder;
 import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
 import com.gregtechceu.gtceu.utils.GTMath;
 
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
@@ -25,7 +25,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
-import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 
@@ -36,15 +35,11 @@ import java.math.BigInteger;
 
 import static com.gregtechceu.gtceu.utils.RedstoneUtil.computeLatchedRedstoneBetweenValues;
 
-public class AdvancedEnergyDetectorCover extends EnergyDetectorCover implements LDLib2CoverUIProvider {
+public class AdvancedEnergyDetectorCover extends EnergyDetectorCover implements CoverUIProvider {
 
     private static final int DEFAULT_MIN_PERCENT = 33;
     private static final int DEFAULT_MAX_PERCENT = 66;
     private static final BigInteger LONG_MAX_VALUE = BigInteger.valueOf(Long.MAX_VALUE);
-
-    static {
-        AdvancedEnergyDetectorConfigActions.initialize();
-    }
 
     @SaveField
     @SyncToClient
@@ -56,8 +51,8 @@ public class AdvancedEnergyDetectorCover extends EnergyDetectorCover implements 
     @Getter
     private boolean usePercent;
 
-    private @Nullable GTLongInputElement minValueLDLib2Input;
-    private @Nullable GTLongInputElement maxValueLDLib2Input;
+    private @Nullable GTLongInputElement minValueInput;
+    private @Nullable GTLongInputElement maxValueInput;
 
     public AdvancedEnergyDetectorCover(CoverDefinition definition, ICoverable coverHolder, Direction attachedSide) {
         super(definition, coverHolder, attachedSide);
@@ -138,7 +133,7 @@ public class AdvancedEnergyDetectorCover extends EnergyDetectorCover implements 
             }
         }
 
-        initializeLDLib2MinMaxInputs();
+        initializeMinMaxInputs();
     }
 
     //////////////////////////////////////
@@ -146,39 +141,39 @@ public class AdvancedEnergyDetectorCover extends EnergyDetectorCover implements 
     //////////////////////////////////////
 
     @Override
-    public boolean canCreateLDLib2UI(Player player, UICoverHolder holder) {
+    public boolean canCreateUI(Player player, UICoverHolder holder) {
         return holder.getCover() == this;
     }
 
     @Override
-    public UI createLDLib2UI(Player player, UICoverHolder holder) {
+    public UI createUI(Player player, UICoverHolder holder) {
         UIElement root = new UIElement();
-        UITemplate.setLDLib2Bounds(root, 0, 0, 176, 187);
+        UITemplate.setBounds(root, 0, 0, 176, 187);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));
 
-        root.addChild(createLDLib2Label(10, 5, 156, 10, "cover.advanced_energy_detector.label"));
-        root.addChild(createLDLib2Label(10, 55, 25, 10, "cover.advanced_energy_detector.min"));
-        root.addChild(createLDLib2Label(10, 80, 25, 10, "cover.advanced_energy_detector.max"));
-        minValueLDLib2Input = new GTLongInputElement(40, 50, 126, 20, this::getMinValue,
-                value -> setLDLib2MinValue(player, holder, value));
-        maxValueLDLib2Input = new GTLongInputElement(40, 75, 126, 20, this::getMaxValue,
-                value -> setLDLib2MaxValue(player, holder, value));
-        initializeLDLib2MinMaxInputs();
-        root.addChild(minValueLDLib2Input);
-        root.addChild(maxValueLDLib2Input);
+        root.addChild(createLabel(10, 5, 156, 10, "cover.advanced_energy_detector.label"));
+        root.addChild(createLabel(10, 55, 25, 10, "cover.advanced_energy_detector.min"));
+        root.addChild(createLabel(10, 80, 25, 10, "cover.advanced_energy_detector.max"));
+        minValueInput = new GTLongInputElement(40, 50, 126, 20, this::getMinValue,
+                value -> setMinValue(player, holder, value));
+        maxValueInput = new GTLongInputElement(40, 75, 126, 20, this::getMaxValue,
+                value -> setMaxValue(player, holder, value));
+        initializeMinMaxInputs();
+        root.addChild(minValueInput);
+        root.addChild(maxValueInput);
         root.addChild(new GTToggleButtonElement(9, 20, 20, 20, GuiTextures.INVERT_REDSTONE_BUTTON,
-                this::isInverted, inverted -> setLDLib2Inverted(player, holder, inverted))
+                this::isInverted, inverted -> setInverted(player, holder, inverted))
                 .isMultiLang()
                 .setTooltipText("cover.advanced_energy_detector.invert"));
         root.addChild(new GTToggleButtonElement(147, 20, 20, 20, GuiTextures.ENERGY_DETECTOR_COVER_MODE_BUTTON,
-                this::isUsePercent, usePercent -> setLDLib2UsePercent(player, holder, usePercent))
+                this::isUsePercent, usePercent -> setUsePercent(player, holder, usePercent))
                 .isMultiLang()
                 .setTooltipText("cover.advanced_energy_detector.use_percent"));
-        root.addChild(UITemplate.bindPlayerInventoryLDLib2(player.getInventory(), GuiTextures.SLOT, 7, 105, true));
+        root.addChild(UITemplate.bindPlayerInventory(player.getInventory(), GuiTextures.SLOT, 7, 105, true));
         return UI.of(root);
     }
 
-    private GTLabelElement createLDLib2Label(int x, int y, int width, int height, String text) {
+    private GTLabelElement createLabel(int x, int y, int width, int height, String text) {
         GTLabelElement label = new GTLabelElement(x, y, width, height, text, true);
         label.textStyle(style -> style
                 .textColor(0x404040)
@@ -188,40 +183,48 @@ public class AdvancedEnergyDetectorCover extends EnergyDetectorCover implements 
         return label;
     }
 
-    private void setLDLib2MinValue(Player player, UICoverHolder holder, long value) {
+    private void setMinValue(Player player, UICoverHolder holder, long value) {
         setMinValue(value);
-        sendLDLib2ConfigAction(player, holder);
+        sendConfigAction(player, holder);
     }
 
-    private void setLDLib2MaxValue(Player player, UICoverHolder holder, long value) {
+    private void setMaxValue(Player player, UICoverHolder holder, long value) {
         setMaxValue(value);
-        sendLDLib2ConfigAction(player, holder);
+        sendConfigAction(player, holder);
     }
 
-    private void setLDLib2UsePercent(Player player, UICoverHolder holder, boolean usePercent) {
+    private void setUsePercent(Player player, UICoverHolder holder, boolean usePercent) {
         setUsePercentFromUI(usePercent);
-        sendLDLib2ConfigAction(player, holder);
+        sendConfigAction(player, holder);
     }
 
-    private void setLDLib2Inverted(Player player, UICoverHolder holder, boolean inverted) {
+    private void setInverted(Player player, UICoverHolder holder, boolean inverted) {
         setInverted(inverted);
-        sendLDLib2ConfigAction(player, holder);
+        sendConfigAction(player, holder);
     }
 
-    private void sendLDLib2ConfigAction(Player player, UICoverHolder holder) {
+    @RPCMethod
+    public void configureAdvancedEnergyDetector(long min, long max, boolean usePercent, boolean inverted) {
+        setUsePercent(usePercent);
+        setMinValue(min);
+        setMaxValue(max);
+        setInverted(inverted);
+    }
+
+    private void sendConfigAction(Player player, UICoverHolder holder) {
         if (player.level().isClientSide()) {
-            CoverUIHelper.sendAction(holder, AdvancedEnergyDetectorConfigActions.createSetConfigAction(
-                    getMinValue(), getMaxValue(), isUsePercent(), isInverted()));
+            holder.getCover().rpcToServer("configureAdvancedEnergyDetector", getMinValue(), getMaxValue(),
+                    isUsePercent(), isInverted());
         }
     }
 
-    private void initializeLDLib2MinMaxInputs() {
-        if (minValueLDLib2Input == null || maxValueLDLib2Input == null)
+    private void initializeMinMaxInputs() {
+        if (minValueInput == null || maxValueInput == null)
             return;
 
         long max = usePercent ? 100L : getEnergyCapacity();
-        minValueLDLib2Input.setMin(0L).setMax(max);
-        maxValueLDLib2Input.setMin(0L).setMax(max);
+        minValueInput.setMin(0L).setMax(max);
+        maxValueInput.setMin(0L).setMax(max);
     }
 
     private void convertMinMaxValues(boolean wasPercent) {
@@ -265,18 +268,18 @@ public class AdvancedEnergyDetectorCover extends EnergyDetectorCover implements 
     }
 
     @Override
-    public DataComponentMap copyConfig(HolderLookup.Provider registries) {
+    public SyncFieldData copyConfig(HolderLookup.Provider registries) {
         return ConfigCopyHelper.withFields(super.copyConfig(registries), fields -> fields
                 .put(SyncFieldData.key("min"),
-                        ConfigCopyHelper.longValue(minValue))
+                        minValue)
                 .put(SyncFieldData.key("max"),
-                        ConfigCopyHelper.longValue(maxValue))
+                        maxValue)
                 .put(SyncFieldData.key("percent"),
-                        ConfigCopyHelper.booleanValue(usePercent)));
+                        usePercent));
     }
 
     @Override
-    public void pasteConfig(ServerPlayer player, HolderLookup.Provider registries, DataComponentMap config) {
+    public void pasteConfig(ServerPlayer player, HolderLookup.Provider registries, SyncFieldData config) {
         setMinValue(ConfigCopyHelper.getLong(config, "min"));
         setMaxValue(ConfigCopyHelper.getLong(config, "max"));
         setUsePercent(ConfigCopyHelper.getBoolean(config, "percent"));

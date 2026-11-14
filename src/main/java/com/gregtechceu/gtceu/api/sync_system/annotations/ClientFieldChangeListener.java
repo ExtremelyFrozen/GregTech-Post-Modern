@@ -6,14 +6,14 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Instructs the sync system to call this method on the client after a field has changed.
+ * Calls this no-argument method on the client after any of the named fields has changed.
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
 public @interface ClientFieldChangeListener {
 
     /**
-     * The field to listen for changes on.
+     * The fields to listen for changes on.
      */
-    String fieldName();
+    String[] fieldName();
 }

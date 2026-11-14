@@ -12,6 +12,7 @@ import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.gui.texture.ProgressTexture;
 import com.gregtechceu.gtceu.api.gui.texture.ProspectingTexture;
 import com.gregtechceu.gtceu.api.registry.GTRegistries;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 import com.gregtechceu.gtceu.common.data.GTMaterials;
 import com.gregtechceu.gtceu.config.ConfigHolder;
 import com.gregtechceu.gtceu.utils.FormattingUtil;
@@ -174,6 +175,11 @@ public abstract class ProspectorMode<T> {
                 ByteBufCodecs.VAR_INT, FluidInfo::yield,
                 ByteBufCodecs.VAR_INT, FluidInfo::left,
                 FluidInfo::new);
+
+        static {
+            FieldCodecs.register(FluidInfo.class, CODEC);
+            FieldCodecs.registerStream(FluidInfo.class, STREAM_CODEC);
+        }
 
         @Getter
         private final Fluid fluid;

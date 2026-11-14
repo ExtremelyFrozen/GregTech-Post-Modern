@@ -1,21 +1,15 @@
 dependencies {
     compileOnly(libs.jetbrains.annotations)
+    compileOnly(libs.jspecify)
 
-    testJarJar(testApi(libs.testframework.get()))
+    testApi(libs.testframework.get())
 
-    jarJar(api(libs.jackson.dataformat.get()))
-    jarJar(api(libs.jackson.annotations.get()))
-    jarJar(api(libs.jackson.core.get()))
-    jarJar(api(libs.jackson.databind.get()))
     jarJar(api(libs.zstd.get()))
-    additionalRuntimeClasspath(libs.jackson.dataformat)
-    additionalRuntimeClasspath(libs.jackson.annotations)
-    additionalRuntimeClasspath(libs.jackson.core)
-    additionalRuntimeClasspath(libs.jackson.databind)
     additionalRuntimeClasspath(libs.zstd)
 
-    jarJar(forge.kotlinforforge.get())
-    api(forge.kotlinforforge)
+    jarJar(api(libs.kotlin.stdlib.get())) {
+        exclude group: 'org.jetbrains', module: 'annotations'
+    }
 
     jarJar(api(forge.ldlib2.get()))
 
@@ -42,9 +36,6 @@ dependencies {
     compileOnly(forge.ponder)
     compileOnly(variantOf(forge.create) { classifier("slim") })
     compileOnly(forge.flywheel.forge.api)
-
-    // KJS
-    compileOnly(forge.bundles.kjs)
 
     // Rendering / Optimizations
     compileOnly(forge.sodium)
@@ -105,8 +96,6 @@ dependencies {
 //    extraLocalRuntime(forge.worldstripper)
     localRuntime(forge.cc.tweaked.forge.impl)
 
-    extraLocalRuntime(forge.bundles.kjs)
-
     extraLocalRuntime(forge.ftblibrary)
     extraLocalRuntime(forge.ftbteams)
     extraLocalRuntime(forge.ftbquests)
@@ -124,6 +113,7 @@ dependencies {
         transitive = false
     }
     extraLocalRuntime(forge.observable)
+    extraLocalRuntime(forge.kotlinforforge)
     //////////////////////////
 
 }

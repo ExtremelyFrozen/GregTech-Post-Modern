@@ -1,5 +1,7 @@
 package com.gregtechceu.gtceu.common.item.datacomponents;
 
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
+
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
@@ -32,6 +34,11 @@ public record ComputerMonitorConfig(@With List<String> lines, @With List<String>
             ByteBufCodecs.VAR_INT, ComputerMonitorConfig::updateInterval,
             ComputerMonitorConfig::new
     );
+
+    static {
+        FieldCodecs.register(ComputerMonitorConfig.class, CODEC);
+        FieldCodecs.registerStream(ComputerMonitorConfig.class, STREAM_CODEC);
+    }
     //spotless:on
 
     public static final ComputerMonitorConfig EMPTY = new ComputerMonitorConfig(Collections.emptyList(),

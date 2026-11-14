@@ -75,6 +75,10 @@ import com.tterrag.registrate.util.entry.BlockEntry;
 import com.tterrag.registrate.util.nullness.NonNullBiConsumer;
 import com.tterrag.registrate.util.nullness.NonNullFunction;
 import com.tterrag.registrate.util.nullness.NonNullSupplier;
+import it.unimi.dsi.fastutil.ints.Int2ObjectAVLTreeMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectSortedMap;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import it.unimi.dsi.fastutil.objects.ObjectList;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
@@ -86,6 +90,12 @@ import static com.gregtechceu.gtceu.common.registry.GTRegistration.REGISTRATE;
 
 @SuppressWarnings({ "removal", "unchecked" })
 public class GTBlocks {
+
+    public static final ObjectList<Block> GLASS = new ObjectArrayList<>();
+    public static final Int2ObjectSortedMap<Block> MACHINE_CASINGS = new Int2ObjectAVLTreeMap<>();
+    public static final Int2ObjectSortedMap<Block> HERMETIC_CASINGS = new Int2ObjectAVLTreeMap<>();
+    public static final Int2ObjectSortedMap<Block> COMPUTER_CASINGS = new Int2ObjectAVLTreeMap<>();
+    public static final Int2ObjectSortedMap<Block> COMPUTER_HEAT_VENTS = new Int2ObjectAVLTreeMap<>();
 
     //////////////////////////////////////
     // ***** Procedural Blocks *****//
@@ -422,6 +432,7 @@ public class GTBlocks {
     // HPCA, AT
     public static final BlockEntry<Block> COMPUTER_CASING = REGISTRATE
             .block("computer_casing", Block::new)
+            .onRegister(block -> COMPUTER_CASINGS.put(1, block))
             .initialProperties(() -> Blocks.IRON_BLOCK)
             .properties(p -> p.isValidSpawn((state, level, pos, ent) -> false))
             .blockstate((ctx, prov) -> {
@@ -433,6 +444,7 @@ public class GTBlocks {
             .register();
     public static final BlockEntry<Block> ADVANCED_COMPUTER_CASING = REGISTRATE
             .block("advanced_computer_casing", Block::new)
+            .onRegister(block -> COMPUTER_CASINGS.put(2, block))
             .initialProperties(() -> Blocks.IRON_BLOCK)
             .properties(p -> p.isValidSpawn((state, level, pos, ent) -> false))
             .blockstate((ctx, prov) -> {
@@ -445,6 +457,7 @@ public class GTBlocks {
             .register();
     public static final BlockEntry<Block> COMPUTER_HEAT_VENT = REGISTRATE
             .block("computer_heat_vent", Block::new)
+            .onRegister(block -> COMPUTER_HEAT_VENTS.put(1, block))
             .initialProperties(() -> Blocks.IRON_BLOCK)
             .properties(p -> p.isValidSpawn((state, level, pos, ent) -> false))
             .blockstate((ctx, prov) -> {
@@ -489,6 +502,7 @@ public class GTBlocks {
                 .properties(p -> p.isValidSpawn((state, level, pos, ent) -> false))
                 .addLayer(type)
                 .exBlockstate(GTModels.cubeAllModel(texture))
+                .onRegister(GLASS::add)
                 .tag(BlockTags.MINEABLE_WITH_PICKAXE)
                 .item(BlockItem::new)
                 .build()
@@ -520,6 +534,7 @@ public class GTBlocks {
         String tierName = GTValues.VN[tier].toLowerCase(Locale.ROOT);
         var entry = REGISTRATE
                 .block("%s_machine_casing".formatted(tierName), Block::new)
+                .onRegister(block -> MACHINE_CASINGS.put(tier, block))
                 .lang("%s Machine Casing".formatted(GTValues.VN[tier]))
                 .initialProperties(() -> Blocks.IRON_BLOCK)
                 .properties(p -> p.isValidSpawn((state, level, pos, ent) -> false))
@@ -538,6 +553,7 @@ public class GTBlocks {
         String tierName = GTValues.VN[tier].toLowerCase(Locale.ROOT);
         var entry = REGISTRATE
                 .block("%s_hermetic_casing".formatted(tierName), Block::new)
+                .onRegister(block -> HERMETIC_CASINGS.put(tier, block))
                 .lang("Hermetic Casing %s".formatted(GTValues.LVT[tier]))
                 .initialProperties(() -> Blocks.IRON_BLOCK)
                 .properties(p -> p.isValidSpawn((state, level, pos, ent) -> false))

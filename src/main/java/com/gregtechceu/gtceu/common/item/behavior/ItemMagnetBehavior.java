@@ -12,7 +12,6 @@ import com.gregtechceu.gtceu.api.gui.SelectableEnum;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTButtonElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
-import com.gregtechceu.gtceu.api.gui.factory.HeldItemUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.HeldItemUIHolder;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.item.ComponentItem;
@@ -21,9 +20,12 @@ import com.gregtechceu.gtceu.api.item.component.IAddInformation;
 import com.gregtechceu.gtceu.api.item.component.IInteractionItem;
 import com.gregtechceu.gtceu.api.item.component.IItemLifeCycle;
 import com.gregtechceu.gtceu.api.item.component.IItemUIFactory;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 import com.gregtechceu.gtceu.common.data.GTDataComponents;
 import com.gregtechceu.gtceu.common.data.GTItems;
 
+import com.lowdragmc.lowdraglib2.gui.sync.rpc.RPCEmitter;
+import com.lowdragmc.lowdraglib2.gui.sync.rpc.RPCEventBuilder;
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
@@ -76,70 +78,71 @@ public class ItemMagnetBehavior implements IInteractionItem, IItemLifeCycle, IAd
 
     static {
         NeoForge.EVENT_BUS.register(ItemMagnetBehavior.class);
-        ItemMagnetBehaviorActions.initialize();
     }
 
     @Override
-    public boolean canCreateLDLib2UI(HeldItemUIHolder holder, Player entityPlayer) {
+    public boolean canCreateUI(HeldItemUIHolder holder, Player entityPlayer) {
         ItemStack held = holder.getHeld();
         return isMagnet(held) && ItemStack.isSameItem(held, holder.getOpenedStack());
     }
 
     @Override
-    public boolean isLDLib2UIStillValid(HeldItemUIHolder holder, Player entityPlayer) {
+    public boolean isUIStillValid(HeldItemUIHolder holder, Player entityPlayer) {
         return isMagnet(holder.getHeld()) && ItemStack.isSameItem(holder.getHeld(), holder.getOpenedStack());
     }
 
     @Override
-    public UI createLDLib2UI(HeldItemUIHolder holder, Player entityPlayer) {
+    public UI createUI(HeldItemUIHolder holder, Player entityPlayer) {
         ItemStack held = holder.getHeld();
         Filter selected = held.getOrDefault(GTDataComponents.MAGNET, MagnetComponent.EMPTY).filterType();
-        List<LDLib2FilterPanel> panels = new ArrayList<>();
+        List<FilterPanel> panels = new ArrayList<>();
 
         UIElement root = new UIElement();
-        UITemplate.setLDLib2Bounds(root, 0, 0, 176, 157);
+        RPCEmitter configureFilter = root.addRPCEvent(RPCEventBuilder.simple(Filter.class,
+                filter -> setMagnetFilter(holder.getHeld(), filter)));
+        UITemplate.setBounds(root, 0, 0, 176, 157);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));
 
         for (Filter filterType : Filter.values()) {
-            LDLib2FilterPanel panel = createLDLib2FilterPanel(holder, held, filterType, filterType == selected);
+            FilterPanel panel = createFilterPanel(holder, held, filterType, filterType == selected);
             panels.add(panel);
             root.addChild(panel.panel());
         }
-        root.addChild(UITemplate.bindPlayerInventoryLDLib2(entityPlayer.getInventory(), GuiTextures.SLOT, 7, 75, true));
-        root.addChild(createLDLib2FilterButton(holder, selected, panels));
+        root.addChild(UITemplate.bindPlayerInventory(entityPlayer.getInventory(), GuiTextures.SLOT, 7, 75, true));
+        root.addChild(createFilterButton(holder, selected, panels, configureFilter));
         return UI.of(root);
     }
 
-    private static GTButtonElement createLDLib2FilterButton(HeldItemUIHolder holder, Filter selected,
-                                                            List<LDLib2FilterPanel> panels) {
+    private static GTButtonElement createFilterButton(HeldItemUIHolder holder, Filter selected,
+                                                      List<FilterPanel> panels, RPCEmitter configureFilter) {
         GTButtonElement button = new GTButtonElement();
         button.noText();
-        updateLDLib2FilterButton(button, selected);
+        updateFilterButton(button, selected);
         button.setOnClick(event -> {
             Filter next = nextFilter(holder.getHeld()
                     .getOrDefault(GTDataComponents.MAGNET, MagnetComponent.EMPTY)
                     .filterType());
-            setLDLib2FilterSelection(holder, next, panels, button);
+            setFilterSelection(holder, next, panels, button, configureFilter);
         });
-        UITemplate.setLDLib2Bounds(button, 146, 5, 20, 20);
+        UITemplate.setBounds(button, 146, 5, 20, 20);
         return button;
     }
 
-    private static LDLib2FilterPanel createLDLib2FilterPanel(HeldItemUIHolder holder, ItemStack held, Filter filterType,
-                                                             boolean visible) {
+    private static FilterPanel createFilterPanel(HeldItemUIHolder holder, ItemStack held, Filter filterType,
+                                                 boolean visible) {
         UIElement panel = new UIElement();
-        UITemplate.setLDLib2Bounds(panel, 0, 0, 176, 75);
+        UITemplate.setBounds(panel, 0, 0, 176, 75);
         panel.setVisible(visible);
 
         ItemStack filterStack = filterType.getFilter(held);
         ItemFilter filter = ItemFilter.loadFilter(filterStack);
         filter.setOnUpdated(updated -> filterType.saveFilter(holder.getHeld(), updated));
-        panel.addChild(createLDLib2Label(filterStack.getDescriptionId()));
-        panel.addChild(filter.openLDLib2Configurator((176 - 80) / 2, (60 - 55) / 2 + 15));
-        return new LDLib2FilterPanel(filterType, panel);
+        panel.addChild(createLabel(filterStack.getDescriptionId()));
+        panel.addChild(filter.openConfigurator((176 - 80) / 2, (60 - 55) / 2 + 15));
+        return new FilterPanel(filterType, panel);
     }
 
-    private static GTLabelElement createLDLib2Label(String descriptionId) {
+    private static GTLabelElement createLabel(String descriptionId) {
         GTLabelElement label = new GTLabelElement(5, 5, 136, 10, descriptionId, true);
         label.textStyle(style -> style
                 .textColor(0x404040)
@@ -149,21 +152,21 @@ public class ItemMagnetBehavior implements IInteractionItem, IItemLifeCycle, IAd
         return label;
     }
 
-    private static void setLDLib2FilterSelection(HeldItemUIHolder holder, Filter filter,
-                                                 List<LDLib2FilterPanel> panels, GTButtonElement button) {
+    private static void setFilterSelection(HeldItemUIHolder holder, Filter filter,
+                                           List<FilterPanel> panels, GTButtonElement button,
+                                           RPCEmitter configureFilter) {
         ItemStack held = holder.getHeld();
         setMagnetFilter(held, filter);
-        for (LDLib2FilterPanel panel : panels) {
+        for (FilterPanel panel : panels) {
             panel.panel().setVisible(panel.filter() == filter);
         }
-        updateLDLib2FilterButton(button, filter);
+        updateFilterButton(button, filter);
         if (holder.getPlayer().level().isClientSide()) {
-            HeldItemUIHelper.sendAction(holder,
-                    ItemMagnetBehaviorActions.createSetMagnetFilterAction(held, filter));
+            configureFilter.send(filter);
         }
     }
 
-    private static void updateLDLib2FilterButton(GTButtonElement button, Filter filter) {
+    private static void updateFilterButton(GTButtonElement button, Filter filter) {
         IGuiTexture texture = GuiTextures.group(GuiTextures.VANILLA_BUTTON, filter.getIcon());
         button.setButtonTexture(texture);
         button.style(style -> style.tooltips(Component.translatable(filter.getTooltip())));
@@ -317,7 +320,7 @@ public class ItemMagnetBehavior implements IInteractionItem, IItemLifeCycle, IAd
             }
         }
 
-        if (!GTCEu.Mods.isCuriosLoaded()) {
+        if (!GTCEu.MODS.CURIOS.isLoaded()) {
             return false;
         }
         return CuriosUtils.hasMagnetCurios(player);
@@ -364,6 +367,10 @@ public class ItemMagnetBehavior implements IInteractionItem, IItemLifeCycle, IAd
         TAG(GTItems.TAG_FILTER, "item_tag_filter");
 
         public static final Codec<Filter> CODEC = StringRepresentable.fromEnum(Filter::values);
+
+        static {
+            FieldCodecs.register(Filter.class, CODEC);
+        }
 
         public final ItemEntry<ComponentItem> item;
         public final String name;
@@ -435,8 +442,13 @@ public class ItemMagnetBehavior implements IInteractionItem, IItemLifeCycle, IAd
                 ByteBufCodecs.VAR_INT, c -> c.filterType().ordinal(),
                 (active, ordinal) -> new MagnetComponent(active, Filter.get(ordinal)));
 
+        static {
+            FieldCodecs.register(MagnetComponent.class, CODEC);
+            FieldCodecs.registerStream(MagnetComponent.class, STREAM_CODEC);
+        }
+
         public static final MagnetComponent EMPTY = new MagnetComponent(false, Filter.SIMPLE);
     }
 
-    private record LDLib2FilterPanel(Filter filter, UIElement panel) {}
+    private record FilterPanel(Filter filter, UIElement panel) {}
 }

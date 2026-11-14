@@ -105,7 +105,7 @@ public class TemplateTab extends MenuTab {
     static GTUIXmlProject createRecipeTypeProject(GTRecipeType recipeType) {
         return new GTUIXmlProject().useTemplate(
                 GTUIXmlTarget.recipeType(recipeType.registryName),
-                recipeType.getRecipeUI().createLDLib2TemplateXml());
+                recipeType.getRecipeUI().createTemplateXml());
     }
 
     record MachineTemplate(MachineDefinition definition, EditableMachineUI editableUI) {}

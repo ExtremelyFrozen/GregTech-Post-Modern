@@ -57,7 +57,6 @@ import com.tterrag.registrate.util.entry.BlockEntry;
 import com.tterrag.registrate.util.nullness.NonNullBiConsumer;
 import com.tterrag.registrate.util.nullness.NonNullConsumer;
 import com.tterrag.registrate.util.nullness.NonNullUnaryOperator;
-import dev.latvian.mods.rhino.util.RemapPrefixForJS;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import lombok.Getter;
@@ -74,7 +73,6 @@ import java.util.function.*;
 import static com.gregtechceu.gtceu.common.data.models.GTMachineModels.*;
 
 @SuppressWarnings("unused")
-@RemapPrefixForJS("kjs$")
 @Accessors(chain = true, fluent = true)
 public class MachineBuilder<DEFINITION extends MachineDefinition, TYPE extends MachineBuilder<DEFINITION, TYPE>> {
 
@@ -518,22 +516,6 @@ public class MachineBuilder<DEFINITION extends MachineDefinition, TYPE extends M
                                                         @Nullable T defaultValue) {
         this.modelProperties.put(property, defaultValue);
         return getThis();
-    }
-
-    // KJS helpers for model property defaults
-    // These don't need to be copied to the multiblock builder because KJS doesn't care about the return type downgrade
-
-    public TYPE kjs$modelPropertyBool(Property<Boolean> property, boolean defaultValue) {
-        return modelProperty(property, defaultValue);
-    }
-
-    public TYPE kjs$modelPropertyInt(Property<Integer> property, int defaultValue) {
-        return modelProperty(property, defaultValue);
-    }
-
-    public <T extends Enum<T> & Comparable<T>> TYPE kjs$modelPropertyEnum(Property<T> property,
-                                                                          T defaultValue) {
-        return modelProperty(property, defaultValue);
     }
 
     @Tolerate

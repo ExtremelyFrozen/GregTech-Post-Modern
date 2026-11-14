@@ -11,12 +11,12 @@ import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTIntInputElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTToggleButtonElement;
-import com.gregtechceu.gtceu.api.gui.factory.CoverUIHelper;
-import com.gregtechceu.gtceu.api.gui.factory.LDLib2CoverUIProvider;
+import com.gregtechceu.gtceu.api.gui.factory.CoverUIProvider;
 import com.gregtechceu.gtceu.api.gui.factory.UICoverHolder;
 import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
 
 import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
@@ -25,7 +25,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
-import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
@@ -40,14 +39,10 @@ import java.util.List;
 import static com.gregtechceu.gtceu.utils.RedstoneUtil.computeLatchedRedstoneBetweenValues;
 import static com.gregtechceu.gtceu.utils.RedstoneUtil.computeRedstoneBetweenValues;
 
-public class AdvancedFluidDetectorCover extends FluidDetectorCover implements LDLib2CoverUIProvider {
+public class AdvancedFluidDetectorCover extends FluidDetectorCover implements CoverUIProvider {
 
     private static final int DEFAULT_MIN = 64;
     private static final int DEFAULT_MAX = 512;
-    static {
-        AdvancedFluidDetectorConfigActions.initialize();
-    }
-
     @SaveField
     @SyncToClient
     @Getter
@@ -131,39 +126,39 @@ public class AdvancedFluidDetectorCover extends FluidDetectorCover implements LD
     //////////////////////////////////////
 
     @Override
-    public boolean canCreateLDLib2UI(Player player, UICoverHolder holder) {
+    public boolean canCreateUI(Player player, UICoverHolder holder) {
         return holder.getCover() == this;
     }
 
     @Override
-    public UI createLDLib2UI(Player player, UICoverHolder holder) {
+    public UI createUI(Player player, UICoverHolder holder) {
         UIElement root = new UIElement();
-        UITemplate.setLDLib2Bounds(root, 0, 0, 176, 252);
+        UITemplate.setBounds(root, 0, 0, 176, 252);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));
 
-        root.addChild(createLDLib2Label(10, 5, 156, 10, "cover.advanced_fluid_detector.label"));
-        root.addChild(createLDLib2Label(10, 55, 65, 10, "cover.advanced_fluid_detector.min"));
-        root.addChild(createLDLib2Label(10, 80, 65, 10, "cover.advanced_fluid_detector.max"));
+        root.addChild(createLabel(10, 5, 156, 10, "cover.advanced_fluid_detector.label"));
+        root.addChild(createLabel(10, 55, 65, 10, "cover.advanced_fluid_detector.min"));
+        root.addChild(createLabel(10, 80, 65, 10, "cover.advanced_fluid_detector.max"));
         root.addChild(new GTIntInputElement(80, 50, 86, 20, this::getMinValue,
-                value -> setLDLib2MinValue(player, holder, value)));
+                value -> setMinValue(player, holder, value)));
         root.addChild(new GTIntInputElement(80, 75, 86, 20, this::getMaxValue,
-                value -> setLDLib2MaxValue(player, holder, value)));
+                value -> setMaxValue(player, holder, value)));
         root.addChild(new GTToggleButtonElement(9, 20, 20, 20, GuiTextures.INVERT_REDSTONE_BUTTON,
-                this::isInverted, inverted -> setLDLib2Inverted(player, holder, inverted))
+                this::isInverted, inverted -> setInverted(player, holder, inverted))
                 .isMultiLang()
                 .setTooltipText("cover.advanced_fluid_detector.invert"));
         root.addChild(new GTToggleButtonElement(31, 21, 18, 18, GuiTextures.BUTTON_LOCK,
-                this::isLatched, latched -> setLDLib2Latched(player, holder, latched))
+                this::isLatched, latched -> setLatched(player, holder, latched))
                 .setShouldUseBaseBackground()
                 .isMultiLang()
                 .setTooltipText("cover.advanced_detector.latch"));
-        root.addChild(filterHandler.createFilterSlotLDLib2UI(148, 100));
-        root.addChild(filterHandler.createFilterConfigLDLib2UI(10, 100, 156, 60));
-        root.addChild(UITemplate.bindPlayerInventoryLDLib2(player.getInventory(), GuiTextures.SLOT, 7, 170, true));
+        root.addChild(filterHandler.createFilterSlotUI(148, 100));
+        root.addChild(filterHandler.createFilterConfigUI(10, 100, 156, 60));
+        root.addChild(UITemplate.bindPlayerInventory(player.getInventory(), GuiTextures.SLOT, 7, 170, true));
         return UI.of(root);
     }
 
-    private GTLabelElement createLDLib2Label(int x, int y, int width, int height, String text) {
+    private GTLabelElement createLabel(int x, int y, int width, int height, String text) {
         GTLabelElement label = new GTLabelElement(x, y, width, height, text, true);
         label.textStyle(style -> style
                 .textColor(0x404040)
@@ -173,53 +168,60 @@ public class AdvancedFluidDetectorCover extends FluidDetectorCover implements LD
         return label;
     }
 
-    private void setLDLib2MinValue(Player player, UICoverHolder holder, int value) {
+    private void setMinValue(Player player, UICoverHolder holder, int value) {
         setMinValue(value);
-        sendLDLib2ConfigAction(player, holder);
+        sendConfigAction(player, holder);
     }
 
-    private void setLDLib2MaxValue(Player player, UICoverHolder holder, int value) {
+    private void setMaxValue(Player player, UICoverHolder holder, int value) {
         setMaxValue(value);
-        sendLDLib2ConfigAction(player, holder);
+        sendConfigAction(player, holder);
     }
 
-    private void setLDLib2Latched(Player player, UICoverHolder holder, boolean latched) {
+    private void setLatched(Player player, UICoverHolder holder, boolean latched) {
         setLatched(latched);
-        sendLDLib2ConfigAction(player, holder);
+        sendConfigAction(player, holder);
     }
 
-    private void setLDLib2Inverted(Player player, UICoverHolder holder, boolean inverted) {
+    private void setInverted(Player player, UICoverHolder holder, boolean inverted) {
         setInverted(inverted);
-        sendLDLib2ConfigAction(player, holder);
+        sendConfigAction(player, holder);
     }
 
-    private void sendLDLib2ConfigAction(Player player, UICoverHolder holder) {
+    @RPCMethod
+    public void configureAdvancedFluidDetector(int min, int max, boolean latched, boolean inverted) {
+        setMinValue(min);
+        setMaxValue(max);
+        setLatched(latched);
+        setInverted(inverted);
+    }
+
+    private void sendConfigAction(Player player, UICoverHolder holder) {
         if (player.level().isClientSide()) {
-            CoverUIHelper.sendAction(holder, AdvancedFluidDetectorConfigActions.createSetConfigAction(
-                    getMinValue(), getMaxValue(), isLatched(), isInverted()));
+            holder.getCover().rpcToServer("configureAdvancedFluidDetector", getMinValue(), getMaxValue(), isLatched(),
+                    isInverted());
         }
     }
 
     @Override
-    public DataComponentMap copyConfig(HolderLookup.Provider registries) {
+    public SyncFieldData copyConfig(HolderLookup.Provider registries) {
         return ConfigCopyHelper.withFields(super.copyConfig(registries), fields -> fields
                 .put(SyncFieldData.key("min"),
-                        ConfigCopyHelper.intValue(minValue))
+                        minValue)
                 .put(SyncFieldData.key("max"),
-                        ConfigCopyHelper.intValue(maxValue))
+                        maxValue)
                 .put(SyncFieldData.key("latched"),
-                        ConfigCopyHelper.booleanValue(isLatched))
-                .put(SyncFieldData.key("filter"),
-                        ConfigCopyHelper.encodeItem(registries, filterHandler.getFilterItem())));
+                        isLatched)
+                .put(SyncFieldData.key("filter"), ItemStack.OPTIONAL_CODEC, filterHandler.getFilterItem(), registries));
     }
 
     @Override
-    public void pasteConfig(ServerPlayer player, HolderLookup.Provider registries, DataComponentMap config) {
+    public void pasteConfig(ServerPlayer player, HolderLookup.Provider registries, SyncFieldData config) {
         setMinValue(ConfigCopyHelper.getInt(config, "min"));
         setMaxValue(ConfigCopyHelper.getInt(config, "max"));
         setLatched(ConfigCopyHelper.getBoolean(config, "latched"));
         filterHandler
-                .setFilterItem(ConfigCopyHelper.decodeItem(registries, ConfigCopyHelper.getField(config, "filter")));
+                .setFilterItem(ConfigCopyHelper.getItem(registries, config, "filter"));
         super.pasteConfig(player, registries, config);
     }
 }

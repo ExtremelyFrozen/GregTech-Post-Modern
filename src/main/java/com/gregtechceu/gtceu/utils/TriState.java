@@ -1,5 +1,7 @@
 package com.gregtechceu.gtceu.utils;
 
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
+
 import net.minecraft.util.StringRepresentable;
 
 import com.mojang.datafixers.util.Either;
@@ -34,6 +36,10 @@ public enum TriState implements StringRepresentable {
     public static final Codec<TriState> CODEC = Codec.either(Codec.BOOL, StringRepresentable.fromEnum(TriState::values))
             .xmap(either -> either.map(TriState::of, Function.identity()),
                     triState -> triState != DEFAULT ? Either.left(triState.isTrue()) : Either.right(DEFAULT));
+
+    static {
+        FieldCodecs.register(TriState.class, CODEC);
+    }
 
     // Helper methods
 

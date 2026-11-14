@@ -13,6 +13,8 @@ import com.gregtechceu.gtceu.api.data.worldgen.bedrockfluid.BedrockFluidDefiniti
 import com.gregtechceu.gtceu.api.data.worldgen.bedrockore.BedrockOreDefinition;
 import com.gregtechceu.gtceu.api.item.tool.behavior.ToolBehaviorType;
 import com.gregtechceu.gtceu.api.machine.MachineDefinition;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialSources;
+import com.gregtechceu.gtceu.api.multiblock.structurepredicate.PredicateType;
 import com.gregtechceu.gtceu.api.multiblock.structurepredicate.StructurePredicateType;
 import com.gregtechceu.gtceu.api.recipe.GTRecipeType;
 import com.gregtechceu.gtceu.api.recipe.category.GTRecipeCategory;
@@ -36,6 +38,7 @@ import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.UnmodifiableView;
+import org.jspecify.annotations.Nullable;
 
 import java.util.*;
 
@@ -67,6 +70,8 @@ public final class GTRegistries {
     public static final ResourceKey<Registry<DimensionMarker>> DIMENSION_MARKER_REGISTRY = makeRegistryKey(GTCEu.id("dimension_marker"));
 
     public static final ResourceKey<Registry<StructurePredicateType<?>>> STRUCTURE_PREDICATE_REGISTRY = makeRegistryKey(GTCEu.id("block_predicate"));
+    public static final ResourceKey<Registry<PredicateType<?>>> PREDICATE_TYPE_REGISTRY = makeRegistryKey(GTCEu.id("predicate_type"));
+    public static final ResourceKey<Registry<MaterialSources.Registration>> MATERIAL_SOURCE_REGISTRY = makeRegistryKey(GTCEu.id("material_source"));
 
     // GT Registries
     public static final Registry<Element> ELEMENTS = makeRegistry(ELEMENT_REGISTRY);
@@ -86,6 +91,8 @@ public final class GTRegistries {
     public static final Registry<DimensionMarker> DIMENSION_MARKERS = makeRegistry(DIMENSION_MARKER_REGISTRY, false);
 
     public static final Registry<StructurePredicateType<?>> STRUCTURE_PREDICATE_TYPES = makeRegistry(STRUCTURE_PREDICATE_REGISTRY);
+    public static final Registry<PredicateType<?>> PREDICATE_TYPES = makeRegistry(PREDICATE_TYPE_REGISTRY);
+    public static final Registry<MaterialSources.Registration> MATERIAL_SOURCES = makeRegistry(MATERIAL_SOURCE_REGISTRY);
     // spotless:on
 
     public static <T> ResourceKey<Registry<T>> makeRegistryKey(ResourceLocation registryId) {
@@ -120,6 +127,21 @@ public final class GTRegistries {
             TO_REGISTER.put(registry, name, value);
         }
         return value;
+    }
+
+    /**
+     * Reads an entry from the existing registration staging table before RegisterEvent publishes it, or from
+     * the actual registry afterwards. This does not change the registry's registration or freeze lifecycle.
+     */
+    public static <T> @Nullable T lookup(Registry<T> registry, ResourceLocation id) {
+        Object pending = TO_REGISTER.get(registry, id);
+        if (pending != null) {
+            // register(Registry<V>, ..., T extends V) guarantees that each staging row has this registry's type.
+            @SuppressWarnings("unchecked")
+            T value = (T) pending;
+            return value;
+        }
+        return registry.get(id);
     }
 
     // ignore the generics and hope the registered objects are still correctly typed :3

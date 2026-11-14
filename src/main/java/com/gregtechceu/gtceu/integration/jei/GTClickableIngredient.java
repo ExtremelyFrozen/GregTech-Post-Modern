@@ -6,7 +6,7 @@ import mezz.jei.api.ingredients.ITypedIngredient;
 import mezz.jei.api.runtime.IClickableIngredient;
 
 /**
- * JEI clickable ingredient area used by GTM legacy widget facades during the LDLib2 UI migration.
+ * JEI clickable ingredient area exposed by GT widgets.
  */
 public class GTClickableIngredient<T> implements IClickableIngredient<T> {
 

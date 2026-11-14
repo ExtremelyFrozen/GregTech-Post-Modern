@@ -10,6 +10,7 @@ import com.gregtechceu.gtceu.api.item.tool.GridHighlightTexture;
 import com.gregtechceu.gtceu.api.item.tool.IToolGridHighlight;
 import com.gregtechceu.gtceu.api.machine.TickableSubscription;
 import com.gregtechceu.gtceu.api.pipenet.*;
+import com.gregtechceu.gtceu.api.sync_system.SyncDataHolder;
 import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.RerenderOnChanged;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
@@ -18,19 +19,20 @@ import com.gregtechceu.gtceu.api.sync_system.managed.ManagedSyncBlockEntity;
 import com.gregtechceu.gtceu.common.data.GTMaterialBlocks;
 import com.gregtechceu.gtceu.common.data.GTMaterials;
 import com.gregtechceu.gtceu.common.data.item.GTItemAbilities;
+import com.gregtechceu.gtceu.common.network.packets.PacketRPCBlockEntity;
 import com.gregtechceu.gtceu.utils.ExtendedUseOnContext;
 import com.gregtechceu.gtceu.utils.GTUtil;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
-import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -49,6 +51,9 @@ public abstract class PipeBlockEntity<PipeType extends Enum<PipeType> & IPipeTyp
                                      extends ManagedSyncBlockEntity
                                      implements IPipeNode<PipeType, NodeDataType>, IToolGridHighlight,
                                      ICopyable {
+
+    @Getter
+    protected final SyncDataHolder syncDataHolder = new SyncDataHolder(this);
 
     private final long offset = GTValues.RNG.nextInt(20);
 
@@ -87,6 +92,26 @@ public abstract class PipeBlockEntity<PipeType extends Enum<PipeType> & IPipeTyp
         this.coverContainer = new PipeCoverContainer(this);
         this.serverTicks = new ArrayList<>();
         this.waitingToAdd = new ArrayList<>();
+    }
+
+    @Override
+    public SyncDataHolder getRootStorage() {
+        return syncDataHolder;
+    }
+
+    @Override
+    public PacketRPCBlockEntity createRPCPacket(byte[] data) {
+        return new PacketRPCBlockEntity(this, data);
+    }
+
+    @Override
+    public ServerLevel getServerLevel() {
+        return (ServerLevel) getLevel();
+    }
+
+    @Override
+    public ChunkPos getTrackingPos() {
+        return new ChunkPos(getBlockPos());
     }
 
     //////////////////////////////////////
@@ -405,17 +430,17 @@ public abstract class PipeBlockEntity<PipeType extends Enum<PipeType> & IPipeTyp
     }
 
     @Override
-    public DataComponentMap copyConfig(HolderLookup.Provider registries) {
-        DataComponentMap config = ConfigCopyHelper.withFields(ICopyable.super.copyConfig(registries), fields -> fields
+    public SyncFieldData copyConfig(HolderLookup.Provider registries) {
+        SyncFieldData config = ConfigCopyHelper.withFields(ICopyable.super.copyConfig(registries), fields -> fields
                 .put(SyncFieldData.key("pipe_connections"),
-                        ConfigCopyHelper.intValue(getConnections()))
+                        getConnections())
                 .put(SyncFieldData.key("pipe_blocked_connections"),
-                        ConfigCopyHelper.intValue(getBlockedConnections())));
-        return ConfigCopyHelper.mergeComponents(config, getCoverContainer().copyConfig(registries));
+                        getBlockedConnections()));
+        return ConfigCopyHelper.merge(config, getCoverContainer().copyConfig(registries));
     }
 
     @Override
-    public void pasteConfig(ServerPlayer player, HolderLookup.Provider registries, DataComponentMap config) {
+    public void pasteConfig(ServerPlayer player, HolderLookup.Provider registries, SyncFieldData config) {
         if (ConfigCopyHelper.contains(config, "pipe_connections")) {
             var connections = ConfigCopyHelper.getInt(config, "pipe_connections");
 

@@ -8,6 +8,7 @@ import com.gregtechceu.gtceu.api.data.medicalcondition.MedicalCondition;
 import com.gregtechceu.gtceu.api.data.tag.TagPrefix;
 import com.gregtechceu.gtceu.api.item.TagPrefixItem;
 import com.gregtechceu.gtceu.api.item.armor.ArmorComponentItem;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 import com.gregtechceu.gtceu.common.data.GTMaterials;
 import com.gregtechceu.gtceu.common.item.GTBucketItem;
 import com.gregtechceu.gtceu.config.ConfigHolder;
@@ -53,6 +54,10 @@ public class HazardProperty implements IMaterialProperty {
 
         public static final Map<String, HazardTrigger> ALL_TRIGGERS = new HashMap<>();
         public static final Codec<HazardTrigger> CODEC = Codec.stringResolver(HazardTrigger::name, ALL_TRIGGERS::get);
+
+        static {
+            FieldCodecs.register(HazardTrigger.class, CODEC);
+        }
 
         public static final HazardTrigger INHALATION = new HazardTrigger("inhalation", ProtectionType.MASK,
                 TagPrefix.dust, TagPrefix.dustSmall, TagPrefix.dustTiny, TagPrefix.dustPure, TagPrefix.dustImpure);
@@ -118,7 +123,7 @@ public class HazardProperty implements IMaterialProperty {
                     correctArmorItems.add(equipmentType);
                 }
             }
-            if (!GTCEu.Mods.isCuriosLoaded() || this.curioSlots.isEmpty()) {
+            if (!GTCEu.MODS.CURIOS.isLoaded() || this.curioSlots.isEmpty()) {
                 return correctArmorItems.containsAll(equipmentTypes);
             }
             Set<String> correctCurios = new HashSet<>();
@@ -149,7 +154,7 @@ public class HazardProperty implements IMaterialProperty {
                         armor.hurtAndBreak(amount, player, type.getSlot());
                     }
                 }
-                if (GTCEu.Mods.isCuriosLoaded() && player.level() instanceof ServerLevel serverLevel) {
+                if (GTCEu.MODS.CURIOS.isLoaded() && player.level() instanceof ServerLevel serverLevel) {
                     ICuriosItemHandler curiosInventory = CuriosApi.getCuriosInventory(player).orElse(null);
                     if (curiosInventory != null) {
                         for (String curioItem : this.getCurioSlots()) {

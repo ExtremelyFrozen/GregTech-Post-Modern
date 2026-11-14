@@ -12,7 +12,7 @@ import com.gregtechceu.gtceu.api.machine.multiblock.PartAbility;
 import com.gregtechceu.gtceu.api.machine.multiblock.WorkableElectricMultiblockMachine;
 import com.gregtechceu.gtceu.api.machine.property.GTMachineModelProperties;
 import com.gregtechceu.gtceu.api.machine.trait.WorkLogic;
-import com.gregtechceu.gtceu.api.multiblock.FactoryBlockPattern;
+import com.gregtechceu.gtceu.api.multiblock.pattern.dsl.PatternBuilder;
 import com.gregtechceu.gtceu.client.renderer.machine.DynamicRenderHelper;
 import com.gregtechceu.gtceu.common.data.GTRecipeModifiers;
 import com.gregtechceu.gtceu.common.data.GTRecipeTypes;
@@ -78,8 +78,8 @@ public class GCYMMachines {
             .recipeType(MACERATOR_RECIPES)
             .recipeModifiers(GTRecipeModifiers.PARALLEL_HATCH, OC_NON_PERFECT_SUBTICK, BATCH_MODE)
             .appearanceBlock(CASING_SECURE_MACERATION)
-            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> FactoryBlockPattern.start(definition)
-                    .aislesFromDefinition()
+            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> PatternBuilder.start(definition)
+                    .appendDefinition()
                     .build())
             .workableCasingModel(GTCEu.id("block/casings/gcym/secure_maceration_casing"),
                     GTCEu.id("block/multiblock/gcym/large_maceration_tower"))
@@ -95,8 +95,8 @@ public class GCYMMachines {
             .recipeTypes(CHEMICAL_BATH_RECIPES, ORE_WASHER_RECIPES)
             .recipeModifiers(GTRecipeModifiers.PARALLEL_HATCH, OC_NON_PERFECT_SUBTICK, BATCH_MODE)
             .appearanceBlock(CASING_WATERTIGHT)
-            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> FactoryBlockPattern.start(definition)
-                    .aislesFromDefinition()
+            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> PatternBuilder.start(definition)
+                    .appendDefinition()
                     .build())
             .hasBER(true)
             .modelProperty(GTMachineModelProperties.RECIPE_LOGIC_STATUS, WorkLogic.Status.IDLE)
@@ -115,8 +115,8 @@ public class GCYMMachines {
             .recipeTypes(CENTRIFUGE_RECIPES, THERMAL_CENTRIFUGE_RECIPES)
             .recipeModifiers(GTRecipeModifiers.PARALLEL_HATCH, OC_NON_PERFECT_SUBTICK, BATCH_MODE)
             .appearanceBlock(CASING_VIBRATION_SAFE)
-            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> FactoryBlockPattern.start(definition)
-                    .aislesFromDefinition()
+            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> PatternBuilder.start(definition)
+                    .appendDefinition()
                     .build())
             .workableCasingModel(GTCEu.id("block/casings/gcym/vibration_safe_casing"),
                     GTCEu.id("block/multiblock/gcym/large_centrifuge"))
@@ -132,8 +132,8 @@ public class GCYMMachines {
             .recipeType(MIXER_RECIPES)
             .recipeModifiers(GTRecipeModifiers.PARALLEL_HATCH, OC_NON_PERFECT_SUBTICK, BATCH_MODE)
             .appearanceBlock(CASING_REACTION_SAFE)
-            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> FactoryBlockPattern.start(definition)
-                    .aislesFromDefinition()
+            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> PatternBuilder.start(definition)
+                    .appendDefinition()
                     .build())
             .hasBER(true)
             .modelProperty(GTMachineModelProperties.RECIPE_LOGIC_STATUS, WorkLogic.Status.IDLE)
@@ -152,8 +152,8 @@ public class GCYMMachines {
             .recipeType(ELECTROLYZER_RECIPES)
             .recipeModifiers(GTRecipeModifiers.PARALLEL_HATCH, OC_NON_PERFECT_SUBTICK, BATCH_MODE)
             .appearanceBlock(CASING_NONCONDUCTING)
-            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> FactoryBlockPattern.start(definition)
-                    .aislesFromDefinition()
+            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> PatternBuilder.start(definition)
+                    .appendDefinition()
                     .build())
             .workableCasingModel(GTCEu.id("block/casings/gcym/nonconducting_casing"),
                     GTCEu.id("block/multiblock/gcym/large_electrolyzer"))
@@ -170,8 +170,8 @@ public class GCYMMachines {
             .recipeTypes(ELECTROMAGNETIC_SEPARATOR_RECIPES, POLARIZER_RECIPES)
             .recipeModifiers(GTRecipeModifiers.PARALLEL_HATCH, OC_NON_PERFECT_SUBTICK, BATCH_MODE)
             .appearanceBlock(CASING_NONCONDUCTING)
-            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> FactoryBlockPattern.start(definition)
-                    .aislesFromDefinition()
+            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> PatternBuilder.start(definition)
+                    .appendDefinition()
                     .build())
             .workableCasingModel(GTCEu.id("block/casings/gcym/nonconducting_casing"),
                     GTCEu.id("block/multiblock/gcym/large_electrolyzer"))
@@ -187,8 +187,8 @@ public class GCYMMachines {
             .recipeType(GTRecipeTypes.PACKER_RECIPES)
             .recipeModifiers(GTRecipeModifiers.PARALLEL_HATCH, OC_NON_PERFECT_SUBTICK, BATCH_MODE)
             .appearanceBlock(CASING_TUNGSTENSTEEL_ROBUST)
-            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> FactoryBlockPattern.start(definition)
-                    .aislesFromDefinition()
+            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> PatternBuilder.start(definition)
+                    .appendDefinition()
                     .build())
             .workableCasingModel(GTCEu.id("block/casings/solid/machine_casing_robust_tungstensteel"),
                     GTCEu.id("block/multiblock/gcym/large_packer"))
@@ -208,8 +208,8 @@ public class GCYMMachines {
             .recipeModifiers(DEFAULT_ENVIRONMENT_REQUIREMENT, GTRecipeModifiers.PARALLEL_HATCH, OC_NON_PERFECT_SUBTICK,
                     BATCH_MODE)
             .appearanceBlock(CASING_LARGE_SCALE_ASSEMBLING)
-            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> FactoryBlockPattern.start(definition)
-                    .aislesFromDefinition()
+            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> PatternBuilder.start(definition)
+                    .appendDefinition()
                     .build())
             .workableCasingModel(GTCEu.id("block/casings/gcym/large_scale_assembling_casing"),
                     GTCEu.id("block/multiblock/gcym/large_assembler"))
@@ -229,8 +229,8 @@ public class GCYMMachines {
             .recipeModifiers(DEFAULT_ENVIRONMENT_REQUIREMENT, GTRecipeModifiers.PARALLEL_HATCH, OC_NON_PERFECT_SUBTICK,
                     BATCH_MODE)
             .appearanceBlock(CASING_LARGE_SCALE_ASSEMBLING)
-            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> FactoryBlockPattern.start(definition)
-                    .aislesFromDefinition()
+            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> PatternBuilder.start(definition)
+                    .appendDefinition()
                     .build())
             .workableCasingModel(GTCEu.id("block/casings/gcym/large_scale_assembling_casing"),
                     GTCEu.id("block/multiblock/gcym/large_circuit_assembler"))
@@ -246,8 +246,8 @@ public class GCYMMachines {
             .recipeType(ARC_FURNACE_RECIPES)
             .recipeModifiers(GTRecipeModifiers.PARALLEL_HATCH, OC_NON_PERFECT_SUBTICK, BATCH_MODE)
             .appearanceBlock(CASING_HIGH_TEMPERATURE_SMELTING)
-            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> FactoryBlockPattern.start(definition)
-                    .aislesFromDefinition()
+            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> PatternBuilder.start(definition)
+                    .appendDefinition()
                     .build())
             .workableCasingModel(GTCEu.id("block/casings/gcym/high_temperature_smelting_casing"),
                     GTCEu.id("block/multiblock/gcym/large_arc_smelter"))
@@ -266,8 +266,8 @@ public class GCYMMachines {
             .recipeModifiers(DEFAULT_ENVIRONMENT_REQUIREMENT, GTRecipeModifiers.PARALLEL_HATCH, OC_NON_PERFECT_SUBTICK,
                     BATCH_MODE)
             .appearanceBlock(CASING_LASER_SAFE_ENGRAVING)
-            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> FactoryBlockPattern.start(definition)
-                    .aislesFromDefinition()
+            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> PatternBuilder.start(definition)
+                    .appendDefinition()
                     .build())
             .workableCasingModel(GTCEu.id("block/casings/gcym/laser_safe_engraving_casing"),
                     GTCEu.id("block/multiblock/gcym/large_engraving_laser"))
@@ -283,8 +283,8 @@ public class GCYMMachines {
             .recipeType(SIFTER_RECIPES)
             .recipeModifiers(GTRecipeModifiers.PARALLEL_HATCH, OC_NON_PERFECT_SUBTICK, BATCH_MODE)
             .appearanceBlock(CASING_VIBRATION_SAFE)
-            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> FactoryBlockPattern.start(definition)
-                    .aislesFromDefinition()
+            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> PatternBuilder.start(definition)
+                    .appendDefinition()
                     .build())
             .workableCasingModel(GTCEu.id("block/casings/gcym/vibration_safe_casing"),
                     GTCEu.id("block/multiblock/gcym/large_sifting_funnel"))
@@ -302,8 +302,8 @@ public class GCYMMachines {
             .recipeType(ALLOY_BLAST_RECIPES)
             .recipeModifiers(GTRecipeModifiers::ebfOverclock)
             .appearanceBlock(CASING_HIGH_TEMPERATURE_SMELTING)
-            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> FactoryBlockPattern.start(definition)
-                    .aislesFromDefinition()
+            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> PatternBuilder.start(definition)
+                    .appendDefinition()
                     .build())
             .workableCasingModel(GTCEu.id("block/casings/gcym/high_temperature_smelting_casing"),
                     GTCEu.id("block/multiblock/gcym/blast_alloy_smelter"))
@@ -331,8 +331,8 @@ public class GCYMMachines {
             .recipeType(AUTOCLAVE_RECIPES)
             .recipeModifiers(GTRecipeModifiers.PARALLEL_HATCH, OC_NON_PERFECT_SUBTICK, BATCH_MODE)
             .appearanceBlock(CASING_WATERTIGHT)
-            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> FactoryBlockPattern.start(definition)
-                    .aislesFromDefinition()
+            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> PatternBuilder.start(definition)
+                    .appendDefinition()
                     .build())
             .workableCasingModel(GTCEu.id("block/casings/gcym/watertight_casing"),
                     GTCEu.id("block/multiblock/gcym/large_autoclave"))
@@ -349,8 +349,8 @@ public class GCYMMachines {
             .recipeTypes(BENDER_RECIPES, COMPRESSOR_RECIPES, FORGE_HAMMER_RECIPES, FORMING_PRESS_RECIPES)
             .recipeModifiers(GTRecipeModifiers.PARALLEL_HATCH, OC_NON_PERFECT_SUBTICK, BATCH_MODE)
             .appearanceBlock(CASING_STRESS_PROOF)
-            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> FactoryBlockPattern.start(definition)
-                    .aislesFromDefinition()
+            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> PatternBuilder.start(definition)
+                    .appendDefinition()
                     .build())
             .workableCasingModel(GTCEu.id("block/casings/gcym/stress_proof_casing"),
                     GTCEu.id("block/multiblock/gcym/large_material_press"))
@@ -367,8 +367,8 @@ public class GCYMMachines {
             .recipeTypes(BREWING_RECIPES, FERMENTING_RECIPES, FLUID_HEATER_RECIPES)
             .recipeModifiers(GTRecipeModifiers.PARALLEL_HATCH, OC_NON_PERFECT_SUBTICK, BATCH_MODE)
             .appearanceBlock(CASING_CORROSION_PROOF)
-            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> FactoryBlockPattern.start(definition)
-                    .aislesFromDefinition()
+            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> PatternBuilder.start(definition)
+                    .appendDefinition()
                     .build())
             .workableCasingModel(GTCEu.id("block/casings/gcym/corrosion_proof_casing"),
                     GTCEu.id("block/multiblock/gcym/large_brewer"))
@@ -384,8 +384,8 @@ public class GCYMMachines {
             .recipeTypes(CUTTER_RECIPES, LATHE_RECIPES)
             .recipeModifiers(GTRecipeModifiers.PARALLEL_HATCH, OC_NON_PERFECT_SUBTICK, BATCH_MODE)
             .appearanceBlock(CASING_SHOCK_PROOF)
-            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> FactoryBlockPattern.start(definition)
-                    .aislesFromDefinition()
+            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> PatternBuilder.start(definition)
+                    .appendDefinition()
                     .build())
             .workableCasingModel(GTCEu.id("block/casings/gcym/shock_proof_cutting_casing"),
                     GTCEu.id("block/multiblock/gcym/large_cutter"))
@@ -401,9 +401,9 @@ public class GCYMMachines {
             .recipeTypes(DISTILLATION_RECIPES, DISTILLERY_RECIPES)
             .recipeModifiers(GTRecipeModifiers.PARALLEL_HATCH, OC_NON_PERFECT_SUBTICK, BATCH_MODE)
             .appearanceBlock(CASING_WATERTIGHT)
-            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> FactoryBlockPattern
+            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> PatternBuilder
                     .start(definition, RIGHT, BACK, UP)
-                    .aislesFromDefinition()
+                    .appendDefinition()
                     .build())
             .allowExtendedFacing(false)
             .partSorter(Comparator.comparingInt((IMultiPart p) -> p.self().getBlockPos().getY()))
@@ -421,8 +421,8 @@ public class GCYMMachines {
             .recipeTypes(EXTRACTOR_RECIPES, CANNER_RECIPES)
             .recipeModifiers(GTRecipeModifiers.PARALLEL_HATCH, OC_NON_PERFECT_SUBTICK, BATCH_MODE)
             .appearanceBlock(CASING_WATERTIGHT)
-            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> FactoryBlockPattern.start(definition)
-                    .aislesFromDefinition()
+            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> PatternBuilder.start(definition)
+                    .appendDefinition()
                     .build())
             .workableCasingModel(GTCEu.id("block/casings/gcym/watertight_casing"),
                     GTCEu.id("block/multiblock/gcym/large_extractor"))
@@ -438,8 +438,8 @@ public class GCYMMachines {
             .recipeType(EXTRUDER_RECIPES)
             .recipeModifiers(GTRecipeModifiers.PARALLEL_HATCH, OC_NON_PERFECT_SUBTICK, BATCH_MODE)
             .appearanceBlock(CASING_STRESS_PROOF)
-            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> FactoryBlockPattern.start(definition)
-                    .aislesFromDefinition()
+            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> PatternBuilder.start(definition)
+                    .appendDefinition()
                     .build())
             .workableCasingModel(GTCEu.id("block/casings/gcym/stress_proof_casing"),
                     GTCEu.id("block/multiblock/gcym/large_extruder"))
@@ -455,8 +455,8 @@ public class GCYMMachines {
             .recipeType(FLUID_SOLIDFICATION_RECIPES)
             .recipeModifiers(GTRecipeModifiers.PARALLEL_HATCH, OC_NON_PERFECT_SUBTICK, BATCH_MODE)
             .appearanceBlock(CASING_WATERTIGHT)
-            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> FactoryBlockPattern.start(definition)
-                    .aislesFromDefinition()
+            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> PatternBuilder.start(definition)
+                    .appendDefinition()
                     .build())
             .workableCasingModel(GTCEu.id("block/casings/gcym/watertight_casing"),
                     GTCEu.id("block/multiblock/gcym/large_solidifier"))
@@ -472,8 +472,8 @@ public class GCYMMachines {
             .recipeType(WIREMILL_RECIPES)
             .recipeModifiers(GTRecipeModifiers.PARALLEL_HATCH, OC_NON_PERFECT_SUBTICK, BATCH_MODE)
             .appearanceBlock(CASING_STRESS_PROOF)
-            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> FactoryBlockPattern.start(definition)
-                    .aislesFromDefinition()
+            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> PatternBuilder.start(definition)
+                    .appendDefinition()
                     .build())
             .workableCasingModel(GTCEu.id("block/casings/gcym/stress_proof_casing"),
                     GTCEu.id("block/multiblock/gcym/large_wiremill"))
@@ -493,8 +493,8 @@ public class GCYMMachines {
             .recipeType(BLAST_RECIPES)
             .recipeModifiers(GTRecipeModifiers.PARALLEL_HATCH, GTRecipeModifiers::ebfOverclock, BATCH_MODE)
             .appearanceBlock(CASING_HIGH_TEMPERATURE_SMELTING)
-            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> FactoryBlockPattern.start(definition)
-                    .aislesFromDefinition()
+            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> PatternBuilder.start(definition)
+                    .appendDefinition()
                     .build())
             .workableCasingModel(GTCEu.id("block/casings/gcym/high_temperature_smelting_casing"),
                     GTCEu.id("block/multiblock/gcym/rotary_hearth_furnace"))
@@ -519,8 +519,8 @@ public class GCYMMachines {
             .recipeType(VACUUM_RECIPES)
             .recipeModifiers(GTRecipeModifiers.PARALLEL_HATCH, OC_NON_PERFECT_SUBTICK, BATCH_MODE)
             .appearanceBlock(CASING_ALUMINIUM_FROSTPROOF)
-            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> FactoryBlockPattern.start(definition)
-                    .aislesFromDefinition()
+            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> PatternBuilder.start(definition)
+                    .appendDefinition()
                     .build())
             .workableCasingModel(GTCEu.id("block/casings/solid/machine_casing_frost_proof"),
                     GTCEu.id("block/multiblock/gcym/mega_vacuum_freezer"))

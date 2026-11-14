@@ -8,12 +8,13 @@ import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTFluidSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTImageElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
-import com.gregtechceu.gtceu.api.gui.factory.LDLib2MachineUIProvider;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
+import com.gregtechceu.gtceu.api.machine.feature.IUIMachine;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableFluidTank;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCSender;
 import com.gregtechceu.gtceu.api.transfer.fluid.IFluidHandlerModifiable;
 import com.gregtechceu.gtceu.utils.ExtendedUseOnContext;
 import com.gregtechceu.gtceu.utils.GTUtil;
@@ -43,11 +44,7 @@ import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
 
 public class MultiblockTankMachine extends MultiblockControllerMachine
-                                   implements LDLib2MachineUIProvider, MultiblockTankFluidSlotActionTarget {
-
-    static {
-        MultiblockTankMachineActions.initialize();
-    }
+                                   implements IUIMachine {
 
     @SaveField
     @Getter
@@ -84,25 +81,20 @@ public class MultiblockTankMachine extends MultiblockControllerMachine
     /////////////////////////////////////
 
     @Override
-    public boolean canCreateLDLib2UI(Player player, MachineUIHolder holder) {
-        return holder.getMachine() == this;
-    }
-
-    @Override
-    public UI createLDLib2UI(Player player, MachineUIHolder holder) {
+    public UI createUI(Player player, MachineUIHolder holder) {
         UIElement root = new UIElement();
-        UITemplate.setLDLib2Bounds(root, 0, 0, 176, 166);
+        UITemplate.setBounds(root, 0, 0, 176, 166);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));
         root.addChild(new GTImageElement(7, 16, 81, 55, GuiTextures.DISPLAY));
-        root.addChild(createLDLib2FluidAmountLabel());
-        root.addChild(createLDLib2FluidAmountValueLabel());
-        root.addChild(createLDLib2TitleLabel());
-        root.addChild(createLDLib2FluidSlot(player, holder));
-        root.addChild(UITemplate.bindPlayerInventoryLDLib2(player.getInventory(), GuiTextures.SLOT, 7, 84, true));
+        root.addChild(createFluidAmountLabel());
+        root.addChild(createFluidAmountValueLabel());
+        root.addChild(createTitleLabel());
+        root.addChild(createFluidSlot(player, holder));
+        root.addChild(UITemplate.bindPlayerInventory(player.getInventory(), GuiTextures.SLOT, 7, 84, true));
         return UI.of(root);
     }
 
-    private GTLabelElement createLDLib2TitleLabel() {
+    private GTLabelElement createTitleLabel() {
         GTLabelElement label = new GTLabelElement(6, 6, 164, 10,
                 getBlockState().getBlock().getDescriptionId(), true);
         label.textStyle(style -> style
@@ -113,7 +105,7 @@ public class MultiblockTankMachine extends MultiblockControllerMachine
         return label;
     }
 
-    private static GTLabelElement createLDLib2FluidAmountLabel() {
+    private static GTLabelElement createFluidAmountLabel() {
         GTLabelElement label = new GTLabelElement(11, 20, 73, 10, "gtpm.gui.fluid_amount", true);
         label.textStyle(style -> style
                 .textColor(0x404040)
@@ -123,16 +115,16 @@ public class MultiblockTankMachine extends MultiblockControllerMachine
         return label;
     }
 
-    private GTLabelElement createLDLib2FluidAmountValueLabel() {
+    private GTLabelElement createFluidAmountValueLabel() {
         GTLabelElement label = new GTLabelElement(11, 30, 73, 10) {
 
             @Override
             public void screenTick() {
-                setValue(Component.literal(getLDLib2FluidAmountText()));
+                setValue(Component.literal(getFluidAmountText()));
                 super.screenTick();
             }
         };
-        label.setValue(Component.literal(getLDLib2FluidAmountText()));
+        label.setValue(Component.literal(getFluidAmountText()));
         label.textStyle(style -> style
                 .textColor(-1)
                 .textShadow(true)
@@ -141,11 +133,11 @@ public class MultiblockTankMachine extends MultiblockControllerMachine
         return label;
     }
 
-    private String getLDLib2FluidAmountText() {
+    private String getFluidAmountText() {
         return String.valueOf(tank.getFluidInTank(0).getAmount());
     }
 
-    private GTFluidSlotElement createLDLib2FluidSlot(Player player, MachineUIHolder holder) {
+    private GTFluidSlotElement createFluidSlot(Player player, MachineUIHolder holder) {
         GTFluidSlotElement fluidSlot = new GTFluidSlotElement()
                 .setFluidTank(tank.getStorages()[0], 0)
                 .setShowAmount(true)
@@ -155,22 +147,23 @@ public class MultiblockTankMachine extends MultiblockControllerMachine
         fluidSlot.addEventListener(UIEvents.MOUSE_DOWN, event -> {
             if (event.button == 0 && player.level().isClientSide() &&
                     FluidUtil.getFluidHandler(player.containerMenu.getCarried()).isPresent()) {
-                MachineUIHelper.sendAction(holder,
-                        MultiblockTankMachineActions.createClickMultiblockTankFluidSlotAction(GTUtil.isShiftDown()));
+                boolean shiftDown = GTUtil.isShiftDown();
+                holder.getMachine().rpcToServer("clickMultiblockTankFluidSlot", shiftDown);
                 event.stopImmediatePropagation();
                 event.hasHandler = true;
             }
         });
-        return UITemplate.setLDLib2Bounds(fluidSlot, 90, 35, 18, 18);
+        return UITemplate.setBounds(fluidSlot, 90, 35, 18, 18);
     }
 
-    @Override
-    public void clickMultiblockTankFluidSlot(ServerPlayer player, boolean shiftDown) {
-        new LDLib2FluidClickTarget(tank.getStorages()[0], true, true).click(player, shiftDown);
+    @RPCMethod
+    public void clickMultiblockTankFluidSlot(RPCSender sender, boolean shiftDown) {
+        var player = sender.asPlayer();
+        new FluidClickTarget(tank.getStorages()[0], true, true).click(player, shiftDown);
     }
 
-    private record LDLib2FluidClickTarget(IFluidHandler fluidTank, boolean allowClickFilled,
-                                          boolean allowClickDrained) {
+    private record FluidClickTarget(IFluidHandler fluidTank, boolean allowClickFilled,
+                                    boolean allowClickDrained) {
 
         private void click(ServerPlayer player, boolean shiftDown) {
             ItemStack currentStack = player.containerMenu.getCarried();

@@ -9,10 +9,10 @@ import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTImageElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
-import com.gregtechceu.gtceu.api.gui.factory.LDLib2MachineUIProvider;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
+import com.gregtechceu.gtceu.api.machine.feature.IUIMachine;
 import com.gregtechceu.gtceu.api.machine.property.GTMachineModelProperties;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler;
 import com.gregtechceu.gtceu.api.multiblock.util.RelativeDirection;
@@ -43,7 +43,7 @@ import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.function.BooleanSupplier;
 
-public class SimpleSteamMachine extends SteamWorkableMachine implements LDLib2MachineUIProvider {
+public class SimpleSteamMachine extends SteamWorkableMachine implements IUIMachine {
 
     @SaveField
     public final NotifiableItemStackHandler importItems;
@@ -177,20 +177,15 @@ public class SimpleSteamMachine extends SteamWorkableMachine implements LDLib2Ma
     //////////////////////////////////////
 
     @Override
-    public boolean canCreateLDLib2UI(Player player, MachineUIHolder holder) {
-        return holder.getMachine() == this;
-    }
-
-    @Override
-    public UI createLDLib2UI(Player player, MachineUIHolder holder) {
+    public UI createUI(Player player, MachineUIHolder holder) {
         var storages = Tables.newCustomTable(new EnumMap<>(IO.class), LinkedHashMap<RecipeCapability<?>, Object>::new);
         storages.put(IO.IN, ItemRecipeCapability.CAP, importItems.storage);
         storages.put(IO.OUT, ItemRecipeCapability.CAP, exportItems.storage);
 
         var recipeType = getRecipeType();
         var recipeUI = recipeType.getRecipeUI();
-        var recipeSize = recipeUI.getLDLib2RecipeUISize(true, isHighPressure);
-        var recipeTemplate = recipeUI.createLDLib2UITemplate(recipeLogic::getProgressPercent,
+        var recipeSize = recipeUI.getRecipeUISize(true, isHighPressure);
+        var recipeTemplate = recipeUI.createUITemplate(recipeLogic::getProgressPercent,
                 storages,
                 DataComponentMap.EMPTY,
                 Collections.emptyList(),
@@ -198,23 +193,23 @@ public class SimpleSteamMachine extends SteamWorkableMachine implements LDLib2Ma
                 isHighPressure);
         int recipeX = (Math.max(recipeSize.width() + 4 + 8, 176) - 4 - recipeSize.width()) / 2 + 4;
         int recipeY = 32;
-        UITemplate.setLDLib2Bounds(recipeTemplate.rootElement, recipeX, recipeY,
+        UITemplate.setBounds(recipeTemplate.rootElement, recipeX, recipeY,
                 recipeSize.width(), recipeSize.height());
 
         UIElement root = new UIElement();
-        UITemplate.setLDLib2Bounds(root, 0, 0, 176, 166);
+        UITemplate.setBounds(root, 0, 0, 176, 166);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_STEAM.get(isHighPressure)));
         root.addChild(recipeTemplate.rootElement);
-        root.addChild(createLDLib2TitleLabel());
+        root.addChild(createTitleLabel());
         root.addChild(createWaitingIndicator(recipeX + recipeSize.width() / 2 - 9,
                 recipeY + recipeSize.height() / 2 - 9, 18, 18,
                 GuiTextures.INDICATOR_NO_STEAM.get(isHighPressure), recipeLogic::isWaiting));
-        root.addChild(UITemplate.bindPlayerInventoryLDLib2(player.getInventory(),
+        root.addChild(UITemplate.bindPlayerInventory(player.getInventory(),
                 GuiTextures.SLOT_STEAM.get(isHighPressure), 7, 84, true));
         return UI.of(root);
     }
 
-    private GTLabelElement createLDLib2TitleLabel() {
+    private GTLabelElement createTitleLabel() {
         GTLabelElement label = new GTLabelElement(5, 5, 166, 10,
                 getBlockState().getBlock().getDescriptionId(), true);
         label.textStyle(style -> style

@@ -365,18 +365,18 @@ public class FluidRecipeCapability extends RecipeCapability<SizedFluidIngredient
 
     @NotNull
     @Override
-    public GTFluidSlotElement createLDLib2Element() {
+    public GTFluidSlotElement createElement() {
         return new GTFluidSlotElement().setShowAmount(true);
     }
 
     @NotNull
     @Override
-    public Class<? extends UIElement> getLDLib2ElementClass() {
+    public Class<? extends UIElement> getElementClass() {
         return GTFluidSlotElement.class;
     }
 
     @Override
-    public Element createLDLib2XmlElement(Document document) {
+    public Element createXmlElement(Document document) {
         Element element = document.createElement("gtm-fluid-slot");
         element.setAttribute("draw-hover-overlay", "true");
         element.setAttribute("draw-hover-tips", "true");
@@ -389,15 +389,15 @@ public class FluidRecipeCapability extends RecipeCapability<SizedFluidIngredient
     }
 
     @Override
-    public void applyLDLib2ElementInfo(@NotNull UIElement element,
-                                       int index,
-                                       boolean isXEI,
-                                       IO io,
-                                       GTRecipeTypeUI.@UnknownNullability("null when storage == null") RecipeHolder recipeHolder,
-                                       @NotNull GTRecipeType recipeType,
-                                       @UnknownNullability("null when content == null") GTRecipeDefinition recipe,
-                                       @Nullable Content content,
-                                       @Nullable Object storage, int recipeTier, int chanceTier) {
+    public void applyElementInfo(@NotNull UIElement element,
+                                 int index,
+                                 boolean isXEI,
+                                 IO io,
+                                 GTRecipeTypeUI.@UnknownNullability("null when storage == null") RecipeHolder recipeHolder,
+                                 @NotNull GTRecipeType recipeType,
+                                 @UnknownNullability("null when content == null") GTRecipeDefinition recipe,
+                                 @Nullable Content content,
+                                 @Nullable Object storage, int recipeTier, int chanceTier) {
         if (element instanceof GTFluidSlotElement tank) {
             if (storage instanceof IFluidHandler fluidHandler) {
                 tank.setFluidTank(fluidHandler, index);

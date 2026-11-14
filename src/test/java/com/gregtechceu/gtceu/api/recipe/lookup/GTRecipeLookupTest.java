@@ -5,16 +5,12 @@ import com.gregtechceu.gtceu.api.capability.recipe.ItemRecipeCapability;
 import com.gregtechceu.gtceu.api.recipe.GTRecipe;
 import com.gregtechceu.gtceu.api.recipe.GTRecipeDefinition;
 import com.gregtechceu.gtceu.api.recipe.GTRecipeType;
-import com.gregtechceu.gtceu.api.recipe.category.GTRecipeCategory;
 import com.gregtechceu.gtceu.api.recipe.lookup.ingredient.AbstractMapIngredient;
 import com.gregtechceu.gtceu.api.recipe.lookup.ingredient.fluid.FluidStackMapIngredient;
 import com.gregtechceu.gtceu.api.recipe.lookup.ingredient.item.ItemStackMapIngredient;
-import com.gregtechceu.gtceu.api.registry.GTRegistries;
 import com.gregtechceu.gtceu.common.data.GTMaterials;
 import com.gregtechceu.gtceu.gametest.util.TestUtils;
 
-import net.minecraft.core.MappedRegistry;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.gametest.framework.BeforeBatch;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -22,7 +18,6 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.valueproviders.UniformInt;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.crafting.RecipeType;
 import net.neoforged.neoforge.common.crafting.SizedIngredient;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.gametest.GameTestHolder;
@@ -47,11 +42,7 @@ public class GTRecipeLookupTest {
 
     @BeforeBatch(batch = "GTRecipeLookup")
     public static void prepare(ServerLevel level) {
-        ((MappedRegistry<GTRecipeCategory>) GTRegistries.RECIPE_CATEGORIES).unfreeze();
-        ((MappedRegistry<RecipeType<?>>) BuiltInRegistries.RECIPE_TYPE).unfreeze();
-        RecipeType<?> proxyRecipes = RecipeType.SMELTING;
-
-        GTRecipeType recipeType = TestUtils.createRecipeType("recipe_lookup");
+        GTRecipeType recipeType = TestUtils.getRecipeType("recipe_lookup");
         RecipeAdditionHandler handler = recipeType.getAdditionHandler();
         DB = recipeType.db();
 
@@ -96,9 +87,6 @@ public class GTRecipeLookupTest {
             handler.addRuntimeStaging(recipe);
         }
         handler.completeStaging();
-
-        GTRegistries.RECIPE_CATEGORIES.freeze();
-        BuiltInRegistries.RECIPE_TYPE.freeze();
     }
 
     private static List<List<AbstractMapIngredient>> createIngredients(ItemStack... stacks) {
@@ -136,7 +124,7 @@ public class GTRecipeLookupTest {
     @EmptyTemplate
     @GameTest(template = "empty", batch = "GTRecipeLookup")
     public static void definitionStagingKeepsDefinitionInCategory(GameTestHelper helper) {
-        GTRecipeType recipeType = TestUtils.createRecipeType("recipe_lookup_definition_staging");
+        GTRecipeType recipeType = TestUtils.getRecipeType("recipe_lookup_definition_staging");
         GTRecipeDefinition definition = recipeType.recipeBuilder("definition_display_source")
                 .inputItems(Items.COBBLESTONE, 1)
                 .outputItems(Items.STONE, 1)

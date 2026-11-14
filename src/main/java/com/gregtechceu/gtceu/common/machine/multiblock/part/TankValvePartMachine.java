@@ -2,11 +2,7 @@ package com.gregtechceu.gtceu.common.machine.multiblock.part;
 
 import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo;
 import com.gregtechceu.gtceu.api.capability.recipe.IO;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyPreviewPage;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyUIProvider;
 import com.gregtechceu.gtceu.api.machine.ConditionalSubscriptionHandler;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.LDLib2FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.machine.multiblock.part.MultiblockPartMachine;
 import com.gregtechceu.gtceu.api.machine.trait.FluidTankProxyTrait;
@@ -16,13 +12,12 @@ import com.gregtechceu.gtceu.utils.ISubscription;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.Block;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 
 import org.jetbrains.annotations.Nullable;
 
-public class TankValvePartMachine extends MultiblockPartMachine implements LDLib2FancyPartUIProvider {
+public class TankValvePartMachine extends MultiblockPartMachine {
 
     private final FluidTankProxyTrait tankProxy;
     private final ConditionalSubscriptionHandler autoIOSubscription;
@@ -33,11 +28,6 @@ public class TankValvePartMachine extends MultiblockPartMachine implements LDLib
 
         tankProxy = attachTrait(new FluidTankProxyTrait(getIO()));
         autoIOSubscription = new ConditionalSubscriptionHandler(this, this::autoIO, this::shouldAutoIO);
-    }
-
-    @Override
-    public LDLib2FancyUIProvider createLDLib2FancyPage(Player player, MachineUIHolder holder) {
-        return new LDLib2FancyPreviewPage(this, player, holder, null);
     }
 
     @Override

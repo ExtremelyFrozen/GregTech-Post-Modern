@@ -5,7 +5,7 @@ import com.gregtechceu.gtceu.api.gui.texture.GuiTextureMetadata;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.transfer.item.NonMutatingItemCapacity;
 import com.gregtechceu.gtceu.integration.xei.GTXEIIngredientRole;
-import com.gregtechceu.gtceu.integration.xei.GTXEIIngredientRoleLDLib2Adapter;
+import com.gregtechceu.gtceu.integration.xei.GTXEIIngredientRoleAdapter;
 import com.gregtechceu.gtceu.integration.xei.handlers.item.CycleItemEntryHandler;
 
 import com.lowdragmc.lowdraglib2.gui.slot.ItemHandlerSlot;
@@ -79,7 +79,6 @@ public class GTItemSlotElement extends ItemSlot {
 
     @Override
     public GTItemSlotElement bind(IItemHandlerModifiable itemHandlerModifiable, int index) {
-        validateSlotIndex(itemHandlerModifiable, index);
         var itemHandlerSlot = new CapacityAwareItemHandlerSlot(itemHandlerModifiable, index);
         configureItemHandlerSlot(itemHandlerSlot, true);
         super.bind(itemHandlerSlot);
@@ -103,7 +102,6 @@ public class GTItemSlotElement extends ItemSlot {
     }
 
     public GTItemSlotElement setCycleItemDisplay(CycleItemEntryHandler handler, int slotIndex) {
-        validateSlotIndex(handler, slotIndex);
         xeiStacks = () -> handler.getEntry(slotIndex).getStacks().stream()
                 .filter(itemStack -> !itemStack.isEmpty());
         return this;
@@ -144,7 +142,7 @@ public class GTItemSlotElement extends ItemSlot {
     }
 
     public GTItemSlotElement setIngredientIO(GTXEIIngredientRole ingredientRole) {
-        return setIngredientIO(GTXEIIngredientRoleLDLib2Adapter.toLDLib2(ingredientRole));
+        return setIngredientIO(GTXEIIngredientRoleAdapter.toIngredientIO(ingredientRole));
     }
 
     public GTItemSlotElement setIngredientIO(IngredientIO ingredientIO) {
@@ -204,10 +202,10 @@ public class GTItemSlotElement extends ItemSlot {
     @Override
     public GTItemSlotElement xeiPhantom() {
         RegistrateDistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> {
-            if (GTCEu.Mods.isJEILoaded()) {
+            if (GTCEu.MODS.isJEILoaded()) {
                 JEISupport.ghostIngredient(this);
             }
-            if (GTCEu.Mods.isEMILoaded()) {
+            if (GTCEu.MODS.isEMILoaded()) {
                 EMISupport.renderDragHandler(this);
                 EMISupport.dropStackHandler(this);
             }
@@ -227,7 +225,7 @@ public class GTItemSlotElement extends ItemSlot {
     }
 
     public GTItemSlotElement xeiRecipeIngredient(GTXEIIngredientRole role) {
-        return xeiRecipeIngredient(GTXEIIngredientRoleLDLib2Adapter.toLDLib2(role));
+        return xeiRecipeIngredient(GTXEIIngredientRoleAdapter.toIngredientIO(role));
     }
 
     public GTItemSlotElement xeiRecipeIngredient(IngredientIO io, Stream<ItemStack> allPossibleItems) {
@@ -238,7 +236,7 @@ public class GTItemSlotElement extends ItemSlot {
     }
 
     public GTItemSlotElement xeiRecipeIngredient(GTXEIIngredientRole role, Stream<ItemStack> allPossibleItems) {
-        return xeiRecipeIngredient(GTXEIIngredientRoleLDLib2Adapter.toLDLib2(role), allPossibleItems);
+        return xeiRecipeIngredient(GTXEIIngredientRoleAdapter.toIngredientIO(role), allPossibleItems);
     }
 
     public GTItemSlotElement xeiRecipeIngredient(IngredientIO io,
@@ -251,7 +249,7 @@ public class GTItemSlotElement extends ItemSlot {
 
     public GTItemSlotElement xeiRecipeIngredient(GTXEIIngredientRole role,
                                                  Supplier<Stream<ItemStack>> allPossibleItems) {
-        return xeiRecipeIngredient(GTXEIIngredientRoleLDLib2Adapter.toLDLib2(role), allPossibleItems);
+        return xeiRecipeIngredient(GTXEIIngredientRoleAdapter.toIngredientIO(role), allPossibleItems);
     }
 
     @Override
@@ -268,7 +266,7 @@ public class GTItemSlotElement extends ItemSlot {
     }
 
     public GTItemSlotElement xeiRecipeSlot(GTXEIIngredientRole role, float chance) {
-        return xeiRecipeSlot(GTXEIIngredientRoleLDLib2Adapter.toLDLib2(role), chance);
+        return xeiRecipeSlot(GTXEIIngredientRoleAdapter.toIngredientIO(role), chance);
     }
 
     public GTItemSlotElement xeiRecipeSlot(IngredientIO io, float chance, int amount,
@@ -283,7 +281,7 @@ public class GTItemSlotElement extends ItemSlot {
 
     public GTItemSlotElement xeiRecipeSlot(GTXEIIngredientRole role, float chance, int amount,
                                            Stream<ItemStack> allPossibleItems) {
-        return xeiRecipeSlot(GTXEIIngredientRoleLDLib2Adapter.toLDLib2(role), chance, amount, allPossibleItems);
+        return xeiRecipeSlot(GTXEIIngredientRoleAdapter.toIngredientIO(role), chance, amount, allPossibleItems);
     }
 
     public GTItemSlotElement xeiRecipeSlot(IngredientIO io, float chance, int amount,
@@ -298,7 +296,7 @@ public class GTItemSlotElement extends ItemSlot {
 
     public GTItemSlotElement xeiRecipeSlot(GTXEIIngredientRole role, float chance, int amount,
                                            Supplier<Stream<ItemStack>> allPossibleItems) {
-        return xeiRecipeSlot(GTXEIIngredientRoleLDLib2Adapter.toLDLib2(role), chance, amount, allPossibleItems);
+        return xeiRecipeSlot(GTXEIIngredientRoleAdapter.toIngredientIO(role), chance, amount, allPossibleItems);
     }
 
     @Override
@@ -413,10 +411,10 @@ public class GTItemSlotElement extends ItemSlot {
 
     private void addXEIRecipeIngredient(IngredientIO io, Supplier<Stream<ItemStack>> allPossibleItems) {
         RegistrateDistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> {
-            if (GTCEu.Mods.isJEILoaded()) {
+            if (GTCEu.MODS.isJEILoaded()) {
                 JEISupport.recipeIngredient(this, io, allPossibleItems);
             }
-            if (GTCEu.Mods.isEMILoaded()) {
+            if (GTCEu.MODS.isEMILoaded()) {
                 EMISupport.recipeIngredient(this, io, allPossibleItems);
             }
         });
@@ -425,10 +423,10 @@ public class GTItemSlotElement extends ItemSlot {
     private void addXEIRecipeSlot(IngredientIO io, Supplier<Float> chance, IntSupplier amount,
                                   Supplier<Stream<ItemStack>> allPossibleItems) {
         RegistrateDistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> {
-            if (GTCEu.Mods.isJEILoaded()) {
-                JEISupport.recipeSlot(this, allPossibleItems);
+            if (GTCEu.MODS.isJEILoaded()) {
+                JEISupport.recipeSlot(this, io, allPossibleItems);
             }
-            if (GTCEu.Mods.isEMILoaded()) {
+            if (GTCEu.MODS.isEMILoaded()) {
                 EMISupport.recipeSlot(this, chance, amount, allPossibleItems);
             }
         });
@@ -455,14 +453,6 @@ public class GTItemSlotElement extends ItemSlot {
                 return itemCapacity.getMaxStackSizeForEmptySlot(slotIndex, stack);
             }
             return super.getMaxStackSize(stack);
-        }
-    }
-
-    private static void validateSlotIndex(IItemHandlerModifiable itemHandler, int slotIndex) {
-        if (slotIndex < 0 || slotIndex >= itemHandler.getSlots()) {
-            GTCEu.LOGGER.error("Invalid GTM item slot index {} for handler with {} slots",
-                    slotIndex, itemHandler.getSlots());
-            throw new IllegalArgumentException("Invalid item slot index: " + slotIndex);
         }
     }
 }

@@ -3,6 +3,7 @@ package com.gregtechceu.gtceu.client.model.machine;
 import com.gregtechceu.gtceu.api.machine.MachineDefinition;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.api.registry.GTRegistries;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 
 import net.minecraft.world.level.block.state.StateHolder;
 import net.minecraft.world.level.block.state.properties.Property;
@@ -15,6 +16,10 @@ public class MachineRenderState extends StateHolder<MachineDefinition, MachineRe
 
     public static final Codec<MachineRenderState> CODEC = codec(GTRegistries.MACHINES.byNameCodec(),
             MachineDefinition::defaultRenderState).stable();
+
+    static {
+        FieldCodecs.register(MachineRenderState.class, CODEC);
+    }
 
     public MachineRenderState(MachineDefinition owner, Reference2ObjectArrayMap<Property<?>, Comparable<?>> values,
                               MapCodec<MachineRenderState> propertiesCodec) {

@@ -20,7 +20,7 @@ public interface IToolUIBehavior<T extends IToolUIBehavior<T>> extends IToolBeha
     default @NotNull InteractionResultHolder<ItemStack> onItemRightClick(@NotNull Level level, @NotNull Player player,
                                                                          @NotNull InteractionHand hand) {
         var heldItem = player.getItemInHand(hand);
-        if (player instanceof ServerPlayer serverPlayer && openLDLib2UI(serverPlayer, hand)) {
+        if (player instanceof ServerPlayer serverPlayer && openUI(serverPlayer, hand)) {
             HeldItemUIHelper.open(serverPlayer, hand);
             return InteractionResultHolder.success(heldItem);
         }
@@ -30,22 +30,22 @@ public interface IToolUIBehavior<T extends IToolUIBehavior<T>> extends IToolBeha
     /**
      * Returns whether this behavior has a migrated LDLib2 held-item UI for the provided context.
      */
-    boolean openLDLib2UI(@NotNull Player player, @NotNull InteractionHand hand);
+    boolean openUI(@NotNull Player player, @NotNull InteractionHand hand);
 
     /**
      * Returns whether this behavior owns an LDLib2 UI for the currently opened held item context.
      */
-    boolean canCreateLDLib2UI(Player player, HeldItemUIHolder holder);
+    boolean canCreateUI(Player player, HeldItemUIHolder holder);
 
     /**
      * Returns whether the currently held stack still belongs to this behavior's opened LDLib2 UI.
      */
-    default boolean isLDLib2UIStillValid(Player player, HeldItemUIHolder holder) {
+    default boolean isUIStillValid(Player player, HeldItemUIHolder holder) {
         return ItemStack.matches(holder.getHeld(), holder.getOpenedStack());
     }
 
     /**
      * Builds the migrated LDLib2 held-item UI for this behavior.
      */
-    UI createLDLib2UI(Player player, HeldItemUIHolder holder);
+    UI createUI(Player player, HeldItemUIHolder holder);
 }

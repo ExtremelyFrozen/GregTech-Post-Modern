@@ -12,8 +12,7 @@ import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
 import com.gregtechceu.gtceu.api.gui.element.GTTextFieldElement;
-import com.gregtechceu.gtceu.api.gui.factory.CoverUIHelper;
-import com.gregtechceu.gtceu.api.gui.factory.LDLib2CoverUIProvider;
+import com.gregtechceu.gtceu.api.gui.factory.CoverUIProvider;
 import com.gregtechceu.gtceu.api.gui.factory.UICoverHolder;
 import com.gregtechceu.gtceu.api.machine.TickableSubscription;
 import com.gregtechceu.gtceu.api.machine.feature.IDataStickInteractable;
@@ -23,6 +22,7 @@ import com.gregtechceu.gtceu.api.placeholder.PlaceholderContext;
 import com.gregtechceu.gtceu.api.placeholder.PlaceholderHandler;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
 import com.gregtechceu.gtceu.api.transfer.item.CustomItemStackHandler;
 import com.gregtechceu.gtceu.client.renderer.cover.CoverTextRenderer;
 import com.gregtechceu.gtceu.client.renderer.cover.IDynamicCoverRenderer;
@@ -60,8 +60,8 @@ import javax.annotation.ParametersAreNonnullByDefault;
 @MethodsReturnNonnullByDefault
 @ParametersAreNonnullByDefault
 public class ComputerMonitorCover extends CoverBehavior
-                                  implements LDLib2CoverUIProvider, IDataStickInteractable,
-                                  IPlaceholderInfoProviderCover, ComputerMonitorCoverConfigActionTarget {
+                                  implements CoverUIProvider, IDataStickInteractable,
+                                  IPlaceholderInfoProviderCover {
 
     private static final int FORMAT_LINE_COUNT = 8;
     private static final int TEXT_FIELD_WIDTH = 160;
@@ -72,10 +72,6 @@ public class ComputerMonitorCover extends CoverBehavior
     private static final int UPDATE_INTERVAL_MAX = 60 * 20;
     private static final int ROOT_WIDTH = 390;
     private static final int CONTENT_HEIGHT = 195;
-
-    static {
-        ComputerMonitorCoverConfigActions.initialize();
-    }
 
     private TickableSubscription subscription;
     private final CoverTextRenderer renderer;
@@ -152,32 +148,32 @@ public class ComputerMonitorCover extends CoverBehavior
     }
 
     @Override
-    public boolean canCreateLDLib2UI(Player player, UICoverHolder holder) {
+    public boolean canCreateUI(Player player, UICoverHolder holder) {
         return holder.getCover() == this;
     }
 
     @Override
-    public UI createLDLib2UI(Player player, UICoverHolder holder) {
+    public UI createUI(Player player, UICoverHolder holder) {
         ensureFormatStringSlots();
 
         UIElement root = new UIElement();
-        UITemplate.setLDLib2Bounds(root, 0, 0, ROOT_WIDTH, CONTENT_HEIGHT + 82);
+        UITemplate.setBounds(root, 0, 0, ROOT_WIDTH, CONTENT_HEIGHT + 82);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));
 
         UIElement mainPage = new UIElement();
-        UITemplate.setLDLib2Bounds(mainPage, 0, 0, ROOT_WIDTH, CONTENT_HEIGHT);
+        UITemplate.setBounds(mainPage, 0, 0, ROOT_WIDTH, CONTENT_HEIGHT);
         UIElement formatStringArgsPage = new UIElement();
-        UITemplate.setLDLib2Bounds(formatStringArgsPage, 0, 0, ROOT_WIDTH, CONTENT_HEIGHT);
+        UITemplate.setBounds(formatStringArgsPage, 0, 0, ROOT_WIDTH, CONTENT_HEIGHT);
         formatStringArgsPage.setVisible(false);
 
         for (int i = 0; i < FORMAT_LINE_COUNT; i++) {
-            mainPage.addChild(createLDLib2FormatStringLineField(player, holder, i));
-            mainPage.addChild(createLDLib2ItemSlot(i));
-            formatStringArgsPage.addChild(createLDLib2FormatStringArgField(player, holder, i));
+            mainPage.addChild(createFormatStringLineField(player, holder, i));
+            mainPage.addChild(createItemSlot(i));
+            formatStringArgsPage.addChild(createFormatStringArgField(player, holder, i));
         }
 
-        mainPage.addChild(createLDLib2PlaceholderReference(placeholderSearch));
-        mainPage.addChild(createLDLib2UpdateIntervalInput(player, holder));
+        mainPage.addChild(createPlaceholderReference(placeholderSearch));
+        mainPage.addChild(createUpdateIntervalInput(player, holder));
 
         GTButtonElement switchToFormatStringArgsPageButton = new GTButtonElement(
                 HORIZONTAL_PADDING + 50,
@@ -209,31 +205,31 @@ public class ComputerMonitorCover extends CoverBehavior
         formatStringArgsPage.addChild(switchBack);
         root.addChild(mainPage);
         root.addChild(formatStringArgsPage);
-        root.addChild(UITemplate.bindPlayerInventoryLDLib2(player.getInventory(), GuiTextures.SLOT, 7,
+        root.addChild(UITemplate.bindPlayerInventory(player.getInventory(), GuiTextures.SLOT, 7,
                 CONTENT_HEIGHT, true));
         return UI.of(root);
     }
 
-    private GTTextFieldElement createLDLib2FormatStringLineField(Player player, UICoverHolder holder, int index) {
-        GTTextFieldElement field = createLDLib2FormatTextField(index);
+    private GTTextFieldElement createFormatStringLineField(Player player, UICoverHolder holder, int index) {
+        GTTextFieldElement field = createFormatTextField(index);
         field.setText(formatStringLines.get(index), false);
-        field.setTextResponder(value -> setLDLib2FormatStringLine(player, holder, index, value));
+        field.setTextResponder(value -> setFormatStringLine(player, holder, index, value));
         field.style(style -> style.tooltips(tooltips(
                 LangHandler.getMultiLang("gtpm.gui.computer_monitor_cover.main_textbox_tooltip", index + 1))));
         return field;
     }
 
-    private GTTextFieldElement createLDLib2FormatStringArgField(Player player, UICoverHolder holder, int index) {
-        GTTextFieldElement field = createLDLib2FormatTextField(index);
+    private GTTextFieldElement createFormatStringArgField(Player player, UICoverHolder holder, int index) {
+        GTTextFieldElement field = createFormatTextField(index);
         field.setText(formatStringArgs.get(index), false);
-        field.setTextResponder(value -> setLDLib2FormatStringArg(player, holder, index, value));
+        field.setTextResponder(value -> setFormatStringArg(player, holder, index, value));
         field.style(style -> style.tooltips(tooltips(
                 LangHandler.getMultiLang("gtpm.gui.computer_monitor_cover.second_page_textbox_tooltip",
                         GTStringUtils.getIntOrderingSuffix(index + 1)))));
         return field;
     }
 
-    private static GTTextFieldElement createLDLib2FormatTextField(int index) {
+    private static GTTextFieldElement createFormatTextField(int index) {
         GTTextFieldElement field = new GTTextFieldElement(
                 HORIZONTAL_PADDING + TEXT_FIELD_WIDTH / 2,
                 10 + VERTICAL_PADDING + index * (TEXT_FIELD_HEIGHT + VERTICAL_PADDING),
@@ -246,20 +242,20 @@ public class ComputerMonitorCover extends CoverBehavior
         return field;
     }
 
-    private GTItemSlotElement createLDLib2ItemSlot(int index) {
+    private GTItemSlotElement createItemSlot(int index) {
         GTItemSlotElement slot = new GTItemSlotElement(itemStackHandler, index)
                 .setBackgroundTexture(GuiTextures.SLOT);
-        UITemplate.setLDLib2Bounds(slot, HORIZONTAL_PADDING + 50, 20 * index, 18, 18);
+        UITemplate.setBounds(slot, HORIZONTAL_PADDING + 50, 20 * index, 18, 18);
         slot.style(style -> style.tooltips(tooltips(
                 LangHandler.getMultiLang("gtpm.gui.computer_monitor_cover.slot_tooltip", index + 1))));
         return slot;
     }
 
-    private UIElement createLDLib2PlaceholderReference(String filter) {
+    private UIElement createPlaceholderReference(String filter) {
         UIElement root = new UIElement();
-        UITemplate.setLDLib2Bounds(root, 280, 0, 110, CONTENT_HEIGHT);
+        UITemplate.setBounds(root, 280, 0, 110, CONTENT_HEIGHT);
 
-        root.addChild(createLDLib2Label(0, 0, 110, 15, Component.literal(GTStringUtils.componentsToString(
+        root.addChild(createLabel(0, 0, 110, 15, Component.literal(GTStringUtils.componentsToString(
                 LangHandler.getMultiLang("gtpm.gui.computer_monitor_cover.placeholder_reference")))));
 
         GTScrollerViewElement placeholderReference = new GTScrollerViewElement(0, 15, 100, CONTENT_HEIGHT - 15);
@@ -268,7 +264,7 @@ public class ComputerMonitorCover extends CoverBehavior
         placeholders.removeIf(placeholder -> placeholder == null || !placeholder.contains(filter));
         placeholders.sort(Comparator.naturalOrder());
         for (String placeholder : placeholders) {
-            GTLabelElement placeholderName = createLDLib2Label(0, y, 100, 15, Component.literal(placeholder));
+            GTLabelElement placeholderName = createLabel(0, y, 100, 15, Component.literal(placeholder));
             placeholderName.style(style -> style.tooltips(tooltips(
                     LangHandler.getSingleOrMultiLang("gtpm.placeholder_info." + placeholder))));
             placeholderReference.addChild(placeholderName);
@@ -278,9 +274,9 @@ public class ComputerMonitorCover extends CoverBehavior
         return root;
     }
 
-    private GTIntInputElement createLDLib2UpdateIntervalInput(Player player, UICoverHolder holder) {
+    private GTIntInputElement createUpdateIntervalInput(Player player, UICoverHolder holder) {
         GTIntInputElement input = new GTIntInputElement(0, 0, 60, 20, this::getUpdateInterval,
-                value -> setLDLib2UpdateInterval(player, holder, value))
+                value -> setUpdateInterval(player, holder, value))
                 .setMin(UPDATE_INTERVAL_MIN)
                 .setMax(UPDATE_INTERVAL_MAX);
         input.style(style -> style.tooltips(
@@ -288,7 +284,7 @@ public class ComputerMonitorCover extends CoverBehavior
         return input;
     }
 
-    private static GTLabelElement createLDLib2Label(int x, int y, int width, int height, Component text) {
+    private static GTLabelElement createLabel(int x, int y, int width, int height, Component text) {
         GTLabelElement label = new GTLabelElement(x, y, width, height, text);
         label.textStyle(style -> style
                 .textColor(0x404040)
@@ -298,25 +294,32 @@ public class ComputerMonitorCover extends CoverBehavior
         return label;
     }
 
-    private void setLDLib2FormatStringLine(Player player, UICoverHolder holder, int index, String value) {
+    private void setFormatStringLine(Player player, UICoverHolder holder, int index, String value) {
         setFormatStringEntry(formatStringLines, index, value);
-        sendLDLib2ConfigAction(player, holder);
+        sendConfigAction(player, holder);
     }
 
-    private void setLDLib2FormatStringArg(Player player, UICoverHolder holder, int index, String value) {
+    private void setFormatStringArg(Player player, UICoverHolder holder, int index, String value) {
         setFormatStringEntry(formatStringArgs, index, value);
-        sendLDLib2ConfigAction(player, holder);
+        sendConfigAction(player, holder);
     }
 
-    private void setLDLib2UpdateInterval(Player player, UICoverHolder holder, int value) {
+    private void setUpdateInterval(Player player, UICoverHolder holder, int value) {
         setUpdateInterval(value);
-        sendLDLib2ConfigAction(player, holder);
+        sendConfigAction(player, holder);
     }
 
-    private void sendLDLib2ConfigAction(Player player, UICoverHolder holder) {
+    @RPCMethod
+    public void configureComputerMonitor(List<String> lines, List<String> args, int updateInterval) {
+        replaceFormatStringLines(lines);
+        replaceFormatStringArgs(args);
+        setUpdateInterval(updateInterval);
+    }
+
+    private void sendConfigAction(Player player, UICoverHolder holder) {
         if (player.level().isClientSide()) {
-            CoverUIHelper.sendAction(holder, ComputerMonitorCoverConfigActions.createSetConfigAction(
-                    formatStringLines, formatStringArgs, getUpdateInterval()));
+            holder.getCover().rpcToServer("configureComputerMonitor", new ArrayList<>(formatStringLines),
+                    new ArrayList<>(formatStringArgs), getUpdateInterval());
         }
     }
 
@@ -350,7 +353,7 @@ public class ComputerMonitorCover extends CoverBehavior
         ticksSincePlaced++;
         if (coverHolder.getOffsetTimer() % updateInterval == 0) {
             try {
-                if (GTCEu.Mods.isCreateLoaded())
+                if (GTCEu.MODS.CREATE.isLoaded())
                     GTCreateIntegration.TemporaryRedstoneLinkTransmitter.destroyAll();
                 setRedstoneSignalOutput(0);
                 text = getRenderedText();
@@ -406,21 +409,18 @@ public class ComputerMonitorCover extends CoverBehavior
         return InteractionResult.sidedSuccess(player.level().isClientSide);
     }
 
-    @Override
     public void replaceFormatStringLines(List<String> lines) {
         formatStringLines.clear();
         formatStringLines.addAll(lines);
         ensureListSize(formatStringLines, FORMAT_LINE_COUNT);
     }
 
-    @Override
     public void replaceFormatStringArgs(List<String> args) {
         formatStringArgs.clear();
         formatStringArgs.addAll(args);
         ensureListSize(formatStringArgs, FORMAT_LINE_COUNT);
     }
 
-    @Override
     public void setUpdateInterval(int updateInterval) {
         this.updateInterval = updateInterval;
     }

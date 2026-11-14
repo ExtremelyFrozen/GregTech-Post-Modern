@@ -8,7 +8,8 @@ repositories {
             includeGroup("it.unimi.dsi")
             includeGroup("org.lwjgl")
             includeGroup("com.google.guava")
-            includeGroup("io.netty")
+            includeGroupAndSubgroups("io.netty")
+            includeGroupAndSubgroups("org.jetbrains")
         }
     }
 
@@ -23,6 +24,11 @@ repositories {
     maven { // JEI mirror, AE2
         name = "ModMaven"
         url = "https://modmaven.dev/"
+        metadataSources {
+            gradleMetadata()
+            mavenPom()
+            artifact()
+        }
     }
 
     maven { // LDLib, Shimmer
@@ -43,13 +49,6 @@ repositories {
     exclusiveContent { // Configuration
         forRepository { maven { url = "https://repo.repsy.io/mvn/toma/public" } }
         filter { includeGroup("dev.toma.configuration")}
-    }
-    exclusiveContent { // KubeJS and Rhino
-        forRepository { maven { url = "https://maven.latvian.dev/releases" } }
-        filter {
-            includeGroup("dev.latvian.mods")
-            includeGroup("dev.latvian.apps")
-        }
     }
     exclusiveContent { // FTB mods
         forRepository { maven { url = "https://maven.ftb.dev/releases/" } }
@@ -83,7 +82,7 @@ repositories {
         forRepository { maven { url = "https://maven.theillusivec4.top/" } }
         filter { includeGroup('top.theillusivec4.curios')}
     }
-    exclusiveContent { // KotlinForForge
+    exclusiveContent { // KotlinForForge, required by Observable
         forRepository { maven { url = "https://thedarkcolour.github.io/KotlinForForge/" } }
         filter { includeGroup("thedarkcolour") }
     }
@@ -97,10 +96,6 @@ repositories {
     exclusiveContent { // CC: Tweaked
         forRepository { maven { url = "https://maven.squiddev.cc" } }
         filter { includeGroup("cc.tweaked") }
-    }
-    exclusiveContent { // This one lib that KJS 1.21 uses for whatever reason?
-        forRepository { maven { url = "https://jitpack.io/" } }
-        filter { includeGroup("com.github.rtyley") }
     }
     exclusiveContent { // Xaero's
         forRepository { maven { url = "https://chocolateminecraft.com/maven/" } }

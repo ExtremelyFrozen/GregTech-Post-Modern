@@ -1,5 +1,6 @@
 package com.gregtechceu.gtceu.common.particle;
 
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 import com.gregtechceu.gtceu.common.data.GTParticleTypes;
 
 import net.minecraft.core.particles.ParticleOptions;
@@ -22,6 +23,10 @@ public record HazardParticleOptions(int color, float scale) implements ParticleO
                 buffer.writeVarInt(var.color);
                 buffer.writeFloat(var.scale);
             }, (buffer) -> new HazardParticleOptions(buffer.readVarInt(), buffer.readFloat()));
+
+    static {
+        FieldCodecs.registerStream(HazardParticleOptions.class, STREAM_CODEC);
+    }
 
     @Override
     public ParticleType<?> getType() {

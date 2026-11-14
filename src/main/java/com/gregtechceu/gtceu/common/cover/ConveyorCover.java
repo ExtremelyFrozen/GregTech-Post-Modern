@@ -16,14 +16,14 @@ import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTEnumSelectorElement;
 import com.gregtechceu.gtceu.api.gui.element.GTIntInputElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
-import com.gregtechceu.gtceu.api.gui.factory.CoverUIHelper;
-import com.gregtechceu.gtceu.api.gui.factory.LDLib2CoverUIProvider;
+import com.gregtechceu.gtceu.api.gui.factory.CoverUIProvider;
 import com.gregtechceu.gtceu.api.gui.factory.UICoverHolder;
 import com.gregtechceu.gtceu.api.machine.ConditionalSubscriptionHandler;
 import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.RerenderOnChanged;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
 import com.gregtechceu.gtceu.api.transfer.item.ItemHandlerDelegate;
 import com.gregtechceu.gtceu.common.blockentity.ItemPipeBlockEntity;
 import com.gregtechceu.gtceu.common.cover.data.DistributionMode;
@@ -39,7 +39,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
-import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
@@ -62,15 +61,10 @@ import java.util.List;
 import java.util.Map;
 
 public class ConveyorCover extends CoverBehavior
-                           implements IIOCover, LDLib2CoverUIProvider, IControllable,
-                           ConveyorCoverConfigActionTarget {
+                           implements IIOCover, CoverUIProvider, IControllable {
 
     // 8 32 128 512 1024
     public static final Int2IntFunction CONVEYOR_SCALING = tier -> 2 * (int) Math.pow(4, Math.min(tier, GTValues.LuV));
-    static {
-        ConveyorCoverConfigActions.initialize();
-    }
-
     public final int tier;
     public final int maxItemTransferRate;
     @SaveField
@@ -136,7 +130,6 @@ public class ConveyorCover extends CoverBehavior
                 .orElse(null);
     }
 
-    @Override
     public void setDistributionMode(DistributionMode mode) {
         if (distributionMode != mode) {
             distributionMode = mode;
@@ -153,16 +146,14 @@ public class ConveyorCover extends CoverBehavior
         return super.canAttach() && getOwnItemHandler() != null;
     }
 
-    @Override
     public void setTransferRate(int transferRate) {
-        int clamped = Math.min(Math.max(transferRate, 1), maxItemTransferRate);
+        int clamped = Math.clamp(transferRate, 1, maxItemTransferRate);
         if (this.transferRate != clamped) {
             this.transferRate = clamped;
             syncDataHolder.markClientSyncFieldDirty("transferRate");
         }
     }
 
-    @Override
     public void setIo(IO io) {
         if (io == IO.IN || io == IO.OUT) {
             if (this.io != io) {
@@ -173,7 +164,6 @@ public class ConveyorCover extends CoverBehavior
         subscriptionHandler.updateSubscription();
     }
 
-    @Override
     public void setManualIOMode(ManualIOMode manualIOMode) {
         if (this.manualIOMode != manualIOMode) {
             this.manualIOMode = manualIOMode;
@@ -444,36 +434,36 @@ public class ConveyorCover extends CoverBehavior
     // *********** GUI ***********//
     //////////////////////////////////////
     @Override
-    public boolean canCreateLDLib2UI(Player player, UICoverHolder holder) {
+    public boolean canCreateUI(Player player, UICoverHolder holder) {
         return holder.getCover() == this;
     }
 
     @Override
-    public UI createLDLib2UI(Player player, UICoverHolder holder) {
+    public UI createUI(Player player, UICoverHolder holder) {
         UIElement root = new UIElement();
-        UITemplate.setLDLib2Bounds(root, 0, 0, 176, 219);
+        UITemplate.setBounds(root, 0, 0, 176, 219);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));
 
-        root.addChild(createLDLib2Label());
+        root.addChild(createLabel());
         root.addChild(new GTIntInputElement(10, 20, 156, 20, this::getTransferRate,
-                value -> setLDLib2TransferRate(player, holder, value))
+                value -> setTransferRate(player, holder, value))
                 .setMin(1)
                 .setMax(maxItemTransferRate));
         root.addChild(GTEnumSelectorElement.selectable(10, 45, 20, 20, List.of(IO.IN, IO.OUT), this::getIo,
-                mode -> setLDLib2Io(player, holder, mode)));
+                mode -> setIo(player, holder, mode)));
 
         if (shouldDisplayDistributionMode()) {
             root.addChild(GTEnumSelectorElement.selectable(146, 67, 20, 20, DistributionMode.VALUES,
-                    this::getDistributionMode, mode -> setLDLib2DistributionMode(player, holder, mode)));
+                    this::getDistributionMode, mode -> setDistributionMode(player, holder, mode)));
         }
 
         root.addChild(GTEnumSelectorElement.selectable(146, 107, 20, 20, ManualIOMode.VALUES,
-                this::getManualIOMode, mode -> setLDLib2ManualIOMode(player, holder, mode)));
+                this::getManualIOMode, mode -> setManualIOMode(player, holder, mode)));
 
-        root.addChild(filterHandler.createFilterSlotLDLib2UI(125, 108));
-        root.addChild(filterHandler.createFilterConfigLDLib2UI(10, 72, 156, 60));
-        buildAdditionalLDLib2UI(root, player, holder);
-        root.addChild(UITemplate.bindPlayerInventoryLDLib2(player.getInventory(), GuiTextures.SLOT, 7, 137, true));
+        root.addChild(filterHandler.createFilterSlotUI(125, 108));
+        root.addChild(filterHandler.createFilterConfigUI(10, 72, 156, 60));
+        buildAdditionalUI(root, player, holder);
+        root.addChild(UITemplate.bindPlayerInventory(player.getInventory(), GuiTextures.SLOT, 7, 137, true));
         return UI.of(root);
     }
 
@@ -489,7 +479,7 @@ public class ConveyorCover extends CoverBehavior
         return "cover.conveyor.title";
     }
 
-    protected void buildAdditionalLDLib2UI(UIElement root, Player player, UICoverHolder holder) {
+    protected void buildAdditionalUI(UIElement root, Player player, UICoverHolder holder) {
         // Do nothing in the base implementation. This is intended to be overridden by subclasses.
     }
 
@@ -497,7 +487,7 @@ public class ConveyorCover extends CoverBehavior
         // Do nothing in the base implementation. This is intended to be overridden by subclasses.
     }
 
-    private GTLabelElement createLDLib2Label() {
+    private GTLabelElement createLabel() {
         GTLabelElement label = new GTLabelElement(10, 5, 156, 10, Component.translatable(getUITitle(),
                 GTValues.VN[tier]));
         label.textStyle(style -> style
@@ -508,30 +498,39 @@ public class ConveyorCover extends CoverBehavior
         return label;
     }
 
-    private void setLDLib2TransferRate(Player player, UICoverHolder holder, int value) {
+    private void setTransferRate(Player player, UICoverHolder holder, int value) {
         setTransferRate(value);
-        sendLDLib2ConfigAction(player, holder);
+        sendConfigAction(player, holder);
     }
 
-    private void setLDLib2Io(Player player, UICoverHolder holder, IO io) {
+    private void setIo(Player player, UICoverHolder holder, IO io) {
         setIo(io);
-        sendLDLib2ConfigAction(player, holder);
+        sendConfigAction(player, holder);
     }
 
-    private void setLDLib2DistributionMode(Player player, UICoverHolder holder, DistributionMode mode) {
+    private void setDistributionMode(Player player, UICoverHolder holder, DistributionMode mode) {
         setDistributionMode(mode);
-        sendLDLib2ConfigAction(player, holder);
+        sendConfigAction(player, holder);
     }
 
-    private void setLDLib2ManualIOMode(Player player, UICoverHolder holder, ManualIOMode mode) {
+    private void setManualIOMode(Player player, UICoverHolder holder, ManualIOMode mode) {
         setManualIOMode(mode);
-        sendLDLib2ConfigAction(player, holder);
+        sendConfigAction(player, holder);
     }
 
-    private void sendLDLib2ConfigAction(Player player, UICoverHolder holder) {
+    @RPCMethod
+    public void configureConveyor(int transferRate, IO io, DistributionMode distributionMode,
+                                  ManualIOMode manualIOMode) {
+        setTransferRate(transferRate);
+        setIo(io);
+        setDistributionMode(distributionMode);
+        setManualIOMode(manualIOMode);
+    }
+
+    private void sendConfigAction(Player player, UICoverHolder holder) {
         if (player.level().isClientSide()) {
-            CoverUIHelper.sendAction(holder, ConveyorCoverConfigActions.createSetConfigAction(getTransferRate(),
-                    getIo(), getDistributionMode(), getManualIOMode()));
+            holder.getCover().rpcToServer("configureConveyor", getTransferRate(), getIo(), getDistributionMode(),
+                    getManualIOMode());
         }
     }
 
@@ -596,28 +595,27 @@ public class ConveyorCover extends CoverBehavior
     }
 
     @Override
-    public DataComponentMap copyConfig(HolderLookup.Provider registries) {
+    public SyncFieldData copyConfig(HolderLookup.Provider registries) {
         return ConfigCopyHelper.withFields(super.copyConfig(registries), fields -> fields
                 .put(SyncFieldData.key("transferRate"),
-                        ConfigCopyHelper.intValue(getTransferRate()))
+                        getTransferRate())
                 .put(SyncFieldData.key("io"),
-                        ConfigCopyHelper.intValue(getIo().ordinal()))
+                        getIo().ordinal())
                 .put(SyncFieldData.key("distributionMode"),
-                        ConfigCopyHelper.intValue(getDistributionMode().ordinal()))
+                        getDistributionMode().ordinal())
                 .put(SyncFieldData.key("manualIO"),
-                        ConfigCopyHelper.intValue(getManualIOMode().ordinal()))
-                .put(SyncFieldData.key("filter"),
-                        ConfigCopyHelper.encodeItem(registries, filterHandler.getFilterItem())));
+                        getManualIOMode().ordinal())
+                .put(SyncFieldData.key("filter"), ItemStack.OPTIONAL_CODEC, filterHandler.getFilterItem(), registries));
     }
 
     @Override
-    public void pasteConfig(ServerPlayer player, HolderLookup.Provider registries, DataComponentMap config) {
+    public void pasteConfig(ServerPlayer player, HolderLookup.Provider registries, SyncFieldData config) {
         setTransferRate(ConfigCopyHelper.getInt(config, "transferRate"));
         setIo(IO.values()[ConfigCopyHelper.getInt(config, "io")]);
         setDistributionMode(DistributionMode.values()[ConfigCopyHelper.getInt(config, "distributionMode")]);
         setManualIOMode(ManualIOMode.values()[ConfigCopyHelper.getInt(config, "manualIO")]);
         filterHandler
-                .setFilterItem(ConfigCopyHelper.decodeItem(registries, ConfigCopyHelper.getField(config, "filter")));
+                .setFilterItem(ConfigCopyHelper.getItem(registries, config, "filter"));
         super.pasteConfig(player, registries, config);
     }
 }

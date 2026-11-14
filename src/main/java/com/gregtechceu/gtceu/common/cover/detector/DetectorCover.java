@@ -14,7 +14,6 @@ import com.gregtechceu.gtceu.utils.ExtendedUseOnContext;
 
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
-import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionResult;
@@ -99,14 +98,14 @@ public abstract class DetectorCover extends CoverBehavior implements IControllab
     }
 
     @Override
-    public DataComponentMap copyConfig(HolderLookup.Provider registries) {
+    public SyncFieldData copyConfig(HolderLookup.Provider registries) {
         return ConfigCopyHelper.withFields(super.copyConfig(registries), fields -> fields
                 .put(SyncFieldData.key("inverted"),
-                        ConfigCopyHelper.booleanValue(isInverted)));
+                        isInverted));
     }
 
     @Override
-    public void pasteConfig(ServerPlayer player, HolderLookup.Provider registries, DataComponentMap config) {
+    public void pasteConfig(ServerPlayer player, HolderLookup.Provider registries, SyncFieldData config) {
         setInverted(ConfigCopyHelper.getBoolean(config, "inverted"));
         super.pasteConfig(player, registries, config);
     }

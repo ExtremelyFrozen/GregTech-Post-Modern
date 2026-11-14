@@ -11,14 +11,12 @@ import com.gregtechceu.gtceu.api.gui.element.GTDynamicItemSlotSessionElement;
 import com.gregtechceu.gtceu.api.gui.element.GTIntInputElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolderContext;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2ConfiguratorPanelElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyMachineUIElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyTabsElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyTooltipsPanelElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
+import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
+import com.gregtechceu.gtceu.api.gui.fancy.TabsWidget;
+import com.gregtechceu.gtceu.api.gui.fancy.TooltipsPanel;
 import com.gregtechceu.gtceu.api.gui.slot.DynamicItemHandlerRoute;
 import com.gregtechceu.gtceu.api.gui.slot.DynamicItemSlotBinding;
 import com.gregtechceu.gtceu.api.gui.slot.DynamicItemSlotDefinition;
@@ -26,14 +24,15 @@ import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.item.IComponentItem;
 import com.gregtechceu.gtceu.api.item.component.IItemComponent;
 import com.gregtechceu.gtceu.api.item.component.IMonitorModuleItem;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2DirectionalFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2VoidingModeFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2WorkingEnabledFancyConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CombinedDirectionalFancyConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.VoidingModeConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMaintenanceMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMultiPart;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.LDLib2FancyPartUIProvider;
-import com.gregtechceu.gtceu.api.sync_system.SyncActionData;
+import com.gregtechceu.gtceu.common.item.modules.ImageModuleBehaviour;
+import com.gregtechceu.gtceu.common.item.modules.TextModuleBehaviour;
 import com.gregtechceu.gtceu.common.machine.multiblock.electric.monitor.CentralMonitorGroupItemHandler;
+import com.gregtechceu.gtceu.common.machine.multiblock.electric.monitor.CentralMonitorGroupTargetState;
 import com.gregtechceu.gtceu.common.machine.multiblock.electric.monitor.MonitorGroup;
 import com.gregtechceu.gtceu.data.lang.LangHandler;
 
@@ -50,6 +49,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.items.IItemHandler;
 
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 
@@ -68,7 +68,7 @@ import java.util.function.Supplier;
 /**
  * Owns one Central Monitor LDLib2 opening, including its local selection draft and acknowledged group page.
  */
-final class CentralMonitorElement extends UIElement implements LDLib2FancyUIProvider {
+final class CentralMonitorElement extends UIElement implements IFancyUIProvider {
 
     static final int PAGE_WIDTH = 344;
     static final int PAGE_HEIGHT = 210;
@@ -84,11 +84,11 @@ final class CentralMonitorElement extends UIElement implements LDLib2FancyUIProv
     private final CentralMonitorMachine machine;
     private final Player player;
     private final MachineUIHolder holder;
-    private final Consumer<SyncActionData> actionSender;
+    private final Consumer<Runnable> actionSender;
     private final Supplier<UUID> groupIdentitySupplier;
     private final GroupPageSelectionRequester pageRequester;
-    private final LDLib2DirectionalFancyConfigurator directionalPage;
-    private final List<LDLib2FancyUIProvider> partPages;
+    private final CombinedDirectionalFancyConfigurator directionalPage;
+    private final List<IFancyUIProvider> partPages;
     private final Set<BlockPos> selectedMonitorPositions = new LinkedHashSet<>();
     private final Map<BlockPos, GTButtonElement> componentControls = new LinkedHashMap<>();
     private final Map<UUID, GTButtonElement> groupGearControls = new LinkedHashMap<>();
@@ -109,31 +109,30 @@ final class CentralMonitorElement extends UIElement implements LDLib2FancyUIProv
     private final GTIntInputElement dataSlotInput;
     private final GTDynamicItemSlotSessionElement sessionElement;
 
-    private List<GroupSnapshot> displayedGroups = List.of();
-    private Set<ComponentSnapshot> displayedComponents = Set.of();
+    private List<GroupState> displayedGroups = List.of();
+    private Set<ComponentState> displayedComponents = Set.of();
     private @Nullable BlockPos selectedTargetPosition;
     private @Nullable UUID configuredGroupIdentity;
     private @Nullable UUID selectedBindingIdentity;
-    private @Nullable AuthoritativeModuleSnapshot renderedModuleSnapshot;
+    private @Nullable AuthoritativeModuleState renderedModuleState;
     private int dataSlot = 1;
     private int dataSlotCount = 1;
-    private int nextActionSequence;
 
     CentralMonitorElement(CentralMonitorMachine machine, Player player, MachineUIHolder holder) {
         this(machine, player, holder, action -> {
             if (player.level().isClientSide()) {
-                MachineUIHelper.sendAction(holder, action);
+                action.run();
             }
         }, UUID::randomUUID, null);
     }
 
     CentralMonitorElement(CentralMonitorMachine machine, Player player, MachineUIHolder holder,
-                          Consumer<SyncActionData> actionSender, Supplier<UUID> groupIdentitySupplier) {
+                          Consumer<Runnable> actionSender, Supplier<UUID> groupIdentitySupplier) {
         this(machine, player, holder, actionSender, groupIdentitySupplier, null);
     }
 
     CentralMonitorElement(CentralMonitorMachine machine, Player player, MachineUIHolder holder,
-                          Consumer<SyncActionData> actionSender, Supplier<UUID> groupIdentitySupplier,
+                          Consumer<Runnable> actionSender, Supplier<UUID> groupIdentitySupplier,
                           @Nullable GroupPageSelectionRequester pageRequester) {
         this.machine = machine;
         this.player = player;
@@ -141,26 +140,16 @@ final class CentralMonitorElement extends UIElement implements LDLib2FancyUIProv
         this.actionSender = actionSender;
         this.groupIdentitySupplier = groupIdentitySupplier;
         requireOpeningMachine();
-        directionalPage = new LDLib2DirectionalFancyConfigurator(machine, player, holder);
-        List<LDLib2FancyUIProvider> pages = new ArrayList<>();
-        for (IMultiPart part : machine.getParts()) {
-            if (!(part instanceof LDLib2FancyPartUIProvider pageProvider)) {
-                GTCEu.LOGGER.error("Central Monitor part {} has no LDLib2 Fancy page",
-                        part.self().getDefinition().getId());
-                throw new IllegalStateException("Central Monitor part has no LDLib2 Fancy page: " +
-                        part.self().getDefinition().getId());
-            }
-            pages.add(pageProvider.createLDLib2FancyPage(player, new MachineUIHolderContext(player, part.self())));
-        }
-        partPages = List.copyOf(pages);
+        directionalPage = new CombinedDirectionalFancyConfigurator(machine, player);
+        partPages = new ObjectArrayList<>(machine.getParts());
 
-        UITemplate.setLDLib2Bounds(this, 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
+        UITemplate.setBounds(this, 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
         style(style -> style
                 .backgroundTexture(GuiTextures.BACKGROUND_INVERSE)
                 .overflowVisible(true));
 
-        overviewElement = UITemplate.setLDLib2Bounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
-        groupElement = UITemplate.setLDLib2Bounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
+        overviewElement = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
+        groupElement = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
         groupElement.setVisible(false);
         groupElement.setActive(false);
 
@@ -181,8 +170,8 @@ final class CentralMonitorElement extends UIElement implements LDLib2FancyUIProv
                 .mode(ScrollerMode.BOTH)
                 .verticalScrollDisplay(ScrollDisplay.AUTO)
                 .horizontalScrollDisplay(ScrollDisplay.AUTO));
-        bindingHost = UITemplate.setLDLib2Bounds(new UIElement(), 88, 34, 108, 58);
-        moduleConfigurationHost = UITemplate.setLDLib2Bounds(new UIElement(), 86, 98, 248, 106);
+        bindingHost = UITemplate.setBounds(new UIElement(), 88, 34, 108, 58);
+        moduleConfigurationHost = UITemplate.setBounds(new UIElement(), 86, 98, 248, 106);
         groupTitle = new GTLabelElement(112, 10, 216, 12, Component.empty());
         groupTitle.textStyle(style -> style
                 .textColor(0x404040)
@@ -224,7 +213,7 @@ final class CentralMonitorElement extends UIElement implements LDLib2FancyUIProv
                 .bindingSelectable(this::isBindingResolved)
                 .selectionListener(this::applyAcknowledgedSelection)
                 .build();
-        UITemplate.setLDLib2Bounds(sessionElement, 0, 0, 0, 0);
+        UITemplate.setBounds(sessionElement, 0, 0, 0, 0);
         sessionElement.setAllowHitTest(false);
         this.pageRequester = pageRequester == null ? new GroupPageSelectionRequester() {
 
@@ -244,7 +233,7 @@ final class CentralMonitorElement extends UIElement implements LDLib2FancyUIProv
     }
 
     @Override
-    public UIElement createLDLib2MainPage(LDLib2FancyMachineUIElement shell) {
+    public UIElement createUIWidget(FancyMachineUIWidget shell) {
         if (shell.getHolder() != holder || shell.getOpeningPlayer() != player) {
             GTCEu.LOGGER.error("Central Monitor Fancy page was attached to a different opening at {}",
                     machine.getBlockPos());
@@ -264,12 +253,12 @@ final class CentralMonitorElement extends UIElement implements LDLib2FancyUIProv
     }
 
     @Override
-    public int getLDLib2PageWidth() {
+    public int getPageWidth() {
         return PAGE_WIDTH;
     }
 
     @Override
-    public int getLDLib2PageHeight() {
+    public int getPageHeight() {
         return PAGE_HEIGHT;
     }
 
@@ -279,27 +268,27 @@ final class CentralMonitorElement extends UIElement implements LDLib2FancyUIProv
     }
 
     @Override
-    public void attachSideTabs(LDLib2FancyTabsElement tabs) {
+    public void attachSideTabs(TabsWidget tabs) {
         tabs.attachSubTab(directionalPage);
     }
 
     @Override
-    public void attachConfigurators(LDLib2ConfiguratorPanelElement configuratorPanel) {
-        LDLib2VoidingModeFancyConfigurator.attachConfigurators(configuratorPanel, machine);
-        configuratorPanel.attachConfigurators(new LDLib2WorkingEnabledFancyConfigurator(machine, holder));
+    public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
+        VoidingModeConfigurator.attachConfigurators(configuratorPanel, machine);
+        configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(machine));
     }
 
     @Override
-    public void attachTooltips(LDLib2FancyTooltipsPanelElement tooltipsPanel) {
+    public void attachTooltips(TooltipsPanel tooltipsPanel) {
         for (IMultiPart part : machine.getParts()) {
             if (part instanceof IMaintenanceMachine maintenanceMachine) {
-                maintenanceMachine.attachLDLib2MaintenanceTooltips(tooltipsPanel);
+                maintenanceMachine.attachMaintenanceTooltips(tooltipsPanel);
             }
         }
     }
 
     @Override
-    public List<LDLib2FancyUIProvider> getSubTabs() {
+    public List<IFancyUIProvider> getSubTabs() {
         return partPages;
     }
 
@@ -422,7 +411,7 @@ final class CentralMonitorElement extends UIElement implements LDLib2FancyUIProv
     private List<GTDynamicItemSlotElement> appendBinding(DynamicItemSlotBinding binding) {
         DynamicItemHandlerRoute route = new DynamicItemHandlerRoute(
                 binding.targetId(), binding.targetIncarnation(), binding.slotCount(), this::resolveGroupItemHandler);
-        UIElement bindingElement = UITemplate.setLDLib2Bounds(new UIElement(), 0, 0, 108, 58);
+        UIElement bindingElement = UITemplate.setBounds(new UIElement(), 0, 0, 108, 58);
         bindingElement.setVisible(false);
         bindingElement.setActive(false);
 
@@ -442,7 +431,7 @@ final class CentralMonitorElement extends UIElement implements LDLib2FancyUIProv
                 x = 82;
                 y = 9;
             }
-            UITemplate.setLDLib2Bounds(slot, x, y, 18, 18);
+            UITemplate.setBounds(slot, x, y, 18, 18);
             slot.setBackgroundTexture(GuiTextures.SLOT);
             bindingElement.addChild(slot);
             slots.add(slot);
@@ -482,7 +471,7 @@ final class CentralMonitorElement extends UIElement implements LDLib2FancyUIProv
         if (selectedBinding.isEmpty()) {
             configuredGroupIdentity = null;
             selectedBindingIdentity = null;
-            renderedModuleSnapshot = null;
+            renderedModuleState = null;
             moduleConfigurationHost.clearAllChildren();
             setDisplayed(groupElement, false);
             setDisplayed(overviewElement, true);
@@ -495,7 +484,7 @@ final class CentralMonitorElement extends UIElement implements LDLib2FancyUIProv
         if (group == null || bindingElement == null) {
             configuredGroupIdentity = null;
             selectedBindingIdentity = null;
-            renderedModuleSnapshot = null;
+            renderedModuleState = null;
             moduleConfigurationHost.clearAllChildren();
             setDisplayed(groupElement, false);
             setDisplayed(overviewElement, true);
@@ -509,9 +498,9 @@ final class CentralMonitorElement extends UIElement implements LDLib2FancyUIProv
         setDisplayed(overviewElement, false);
         setDisplayed(groupElement, true);
         updateGroupTitle(group);
-        AuthoritativeModuleSnapshot authoritativeSnapshot = AuthoritativeModuleSnapshot.capture(group);
-        if (!retainedGroup || authoritativeSnapshot.differsFrom(renderedModuleSnapshot)) {
-            rebuildModuleConfiguration(group, authoritativeSnapshot);
+        AuthoritativeModuleState authoritativeState = AuthoritativeModuleState.capture(group);
+        if (!retainedGroup || authoritativeState.differsFrom(renderedModuleState)) {
+            rebuildModuleConfiguration(group, authoritativeState);
         }
     }
 
@@ -520,12 +509,12 @@ final class CentralMonitorElement extends UIElement implements LDLib2FancyUIProv
             return;
         }
         Map<BlockPos, IMonitorComponent> components = machine.resolveMembershipComponents();
-        Set<ComponentSnapshot> componentSnapshots = components.values().stream()
-                .map(component -> new ComponentSnapshot(component.getBlockPos(), component.isMonitor()))
+        Set<ComponentState> componentStates = components.values().stream()
+                .map(component -> new ComponentState(component.getBlockPos(), component.isMonitor()))
                 .collect(LinkedHashSet::new, Set::add, Set::addAll);
-        if (force || !componentSnapshots.equals(displayedComponents)) {
+        if (force || !componentStates.equals(displayedComponents)) {
             rebuildComponentControls();
-            displayedComponents = Set.copyOf(componentSnapshots);
+            displayedComponents = Set.copyOf(componentStates);
         }
 
         selectedMonitorPositions.removeIf(position -> {
@@ -536,12 +525,12 @@ final class CentralMonitorElement extends UIElement implements LDLib2FancyUIProv
             selectedTargetPosition = null;
         }
 
-        List<GroupSnapshot> groupSnapshots = machine.getMonitorGroups().stream()
-                .map(GroupSnapshot::capture)
+        List<GroupState> groupStates = machine.getMonitorGroups().stream()
+                .map(GroupState::capture)
                 .toList();
-        if (force || !groupSnapshots.equals(displayedGroups)) {
+        if (force || !groupStates.equals(displayedGroups)) {
             rebuildGroupControls();
-            displayedGroups = groupSnapshots;
+            displayedGroups = groupStates;
         }
 
         refreshComponentControls(components);
@@ -677,7 +666,7 @@ final class CentralMonitorElement extends UIElement implements LDLib2FancyUIProv
         if (group == null) {
             configuredGroupIdentity = null;
             selectedBindingIdentity = null;
-            renderedModuleSnapshot = null;
+            renderedModuleState = null;
             moduleConfigurationHost.clearAllChildren();
             bindingElements.values().forEach(element -> setDisplayed(element, false));
             setDisplayed(groupElement, false);
@@ -685,9 +674,9 @@ final class CentralMonitorElement extends UIElement implements LDLib2FancyUIProv
             return;
         }
         updateGroupTitle(group);
-        AuthoritativeModuleSnapshot authoritativeSnapshot = AuthoritativeModuleSnapshot.capture(group);
-        if (authoritativeSnapshot.differsFrom(renderedModuleSnapshot)) {
-            rebuildModuleConfiguration(group, authoritativeSnapshot);
+        AuthoritativeModuleState authoritativeState = AuthoritativeModuleState.capture(group);
+        if (authoritativeState.differsFrom(renderedModuleState)) {
+            rebuildModuleConfiguration(group, authoritativeState);
         }
         bindingElements.forEach(
                 (bindingIdentity, element) -> setDisplayed(element, bindingIdentity.equals(selectedBindingIdentity)));
@@ -698,7 +687,7 @@ final class CentralMonitorElement extends UIElement implements LDLib2FancyUIProv
     }
 
     private void rebuildModuleConfiguration(MonitorGroup group,
-                                            AuthoritativeModuleSnapshot authoritativeSnapshot) {
+                                            AuthoritativeModuleState authoritativeState) {
         moduleConfigurationHost.clearAllChildren();
         ItemStack moduleStack = group.getItemStackHandler().getStackInSlot(0);
         if (moduleStack.getItem() instanceof IComponentItem componentItem) {
@@ -709,7 +698,7 @@ final class CentralMonitorElement extends UIElement implements LDLib2FancyUIProv
                 }
             }
         }
-        renderedModuleSnapshot = authoritativeSnapshot;
+        renderedModuleState = authoritativeState;
     }
 
     private void handleComponentClick(BlockPos position, int button) {
@@ -775,13 +764,12 @@ final class CentralMonitorElement extends UIElement implements LDLib2FancyUIProv
                 selectedMonitorPositions.stream().anyMatch(this::isInAnyGroup)) {
             return;
         }
-        Set<BlockPos> positions = Set.copyOf(selectedMonitorPositions);
-        int sequence = nextActionSequence;
-        SyncActionData action = CentralMonitorMembershipActions.createGroupAction(
-                machine.getCentralMonitorActionIncarnation(), machine.getCentralMonitorMembershipRevision(),
-                groupIdentitySupplier.get(), positions, sequence);
-        actionSender.accept(action);
-        nextActionSequence = Math.incrementExact(sequence);
+        List<BlockPos> positions = List.copyOf(selectedMonitorPositions);
+        UUID holderIncarnation = machine.getCentralMonitorActionIncarnation();
+        long expectedRevision = machine.getCentralMonitorMembershipRevision();
+        UUID groupIdentity = groupIdentitySupplier.get();
+        actionSender.accept(() -> machine.rpcToServer("createCentralMonitorGroup",
+                holderIncarnation, expectedRevision, groupIdentity, positions));
         clearSelectionDraft();
     }
 
@@ -791,7 +779,6 @@ final class CentralMonitorElement extends UIElement implements LDLib2FancyUIProv
             return;
         }
         long expectedRevision = machine.getCentralMonitorMembershipRevision();
-        int sequence = nextActionSequence;
         for (MonitorGroup group : List.copyOf(machine.getMonitorGroups())) {
             Set<BlockPos> positions = new LinkedHashSet<>();
             for (BlockPos position : selectedMonitorPositions) {
@@ -802,14 +789,14 @@ final class CentralMonitorElement extends UIElement implements LDLib2FancyUIProv
             if (positions.isEmpty()) {
                 continue;
             }
-            SyncActionData action = CentralMonitorMembershipActions.createRemoveGroupMembersAction(
-                    machine.getCentralMonitorActionIncarnation(), expectedRevision, group.getIdentity(), positions,
-                    sequence);
-            actionSender.accept(action);
+            UUID holderIncarnation = machine.getCentralMonitorActionIncarnation();
+            long revision = expectedRevision;
+            UUID groupIdentity = group.getIdentity();
+            List<BlockPos> members = List.copyOf(positions);
+            actionSender.accept(() -> machine.rpcToServer("removeCentralMonitorGroupMembers",
+                    holderIncarnation, revision, groupIdentity, members));
             expectedRevision = Math.incrementExact(expectedRevision);
-            sequence = Math.incrementExact(sequence);
         }
-        nextActionSequence = sequence;
         clearSelectionDraft();
     }
 
@@ -827,11 +814,11 @@ final class CentralMonitorElement extends UIElement implements LDLib2FancyUIProv
         if (expected.equals(requested)) {
             return;
         }
-        int sequence = nextActionSequence;
-        SyncActionData action = CentralMonitorGroupTargetActions.createSetGroupTargetAction(
-                machine.getCentralMonitorActionIncarnation(), group.getIdentity(), expected, requested, sequence);
-        actionSender.accept(action);
-        nextActionSequence = Math.incrementExact(sequence);
+        UUID holderIncarnation = machine.getCentralMonitorActionIncarnation();
+        UUID groupIdentity = group.getIdentity();
+        actionSender.accept(() -> machine.rpcToServer("setCentralMonitorGroupTarget",
+                holderIncarnation, groupIdentity, Optional.ofNullable(expected.targetPos()), expected.dataSlot(),
+                Optional.ofNullable(requested.targetPos()), requested.dataSlot()));
     }
 
     private CentralMonitorGroupTargetState createRequestedTargetState() {
@@ -902,35 +889,35 @@ final class CentralMonitorElement extends UIElement implements LDLib2FancyUIProv
         element.setActive(displayed);
     }
 
-    private record ComponentSnapshot(BlockPos position, boolean monitor) {}
+    private record ComponentState(BlockPos position, boolean monitor) {}
 
-    private record AuthoritativeModuleSnapshot(UUID moduleSlotIncarnation, ItemStack moduleSnapshot,
-                                               long textConfigurationRevision) {
+    private record AuthoritativeModuleState(UUID moduleSlotIncarnation, ItemStack moduleCopy,
+                                            long textConfigurationRevision) {
 
         private static final long NON_TEXT_CONFIGURATION_REVISION = -1;
 
-        private static AuthoritativeModuleSnapshot capture(MonitorGroup group) {
+        private static AuthoritativeModuleState capture(MonitorGroup group) {
             ItemStack module = group.getItemStackHandler().getStackInSlot(0);
-            if (CentralMonitorTextModuleActions.isTextModule(module)) {
-                return new AuthoritativeModuleSnapshot(
+            if (TextModuleBehaviour.isTextModule(module)) {
+                return new AuthoritativeModuleState(
                         group.getModuleSlotIncarnation(),
-                        CentralMonitorTextModuleActions.captureExpectedModule(module),
+                        TextModuleBehaviour.captureExpectedModule(module),
                         group.getTextConfigurationRevision());
             }
-            if (CentralMonitorImageModuleActions.isImageModule(module)) {
-                return new AuthoritativeModuleSnapshot(
+            if (ImageModuleBehaviour.isImageModule(module)) {
+                return new AuthoritativeModuleState(
                         group.getModuleSlotIncarnation(),
-                        CentralMonitorImageModuleActions.captureExpectedModule(module),
+                        ImageModuleBehaviour.captureExpectedModule(module),
                         NON_TEXT_CONFIGURATION_REVISION);
             }
-            return new AuthoritativeModuleSnapshot(
+            return new AuthoritativeModuleState(
                     group.getModuleSlotIncarnation(), module.copy(), NON_TEXT_CONFIGURATION_REVISION);
         }
 
-        private boolean differsFrom(@Nullable AuthoritativeModuleSnapshot other) {
+        private boolean differsFrom(@Nullable AuthoritativeModuleState other) {
             return other == null || !moduleSlotIncarnation.equals(other.moduleSlotIncarnation) ||
                     textConfigurationRevision != other.textConfigurationRevision ||
-                    !ItemStack.matches(moduleSnapshot, other.moduleSnapshot);
+                    !ItemStack.matches(moduleCopy, other.moduleCopy);
         }
     }
 
@@ -946,12 +933,12 @@ final class CentralMonitorElement extends UIElement implements LDLib2FancyUIProv
         void requestOverview();
     }
 
-    private record GroupSnapshot(UUID identity, UUID dynamicItemSlotIncarnation, String name,
-                                 Set<BlockPos> positions, @Nullable BlockPos target, int dataSlot,
-                                 UUID moduleSlotIncarnation) {
+    private record GroupState(UUID identity, UUID dynamicItemSlotIncarnation, String name,
+                              Set<BlockPos> positions, @Nullable BlockPos target, int dataSlot,
+                              UUID moduleSlotIncarnation) {
 
-        private static GroupSnapshot capture(MonitorGroup group) {
-            return new GroupSnapshot(group.getIdentity(), group.getDynamicItemSlotIncarnation(), group.getName(),
+        private static GroupState capture(MonitorGroup group) {
+            return new GroupState(group.getIdentity(), group.getDynamicItemSlotIncarnation(), group.getName(),
                     Set.copyOf(group.getMonitorPositions()), group.getTargetRaw(), group.getDataSlot(),
                     group.getModuleSlotIncarnation());
         }

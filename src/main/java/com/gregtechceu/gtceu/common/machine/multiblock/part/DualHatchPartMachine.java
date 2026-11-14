@@ -6,38 +6,25 @@ import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTFluidSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
-import com.gregtechceu.gtceu.api.gui.factory.LDLib2MachineUIProvider;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHelper;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.fancy.IFancyTooltip;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2ConfiguratorPanelElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyMachineUIElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyPreviewPage;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyTabsElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyTooltipsPanelElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyUIProvider;
-import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
+import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
 import com.gregtechceu.gtceu.api.machine.MachineDefinition;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2CircuitFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2DirectionalFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2DistinctPartFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2WorkingEnabledFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.LDLib2FancyPartUIProvider;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CircuitFancyConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.DistinctPartConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableFluidTank;
-import com.gregtechceu.gtceu.api.sync_system.SyncActionData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCSender;
 import com.gregtechceu.gtceu.common.data.GTMachines;
 import com.gregtechceu.gtceu.integration.xei.GTXEIHelper;
 import com.gregtechceu.gtceu.utils.GTTransferUtils;
 import com.gregtechceu.gtceu.utils.ISubscription;
 
-import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
-import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
@@ -56,19 +43,9 @@ import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 
-import java.util.List;
-import java.util.function.BiConsumer;
-import java.util.function.Predicate;
-
-public class DualHatchPartMachine extends ItemBusPartMachine
-                                  implements LDLib2MachineUIProvider, LDLib2FancyPartUIProvider,
-                                  DualHatchFluidSlotActionTarget {
+public class DualHatchPartMachine extends ItemBusPartMachine {
 
     public static final int INITIAL_TANK_CAPACITY = 16 * FluidType.BUCKET_VOLUME;
-
-    static {
-        DualHatchPartMachineActions.initialize();
-    }
 
     @SaveField
     public final NotifiableFluidTank tank;
@@ -192,84 +169,57 @@ public class DualHatchPartMachine extends ItemBusPartMachine
     // ********** GUI ***********//
     ///////////////////////////////
 
-    @Override
-    public boolean canCreateLDLib2UI(Player player, MachineUIHolder holder) {
-        return holder.getMachine() == this;
-    }
-
-    @Override
-    public UI createLDLib2UI(Player player, MachineUIHolder holder) {
-        int pageWidth = getLDLib2PageWidth();
-        int pageHeight = getLDLib2PageHeight();
-        return UI.of(new LDLib2FancyMachineUIElement(new DualHatchLDLib2Page(player, holder),
-                player.getInventory(), holder, pageWidth, pageHeight));
-    }
-
     /** Creates the preview-style page used when a multiblock controller exposes this hatch. */
-    @Override
-    public LDLib2FancyUIProvider createLDLib2FancyPage(Player player, MachineUIHolder holder) {
-        return new DualHatchContextualPreviewPage(player, holder);
-    }
 
     @Override
-    int getLDLib2PageWidth() {
+    int getInventoryPageWidth() {
         int tanks = (int) Math.sqrt(getInventorySize());
         return 18 * (tanks + 1) + 16;
     }
 
     @Override
-    int getLDLib2PageHeight() {
+    int getInventoryPageHeight() {
         int tanks = (int) Math.sqrt(getInventorySize());
         return 18 * tanks + 16;
     }
 
-    private UIElement createLDLib2MainElement(Player player, MachineUIHolder holder) {
-        return createLDLib2MainElement(player, holder, MachineUIHelper::sendAction,
-                event -> player.level().isClientSide() &&
-                        FluidUtil.getFluidHandler(player.containerMenu.getCarried()).isPresent(),
-                UIEvent::isShiftDown);
-    }
+    @Override
+    public UIElement createUIWidget(FancyMachineUIWidget widget) {
+        Player player = widget.getOpeningPlayer();
 
-    UIElement createLDLib2MainElement(Player player, MachineUIHolder holder,
-                                      BiConsumer<MachineUIHolder, SyncActionData> actionSender,
-                                      Predicate<UIEvent> actionGuard, Predicate<UIEvent> shiftDown) {
         int tanks = (int) Math.sqrt(getInventorySize());
-        UIElement root = UITemplate.setLDLib2Bounds(new UIElement(), 0, 0,
-                getLDLib2PageWidth(), getLDLib2PageHeight());
-        UIElement container = UITemplate.setLDLib2Bounds(new UIElement(), 4, 4,
+        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0,
+                getInventoryPageWidth(), getInventoryPageHeight());
+        UIElement container = UITemplate.setBounds(new UIElement(), 4, 4,
                 18 * (tanks + 1) + 8, 18 * tanks + 8);
         container.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
 
         int index = 0;
         for (int y = 0; y < tanks; y++) {
             for (int x = 0; x < tanks; x++) {
-                container.addChild(createLDLib2ItemSlot(index++, 4 + x * 18, 4 + y * 18));
+                container.addChild(createItemSlot(index++, 4 + x * 18, 4 + y * 18));
             }
         }
 
         index = 0;
         for (int y = 0; y < tanks; y++) {
-            container.addChild(createLDLib2FluidSlot(holder, index++, 4 + tanks * 18, 4 + y * 18,
-                    actionSender, actionGuard, shiftDown));
+            container.addChild(createFluidSlot(player, index++, 4 + tanks * 18, 4 + y * 18));
         }
 
         root.addChild(container);
         return root;
     }
 
-    private GTItemSlotElement createLDLib2ItemSlot(int slot, int x, int y) {
+    private GTItemSlotElement createItemSlot(int slot, int x, int y) {
         GTItemSlotElement slotElement = new GTItemSlotElement(getInventory().storage, slot)
                 .setCanPutItems(io.support(IO.IN))
                 .setCanTakeItems(true)
                 .setBackgroundTexture(GuiTextures.SLOT)
                 .setIngredientIO(io.support(IO.IN) ? GTXEIHelper.input() : GTXEIHelper.output());
-        return UITemplate.setLDLib2Bounds(slotElement, x, y, 18, 18);
+        return UITemplate.setBounds(slotElement, x, y, 18, 18);
     }
 
-    private GTFluidSlotElement createLDLib2FluidSlot(MachineUIHolder holder, int tankIndex, int x, int y,
-                                                     BiConsumer<MachineUIHolder, SyncActionData> actionSender,
-                                                     Predicate<UIEvent> actionGuard,
-                                                     Predicate<UIEvent> shiftDown) {
+    private GTFluidSlotElement createFluidSlot(Player player, int tankIndex, int x, int y) {
         GTFluidSlotElement fluidSlot = new GTFluidSlotElement()
                 .setFluidTank(tank.getStorages()[tankIndex], 0)
                 .setShowAmount(true)
@@ -278,34 +228,26 @@ public class DualHatchPartMachine extends ItemBusPartMachine
                 .setIngredientIO(GTXEIHelper.none())
                 .setBackgroundTexture(GuiTextures.FLUID_SLOT);
         fluidSlot.addEventListener(UIEvents.MOUSE_DOWN, event -> {
-            if (event.button == GLFW.GLFW_MOUSE_BUTTON_LEFT && actionGuard.test(event)) {
-                actionSender.accept(holder, DualHatchPartMachineActions.createClickDualHatchFluidSlotAction(
-                        tankIndex,
-                        shiftDown.test(event)));
+            if (event.button == GLFW.GLFW_MOUSE_BUTTON_LEFT && player.level().isClientSide() &&
+                    FluidUtil.getFluidHandler(player.containerMenu.getCarried()).isPresent()) {
+
+                rpcToServer("clickFluidSlot", tankIndex, event.isShiftDown());
                 event.stopImmediatePropagation();
                 event.hasHandler = true;
             }
         });
-        return UITemplate.setLDLib2Bounds(fluidSlot, x, y, 18, 18);
+        return UITemplate.setBounds(fluidSlot, x, y, 18, 18);
     }
 
-    @Override
+    @RPCMethod
     @ApiStatus.Internal
-    public int getFluidTankCount() {
-        return tank.getTanks();
+    public void clickFluidSlot(RPCSender sender, int tankIndex, boolean shiftDown) {
+        var player = sender.asPlayer();
+        new FluidClickTarget(tank.getStorages()[tankIndex], true, io.support(IO.IN)).click(player, shiftDown);
     }
 
-    @Override
-    @ApiStatus.Internal
-    public void clickFluidSlot(ServerPlayer player, int tankIndex, boolean shiftDown) {
-        if (tankIndex < 0 || tankIndex >= tank.getTanks()) {
-            throw new IllegalArgumentException("Invalid dual hatch fluid tank index: " + tankIndex);
-        }
-        new LDLib2FluidClickTarget(tank.getStorages()[tankIndex], true, io.support(IO.IN)).click(player, shiftDown);
-    }
-
-    private record LDLib2FluidClickTarget(IFluidHandler fluidTank, boolean allowClickFilled,
-                                          boolean allowClickDrained) {
+    private record FluidClickTarget(IFluidHandler fluidTank, boolean allowClickFilled,
+                                    boolean allowClickDrained) {
 
         private void click(ServerPlayer player, boolean shiftDown) {
             ItemStack currentStack = player.containerMenu.getCarried();
@@ -409,174 +351,23 @@ public class DualHatchPartMachine extends ItemBusPartMachine
         return remainingStack.copy();
     }
 
-    private void attachLDLib2Configurators(LDLib2ConfiguratorPanelElement configuratorPanel,
-                                           MachineUIHolder holder) {
-        configuratorPanel.attachConfigurators(new LDLib2WorkingEnabledFancyConfigurator(
-                this, holder));
+    public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
+        configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
+                this));
         if (io != IO.IN) {
             return;
         }
-        LDLib2DistinctPartFancyConfigurator.attachConfigurators(configuratorPanel, this);
+        DistinctPartConfigurator.attachConfigurators(configuratorPanel, this);
         if (isHasCircuitSlot() && isCircuitSlotEnabled()) {
-            configuratorPanel.attachConfigurators(new LDLib2CircuitFancyConfigurator(
-                    this, holder));
+            configuratorPanel.attachConfigurators(new CircuitFancyConfigurator(
+                    this));
         }
-    }
-
-    private void attachLDLib2Tooltips(LDLib2FancyTooltipsPanelElement tooltipsPanel) {
-        tooltipsPanel.attachTooltips(this);
-        getTraitHolder().getAllTraits().stream()
-                .filter(IFancyTooltip.class::isInstance)
-                .map(IFancyTooltip.class::cast)
-                .forEach(tooltipsPanel::attachTooltips);
-    }
-
-    @Nullable
-    private LDLib2FancyUIProvider.PageGroupingData createLDLib2PageGroupingData() {
-        return switch (io) {
-            case IN -> new LDLib2FancyUIProvider.PageGroupingData(
-                    "gtpm.multiblock.page_switcher.io.import", 1);
-            case OUT -> new LDLib2FancyUIProvider.PageGroupingData(
-                    "gtpm.multiblock.page_switcher.io.export", 2);
-            case BOTH -> new LDLib2FancyUIProvider.PageGroupingData(
-                    "gtpm.multiblock.page_switcher.io.both", 3);
-            case NONE -> null;
-        };
     }
 
     /** Keeps the legacy controller page as a preview while retaining Dual Hatch controls and grouping. */
-    private final class DualHatchContextualPreviewPage implements LDLib2FancyUIProvider {
-
-        private final MachineUIHolder holder;
-        private final LDLib2FancyPreviewPage previewPage;
-
-        private DualHatchContextualPreviewPage(Player player, MachineUIHolder holder) {
-            this.holder = holder;
-            this.previewPage = new LDLib2FancyPreviewPage(DualHatchPartMachine.this, player, holder,
-                    createLDLib2PageGroupingData());
-        }
-
-        @Override
-        public UIElement createLDLib2MainPage(LDLib2FancyMachineUIElement shell) {
-            return previewPage.createLDLib2MainPage(shell);
-        }
-
-        @Override
-        public IGuiTexture getTabIcon() {
-            return previewPage.getTabIcon();
-        }
-
-        @Override
-        public Component getTitle() {
-            return previewPage.getTitle();
-        }
-
-        @Override
-        public int getLDLib2PageWidth() {
-            return previewPage.getLDLib2PageWidth();
-        }
-
-        @Override
-        public int getLDLib2PageHeight() {
-            return previewPage.getLDLib2PageHeight();
-        }
-
-        @Override
-        public void attachSideTabs(LDLib2FancyTabsElement tabs) {
-            previewPage.attachSideTabs(tabs);
-        }
-
-        @Override
-        public void attachConfigurators(LDLib2ConfiguratorPanelElement configuratorPanel) {
-            attachLDLib2Configurators(configuratorPanel, holder);
-        }
-
-        @Override
-        public void attachTooltips(LDLib2FancyTooltipsPanelElement tooltipsPanel) {
-            attachLDLib2Tooltips(tooltipsPanel);
-        }
-
-        @Override
-        public List<Component> getTabTooltips() {
-            return previewPage.getTabTooltips();
-        }
-
-        @Override
-        @Nullable
-        public LDLib2FancyUIProvider.PageGroupingData getPageGroupingData() {
-            return previewPage.getPageGroupingData();
-        }
-    }
 
     /**
      * Adapts the inherited legacy Fancy machine metadata to an LDLib2 page without making the machine implement two
      * incompatible Fancy provider contracts.
      */
-    private final class DualHatchLDLib2Page implements LDLib2FancyUIProvider {
-
-        private final Player player;
-        private final MachineUIHolder holder;
-        private final LDLib2DirectionalFancyConfigurator directionalPage;
-
-        /**
-         * Captures the player and validated machine holder used by page-local GT sync actions.
-         */
-        private DualHatchLDLib2Page(Player player, MachineUIHolder holder) {
-            this.player = player;
-            this.holder = holder;
-            this.directionalPage = new LDLib2DirectionalFancyConfigurator(
-                    DualHatchPartMachine.this, player, holder);
-        }
-
-        @Override
-        public UIElement createLDLib2MainPage(LDLib2FancyMachineUIElement shell) {
-            return createLDLib2MainElement(player, holder);
-        }
-
-        @Override
-        public IGuiTexture getTabIcon() {
-            return GuiTextures.itemStack(getDefinition().getItem());
-        }
-
-        @Override
-        public Component getTitle() {
-            return Component.translatable(getDefinition().getDescriptionId());
-        }
-
-        @Override
-        public int getLDLib2PageWidth() {
-            return DualHatchPartMachine.this.getLDLib2PageWidth();
-        }
-
-        @Override
-        public int getLDLib2PageHeight() {
-            return DualHatchPartMachine.this.getLDLib2PageHeight();
-        }
-
-        @Override
-        public void attachSideTabs(LDLib2FancyTabsElement tabs) {
-            tabs.attachSubTab(directionalPage);
-        }
-
-        @Override
-        public void attachConfigurators(LDLib2ConfiguratorPanelElement configuratorPanel) {
-            attachLDLib2Configurators(configuratorPanel, holder);
-        }
-
-        @Override
-        public void attachTooltips(LDLib2FancyTooltipsPanelElement tooltipsPanel) {
-            attachLDLib2Tooltips(tooltipsPanel);
-        }
-
-        @Override
-        public List<Component> getTabTooltips() {
-            return List.of(Component.translatable(getDefinition().getDescriptionId()));
-        }
-
-        @Override
-        @Nullable
-        public LDLib2FancyUIProvider.PageGroupingData getPageGroupingData() {
-            return createLDLib2PageGroupingData();
-        }
-    }
 }

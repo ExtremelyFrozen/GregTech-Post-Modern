@@ -4,6 +4,7 @@ import com.gregtechceu.gtceu.api.capability.GTCapabilityHelper;
 import com.gregtechceu.gtceu.api.capability.IMedicalConditionTracker;
 import com.gregtechceu.gtceu.api.data.chemical.material.properties.HazardProperty;
 import com.gregtechceu.gtceu.api.data.medicalcondition.MedicalCondition;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 import com.gregtechceu.gtceu.common.network.packets.hazard.SPacketAddHazardZone;
 import com.gregtechceu.gtceu.common.network.packets.hazard.SPacketRemoveHazardZone;
 import com.gregtechceu.gtceu.common.network.packets.hazard.SPacketSyncHazardZoneStrength;
@@ -271,6 +272,10 @@ public class EnvironmentalHazardSavedData extends SavedData {
                 HazardProperty.HazardTrigger.CODEC.fieldOf("trigger").forGetter(HazardZone::trigger),
                 MedicalCondition.CODEC.fieldOf("condition").forGetter(HazardZone::condition)
         ).apply(instance, HazardZone::new));
+
+    static {
+        FieldCodecs.register(HazardZone.class, CODEC);
+    }
         // spotless:on
 
         @Getter

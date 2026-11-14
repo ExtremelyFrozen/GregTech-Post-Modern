@@ -1643,7 +1643,7 @@ public class MachineRecipeLoader {
         VanillaRecipeHelper.addShapedRecipe(provider, "steam_bus_input_to_output", STEAM_IMPORT_BUS.asStack(),
                 "d", "B", 'B', STEAM_EXPORT_BUS.asStack());
 
-        if (GTCEu.Mods.isAE2Loaded()) {
+        if (GTCEu.MODS.AE2.isLoaded()) {
             VanillaRecipeHelper.addShapedRecipe(provider, "me_fluid_hatch_output_to_input",
                     GTAEMachines.FLUID_IMPORT_HATCH_ME.asStack(), "d", "B", 'B',
                     GTAEMachines.FLUID_EXPORT_HATCH_ME.asStack());

@@ -15,7 +15,7 @@ import com.gregtechceu.gtceu.api.recipe.*;
 import com.gregtechceu.gtceu.api.recipe.RecipeCondition;
 import com.gregtechceu.gtceu.api.recipe.content.Content;
 import com.gregtechceu.gtceu.api.recipe.ingredient.SizedIngredientExtensions;
-import com.gregtechceu.gtceu.api.recipe.ui.GTRecipeTypeUI.LDLib2RecipeUISize;
+import com.gregtechceu.gtceu.api.recipe.ui.GTRecipeTypeUI.RecipeUISize;
 import com.gregtechceu.gtceu.api.registry.GTRegistries;
 import com.gregtechceu.gtceu.api.sound.ExistingSoundEntry;
 import com.gregtechceu.gtceu.common.machine.multiblock.electric.FusionReactorMachine;
@@ -422,7 +422,7 @@ public class GTRecipeTypes {
             .setProgressBar(GuiTextures.progressBar(GuiTextures.PROGRESS_BAR_MACERATE, LEFT_TO_RIGHT))
             .setIconSupplier(() -> GTMachines.ROCK_CRUSHER[GTValues.LV].asStack())
             .setSteamProgressBar(GuiTextures.PROGRESS_BAR_MACERATE_STEAM, LEFT_TO_RIGHT)
-            .setLDLib2UiBuilder(GTRecipeTypes::addLDLib2RockBreakerFluidSlots)
+            .setUiBuilder(GTRecipeTypes::addRockBreakerFluidSlots)
             .setSound(GTSoundEntries.FIRE);
 
     public static final GTRecipeType SCANNER_RECIPES = register("scanner", ELECTRIC)
@@ -498,7 +498,7 @@ public class GTRecipeTypes {
                 }
                 return "";
             })
-            .setLDLib2UiBuilder((recipe, root, rootSize) -> addLDLib2HeatingCoilSlot(recipe, root, rootSize, 32))
+            .setUiBuilder((recipe, root, rootSize) -> addHeatingCoilSlot(recipe, root, rootSize, 32))
             .setSound(GTSoundEntries.FURNACE);
 
     public final static GTRecipeType DISTILLATION_RECIPES = register("distillation_tower", MULTIBLOCK)
@@ -631,13 +631,13 @@ public class GTRecipeTypes {
             .setSound(GTSoundEntries.ARC)
             .setOffsetVoltageText(true)
             .setMaxTooltips(4)
-            .setLDLib2UiBuilder(FusionReactorMachine::addLDLib2EUToStartLabel);
+            .setUiBuilder(FusionReactorMachine::addEUToStartLabel);
 
     public static final GTRecipeType DUMMY_RECIPES = register("dummy", DUMMY)
             .setXEIVisible(false);
 
-    private static void addLDLib2RockBreakerFluidSlots(GTRecipeDefinition recipe, UIElement root,
-                                                       LDLib2RecipeUISize rootSize) {
+    private static void addRockBreakerFluidSlots(GTRecipeDefinition recipe, UIElement root,
+                                                 RecipeUISize rootSize) {
         List<HolderSet<Fluid>> fluids = new ArrayList<>();
         for (RecipeCondition condition : recipe.conditions) {
             if (condition instanceof AdjacentFluidCondition adjacentFluid) {
@@ -665,7 +665,7 @@ public class GTRecipeTypes {
                     .setAllowClickDrained(false)
                     .setIngredientIO(GTXEIHelper.input())
                     .xeiRecipeSlot();
-            layoutLDLib2Element(tank, rootSize.width() - 30 - xOffset, rootSize.height() - 30 + yOffset, 18, 18);
+            layoutElement(tank, rootSize.width() - 30 - xOffset, rootSize.height() - 30 + yOffset, 18, 18);
             root.addChild(tank);
 
             i++;
@@ -674,8 +674,8 @@ public class GTRecipeTypes {
         }
     }
 
-    static void addLDLib2HeatingCoilSlot(GTRecipeDefinition recipe, UIElement root,
-                                         LDLib2RecipeUISize rootSize, int yOffset) {
+    static void addHeatingCoilSlot(GTRecipeDefinition recipe, UIElement root,
+                                   RecipeUISize rootSize, int yOffset) {
         int temp = RecipeData.getInt(recipe.data, "ebf_temp");
         List<List<ItemStack>> items = new ArrayList<>();
         items.add(GTCEuAPI.HEATING_COILS.entrySet().stream()
@@ -688,11 +688,11 @@ public class GTRecipeTypes {
                 .setIngredientIO(GTXEIHelper.catalyst())
                 .setBackgroundTexture(GuiTextures.SLOT)
                 .xeiRecipeSlot();
-        layoutLDLib2Element(slot, rootSize.width() - 25, rootSize.height() - yOffset, 18, 18);
+        layoutElement(slot, rootSize.width() - 25, rootSize.height() - yOffset, 18, 18);
         root.addChild(slot);
     }
 
-    private static void layoutLDLib2Element(UIElement element, int x, int y, int width, int height) {
+    private static void layoutElement(UIElement element, int x, int y, int width, int height) {
         element.layout(layout -> {
             layout.positionType(TaffyPosition.ABSOLUTE);
             layout.left(x);

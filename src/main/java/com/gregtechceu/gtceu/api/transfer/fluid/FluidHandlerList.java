@@ -1,14 +1,12 @@
 package com.gregtechceu.gtceu.api.transfer.fluid;
 
-import com.gregtechceu.gtceu.GTCEu;
-import com.gregtechceu.gtceu.api.transfer.DataComponentTransfer;
-import com.gregtechceu.gtceu.common.data.GTDataComponents;
-import com.gregtechceu.gtceu.common.data.datacomponents.TransferData;
+import com.gregtechceu.gtceu.api.sync_system.ContextualFieldCodec;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 
-import net.minecraft.core.component.DataComponentMap;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 
+import com.mojang.serialization.Codec;
 import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
 
@@ -17,7 +15,12 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.Predicate;
 
-public class FluidHandlerList implements IFluidHandlerModifiable, DataComponentTransfer {
+public class FluidHandlerList implements IFluidHandlerModifiable {
+
+    static {
+        ContextualFieldCodec<FluidHandlerList> codec = FluidHandlerList::codec;
+        FieldCodecs.registerContextual(FluidHandlerList.class, codec);
+    }
 
     public final IFluidHandler[] handlers;
 
@@ -135,43 +138,23 @@ public class FluidHandlerList implements IFluidHandlerModifiable, DataComponentT
         return totalDrained == null ? FluidStack.EMPTY : totalDrained;
     }
 
-    @Override
-    public DataComponentMap exportComponents() {
-        var components = new ArrayList<DataComponentMap>();
-        for (IFluidHandler handler : handlers) {
-            if (!(handler instanceof DataComponentTransfer transfer)) {
-                String message = "[FluidHandlerList] internal handler " + handler.getClass().getName() +
-                        " does not support component serialization";
-                GTCEu.LOGGER.error(message);
-                throw new IllegalArgumentException(message);
-            }
-            components.add(transfer.exportComponents());
-        }
-        return DataComponentMap.builder()
-                .set(GTDataComponents.TRANSFER_FLUID_HANDLERS.get(), new TransferData.FluidHandlers(components))
-                .build();
+    public static Codec<FluidHandlerList> codec(ContextualFieldCodec.Context<FluidHandlerList> context) {
+        return context.currentValue().codec();
     }
 
-    @Override
-    public void importComponents(DataComponentMap components) {
-        TransferData.FluidHandlers data = components.get(GTDataComponents.TRANSFER_FLUID_HANDLERS.get());
-        if (data == null) {
-            throw new IllegalArgumentException("Fluid handler list component data is missing transfer_fluid_handlers");
-        }
-        if (data.handlers().size() != handlers.length) {
-            throw new IllegalArgumentException("[FluidHandlerList] expected " + handlers.length +
-                    " handlers but received " + data.handlers().size());
-        }
-        for (int i = 0; i < data.handlers().size(); i++) {
-            IFluidHandler handler = handlers[i];
-            if (!(handler instanceof DataComponentTransfer transfer)) {
-                String message = "[FluidHandlerList] internal handler " + handler.getClass().getName() +
-                        " does not support component deserialization";
-                GTCEu.LOGGER.error(message);
-                throw new IllegalArgumentException(message);
+    public Codec<FluidHandlerList> codec() {
+        return FluidStack.OPTIONAL_CODEC.listOf().xmap(fluids -> {
+            for (int tank = 0; tank < getTanks(); tank++) {
+                setFluidInTank(tank, fluids.get(tank));
             }
-            transfer.importComponents(data.handlers().get(i));
-        }
+            return this;
+        }, value -> {
+            var fluids = new ArrayList<FluidStack>(value.getTanks());
+            for (int tank = 0; tank < value.getTanks(); tank++) {
+                fluids.add(value.getFluidInTank(tank).copy());
+            }
+            return fluids;
+        });
     }
 
     @Override

@@ -2,18 +2,21 @@ package com.gregtechceu.gtceu.data.pattern
 
 import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition
-import com.gregtechceu.gtceu.api.multiblock.BlockPattern
+import com.gregtechceu.gtceu.api.multiblock.pattern.match.MultiBlockPattern
+import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternDefinition
+import com.gregtechceu.gtceu.data.pattern.binary.PatternBinaryCodec
+import com.gregtechceu.gtceu.data.pattern.json.PatternJsonCodec
 import com.gregtechceu.gtceu.utils.dev.ResourceReloadDetector
 
 import net.minecraft.resources.ResourceLocation
 import net.neoforged.fml.ModList
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.dataformat.cbor.CBORFactory
-import com.github.luben.zstd.ZstdInputStream
+import it.unimi.dsi.fastutil.objects.Object2ObjectMap
+import it.unimi.dsi.fastutil.objects.Object2ObjectMaps
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap
+import it.unimi.dsi.fastutil.objects.ObjectArrayList
+import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet
 
-import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.io.UncheckedIOException
 import java.nio.file.Files
@@ -27,8 +30,10 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.locks.ReentrantLock
 import java.util.function.Supplier
 import kotlin.concurrent.Volatile
+import kotlin.concurrent.withLock
 
 object StructureCache {
 	@Volatile
@@ -38,17 +43,15 @@ object StructureCache {
 	private var patternResourceIndex: PatternResourceIndex? = null
 
 	private val LOAD_EXECUTOR = Executors.newVirtualThreadPerTaskExecutor()
-	private val CBOR_MAPPER = ObjectMapper(CBORFactory())
-	private val JSON_MAPPER = ObjectMapper()
 	private val reloadInProgress = AtomicBoolean(false)
 	private val cacheStateLock = Any()
-	private val cacheLoadLock = Any()
+	private val cacheLoadLock = ReentrantLock()
 
 	private data class StructureCaches(
-		val binaryDefinitions: Map<StructurePatternKey, BlockPattern>,
-		val jsonDefinitions: Map<StructurePatternKey, StructurePatternResolver.StringArrayDefinition>,
-		val binaryPatterns: ConcurrentHashMap<StructurePatternKey, BlockPattern> = ConcurrentHashMap(),
-		val jsonPatterns: ConcurrentHashMap<StructurePatternKey, BlockPattern> = ConcurrentHashMap(),
+		val binaryDefinitions: Object2ObjectMap<StructurePatternKey, PatternDefinition>,
+		val jsonDefinitions: Object2ObjectMap<StructurePatternKey, PatternDefinition>,
+		val binaryPatterns: ConcurrentHashMap<StructurePatternKey, MultiBlockPattern> = ConcurrentHashMap(),
+		val jsonPatterns: ConcurrentHashMap<StructurePatternKey, MultiBlockPattern> = ConcurrentHashMap(),
 	)
 
 	private data class PatternSource(val description: String, val root: Path)
@@ -110,42 +113,42 @@ object StructureCache {
 	@Throws(IOException::class)
 	fun reloadType(type: StructureDefinitionType): Int = runReloadTask {
 		runOnVirtualThread {
-			val root = patternRoot()
+			val root = multiblockRoot()
 			val current = requireCaches()
 			publishPatternResourceIndex(syncPatternResourcesToDisk(root))
-			val binaryMap = HashMap(current.binaryDefinitions)
-			val jsonMap = HashMap(current.jsonDefinitions)
+			val binaryMap = Object2ObjectOpenHashMap(current.binaryDefinitions)
+			val jsonMap = Object2ObjectOpenHashMap(current.jsonDefinitions)
 			when (type) {
-				StructureDefinitionType.SERIALIZED_BLOCK_PATTERN -> {
+				StructureDefinitionType.BINARY_ZSTD -> {
 					binaryMap.clear()
 					loadTypeFromFileSystem(
 						root,
 						type,
 						binaryMap,
 						createClaimedSources(jsonMap, CacheSection.JSON),
-						::readBinaryStructureDefinition,
+						{ file, _ -> PatternBinaryCodec.read(file) },
 					)
 				}
 
-				StructureDefinitionType.STRING_ARRAY_JSON -> {
+				StructureDefinitionType.JSON -> {
 					jsonMap.clear()
 					loadTypeFromFileSystem(
 						root,
 						type,
 						jsonMap,
 						createClaimedSources(binaryMap, CacheSection.BINARY),
-						::readJsonStructureDefinition,
+						PatternJsonCodec::read,
 					)
 				}
 			}
 			val caches = when (type) {
-				StructureDefinitionType.SERIALIZED_BLOCK_PATTERN -> freezeCaches(binaryMap, jsonMap, ConcurrentHashMap(), current.jsonPatterns)
-				StructureDefinitionType.STRING_ARRAY_JSON -> freezeCaches(binaryMap, jsonMap, current.binaryPatterns, ConcurrentHashMap())
+				StructureDefinitionType.BINARY_ZSTD -> freezeCaches(binaryMap, jsonMap, ConcurrentHashMap(), current.jsonPatterns)
+				StructureDefinitionType.JSON -> freezeCaches(binaryMap, jsonMap, current.binaryPatterns, ConcurrentHashMap())
 			}
 			publishCaches(caches)
 			when (type) {
-				StructureDefinitionType.SERIALIZED_BLOCK_PATTERN -> caches.binaryDefinitions.size
-				StructureDefinitionType.STRING_ARRAY_JSON -> caches.jsonDefinitions.size
+				StructureDefinitionType.BINARY_ZSTD -> caches.binaryDefinitions.size
+				StructureDefinitionType.JSON -> caches.jsonDefinitions.size
 			}
 		}
 	}
@@ -154,14 +157,14 @@ object StructureCache {
 	@Throws(IOException::class)
 	fun reloadMachine(type: StructureDefinitionType, machineId: ResourceLocation): Int = runReloadTask {
 		runOnVirtualThread {
-			val root = patternRoot()
+			val root = multiblockRoot()
 			val normalizedRoot = normalizePatternRoot(root)
 			val current = requireCaches()
 			val index = syncPatternResourcesToDisk(root)
 			publishPatternResourceIndex(index)
 			val keys = index.entries.keys
 				.asSequence()
-				.filter { it.type == type && it.key.machineId() == machineId }
+				.filter { it.type == type && it.key.machineId == machineId }
 				.map { it.key }
 				.toCollection(LinkedHashSet())
 			check(keys.isNotEmpty()) {
@@ -169,13 +172,13 @@ object StructureCache {
 			}
 
 			when (type) {
-				StructureDefinitionType.SERIALIZED_BLOCK_PATTERN -> {
+				StructureDefinitionType.BINARY_ZSTD -> {
 					for (key in keys) {
 						check(key !in current.jsonDefinitions) {
 							"Duplicate structure key '$key' found while loading existing json cache entry for $key"
 						}
 					}
-					val binaryMap = HashMap(current.binaryDefinitions)
+					val binaryMap = Object2ObjectOpenHashMap(current.binaryDefinitions)
 					keys.forEach(binaryMap::remove)
 					val claimedSources = createClaimedSources(current.jsonDefinitions, CacheSection.JSON)
 					for (key in keys) {
@@ -189,7 +192,7 @@ object StructureCache {
 							normalizedRoot.resolve(resource.relativePath.toString()).toAbsolutePath().normalize(),
 							binaryMap,
 							claimedSources,
-							::readBinaryStructureDefinition,
+							{ file, _ -> PatternBinaryCodec.read(file) },
 						)
 					}
 					val binaryPatterns = ConcurrentHashMap(current.binaryPatterns)
@@ -197,13 +200,13 @@ object StructureCache {
 					publishCaches(freezeCaches(binaryMap, current.jsonDefinitions, binaryPatterns, current.jsonPatterns))
 				}
 
-				StructureDefinitionType.STRING_ARRAY_JSON -> {
+				StructureDefinitionType.JSON -> {
 					for (key in keys) {
 						check(key !in current.binaryDefinitions) {
 							"Duplicate structure key '$key' found while loading existing binary cache entry for $key"
 						}
 					}
-					val jsonMap = HashMap(current.jsonDefinitions)
+					val jsonMap = Object2ObjectOpenHashMap(current.jsonDefinitions)
 					keys.forEach(jsonMap::remove)
 					val claimedSources = createClaimedSources(current.binaryDefinitions, CacheSection.BINARY)
 					for (key in keys) {
@@ -217,7 +220,7 @@ object StructureCache {
 							normalizedRoot.resolve(resource.relativePath.toString()).toAbsolutePath().normalize(),
 							jsonMap,
 							claimedSources,
-							::readJsonStructureDefinition,
+							PatternJsonCodec::read,
 						)
 					}
 					val jsonPatterns = ConcurrentHashMap(current.jsonPatterns)
@@ -233,16 +236,16 @@ object StructureCache {
 	@Throws(IOException::class)
 	fun reload(type: StructureDefinitionType, key: StructurePatternKey): Boolean = runReloadTask {
 		runOnVirtualThread {
-			val root = patternRoot()
+			val root = multiblockRoot()
 			val current = requireCaches()
 			val file = syncPatternResourceToDisk(root, type, key)
 				?: error("Structure definition file not found for '$key' in loaded mod pattern resources")
 			when (type) {
-				StructureDefinitionType.SERIALIZED_BLOCK_PATTERN -> {
+				StructureDefinitionType.BINARY_ZSTD -> {
 					check(key !in current.jsonDefinitions) {
 						"Duplicate structure key '$key' found while loading existing json cache entry for $key"
 					}
-					val binaryMap = HashMap(current.binaryDefinitions)
+					val binaryMap = Object2ObjectOpenHashMap(current.binaryDefinitions)
 					binaryMap.remove(key)
 					reloadSingleEntry(
 						root,
@@ -251,7 +254,7 @@ object StructureCache {
 						file,
 						binaryMap,
 						createSingleClaimedSource(key, current.jsonDefinitions, CacheSection.JSON),
-						::readBinaryStructureDefinition,
+						{ file, _ -> PatternBinaryCodec.read(file) },
 					)
 					check(key in binaryMap) {
 						"Reloaded structure key '$key' was not produced from ${type.directoryName} definition"
@@ -261,11 +264,11 @@ object StructureCache {
 					publishCaches(freezeCaches(binaryMap, current.jsonDefinitions, binaryPatterns, current.jsonPatterns))
 				}
 
-				StructureDefinitionType.STRING_ARRAY_JSON -> {
+				StructureDefinitionType.JSON -> {
 					check(key !in current.binaryDefinitions) {
 						"Duplicate structure key '$key' found while loading existing binary cache entry for $key"
 					}
-					val jsonMap = HashMap(current.jsonDefinitions)
+					val jsonMap = Object2ObjectOpenHashMap(current.jsonDefinitions)
 					jsonMap.remove(key)
 					reloadSingleEntry(
 						root,
@@ -274,7 +277,7 @@ object StructureCache {
 						file,
 						jsonMap,
 						createSingleClaimedSource(key, current.binaryDefinitions, CacheSection.BINARY),
-						::readJsonStructureDefinition,
+						PatternJsonCodec::read,
 					)
 					check(key in jsonMap) {
 						"Reloaded structure key '$key' was not produced from ${type.directoryName} definition"
@@ -289,11 +292,16 @@ object StructureCache {
 	}
 
 	@JvmStatic
-	fun resolvePattern(key: StructurePatternKey, definition: MultiblockMachineDefinition, javaPattern: BlockPattern): BlockPattern {
+	fun resolvePattern(key: StructurePatternKey, definition: MultiblockMachineDefinition, javaPattern: MultiBlockPattern): MultiBlockPattern {
 		val caches = requireCaches()
 		caches.binaryDefinitions[key]?.let { binaryDefinition ->
 			return caches.binaryPatterns.computeIfAbsent(key) {
-				binaryDefinition
+				StructurePatternResolver.rebuildPattern(
+					definition,
+					key,
+					javaPattern,
+					binaryDefinition,
+				)
 			}.also { pattern ->
 				pattern.condition = javaPattern.condition
 			}
@@ -301,7 +309,7 @@ object StructureCache {
 
 		caches.jsonDefinitions[key]?.let { jsonDefinition ->
 			return caches.jsonPatterns.computeIfAbsent(key) {
-				StructurePatternResolver.rebuildStringArrayPattern(
+				StructurePatternResolver.rebuildPattern(
 					definition,
 					key,
 					javaPattern,
@@ -312,7 +320,7 @@ object StructureCache {
 			}
 		}
 
-		error("Structure definition '$key' was not found in ${StructureDefinitionType.STRING_ARRAY_JSON.directoryName} or ${StructureDefinitionType.SERIALIZED_BLOCK_PATTERN.directoryName}")
+		return javaPattern
 	}
 
 	@JvmStatic
@@ -324,25 +332,25 @@ object StructureCache {
 	@JvmStatic
 	fun getActiveSources(machineId: ResourceLocation): Map<StructurePatternKey, StructureDefinitionSource> {
 		val caches = requireCaches()
-		val keys = HashSet<StructurePatternKey>()
-		caches.binaryDefinitions.keys.filterTo(keys) { it.machineId() == machineId }
-		caches.jsonDefinitions.keys.filterTo(keys) { it.machineId() == machineId }
-		return keys.associateWithTo(HashMap()) { key -> getActiveSourceFromCaches(caches, key) }
+		val keys = ObjectOpenHashSet<StructurePatternKey>()
+		caches.binaryDefinitions.keys.filterTo(keys) { it.machineId == machineId }
+		caches.jsonDefinitions.keys.filterTo(keys) { it.machineId == machineId }
+		return keys.associateWithTo(Object2ObjectOpenHashMap()) { key -> getActiveSourceFromCaches(caches, key) }
 	}
 
 	@JvmStatic
 	fun getBinaryCacheSize(): Int = requireCaches().binaryDefinitions.size
 
 	@JvmStatic
-	fun getStringArrayPattern(key: StructurePatternKey): StructurePatternResolver.StringArrayDefinition? {
-		val f: CompletableFuture<StructureCaches>? = futureCache
-		return f!!.join().jsonDefinitions[key]
+	fun getPatternDefinition(key: StructurePatternKey): PatternDefinition? {
+		val caches = requireCaches()
+		return caches.binaryDefinitions[key] ?: caches.jsonDefinitions[key]
 	}
 
 	@JvmStatic
 	fun getJsonCacheSize(): Int = requireCaches().jsonDefinitions.size
 
-	private fun patternRoot(): Path = GTCEu.GTCEU_FOLDER.resolve("pattern")
+	private fun multiblockRoot(): Path = GTCEu.GTCEU_FOLDER.resolve("multiblock-cache")
 
 	private fun requireCaches(): StructureCaches {
 		val currentFuture = synchronized(cacheStateLock) {
@@ -356,15 +364,15 @@ object StructureCache {
 	}
 
 	private fun loadCaches(): StructureCaches {
-		val root = patternRoot()
+		val root = multiblockRoot()
 		publishPatternResourceIndex(syncPatternResourcesToDisk(root))
-		val binaryMap = HashMap<StructurePatternKey, BlockPattern>()
-		val jsonMap = HashMap<StructurePatternKey, StructurePatternResolver.StringArrayDefinition>()
+		val binaryMap = Object2ObjectOpenHashMap<StructurePatternKey, PatternDefinition>()
+		val jsonMap = Object2ObjectOpenHashMap<StructurePatternKey, PatternDefinition>()
 		loadFromFileSystem(root, binaryMap, jsonMap)
 		return freezeCaches(binaryMap, jsonMap)
 	}
 
-	private fun loadCachesLocked(): StructureCaches = synchronized(cacheLoadLock) {
+	private fun loadCachesLocked(): StructureCaches = cacheLoadLock.withLock {
 		loadCaches()
 	}
 
@@ -394,22 +402,16 @@ object StructureCache {
 	}
 
 	private fun freezeCaches(
-		binaryMap: Map<StructurePatternKey, BlockPattern>,
-		jsonMap: Map<StructurePatternKey, StructurePatternResolver.StringArrayDefinition>,
-		binaryPatterns: ConcurrentHashMap<StructurePatternKey, BlockPattern> = ConcurrentHashMap(),
-		jsonPatterns: ConcurrentHashMap<StructurePatternKey, BlockPattern> = ConcurrentHashMap(),
+		binaryMap: Map<StructurePatternKey, PatternDefinition>,
+		jsonMap: Map<StructurePatternKey, PatternDefinition>,
+		binaryPatterns: ConcurrentHashMap<StructurePatternKey, MultiBlockPattern> = ConcurrentHashMap(),
+		jsonPatterns: ConcurrentHashMap<StructurePatternKey, MultiBlockPattern> = ConcurrentHashMap(),
 	): StructureCaches = StructureCaches(
-		freezeMap(binaryMap),
-		freezeMap(jsonMap),
+		Object2ObjectMaps.unmodifiable(Object2ObjectOpenHashMap(binaryMap)),
+		Object2ObjectMaps.unmodifiable(Object2ObjectOpenHashMap(jsonMap)),
 		binaryPatterns.also { it.keys.retainAll(binaryMap.keys) },
 		jsonPatterns.also { it.keys.retainAll(jsonMap.keys) },
 	)
-
-	@Suppress("UNCHECKED_CAST")
-	private fun <K, V> freezeMap(map: Map<K, V>): Map<K, V> = when (map) {
-		is HashMap<*, *> -> Collections.unmodifiableMap(map as HashMap<K, V>)
-		else -> map
-	}
 
 	private fun publishCaches(caches: StructureCaches) {
 		synchronized(cacheStateLock) {
@@ -444,7 +446,7 @@ object StructureCache {
 	private fun syncPatternResourcesToDisk(patternRoot: Path): PatternResourceIndex {
 		val normalizedPatternRoot = normalizePatternRoot(patternRoot)
 		Files.createDirectories(normalizedPatternRoot)
-		val expectedPaths = HashSet<Path>()
+		val expectedPaths = ObjectOpenHashSet<Path>()
 		expectedPaths.add(normalizedPatternRoot)
 
 		val index = copyPatternSources(collectPatternSources(), normalizedPatternRoot, expectedPaths)
@@ -462,7 +464,7 @@ object StructureCache {
 		} else {
 			patternFile(normalizedPatternRoot, type, key)
 		}
-		val normalizedTypeDir = normalizedPatternRoot.resolve(key.machineId().namespace).resolve(type.directoryName).toAbsolutePath().normalize()
+		val normalizedTypeDir = normalizedPatternRoot.resolve(key.machineId.namespace).resolve(type.directoryName).toAbsolutePath().normalize()
 		check(target.startsWith(normalizedTypeDir)) {
 			"Refusing to sync pattern resource outside $normalizedTypeDir: $target"
 		}
@@ -486,14 +488,14 @@ object StructureCache {
 		?.modFiles
 		.orEmpty()
 		.mapNotNull { modFileInfo ->
-			val root = modFileInfo.file.findResource("pattern")
+			val root = modFileInfo.file.findResource("multiblock")
 			root.takeIf(Files::isDirectory)?.let { PatternSource("mod:${modFileInfo.file.fileName}", it) }
 		}
 
 	@Throws(IOException::class)
 	private fun copyPatternSources(sources: List<PatternSource>, targetRoot: Path, expectedPaths: MutableSet<Path>): PatternResourceIndex {
-		val claimedTargets = HashMap<Path, String>()
-		val index = HashMap<PatternResourceKey, PatternResource>()
+		val claimedTargets = Object2ObjectOpenHashMap<Path, String>()
+		val index = Object2ObjectOpenHashMap<PatternResourceKey, PatternResource>()
 		sources
 			.map { it.copy(root = it.root.toAbsolutePath().normalize()) }
 			.distinctBy(PatternSource::root)
@@ -504,13 +506,7 @@ object StructureCache {
 	}
 
 	@Throws(IOException::class)
-	private fun copyPatternTree(
-		source: PatternSource,
-		targetRoot: Path,
-		expectedPaths: MutableSet<Path>,
-		claimedTargets: MutableMap<Path, String>,
-		index: MutableMap<PatternResourceKey, PatternResource>,
-	) {
+	private fun copyPatternTree(source: PatternSource, targetRoot: Path, expectedPaths: MutableSet<Path>, claimedTargets: MutableMap<Path, String>, index: MutableMap<PatternResourceKey, PatternResource>) {
 		val sourceRoot = source.root
 		if (!Files.isDirectory(sourceRoot)) return
 
@@ -537,16 +533,7 @@ object StructureCache {
 	}
 
 	@Throws(IOException::class)
-	private fun copyPatternFile(
-		source: PatternSource,
-		sourceRoot: Path,
-		sourceFile: Path,
-		relative: Path,
-		targetRoot: Path,
-		target: Path,
-		claimedTargets: MutableMap<Path, String>,
-		index: MutableMap<PatternResourceKey, PatternResource>,
-	) {
+	private fun copyPatternFile(source: PatternSource, sourceRoot: Path, sourceFile: Path, relative: Path, targetRoot: Path, target: Path, claimedTargets: MutableMap<Path, String>, index: MutableMap<PatternResourceKey, PatternResource>) {
 		if (Files.exists(target) && Files.isDirectory(target)) {
 			deleteRecursively(target)
 		}
@@ -563,7 +550,7 @@ object StructureCache {
 		val previousSource = claimedTargets.putIfAbsent(target, source)
 		check(previousSource == null) {
 			val relative = targetRoot.relativize(target).toString().replace('\\', '/')
-			"Duplicate pattern resource target 'pattern/$relative' from $source; already provided by $previousSource"
+			"Duplicate pattern resource target 'multiblock/$relative' from $source; already provided by $previousSource"
 		}
 	}
 
@@ -637,34 +624,28 @@ object StructureCache {
 	}
 
 	@Throws(IOException::class)
-	private fun loadFromFileSystem(dataDir: Path, binaryMap: MutableMap<StructurePatternKey, BlockPattern>, jsonMap: MutableMap<StructurePatternKey, StructurePatternResolver.StringArrayDefinition>) {
+	private fun loadFromFileSystem(dataDir: Path, binaryMap: MutableMap<StructurePatternKey, PatternDefinition>, jsonMap: MutableMap<StructurePatternKey, PatternDefinition>) {
 		if (!Files.isDirectory(dataDir)) return
 
-		val claimedSources = HashMap<StructurePatternKey, String>()
+		val claimedSources = Object2ObjectOpenHashMap<StructurePatternKey, String>()
 		loadTypeFromFileSystem(
 			dataDir,
-			StructureDefinitionType.SERIALIZED_BLOCK_PATTERN,
+			StructureDefinitionType.BINARY_ZSTD,
 			binaryMap,
 			claimedSources,
-			::readBinaryStructureDefinition,
+			{ file, _ -> PatternBinaryCodec.read(file) },
 		)
 		loadTypeFromFileSystem(
 			dataDir,
-			StructureDefinitionType.STRING_ARRAY_JSON,
+			StructureDefinitionType.JSON,
 			jsonMap,
 			claimedSources,
-			::readJsonStructureDefinition,
+			PatternJsonCodec::read,
 		)
 	}
 
-	private fun <T> loadTypeFromFileSystem(
-		dataDir: Path,
-		type: StructureDefinitionType,
-		map: MutableMap<StructurePatternKey, T>,
-		claimedSources: MutableMap<StructurePatternKey, String>,
-		reader: (Path) -> T,
-	) {
-		val loadTasks = ArrayList<CompletableFuture<Void>>()
+	private fun <T> loadTypeFromFileSystem(dataDir: Path, type: StructureDefinitionType, map: MutableMap<StructurePatternKey, T>, claimedSources: MutableMap<StructurePatternKey, String>, reader: (Path, ResourceLocation) -> T) {
+		val loadTasks = ObjectArrayList<CompletableFuture<Void>>()
 		Files.list(dataDir).use { modDirs ->
 			modDirs
 				.filter { path: Path -> Files.isDirectory(path) }
@@ -675,14 +656,7 @@ object StructureCache {
 		CompletableFuture.allOf(*loadTasks.toTypedArray()).join()
 	}
 
-	private fun <T> enqueueStructureLoads(
-		modDir: Path,
-		type: StructureDefinitionType,
-		map: MutableMap<StructurePatternKey, T>,
-		claimedSources: MutableMap<StructurePatternKey, String>,
-		loadTasks: MutableList<CompletableFuture<Void>>,
-		reader: (Path) -> T,
-	) {
+	private fun <T> enqueueStructureLoads(modDir: Path, type: StructureDefinitionType, map: MutableMap<StructurePatternKey, T>, claimedSources: MutableMap<StructurePatternKey, String>, loadTasks: MutableList<CompletableFuture<Void>>, reader: (Path, ResourceLocation) -> T) {
 		val typeDir = modDir.resolve(type.directoryName)
 		if (!Files.isDirectory(typeDir)) return
 		try {
@@ -699,21 +673,21 @@ object StructureCache {
 		}
 	}
 
-	private fun <T> loadStructureFile(
-		modDir: Path,
-		typeDir: Path,
-		type: StructureDefinitionType,
-		file: Path,
-		map: MutableMap<StructurePatternKey, T>,
-		claimedSources: MutableMap<StructurePatternKey, String>,
-		reader: (Path) -> T,
-	) {
+	private fun <T> loadStructureFile(modDir: Path, typeDir: Path, type: StructureDefinitionType, file: Path, map: MutableMap<StructurePatternKey, T>, claimedSources: MutableMap<StructurePatternKey, String>, reader: (Path, ResourceLocation) -> T) {
 		try {
-			val def = reader(file)
 			val modid = modDir.fileName.toString()
 			val relative = typeDir.relativize(file).toString().replace('\\', '/')
 			val key = parsePatternKey(modid, type, relative)
-			val sourcePath = "pattern/$modid/${type.directoryName}/${typeDir.relativize(file)}"
+			val def = reader(file, key.resourceId())
+			if (def is PatternDefinition) {
+				check(def.machine == key.machineId) {
+					"Pattern machine '${def.machine}' does not match resource key '${key.machineId}' at $file"
+				}
+				check(def.structure == key.resourceId()) {
+					"Pattern structure '${def.structure}' does not match resource key '${key.resourceId()}' at $file"
+				}
+			}
+			val sourcePath = "multiblock/$modid/${type.directoryName}/${typeDir.relativize(file)}"
 			synchronized(claimedSources) {
 				val previousSource = claimedSources.putIfAbsent(key, sourcePath)
 				check(previousSource == null) {
@@ -731,16 +705,8 @@ object StructureCache {
 		}
 	}
 
-	private fun <T> reloadSingleEntry(
-		dataDir: Path,
-		type: StructureDefinitionType,
-		key: StructurePatternKey,
-		file: Path,
-		map: MutableMap<StructurePatternKey, T>,
-		claimedSources: MutableMap<StructurePatternKey, String>,
-		reader: (Path) -> T,
-	) {
-		val modDir = dataDir.resolve(key.machineId().namespace)
+	private fun <T> reloadSingleEntry(dataDir: Path, type: StructureDefinitionType, key: StructurePatternKey, file: Path, map: MutableMap<StructurePatternKey, T>, claimedSources: MutableMap<StructurePatternKey, String>, reader: (Path, ResourceLocation) -> T) {
+		val modDir = dataDir.resolve(key.machineId.namespace)
 		val typeDir = modDir.resolve(type.directoryName)
 		val normalizedTypeDir = typeDir.toAbsolutePath().normalize()
 		check(file.startsWith(normalizedTypeDir)) {
@@ -757,27 +723,27 @@ object StructureCache {
 		Files.deleteIfExists(patternFile(dataDir, type, key))
 		Files.deleteIfExists(
 			dataDir
-				.resolve(key.machineId().namespace)
+				.resolve(key.machineId.namespace)
 				.resolve(type.directoryName)
-				.resolve(key.machineId().path)
-				.resolve(key.structureName() + type.fileExtension)
+				.resolve(key.machineId.path)
+				.resolve(key.structureName + type.fileExtension)
 				.toAbsolutePath()
 				.normalize(),
 		)
 	}
 
 	private fun patternFile(dataDir: Path, type: StructureDefinitionType, key: StructurePatternKey): Path = dataDir
-		.resolve(key.machineId().namespace)
+		.resolve(key.machineId.namespace)
 		.resolve(type.directoryName)
 		.resolve(patternRelativePath(type, key))
 		.toAbsolutePath()
 		.normalize()
 
 	private fun patternRelativePath(type: StructureDefinitionType, key: StructurePatternKey): String {
-		if (key.isDefaultStructure) {
-			return key.machineId().path + type.fileExtension
+		if (key.isDefaultStructure()) {
+			return key.machineId.path + type.fileExtension
 		}
-		return key.machineId().path + "/" + key.structureName() + type.fileExtension
+		return key.machineId.path + "/" + key.structureName + type.fileExtension
 	}
 
 	private fun parsePatternKey(modid: String, type: StructureDefinitionType, relativeFile: String): StructurePatternKey {
@@ -801,50 +767,19 @@ object StructureCache {
 	}
 
 	private fun getActiveSourceFromCaches(caches: StructureCaches, key: StructurePatternKey): StructureDefinitionSource {
-		if (key in caches.binaryDefinitions) return StructureDefinitionSource.BINARY_JSON
+		if (key in caches.binaryDefinitions) return StructureDefinitionSource.BINARY_ZSTD
 		if (key in caches.jsonDefinitions) return StructureDefinitionSource.JSON
-		error("Structure definition '$key' was not found in ${StructureDefinitionType.STRING_ARRAY_JSON.directoryName} or ${StructureDefinitionType.SERIALIZED_BLOCK_PATTERN.directoryName}")
+		error("Structure definition '$key' was not found in ${StructureDefinitionType.JSON.directoryName} or ${StructureDefinitionType.BINARY_ZSTD.directoryName}")
 	}
 
-	private fun <T> createClaimedSources(map: Map<StructurePatternKey, T>, section: CacheSection): MutableMap<StructurePatternKey, String> = map.keys.associateWithTo(HashMap()) { key ->
+	private fun <T> createClaimedSources(map: Map<StructurePatternKey, T>, section: CacheSection): MutableMap<StructurePatternKey, String> = map.keys.associateWithTo(Object2ObjectOpenHashMap()) { key ->
 		section.existingSource(key)
 	}
 
 	private fun <T> createSingleClaimedSource(key: StructurePatternKey, map: Map<StructurePatternKey, T>, section: CacheSection): MutableMap<StructurePatternKey, String> = if (key in map) {
-		hashMapOf(key to section.existingSource(key))
+		Object2ObjectOpenHashMap<StructurePatternKey, String>().also { it[key] = section.existingSource(key) }
 	} else {
-		HashMap()
-	}
-
-	@Throws(IOException::class)
-	private fun readBinaryStructureDefinition(file: Path): BlockPattern {
-		val compressed = Files.readAllBytes(file)
-		val raw = decompressZstd(compressed)
-		return CBOR_MAPPER.readValue(raw, BlockPattern::class.java)
-	}
-
-	@Throws(IOException::class)
-	private fun decompressZstd(compressed: ByteArray): ByteArray {
-		ZstdInputStream(ByteArrayInputStream(compressed)).use { zis ->
-			ByteArrayOutputStream().use { baos ->
-				zis.transferTo(baos)
-				return baos.toByteArray()
-			}
-		}
-	}
-
-	@Throws(IOException::class)
-	private fun readJsonStructureDefinition(file: Path): StructurePatternResolver.StringArrayDefinition {
-		val raw = Files.readAllBytes(file)
-		if (raw.isEmpty() || raw.all(::isJsonWhitespace)) {
-			throw IOException("Empty JSON structure definition")
-		}
-		return StructurePatternResolver.decodeStringArrayDefinition(file.toString(), JSON_MAPPER.readTree(raw))
-	}
-
-	private fun isJsonWhitespace(byte: Byte): Boolean = when (byte.toInt()) {
-		0x09, 0x0A, 0x0D, 0x20 -> true
-		else -> false
+		Object2ObjectOpenHashMap()
 	}
 
 	private fun <T> runReloadTask(action: () -> T): T {

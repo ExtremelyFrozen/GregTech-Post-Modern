@@ -175,8 +175,8 @@ public final class GTDynamicItemSlotContainerMenu extends ModularUIContainerMenu
                 }
                 applyInteractionState(opening::isBindingInteractive);
                 sendAllDataToRemote();
-                DynamicItemSlotTransition snapshotTransition = opening.markFullSnapshotSent(token);
-                if (!continueServerTransition(player, "full container snapshot", snapshotTransition)) {
+                DynamicItemSlotTransition stateTransition = opening.markFullStateSent(token);
+                if (!continueServerTransition(player, "full container snapshot", stateTransition)) {
                     return;
                 }
             } else if (opening.activeToken().filter(token::equals).isEmpty()) {
@@ -414,7 +414,7 @@ public final class GTDynamicItemSlotContainerMenu extends ModularUIContainerMenu
     public void removed(Player player) {
         super.removed(player);
         abortOpening(player);
-        holder.close(player);
+        holder.close();
     }
 
     /**

@@ -1,5 +1,7 @@
 package com.gregtechceu.gtceu.api.gui.slot;
 
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
+
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 
@@ -35,19 +37,8 @@ public record DynamicItemSlotOpeningToken(int containerId, UUID menuSessionId, l
         }
     };
 
-    public DynamicItemSlotOpeningToken {
-        if (containerId < 0) {
-            throw new IllegalArgumentException("containerId must be non-negative: " + containerId);
-        }
-        if (menuSessionId == null) {
-            throw new IllegalArgumentException("menuSessionId must not be null");
-        }
-        if (epoch < 1) {
-            throw new IllegalArgumentException("epoch must be positive: " + epoch);
-        }
-        if (manifestNonce == null) {
-            throw new IllegalArgumentException("manifestNonce must not be null");
-        }
+    static {
+        FieldCodecs.registerStream(DynamicItemSlotOpeningToken.class, STREAM_CODEC);
     }
 
     /** Creates the token carried by a manifest sent for this opening. */

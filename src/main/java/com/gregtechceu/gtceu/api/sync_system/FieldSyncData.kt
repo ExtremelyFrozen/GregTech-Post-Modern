@@ -21,29 +21,12 @@ import java.lang.reflect.Field
  * Information about the sync behaviour of fields with sync annotations in ISyncManaged classes
  */
 @ApiStatus.Internal
-class FieldSyncData(
-	field: Field,
-	@JvmField val handle: VarHandle,
-	@JvmField val changeListenerHandles: List<MethodHandle>,
-	@JvmField @field:Nullable val serverNormalizerHandle: MethodHandle?,
-	@JvmField @field:Nullable val serverChangeListenerHandle: MethodHandle?,
-) {
+class FieldSyncData(field: Field, @JvmField val handle: VarHandle, @JvmField val changeListenerHandles: List<MethodHandle>, @JvmField @field:Nullable val serverNormalizerHandle: MethodHandle?, @JvmField @field:Nullable val serverChangeListenerHandle: MethodHandle?) {
 	@JvmField
 	val fieldName: String = field.name
 
 	@JvmField
 	val nbtSaveKey: String
-
-	@JvmField
-	val itemDataName: String
-
-	@JvmField
-	@field:Nullable
-	val itemComponentKey: ResourceLocation?
-
-	@JvmField
-	@field:Nullable
-	val itemDataKey: ResourceLocation?
 
 	@JvmField
 	val componentKey: ResourceLocation
@@ -79,19 +62,12 @@ class FieldSyncData(
 
 	init {
 		val saveField = field.getAnnotation(SaveField::class.java)
-		val itemSave = field.getAnnotation(ItemSave::class.java)
 		hasSaveField = saveField != null
-		hasItemSave = itemSave != null
+		hasItemSave = field.isAnnotationPresent(ItemSave::class.java)
 		hasSyncToClient = field.isAnnotationPresent(SyncToClient::class.java)
 		hasSyncToServer = field.isAnnotationPresent(SyncToServer::class.java)
 		hasSyncBoth = field.isAnnotationPresent(SyncBoth::class.java)
-		nbtSaveKey = if (saveField != null && saveField.nbtKey.isNotBlank()) saveField.nbtKey else fieldName
-		itemDataName = if (itemSave != null && itemSave.nbtKey.isNotBlank()) itemSave.nbtKey else fieldName
-		itemComponentKey = itemSave?.let {
-			val componentKey = if (it.component.isNotBlank()) it.component else itemDataName
-			SyncFieldData.key(componentKey)
-		}
-		itemDataKey = itemComponentKey
+		nbtSaveKey = saveField?.nbtKey?.takeIf { it.isNotBlank() } ?: fieldName
 		componentKey = SyncFieldData.key(nbtSaveKey)
 		triggerClientRerender = field.isAnnotationPresent(RerenderOnChanged::class.java)
 		codec = FieldCodecs.get(field.genericType)
@@ -101,6 +77,7 @@ class FieldSyncData(
 
 	fun setCodec(codec: Codec<*>?) {
 		this.codec = codec
+		contextualCodec = null
 	}
 
 	fun setContextualCodec(contextualCodec: ContextualFieldCodec<*>?) {

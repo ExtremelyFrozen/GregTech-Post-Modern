@@ -46,7 +46,7 @@ public class GTJadePlugin implements IWailaPlugin {
                 new BatteryStorageInfoProvider(),
                 new LDPEndpointProvider());
 
-        if (GTCEu.Mods.isAE2Loaded()) {
+        if (GTCEu.MODS.AE2.isLoaded()) {
             register(registration, new MEPatternBufferProvider(), new MEPatternBufferProxyProvider());
         }
 
@@ -80,7 +80,7 @@ public class GTJadePlugin implements IWailaPlugin {
                 new BatteryStorageInfoProvider(),
                 new CableBlockProvider());
 
-        if (GTCEu.Mods.isAE2Loaded()) {
+        if (GTCEu.MODS.AE2.isLoaded()) {
             register(registration, new MEPatternBufferProvider(), new MEPatternBufferProxyProvider());
         }
 

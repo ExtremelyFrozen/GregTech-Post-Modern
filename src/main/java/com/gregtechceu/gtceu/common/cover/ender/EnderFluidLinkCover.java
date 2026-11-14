@@ -23,7 +23,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
-import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.fluids.FluidStack;
@@ -120,16 +119,15 @@ public class EnderFluidLinkCover extends AbstractEnderLinkCover<VirtualTank> {
     }
 
     @Override
-    public DataComponentMap copyConfig(HolderLookup.Provider registries) {
+    public SyncFieldData copyConfig(HolderLookup.Provider registries) {
         return ConfigCopyHelper.withFields(super.copyConfig(registries), fields -> fields
-                .put(SyncFieldData.key("filter"),
-                        ConfigCopyHelper.encodeItem(registries, filterHandler.getFilterItem())));
+                .put(SyncFieldData.key("filter"), ItemStack.OPTIONAL_CODEC, filterHandler.getFilterItem(), registries));
     }
 
     @Override
-    public void pasteConfig(ServerPlayer player, HolderLookup.Provider registries, DataComponentMap config) {
+    public void pasteConfig(ServerPlayer player, HolderLookup.Provider registries, SyncFieldData config) {
         filterHandler
-                .setFilterItem(ConfigCopyHelper.decodeItem(registries, ConfigCopyHelper.getField(config, "filter")));
+                .setFilterItem(ConfigCopyHelper.getItem(registries, config, "filter"));
         super.pasteConfig(player, registries, config);
     }
 
@@ -147,14 +145,14 @@ public class EnderFluidLinkCover extends AbstractEnderLinkCover<VirtualTank> {
     //////////////////////////////////////
 
     @Override
-    protected UIElement addVirtualEntryLDLib2Element(VirtualEntry entry, int x, int y, int width, int height,
-                                                     boolean canClick) {
+    protected UIElement addVirtualEntryElement(VirtualEntry entry, int x, int y, int width, int height,
+                                               boolean canClick) {
         GTFluidSlotElement tank = new GTFluidSlotElement()
                 .setFluidTank(((VirtualTank) entry).getFluidTank(), 0)
                 .setAllowClickFilled(false)
                 .setAllowClickDrained(false)
                 .setBackgroundTexture(GuiTextures.FLUID_SLOT);
-        return UITemplate.setLDLib2Bounds(tank, x, y, width, height);
+        return UITemplate.setBounds(tank, x, y, width, height);
     }
 
     @NotNull

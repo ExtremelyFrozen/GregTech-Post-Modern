@@ -1,5 +1,7 @@
 package com.gregtechceu.gtceu.api.capability;
 
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
+
 public interface IControllable {
 
     /**
@@ -12,6 +14,7 @@ public interface IControllable {
      *
      * @param isWorkingAllowed true if the workable can work, otherwise false
      */
+    @RPCMethod
     void setWorkingEnabled(boolean isWorkingAllowed);
 
     default void setSuspendAfterFinish(boolean suspendAfterFinish) {}

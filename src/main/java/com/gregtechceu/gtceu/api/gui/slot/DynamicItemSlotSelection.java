@@ -1,5 +1,7 @@
 package com.gregtechceu.gtceu.api.gui.slot;
 
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
+
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 
@@ -36,12 +38,7 @@ public record DynamicItemSlotSelection(long sequence, Optional<UUID> bindingId) 
         }
     };
 
-    public DynamicItemSlotSelection {
-        if (sequence < 0) {
-            throw new IllegalArgumentException("selection sequence must be non-negative: " + sequence);
-        }
-        if (bindingId == null) {
-            throw new IllegalArgumentException("selection bindingId optional must not be null");
-        }
+    static {
+        FieldCodecs.registerStream(DynamicItemSlotSelection.class, STREAM_CODEC);
     }
 }

@@ -8,25 +8,11 @@ import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTComponentPanelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
-import com.gregtechceu.gtceu.api.gui.factory.LDLib2MachineUIProvider;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolderContext;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2ConfiguratorPanelElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyMachineUIElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyTabsElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyTooltipsPanelElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyUIProvider;
-import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
+import com.gregtechceu.gtceu.api.gui.fancy.TooltipsPanel;
 import com.gregtechceu.gtceu.api.machine.ConditionalSubscriptionHandler;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2BatchModeFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2DirectionalFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2MachineModeFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2VoidingModeFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2WorkingEnabledFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.feature.LDLib2FancyActionMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMaintenanceMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMultiPart;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.LDLib2FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.multiblock.PartAbility;
 import com.gregtechceu.gtceu.api.machine.multiblock.WorkableElectricMultiblockMachine;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableFluidTank;
@@ -42,7 +28,6 @@ import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
 import com.gregtechceu.gtceu.common.data.GTRecipeTypes;
 
-import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
@@ -51,7 +36,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.entity.player.Player;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler.FluidAction;
 import net.neoforged.neoforge.fluids.capability.templates.VoidFluidHandler;
@@ -69,8 +53,10 @@ import javax.annotation.ParametersAreNonnullByDefault;
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 public class DistillationTowerMachine extends WorkableElectricMultiblockMachine
-                                      implements FluidRecipeCapability.ICustomParallel, LDLib2MachineUIProvider,
-                                      LDLib2FancyActionMachine {
+                                      implements FluidRecipeCapability.ICustomParallel {
+
+    private static final int PAGE_WIDTH = 190;
+    private static final int PAGE_HEIGHT = 125;
 
     @Getter
     private @Nullable List<IFluidHandler> fluidOutputs;
@@ -82,13 +68,13 @@ public class DistillationTowerMachine extends WorkableElectricMultiblockMachine
      * Keeps the client display supplied from a server-owned snapshot while the structure is formed.
      */
     @Getter(AccessLevel.PACKAGE)
-    private final ConditionalSubscriptionHandler displaySnapshotSubscription;
+    private final ConditionalSubscriptionHandler displaySubscription;
     /**
      * Carries the complete legacy display text without relying on the old Widget sync path.
      */
     @Getter(AccessLevel.PACKAGE)
     @SyncToClient
-    private List<Component> displaySnapshot = List.of();
+    private List<Component> displayText = List.of();
 
     public DistillationTowerMachine(BlockEntityCreationInfo info) {
         this(info, 1);
@@ -102,7 +88,7 @@ public class DistillationTowerMachine extends WorkableElectricMultiblockMachine
     public DistillationTowerMachine(BlockEntityCreationInfo info, int yOffset) {
         super(info, new DistillationTowerLogic());
         this.yOffset = yOffset;
-        this.displaySnapshotSubscription = new ConditionalSubscriptionHandler(this, this::refreshDisplaySnapshot,
+        this.displaySubscription = new ConditionalSubscriptionHandler(this, this::refreshDisplayText,
                 this::isFormed);
     }
 
@@ -110,8 +96,8 @@ public class DistillationTowerMachine extends WorkableElectricMultiblockMachine
     public void onLoad() {
         super.onLoad();
         if (!isRemote()) {
-            refreshDisplaySnapshot();
-            displaySnapshotSubscription.initialize(getLevel());
+            refreshDisplayText();
+            displaySubscription.initialize(getLevel());
         }
     }
 
@@ -162,8 +148,8 @@ public class DistillationTowerMachine extends WorkableElectricMultiblockMachine
                 }
             }
             if (!isRemote()) {
-                refreshDisplaySnapshot();
-                displaySnapshotSubscription.updateSubscription();
+                refreshDisplayText();
+                displaySubscription.updateSubscription();
             }
         } else invalidateStructure(structureName);
     }
@@ -181,45 +167,45 @@ public class DistillationTowerMachine extends WorkableElectricMultiblockMachine
         }
         super.invalidateStructure(structureName);
         if (DEFAULT_STRUCTURE.equals(structureName) && !isRemote()) {
-            refreshDisplaySnapshot();
-            displaySnapshotSubscription.updateSubscription();
+            refreshDisplayText();
+            displaySubscription.updateSubscription();
         }
     }
 
     @Override
     public void onUnload() {
         super.onUnload();
-        resetDisplaySnapshot();
+        resetDisplayText();
     }
 
     @Override
     public void onPartUnload() {
         super.onPartUnload();
-        resetDisplaySnapshot();
+        resetDisplayText();
     }
 
     /**
      * Clears runtime display state when the controller can no longer serve its UI.
      */
-    private void resetDisplaySnapshot() {
-        displaySnapshot = List.of();
-        displaySnapshotSubscription.unsubscribe();
+    private void resetDisplayText() {
+        displayText = List.of();
+        displaySubscription.unsubscribe();
     }
 
     @Override
     public void addDisplayText(List<Component> textList) {
-        textList.addAll(displaySnapshot);
+        textList.addAll(displayText);
     }
 
     /**
      * Rebuilds the immutable client snapshot from the server's complete legacy display contract.
      */
-    void refreshDisplaySnapshot() {
-        List<Component> nextSnapshot = new ArrayList<>();
-        collectServerDisplayText(nextSnapshot);
-        nextSnapshot = List.copyOf(nextSnapshot);
-        if (!displaySnapshot.equals(nextSnapshot)) {
-            displaySnapshot = nextSnapshot;
+    void refreshDisplayText() {
+        List<Component> nextText = new ArrayList<>();
+        collectServerDisplayText(nextText);
+        nextText = List.copyOf(nextText);
+        if (!displayText.equals(nextText)) {
+            displayText = nextText;
         }
     }
 
@@ -230,149 +216,9 @@ public class DistillationTowerMachine extends WorkableElectricMultiblockMachine
         super.addDisplayText(textList);
     }
 
-    @Override
-    public boolean canCreateLDLib2UI(Player player, MachineUIHolder holder) {
-        return holder.getMachine() == this;
-    }
-
-    @Override
-    public UI createLDLib2UI(Player player, MachineUIHolder holder) {
-        requireMatchingHolder(holder);
-        DistillationTowerFancyPage page = new DistillationTowerFancyPage(player, holder);
-        return UI.of(new LDLib2FancyMachineUIElement(page, player.getInventory(), holder,
-                page.getLDLib2PageWidth(), page.getLDLib2PageHeight()));
-    }
-
-    private void requireMatchingHolder(MachineUIHolder holder) {
-        if (holder.getMachine() != this) {
-            throw new IllegalArgumentException("Distillation Tower UI holder must resolve the opened controller.");
-        }
-    }
-
     /**
      * Owns the opening-scoped controller, optional machine-mode, directional, and contextual part pages.
      */
-    private final class DistillationTowerFancyPage implements LDLib2FancyUIProvider {
-
-        private static final int PAGE_WIDTH = 190;
-        private static final int PAGE_HEIGHT = 125;
-
-        private final MachineUIHolder holder;
-        private final List<LDLib2FancyUIProvider> controllerSubTabs;
-        private final List<LDLib2FancyUIProvider> partPages;
-
-        private DistillationTowerFancyPage(Player player, MachineUIHolder holder) {
-            requireMatchingHolder(holder);
-            this.holder = holder;
-
-            List<LDLib2FancyUIProvider> sidePages = new ArrayList<>(2);
-            if (getRecipeTypes().length > 1) {
-                sidePages.add(new LDLib2MachineModeFancyConfigurator(DistillationTowerMachine.this));
-            }
-            sidePages.add(new LDLib2DirectionalFancyConfigurator(DistillationTowerMachine.this, player, holder));
-            this.controllerSubTabs = List.copyOf(sidePages);
-
-            List<LDLib2FancyUIProvider> pages = new ArrayList<>();
-            for (IMultiPart part : getParts()) {
-                if (!(part instanceof LDLib2FancyPartUIProvider pageProvider)) {
-                    throw new IllegalStateException("Distillation Tower part has no LDLib2 Fancy page: " +
-                            part.self().getDefinition().getId());
-                }
-                MachineUIHolder partHolder = new MachineUIHolderContext(player, part.self());
-                pages.add(pageProvider.createLDLib2FancyPage(player, partHolder));
-            }
-            this.partPages = List.copyOf(pages);
-        }
-
-        @Override
-        public UIElement createLDLib2MainPage(LDLib2FancyMachineUIElement shell) {
-            if (holder.getMachine() != DistillationTowerMachine.this) {
-                throw new IllegalStateException("Distillation Tower page holder no longer resolves its controller.");
-            }
-
-            UIElement root = UITemplate.setLDLib2Bounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
-            root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
-
-            GTScrollerViewElement screen = new GTScrollerViewElement(4, 4, 182, 117);
-            screen.style(style -> style.backgroundTexture(getScreenTexture()));
-            screen.viewPort(viewPort -> viewPort
-                    .layout(layout -> layout.paddingAll(0))
-                    .style(style -> style.backgroundTexture(getScreenTexture())));
-            screen.scrollerStyle(style -> style
-                    .mode(ScrollerMode.VERTICAL)
-                    .verticalScrollDisplay(ScrollDisplay.AUTO)
-                    .horizontalScrollDisplay(ScrollDisplay.NEVER));
-
-            GTLabelElement title = new GTLabelElement(4, 5, 174, 10,
-                    getBlockState().getBlock().getDescriptionId(), true);
-            title.textStyle(style -> style
-                    .textColor(0x404040)
-                    .textShadow(false)
-                    .textAlignHorizontal(Horizontal.LEFT)
-                    .textAlignVertical(Vertical.CENTER));
-            screen.addScrollViewChild(title);
-            screen.addScrollViewChild(new GTComponentPanelElement(4, 17,
-                    DistillationTowerMachine.this::addDisplayText)
-                    .setMaxWidthLimit(200)
-                    .clickHandler(DistillationTowerMachine.this::handleDisplayClick));
-            root.addChild(screen);
-            return root;
-        }
-
-        @Override
-        public IGuiTexture getTabIcon() {
-            return GuiTextures.itemStack(getDefinition().getItem());
-        }
-
-        @Override
-        public Component getTitle() {
-            return Component.translatable(getDefinition().getDescriptionId());
-        }
-
-        @Override
-        public int getLDLib2PageWidth() {
-            return PAGE_WIDTH;
-        }
-
-        @Override
-        public int getLDLib2PageHeight() {
-            return PAGE_HEIGHT;
-        }
-
-        @Override
-        public void attachSideTabs(LDLib2FancyTabsElement tabs) {
-            controllerSubTabs.forEach(tabs::attachSubTab);
-        }
-
-        @Override
-        public void attachConfigurators(LDLib2ConfiguratorPanelElement configuratorPanel) {
-            LDLib2VoidingModeFancyConfigurator.attachConfigurators(
-                    configuratorPanel, DistillationTowerMachine.this);
-            LDLib2BatchModeFancyConfigurator.attachConfigurators(
-                    configuratorPanel, DistillationTowerMachine.this);
-            configuratorPanel.attachConfigurators(new LDLib2WorkingEnabledFancyConfigurator(
-                    DistillationTowerMachine.this, holder));
-        }
-
-        @Override
-        public void attachTooltips(LDLib2FancyTooltipsPanelElement tooltipsPanel) {
-            for (IMultiPart part : getParts()) {
-                if (part instanceof IMaintenanceMachine maintenanceMachine) {
-                    maintenanceMachine.attachLDLib2MaintenanceTooltips(tooltipsPanel);
-                }
-            }
-        }
-
-        @Override
-        public List<LDLib2FancyUIProvider> getSubTabs() {
-            return partPages;
-        }
-
-        @Override
-        public List<Component> getTabTooltips() {
-            return List.of(Component.translatable(getDefinition().getDescriptionId()));
-        }
-    }
 
     @Override
     public int limitFluidParallel(GTRecipe recipe, int multiplier, boolean tick) {
@@ -411,7 +257,6 @@ public class DistillationTowerMachine extends WorkableElectricMultiblockMachine
                 recipe.tickInputs, cm.applyContents(recipe.tickOutputs), recipe.inputChanceLogics,
                 recipe.outputChanceLogics,
                 recipe.tickInputChanceLogics, recipe.tickOutputChanceLogics, recipe.conditions,
-                recipe.ingredientActions,
                 RecipeData.copy(recipe.data), recipe.tier, recipe.duration, recipe.recipeCategory, recipe.groupColor);
     }
 
@@ -549,6 +394,46 @@ public class DistillationTowerMachine extends WorkableElectricMultiblockMachine
                 if (action.simulate() && !valid) break;
             }
             return valid;
+        }
+    }
+
+    @Override
+    public UIElement createUIWidget(FancyMachineUIWidget shell) {
+        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
+        root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
+
+        GTScrollerViewElement screen = new GTScrollerViewElement(4, 4, 182, 117);
+        screen.style(style -> style.backgroundTexture(getScreenTexture()));
+        screen.viewPort(viewPort -> viewPort
+                .layout(layout -> layout.paddingAll(0))
+                .style(style -> style.backgroundTexture(getScreenTexture())));
+        screen.scrollerStyle(style -> style
+                .mode(ScrollerMode.VERTICAL)
+                .verticalScrollDisplay(ScrollDisplay.AUTO)
+                .horizontalScrollDisplay(ScrollDisplay.NEVER));
+
+        GTLabelElement title = new GTLabelElement(4, 5, 174, 10,
+                getBlockState().getBlock().getDescriptionId(), true);
+        title.textStyle(style -> style
+                .textColor(0x404040)
+                .textShadow(false)
+                .textAlignHorizontal(Horizontal.LEFT)
+                .textAlignVertical(Vertical.CENTER));
+        screen.addScrollViewChild(title);
+        screen.addScrollViewChild(new GTComponentPanelElement(4, 17,
+                DistillationTowerMachine.this::addDisplayText)
+                .setMaxWidthLimit(200)
+                .clickHandler(DistillationTowerMachine.this::handleDisplayClick));
+        root.addChild(screen);
+        return root;
+    }
+
+    @Override
+    public void attachTooltips(TooltipsPanel tooltipsPanel) {
+        for (IMultiPart part : getParts()) {
+            if (part instanceof IMaintenanceMachine maintenanceMachine) {
+                maintenanceMachine.attachMaintenanceTooltips(tooltipsPanel);
+            }
         }
     }
 }

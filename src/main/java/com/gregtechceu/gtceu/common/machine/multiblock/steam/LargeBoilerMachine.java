@@ -8,12 +8,11 @@ import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTComponentPanelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
-import com.gregtechceu.gtceu.api.gui.factory.LDLib2MachineUIProvider;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.api.machine.TickableSubscription;
+import com.gregtechceu.gtceu.api.machine.feature.IUIMachine;
 import com.gregtechceu.gtceu.api.machine.multiblock.WorkableMultiblockMachine;
 import com.gregtechceu.gtceu.api.machine.trait.RecipeLogic;
 import com.gregtechceu.gtceu.api.recipe.GTRecipe;
@@ -21,6 +20,7 @@ import com.gregtechceu.gtceu.api.recipe.modifier.ModifierFunction;
 import com.gregtechceu.gtceu.api.recipe.modifier.RecipeModifier;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
 import com.gregtechceu.gtceu.common.data.GTMaterials;
 import com.gregtechceu.gtceu.config.ConfigHolder;
 import com.gregtechceu.gtceu.utils.GTUtil;
@@ -50,16 +50,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class LargeBoilerMachine extends WorkableMultiblockMachine
-                                implements LDLib2MachineUIProvider, LargeBoilerThrottleActionTarget {
+                                implements IUIMachine {
 
     public static final int TICKS_PER_STEAM_GENERATION = 5;
     private static final int THROTTLE_STEP = 5;
     private static final int MIN_THROTTLE = 25;
     private static final int MAX_THROTTLE = 100;
-    static {
-        LargeBoilerMachineActions.initialize();
-    }
-
     @Getter
     public final int maxTemperature, heatSpeed;
     @SaveField
@@ -244,17 +240,12 @@ public class LargeBoilerMachine extends WorkableMultiblockMachine
     }
 
     @Override
-    public boolean canCreateLDLib2UI(Player player, MachineUIHolder holder) {
-        return holder.getMachine() == this;
-    }
-
-    @Override
-    public UI createLDLib2UI(Player player, MachineUIHolder holder) {
+    public UI createUI(Player player, MachineUIHolder holder) {
         UIElement root = new UIElement();
-        UITemplate.setLDLib2Bounds(root, 0, 0, 176, 216);
+        UITemplate.setBounds(root, 0, 0, 176, 216);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));
         root.addChild(createDisplayScreen(player, holder));
-        root.addChild(UITemplate.bindPlayerInventoryLDLib2(player.getInventory(), GuiTextures.SLOT, 7, 134, true));
+        root.addChild(UITemplate.bindPlayerInventory(player.getInventory(), GuiTextures.SLOT, 7, 134, true));
         return UI.of(root);
     }
 
@@ -287,23 +278,19 @@ public class LargeBoilerMachine extends WorkableMultiblockMachine
     private GTComponentPanelElement createDisplayTextPanel(Player player, MachineUIHolder holder) {
         return new GTComponentPanelElement(4, 17, this::addDisplayText)
                 .setMaxWidthLimit(150)
-                .clickHandler((componentData, clickData) -> adjustLDLib2Throttle(player, holder, componentData));
+                .clickHandler((componentData, clickData) -> adjustThrottle(player, holder, componentData));
     }
 
-    private void adjustLDLib2Throttle(Player player, MachineUIHolder holder, String componentData) {
+    private void adjustThrottle(Player player, MachineUIHolder holder, String componentData) {
         int direction = readThrottleButtonDirection(componentData);
         if (player.level().isClientSide()) {
-            MachineUIHelper.sendAction(holder,
-                    LargeBoilerMachineActions.createAdjustLargeBoilerThrottleAction(direction));
+            holder.getMachine().rpcToServer("adjustLargeBoilerThrottle", direction);
         }
     }
 
-    @Override
+    @RPCMethod
     @ApiStatus.Internal
     public void adjustLargeBoilerThrottle(int direction) {
-        if (direction != -1 && direction != 1) {
-            throw new IllegalArgumentException("Invalid large boiler throttle direction: " + direction);
-        }
         setThrottle(Mth.clamp(throttle + direction * THROTTLE_STEP, MIN_THROTTLE, MAX_THROTTLE));
     }
 

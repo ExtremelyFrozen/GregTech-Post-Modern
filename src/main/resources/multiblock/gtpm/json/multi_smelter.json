@@ -1,0 +1,70 @@
+{
+	"machine": "gtpm:multi_smelter",
+	"axes": {
+		"depth": "front",
+		"height": "up",
+		"width": "left"
+	},
+	"orientation": {
+		"allowMirror": false,
+		"allowExtendedFacing": false
+	},
+	"origin": {
+		"token": "controller"
+	},
+	"parameters": {},
+	"fragments": {},
+	"predicates": {
+		"X": {
+			"type": "gtpm:concatenated",
+			"predicates": [
+				{
+					"type": "gtpm:restricted",
+					"predicate": {
+						"type": "gtpm:block",
+						"ids": "gtpm:heatproof_machine_casing"
+					},
+					"minCount": 9
+				},
+				{
+					"type": "gtpm:auto_recipe_abilities"
+				},
+				{
+					"type": "gtpm:auto_maintenance",
+					"checkMaintenance": true,
+					"checkMuffler": false,
+					"checkParallel": false
+				}
+			]
+		},
+		"M": {
+			"type": "gtpm:part",
+			"abilities": "muffler"
+		},
+		"C": {
+			"type": "gtpm:coil"
+		},
+		"#": {
+			"type": "gtpm:air"
+		}
+	},
+	"body": {
+		"type": "sequence",
+		"axis": "depth",
+		"children": [
+			{
+				"type": "fixed",
+				"layers": [["XXX", "CCC", "XXX"]]
+			},
+			{
+				"type": "fixed",
+				"layers": [["XXX", "C#C", "XMX"]]
+			},
+			{
+				"type": "fixed",
+				"layers": [["X~X", "CCC", "XXX"]]
+			}
+		]
+	},
+	"constraints": []
+}

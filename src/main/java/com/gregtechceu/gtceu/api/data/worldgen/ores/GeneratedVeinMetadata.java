@@ -1,6 +1,7 @@
 package com.gregtechceu.gtceu.api.data.worldgen.ores;
 
 import com.gregtechceu.gtceu.api.data.worldgen.GTOreDefinition;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
@@ -25,6 +26,10 @@ public final class GeneratedVeinMetadata {
                     GTOreDefinition.CODEC.fieldOf("definition").forGetter(GeneratedVeinMetadata::definition),
                     Codec.BOOL.optionalFieldOf("depleted", false).forGetter(GeneratedVeinMetadata::depleted)
     ).apply(instance, GeneratedVeinMetadata::new));
+
+    static {
+        FieldCodecs.register(GeneratedVeinMetadata.class, CODEC);
+    }
     // spotless:on
     @Getter
     @NotNull

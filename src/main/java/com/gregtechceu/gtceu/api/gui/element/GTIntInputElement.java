@@ -41,7 +41,7 @@ public class GTIntInputElement extends UIElement {
                              IntConsumer valueConsumer) {
         this.valueSupplier = valueSupplier;
         this.valueConsumer = valueConsumer;
-        UITemplate.setLDLib2Bounds(this, x, y, width, height);
+        UITemplate.setBounds(this, x, y, width, height);
 
         int buttonWidth = Mth.clamp(width / 5, 15, 40);
         int textFieldWidth = width - 2 * buttonWidth - 4;

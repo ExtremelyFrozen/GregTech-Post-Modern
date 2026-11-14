@@ -3,20 +3,17 @@ package com.gregtechceu.gtceu.common.machine.multiblock.part;
 import com.gregtechceu.gtceu.api.GTValues;
 import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo;
 import com.gregtechceu.gtceu.api.capability.recipe.IO;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyUIProvider;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.LDLib2FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableFluidTank;
 import com.gregtechceu.gtceu.api.transfer.fluid.CustomFluidTank;
 
-import net.minecraft.core.component.DataComponentMap;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.material.Fluids;
 import net.neoforged.neoforge.fluids.FluidStack;
 
+import com.mojang.serialization.Codec;
+
 import java.util.Collections;
 
-public class ReservoirHatchPartMachine extends FluidHatchPartMachine implements LDLib2FancyPartUIProvider {
+public class ReservoirHatchPartMachine extends FluidHatchPartMachine {
 
     protected InfiniteWaterTank waterTank;
 
@@ -27,16 +24,8 @@ public class ReservoirHatchPartMachine extends FluidHatchPartMachine implements 
     }
 
     /** Reservoir definitions always reuse their compatible generic fluid hatch page. */
-    @Override
-    protected boolean supportsGenericLDLib2Page() {
-        return true;
-    }
 
     /** Reuses the reservoir-compatible generic page for one controller UI opening. */
-    @Override
-    public LDLib2FancyUIProvider createLDLib2FancyPage(Player player, MachineUIHolder holder) {
-        return createLDLib2Page(player, holder);
-    }
 
     //////////////////////////////////
     // ****** Initialization ****** //
@@ -111,12 +100,8 @@ public class ReservoirHatchPartMachine extends FluidHatchPartMachine implements 
         }
 
         @Override
-        public DataComponentMap exportComponents() {
-            // Component persistence is unnecessary here. The tank can always be recreated full and will refill anyway.
-            return DataComponentMap.EMPTY;
+        public Codec<CustomFluidTank> codec() {
+            return Codec.unit(this);
         }
-
-        @Override
-        public void importComponents(DataComponentMap components) {}
     }
 }

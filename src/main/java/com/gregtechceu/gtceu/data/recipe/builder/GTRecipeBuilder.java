@@ -1337,7 +1337,7 @@ public class GTRecipeBuilder {
     }
 
     public GTRecipeBuilder heraclesQuest(String questId, boolean isReverse) {
-        if (!GTCEu.Mods.isHeraclesLoaded()) {
+        if (!GTCEu.MODS.HERACLES.isLoaded()) {
             GTCEu.LOGGER.error("Heracles not loaded!");
             return this;
         }
@@ -1365,7 +1365,7 @@ public class GTRecipeBuilder {
     // }
 
     public GTRecipeBuilder ftbQuest(String questId, boolean isReverse) {
-        if (!GTCEu.Mods.isFTBQuestsLoaded()) {
+        if (!GTCEu.MODS.FTB_QUESTS.isLoaded()) {
             GTCEu.LOGGER.error("FTBQuests is not loaded!");
             return this;
         }
@@ -1661,7 +1661,7 @@ public class GTRecipeBuilder {
         return new GTRecipe(recipeType, id.withPrefix(recipeType.registryName.getPath() + "/"),
                 input, output, tickInput, tickOutput,
                 inputChanceLogic, outputChanceLogic, tickInputChanceLogic, tickOutputChanceLogic,
-                conditions, List.of(), data, tier, duration, recipeCategory, -1);
+                conditions, data, tier, duration, recipeCategory, -1);
     }
 
     public GTRecipeDefinition buildDefinition() {
@@ -1670,7 +1670,7 @@ public class GTRecipeBuilder {
                 ContentListMap.copyOf(tickInput), ContentListMap.copyOf(tickOutput),
                 new HashMap<>(inputChanceLogic), new HashMap<>(outputChanceLogic),
                 new HashMap<>(tickInputChanceLogic), new HashMap<>(tickOutputChanceLogic),
-                new ArrayList<>(conditions), List.of(), RecipeData.copy(data), tier, duration, recipeCategory, -1);
+                new ArrayList<>(conditions), RecipeData.copy(data), tier, duration, recipeCategory, -1);
     }
 
     protected void warnTooManyIngredients(RecipeCapability<?> capability,

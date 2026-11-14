@@ -1,5 +1,7 @@
 package com.gregtechceu.gtceu.api.gui.slot;
 
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
+
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 
@@ -25,7 +27,7 @@ public record DynamicItemSlotBinding(UUID bindingId, UUID targetId, UUID targetI
                                      int firstSlotId, int slotCount, boolean present) {
 
     /**
-     * Network codec for a bounded lifecycle binding.
+     * Network codec for a lifecycle binding.
      */
     public static final StreamCodec<RegistryFriendlyByteBuf, DynamicItemSlotBinding> STREAM_CODEC = new StreamCodec<>() {
 
@@ -51,20 +53,8 @@ public record DynamicItemSlotBinding(UUID bindingId, UUID targetId, UUID targetI
         }
     };
 
-    public DynamicItemSlotBinding {
-        if (bindingId == null) {
-            throw new IllegalArgumentException("bindingId must not be null");
-        }
-        if (targetId == null) {
-            throw new IllegalArgumentException("targetId must not be null");
-        }
-        if (targetIncarnation == null) {
-            throw new IllegalArgumentException("targetIncarnation must not be null");
-        }
-        if (firstSlotId < 0) {
-            throw new IllegalArgumentException("firstSlotId must be non-negative: " + firstSlotId);
-        }
-        DynamicItemSlotDefinition.validateSlotCount(slotCount);
+    static {
+        FieldCodecs.registerStream(DynamicItemSlotBinding.class, STREAM_CODEC);
     }
 
     /**

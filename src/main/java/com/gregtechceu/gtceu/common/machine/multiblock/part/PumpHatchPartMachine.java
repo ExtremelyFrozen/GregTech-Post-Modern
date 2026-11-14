@@ -8,13 +8,11 @@ import com.gregtechceu.gtceu.api.gui.element.GTFluidSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTImageElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTToggleButtonElement;
-import com.gregtechceu.gtceu.api.gui.factory.LDLib2MachineUIProvider;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyUIProvider;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.LDLib2FancyPartUIProvider;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.PumpHatch;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableFluidTank;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCSender;
 import com.gregtechceu.gtceu.common.data.GTMaterials;
 import com.gregtechceu.gtceu.utils.GTUtil;
 
@@ -39,12 +37,7 @@ import net.neoforged.neoforge.fluids.FluidUtil;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 
 public class PumpHatchPartMachine extends FluidHatchPartMachine
-                                  implements LDLib2MachineUIProvider, LDLib2FancyPartUIProvider, PumpHatch,
-                                  PumpHatchFluidSlotActionTarget {
-
-    static {
-        PumpHatchPartMachineActions.initialize();
-    }
+                                  implements PumpHatch {
 
     public PumpHatchPartMachine(BlockEntityCreationInfo info) {
         super(info, 0, IO.OUT, FluidType.BUCKET_VOLUME, 1);
@@ -57,43 +50,28 @@ public class PumpHatchPartMachine extends FluidHatchPartMachine
     }
 
     @Override
-    public boolean canCreateLDLib2UI(Player player, MachineUIHolder holder) {
-        return holder.getMachine() == this;
-    }
-
-    @Override
-    public UI createLDLib2UI(Player player, MachineUIHolder holder) {
+    public UI createUI(Player player, MachineUIHolder holder) {
         UIElement root = new UIElement();
-        UITemplate.setLDLib2Bounds(root, 0, 0, 176, 166);
-        UITemplate.setLDLib2BackgroundTexture(root, GuiTextures.BACKGROUND);
+        UITemplate.setBounds(root, 0, 0, 176, 166);
+        UITemplate.setBackgroundTexture(root, GuiTextures.BACKGROUND);
         root.addChild(new GTImageElement(7, 16, 81, 55, GuiTextures.DISPLAY));
-        root.addChild(createLDLib2FluidAmountLabel());
-        root.addChild(createLDLib2FluidAmountValueLabel());
-        root.addChild(createLDLib2TitleLabel());
-        root.addChild(createLDLib2FluidSlot(player, holder));
-        root.addChild(createLDLib2WorkingEnabledToggle());
-        root.addChild(UITemplate.bindPlayerInventoryLDLib2(player.getInventory(), GuiTextures.SLOT, 7, 84, true));
+        root.addChild(createFluidAmountLabel());
+        root.addChild(createFluidAmountValueLabel());
+        root.addChild(createTitleLabel());
+        root.addChild(createFluidSlot(player, holder));
+        root.addChild(createWorkingEnabledToggle());
+        root.addChild(UITemplate.bindPlayerInventory(player.getInventory(), GuiTextures.SLOT, 7, 84, true));
         return UI.of(root);
     }
 
-    @Override
-    protected boolean supportsGenericLDLib2Page() {
-        return true;
-    }
-
-    @Override
-    public LDLib2FancyUIProvider createLDLib2FancyPage(Player player, MachineUIHolder holder) {
-        return createLDLib2Page(player, holder);
-    }
-
-    GTToggleButtonElement createLDLib2WorkingEnabledToggle() {
+    GTToggleButtonElement createWorkingEnabledToggle() {
         return new GTToggleButtonElement(7, 53, 18, 18,
-                GuiTextures.BUTTON_FLUID_OUTPUT, this::isWorkingEnabled, this::setLDLib2WorkingEnabled)
+                GuiTextures.BUTTON_FLUID_OUTPUT, this::isWorkingEnabled, this::setWorkingEnabled)
                 .setShouldUseBaseBackground()
                 .setTooltipText("gtpm.gui.fluid_auto_input.tooltip");
     }
 
-    private GTLabelElement createLDLib2TitleLabel() {
+    private GTLabelElement createTitleLabel() {
         GTLabelElement label = new GTLabelElement(6, 6, 164, 10,
                 getBlockState().getBlock().getDescriptionId(), true);
         label.textStyle(style -> style
@@ -104,7 +82,7 @@ public class PumpHatchPartMachine extends FluidHatchPartMachine
         return label;
     }
 
-    private static GTLabelElement createLDLib2FluidAmountLabel() {
+    private static GTLabelElement createFluidAmountLabel() {
         GTLabelElement label = new GTLabelElement(11, 20, 73, 10, "gtpm.gui.fluid_amount", true);
         label.textStyle(style -> style
                 .textColor(0x404040)
@@ -114,16 +92,16 @@ public class PumpHatchPartMachine extends FluidHatchPartMachine
         return label;
     }
 
-    private GTLabelElement createLDLib2FluidAmountValueLabel() {
+    private GTLabelElement createFluidAmountValueLabel() {
         GTLabelElement label = new GTLabelElement(11, 30, 73, 10) {
 
             @Override
             public void screenTick() {
-                setValue(Component.literal(getLDLib2FluidAmountText()));
+                setValue(Component.literal(getFluidAmountText()));
                 super.screenTick();
             }
         };
-        label.setValue(Component.literal(getLDLib2FluidAmountText()));
+        label.setValue(Component.literal(getFluidAmountText()));
         label.textStyle(style -> style
                 .textColor(-1)
                 .textShadow(true)
@@ -132,11 +110,11 @@ public class PumpHatchPartMachine extends FluidHatchPartMachine
         return label;
     }
 
-    private String getLDLib2FluidAmountText() {
+    private String getFluidAmountText() {
         return String.valueOf(tank.getFluidInTank(0).getAmount());
     }
 
-    private GTFluidSlotElement createLDLib2FluidSlot(Player player, MachineUIHolder holder) {
+    private GTFluidSlotElement createFluidSlot(Player player, MachineUIHolder holder) {
         GTFluidSlotElement fluidSlot = new GTFluidSlotElement()
                 .setFluidTank(tank.getStorages()[0], 0)
                 .setShowAmount(true)
@@ -146,29 +124,23 @@ public class PumpHatchPartMachine extends FluidHatchPartMachine
         fluidSlot.addEventListener(UIEvents.MOUSE_DOWN, event -> {
             if (event.button == 0 && player.level().isClientSide() &&
                     FluidUtil.getFluidHandler(player.containerMenu.getCarried()).isPresent()) {
-                MachineUIHelper.sendAction(holder,
-                        PumpHatchPartMachineActions.createClickPumpHatchFluidSlotAction(GTUtil.isShiftDown()));
+                boolean shiftDown = GTUtil.isShiftDown();
+                holder.getMachine().rpcToServer("clickPumpHatchFluidSlot", shiftDown);
                 event.stopImmediatePropagation();
                 event.hasHandler = true;
             }
         });
-        return UITemplate.setLDLib2Bounds(fluidSlot, 90, 35, 18, 18);
+        return UITemplate.setBounds(fluidSlot, 90, 35, 18, 18);
     }
 
-    private void setLDLib2WorkingEnabled(boolean enabled) {
-        setWorkingEnabled(enabled);
-        if (isRemote()) {
-            sendServerSyncChanges();
-        }
+    @RPCMethod
+    public void clickPumpHatchFluidSlot(RPCSender sender, boolean shiftDown) {
+        var player = sender.asPlayer();
+        new FluidClickTarget(tank.getStorages()[0], true, io.support(IO.IN)).click(player, shiftDown);
     }
 
-    @Override
-    public void clickPumpHatchFluidSlot(ServerPlayer player, boolean shiftDown) {
-        new LDLib2FluidClickTarget(tank.getStorages()[0], true, io.support(IO.IN)).click(player, shiftDown);
-    }
-
-    private record LDLib2FluidClickTarget(IFluidHandler fluidTank, boolean allowClickFilled,
-                                          boolean allowClickDrained) {
+    private record FluidClickTarget(IFluidHandler fluidTank, boolean allowClickFilled,
+                                    boolean allowClickDrained) {
 
         private void click(ServerPlayer player, boolean shiftDown) {
             ItemStack currentStack = player.containerMenu.getCarried();

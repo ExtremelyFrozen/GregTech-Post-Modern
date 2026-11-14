@@ -1,5 +1,6 @@
 package com.gregtechceu.gtceu.common.item;
 
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 import com.gregtechceu.gtceu.common.block.LampBlock;
 import com.gregtechceu.gtceu.common.data.GTDataComponents;
 
@@ -66,5 +67,10 @@ public class LampBlockItem extends BlockItem {
                 ByteBufCodecs.BOOL, LampData::bloom,
                 ByteBufCodecs.BOOL, LampData::lit,
                 LampData::new);
+
+        static {
+            FieldCodecs.register(LampData.class, CODEC);
+            FieldCodecs.registerStream(LampData.class, STREAM_CODEC);
+        }
     }
 }

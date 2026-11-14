@@ -9,7 +9,7 @@ import com.gregtechceu.gtceu.api.data.chemical.material.properties.ToolProperty;
 import com.gregtechceu.gtceu.api.data.chemical.material.stack.MaterialEntry;
 import com.gregtechceu.gtceu.api.data.tag.TagPrefix;
 import com.gregtechceu.gtceu.api.gui.factory.HeldItemUIHolder;
-import com.gregtechceu.gtceu.api.gui.factory.LDLib2HeldItemUIProvider;
+import com.gregtechceu.gtceu.api.gui.factory.HeldItemUIProvider;
 import com.gregtechceu.gtceu.api.item.capability.ElectricItem;
 import com.gregtechceu.gtceu.api.item.component.ElectricStats;
 import com.gregtechceu.gtceu.api.item.component.IComponentCapability;
@@ -68,7 +68,7 @@ import java.util.stream.Collectors;
 
 import static com.gregtechceu.gtceu.api.item.tool.ToolHelper.*;
 
-public interface IGTTool extends LDLib2HeldItemUIProvider, ItemLike {
+public interface IGTTool extends HeldItemUIProvider, ItemLike {
 
     GTToolType getToolType();
 
@@ -699,10 +699,10 @@ public interface IGTTool extends LDLib2HeldItemUIProvider, ItemLike {
     }
 
     @Override
-    default boolean canCreateLDLib2UI(Player player, HeldItemUIHolder holder) {
+    default boolean canCreateUI(Player player, HeldItemUIHolder holder) {
         for (var behavior : getToolStats().getBehaviors()) {
             if (behavior instanceof IToolUIBehavior<?> uiBehavior) {
-                if (uiBehavior.canCreateLDLib2UI(player, holder)) {
+                if (uiBehavior.canCreateUI(player, holder)) {
                     return true;
                 }
             }
@@ -711,29 +711,29 @@ public interface IGTTool extends LDLib2HeldItemUIProvider, ItemLike {
     }
 
     @Override
-    default UI createLDLib2UI(Player player, HeldItemUIHolder holder) {
+    default UI createUI(Player player, HeldItemUIHolder holder) {
         for (var behavior : getToolStats().getBehaviors()) {
             if (!(behavior instanceof IToolUIBehavior<?> uiBehavior)) {
                 continue;
             }
-            if (!uiBehavior.canCreateLDLib2UI(player, holder)) {
+            if (!uiBehavior.canCreateUI(player, holder)) {
                 continue;
             }
-            return uiBehavior.createLDLib2UI(player, holder);
+            return uiBehavior.createUI(player, holder);
         }
         throw new IllegalStateException("No tool behavior exposes an LDLib2 UI for the opened stack.");
     }
 
     @Override
-    default boolean isLDLib2UIStillValid(Player player, HeldItemUIHolder holder) {
+    default boolean isUIStillValid(Player player, HeldItemUIHolder holder) {
         for (var behavior : getToolStats().getBehaviors()) {
             if (behavior instanceof IToolUIBehavior<?> uiBehavior) {
-                if (uiBehavior.canCreateLDLib2UI(player, holder)) {
-                    return uiBehavior.isLDLib2UIStillValid(player, holder);
+                if (uiBehavior.canCreateUI(player, holder)) {
+                    return uiBehavior.isUIStillValid(player, holder);
                 }
             }
         }
-        return LDLib2HeldItemUIProvider.super.isLDLib2UIStillValid(player, holder);
+        return HeldItemUIProvider.super.isUIStillValid(player, holder);
     }
 
     default Set<GTToolType> getToolClasses(ItemStack stack) {

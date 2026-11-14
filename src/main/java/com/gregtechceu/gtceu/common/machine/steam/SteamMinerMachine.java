@@ -9,10 +9,10 @@ import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTImageElement;
 import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
-import com.gregtechceu.gtceu.api.gui.factory.LDLib2MachineUIProvider;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.machine.TickableSubscription;
 import com.gregtechceu.gtceu.api.machine.feature.IDataInfoProvider;
+import com.gregtechceu.gtceu.api.machine.feature.IUIMachine;
 import com.gregtechceu.gtceu.api.machine.steam.SteamWorkableMachine;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
@@ -52,7 +52,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 public class SteamMinerMachine extends SteamWorkableMachine implements IControllable,
-                               LDLib2MachineUIProvider, IDataInfoProvider, IMiner {
+                               IUIMachine, IDataInfoProvider, IMiner {
 
     @SaveField
     public final NotifiableItemStackHandler importItems;
@@ -145,18 +145,13 @@ public class SteamMinerMachine extends SteamWorkableMachine implements IControll
     //////////////////////////////////////
 
     @Override
-    public boolean canCreateLDLib2UI(Player player, MachineUIHolder holder) {
-        return holder.getMachine() == this;
-    }
-
-    @Override
-    public UI createLDLib2UI(Player player, MachineUIHolder holder) {
+    public UI createUI(Player player, MachineUIHolder holder) {
         int rowSize = (int) Math.sqrt(inventorySize);
 
         UIElement root = new UIElement();
-        UITemplate.setLDLib2Bounds(root, 0, 0, 175, 176);
+        UITemplate.setBounds(root, 0, 0, 175, 176);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_STEAM.get(isHighPressure())));
-        root.addChild(UITemplate.bindPlayerInventoryLDLib2(player.getInventory(),
+        root.addChild(UITemplate.bindPlayerInventory(player.getInventory(),
                 GuiTextures.SLOT_STEAM.get(isHighPressure()), 7, 94, true));
 
         for (int y = 0; y < rowSize; y++) {
@@ -166,12 +161,12 @@ public class SteamMinerMachine extends SteamWorkableMachine implements IControll
                         .setBackgroundTexture(GuiTextures.SLOT_STEAM.get(isHighPressure()))
                         .setCanTakeItems(true)
                         .setCanPutItems(false);
-                UITemplate.setLDLib2Bounds(slot, 142 - rowSize * 9 + x * 18, 18 + y * 18, 18, 18);
+                UITemplate.setBounds(slot, 142 - rowSize * 9 + x * 18, 18 + y * 18, 18, 18);
                 root.addChild(slot);
             }
         }
 
-        root.addChild(createLDLib2TitleLabel());
+        root.addChild(createTitleLabel());
         root.addChild(new GTImageElement(7, 16, 105, 75, GuiTextures.DISPLAY_STEAM.get(isHighPressure())));
         root.addChild(new GTImageElement(79, 42, 18, 18,
                 GuiTextures.INDICATOR_NO_STEAM.get(isHighPressure())).setVisibleSupplier(() -> !drainInput(true)));
@@ -181,7 +176,7 @@ public class SteamMinerMachine extends SteamWorkableMachine implements IControll
         return UI.of(root);
     }
 
-    private GTLabelElement createLDLib2TitleLabel() {
+    private GTLabelElement createTitleLabel() {
         GTLabelElement label = new GTLabelElement(5, 5, 166, 10,
                 getBlockState().getBlock().getDescriptionId(), true);
         label.textStyle(style -> style

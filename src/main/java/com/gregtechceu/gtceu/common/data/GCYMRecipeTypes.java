@@ -45,8 +45,8 @@ public class GCYMRecipeTypes {
                 }
                 return "";
             })
-            .setLDLib2UiBuilder(
-                    (recipe, root, rootSize) -> GTRecipeTypes.addLDLib2HeatingCoilSlot(recipe, root, rootSize, 40))
+            .setUiBuilder(
+                    (recipe, root, rootSize) -> GTRecipeTypes.addHeatingCoilSlot(recipe, root, rootSize, 40))
             .setSound(GTSoundEntries.ARC);
 
     public static void init() {}

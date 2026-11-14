@@ -2,15 +2,15 @@ package com.gregtechceu.gtceu.api.machine.trait;
 
 import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
+import com.gregtechceu.gtceu.api.sync_system.ContextualFieldCodec;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
-import com.gregtechceu.gtceu.api.sync_system.SyncSerializationTarget;
-import com.gregtechceu.gtceu.common.data.GTDataComponents;
 
 import net.minecraft.core.HolderLookup;
-import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.resources.ResourceLocation;
 
-import com.google.gson.JsonElement;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.Dynamic;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import org.jetbrains.annotations.Nullable;
@@ -18,8 +18,34 @@ import org.jetbrains.annotations.Unmodifiable;
 import org.jetbrains.annotations.UnmodifiableView;
 
 import java.util.*;
+import java.util.Optional;
 
 public final class MachineTraitHolder {
+
+    public static final ContextualFieldCodec<MachineTraitHolder> CODEC = new ContextualFieldCodec<>() {
+
+        @Override
+        public Codec<MachineTraitHolder> codec(Context<MachineTraitHolder> context) {
+            return SyncFieldData.CODEC.xmap(data -> {
+                MachineTraitHolder holder = context.currentValue();
+                holder.deserializeSyncFieldData(context.lookup(), data, context.isClientSync(),
+                        context.parseExplicitNull(), context.isClientFullSyncUpdate(), false);
+                return holder;
+            }, holder -> holder.serializeSyncFieldData(context.lookup(), context.isClientSync(),
+                    context.isClientFullSyncUpdate(), context.readOnly()));
+        }
+
+        @Override
+        public boolean shouldSyncField(MachineTraitHolder holder, Context<MachineTraitHolder> context, boolean fullSync,
+                                       boolean manuallyDirty) {
+            return !context.isClientSync() ? fullSync || manuallyDirty :
+                    holder.scanAndMarkClientChanges(context.lookup(), fullSync || manuallyDirty);
+        }
+    };
+
+    static {
+        FieldCodecs.registerContextual(MachineTraitHolder.class, CODEC);
+    }
 
     private final MetaMachine machine;
     private final List<MachineTrait> traits;
@@ -76,6 +102,7 @@ public final class MachineTraitHolder {
         traits.add(trait);
         traits.sort(Comparator.comparingInt(MachineTrait::getTraitPriority).reversed());
         syncTraits.add(trait);
+        machine.getSyncDataHolder().attachRPC(trait);
 
         trait.setMachine(machine);
         return trait;
@@ -138,12 +165,14 @@ public final class MachineTraitHolder {
         return Optional.ofNullable(getTrait(type));
     }
 
-    public SyncFieldData serializeSyncFieldData(HolderLookup.Provider lookup, boolean isClientSync, boolean fullSync) {
+    public SyncFieldData serializeSyncFieldData(HolderLookup.Provider lookup, boolean isClientSync, boolean fullSync,
+                                                boolean readOnly) {
         SyncFieldData.Builder builder = SyncFieldData.builder();
         if (isClientSync) {
             for (int i = 0; i < traits.size(); i++) {
-                SyncFieldData traitData = traits.get(i).getSyncDataHolder()
-                        .serializeToFieldData(lookup, true, fullSync);
+                var storage = traits.get(i).getSyncDataHolder();
+                SyncFieldData traitData = readOnly ? storage.getClientData(lookup) :
+                        storage.serializeToFieldData(lookup, true, fullSync);
                 if (fullSync || !traitData.isEmpty()) {
                     builder.put(SyncFieldData.key(Integer.toString(i)), traitData);
                 }
@@ -155,30 +184,12 @@ public final class MachineTraitHolder {
         return builder.build();
     }
 
-    public DataComponentMap serializeSyncComponents(HolderLookup.Provider lookup, boolean isClientSync,
-                                                    boolean fullSync) {
-        SyncFieldData fieldData = serializeSyncFieldData(lookup, isClientSync, fullSync);
-        if (fieldData.isEmpty()) {
-            return DataComponentMap.EMPTY;
-        }
-        return DataComponentMap.builder()
-                .set(GTDataComponents.SYNC_FIELD_DATA.get(), fieldData)
-                .build();
-    }
-
     public boolean scanAndMarkClientChanges(HolderLookup.Provider lookup, boolean fullSync) {
-        return scanAndMarkClientChanges(lookup, fullSync, SyncSerializationTarget.DATA_COMPONENTS);
-    }
-
-    public boolean scanAndMarkClientChanges(HolderLookup.Provider lookup, boolean fullSync,
-                                            SyncSerializationTarget serializationTarget) {
         boolean changed = false;
         for (MachineTrait trait : traits) {
             if (fullSync) {
                 trait.getSyncDataHolder().resyncAllFields();
                 changed = true;
-            } else if (serializationTarget == SyncSerializationTarget.NBT) {
-                throw disabledClientSyncNbt();
             } else if (trait.getSyncDataHolder().scanAndMarkChanges(lookup)) {
                 changed = true;
             }
@@ -204,7 +215,7 @@ public final class MachineTraitHolder {
                                          boolean parseExplicitNull, boolean fullSync,
                                          boolean notifyUnchangedOnFullSync) {
         if (isClientSync) {
-            for (Map.Entry<ResourceLocation, JsonElement> entry : data.fields().entrySet()) {
+            for (Map.Entry<ResourceLocation, Optional<Dynamic<?>>> entry : data.fields().entrySet()) {
                 String key = entry.getKey().getPath();
                 int index;
                 try {
@@ -220,13 +231,13 @@ public final class MachineTraitHolder {
                     continue;
                 }
                 traits.get(index).getSyncDataHolder()
-                        .deserializeFieldData(lookup, SyncFieldData.fromJson(entry.getValue()), true,
+                        .deserializeFieldData(lookup, data.read(entry.getKey(), SyncFieldData.CODEC), true,
                                 parseExplicitNull, fullSync, notifyUnchangedOnFullSync);
             }
             return;
         }
 
-        for (Map.Entry<ResourceLocation, JsonElement> entry : data.fields().entrySet()) {
+        for (Map.Entry<ResourceLocation, Optional<Dynamic<?>>> entry : data.fields().entrySet()) {
             String key = entry.getKey().getPath();
             var trait = getPersistentTrait(key);
             if (trait == null) {
@@ -234,41 +245,9 @@ public final class MachineTraitHolder {
                         key);
                 continue;
             }
-            trait.getSyncDataHolder().deserializeFieldData(lookup, SyncFieldData.fromJson(entry.getValue()),
+            trait.getSyncDataHolder().deserializeFieldData(lookup, data.read(entry.getKey(), SyncFieldData.CODEC),
                     isClientSync, parseExplicitNull, fullSync, notifyUnchangedOnFullSync);
         }
-    }
-
-    public void deserializeSyncComponents(HolderLookup.Provider lookup, DataComponentMap components,
-                                          boolean isClientSync) {
-        deserializeSyncComponents(lookup, components, isClientSync, false);
-    }
-
-    public void deserializeSyncComponents(HolderLookup.Provider lookup, DataComponentMap components,
-                                          boolean isClientSync, boolean parseExplicitNull) {
-        deserializeSyncComponents(lookup, components, isClientSync, parseExplicitNull, false);
-    }
-
-    public void deserializeSyncComponents(HolderLookup.Provider lookup, DataComponentMap components,
-                                          boolean isClientSync, boolean parseExplicitNull, boolean fullSync) {
-        deserializeSyncComponents(lookup, components, isClientSync, parseExplicitNull, fullSync, true);
-    }
-
-    public void deserializeSyncComponents(HolderLookup.Provider lookup, DataComponentMap components,
-                                          boolean isClientSync, boolean parseExplicitNull, boolean fullSync,
-                                          boolean notifyUnchangedOnFullSync) {
-        SyncFieldData fieldData = components.get(GTDataComponents.SYNC_FIELD_DATA.get());
-        if (fieldData == null) {
-            return;
-        }
-        deserializeSyncFieldData(lookup, fieldData, isClientSync, parseExplicitNull, fullSync,
-                notifyUnchangedOnFullSync);
-    }
-
-    private static IllegalStateException disabledClientSyncNbt() {
-        String message = "Sync: MachineTraitHolder client sync NBT is disabled; use DataComponentMap serialization";
-        GTCEu.LOGGER.error(message);
-        return new IllegalStateException(message);
     }
 
     /**

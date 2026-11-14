@@ -1,6 +1,7 @@
 package com.gregtechceu.gtceu.api.machine.feature.multiblock;
 
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyTooltipsPanelElement;
+import com.gregtechceu.gtceu.api.gui.fancy.TooltipsPanel;
+import com.gregtechceu.gtceu.api.machine.feature.IFancyUIMachine;
 import com.gregtechceu.gtceu.api.machine.feature.IMachineFeature;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.machine.multiblock.WorkableMultiblockMachine;
@@ -19,7 +20,7 @@ import org.jetbrains.annotations.UnmodifiableView;
 import java.util.List;
 import java.util.SortedSet;
 
-public interface IMultiPart extends IMachineFeature {
+public interface IMultiPart extends IMachineFeature, IFancyUIMachine {
 
     /**
      * Can it be shared among multi multiblock.
@@ -146,6 +147,6 @@ public interface IMultiPart extends IMachineFeature {
      * @param controller    controller whose page exposes the warning
      * @param tooltipsPanel tooltip panel owned by the current Fancy opening
      */
-    default void attachLDLib2FancyTooltipsToController(MultiblockControllerMachine controller,
-                                                       LDLib2FancyTooltipsPanelElement tooltipsPanel) {}
+    default void attachFancyTooltipsToController(MultiblockControllerMachine controller,
+                                                 TooltipsPanel tooltipsPanel) {}
 }

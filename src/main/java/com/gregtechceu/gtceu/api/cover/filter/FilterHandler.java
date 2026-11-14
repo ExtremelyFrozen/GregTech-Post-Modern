@@ -36,7 +36,7 @@ public abstract class FilterHandler<T, F extends Filter<T, F>> implements ISyncM
 
     private @Nullable F filter;
     private @Nullable CustomItemStackHandler filterSlot;
-    private @Nullable UIElement filterLDLib2Group;
+    private @Nullable UIElement filterGroup;
 
     private Consumer<F> onFilterLoaded = (filter) -> {};
     private Consumer<F> onFilterRemoved = (filter) -> {};
@@ -56,21 +56,21 @@ public abstract class FilterHandler<T, F extends Filter<T, F>> implements ISyncM
     // ***** PUBLIC API ******//
     //////////////////////////////////
 
-    public UIElement createFilterSlotLDLib2UI(int xPos, int yPos) {
+    public UIElement createFilterSlotUI(int xPos, int yPos) {
         GTItemSlotElement slot = new GTItemSlotElement(getFilterSlot(), 0)
                 .setChangeListener(this::updateFilter)
                 .setBackgroundTexture(GuiTextures.group(GuiTextures.SLOT, GuiTextures.FILTER_SLOT_OVERLAY));
-        return UITemplate.setLDLib2Bounds(slot, xPos, yPos, 18, 18);
+        return UITemplate.setBounds(slot, xPos, yPos, 18, 18);
     }
 
-    public UIElement createFilterConfigLDLib2UI(int xPos, int yPos, int width, int height) {
+    public UIElement createFilterConfigUI(int xPos, int yPos, int width, int height) {
         F loadedFilter = this.filterItem.isEmpty() ? null : getFilter();
-        this.filterLDLib2Group = UITemplate.setLDLib2Bounds(new UIElement(), xPos, yPos, width, height);
+        this.filterGroup = UITemplate.setBounds(new UIElement(), xPos, yPos, width, height);
         if (!this.filterItem.isEmpty() && loadedFilter != null) {
-            this.filterLDLib2Group.addChild(loadedFilter.openLDLib2Configurator(0, 0));
+            this.filterGroup.addChild(loadedFilter.openConfigurator(0, 0));
         }
 
-        return this.filterLDLib2Group;
+        return this.filterGroup;
     }
 
     public boolean isFilterPresent() {
@@ -172,13 +172,13 @@ public abstract class FilterHandler<T, F extends Filter<T, F>> implements ISyncM
     }
 
     private void updateFilterGroupUI() {
-        if (this.filterLDLib2Group != null) {
-            for (UIElement child : this.filterLDLib2Group.getSafeChildren()) {
-                this.filterLDLib2Group.removeChild(child);
+        if (this.filterGroup != null) {
+            for (UIElement child : this.filterGroup.getSafeChildren()) {
+                this.filterGroup.removeChild(child);
             }
 
             if (!this.filterItem.isEmpty() && this.filter != null) {
-                this.filterLDLib2Group.addChild(this.filter.openLDLib2Configurator(0, 0));
+                this.filterGroup.addChild(this.filter.openConfigurator(0, 0));
             }
         }
     }

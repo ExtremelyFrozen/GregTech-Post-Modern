@@ -13,13 +13,13 @@ import com.gregtechceu.gtceu.api.gui.element.GTIntInputElement;
 import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTToggleButtonElement;
-import com.gregtechceu.gtceu.api.gui.factory.CoverUIHelper;
-import com.gregtechceu.gtceu.api.gui.factory.LDLib2CoverUIProvider;
+import com.gregtechceu.gtceu.api.gui.factory.CoverUIProvider;
 import com.gregtechceu.gtceu.api.gui.factory.UICoverHolder;
 import com.gregtechceu.gtceu.api.machine.MachineCoverContainer;
 import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
 import com.gregtechceu.gtceu.api.transfer.item.CustomItemStackHandler;
 import com.gregtechceu.gtceu.common.cover.data.ControllerMode;
 
@@ -31,7 +31,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
-import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
@@ -45,14 +44,11 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class MachineControllerCover extends CoverBehavior
-                                    implements LDLib2CoverUIProvider, MachineControllerCoverConfigActionTarget {
-
-    static {
-        MachineControllerCoverConfigActions.initialize();
-    }
+                                    implements CoverUIProvider {
 
     private @Nullable CustomItemStackHandler sideCoverSlot;
     private @Nullable GTButtonElement modeButton;
@@ -226,55 +222,55 @@ public class MachineControllerCover extends CoverBehavior
     // GUI
 
     @Override
-    public boolean canCreateLDLib2UI(Player player, UICoverHolder holder) {
+    public boolean canCreateUI(Player player, UICoverHolder holder) {
         return holder.getCover() == this;
     }
 
     @Override
-    public UI createLDLib2UI(Player player, UICoverHolder holder) {
+    public UI createUI(Player player, UICoverHolder holder) {
         if (controllerMode != null && getControllable(controllerMode.side) == null) {
             setControllerMode(null);
         }
         UIElement root = new UIElement();
-        UITemplate.setLDLib2Bounds(root, 0, 0, 176, 177);
+        UITemplate.setBounds(root, 0, 0, 176, 177);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));
 
-        root.addChild(createLDLib2Label(10, 5, 156, 10, "cover.machine_controller.title"));
+        root.addChild(createLabel(10, 5, 156, 10, "cover.machine_controller.title"));
         root.addChild(new GTIntInputElement(10, 20, 131, 20,
-                this::getMinRedstoneStrength, value -> setLDLib2MinRedstoneStrength(player, holder, value))
+                this::getMinRedstoneStrength, value -> setMinRedstoneStrength(player, holder, value))
                 .setMin(1)
                 .setMax(15));
 
-        modeButton = createLDLib2ModeButton(player, holder);
+        modeButton = createModeButton(player, holder);
         root.addChild(modeButton);
 
         root.addChild(new GTToggleButtonElement(
                 146, 20, 20, 20,
                 GuiTextures.INVERT_REDSTONE_BUTTON, this::isInverted,
-                inverted -> setLDLib2Inverted(player, holder, inverted))
+                inverted -> setInverted(player, holder, inverted))
                 .isMultiLang()
                 .setTooltipText("cover.machine_controller.invert"));
 
-        root.addChild(createLDLib2Label(10, 72, 132, 10, "cover.machine_controller.suspend_powerfail"));
+        root.addChild(createLabel(10, 72, 132, 10, "cover.machine_controller.suspend_powerfail"));
         root.addChild(new GTToggleButtonElement(147, 68, 18, 18, GuiTextures.BUTTON_POWER,
-                this::preventPowerFail, data -> setLDLib2PreventPowerFail(player, holder, data)));
+                this::preventPowerFail, data -> setPreventPowerFail(player, holder, data)));
 
         sideCoverSlot = new CustomItemStackHandler(1);
         GTItemSlotElement sideCoverSlotElement = new GTItemSlotElement(sideCoverSlot, 0)
                 .setBackgroundTexture(GuiTextures.SLOT)
                 .setCanTakeItems(false)
                 .setCanPutItems(false);
-        root.addChild(UITemplate.setLDLib2Bounds(sideCoverSlotElement, 147, 46, 18, 18));
+        root.addChild(UITemplate.setBounds(sideCoverSlotElement, 147, 46, 18, 18));
 
-        root.addChild(UITemplate.bindPlayerInventoryLDLib2(player.getInventory(), GuiTextures.SLOT, 7, 95, true));
+        root.addChild(UITemplate.bindPlayerInventory(player.getInventory(), GuiTextures.SLOT, 7, 95, true));
         updateUI();
 
         return UI.of(root);
     }
 
-    private GTButtonElement createLDLib2ModeButton(Player player, UICoverHolder holder) {
+    private GTButtonElement createModeButton(Player player, UICoverHolder holder) {
         GTButtonElement button = new GTButtonElement(10, 45, 131, 20, GuiTextures.VANILLA_BUTTON,
-                event -> setLDLib2NextMode(player, holder)) {
+                event -> setNextMode(player, holder)) {
 
             @Override
             public void screenTick() {
@@ -286,7 +282,7 @@ public class MachineControllerCover extends CoverBehavior
         return button;
     }
 
-    private GTLabelElement createLDLib2Label(int x, int y, int width, int height, String text) {
+    private GTLabelElement createLabel(int x, int y, int width, int height, String text) {
         GTLabelElement label = new GTLabelElement(x, y, width, height, text, true);
         label.textStyle(style -> style
                 .textColor(0x404040)
@@ -352,47 +348,57 @@ public class MachineControllerCover extends CoverBehavior
         }
     }
 
-    private void setLDLib2NextMode(Player player, UICoverHolder holder) {
+    private void setNextMode(Player player, UICoverHolder holder) {
         selectNextMode();
-        sendLDLib2ConfigAction(player, holder);
+        sendConfigAction(player, holder);
     }
 
-    private void setLDLib2MinRedstoneStrength(Player player, UICoverHolder holder, int minRedstoneStrength) {
+    private void setMinRedstoneStrength(Player player, UICoverHolder holder, int minRedstoneStrength) {
         setMinRedstoneStrength(minRedstoneStrength);
-        sendLDLib2ConfigAction(player, holder);
+        sendConfigAction(player, holder);
     }
 
-    private void setLDLib2Inverted(Player player, UICoverHolder holder, boolean inverted) {
+    private void setInverted(Player player, UICoverHolder holder, boolean inverted) {
         setInverted(inverted);
-        sendLDLib2ConfigAction(player, holder);
+        sendConfigAction(player, holder);
     }
 
-    private void setLDLib2PreventPowerFail(Player player, UICoverHolder holder, boolean preventPowerFail) {
+    private void setPreventPowerFail(Player player, UICoverHolder holder, boolean preventPowerFail) {
         setPreventPowerFail(preventPowerFail);
-        sendLDLib2ConfigAction(player, holder);
+        sendConfigAction(player, holder);
     }
 
-    private void sendLDLib2ConfigAction(Player player, UICoverHolder holder) {
+    @RPCMethod
+    public boolean configureMachineController(Optional<ControllerMode> requestedMode, int minRedstoneStrength,
+                                              boolean inverted, boolean preventPowerFail) {
+        ControllerMode mode = requestedMode.orElse(null);
+        setControllerMode(mode);
+        setMinRedstoneStrength(minRedstoneStrength);
+        setInverted(inverted);
+        setPreventPowerFail(preventPowerFail);
+        return true;
+    }
+
+    private void sendConfigAction(Player player, UICoverHolder holder) {
         if (player.level().isClientSide()) {
-            CoverUIHelper.sendAction(holder, MachineControllerCoverConfigActions.createSetConfigAction(
-                    getControllerMode(),
-                    getMinRedstoneStrength(), isInverted(), preventPowerFail()));
+            holder.getCover().rpcToServer("configureMachineController", Optional.ofNullable(getControllerMode()),
+                    getMinRedstoneStrength(), isInverted(), preventPowerFail());
         }
     }
 
     @Override
-    public DataComponentMap copyConfig(HolderLookup.Provider registries) {
+    public SyncFieldData copyConfig(HolderLookup.Provider registries) {
         return ConfigCopyHelper.withFields(super.copyConfig(registries), fields -> fields
                 .put(SyncFieldData.key("inverted"),
-                        ConfigCopyHelper.booleanValue(isInverted))
+                        isInverted)
                 .put(SyncFieldData.key("redstoneLvl"),
-                        ConfigCopyHelper.intValue(minRedstoneStrength))
+                        minRedstoneStrength)
                 .put(SyncFieldData.key("preventPowerfail"),
-                        ConfigCopyHelper.booleanValue(preventPowerFail)));
+                        preventPowerFail));
     }
 
     @Override
-    public void pasteConfig(ServerPlayer player, HolderLookup.Provider registries, DataComponentMap config) {
+    public void pasteConfig(ServerPlayer player, HolderLookup.Provider registries, SyncFieldData config) {
         setInverted(ConfigCopyHelper.getBoolean(config, "inverted"));
         setMinRedstoneStrength(ConfigCopyHelper.getInt(config, "redstoneLvl"));
         setPreventPowerFail(ConfigCopyHelper.getBoolean(config, "preventPowerfail"));

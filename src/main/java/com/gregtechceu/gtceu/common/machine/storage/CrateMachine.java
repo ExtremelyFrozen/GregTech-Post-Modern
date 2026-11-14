@@ -7,9 +7,9 @@ import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
-import com.gregtechceu.gtceu.api.gui.factory.LDLib2MachineUIProvider;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
+import com.gregtechceu.gtceu.api.machine.feature.IUIMachine;
 import com.gregtechceu.gtceu.api.machine.property.GTMachineModelProperties;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler;
 import com.gregtechceu.gtceu.api.sync_system.annotations.RerenderOnChanged;
@@ -33,7 +33,7 @@ import net.minecraft.world.item.component.ItemContainerContents;
 
 import lombok.Getter;
 
-public class CrateMachine extends MetaMachine implements LDLib2MachineUIProvider {
+public class CrateMachine extends MetaMachine implements IUIMachine {
 
     @Getter
     private final Material material;
@@ -56,26 +56,21 @@ public class CrateMachine extends MetaMachine implements LDLib2MachineUIProvider
     }
 
     @Override
-    public boolean canCreateLDLib2UI(Player player, MachineUIHolder holder) {
-        return holder.getMachine() == this;
-    }
-
-    @Override
-    public UI createLDLib2UI(Player player, MachineUIHolder holder) {
+    public UI createUI(Player player, MachineUIHolder holder) {
         int xOffset = inventorySize >= 90 ? 162 : 0;
         int yOverflow = xOffset > 0 ? 18 : 9;
         int yOffset = inventorySize > 3 * yOverflow ?
                 (inventorySize - 3 * yOverflow - (inventorySize - 3 * yOverflow) % yOverflow) / yOverflow * 18 : 0;
         UIElement root = new UIElement();
-        UITemplate.setLDLib2Bounds(root, 0, 0, 176 + xOffset, 166 + yOffset);
+        UITemplate.setBounds(root, 0, 0, 176 + xOffset, 166 + yOffset);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));
-        root.addChild(createLDLib2TitleLabel(176 + xOffset));
-        root.addChild(UITemplate.bindPlayerInventoryLDLib2(player.getInventory(), GuiTextures.SLOT, 7 + xOffset / 2,
+        root.addChild(createTitleLabel(176 + xOffset));
+        root.addChild(UITemplate.bindPlayerInventory(player.getInventory(), GuiTextures.SLOT, 7 + xOffset / 2,
                 82 + yOffset, true));
         int x = 0;
         int y = 0;
         for (int slot = 0; slot < inventorySize; slot++) {
-            root.addChild(createLDLib2CrateSlot(slot, x * 18 + 7, y * 18 + 17));
+            root.addChild(createCrateSlot(slot, x * 18 + 7, y * 18 + 17));
             x++;
             if (x == yOverflow) {
                 x = 0;
@@ -85,7 +80,7 @@ public class CrateMachine extends MetaMachine implements LDLib2MachineUIProvider
         return UI.of(root);
     }
 
-    private GTLabelElement createLDLib2TitleLabel(int rootWidth) {
+    private GTLabelElement createTitleLabel(int rootWidth) {
         GTLabelElement label = new GTLabelElement(5, 5, rootWidth - 10, 10,
                 getBlockState().getBlock().getDescriptionId(), true);
         label.textStyle(style -> style
@@ -96,9 +91,9 @@ public class CrateMachine extends MetaMachine implements LDLib2MachineUIProvider
         return label;
     }
 
-    private GTItemSlotElement createLDLib2CrateSlot(int slot, int x, int y) {
+    private GTItemSlotElement createCrateSlot(int slot, int x, int y) {
         GTItemSlotElement slotElement = new GTItemSlotElement(inventory, slot);
-        UITemplate.setLDLib2Bounds(slotElement, x, y, 18, 18);
+        UITemplate.setBounds(slotElement, x, y, 18, 18);
         slotElement.setBackgroundTexture(GuiTextures.SLOT);
         return slotElement;
     }

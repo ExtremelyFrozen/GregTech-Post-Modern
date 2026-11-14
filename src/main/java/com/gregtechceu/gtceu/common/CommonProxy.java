@@ -20,12 +20,14 @@ import com.gregtechceu.gtceu.api.data.worldgen.bedrockfluid.BedrockFluidDefiniti
 import com.gregtechceu.gtceu.api.data.worldgen.bedrockore.BedrockOreDefinition;
 import com.gregtechceu.gtceu.api.data.worldgen.generator.IndicatorGenerators;
 import com.gregtechceu.gtceu.api.data.worldgen.generator.VeinGenerators;
-import com.gregtechceu.gtceu.api.gui.factory.GTUIEditorMenu;
+import com.gregtechceu.gtceu.api.gui.factory.UIRegistry;
 import com.gregtechceu.gtceu.api.item.IComponentItem;
 import com.gregtechceu.gtceu.api.item.IGTTool;
 import com.gregtechceu.gtceu.api.item.MetaMachineItem;
 import com.gregtechceu.gtceu.api.machine.MachineDefinition;
 import com.gregtechceu.gtceu.api.misc.forge.QuantumFluidHandlerItemStack;
+import com.gregtechceu.gtceu.api.multiblock.autobuild.BlockCategories;
+import com.gregtechceu.gtceu.api.multiblock.structurepredicate.StructurePredicateType;
 import com.gregtechceu.gtceu.api.recipe.chance.logic.ChanceLogic;
 import com.gregtechceu.gtceu.api.recipe.ingredient.IntCircuitIngredient;
 import com.gregtechceu.gtceu.api.recipe.ingredient.IntProviderFluidIngredient;
@@ -43,6 +45,7 @@ import com.gregtechceu.gtceu.api.recipe.lookup.ingredient.item.ItemStackMapIngre
 import com.gregtechceu.gtceu.api.recipe.lookup.ingredient.item.ItemTagMapIngredient;
 import com.gregtechceu.gtceu.api.registry.GTRegistries;
 import com.gregtechceu.gtceu.api.registry.registrate.GTRegistrate;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCPacketDistributor;
 import com.gregtechceu.gtceu.common.block.CableBlock;
 import com.gregtechceu.gtceu.common.block.DuctPipeBlock;
 import com.gregtechceu.gtceu.common.block.FluidPipeBlock;
@@ -66,8 +69,8 @@ import com.gregtechceu.gtceu.common.data.GTItems;
 import com.gregtechceu.gtceu.common.data.GTMachines;
 import com.gregtechceu.gtceu.common.data.GTMaterialBlocks;
 import com.gregtechceu.gtceu.common.data.GTMaterialItems;
+import com.gregtechceu.gtceu.common.data.GTMaterialSources;
 import com.gregtechceu.gtceu.common.data.GTMaterials;
-import com.gregtechceu.gtceu.common.data.GTMenuTypes;
 import com.gregtechceu.gtceu.common.data.GTMobEffects;
 import com.gregtechceu.gtceu.common.data.GTParticleTypes;
 import com.gregtechceu.gtceu.common.data.GTRecipeCapabilities;
@@ -100,10 +103,10 @@ import com.gregtechceu.gtceu.data.loot.ChestGenHooks;
 import com.gregtechceu.gtceu.data.pack.GTDynamicDataPack;
 import com.gregtechceu.gtceu.data.pack.GTDynamicResourcePack;
 import com.gregtechceu.gtceu.data.pack.GTPackSource;
+import com.gregtechceu.gtceu.data.pattern.StructureCache;
 import com.gregtechceu.gtceu.data.pattern.StructurePatternRegistry;
 import com.gregtechceu.gtceu.data.placeholder.GTPlaceholders;
 import com.gregtechceu.gtceu.data.recipe.GTIngredientTypes;
-import com.gregtechceu.gtceu.integration.ae2.autobuild.MEAutoBuildSources;
 import com.gregtechceu.gtceu.integration.cctweaked.CCTweakedPlugin;
 import com.gregtechceu.gtceu.integration.map.WaypointManager;
 import com.gregtechceu.gtceu.utils.input.SyncedKeyMappings;
@@ -131,14 +134,12 @@ import net.neoforged.fml.event.lifecycle.FMLLoadCompleteEvent;
 import net.neoforged.neoforge.capabilities.Capabilities;
 import net.neoforged.neoforge.capabilities.Capabilities.FluidHandler;
 import net.neoforged.neoforge.capabilities.RegisterCapabilitiesEvent;
-import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.common.crafting.DataComponentIngredient;
 import net.neoforged.neoforge.common.crafting.IntersectionIngredient;
 import net.neoforged.neoforge.common.crafting.SizedIngredient;
 import net.neoforged.neoforge.energy.IEnergyStorage;
 import net.neoforged.neoforge.event.AddPackFindersEvent;
 import net.neoforged.neoforge.event.BlockEntityTypeAddBlocksEvent;
-import net.neoforged.neoforge.event.server.ServerStartedEvent;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.wrappers.FluidBucketWrapper;
 import net.neoforged.neoforge.fluids.crafting.CompoundFluidIngredient;
@@ -173,14 +174,7 @@ public class CommonProxy {
     public static void init(final IEventBus modBus) {
         CommonProxy.modBus = modBus;
         modBus.register(CommonProxy.class);
-        NeoForge.EVENT_BUS.addListener(CommonProxy::onServerStarted);
         modBus.addListener(AlloyBlastPropertyAddition::addAlloyBlastProperties);
-
-        GTUIEditorMenu.register();
-
-        if (GTCEu.Mods.isAE2Loaded()) {
-            MEAutoBuildSources.init();
-        }
 
         // Initialize the model generator before any content is loaded so machine models can use the generated data
         GregTechDatagen.initPre();
@@ -189,7 +183,7 @@ public class CommonProxy {
         REGISTRATE.registerEventListeners(modBus);
         GTCreativeModeTabs.init();
         GTAttachmentTypes.ATTACHMENT_TYPES.register(modBus);
-        GTMenuTypes.init(modBus);
+        UIRegistry.init(modBus);
 
         FusionReactorMachine.registerFusionTier(GTValues.LuV, "MKI");
         FusionReactorMachine.registerFusionTier(GTValues.ZPM, "MKII");
@@ -223,6 +217,7 @@ public class CommonProxy {
 
         GTDimensionMarkers.init();
         GTRecipeCapabilities.init();
+        GTMaterialSources.init();
         GTRecipeConditions.init();
         ChanceLogic.init();
         GTRecipeTypes.init();
@@ -236,6 +231,8 @@ public class CommonProxy {
         GTArmorMaterials.ARMOR_MATERIALS.register(modBus);
         GTItems.init();
 
+        StructurePredicateType.init();
+        StructureCache.loadAsync();
         GTMachineUtils.init();
         GTCovers.init();
         GTMachines.init();
@@ -351,6 +348,8 @@ public class CommonProxy {
     @SubscribeEvent
     public static void commonSetup(FMLCommonSetupEvent event) {
         event.enqueueWork(() -> {
+            BlockCategories.initialize();
+            RPCPacketDistributor.init();
             // register the map ingredient converters for all of our ingredients
             // spotless:off
             MapIngredientTypeManager.registerMapIngredient(SizedFluidIngredient.class, (ingredient) -> {
@@ -411,7 +410,7 @@ public class CommonProxy {
                     List.of(new ItemStackMapIngredient(GTItems.PROGRAMMED_CIRCUIT.asStack(), custom.toVanilla())));
             // spotless:on
 
-            if (GTCEu.Mods.isCCTweakedLoaded()) {
+            if (GTCEu.MODS.CCTWEAKED.isLoaded()) {
                 GTCEu.LOGGER.info("CC: Tweaked found. Enabling integration...");
                 CCTweakedPlugin.init();
             }
@@ -421,10 +420,6 @@ public class CommonProxy {
     @SubscribeEvent
     public static void loadComplete(FMLLoadCompleteEvent event) {
         event.enqueueWork(StructurePatternRegistry::reloadAllPatternsAsync);
-    }
-
-    private static void onServerStarted(ServerStartedEvent event) {
-        StructurePatternRegistry.reloadAllPatternsAsync();
     }
 
     @SubscribeEvent(priority = EventPriority.LOWEST)

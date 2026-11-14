@@ -49,7 +49,7 @@ public class GTToggleButtonElement extends GTButtonElement {
         setPressedSupplier(pressedSupplier);
         setPressedConsumer(pressedConsumer);
         setToggleTexture(texture);
-        UITemplate.setLDLib2Bounds(this, x, y, width, height);
+        UITemplate.setBounds(this, x, y, width, height);
     }
 
     public GTToggleButtonElement setPressedSupplier(BooleanSupplier pressedSupplier) {

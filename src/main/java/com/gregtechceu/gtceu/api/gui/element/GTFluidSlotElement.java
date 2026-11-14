@@ -6,7 +6,7 @@ import com.gregtechceu.gtceu.api.machine.trait.NotifiableFluidTank;
 import com.gregtechceu.gtceu.api.registry.GTRegistries;
 import com.gregtechceu.gtceu.client.TooltipsHandler;
 import com.gregtechceu.gtceu.integration.xei.GTXEIIngredientRole;
-import com.gregtechceu.gtceu.integration.xei.GTXEIIngredientRoleLDLib2Adapter;
+import com.gregtechceu.gtceu.integration.xei.GTXEIIngredientRoleAdapter;
 import com.gregtechceu.gtceu.integration.xei.handlers.fluid.CycleFluidEntryHandler;
 import com.gregtechceu.gtceu.utils.FormattingUtil;
 
@@ -102,13 +102,9 @@ public class GTFluidSlotElement extends FluidSlot {
 
     public GTFluidSlotElement setFluidTank(IFluidHandler fluidHandler, int tankIndex) {
         if (fluidHandler instanceof NotifiableFluidTank notifiable) {
-            if (tankIndex < 0 || tankIndex >= notifiable.getStorages().length) {
-                throw new IllegalArgumentException("Invalid fluid tank index: " + tankIndex);
-            }
             this.fluidHandler = notifiable.getStorages()[tankIndex];
             this.tankIndex = 0;
         } else {
-            validateTankIndex(fluidHandler, tankIndex);
             this.fluidHandler = fluidHandler;
             this.tankIndex = tankIndex;
         }
@@ -120,7 +116,6 @@ public class GTFluidSlotElement extends FluidSlot {
     }
 
     public GTFluidSlotElement setCycleFluidDisplay(CycleFluidEntryHandler handler, int tankIndex) {
-        validateTankIndex(handler, tankIndex);
         xeiFluids = () -> {
             var entry = handler.getEntry(tankIndex);
             return entry == null ? Stream.empty() : entry.getStacks().stream();
@@ -177,7 +172,7 @@ public class GTFluidSlotElement extends FluidSlot {
     }
 
     public GTFluidSlotElement setIngredientIO(GTXEIIngredientRole role) {
-        return setIngredientIO(GTXEIIngredientRoleLDLib2Adapter.toLDLib2(role));
+        return setIngredientIO(GTXEIIngredientRoleAdapter.toIngredientIO(role));
     }
 
     public GTFluidSlotElement setIngredientIO(IngredientIO ingredientIO) {
@@ -214,10 +209,10 @@ public class GTFluidSlotElement extends FluidSlot {
     @Override
     public GTFluidSlotElement xeiPhantom() {
         RegistrateDistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> {
-            if (GTCEu.Mods.isJEILoaded()) {
+            if (GTCEu.MODS.isJEILoaded()) {
                 LDLibJEIPlugin.ghostIngredient(this, NeoForgeTypes.FLUID_STACK, ingredient -> true, this::setFluid);
             }
-            if (GTCEu.Mods.isEMILoaded()) {
+            if (GTCEu.MODS.isEMILoaded()) {
                 LDLibEMIPlugin.renderDragHandler(this, dragged -> dragged instanceof FluidEmiStack);
                 LDLibEMIPlugin.dropStackHandler(this,
                         dragged -> dragged instanceof FluidEmiStack,
@@ -246,7 +241,7 @@ public class GTFluidSlotElement extends FluidSlot {
     }
 
     public GTFluidSlotElement xeiRecipeIngredient(GTXEIIngredientRole role) {
-        return xeiRecipeIngredient(GTXEIIngredientRoleLDLib2Adapter.toLDLib2(role));
+        return xeiRecipeIngredient(GTXEIIngredientRoleAdapter.toIngredientIO(role));
     }
 
     @Override
@@ -260,7 +255,7 @@ public class GTFluidSlotElement extends FluidSlot {
 
     public GTFluidSlotElement xeiRecipeIngredient(GTXEIIngredientRole role,
                                                   Supplier<Stream<FluidStack>> allPossibleFluids) {
-        return xeiRecipeIngredient(GTXEIIngredientRoleLDLib2Adapter.toLDLib2(role), allPossibleFluids);
+        return xeiRecipeIngredient(GTXEIIngredientRoleAdapter.toIngredientIO(role), allPossibleFluids);
     }
 
     @Override
@@ -277,7 +272,7 @@ public class GTFluidSlotElement extends FluidSlot {
     }
 
     public GTFluidSlotElement xeiRecipeSlot(GTXEIIngredientRole role, float xeiChance) {
-        return xeiRecipeSlot(GTXEIIngredientRoleLDLib2Adapter.toLDLib2(role), xeiChance);
+        return xeiRecipeSlot(GTXEIIngredientRoleAdapter.toIngredientIO(role), xeiChance);
     }
 
     public GTFluidSlotElement xeiRecipeSlot(IngredientIO ingredientIO, float xeiChance, int xeiAmount,
@@ -292,7 +287,7 @@ public class GTFluidSlotElement extends FluidSlot {
 
     public GTFluidSlotElement xeiRecipeSlot(GTXEIIngredientRole role, float xeiChance, int xeiAmount,
                                             Stream<FluidStack> allPossibleFluids) {
-        return xeiRecipeSlot(GTXEIIngredientRoleLDLib2Adapter.toLDLib2(role), xeiChance, xeiAmount, allPossibleFluids);
+        return xeiRecipeSlot(GTXEIIngredientRoleAdapter.toIngredientIO(role), xeiChance, xeiAmount, allPossibleFluids);
     }
 
     @Override
@@ -308,7 +303,7 @@ public class GTFluidSlotElement extends FluidSlot {
 
     public GTFluidSlotElement xeiRecipeSlot(GTXEIIngredientRole role, float xeiChance, int xeiAmount,
                                             Supplier<Stream<FluidStack>> allPossibleFluids) {
-        return xeiRecipeSlot(GTXEIIngredientRoleLDLib2Adapter.toLDLib2(role), xeiChance, xeiAmount, allPossibleFluids);
+        return xeiRecipeSlot(GTXEIIngredientRoleAdapter.toIngredientIO(role), xeiChance, xeiAmount, allPossibleFluids);
     }
 
     public GTFluidSlotElement setBackgroundTexture(IGuiTexture background) {
@@ -474,13 +469,13 @@ public class GTFluidSlotElement extends FluidSlot {
 
     private void addXEIRecipeIngredient(IngredientIO io, Supplier<Stream<FluidStack>> allPossibleFluids) {
         RegistrateDistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> {
-            if (GTCEu.Mods.isJEILoaded()) {
+            if (GTCEu.MODS.isJEILoaded()) {
                 LDLibJEIPlugin.recipeIngredient(this, io, () -> allPossibleFluids.get()
                         .map(this::createJEIFluidIngredient)
                         .flatMap(Optional::stream)
                         .collect(Collectors.toList()));
             }
-            if (GTCEu.Mods.isEMILoaded()) {
+            if (GTCEu.MODS.isEMILoaded()) {
                 LDLibEMIPlugin.recipeIngredient(this, io, () -> allPossibleFluids.get()
                         .map(fluid -> EmiStack.of(fluid.getFluid(), fluid.getComponentsPatch(), fluid.getAmount()))
                         .collect(Collectors.toList()));
@@ -491,15 +486,11 @@ public class GTFluidSlotElement extends FluidSlot {
     private void addXEIRecipeSlot(IngredientIO io, Supplier<Float> chance, IntSupplier amount,
                                   Supplier<Stream<FluidStack>> allPossibleFluids) {
         RegistrateDistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> {
-            if (GTCEu.Mods.isJEILoaded()) {
-                LDLibJEIPlugin.recipeSlot(this,
-                        () -> createJEIFluidIngredient(getFluid()).orElse(null),
-                        () -> allPossibleFluids.get()
-                                .map(this::createJEIFluidIngredient)
-                                .flatMap(Optional::stream)
-                                .collect(Collectors.toList()));
+            if (GTCEu.MODS.isJEILoaded()) {
+                registerValueListener(LDLibJEIPlugin.recipeSlot(this, io, NeoForgeTypes.FLUID_STACK,
+                        allPossibleFluids, fluid -> setFluid(fluid, false)));
             }
-            if (GTCEu.Mods.isEMILoaded()) {
+            if (GTCEu.MODS.isEMILoaded()) {
                 LDLibEMIPlugin.recipeSlot(this, () -> new ListEmiIngredient(
                         allPossibleFluids.get()
                                 .map(fluid -> EmiStack.of(fluid.getFluid(),
@@ -526,12 +517,6 @@ public class GTFluidSlotElement extends FluidSlot {
         } catch (IllegalArgumentException e) {
             GTCEu.LOGGER.error("Invalid GTM fluid slot fill direction '{}'", value, e);
             throw e;
-        }
-    }
-
-    private static void validateTankIndex(IFluidHandler fluidHandler, int tankIndex) {
-        if (tankIndex < 0 || tankIndex >= fluidHandler.getTanks()) {
-            throw new IllegalArgumentException("Invalid fluid tank index: " + tankIndex);
         }
     }
 }

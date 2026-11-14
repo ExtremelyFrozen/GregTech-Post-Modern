@@ -10,14 +10,14 @@ import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTEnumSelectorElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
-import com.gregtechceu.gtceu.api.gui.factory.CoverUIHelper;
-import com.gregtechceu.gtceu.api.gui.factory.LDLib2CoverUIProvider;
+import com.gregtechceu.gtceu.api.gui.factory.CoverUIProvider;
 import com.gregtechceu.gtceu.api.gui.factory.UICoverHolder;
 import com.gregtechceu.gtceu.api.machine.MachineCoverContainer;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
 import com.gregtechceu.gtceu.api.transfer.item.ItemHandlerDelegate;
 import com.gregtechceu.gtceu.common.cover.data.FilterMode;
 import com.gregtechceu.gtceu.common.cover.data.ManualIOMode;
@@ -29,7 +29,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
-import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -40,11 +39,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class ItemFilterCover extends CoverBehavior
-                             implements LDLib2CoverUIProvider, ItemFilterCoverConfigActionTarget {
-
-    static {
-        ItemFilterCoverConfigActions.initialize();
-    }
+                             implements CoverUIProvider {
 
     protected ItemFilter itemFilter;
     @SaveField
@@ -71,13 +66,11 @@ public class ItemFilterCover extends CoverBehavior
         return itemFilter;
     }
 
-    @Override
     public void setFilterMode(FilterMode filterMode) {
         this.filterMode = filterMode;
         syncDataHolder.markClientSyncFieldDirty("filterMode");
     }
 
-    @Override
     public void setAllowFlow(ManualIOMode allowFlow) {
         this.allowFlow = allowFlow;
     }
@@ -104,27 +97,27 @@ public class ItemFilterCover extends CoverBehavior
     }
 
     @Override
-    public boolean canCreateLDLib2UI(Player player, UICoverHolder holder) {
+    public boolean canCreateUI(Player player, UICoverHolder holder) {
         return holder.getCover() == this;
     }
 
     @Override
-    public UI createLDLib2UI(Player player, UICoverHolder holder) {
+    public UI createUI(Player player, UICoverHolder holder) {
         UIElement root = new UIElement();
-        UITemplate.setLDLib2Bounds(root, 0, 0, 176, 167);
+        UITemplate.setBounds(root, 0, 0, 176, 167);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));
 
-        root.addChild(createLDLib2Label());
+        root.addChild(createLabel());
         root.addChild(GTEnumSelectorElement.selectable(35, 25, 18, 18, FilterMode.VALUES, this::getFilterMode,
-                mode -> setLDLib2FilterMode(player, holder, mode)));
+                mode -> setFilterMode(player, holder, mode)));
         root.addChild(GTEnumSelectorElement.selectable(35, 45, 18, 18, ManualIOMode.VALUES, this::getAllowFlow,
-                mode -> setLDLib2ManualIO(player, holder, mode)));
-        root.addChild(getItemFilter().openLDLib2Configurator(62, 25));
-        root.addChild(UITemplate.bindPlayerInventoryLDLib2(player.getInventory(), GuiTextures.SLOT, 7, 85, true));
+                mode -> setManualIO(player, holder, mode)));
+        root.addChild(getItemFilter().openConfigurator(62, 25));
+        root.addChild(UITemplate.bindPlayerInventory(player.getInventory(), GuiTextures.SLOT, 7, 85, true));
         return UI.of(root);
     }
 
-    private GTLabelElement createLDLib2Label() {
+    private GTLabelElement createLabel() {
         GTLabelElement label = new GTLabelElement(60, 5, 111, 10, attachItem.getDescriptionId(), true);
         label.textStyle(style -> style
                 .textColor(0x404040)
@@ -134,20 +127,25 @@ public class ItemFilterCover extends CoverBehavior
         return label;
     }
 
-    private void setLDLib2FilterMode(Player player, UICoverHolder holder, FilterMode mode) {
+    private void setFilterMode(Player player, UICoverHolder holder, FilterMode mode) {
         setFilterMode(mode);
-        sendLDLib2ConfigAction(player, holder);
+        sendConfigAction(player, holder);
     }
 
-    private void setLDLib2ManualIO(Player player, UICoverHolder holder, ManualIOMode mode) {
+    private void setManualIO(Player player, UICoverHolder holder, ManualIOMode mode) {
         setAllowFlow(mode);
-        sendLDLib2ConfigAction(player, holder);
+        sendConfigAction(player, holder);
     }
 
-    private void sendLDLib2ConfigAction(Player player, UICoverHolder holder) {
+    @RPCMethod
+    public void configureItemFilter(FilterMode filterMode, ManualIOMode manualIOMode) {
+        setFilterMode(filterMode);
+        setAllowFlow(manualIOMode);
+    }
+
+    private void sendConfigAction(Player player, UICoverHolder holder) {
         if (player.level().isClientSide()) {
-            CoverUIHelper.sendAction(holder,
-                    ItemFilterCoverConfigActions.createSetConfigAction(getFilterMode(), getAllowFlow()));
+            holder.getCover().rpcToServer("configureItemFilter", getFilterMode(), getAllowFlow());
         }
     }
 
@@ -192,22 +190,20 @@ public class ItemFilterCover extends CoverBehavior
     }
 
     @Override
-    public DataComponentMap copyConfig(HolderLookup.Provider registries) {
+    public SyncFieldData copyConfig(HolderLookup.Provider registries) {
         return ConfigCopyHelper.withFields(super.copyConfig(registries), fields -> fields
                 .put(SyncFieldData.key("manualIO"),
-                        ConfigCopyHelper.intValue(getAllowFlow().ordinal()))
+                        getAllowFlow().ordinal())
                 .put(SyncFieldData.key("filterMode"),
-                        ConfigCopyHelper.intValue(getFilterMode().ordinal()))
-                .put(SyncFieldData.key("filter"),
-                        ConfigCopyHelper.encodeItem(registries, attachItem)));
+                        getFilterMode().ordinal())
+                .put(SyncFieldData.key("filter"), ItemStack.OPTIONAL_CODEC, attachItem, registries));
     }
 
     @Override
-    public void pasteConfig(ServerPlayer player, HolderLookup.Provider registries, DataComponentMap config) {
+    public void pasteConfig(ServerPlayer player, HolderLookup.Provider registries, SyncFieldData config) {
         setAllowFlow(ManualIOMode.values()[ConfigCopyHelper.getInt(config, "manualIO")]);
         setFilterMode(FilterMode.values()[ConfigCopyHelper.getInt(config, "filterMode")]);
-        itemFilter = ItemFilter.loadFilter(ConfigCopyHelper.decodeItem(registries, ConfigCopyHelper.getField(config,
-                "filter")));
+        itemFilter = ItemFilter.loadFilter(ConfigCopyHelper.getItem(registries, config, "filter"));
         super.pasteConfig(player, registries, config);
     }
 }

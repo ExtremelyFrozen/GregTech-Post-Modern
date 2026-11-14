@@ -8,10 +8,10 @@ import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTToggleButtonElement;
-import com.gregtechceu.gtceu.api.gui.factory.CoverUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.UICoverHolder;
 import com.gregtechceu.gtceu.api.item.tool.GTToolType;
 import com.gregtechceu.gtceu.api.item.tool.GridHighlightTexture;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
 import com.gregtechceu.gtceu.common.cover.ConveyorCover;
 import com.gregtechceu.gtceu.common.data.item.GTItemAbilities;
 import com.gregtechceu.gtceu.utils.ExtendedUseOnContext;
@@ -36,10 +36,6 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Set;
 
 public class ItemVoidingCover extends ConveyorCover implements IControllable {
-
-    static {
-        ItemVoidingCoverConfigActions.initialize();
-    }
 
     public ItemVoidingCover(CoverDefinition definition, ICoverable coverHolder, Direction attachedSide) {
         super(definition, coverHolder, attachedSide, 0);
@@ -89,29 +85,29 @@ public class ItemVoidingCover extends ConveyorCover implements IControllable {
     //////////////////////////////////////
 
     @Override
-    public boolean canCreateLDLib2UI(Player player, UICoverHolder holder) {
+    public boolean canCreateUI(Player player, UICoverHolder holder) {
         return holder.getCover() == this;
     }
 
     @Override
-    public UI createLDLib2UI(Player player, UICoverHolder holder) {
+    public UI createUI(Player player, UICoverHolder holder) {
         UIElement root = new UIElement();
-        UITemplate.setLDLib2Bounds(root, 0, 0, 176, 202);
+        UITemplate.setBounds(root, 0, 0, 176, 202);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));
 
-        root.addChild(createLDLib2Label());
+        root.addChild(createLabel());
         root.addChild(new GTToggleButtonElement(10, 20, 20, 20, GuiTextures.BUTTON_POWER,
-                this::isWorkingEnabled, enabled -> setLDLib2WorkingEnabled(player, holder, enabled)));
-        buildAdditionalLDLib2UI(root, player, holder);
-        root.addChild(filterHandler.createFilterSlotLDLib2UI(148, 91));
-        root.addChild(filterHandler.createFilterConfigLDLib2UI(10, 50, 126, 60));
-        root.addChild(UITemplate.bindPlayerInventoryLDLib2(player.getInventory(), GuiTextures.SLOT, 7, 120, true));
+                this::isWorkingEnabled, enabled -> setWorkingEnabled(player, holder, enabled)));
+        buildAdditionalUI(root, player, holder);
+        root.addChild(filterHandler.createFilterSlotUI(148, 91));
+        root.addChild(filterHandler.createFilterConfigUI(10, 50, 126, 60));
+        root.addChild(UITemplate.bindPlayerInventory(player.getInventory(), GuiTextures.SLOT, 7, 120, true));
         return UI.of(root);
     }
 
-    protected void buildAdditionalLDLib2UI(UIElement root, Player player, UICoverHolder holder) {}
+    protected void buildAdditionalUI(UIElement root, Player player, UICoverHolder holder) {}
 
-    private GTLabelElement createLDLib2Label() {
+    private GTLabelElement createLabel() {
         GTLabelElement label = new GTLabelElement(10, 5, 156, 10, getUITitle(), true);
         label.textStyle(style -> style
                 .textColor(0x404040)
@@ -121,10 +117,16 @@ public class ItemVoidingCover extends ConveyorCover implements IControllable {
         return label;
     }
 
-    private void setLDLib2WorkingEnabled(Player player, UICoverHolder holder, boolean enabled) {
+    @Override
+    @RPCMethod
+    public void setWorkingEnabled(boolean enabled) {
+        super.setWorkingEnabled(enabled);
+    }
+
+    private void setWorkingEnabled(Player player, UICoverHolder holder, boolean enabled) {
         setWorkingEnabled(enabled);
         if (player.level().isClientSide()) {
-            CoverUIHelper.sendAction(holder, ItemVoidingCoverConfigActions.createSetWorkingEnabledAction(enabled));
+            holder.getCover().rpcToServer("setWorkingEnabled", enabled);
         }
     }
 

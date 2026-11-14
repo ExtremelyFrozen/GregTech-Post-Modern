@@ -4,6 +4,7 @@ import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.element.GTPhantomItemSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTToggleButtonElement;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 import com.gregtechceu.gtceu.common.data.GTDataComponents;
 
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
@@ -20,7 +21,7 @@ import java.util.List;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 
-import static com.gregtechceu.gtceu.api.gui.UITemplate.setLDLib2Bounds;
+import static com.gregtechceu.gtceu.api.gui.UITemplate.setBounds;
 
 public class SimpleItemFilter implements ItemFilter {
 
@@ -29,6 +30,10 @@ public class SimpleItemFilter implements ItemFilter {
             Codec.BOOL.fieldOf("ignore_components").forGetter(val -> val.ignoreNbt),
             ItemStack.OPTIONAL_CODEC.listOf().fieldOf("matches").forGetter(val -> Arrays.stream(val.matches).toList()))
             .apply(instance, SimpleItemFilter::new));
+
+    static {
+        FieldCodecs.register(SimpleItemFilter.class, CODEC);
+    }
 
     @Getter
     protected boolean isBlackList;
@@ -43,7 +48,7 @@ public class SimpleItemFilter implements ItemFilter {
     @Getter
     protected int maxStackSize;
 
-    private final List<GTPhantomItemSlotElement> ldLib2MatchSlots = new ArrayList<>();
+    private final List<GTPhantomItemSlotElement> matchSlots = new ArrayList<>();
 
     protected SimpleItemFilter() {
         Arrays.fill(matches, ItemStack.EMPTY);
@@ -86,41 +91,41 @@ public class SimpleItemFilter implements ItemFilter {
     }
 
     @Override
-    public UIElement openLDLib2Configurator(int x, int y) {
+    public UIElement openConfigurator(int x, int y) {
         UIElement group = new UIElement();
-        setLDLib2Bounds(group, x, y, 18 * 3 + 25, 18 * 3);
-        ldLib2MatchSlots.clear();
+        setBounds(group, x, y, 18 * 3 + 25, 18 * 3);
+        matchSlots.clear();
         for (int i = 0; i < 3; i++) {
             for (int j = 0; j < 3; j++) {
                 int index = i * 3 + j;
-                group.addChild(createLDLib2MatchSlot(index, i * 18, j * 18));
+                group.addChild(createMatchSlot(index, i * 18, j * 18));
             }
         }
-        group.addChild(createLDLib2ToggleButton(18 * 3 + 5, 0,
+        group.addChild(createToggleButton(18 * 3 + 5, 0,
                 GuiTextures.BUTTON_BLACKLIST, this::isBlackList, this::setBlackList));
-        group.addChild(createLDLib2ToggleButton(18 * 3 + 5, 20,
+        group.addChild(createToggleButton(18 * 3 + 5, 20,
                 GuiTextures.BUTTON_FILTER_NBT, this::isIgnoreNbt, this::setIgnoreNbt));
         return group;
     }
 
-    private GTPhantomItemSlotElement createLDLib2MatchSlot(int index, int x, int y) {
+    private GTPhantomItemSlotElement createMatchSlot(int index, int x, int y) {
         GTPhantomItemSlotElement slot = new GTPhantomItemSlotElement(
                 () -> matches[index],
-                stack -> syncLDLib2MatchSlot(index, stack),
+                stack -> syncMatchSlot(index, stack),
                 () -> maxStackSize);
-        ldLib2MatchSlots.add(slot);
-        setLDLib2Bounds(slot, x, y, 18, 18);
+        matchSlots.add(slot);
+        setBounds(slot, x, y, 18, 18);
         return slot;
     }
 
-    private void syncLDLib2MatchSlot(int index, ItemStack stack) {
+    private void syncMatchSlot(int index, ItemStack stack) {
         matches[index] = stack;
         onUpdated.accept(this);
     }
 
-    private GTToggleButtonElement createLDLib2ToggleButton(int x, int y, IGuiTexture texture,
-                                                           BooleanSupplier isPressed,
-                                                           Consumer<Boolean> setPressed) {
+    private GTToggleButtonElement createToggleButton(int x, int y, IGuiTexture texture,
+                                                     BooleanSupplier isPressed,
+                                                     Consumer<Boolean> setPressed) {
         return new GTToggleButtonElement(x, y, 20, 20, texture, isPressed, setPressed);
     }
 
@@ -166,7 +171,7 @@ public class SimpleItemFilter implements ItemFilter {
             }
         }
 
-        for (GTPhantomItemSlotElement slot : ldLib2MatchSlots) {
+        for (GTPhantomItemSlotElement slot : matchSlots) {
             slot.refreshFromSupplier();
         }
     }

@@ -1,6 +1,5 @@
 package com.gregtechceu.gtceu.api.gui.element;
 
-import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.gui.slot.DynamicItemHandlerRoute;
 import com.gregtechceu.gtceu.api.gui.slot.DynamicItemSlotBinding;
 import com.gregtechceu.gtceu.api.transfer.item.NonMutatingItemCapacity;
@@ -37,7 +36,6 @@ public final class GTDynamicItemSlotElement extends GTItemSlotElement {
      * Creates a disabled slot for the supplied routed handler position.
      */
     public GTDynamicItemSlotElement(DynamicItemHandlerRoute handlerRoute, int slotIndex) {
-        validateSlotIndex(handlerRoute, slotIndex);
         this.handlerRoute = handlerRoute;
         this.routeSlotIndex = slotIndex;
         super.bind(new DynamicItemHandlerSlot(handlerRoute, slotIndex, this::isInteractionEnabled));
@@ -74,18 +72,6 @@ public final class GTDynamicItemSlotElement extends GTItemSlotElement {
         return handlerRoute.getTargetId().equals(binding.targetId()) &&
                 handlerRoute.getTargetIncarnation().equals(binding.targetIncarnation()) &&
                 handlerRoute.getSlots() == binding.slotCount() && routeSlotIndex == bindingOffset;
-    }
-
-    private static void validateSlotIndex(DynamicItemHandlerRoute handlerRoute, int slotIndex) {
-        if (handlerRoute == null) {
-            GTCEu.LOGGER.error("Cannot create a dynamic GTM item slot without a UUID handler route");
-            throw new IllegalArgumentException("handlerRoute must not be null");
-        }
-        if (slotIndex < 0 || slotIndex >= handlerRoute.getSlots()) {
-            GTCEu.LOGGER.error("Invalid dynamic GTM item slot index {} for handler with {} slots",
-                    slotIndex, handlerRoute.getSlots());
-            throw new IllegalArgumentException("Invalid dynamic item slot index: " + slotIndex);
-        }
     }
 
     private static final class DynamicItemHandlerSlot extends ItemHandlerSlot {

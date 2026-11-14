@@ -7,9 +7,9 @@ import com.gregtechceu.gtceu.api.capability.recipe.RecipeCapability;
 import com.gregtechceu.gtceu.api.gui.editor.EditableMachineUI;
 import com.gregtechceu.gtceu.api.gui.editor.MachineUIXmlTemplates;
 import com.gregtechceu.gtceu.api.gui.element.GTProgressBarElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2ConfiguratorPanelElement;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2WorkingEnabledFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.feature.LDLib2RecipeFancyUIMachine;
+import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
+import com.gregtechceu.gtceu.api.machine.feature.IFancyUIMachine;
 import com.gregtechceu.gtceu.api.recipe.GTRecipe;
 import com.gregtechceu.gtceu.api.recipe.GTRecipeType;
 import com.gregtechceu.gtceu.api.recipe.content.ContentModifier;
@@ -29,7 +29,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.function.BiFunction;
 
 public class SimpleGeneratorMachine extends WorkableTieredMachine
-                                    implements LDLib2RecipeFancyUIMachine {
+                                    implements IFancyUIMachine {
 
     @Getter
     private final EnvironmentalHazardEmitterTrait hazardEmitter;
@@ -123,28 +123,23 @@ public class SimpleGeneratorMachine extends WorkableTieredMachine
     //////////////////////////////////////
 
     @Override
-    public SimpleGeneratorMachine getLDLib2RecipeMachine() {
-        return this;
-    }
-
-    @Override
-    public void attachConfigurators(LDLib2ConfiguratorPanelElement configuratorPanel) {
-        configuratorPanel.attachConfigurators(new LDLib2WorkingEnabledFancyConfigurator(
-                this, configuratorPanel.getHolder()));
+    public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
+        configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
+                this));
     }
 
     @SuppressWarnings("UnstableApiUsage")
     public static BiFunction<ResourceLocation, GTRecipeType, EditableMachineUI> EDITABLE_UI_CREATOR = Util
             .memoize((path, recipeType) -> new EditableMachineUI("generator", path,
                     () -> MachineUIXmlTemplates.createGeneratorMachineXml(
-                            recipeType.getRecipeUI().createLDLib2TemplateDocument()),
+                            recipeType.getRecipeUI().createTemplateDocument()),
                     (root, machine) -> {
                         if (!(machine instanceof SimpleGeneratorMachine generatorMachine)) {
                             throw new IllegalArgumentException("Generator machine XML cannot bind " +
                                     machine.getClass().getName());
                         }
-                        generatorMachine.bindLDLib2RecipeElements(root, generatorMachine);
-                        generatorMachine.bindLDLib2EnergyBar(MachineUIXmlTemplates.requireElement(root,
+                        generatorMachine.bindRecipeElements(root);
+                        generatorMachine.bindEnergyBar(MachineUIXmlTemplates.requireElement(root,
                                 MachineUIXmlTemplates.ENERGY_BAR_ID, GTProgressBarElement.class));
                     }));
 }

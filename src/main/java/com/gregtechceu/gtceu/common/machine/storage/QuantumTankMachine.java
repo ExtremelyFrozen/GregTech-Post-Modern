@@ -11,23 +11,20 @@ import com.gregtechceu.gtceu.api.gui.element.GTImageElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTPhantomFluidSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTToggleButtonElement;
-import com.gregtechceu.gtceu.api.gui.factory.LDLib2MachineUIProvider;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.fancy.IFancyTooltip;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2ConfiguratorPanelElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyConfiguratorButton;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyMachineUIElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyTooltipsPanelElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyUIProvider;
-import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
+import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
+import com.gregtechceu.gtceu.api.gui.fancy.IFancyConfiguratorButton;
 import com.gregtechceu.gtceu.api.machine.MachineDefinition;
 import com.gregtechceu.gtceu.api.machine.TieredMachine;
+import com.gregtechceu.gtceu.api.machine.feature.IFancyUIMachine;
 import com.gregtechceu.gtceu.api.machine.trait.MachineTrait;
 import com.gregtechceu.gtceu.api.machine.trait.MachineTraitType;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncBoth;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCSender;
 import com.gregtechceu.gtceu.api.transfer.fluid.CustomFluidTank;
 import com.gregtechceu.gtceu.api.transfer.fluid.IFluidHandlerModifiable;
 import com.gregtechceu.gtceu.common.machine.trait.AutoOutputTrait;
@@ -37,7 +34,6 @@ import com.gregtechceu.gtceu.utils.GTMath;
 import com.gregtechceu.gtceu.utils.GTTransferUtils;
 import com.gregtechceu.gtceu.utils.GTUtil;
 
-import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
@@ -70,17 +66,13 @@ import java.util.List;
 import java.util.function.Predicate;
 
 public class QuantumTankMachine extends TieredMachine implements IControllable,
-                                LDLib2MachineUIProvider, QuantumTankActionTarget {
+                                IFancyUIMachine {
 
     public static Object2LongMap<MachineDefinition> TANK_CAPACITY = Util.make(new Object2LongArrayMap<>(),
             map -> map.defaultReturnValue(-1L));
 
     private static final int PAGE_WIDTH = 90;
     private static final int PAGE_HEIGHT = 63;
-
-    static {
-        QuantumTankMachineActions.initialize();
-    }
 
     @SaveField
     @SyncBoth
@@ -199,18 +191,14 @@ public class QuantumTankMachine extends TieredMachine implements IControllable,
         syncDataHolder.markClientSyncFieldDirty("lockedFluid");
     }
 
-    @Override
+    @RPCMethod
     public void setQuantumTankLockedFluid(FluidStack fluid) {
         setLocked(fluid);
     }
 
-    @Override
+    @RPCMethod
     public void setQuantumTankLocked(boolean locked) {
         setLocked(locked);
-    }
-
-    private void setVoiding(boolean voiding) {
-        isVoiding = voiding;
     }
 
     public FluidStack getLockedFluid() {
@@ -220,40 +208,8 @@ public class QuantumTankMachine extends TieredMachine implements IControllable,
     //////////////////////////////////////
     // *********** GUI ***********//
     //////////////////////////////////////
-    @Override
-    public boolean canCreateLDLib2UI(Player player, MachineUIHolder holder) {
-        return holder.getMachine() == this;
-    }
 
-    @Override
-    public UI createLDLib2UI(Player player, MachineUIHolder holder) {
-        return UI.of(new LDLib2FancyMachineUIElement(new QuantumTankLDLib2Page(player, holder),
-                player.getInventory(), holder, PAGE_WIDTH, PAGE_HEIGHT));
-    }
-
-    private UIElement createLDLib2MainPage(Player player, MachineUIHolder holder) {
-        UIElement root = UITemplate.setLDLib2Bounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
-        root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
-        root.addChild(new GTImageElement(4, 4, 82, 55, GuiTextures.DISPLAY));
-        root.addChild(createLDLib2FluidAmountLabel());
-        root.addChild(createLDLib2FluidAmountValueLabel());
-        root.addChild(createLDLib2FluidSlot(player, holder));
-        root.addChild(createLDLib2LockedFluidSlot(player, holder));
-        root.addChild(new GTToggleButtonElement(4, 41, 18, 18,
-                GuiTextures.BUTTON_FLUID_OUTPUT, this.autoOutput::isAutoOutputFluids,
-                enabled -> setLDLib2AutoOutputFluids(player, enabled))
-                .setShouldUseBaseBackground()
-                .setTooltipText("gtpm.gui.fluid_auto_output.tooltip"));
-        root.addChild(new GTToggleButtonElement(22, 41, 18, 18,
-                GuiTextures.BUTTON_LOCK, this::isLocked,
-                locked -> setLDLib2Locked(player, holder, locked))
-                .setShouldUseBaseBackground()
-                .setTooltipText("gtpm.gui.fluid_lock.tooltip"));
-        root.addChild(createLDLib2VoidingButton());
-        return root;
-    }
-
-    private static GTLabelElement createLDLib2FluidAmountLabel() {
+    private static GTLabelElement createFluidAmountLabel() {
         GTLabelElement label = new GTLabelElement(8, 8, 76, 10, "gtpm.gui.fluid_amount", true);
         label.textStyle(style -> style
                 .textColor(0x404040)
@@ -263,7 +219,7 @@ public class QuantumTankMachine extends TieredMachine implements IControllable,
         return label;
     }
 
-    private GTLabelElement createLDLib2FluidAmountValueLabel() {
+    private GTLabelElement createFluidAmountValueLabel() {
         GTLabelElement label = new GTLabelElement(8, 18, 58, 10) {
 
             @Override
@@ -281,7 +237,7 @@ public class QuantumTankMachine extends TieredMachine implements IControllable,
         return label;
     }
 
-    private GTFluidSlotElement createLDLib2FluidSlot(Player player, MachineUIHolder holder) {
+    private GTFluidSlotElement createFluidSlot(Player player, MachineUIHolder holder) {
         GTFluidSlotElement fluidSlot = new GTFluidSlotElement()
                 .setFluidTank(cache, 0)
                 .setShowAmount(false)
@@ -291,18 +247,18 @@ public class QuantumTankMachine extends TieredMachine implements IControllable,
         fluidSlot.addEventListener(UIEvents.MOUSE_DOWN, event -> {
             if (event.button == 0 && player.level().isClientSide() &&
                     FluidUtil.getFluidHandler(player.containerMenu.getCarried()).isPresent()) {
-                MachineUIHelper.sendAction(holder,
-                        QuantumTankMachineActions.createClickQuantumTankFluidSlotAction(GTUtil.isShiftDown()));
+                boolean shiftDown = GTUtil.isShiftDown();
+                holder.getMachine().rpcToServer("clickQuantumTankFluidSlot", shiftDown);
                 event.stopImmediatePropagation();
                 event.hasHandler = true;
             }
         });
-        return UITemplate.setLDLib2Bounds(fluidSlot, 68, 23, 18, 18);
+        return UITemplate.setBounds(fluidSlot, 68, 23, 18, 18);
     }
 
-    private GTPhantomFluidSlotElement createLDLib2LockedFluidSlot(Player player, MachineUIHolder holder) {
+    private GTPhantomFluidSlotElement createLockedFluidSlot(Player player, MachineUIHolder holder) {
         GTPhantomFluidSlotElement slot = new GTPhantomFluidSlotElement(this::getLockedFluid,
-                fluid -> setLDLib2LockedFluid(player, holder, fluid), () -> FluidType.BUCKET_VOLUME) {
+                fluid -> setLockedFluid(player, holder, fluid), () -> FluidType.BUCKET_VOLUME) {
 
             @Override
             public void screenTick() {
@@ -313,7 +269,7 @@ public class QuantumTankMachine extends TieredMachine implements IControllable,
         };
         slot.setBackgroundTexture(ColorPattern.T_GRAY.rectTexture());
         slot.setShowAmount(false);
-        UITemplate.setLDLib2Bounds(slot, 68, 41, 18, 18);
+        UITemplate.setBounds(slot, 68, 41, 18, 18);
         slot.addEventListener(UIEvents.MOUSE_DOWN, event -> {
             if (!player.level().isClientSide()) {
                 return;
@@ -330,14 +286,14 @@ public class QuantumTankMachine extends TieredMachine implements IControllable,
         return slot;
     }
 
-    private LDLib2FancyConfiguratorButton.Toggle createLDLib2WorkingEnabledConfigurator(Player player,
-                                                                                        MachineUIHolder holder) {
-        return new LDLib2FancyConfiguratorButton.Toggle(
+    private IFancyConfiguratorButton.Toggle createWorkingEnabledConfigurator(Player player,
+                                                                             MachineUIHolder holder) {
+        return new IFancyConfiguratorButton.Toggle(
                 GuiTextures.BUTTON_POWER.getSubTexture(0, 0, 1, 0.5),
                 GuiTextures.BUTTON_POWER.getSubTexture(0, 0.5, 1, 0.5),
                 this::isWorkingEnabled,
                 (event, pressed) -> {
-                    setLDLib2AutoOutputFluids(player, pressed);
+                    autoOutput.setAllowAutoOutputFluids(pressed);
                     event.stopImmediatePropagation();
                     event.hasHandler = true;
                 })
@@ -345,104 +301,36 @@ public class QuantumTankMachine extends TieredMachine implements IControllable,
                         pressed ? "behaviour.soft_hammer.enabled" : "behaviour.soft_hammer.disabled")));
     }
 
-    private void setLDLib2LockedFluid(Player player, MachineUIHolder holder, FluidStack fluid) {
+    private void setLockedFluid(Player player, MachineUIHolder holder, FluidStack fluid) {
         setLocked(fluid);
         if (player.level().isClientSide()) {
-            MachineUIHelper.sendAction(holder,
-                    QuantumTankMachineActions.createSetQuantumTankLockedFluidAction(fluid));
+            FluidStack locked = fluid.isEmpty() ? FluidStack.EMPTY : fluid.copyWithAmount(FluidType.BUCKET_VOLUME);
+            holder.getMachine().rpcToServer("setQuantumTankLockedFluid", locked);
         }
     }
 
-    private void setLDLib2Locked(Player player, MachineUIHolder holder, boolean locked) {
+    private void setLocked(Player player, MachineUIHolder holder, boolean locked) {
         setLocked(locked);
         if (player.level().isClientSide()) {
-            MachineUIHelper.sendAction(holder, QuantumTankMachineActions.createSetQuantumTankLockedAction(locked));
+            holder.getMachine().rpcToServer("setQuantumTankLocked", locked);
         }
     }
 
-    GTToggleButtonElement createLDLib2VoidingButton() {
+    GTToggleButtonElement createVoidingButton() {
         return new GTToggleButtonElement(40, 41, 18, 18,
-                GuiTextures.BUTTON_VOID, () -> isVoiding, this::setLDLib2Voiding)
+                GuiTextures.BUTTON_VOID, () -> isVoiding, value -> isVoiding = value)
                 .setShouldUseBaseBackground()
                 .setTooltipText("gtpm.gui.fluid_voiding_partial.tooltip");
     }
 
-    private void setLDLib2Voiding(boolean voiding) {
-        setVoiding(voiding);
-        if (isRemote()) {
-            sendServerSyncChanges();
-        }
+    @RPCMethod
+    public void clickQuantumTankFluidSlot(RPCSender sender, boolean shiftDown) {
+        var player = sender.asPlayer();
+        new FluidClickTarget(cache, true, true).click(player, shiftDown);
     }
 
-    private void setLDLib2AutoOutputFluids(Player player, boolean enabled) {
-        autoOutput.setAllowAutoOutputFluids(enabled);
-        if (player.level().isClientSide()) {
-            sendServerSyncChanges();
-        }
-    }
-
-    @Override
-    public void clickQuantumTankFluidSlot(ServerPlayer player, boolean shiftDown) {
-        new LDLib2FluidClickTarget(cache, true, true).click(player, shiftDown);
-    }
-
-    private final class QuantumTankLDLib2Page implements LDLib2FancyUIProvider {
-
-        private final Player player;
-        private final MachineUIHolder holder;
-
-        private QuantumTankLDLib2Page(Player player, MachineUIHolder holder) {
-            this.player = player;
-            this.holder = holder;
-        }
-
-        @Override
-        public UIElement createLDLib2MainPage(LDLib2FancyMachineUIElement shell) {
-            return QuantumTankMachine.this.createLDLib2MainPage(player, holder);
-        }
-
-        @Override
-        public IGuiTexture getTabIcon() {
-            return GuiTextures.itemStack(getDefinition().getItem());
-        }
-
-        @Override
-        public Component getTitle() {
-            return Component.translatable(getDefinition().getDescriptionId());
-        }
-
-        @Override
-        public int getLDLib2PageWidth() {
-            return PAGE_WIDTH;
-        }
-
-        @Override
-        public int getLDLib2PageHeight() {
-            return PAGE_HEIGHT;
-        }
-
-        @Override
-        public void attachConfigurators(LDLib2ConfiguratorPanelElement configuratorPanel) {
-            configuratorPanel.attachConfigurators(createLDLib2WorkingEnabledConfigurator(player, holder));
-        }
-
-        @Override
-        public void attachTooltips(LDLib2FancyTooltipsPanelElement tooltipsPanel) {
-            tooltipsPanel.attachTooltips(QuantumTankMachine.this);
-            getTraitHolder().getAllTraits().stream()
-                    .filter(IFancyTooltip.class::isInstance)
-                    .map(IFancyTooltip.class::cast)
-                    .forEach(tooltipsPanel::attachTooltips);
-        }
-
-        @Override
-        public List<Component> getTabTooltips() {
-            return List.of(Component.translatable(getDefinition().getDescriptionId()));
-        }
-    }
-
-    private record LDLib2FluidClickTarget(IFluidHandler fluidTank, boolean allowClickFilled,
-                                          boolean allowClickDrained) {
+    private record FluidClickTarget(IFluidHandler fluidTank, boolean allowClickFilled,
+                                    boolean allowClickDrained) {
 
         private void click(ServerPlayer player, boolean shiftDown) {
             ItemStack currentStack = player.containerMenu.getCarried();
@@ -624,5 +512,47 @@ public class QuantumTankMachine extends TieredMachine implements IControllable,
                         .ifPresent(adj -> GTTransferUtils.transferFluidsFiltered(this, adj, filter));
             }
         }
+    }
+
+    @Override
+    public UIElement createUIWidget(FancyMachineUIWidget shell) {
+        Player player = shell.getOpeningPlayer();
+        MachineUIHolder holder = shell.getHolder(this);
+        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
+        root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
+        root.addChild(new GTImageElement(4, 4, 82, 55, GuiTextures.DISPLAY));
+        root.addChild(createFluidAmountLabel());
+        root.addChild(createFluidAmountValueLabel());
+        root.addChild(createFluidSlot(player, holder));
+        root.addChild(createLockedFluidSlot(player, holder));
+        root.addChild(new GTToggleButtonElement(4, 41, 18, 18,
+                GuiTextures.BUTTON_FLUID_OUTPUT, this.autoOutput::isAutoOutputFluids,
+                autoOutput::setAllowAutoOutputFluids)
+                .setShouldUseBaseBackground()
+                .setTooltipText("gtpm.gui.fluid_auto_output.tooltip"));
+        root.addChild(new GTToggleButtonElement(22, 41, 18, 18,
+                GuiTextures.BUTTON_LOCK, this::isLocked,
+                locked -> setLocked(player, holder, locked))
+                .setShouldUseBaseBackground()
+                .setTooltipText("gtpm.gui.fluid_lock.tooltip"));
+        root.addChild(createVoidingButton());
+        return root;
+    }
+
+    @Override
+    public int getPageWidth() {
+        return PAGE_WIDTH;
+    }
+
+    @Override
+    public int getPageHeight() {
+        return PAGE_HEIGHT;
+    }
+
+    @Override
+    public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
+        Player player = configuratorPanel.getPlayer();
+        MachineUIHolder holder = configuratorPanel.getHolder();
+        configuratorPanel.attachConfigurators(createWorkingEnabledConfigurator(player, holder));
     }
 }

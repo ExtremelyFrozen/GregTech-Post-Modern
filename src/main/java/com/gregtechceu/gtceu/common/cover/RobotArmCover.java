@@ -8,11 +8,11 @@ import com.gregtechceu.gtceu.api.cover.filter.ItemFilter;
 import com.gregtechceu.gtceu.api.cover.filter.SimpleItemFilter;
 import com.gregtechceu.gtceu.api.gui.element.GTEnumSelectorElement;
 import com.gregtechceu.gtceu.api.gui.element.GTIntInputElement;
-import com.gregtechceu.gtceu.api.gui.factory.CoverUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.UICoverHolder;
 import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
 import com.gregtechceu.gtceu.common.cover.data.TransferMode;
 import com.gregtechceu.gtceu.common.pipelike.item.ItemNetHandler;
 
@@ -20,7 +20,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
-import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -35,10 +34,6 @@ import java.util.Map;
 
 public class RobotArmCover extends ConveyorCover {
 
-    static {
-        RobotArmCoverConfigActions.initialize();
-    }
-
     @SaveField
     @SyncToClient
     @Getter
@@ -50,7 +45,7 @@ public class RobotArmCover extends ConveyorCover {
     protected int globalTransferLimit;
     protected int itemsTransferBuffered;
 
-    private @Nullable GTIntInputElement stackSizeLDLib2Input;
+    private @Nullable GTIntInputElement stackSizeInput;
 
     public RobotArmCover(CoverDefinition definition, ICoverable coverHolder, Direction attachedSide, int tier,
                          int maxTransferRate) {
@@ -180,14 +175,14 @@ public class RobotArmCover extends ConveyorCover {
     }
 
     @Override
-    protected void buildAdditionalLDLib2UI(UIElement root, Player player, UICoverHolder holder) {
+    protected void buildAdditionalUI(UIElement root, Player player, UICoverHolder holder) {
         root.addChild(GTEnumSelectorElement.selectable(146, 45, 20, 20, TransferMode.values(),
-                this::getTransferMode, mode -> setLDLib2TransferMode(player, holder, mode)));
+                this::getTransferMode, mode -> setTransferMode(player, holder, mode)));
 
-        this.stackSizeLDLib2Input = new GTIntInputElement(64, 45, 80, 20,
-                this::getGlobalTransferLimit, value -> setLDLib2GlobalTransferLimit(player, holder, value));
+        this.stackSizeInput = new GTIntInputElement(64, 45, 80, 20,
+                this::getGlobalTransferLimit, value -> setGlobalTransferLimit(player, holder, value));
         configureStackSizeInput();
-        root.addChild(this.stackSizeLDLib2Input);
+        root.addChild(this.stackSizeInput);
     }
 
     public void setTransferMode(TransferMode transferMode) {
@@ -215,12 +210,12 @@ public class RobotArmCover extends ConveyorCover {
     }
 
     private void configureStackSizeInput() {
-        if (this.stackSizeLDLib2Input == null)
+        if (this.stackSizeInput == null)
             return;
 
-        this.stackSizeLDLib2Input.setVisible(shouldShowStackSize());
-        this.stackSizeLDLib2Input.setMin(1);
-        this.stackSizeLDLib2Input.setMax(this.transferMode.maxStackSize);
+        this.stackSizeInput.setVisible(shouldShowStackSize());
+        this.stackSizeInput.setMin(1);
+        this.stackSizeInput.setMax(this.transferMode.maxStackSize);
     }
 
     private boolean shouldShowStackSize() {
@@ -233,34 +228,39 @@ public class RobotArmCover extends ConveyorCover {
         return !this.filterHandler.getFilter().supportsAmounts();
     }
 
-    private void setLDLib2TransferMode(Player player, UICoverHolder holder, TransferMode mode) {
+    private void setTransferMode(Player player, UICoverHolder holder, TransferMode mode) {
         setTransferMode(mode);
-        sendLDLib2ConfigAction(player, holder);
+        sendConfigAction(player, holder);
     }
 
-    private void setLDLib2GlobalTransferLimit(Player player, UICoverHolder holder, int value) {
+    private void setGlobalTransferLimit(Player player, UICoverHolder holder, int value) {
         setGlobalTransferLimit(value);
-        sendLDLib2ConfigAction(player, holder);
+        sendConfigAction(player, holder);
     }
 
-    private void sendLDLib2ConfigAction(Player player, UICoverHolder holder) {
+    @RPCMethod
+    public void configureRobotArm(TransferMode transferMode, int transferLimit) {
+        setTransferMode(transferMode);
+        setGlobalTransferLimit(transferLimit);
+    }
+
+    private void sendConfigAction(Player player, UICoverHolder holder) {
         if (player.level().isClientSide()) {
-            CoverUIHelper.sendAction(holder, RobotArmCoverConfigActions.createSetConfigAction(getTransferMode(),
-                    getGlobalTransferLimit()));
+            holder.getCover().rpcToServer("configureRobotArm", getTransferMode(), getGlobalTransferLimit());
         }
     }
 
     @Override
-    public DataComponentMap copyConfig(HolderLookup.Provider registries) {
+    public SyncFieldData copyConfig(HolderLookup.Provider registries) {
         return ConfigCopyHelper.withFields(super.copyConfig(registries), fields -> fields
                 .put(SyncFieldData.key("transferMode"),
-                        ConfigCopyHelper.intValue(transferMode.ordinal()))
+                        transferMode.ordinal())
                 .put(SyncFieldData.key("transferLimit"),
-                        ConfigCopyHelper.intValue(globalTransferLimit)));
+                        globalTransferLimit));
     }
 
     @Override
-    public void pasteConfig(ServerPlayer player, HolderLookup.Provider registries, DataComponentMap config) {
+    public void pasteConfig(ServerPlayer player, HolderLookup.Provider registries, SyncFieldData config) {
         setTransferMode(TransferMode.values()[ConfigCopyHelper.getInt(config, "transferMode")]);
         setGlobalTransferLimit(ConfigCopyHelper.getInt(config, "transferLimit"));
         super.pasteConfig(player, registries, config);

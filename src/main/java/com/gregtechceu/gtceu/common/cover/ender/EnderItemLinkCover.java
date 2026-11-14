@@ -23,7 +23,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
-import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.items.IItemHandler;
@@ -111,16 +110,15 @@ public class EnderItemLinkCover extends AbstractEnderLinkCover<VirtualItemStorag
     }
 
     @Override
-    public DataComponentMap copyConfig(HolderLookup.Provider registries) {
+    public SyncFieldData copyConfig(HolderLookup.Provider registries) {
         return ConfigCopyHelper.withFields(super.copyConfig(registries), fields -> fields
-                .put(SyncFieldData.key("filter"),
-                        ConfigCopyHelper.encodeItem(registries, filterHandler.getFilterItem())));
+                .put(SyncFieldData.key("filter"), ItemStack.OPTIONAL_CODEC, filterHandler.getFilterItem(), registries));
     }
 
     @Override
-    public void pasteConfig(ServerPlayer player, HolderLookup.Provider registries, DataComponentMap config) {
+    public void pasteConfig(ServerPlayer player, HolderLookup.Provider registries, SyncFieldData config) {
         filterHandler
-                .setFilterItem(ConfigCopyHelper.decodeItem(registries, ConfigCopyHelper.getField(config, "filter")));
+                .setFilterItem(ConfigCopyHelper.getItem(registries, config, "filter"));
         super.pasteConfig(player, registries, config);
     }
 
@@ -134,15 +132,15 @@ public class EnderItemLinkCover extends AbstractEnderLinkCover<VirtualItemStorag
     }
 
     @Override
-    protected UIElement addVirtualEntryLDLib2Element(VirtualEntry entry, int x, int y, int width, int height,
-                                                     boolean canClick) {
-        UIElement group = UITemplate.setLDLib2Bounds(new UIElement(), x, y, width, height);
+    protected UIElement addVirtualEntryElement(VirtualEntry entry, int x, int y, int width, int height,
+                                               boolean canClick) {
+        UIElement group = UITemplate.setBounds(new UIElement(), x, y, width, height);
         for (int i = 0; i < ((VirtualItemStorage) entry).getHandler().getSlots(); i++) {
             GTItemSlotElement slot = new GTItemSlotElement(((VirtualItemStorage) entry).getHandler(), i)
                     .setCanPutItems(canClick)
                     .setCanTakeItems(canClick)
                     .setBackgroundTexture(GuiTextures.SLOT);
-            group.addChild(UITemplate.setLDLib2Bounds(slot, 8 * i, 0, 18, 18));
+            group.addChild(UITemplate.setBounds(slot, 8 * i, 0, 18, 18));
         }
         return group;
     }

@@ -9,7 +9,6 @@ import com.gregtechceu.gtceu.common.item.datacomponents.TextLineList;
 import com.gregtechceu.gtceu.common.item.modules.ImageModuleBehaviour;
 import com.gregtechceu.gtceu.common.item.modules.TextModuleBehaviour;
 import com.gregtechceu.gtceu.common.machine.multiblock.electric.CentralMonitorMachine;
-import com.gregtechceu.gtceu.common.machine.multiblock.electric.CentralMonitorTextModuleActions;
 import com.gregtechceu.gtceu.common.machine.multiblock.electric.monitor.MonitorGroup;
 
 import net.minecraft.world.item.ItemStack;
@@ -110,7 +109,7 @@ public class CentralMonitorPeripheral implements GenericPeripheral {
                         groupIdentity,
                         moduleSlotIncarnation,
                         expectedTextConfigurationRevision,
-                        CentralMonitorTextModuleActions.captureExpectedModule(stack),
+                        TextModuleBehaviour.captureExpectedModule(stack),
                         requestedConfiguration);
                 if (!applied) {
                     GTCEu.LOGGER.warn(

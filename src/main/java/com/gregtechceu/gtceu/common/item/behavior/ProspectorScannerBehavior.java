@@ -31,7 +31,9 @@ import net.minecraft.world.level.Level;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 public class ProspectorScannerBehavior implements IItemUIFactory, IInteractionItem, IAddInformation {
 
@@ -41,7 +43,7 @@ public class ProspectorScannerBehavior implements IItemUIFactory, IInteractionIt
 
     public ProspectorScannerBehavior(int radius, long cost, ProspectorMode<?>... modes) {
         this.radius = radius + 1;
-        this.modes = modes.clone();
+        this.modes = Arrays.stream(modes).filter(Objects::nonNull).toArray(ProspectorMode<?>[]::new);
         this.cost = cost;
     }
 
@@ -85,20 +87,20 @@ public class ProspectorScannerBehavior implements IItemUIFactory, IInteractionIt
     }
 
     @Override
-    public boolean canCreateLDLib2UI(HeldItemUIHolder holder, Player entityPlayer) {
+    public boolean canCreateUI(HeldItemUIHolder holder, Player entityPlayer) {
         return ItemStack.isSameItem(holder.getHeld(), holder.getOpenedStack());
     }
 
     @Override
-    public boolean isLDLib2UIStillValid(HeldItemUIHolder holder, Player entityPlayer) {
+    public boolean isUIStillValid(HeldItemUIHolder holder, Player entityPlayer) {
         return ItemStack.isSameItem(holder.getHeld(), holder.getOpenedStack());
     }
 
     @Override
-    public UI createLDLib2UI(HeldItemUIHolder holder, Player entityPlayer) {
+    public UI createUI(HeldItemUIHolder holder, Player entityPlayer) {
         var mode = getMode(holder.getHeld());
         UIElement root = new UIElement();
-        UITemplate.setLDLib2Bounds(root, 0, 0, 332, 200);
+        UITemplate.setBounds(root, 0, 0, 332, 200);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));
 
         var map = new ProspectingMapElement(4, 4, 332 - 8, 200 - 8, radius, mode, 1, holder);

@@ -7,18 +7,17 @@ import com.gregtechceu.gtceu.api.cover.filter.ItemFilter;
 import com.gregtechceu.gtceu.api.cover.filter.SimpleItemFilter;
 import com.gregtechceu.gtceu.api.gui.element.GTEnumSelectorElement;
 import com.gregtechceu.gtceu.api.gui.element.GTIntInputElement;
-import com.gregtechceu.gtceu.api.gui.factory.CoverUIHelper;
 import com.gregtechceu.gtceu.api.gui.factory.UICoverHolder;
 import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
 import com.gregtechceu.gtceu.common.cover.data.VoidingMode;
 
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
-import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -30,12 +29,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
 
-public class AdvancedItemVoidingCover extends ItemVoidingCover
-                                      implements AdvancedItemVoidingCoverConfigActionTarget {
-
-    static {
-        AdvancedItemVoidingCoverConfigActions.initialize();
-    }
+public class AdvancedItemVoidingCover extends ItemVoidingCover {
 
     @SaveField
     @SyncToClient
@@ -46,7 +40,7 @@ public class AdvancedItemVoidingCover extends ItemVoidingCover
     @Getter
     protected int globalVoidingLimit = 1;
 
-    private @Nullable GTIntInputElement stackSizeLDLib2Input;
+    private @Nullable GTIntInputElement stackSizeInput;
 
     public AdvancedItemVoidingCover(CoverDefinition definition, ICoverable coverHolder, Direction attachedSide) {
         super(definition, coverHolder, attachedSide);
@@ -104,7 +98,6 @@ public class AdvancedItemVoidingCover extends ItemVoidingCover
         return filter.isBlackList() ? globalVoidingLimit : filter.testItemCount(itemStack);
     }
 
-    @Override
     public void setVoidingMode(VoidingMode voidingMode) {
         this.voidingMode = voidingMode;
 
@@ -127,14 +120,14 @@ public class AdvancedItemVoidingCover extends ItemVoidingCover
     }
 
     @Override
-    protected void buildAdditionalLDLib2UI(UIElement root, Player player, UICoverHolder holder) {
+    protected void buildAdditionalUI(UIElement root, Player player, UICoverHolder holder) {
         root.addChild(GTEnumSelectorElement.selectable(146, 20, 20, 20, VoidingMode.values(), this::getVoidingMode,
-                mode -> setLDLib2VoidingMode(player, holder, mode)));
+                mode -> setVoidingMode(player, holder, mode)));
 
-        this.stackSizeLDLib2Input = new GTIntInputElement(64, 20, 80, 20,
-                () -> globalVoidingLimit, value -> setLDLib2GlobalVoidingLimit(player, holder, value));
+        this.stackSizeInput = new GTIntInputElement(64, 20, 80, 20,
+                () -> globalVoidingLimit, value -> setGlobalVoidingLimit(player, holder, value));
         configureStackSizeInput();
-        root.addChild(this.stackSizeLDLib2Input);
+        root.addChild(this.stackSizeInput);
     }
 
     @Override
@@ -147,12 +140,12 @@ public class AdvancedItemVoidingCover extends ItemVoidingCover
     }
 
     private void configureStackSizeInput() {
-        if (this.stackSizeLDLib2Input == null)
+        if (this.stackSizeInput == null)
             return;
 
-        this.stackSizeLDLib2Input.setVisible(shouldShowStackSize());
-        this.stackSizeLDLib2Input.setMin(1);
-        this.stackSizeLDLib2Input.setMax(this.voidingMode.maxStackSize);
+        this.stackSizeInput.setVisible(shouldShowStackSize());
+        this.stackSizeInput.setMin(1);
+        this.stackSizeInput.setMax(this.voidingMode.maxStackSize);
     }
 
     private boolean shouldShowStackSize() {
@@ -165,40 +158,44 @@ public class AdvancedItemVoidingCover extends ItemVoidingCover
         return this.filterHandler.getFilter().isBlackList();
     }
 
-    private void setLDLib2VoidingMode(Player player, UICoverHolder holder, VoidingMode mode) {
+    private void setVoidingMode(Player player, UICoverHolder holder, VoidingMode mode) {
         setVoidingMode(mode);
-        sendLDLib2ConfigAction(player, holder);
+        sendConfigAction(player, holder);
     }
 
-    private void setLDLib2GlobalVoidingLimit(Player player, UICoverHolder holder, int value) {
+    private void setGlobalVoidingLimit(Player player, UICoverHolder holder, int value) {
         setGlobalVoidingLimit(value);
-        sendLDLib2ConfigAction(player, holder);
+        sendConfigAction(player, holder);
     }
 
-    @Override
     public void setGlobalVoidingLimit(int value) {
         this.globalVoidingLimit = Math.max(value, 1);
         configureStackSizeInput();
     }
 
-    private void sendLDLib2ConfigAction(Player player, UICoverHolder holder) {
+    @RPCMethod
+    public void configureAdvancedItemVoiding(VoidingMode voidingMode, int voidingLimit) {
+        setVoidingMode(voidingMode);
+        setGlobalVoidingLimit(voidingLimit);
+    }
+
+    private void sendConfigAction(Player player, UICoverHolder holder) {
         if (player.level().isClientSide()) {
-            CoverUIHelper.sendAction(holder, AdvancedItemVoidingCoverConfigActions.createSetConfigAction(
-                    getVoidingMode(), getGlobalVoidingLimit()));
+            holder.getCover().rpcToServer("configureAdvancedItemVoiding", getVoidingMode(), getGlobalVoidingLimit());
         }
     }
 
     @Override
-    public DataComponentMap copyConfig(HolderLookup.Provider registries) {
+    public SyncFieldData copyConfig(HolderLookup.Provider registries) {
         return ConfigCopyHelper.withFields(super.copyConfig(registries), fields -> fields
                 .put(SyncFieldData.key("voidingMode"),
-                        ConfigCopyHelper.intValue(getVoidingMode().ordinal()))
+                        getVoidingMode().ordinal())
                 .put(SyncFieldData.key("voidSize"),
-                        ConfigCopyHelper.intValue(getGlobalVoidingLimit())));
+                        getGlobalVoidingLimit()));
     }
 
     @Override
-    public void pasteConfig(ServerPlayer player, HolderLookup.Provider registries, DataComponentMap config) {
+    public void pasteConfig(ServerPlayer player, HolderLookup.Provider registries, SyncFieldData config) {
         setVoidingMode(VoidingMode.values()[ConfigCopyHelper.getInt(config, "voidingMode")]);
         setGlobalVoidingLimit(ConfigCopyHelper.getInt(config, "voidSize"));
         super.pasteConfig(player, registries, config);

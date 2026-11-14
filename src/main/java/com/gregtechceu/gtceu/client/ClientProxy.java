@@ -3,7 +3,7 @@ package com.gregtechceu.gtceu.client;
 import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.GTValues;
 import com.gregtechceu.gtceu.api.cosmetics.event.RegisterGTCapesEvent;
-import com.gregtechceu.gtceu.api.gui.widget.PatternPreviewWidget;
+import com.gregtechceu.gtceu.api.gui.factory.UIRegistry;
 import com.gregtechceu.gtceu.api.item.IComponentItem;
 import com.gregtechceu.gtceu.api.item.IGTTool;
 import com.gregtechceu.gtceu.client.model.item.FacadeUnbakedModel;
@@ -13,6 +13,7 @@ import com.gregtechceu.gtceu.client.model.pipe.PipeModelLoader;
 import com.gregtechceu.gtceu.client.particle.GTParticleManager;
 import com.gregtechceu.gtceu.client.particle.HazardParticle;
 import com.gregtechceu.gtceu.client.particle.MufflerParticle;
+import com.gregtechceu.gtceu.client.renderer.MultiblockInWorldPreviewRenderer;
 import com.gregtechceu.gtceu.client.renderer.block.LampItemRendererHelper;
 import com.gregtechceu.gtceu.client.renderer.block.MaterialBlockRenderer;
 import com.gregtechceu.gtceu.client.renderer.block.OreBlockRenderer;
@@ -33,7 +34,6 @@ import com.gregtechceu.gtceu.common.CommonEventListener;
 import com.gregtechceu.gtceu.common.data.GTEntityTypes;
 import com.gregtechceu.gtceu.common.data.GTFluids;
 import com.gregtechceu.gtceu.common.data.GTMaterialBlocks;
-import com.gregtechceu.gtceu.common.data.GTMenuTypes;
 import com.gregtechceu.gtceu.common.data.GTParticleTypes;
 import com.gregtechceu.gtceu.common.data.models.GTModels;
 import com.gregtechceu.gtceu.common.item.DrumMachineItem;
@@ -43,7 +43,6 @@ import com.gregtechceu.gtceu.config.ConfigHolder;
 import com.gregtechceu.gtceu.data.model.builder.PipeModelBuilder;
 import com.gregtechceu.gtceu.data.pack.event.RegisterDynamicResourcesEvent;
 import com.gregtechceu.gtceu.data.pattern.StructurePatternRegistry;
-import com.gregtechceu.gtceu.integration.ae2.machine.MEPatternBufferProxyUIMenuType;
 import com.gregtechceu.gtceu.integration.map.ClientCacheManager;
 import com.gregtechceu.gtceu.integration.map.cache.client.GTClientCache;
 import com.gregtechceu.gtceu.integration.map.ftbchunks.FTBChunksPlugin;
@@ -84,7 +83,7 @@ public class ClientProxy {
             CommonEventListener.registerCapes(new RegisterGTCapesEvent());
         }
         initializeDynamicRenders();
-        StructurePatternRegistry.addReloadListener(PatternPreviewWidget::clearCache);
+        StructurePatternRegistry.addReloadListener(MultiblockInWorldPreviewRenderer::cleanPreview);
         ModelEventHelper.initInternalAssetReloadListeners();
 
         NeoForge.EVENT_BUS.register(GTParticleManager.INSTANCE);
@@ -92,10 +91,7 @@ public class ClientProxy {
 
     @SubscribeEvent
     public static void onRegisterMenuScreens(RegisterMenuScreensEvent event) {
-        event.register(GTMenuTypes.COVER_UI.get(), ModularUIContainerScreen::new);
-        if (GTCEu.Mods.isAE2Loaded()) {
-            event.register(MEPatternBufferProxyUIMenuType.MENU_TYPE.get(), ModularUIContainerScreen::new);
-        }
+        event.register(UIRegistry.MENU.get(), ModularUIContainerScreen::new);
     }
 
     @SubscribeEvent

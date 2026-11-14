@@ -138,10 +138,6 @@ public class GTProgressBarElement extends ProgressBar {
     }
 
     private float clampProgress(double progress) {
-        if (Double.isNaN(progress)) {
-            GTCEu.LOGGER.error("Invalid GTM progress supplier value '{}'", progress);
-            throw new IllegalArgumentException("Invalid progress supplier value: " + progress);
-        }
         return (float) Math.max(0, Math.min(1, progress));
     }
 

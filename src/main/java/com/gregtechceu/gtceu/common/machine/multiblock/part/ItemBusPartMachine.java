@@ -1,7 +1,6 @@
 package com.gregtechceu.gtceu.common.machine.multiblock.part;
 
 import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo;
-import com.gregtechceu.gtceu.api.blockentity.IPaintable;
 import com.gregtechceu.gtceu.api.capability.recipe.IO;
 import com.gregtechceu.gtceu.api.cover.filter.FilterHandler;
 import com.gregtechceu.gtceu.api.cover.filter.FilterHandlers;
@@ -9,30 +8,20 @@ import com.gregtechceu.gtceu.api.cover.filter.ItemFilter;
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
-import com.gregtechceu.gtceu.api.gui.factory.LDLib2MachineUIProvider;
-import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.fancy.IFancyTooltip;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2ConfiguratorPanelElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyMachineUIElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyTabsElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyTooltipsPanelElement;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyUIProvider;
-import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
+import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
 import com.gregtechceu.gtceu.api.machine.MachineDefinition;
 import com.gregtechceu.gtceu.api.machine.TickableSubscription;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2CircuitFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2DirectionalFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2DistinctPartFancyConfigurator;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.LDLib2WorkingEnabledFancyConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CircuitFancyConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.DistinctPartConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
 import com.gregtechceu.gtceu.api.machine.feature.IHasCircuitSlot;
-import com.gregtechceu.gtceu.api.machine.feature.LDLib2FancyActionMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IDistinctPart;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.machine.multiblock.part.TieredIOPartMachine;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.ServerFieldChangeListener;
-import com.gregtechceu.gtceu.api.sync_system.annotations.ServerFieldNormalizer;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncBoth;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
 import com.gregtechceu.gtceu.common.data.GTMachines;
@@ -43,14 +32,12 @@ import com.gregtechceu.gtceu.utils.ExtendedUseOnContext;
 import com.gregtechceu.gtceu.utils.GTTransferUtils;
 import com.gregtechceu.gtceu.utils.ISubscription;
 
-import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
@@ -59,11 +46,8 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.List;
-
 public class ItemBusPartMachine extends TieredIOPartMachine
-                                implements IDistinctPart, IHasCircuitSlot, IPaintable, LDLib2FancyActionMachine,
-                                LDLib2MachineUIProvider {
+                                implements IDistinctPart, IHasCircuitSlot {
 
     @Getter
     @SaveField
@@ -156,13 +140,8 @@ public class ItemBusPartMachine extends TieredIOPartMachine
 
     @Override
     public void setDistinct(boolean distinct) {
-        isDistinct = normalizeDistinct(distinct);
+        isDistinct = io != IO.OUT && distinct;
         getHandlerList().setDistinctAndNotify(isDistinct);
-    }
-
-    @ServerFieldNormalizer(fieldName = "isDistinct")
-    private boolean normalizeDistinct(boolean distinct) {
-        return io != IO.OUT && distinct;
     }
 
     @ServerFieldChangeListener(fieldName = "isDistinct")
@@ -299,86 +278,58 @@ public class ItemBusPartMachine extends TieredIOPartMachine
     // ********** GUI ***********//
     //////////////////////////////////////
 
-    @Override
-    public boolean canCreateLDLib2UI(Player player, MachineUIHolder holder) {
-        return holder.getMachine() == this && supportsGenericLDLib2Page();
-    }
-
-    @Override
-    public UI createLDLib2UI(Player player, MachineUIHolder holder) {
-        LDLib2FancyUIProvider page = createLDLib2Page(player, holder);
-        return UI.of(new LDLib2FancyMachineUIElement(page, player.getInventory(), holder,
-                page.getLDLib2PageWidth(), page.getLDLib2PageHeight()));
-    }
-
-    LDLib2FancyUIProvider createLDLib2Page(Player player, MachineUIHolder holder) {
-        requireMatchingLDLib2Holder(holder);
-        if (!supportsGenericLDLib2Page()) {
-            throw new IllegalStateException("Item Bus definition requires its specialized UI provider.");
-        }
-        return new ItemBusLDLib2Page(player, holder);
-    }
-
-    private void requireMatchingLDLib2Holder(MachineUIHolder holder) {
-        if (holder.getMachine() != this) {
-            throw new IllegalArgumentException("Item Bus page holder must resolve the opened machine.");
-        }
-    }
-
     /**
      * Determines whether this definition may reuse the generic holder-scoped LDLib2 Item Bus page.
      */
-    protected boolean supportsGenericLDLib2Page() {
-        return getClass() == ItemBusPartMachine.class;
+
+    int getInventoryPageWidth() {
+        return 18 * getRowSize() + 16;
     }
 
-    int getLDLib2PageWidth() {
-        return 18 * getLDLib2RowSize() + 16;
+    int getInventoryPageHeight() {
+        return 18 * getColumnSize() + 16;
     }
 
-    int getLDLib2PageHeight() {
-        return 18 * getLDLib2ColumnSize() + 16;
-    }
-
-    @Nullable
-    LDLib2FancyUIProvider.PageGroupingData getLDLib2PageGroupingData() {
-        return switch (io) {
-            case IN -> new LDLib2FancyUIProvider.PageGroupingData(
-                    "gtpm.multiblock.page_switcher.io.import", 1);
-            case OUT -> new LDLib2FancyUIProvider.PageGroupingData(
-                    "gtpm.multiblock.page_switcher.io.export", 2);
-            case BOTH -> new LDLib2FancyUIProvider.PageGroupingData(
-                    "gtpm.multiblock.page_switcher.io.both", 3);
-            case NONE -> null;
-        };
-    }
-
-    private int getLDLib2RowSize() {
+    private int getRowSize() {
         return getInventorySize() == 8 ? 4 : (int) Math.sqrt(getInventorySize());
     }
 
-    private int getLDLib2ColumnSize() {
+    private int getColumnSize() {
         return getInventorySize() == 8 ? 2 : (int) Math.sqrt(getInventorySize());
     }
 
-    private UIElement createLDLib2MainElement() {
-        int rowSize = getLDLib2RowSize();
-        int columnSize = getLDLib2ColumnSize();
-        UIElement root = UITemplate.setLDLib2Bounds(new UIElement(), 0, 0,
-                getLDLib2PageWidth(), getLDLib2PageHeight());
-        UIElement container = UITemplate.setLDLib2Bounds(new UIElement(), 4, 4,
+    private GTItemSlotElement createInventorySlot(int index, int x, int y) {
+        GTItemSlotElement slot = new GTItemSlotElement(getInventory().storage, index)
+                .setCanPutItems(io.support(IO.IN))
+                .setCanTakeItems(true)
+                .setBackgroundTexture(GuiTextures.SLOT)
+                .setIngredientIO(io.support(IO.IN) ? GTXEIHelper.input() : GTXEIHelper.output());
+        return UITemplate.setBounds(slot, x, y, 18, 18);
+    }
+
+    /**
+     * Captures the validated opening-scoped holder for all Item Bus page actions and contextual tabs.
+     */
+
+    @Override
+    public UIElement createUIWidget(FancyMachineUIWidget shell) {
+        int rowSize = getRowSize();
+        int columnSize = getColumnSize();
+        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0,
+                getInventoryPageWidth(), getInventoryPageHeight());
+        UIElement container = UITemplate.setBounds(new UIElement(), 4, 4,
                 18 * rowSize + 8, 18 * columnSize + 8);
-        UITemplate.setLDLib2BackgroundTexture(container, GuiTextures.BACKGROUND_INVERSE);
+        UITemplate.setBackgroundTexture(container, GuiTextures.BACKGROUND_INVERSE);
 
         int index = 0;
         for (int y = 0; y < columnSize; y++) {
             for (int x = 0; x < rowSize; x++) {
-                container.addChild(createLDLib2InventorySlot(index++, 4 + x * 18, 4 + y * 18));
+                container.addChild(createInventorySlot(index++, 4 + x * 18, 4 + y * 18));
             }
         }
 
         if (io == IO.OUT) {
-            UIElement filterSlot = filterHandler.createFilterSlotLDLib2UI(
+            UIElement filterSlot = filterHandler.createFilterSlotUI(
                     71 + (18 * rowSize) / 2, 35 + 9 * rowSize);
             filterSlot.style(style -> style.tooltips(Component.translatable("cover.item_filter.title")));
             root.addChild(filterSlot);
@@ -387,94 +338,27 @@ public class ItemBusPartMachine extends TieredIOPartMachine
         return root;
     }
 
-    private GTItemSlotElement createLDLib2InventorySlot(int index, int x, int y) {
-        GTItemSlotElement slot = new GTItemSlotElement(getInventory().storage, index)
-                .setCanPutItems(io.support(IO.IN))
-                .setCanTakeItems(true)
-                .setBackgroundTexture(GuiTextures.SLOT)
-                .setIngredientIO(io.support(IO.IN) ? GTXEIHelper.input() : GTXEIHelper.output());
-        return UITemplate.setLDLib2Bounds(slot, x, y, 18, 18);
+    @Override
+    public int getPageWidth() {
+        return ItemBusPartMachine.this.getInventoryPageWidth();
     }
 
-    /**
-     * Captures the validated opening-scoped holder for all Item Bus page actions and contextual tabs.
-     */
-    private final class ItemBusLDLib2Page implements LDLib2FancyUIProvider {
+    @Override
+    public int getPageHeight() {
+        return ItemBusPartMachine.this.getInventoryPageHeight();
+    }
 
-        private final MachineUIHolder holder;
-        private final LDLib2DirectionalFancyConfigurator directionalPage;
-
-        private ItemBusLDLib2Page(Player player, MachineUIHolder holder) {
-            requireMatchingLDLib2Holder(holder);
-            this.holder = holder;
-            this.directionalPage = new LDLib2DirectionalFancyConfigurator(ItemBusPartMachine.this, player, holder);
+    @Override
+    public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
+        configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
+                ItemBusPartMachine.this));
+        if (io != IO.IN) {
+            return;
         }
-
-        @Override
-        public UIElement createLDLib2MainPage(LDLib2FancyMachineUIElement shell) {
-            if (holder.getMachine() != ItemBusPartMachine.this) {
-                throw new IllegalStateException("Item Bus page holder no longer resolves its opened machine.");
-            }
-            return createLDLib2MainElement();
-        }
-
-        @Override
-        public IGuiTexture getTabIcon() {
-            return GuiTextures.itemStack(getDefinition().getItem());
-        }
-
-        @Override
-        public Component getTitle() {
-            return Component.translatable(getDefinition().getDescriptionId());
-        }
-
-        @Override
-        public int getLDLib2PageWidth() {
-            return ItemBusPartMachine.this.getLDLib2PageWidth();
-        }
-
-        @Override
-        public int getLDLib2PageHeight() {
-            return ItemBusPartMachine.this.getLDLib2PageHeight();
-        }
-
-        @Override
-        public void attachSideTabs(LDLib2FancyTabsElement tabs) {
-            tabs.attachSubTab(directionalPage);
-        }
-
-        @Override
-        public void attachConfigurators(LDLib2ConfiguratorPanelElement configuratorPanel) {
-            configuratorPanel.attachConfigurators(new LDLib2WorkingEnabledFancyConfigurator(
-                    ItemBusPartMachine.this, holder));
-            if (io != IO.IN) {
-                return;
-            }
-            LDLib2DistinctPartFancyConfigurator.attachConfigurators(configuratorPanel, ItemBusPartMachine.this);
-            if (isHasCircuitSlot() && isCircuitSlotEnabled()) {
-                configuratorPanel.attachConfigurators(new LDLib2CircuitFancyConfigurator(
-                        ItemBusPartMachine.this, holder));
-            }
-        }
-
-        @Override
-        public void attachTooltips(LDLib2FancyTooltipsPanelElement tooltipsPanel) {
-            tooltipsPanel.attachTooltips(ItemBusPartMachine.this);
-            getTraitHolder().getAllTraits().stream()
-                    .filter(IFancyTooltip.class::isInstance)
-                    .map(IFancyTooltip.class::cast)
-                    .forEach(tooltipsPanel::attachTooltips);
-        }
-
-        @Override
-        public List<Component> getTabTooltips() {
-            return List.of(Component.translatable(getDefinition().getDescriptionId()));
-        }
-
-        @Override
-        @Nullable
-        public LDLib2FancyUIProvider.PageGroupingData getPageGroupingData() {
-            return getLDLib2PageGroupingData();
+        DistinctPartConfigurator.attachConfigurators(configuratorPanel, ItemBusPartMachine.this);
+        if (isHasCircuitSlot() && isCircuitSlotEnabled()) {
+            configuratorPanel.attachConfigurators(new CircuitFancyConfigurator(
+                    ItemBusPartMachine.this));
         }
     }
 }

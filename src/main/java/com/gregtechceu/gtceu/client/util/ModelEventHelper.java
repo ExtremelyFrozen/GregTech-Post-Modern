@@ -111,7 +111,7 @@ public class ModelEventHelper {
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void onModifyBakingResult(ModelEvent.ModifyBakingResult event) {
         // don't process baked model replacement here if ModernFix is loaded & dynamic resources is enabled
-        if (GTCEu.Mods.isModernFixLoaded() && GTModernFixIntegration.isDynamicResourcesEnabled()) return;
+        if (GTCEu.MODS.MODERNFIX.isLoaded() && GTModernFixIntegration.isDynamicResourcesEnabled()) return;
 
         ModelBakeryAccessor modelBakeryAccessor = (ModelBakeryAccessor) event.getModelBakery();
         for (var entry : event.getModels().entrySet()) {

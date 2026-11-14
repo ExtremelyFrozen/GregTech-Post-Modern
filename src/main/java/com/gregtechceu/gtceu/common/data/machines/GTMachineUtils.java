@@ -22,7 +22,7 @@ import com.gregtechceu.gtceu.api.machine.multiblock.PartAbility;
 import com.gregtechceu.gtceu.api.machine.property.GTMachineModelProperties;
 import com.gregtechceu.gtceu.api.machine.steam.SimpleSteamMachine;
 import com.gregtechceu.gtceu.api.machine.trait.WorkLogic;
-import com.gregtechceu.gtceu.api.multiblock.FactoryBlockPattern;
+import com.gregtechceu.gtceu.api.multiblock.pattern.dsl.PatternBuilder;
 import com.gregtechceu.gtceu.api.multiblock.util.RelativeDirection;
 import com.gregtechceu.gtceu.api.recipe.GTRecipeType;
 import com.gregtechceu.gtceu.api.registry.registrate.GTRegistrate;
@@ -245,7 +245,7 @@ public class GTMachineUtils {
         final String ioOverlay = io == OUT ? OVERLAY_FLUID_HATCH_OUTPUT : OVERLAY_FLUID_HATCH_INPUT;
         final String emissiveOverlay = io == OUT ? "overlay_pipe_out_emissive" : "overlay_pipe_in_emissive";
         return registerTieredMachines(registrate, name,
-                (holder, tier) -> new StandardFluidHatchPartMachine(holder, tier, io, initialCapacity, slots),
+                (holder, tier) -> new FluidHatchPartMachine(holder, tier, io, initialCapacity, slots),
                 (tier, builder) -> {
                     builder.langValue(VNF[tier] + ' ' + displayName)
                             .rotationState(RotationState.ALL)
@@ -613,8 +613,8 @@ public class GTMachineUtils {
                 .rotationState(RotationState.ALL)
                 .recipeType(DUMMY_RECIPES)
                 .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE,
-                        definition -> FactoryBlockPattern.start(definition)
-                                .aislesFromDefinition()
+                        definition -> PatternBuilder.start(definition)
+                                .appendDefinition()
                                 .build())
                 .appearanceBlock(casing);
         rendererSetup.accept(builder, GTCEu.id("block/multiblock/multiblock_tank"));
@@ -689,8 +689,8 @@ public class GTMachineUtils {
                 .partAppearance((controller, part, side) ->
                         controller.self().getBlockPos().below().getY() == part.self().getBlockPos().getY() ?
                                          fireBox.get().defaultBlockState() : casing.get().defaultBlockState())
-                .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> FactoryBlockPattern.start(definition)
-                        .aislesFromDefinition()
+                .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> PatternBuilder.start(definition)
+                        .appendDefinition()
                         .build())
                 .recoveryItems(
                         () -> new ItemLike[] {
@@ -733,8 +733,8 @@ public class GTMachineUtils {
                 .recipeModifier(LargeCombustionEngineMachine::recipeModifier, true)
                 .appearanceBlock(casing)
                 .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE,
-                        definition -> FactoryBlockPattern.start(definition)
-                                .aislesFromDefinition()
+                        definition -> PatternBuilder.start(definition)
+                                .appendDefinition()
                                 .build())
                 .recoveryItems(
                         () -> new ItemLike[] {
@@ -794,8 +794,8 @@ public class GTMachineUtils {
                 .recipeModifier(LargeTurbineMachine::recipeModifier, true)
                 .appearanceBlock(casing)
                 .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE,
-                        definition -> FactoryBlockPattern.start(definition)
-                                .aislesFromDefinition()
+                        definition -> PatternBuilder.start(definition)
+                                .appendDefinition()
                                 .build())
                 .recoveryItems(
                         () -> new ItemLike[] {

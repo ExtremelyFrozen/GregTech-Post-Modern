@@ -3,7 +3,7 @@ package com.gregtechceu.gtceu.api.machine.feature.multiblock;
 import com.gregtechceu.gtceu.api.GTValues;
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyTooltip;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyTooltipsPanelElement;
+import com.gregtechceu.gtceu.api.gui.fancy.TooltipsPanel;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.machine.property.GTMachineModelProperties;
 import com.gregtechceu.gtceu.api.recipe.GTRecipe;
@@ -154,9 +154,9 @@ public interface IMaintenanceMachine extends IMultiPart {
     //////////////////////////////////////
 
     @Override
-    default void attachLDLib2FancyTooltipsToController(MultiblockControllerMachine controller,
-                                                       LDLib2FancyTooltipsPanelElement tooltipsPanel) {
-        attachLDLib2MaintenanceTooltips(tooltipsPanel);
+    default void attachFancyTooltipsToController(MultiblockControllerMachine controller,
+                                                 TooltipsPanel tooltipsPanel) {
+        attachMaintenanceTooltips(tooltipsPanel);
     }
 
     /**
@@ -164,7 +164,7 @@ public interface IMaintenanceMachine extends IMultiPart {
      *
      * @param tooltipsPanel tooltip panel owned by the current LDLib2 Fancy shell
      */
-    default void attachLDLib2MaintenanceTooltips(LDLib2FancyTooltipsPanelElement tooltipsPanel) {
+    default void attachMaintenanceTooltips(TooltipsPanel tooltipsPanel) {
         if (ConfigHolder.INSTANCE.machines.enableMaintenance) {
             tooltipsPanel.attachTooltips(createMaintenanceFancyTooltip());
         }

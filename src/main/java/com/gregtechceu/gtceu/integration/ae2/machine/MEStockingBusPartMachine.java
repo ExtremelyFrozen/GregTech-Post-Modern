@@ -5,9 +5,8 @@ import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMultiPart;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
-import com.gregtechceu.gtceu.api.sync_system.annotations.ServerFieldNormalizer;
+import com.gregtechceu.gtceu.api.sync_system.annotations.ServerFieldChangeListener;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncBoth;
-import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
 import com.gregtechceu.gtceu.common.data.datacomponents.AEInputConfigCopyData;
 import com.gregtechceu.gtceu.common.item.behavior.IntCircuitBehaviour;
 import com.gregtechceu.gtceu.config.ConfigHolder;
@@ -41,7 +40,7 @@ import java.util.function.Predicate;
 
 public class MEStockingBusPartMachine extends MEInputBusPartMachine implements IMEStockingPart {
 
-    @SyncToClient
+    @SyncBoth
     @SaveField
     @Getter
     private boolean autoPull;
@@ -152,22 +151,6 @@ public class MEStockingBusPartMachine extends MEInputBusPartMachine implements I
         this.ticksPerCycle = ticksPerCycle;
     }
 
-    @ServerFieldNormalizer(fieldName = "minStackSize")
-    private int normalizeMinStackSize(int candidate) {
-        if (candidate < 1) {
-            throw new IllegalArgumentException("Auto-stocking minimum stack size must be at least one.");
-        }
-        return candidate;
-    }
-
-    @ServerFieldNormalizer(fieldName = "ticksPerCycle")
-    private int normalizeTicksPerCycle(int candidate) {
-        if (candidate < ConfigHolder.INSTANCE.compat.ae2.updateIntervals) {
-            throw new IllegalArgumentException("Auto-stocking ticks per cycle is below the configured minimum.");
-        }
-        return candidate;
-    }
-
     @Override
     public StockingTarget getStockingTarget() {
         return StockingTarget.ITEM;
@@ -202,14 +185,17 @@ public class MEStockingBusPartMachine extends MEInputBusPartMachine implements I
         }
         this.autoPull = autoPull;
         if (!isRemote()) {
-            syncDataHolder.markClientSyncFieldDirty("autoPull");
-            if (!this.autoPull) {
-                this.aeItemHandler.clearInventory(0);
-            } else if (updateMEStatus()) {
-                this.refreshList();
-                updateInventorySubscription();
-            }
-            refreshItemConfigSnapshot();
+            updateAutoPullInventory();
+        }
+    }
+
+    @ServerFieldChangeListener(fieldName = "autoPull")
+    private void updateAutoPullInventory() {
+        if (!autoPull) {
+            aeItemHandler.clearInventory(0);
+        } else if (updateMEStatus()) {
+            refreshList();
+            updateInventorySubscription();
         }
     }
 
@@ -221,11 +207,6 @@ public class MEStockingBusPartMachine extends MEInputBusPartMachine implements I
     @Override
     public boolean isMEItemStocking() {
         return true;
-    }
-
-    @Override
-    public void setMEItemAutoPull(boolean autoPull) {
-        setAutoPull(autoPull);
     }
 
     @Override

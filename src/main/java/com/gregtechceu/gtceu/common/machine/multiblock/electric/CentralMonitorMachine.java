@@ -7,9 +7,9 @@ import com.gregtechceu.gtceu.api.capability.IMonitorComponent;
 import com.gregtechceu.gtceu.api.capability.recipe.IO;
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.factory.DynamicItemSlotMachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.factory.LDLib2DynamicItemSlotMachineUIProvider;
+import com.gregtechceu.gtceu.api.gui.factory.DynamicItemSlotMachineUIProvider;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
-import com.gregtechceu.gtceu.api.gui.fancy.LDLib2FancyMachineUIElement;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.item.IComponentItem;
 import com.gregtechceu.gtceu.api.item.component.IItemComponent;
@@ -20,16 +20,23 @@ import com.gregtechceu.gtceu.api.machine.multiblock.PartAbility;
 import com.gregtechceu.gtceu.api.machine.multiblock.WorkableElectricMultiblockMachine;
 import com.gregtechceu.gtceu.api.misc.EnergyContainerList;
 import com.gregtechceu.gtceu.api.multiblock.*;
+import com.gregtechceu.gtceu.api.multiblock.pattern.dsl.PatternBuilder;
+import com.gregtechceu.gtceu.api.multiblock.pattern.match.MultiBlockPattern;
+import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternNode;
+import com.gregtechceu.gtceu.api.multiblock.structurepredicate.PatternPredicate;
 import com.gregtechceu.gtceu.api.multiblock.util.RelativeDirection;
-import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.RerenderOnChanged;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
 import com.gregtechceu.gtceu.common.data.GTBlocks;
 import com.gregtechceu.gtceu.common.data.GTDataComponents;
 import com.gregtechceu.gtceu.common.data.GTMachines;
 import com.gregtechceu.gtceu.common.item.behavior.PortableScannerBehavior;
 import com.gregtechceu.gtceu.common.item.datacomponents.TextLineList;
+import com.gregtechceu.gtceu.common.item.modules.ImageModuleBehaviour;
+import com.gregtechceu.gtceu.common.item.modules.TextModuleBehaviour;
+import com.gregtechceu.gtceu.common.machine.multiblock.electric.monitor.CentralMonitorGroupTargetState;
 import com.gregtechceu.gtceu.common.machine.multiblock.electric.monitor.MonitorGroup;
 import com.gregtechceu.gtceu.common.machine.trait.CentralMonitorLogic;
 import com.gregtechceu.gtceu.common.network.packets.SCPacketMonitorGroupDataChange;
@@ -41,27 +48,18 @@ import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.component.DataComponentMap;
-import net.minecraft.nbt.NbtOps;
-import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
-import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.network.PacketDistributor;
 
-import com.google.gson.JsonElement;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.UTFDataFormatException;
 import java.util.*;
 import java.util.List;
 import java.util.stream.Stream;
@@ -72,16 +70,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
 @MethodsReturnNonnullByDefault
 public class CentralMonitorMachine extends WorkableElectricMultiblockMachine
                                    implements IMonitorComponent, IDataInfoProvider,
-                                   LDLib2DynamicItemSlotMachineUIProvider,
-                                   CentralMonitorMembershipActionTarget, CentralMonitorGroupTargetActionHost,
-                                   CentralMonitorImageModuleActionHost, CentralMonitorTextModuleActionHost {
-
-    static {
-        CentralMonitorMembershipActions.initialize();
-        CentralMonitorGroupTargetActions.initialize();
-        CentralMonitorImageModuleActions.initialize();
-        CentralMonitorTextModuleActions.initialize();
-    }
+                                   DynamicItemSlotMachineUIProvider {
 
     private static final String MONITOR_GROUPS_SYNC_FIELD = "monitorGroups";
     private static final String MONITOR_GROUP_MEMBERSHIP_REVISION_SYNC_FIELD = "monitorGroupMembershipRevision";
@@ -104,24 +93,24 @@ public class CentralMonitorMachine extends WorkableElectricMultiblockMachine
 
     private @Nullable MultiblockState patternFindingState;
 
-    private static @Nullable TraceabilityPredicate MULTI_PREDICATE = null;
+    private static @Nullable PatternPredicate MULTI_PREDICATE = null;
 
     public CentralMonitorMachine(BlockEntityCreationInfo info) {
         super(info, new CentralMonitorLogic());
     }
 
-    public static TraceabilityPredicate getMultiPredicate() {
+    public static PatternPredicate getMultiPredicate() {
         if (MULTI_PREDICATE == null) {
-            MULTI_PREDICATE = Predicates.abilities(PartAbility.INPUT_ENERGY)
+            MULTI_PREDICATE = PatternPredicate.abilities(PartAbility.INPUT_ENERGY)
                     .setMinGlobalLimited(1).setMaxGlobalLimited(2).setPreviewCount(1)
-                    .or(Predicates.abilities(PartAbility.DATA_ACCESS).setPreviewCount(1)
-                            .or(Predicates.machines(GTMachines.BATTERY_BUFFER_4).setPreviewCount(0))
-                            .or(Predicates.machines(GTMachines.BATTERY_BUFFER_16).setPreviewCount(0))
+                    .or(PatternPredicate.abilities(PartAbility.DATA_ACCESS).setPreviewCount(1)
+                            .or(PatternPredicate.machines(GTMachines.BATTERY_BUFFER_4).setPreviewCount(0))
+                            .or(PatternPredicate.machines(GTMachines.BATTERY_BUFFER_16).setPreviewCount(0))
                             .setMaxGlobalLimited(4))
-                    .or(Predicates.machines(GTMachines.HULL))
-                    .or(Predicates.machines(GTMachines.MONITOR))
-                    .or(Predicates.machines(GTMachines.ADVANCED_MONITOR))
-                    .or(Predicates.blocks(GTBlocks.CASING_ALUMINIUM_FROSTPROOF.get()));
+                    .or(PatternPredicate.machines(GTMachines.HULL))
+                    .or(PatternPredicate.machines(GTMachines.MONITOR))
+                    .or(PatternPredicate.machines(GTMachines.ADVANCED_MONITOR))
+                    .or(PatternPredicate.blocks(GTBlocks.CASING_ALUMINIUM_FROSTPROOF.get()));
         }
         return MULTI_PREDICATE;
     }
@@ -255,7 +244,7 @@ public class CentralMonitorMachine extends WorkableElectricMultiblockMachine
     }
 
     @Override
-    public BlockPattern getPattern(String structureName) {
+    public MultiBlockPattern getPattern(String structureName) {
         if (!DEFAULT_STRUCTURE.equals(structureName)) {
             return super.getPattern(structureName);
         }
@@ -283,14 +272,14 @@ public class CentralMonitorMachine extends WorkableElectricMultiblockMachine
             aisle[i] = pattern[i].toString();
         }
 
-        BlockPattern baseline = FactoryBlockPattern.start(getDefinition())
+        MultiBlockPattern baseline = PatternBuilder.start(getDefinition())
                 .aisle("~")
                 .build();
-        return StructurePatternResolver.rebuildRuntimeStringArrayPattern(
+        return StructurePatternResolver.rebuildRuntimePattern(
                 this.getDefinition(),
                 StructurePatternKey.main(this.getDefinition().getId()),
                 baseline,
-                List.of(new StructurePatternResolver.Unit(Collections.singletonList(aisle), 1, 1)));
+                List.of(PatternNode.Fixed.fromSlices(aisle)));
     }
 
     public BlockPos toRelative(BlockPos pos) {
@@ -329,28 +318,23 @@ public class CentralMonitorMachine extends WorkableElectricMultiblockMachine
         return monitorGroups.stream().anyMatch(group -> group.contains(component.getBlockPos()));
     }
 
-    @Override
     public UUID getCentralMonitorActionIncarnation() {
         return centralMonitorActionIncarnation;
     }
 
-    @Override
     public int getCentralMonitorMembershipCapacity() {
         int width = Math.addExact(Math.addExact(leftDist, rightDist), 1);
         int height = Math.addExact(Math.addExact(upDist, downDist), 1);
         return Math.multiplyExact(width, height);
     }
 
-    @Override
     public long getCentralMonitorMembershipRevision() {
         return monitorGroupMembershipRevision;
     }
 
-    @Override
     public boolean canCreateCentralMonitorGroup(long expectedRevision, UUID groupIdentity,
                                                 Set<BlockPos> positions) {
         if (!isMembershipStructureAvailable() || monitorGroupMembershipRevision != expectedRevision ||
-                positions.isEmpty() || positions.size() > getCentralMonitorMembershipCapacity() ||
                 hasMonitorGroupIdentity(groupIdentity)) {
             return false;
         }
@@ -364,7 +348,6 @@ public class CentralMonitorMachine extends WorkableElectricMultiblockMachine
         return true;
     }
 
-    @Override
     public boolean createCentralMonitorGroup(long expectedRevision, UUID groupIdentity, Set<BlockPos> positions) {
         if (!canCreateCentralMonitorGroup(expectedRevision, groupIdentity, positions)) {
             return false;
@@ -378,11 +361,9 @@ public class CentralMonitorMachine extends WorkableElectricMultiblockMachine
         return true;
     }
 
-    @Override
     public boolean canRemoveCentralMonitorGroupMembers(long expectedRevision, UUID groupIdentity,
                                                        Set<BlockPos> positions) {
-        if (!isMembershipStructureAvailable() || monitorGroupMembershipRevision != expectedRevision ||
-                positions.isEmpty() || positions.size() > getCentralMonitorMembershipCapacity()) {
+        if (!isMembershipStructureAvailable() || monitorGroupMembershipRevision != expectedRevision) {
             return false;
         }
         MonitorGroup group = resolveCentralMonitorGroup(groupIdentity);
@@ -399,7 +380,6 @@ public class CentralMonitorMachine extends WorkableElectricMultiblockMachine
         return true;
     }
 
-    @Override
     public boolean removeCentralMonitorGroupMembers(long expectedRevision, UUID groupIdentity,
                                                     Set<BlockPos> positions) {
         if (!canRemoveCentralMonitorGroupMembers(expectedRevision, groupIdentity, positions)) {
@@ -421,11 +401,9 @@ public class CentralMonitorMachine extends WorkableElectricMultiblockMachine
         return true;
     }
 
-    @Override
     public boolean canSetCentralMonitorGroupTarget(UUID groupIdentity, CentralMonitorGroupTargetState expected,
                                                    CentralMonitorGroupTargetState requested) {
-        if (!isMembershipStructureAvailable() || expected.dataSlot() < 0 || requested.dataSlot() < 0 ||
-                expected.equals(requested)) {
+        if (!isMembershipStructureAvailable()) {
             return false;
         }
         MonitorGroup group = resolveCentralMonitorGroup(groupIdentity);
@@ -434,17 +412,15 @@ public class CentralMonitorMachine extends WorkableElectricMultiblockMachine
         }
         BlockPos requestedPosition = requested.targetPos();
         if (requestedPosition == null) {
-            return requested.dataSlot() == 0;
+            return true;
         }
         IMonitorComponent component = resolveMembershipComponents().get(requestedPosition);
         if (component == null) {
             return false;
         }
-        IItemHandler dataItems = component.getDataItems();
-        return dataItems == null ? requested.dataSlot() == 0 : requested.dataSlot() < dataItems.getSlots();
+        return true;
     }
 
-    @Override
     public boolean setCentralMonitorGroupTarget(UUID groupIdentity, CentralMonitorGroupTargetState expected,
                                                 CentralMonitorGroupTargetState requested) {
         if (!canSetCentralMonitorGroupTarget(groupIdentity, expected, requested)) {
@@ -466,12 +442,10 @@ public class CentralMonitorMachine extends WorkableElectricMultiblockMachine
         getSyncDataHolder().markClientSyncFieldDirty(MONITOR_GROUPS_SYNC_FIELD);
     }
 
-    @Override
     public void resyncCentralMonitorImageModuleState() {
         markMonitorGroupDataChanged();
     }
 
-    @Override
     public void resyncCentralMonitorTextModuleState() {
         markMonitorGroupDataChanged();
     }
@@ -486,7 +460,7 @@ public class CentralMonitorMachine extends WorkableElectricMultiblockMachine
             return null;
         }
         ItemStack module = group.getItemStackHandler().getStackInSlot(0);
-        return CentralMonitorImageModuleActions.isImageModule(module) ? module : null;
+        return ImageModuleBehaviour.isImageModule(module) ? module : null;
     }
 
     /**
@@ -499,10 +473,9 @@ public class CentralMonitorMachine extends WorkableElectricMultiblockMachine
             return null;
         }
         ItemStack module = group.getItemStackHandler().getStackInSlot(0);
-        return CentralMonitorTextModuleActions.isTextModule(module) ? module : null;
+        return TextModuleBehaviour.isTextModule(module) ? module : null;
     }
 
-    @Override
     public boolean canSetCentralMonitorTextModuleConfiguration(UUID groupIdentity, UUID moduleSlotIncarnation,
                                                                long expectedConfigurationRevision,
                                                                ItemStack expectedModule,
@@ -512,7 +485,6 @@ public class CentralMonitorMachine extends WorkableElectricMultiblockMachine
                 expectedModule, requestedConfiguration) != null;
     }
 
-    @Override
     public boolean setCentralMonitorTextModuleConfiguration(UUID groupIdentity, UUID moduleSlotIncarnation,
                                                             long expectedConfigurationRevision,
                                                             ItemStack expectedModule,
@@ -534,8 +506,7 @@ public class CentralMonitorMachine extends WorkableElectricMultiblockMachine
                                                                  long expectedConfigurationRevision,
                                                                  ItemStack expectedModule,
                                                                  TextLineList requestedConfiguration) {
-        if (!isMembershipStructureAvailable() ||
-                !CentralMonitorTextModuleActions.isValidScale(requestedConfiguration.scale())) {
+        if (!isMembershipStructureAvailable()) {
             return null;
         }
         MonitorGroup group = resolveCentralMonitorGroup(groupIdentity);
@@ -544,8 +515,8 @@ public class CentralMonitorMachine extends WorkableElectricMultiblockMachine
             return null;
         }
         ItemStack currentModule = group.getItemStackHandler().getStackInSlot(0);
-        if (!CentralMonitorTextModuleActions.isTextModule(currentModule) ||
-                !CentralMonitorTextModuleActions.matchesExpectedModule(currentModule, expectedModule)) {
+        if (!TextModuleBehaviour.isTextModule(currentModule) ||
+                !TextModuleBehaviour.matchesExpectedModule(currentModule, expectedModule)) {
             return null;
         }
         TextLineList currentConfiguration = currentModule.get(GTDataComponents.FORMAT_STRING_LIST.get());
@@ -557,65 +528,9 @@ public class CentralMonitorMachine extends WorkableElectricMultiblockMachine
                     group.getIdentity(), getBlockPos());
             return null;
         }
-        long nextRevision = Math.incrementExact(group.getTextConfigurationRevision());
-        return canPersistCentralMonitorTextModuleConfiguration(
-                group, currentModule, requestedConfiguration, nextRevision) ? group : null;
+        return group;
     }
 
-    private boolean canPersistCentralMonitorTextModuleConfiguration(MonitorGroup group, ItemStack currentModule,
-                                                                    TextLineList requestedConfiguration,
-                                                                    long nextRevision) {
-        Level level = getLevel();
-        if (level == null) {
-            GTCEu.LOGGER.error("Central Monitor at {} cannot validate text module save data without a level",
-                    getBlockPos());
-            return false;
-        }
-
-        ItemStack candidate = currentModule.copy();
-        candidate.set(GTDataComponents.FORMAT_STRING_LIST.get(), requestedConfiguration);
-        var stacks = group.getItemStackHandler().getStacks();
-        ItemStack previous = stacks.set(0, candidate);
-        long previousRevision = group.getTextConfigurationRevision();
-        group.setTextConfigurationRevision(nextRevision);
-        try {
-            DataComponentMap savedData = getSyncDataHolder()
-                    .serializeToComponents(level.registryAccess(), false, false);
-            Tag savedTag = DataComponentMap.CODEC
-                    .encodeStart(level.registryAccess().createSerializationContext(NbtOps.INSTANCE), savedData)
-                    .getOrThrow();
-            try (DataOutputStream output = new DataOutputStream(OutputStream.nullOutputStream())) {
-                savedTag.write(output);
-            }
-            JsonElement monitorGroupsData = getSyncDataHolder()
-                    .serializeClientFieldSnapshot(level.registryAccess(), MONITOR_GROUPS_SYNC_FIELD);
-            if (!SyncFieldData.isFieldValueWithinNetworkLimit(monitorGroupsData)) {
-                GTCEu.LOGGER.warn(
-                        "Rejecting Central Monitor text module configuration for group {} at {} because monitorGroups exceeds the network field limit",
-                        group.getIdentity(), getBlockPos());
-                return false;
-            }
-            return true;
-        } catch (UTFDataFormatException exception) {
-            GTCEu.LOGGER.warn(
-                    "Rejecting Central Monitor text module configuration for group {} at {} because its save data exceeds the modified-UTF limit",
-                    group.getIdentity(), getBlockPos());
-            return false;
-        } catch (IOException exception) {
-            GTCEu.LOGGER.error("Failed to validate Central Monitor text module save data for group {} at {}",
-                    group.getIdentity(), getBlockPos(), exception);
-            throw new IllegalStateException("Failed to validate Central Monitor text module save data", exception);
-        } catch (RuntimeException exception) {
-            GTCEu.LOGGER.error("Failed to encode Central Monitor text module save data for group {} at {}",
-                    group.getIdentity(), getBlockPos(), exception);
-            throw exception;
-        } finally {
-            stacks.set(0, previous);
-            group.setTextConfigurationRevision(previousRevision);
-        }
-    }
-
-    @Override
     public boolean canSetCentralMonitorImageModuleUrl(UUID groupIdentity, UUID moduleSlotIncarnation,
                                                       ItemStack expectedModule, @Nullable String expectedUrl,
                                                       String requestedUrl) {
@@ -623,7 +538,6 @@ public class CentralMonitorMachine extends WorkableElectricMultiblockMachine
                 groupIdentity, moduleSlotIncarnation, expectedModule, expectedUrl, requestedUrl) != null;
     }
 
-    @Override
     public boolean setCentralMonitorImageModuleUrl(UUID groupIdentity, UUID moduleSlotIncarnation,
                                                    ItemStack expectedModule, @Nullable String expectedUrl,
                                                    String requestedUrl) {
@@ -644,7 +558,6 @@ public class CentralMonitorMachine extends WorkableElectricMultiblockMachine
                                                                   @Nullable String expectedUrl,
                                                                   String requestedUrl) {
         if (!isMembershipStructureAvailable() ||
-                !CentralMonitorImageModuleActions.isValidUrl(requestedUrl) ||
                 sameNullableString(expectedUrl, requestedUrl)) {
             return null;
         }
@@ -653,61 +566,64 @@ public class CentralMonitorMachine extends WorkableElectricMultiblockMachine
             return null;
         }
         ItemStack currentModule = group.getItemStackHandler().getStackInSlot(0);
-        if (!CentralMonitorImageModuleActions.isImageModule(currentModule) ||
-                !CentralMonitorImageModuleActions.matchesExpectedModule(currentModule, expectedModule)) {
+        if (!ImageModuleBehaviour.isImageModule(currentModule) ||
+                !ImageModuleBehaviour.matchesExpectedModule(currentModule, expectedModule)) {
             return null;
         }
-        String snapshotUrl = expectedModule.get(GTDataComponents.IMAGE_MODULE_URL.get());
-        String currentUrl = currentModule.get(GTDataComponents.IMAGE_MODULE_URL.get());
-        if (!sameNullableString(snapshotUrl, expectedUrl) || !sameNullableString(currentUrl, expectedUrl)) {
-            return null;
-        }
-        return canPersistCentralMonitorImageModuleUrl(group, currentModule, requestedUrl) ? group : null;
-    }
-
-    private boolean canPersistCentralMonitorImageModuleUrl(MonitorGroup group, ItemStack currentModule,
-                                                           String requestedUrl) {
-        Level level = getLevel();
-        if (level == null) {
-            GTCEu.LOGGER.error("Central Monitor at {} cannot validate image module save data without a level",
-                    getBlockPos());
-            return false;
-        }
-
-        ItemStack candidate = currentModule.copy();
-        candidate.set(GTDataComponents.IMAGE_MODULE_URL.get(), requestedUrl);
-        var stacks = group.getItemStackHandler().getStacks();
-        ItemStack previous = stacks.set(0, candidate);
-        try {
-            DataComponentMap savedData = getSyncDataHolder()
-                    .serializeToComponents(level.registryAccess(), false, false);
-            Tag savedTag = DataComponentMap.CODEC
-                    .encodeStart(level.registryAccess().createSerializationContext(NbtOps.INSTANCE), savedData)
-                    .getOrThrow();
-            try (DataOutputStream output = new DataOutputStream(OutputStream.nullOutputStream())) {
-                savedTag.write(output);
-            }
-            return true;
-        } catch (UTFDataFormatException exception) {
-            GTCEu.LOGGER.warn(
-                    "Rejecting Central Monitor image module URL with {} characters for group {} at {} because its save data exceeds the modified-UTF limit",
-                    requestedUrl.length(), group.getIdentity(), getBlockPos());
-            return false;
-        } catch (IOException exception) {
-            GTCEu.LOGGER.error("Failed to validate Central Monitor save data for group {} at {}",
-                    group.getIdentity(), getBlockPos(), exception);
-            throw new IllegalStateException("Failed to validate Central Monitor save data", exception);
-        } catch (RuntimeException exception) {
-            GTCEu.LOGGER.error("Failed to encode Central Monitor save data for group {} at {}",
-                    group.getIdentity(), getBlockPos(), exception);
-            throw exception;
-        } finally {
-            stacks.set(0, previous);
-        }
+        return group;
     }
 
     private static boolean sameNullableString(@Nullable String first, @Nullable String second) {
         return first == null ? second == null : first.equals(second);
+    }
+
+    @RPCMethod
+    public void createCentralMonitorGroup(UUID holderIncarnation, long expectedRevision, UUID groupIdentity,
+                                          List<BlockPos> positions) {
+        if (centralMonitorActionIncarnation.equals(holderIncarnation)) {
+            createCentralMonitorGroup(expectedRevision, groupIdentity, new LinkedHashSet<>(positions));
+        }
+    }
+
+    @RPCMethod
+    public void removeCentralMonitorGroupMembers(UUID holderIncarnation, long expectedRevision, UUID groupIdentity,
+                                                 List<BlockPos> positions) {
+        if (centralMonitorActionIncarnation.equals(holderIncarnation)) {
+            removeCentralMonitorGroupMembers(expectedRevision, groupIdentity, new LinkedHashSet<>(positions));
+        }
+    }
+
+    @RPCMethod
+    public void setCentralMonitorGroupTarget(UUID holderIncarnation, UUID groupIdentity,
+                                             Optional<BlockPos> expectedPosition, int expectedSlot,
+                                             Optional<BlockPos> requestedPosition, int requestedSlot) {
+        if (centralMonitorActionIncarnation.equals(holderIncarnation)) {
+            setCentralMonitorGroupTarget(groupIdentity,
+                    new CentralMonitorGroupTargetState(expectedPosition.orElse(null), expectedSlot),
+                    new CentralMonitorGroupTargetState(requestedPosition.orElse(null), requestedSlot));
+        }
+    }
+
+    @RPCMethod
+    public void setCentralMonitorImageModuleUrl(UUID holderIncarnation, UUID groupIdentity, UUID moduleSlotIncarnation,
+                                                ItemStack expectedModule, String requestedUrl) {
+        if (!centralMonitorActionIncarnation.equals(holderIncarnation) ||
+                !setCentralMonitorImageModuleUrl(groupIdentity, moduleSlotIncarnation, expectedModule,
+                        expectedModule.get(GTDataComponents.IMAGE_MODULE_URL.get()), requestedUrl)) {
+            resyncCentralMonitorImageModuleState();
+        }
+    }
+
+    @RPCMethod
+    public void setCentralMonitorTextModuleConfiguration(UUID holderIncarnation, UUID groupIdentity,
+                                                         UUID moduleSlotIncarnation, long expectedConfigurationRevision,
+                                                         ItemStack expectedModule, List<String> lines, float scale) {
+        if (!centralMonitorActionIncarnation.equals(holderIncarnation) ||
+                !setCentralMonitorTextModuleConfiguration(groupIdentity, moduleSlotIncarnation,
+                        expectedConfigurationRevision, expectedModule,
+                        TextModuleBehaviour.createConfiguration(lines, scale))) {
+            resyncCentralMonitorTextModuleState();
+        }
     }
 
     /**
@@ -802,22 +718,22 @@ public class CentralMonitorMachine extends WorkableElectricMultiblockMachine
     }
 
     @Override
-    public boolean canCreateLDLib2UI(Player player, MachineUIHolder holder) {
+    public boolean canCreateUI(Player player, MachineUIHolder holder) {
         return holder instanceof DynamicItemSlotMachineUIHolder && holder.getMachine() == this &&
                 holder.getMachineDefinitionId().equals(getDefinition().getId()) && isFormed();
     }
 
     @Override
-    public UI createLDLib2UI(Player player, MachineUIHolder holder) {
+    public UI createUI(Player player, MachineUIHolder holder) {
         CentralMonitorElement page = createCentralMonitorElement(player, holder);
-        LDLib2FancyMachineUIElement root = new LDLib2FancyMachineUIElement(
-                page, player.getInventory(), holder, page.getLDLib2PageWidth(), page.getLDLib2PageHeight());
+        FancyMachineUIWidget root = new FancyMachineUIWidget(
+                page, player.getInventory(), holder, page.getPageWidth(), page.getPageHeight());
         root.addChild(page.sessionElement());
         return UI.of(root);
     }
 
     CentralMonitorElement createCentralMonitorElement(Player player, MachineUIHolder holder) {
-        if (!canCreateLDLib2UI(player, holder)) {
+        if (!this.canCreateUI(player, holder)) {
             GTCEu.LOGGER.error("Central Monitor at {} rejected an invalid or unformed LDLib2 opening",
                     getBlockPos());
             throw new IllegalArgumentException("Central Monitor UI requires its formed opening machine.");
