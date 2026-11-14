@@ -2,6 +2,7 @@ package com.gregtechceu.gtceu.api.multiblock.error
 
 import com.gregtechceu.gtceu.api.multiblock.pattern.match.PatternDiagnostic
 
+import net.minecraft.ChatFormatting
 import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.MutableComponent
 import net.minecraft.world.level.block.Block
@@ -26,7 +27,7 @@ class StructureIssue(val lines: ObjectList<Component>) : PatternError() {
 		fun mismatch(failure: PatternDiagnostic, expected: Component?): StructureIssue = located(
 			text("mismatch"),
 			failure,
-			expected?.let { text("expected", it) },
+			expected?.let { text("expected", it.copy().withStyle(ChatFormatting.GREEN)) },
 		)
 		fun forbidden(failure: PatternDiagnostic): StructureIssue = located(text("forbidden"), failure)
 		fun unloaded(failure: PatternDiagnostic): StructureIssue = located(text("unloaded"), failure, showFound = false)
@@ -37,14 +38,24 @@ class StructureIssue(val lines: ObjectList<Component>) : PatternError() {
 		fun count(failure: PatternDiagnostic?, kind: Count, subject: Component?, limit: Int, actual: Int): StructureIssue = located(
 			text(kind.key, subject ?: Component.empty()),
 			if (kind.located) failure else null,
-			if (kind == Count.MINIMUM || kind == Count.LAYER_MINIMUM) text("at_least", limit, actual) else text("at_most", limit),
+			if (kind == Count.MINIMUM || kind == Count.LAYER_MINIMUM) {
+				text("at_least", Component.literal(limit.toString()).withStyle(ChatFormatting.GREEN), Component.literal(actual.toString()).withStyle(ChatFormatting.RED))
+			} else {
+				text("at_most", Component.literal(limit.toString()).withStyle(ChatFormatting.GREEN))
+			},
 			showFound = false,
 		)
 
 		fun size(): StructureIssue = located(text("size"), null, text("size.combination"))
 
 		fun size(parameter: String, minimum: Int, maximum: Int, actual: Int): StructureIssue {
-			val detail = if (actual < 0) text("size.unmeasured", parameter, maximum) else text("size.range", parameter, minimum, maximum, actual)
+			val subject = Component.literal(parameter).withStyle(ChatFormatting.GOLD)
+			val high = Component.literal(maximum.toString()).withStyle(ChatFormatting.GREEN)
+			val detail = if (actual < 0) {
+				text("size.unmeasured", subject, high)
+			} else {
+				text("size.range", subject, Component.literal(minimum.toString()).withStyle(ChatFormatting.GREEN), high, Component.literal(actual.toString()).withStyle(ChatFormatting.RED))
+			}
 			return located(text("size"), null, detail)
 		}
 
@@ -66,7 +77,7 @@ class StructureIssue(val lines: ObjectList<Component>) : PatternError() {
 			var shown = 0
 			for (label in unique) {
 				if (shown == 3) break
-				if (shown++ > 0) result.append(" | ")
+				if (shown++ > 0) result.append(Component.literal(" | ").withStyle(ChatFormatting.GRAY))
 				result.append(label)
 			}
 			return if (unique.size > 3) text("more", result, unique.size) else result
@@ -76,9 +87,11 @@ class StructureIssue(val lines: ObjectList<Component>) : PatternError() {
 
 		private fun located(title: Component, failure: PatternDiagnostic?, detail: Component? = null, showFound: Boolean = true): StructureIssue {
 			val lines = ObjectArrayList<Component>(3)
-			lines.add(if (failure == null) title else title.copy().append(" ").append(text("position", failure.world.x, failure.world.y, failure.world.z)))
+			val headline = title.copy().withStyle(ChatFormatting.GOLD)
+			if (failure != null) headline.append(" ").append(text("position", failure.world.x, failure.world.y, failure.world.z).withStyle(ChatFormatting.AQUA))
+			lines.add(headline)
 			if (detail != null) lines.add(detail)
-			if (showFound) failure?.actual?.let { lines.add(text("found", it.block.name)) }
+			if (showFound) failure?.actual?.let { lines.add(text("found", it.block.name.copy().withStyle(ChatFormatting.RED))) }
 			return StructureIssue(ObjectLists.unmodifiable(lines))
 		}
 	}

@@ -76,7 +76,7 @@ public class MultiblockStructureProvider extends MachineInfoProvider<MultiblockC
             for (Tag serialized : data.getList(key + "issue", Tag.TAG_STRING)) {
                 Component line = Component.Serializer.fromJson(serialized.getAsString(),
                         accessor.getLevel().registryAccess());
-                if (line != null) tooltip.add(line.copy().withStyle(ChatFormatting.GRAY));
+                if (line != null) tooltip.add(Component.empty().withStyle(ChatFormatting.GRAY).append(line));
             }
         }
     }
