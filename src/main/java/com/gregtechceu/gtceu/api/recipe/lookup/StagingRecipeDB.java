@@ -114,7 +114,7 @@ public final class StagingRecipeDB {
      * @return the flattened content
      */
     private static @NotNull ObjectList<Pair<RecipeCapability<?>, Object>> flattenedContent(
-                                                                                     @NotNull GTRecipeDefinition recipe) {
+                                                                                           @NotNull GTRecipeDefinition recipe) {
         var map = new Object2ObjectOpenHashMap<RecipeCapability<?>, List<Content>>();
         int size = 0;
         var inputs = recipe.inputs.fastIterator();
@@ -145,7 +145,7 @@ public final class StagingRecipeDB {
      * @return the number of inputs added to the map
      */
     private static int buildInputsByCap(@NotNull Object2ObjectMap<RecipeCapability<?>, List<Content>> map,
-                                         @NotNull RecipeCapability<?> cap, @NotNull List<Content> list) {
+                                        @NotNull RecipeCapability<?> cap, @NotNull List<Content> list) {
         if (!cap.isRecipeSearchFilter()) {
             return 0;
         }

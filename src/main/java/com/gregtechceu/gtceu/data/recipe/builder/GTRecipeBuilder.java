@@ -1080,9 +1080,9 @@ public class GTRecipeBuilder {
 
     public GTRecipeBuilder inputFluids(IntProviderFluidIngredient... inputs) {
         return input(FluidRecipeCapability.CAP,
-                Arrays.stream(inputs).<SizedFluidIngredient>map(
+                Arrays.stream(inputs).map(
                         ingredient -> new SizedFluidIngredient(ingredient, ingredient.getCountProvider().getMaxValue()))
-                        .toList().toArray(new SizedFluidIngredient[0]));
+                        .toArray(SizedFluidIngredient[]::new));
     }
 
     public GTRecipeBuilder outputFluids(FluidStack output) {
@@ -1100,9 +1100,9 @@ public class GTRecipeBuilder {
 
     public GTRecipeBuilder outputFluids(IntProviderFluidIngredient... outputs) {
         return output(FluidRecipeCapability.CAP,
-                Arrays.stream(outputs).<SizedFluidIngredient>map(
+                Arrays.stream(outputs).map(
                         ingredient -> new SizedFluidIngredient(ingredient, ingredient.getCountProvider().getMaxValue()))
-                        .toList().toArray(new SizedFluidIngredient[0]));
+                        .toArray(SizedFluidIngredient[]::new));
     }
 
     public GTRecipeBuilder outputFluidsRanged(IntProviderFluidIngredient provider) {

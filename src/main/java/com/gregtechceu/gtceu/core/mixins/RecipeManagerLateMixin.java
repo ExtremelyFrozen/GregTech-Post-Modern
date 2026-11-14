@@ -1,15 +1,12 @@
 package com.gregtechceu.gtceu.core.mixins;
 
-import com.google.common.collect.ImmutableMultimap;
-import com.google.common.collect.Multimap;
-import com.google.gson.JsonElement;
 import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.recipe.GTRecipe;
 import com.gregtechceu.gtceu.api.recipe.GTRecipeDefinition;
 import com.gregtechceu.gtceu.api.recipe.GTRecipeType;
 import com.gregtechceu.gtceu.api.recipe.lookup.RecipeAdditionHandler;
 import com.gregtechceu.gtceu.data.recipe.builder.GTRecipeBuilder;
-import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+
 import net.minecraft.advancements.Advancement;
 import net.minecraft.advancements.AdvancementHolder;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -23,6 +20,11 @@ import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.item.crafting.RecipeManager;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.neoforged.neoforge.common.conditions.ICondition;
+
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.Multimap;
+import com.google.gson.JsonElement;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;

@@ -153,8 +153,7 @@ public final class MaterialTagLangGenerator {
     }
 
     private static void addParentTags(Object2ObjectMap<String, String> translations) {
-        ITEM_PARENT_TAGS.forEach((path, value) ->
-                translations.put("tag.item.c." + path.replace('/', '.'), value));
+        ITEM_PARENT_TAGS.forEach((path, value) -> translations.put("tag.item.c." + path.replace('/', '.'), value));
         translations.put("tag.item.c.corals.alive", "Living Corals");
         translations.put("tag.item.c.corals.dead", "Dead Corals");
         translations.put("tag.item.c.coral_blocks.alive", "Living Coral Blocks");
@@ -240,7 +239,8 @@ public final class MaterialTagLangGenerator {
         ItemMaterialData.MATERIAL_ENTRY_ITEM_MAP.forEach((entry, items) -> {
             Material material = entry.material();
             if (entry.tagPrefix() != TagPrefix.crushed ||
-                    !material.getModid().equals("gtpm") || !material.hasProperty(PropertyKey.ORE)) return;
+                    !material.getModid().equals("gtpm") || !material.hasProperty(PropertyKey.ORE))
+                return;
 
             Material washedIn = material.getProperty(PropertyKey.ORE).getWashedIn().first();
             if (washedIn.isNull()) return;

@@ -61,7 +61,7 @@ public class GTJEIPlugin implements IModPlugin {
 
     @Nullable
     public static Object getItemIngredient(ItemStack itemStack, int x, int y, int width, int height) {
-        return jeiHelpers.getIngredientManager().createTypedIngredient(VanillaTypes.ITEM_STACK, itemStack,false)
+        return jeiHelpers.getIngredientManager().createTypedIngredient(VanillaTypes.ITEM_STACK, itemStack, false)
                 .map(typedIngredient -> new GTClickableIngredient<>(typedIngredient, x, y, width, height))
                 .orElse(null);
     }

@@ -73,8 +73,8 @@ public class GTRecipeSerializer implements RecipeSerializer<GTRecipeDefinition> 
             .of(GTRecipeSerializer::toNetwork, GTRecipeSerializer::fromNetwork);
     // spotless:on
 
-    private static final StreamCodec<RegistryFriendlyByteBuf, DataComponentMap> DATA_COMPONENT_STREAM_CODEC =
-            ByteBufCodecs.fromCodecWithRegistries(DataComponentMap.CODEC);
+    private static final StreamCodec<RegistryFriendlyByteBuf, DataComponentMap> DATA_COMPONENT_STREAM_CODEC = ByteBufCodecs
+            .fromCodecWithRegistries(DataComponentMap.CODEC);
 
     @Override
     public @NotNull MapCodec<GTRecipeDefinition> codec() {
@@ -216,7 +216,7 @@ public class GTRecipeSerializer implements RecipeSerializer<GTRecipeDefinition> 
     }
 
     public static <T> ObjectList<T> readCollection(RegistryFriendlyByteBuf buf,
-                                                  StreamDecoder<? super RegistryFriendlyByteBuf, T> decoder) {
+                                                   StreamDecoder<? super RegistryFriendlyByteBuf, T> decoder) {
         int len = buf.readVarInt();
         ObjectList<T> list = new ObjectArrayList<>(len);
 

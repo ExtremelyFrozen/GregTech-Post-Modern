@@ -80,13 +80,14 @@ public final class GTRecipeUI {
     public static ModularUI createModularUI(GTRecipeDefinition recipe, int recipeTier, int chanceTier) {
         return ModularUI.of(createUI(recipe, recipeTier, chanceTier));
     }
+
     /**
      * Creates ingredient elements only for capabilities that need UI-based recipe-viewer extraction.
      * Excluded capabilities do not allocate display containers or contribute a research slot.
      */
     public static List<UIElement> createXEIIngredientElements(GTRecipeDefinition recipe, int recipeTier,
-                                                               int chanceTier,
-                                                               Predicate<RecipeCapability<?>> capabilityFilter) {
+                                                              int chanceTier,
+                                                              Predicate<RecipeCapability<?>> capabilityFilter) {
         var storages = Tables.newCustomTable(new EnumMap<>(IO.class),
                 LinkedHashMap<RecipeCapability<?>, Object>::new);
         var contents = Tables.newCustomTable(new EnumMap<>(IO.class),

@@ -5,7 +5,6 @@ import com.gregtechceu.gtceu.api.GTValues;
 import com.gregtechceu.gtceu.api.cosmetics.CapeRegistry;
 import com.gregtechceu.gtceu.api.item.tool.ToolHelper;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
-import com.gregtechceu.gtceu.api.registry.GTRegistries;
 import com.gregtechceu.gtceu.client.renderer.BlockHighlightRenderer;
 import com.gregtechceu.gtceu.client.renderer.MultiblockInWorldPreviewRenderer;
 import com.gregtechceu.gtceu.client.renderer.cover.FacadeCoverRenderer;

@@ -7,6 +7,7 @@ import com.gregtechceu.gtceu.data.loot.DungeonLootLoader;
 import com.gregtechceu.gtceu.data.pack.DynamicRecipeOutput;
 import com.gregtechceu.gtceu.data.pack.GTDynamicDataPack;
 import com.gregtechceu.gtceu.data.recipe.GTCraftingComponents;
+
 import net.minecraft.commands.Commands;
 import net.minecraft.core.LayeredRegistryAccess;
 import net.minecraft.core.RegistryAccess;
@@ -14,6 +15,7 @@ import net.minecraft.server.RegistryLayer;
 import net.minecraft.server.ReloadableServerResources;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.world.flag.FeatureFlagSet;
+
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;

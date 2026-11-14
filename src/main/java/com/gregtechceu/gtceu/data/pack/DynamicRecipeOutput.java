@@ -1,8 +1,5 @@
 package com.gregtechceu.gtceu.data.pack;
 
-import com.google.gson.JsonElement;
-import com.mojang.serialization.JsonOps;
-import lombok.Getter;
 import net.minecraft.advancements.Advancement;
 import net.minecraft.advancements.AdvancementHolder;
 import net.minecraft.core.HolderLookup;
@@ -13,6 +10,10 @@ import net.minecraft.resources.RegistryOps;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.crafting.Recipe;
 import net.neoforged.neoforge.common.conditions.ICondition;
+
+import com.google.gson.JsonElement;
+import com.mojang.serialization.JsonOps;
+import lombok.Getter;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 

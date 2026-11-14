@@ -46,9 +46,8 @@ public class ContentListMap {
 
     public static ContentListMap copyOf(Map<RecipeCapability<?>, List<Content>> contentsMap) {
         ContentListMap copy = new ContentListMap(contentsMap.size());
-        Iterator<? extends Map.Entry<RecipeCapability<?>, List<Content>>> entries =
-                contentsMap instanceof Reference2ObjectMap<RecipeCapability<?>, List<Content>> map ?
-                        Reference2ObjectMaps.fastIterator(map) : contentsMap.entrySet().iterator();
+        Iterator<? extends Map.Entry<RecipeCapability<?>, List<Content>>> entries = contentsMap instanceof Reference2ObjectMap<RecipeCapability<?>, List<Content>> map ?
+                Reference2ObjectMaps.fastIterator(map) : contentsMap.entrySet().iterator();
         while (entries.hasNext()) {
             var entry = entries.next();
             RecipeCapability<?> capability = entry.getKey();
