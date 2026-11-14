@@ -109,12 +109,12 @@ final class CentralMonitorElement extends UIElement implements IFancyUIProvider 
     private final GTIntInputElement dataSlotInput;
     private final GTDynamicItemSlotSessionElement sessionElement;
 
-    private List<GroupSnapshot> displayedGroups = List.of();
-    private Set<ComponentSnapshot> displayedComponents = Set.of();
+    private List<GroupState> displayedGroups = List.of();
+    private Set<ComponentState> displayedComponents = Set.of();
     private @Nullable BlockPos selectedTargetPosition;
     private @Nullable UUID configuredGroupIdentity;
     private @Nullable UUID selectedBindingIdentity;
-    private @Nullable AuthoritativeModuleSnapshot renderedModuleSnapshot;
+    private @Nullable AuthoritativeModuleState renderedModuleState;
     private int dataSlot = 1;
     private int dataSlotCount = 1;
 
@@ -471,7 +471,7 @@ final class CentralMonitorElement extends UIElement implements IFancyUIProvider 
         if (selectedBinding.isEmpty()) {
             configuredGroupIdentity = null;
             selectedBindingIdentity = null;
-            renderedModuleSnapshot = null;
+            renderedModuleState = null;
             moduleConfigurationHost.clearAllChildren();
             setDisplayed(groupElement, false);
             setDisplayed(overviewElement, true);
@@ -484,7 +484,7 @@ final class CentralMonitorElement extends UIElement implements IFancyUIProvider 
         if (group == null || bindingElement == null) {
             configuredGroupIdentity = null;
             selectedBindingIdentity = null;
-            renderedModuleSnapshot = null;
+            renderedModuleState = null;
             moduleConfigurationHost.clearAllChildren();
             setDisplayed(groupElement, false);
             setDisplayed(overviewElement, true);
@@ -498,9 +498,9 @@ final class CentralMonitorElement extends UIElement implements IFancyUIProvider 
         setDisplayed(overviewElement, false);
         setDisplayed(groupElement, true);
         updateGroupTitle(group);
-        AuthoritativeModuleSnapshot authoritativeSnapshot = AuthoritativeModuleSnapshot.capture(group);
-        if (!retainedGroup || authoritativeSnapshot.differsFrom(renderedModuleSnapshot)) {
-            rebuildModuleConfiguration(group, authoritativeSnapshot);
+        AuthoritativeModuleState authoritativeState = AuthoritativeModuleState.capture(group);
+        if (!retainedGroup || authoritativeState.differsFrom(renderedModuleState)) {
+            rebuildModuleConfiguration(group, authoritativeState);
         }
     }
 
@@ -509,12 +509,12 @@ final class CentralMonitorElement extends UIElement implements IFancyUIProvider 
             return;
         }
         Map<BlockPos, IMonitorComponent> components = machine.resolveMembershipComponents();
-        Set<ComponentSnapshot> componentSnapshots = components.values().stream()
-                .map(component -> new ComponentSnapshot(component.getBlockPos(), component.isMonitor()))
+        Set<ComponentState> componentStates = components.values().stream()
+                .map(component -> new ComponentState(component.getBlockPos(), component.isMonitor()))
                 .collect(LinkedHashSet::new, Set::add, Set::addAll);
-        if (force || !componentSnapshots.equals(displayedComponents)) {
+        if (force || !componentStates.equals(displayedComponents)) {
             rebuildComponentControls();
-            displayedComponents = Set.copyOf(componentSnapshots);
+            displayedComponents = Set.copyOf(componentStates);
         }
 
         selectedMonitorPositions.removeIf(position -> {
@@ -525,12 +525,12 @@ final class CentralMonitorElement extends UIElement implements IFancyUIProvider 
             selectedTargetPosition = null;
         }
 
-        List<GroupSnapshot> groupSnapshots = machine.getMonitorGroups().stream()
-                .map(GroupSnapshot::capture)
+        List<GroupState> groupStates = machine.getMonitorGroups().stream()
+                .map(GroupState::capture)
                 .toList();
-        if (force || !groupSnapshots.equals(displayedGroups)) {
+        if (force || !groupStates.equals(displayedGroups)) {
             rebuildGroupControls();
-            displayedGroups = groupSnapshots;
+            displayedGroups = groupStates;
         }
 
         refreshComponentControls(components);
@@ -666,7 +666,7 @@ final class CentralMonitorElement extends UIElement implements IFancyUIProvider 
         if (group == null) {
             configuredGroupIdentity = null;
             selectedBindingIdentity = null;
-            renderedModuleSnapshot = null;
+            renderedModuleState = null;
             moduleConfigurationHost.clearAllChildren();
             bindingElements.values().forEach(element -> setDisplayed(element, false));
             setDisplayed(groupElement, false);
@@ -674,9 +674,9 @@ final class CentralMonitorElement extends UIElement implements IFancyUIProvider 
             return;
         }
         updateGroupTitle(group);
-        AuthoritativeModuleSnapshot authoritativeSnapshot = AuthoritativeModuleSnapshot.capture(group);
-        if (authoritativeSnapshot.differsFrom(renderedModuleSnapshot)) {
-            rebuildModuleConfiguration(group, authoritativeSnapshot);
+        AuthoritativeModuleState authoritativeState = AuthoritativeModuleState.capture(group);
+        if (authoritativeState.differsFrom(renderedModuleState)) {
+            rebuildModuleConfiguration(group, authoritativeState);
         }
         bindingElements.forEach(
                 (bindingIdentity, element) -> setDisplayed(element, bindingIdentity.equals(selectedBindingIdentity)));
@@ -687,7 +687,7 @@ final class CentralMonitorElement extends UIElement implements IFancyUIProvider 
     }
 
     private void rebuildModuleConfiguration(MonitorGroup group,
-                                            AuthoritativeModuleSnapshot authoritativeSnapshot) {
+                                            AuthoritativeModuleState authoritativeState) {
         moduleConfigurationHost.clearAllChildren();
         ItemStack moduleStack = group.getItemStackHandler().getStackInSlot(0);
         if (moduleStack.getItem() instanceof IComponentItem componentItem) {
@@ -698,7 +698,7 @@ final class CentralMonitorElement extends UIElement implements IFancyUIProvider 
                 }
             }
         }
-        renderedModuleSnapshot = authoritativeSnapshot;
+        renderedModuleState = authoritativeState;
     }
 
     private void handleComponentClick(BlockPos position, int button) {
@@ -889,35 +889,35 @@ final class CentralMonitorElement extends UIElement implements IFancyUIProvider 
         element.setActive(displayed);
     }
 
-    private record ComponentSnapshot(BlockPos position, boolean monitor) {}
+    private record ComponentState(BlockPos position, boolean monitor) {}
 
-    private record AuthoritativeModuleSnapshot(UUID moduleSlotIncarnation, ItemStack moduleSnapshot,
-                                               long textConfigurationRevision) {
+    private record AuthoritativeModuleState(UUID moduleSlotIncarnation, ItemStack moduleCopy,
+                                            long textConfigurationRevision) {
 
         private static final long NON_TEXT_CONFIGURATION_REVISION = -1;
 
-        private static AuthoritativeModuleSnapshot capture(MonitorGroup group) {
+        private static AuthoritativeModuleState capture(MonitorGroup group) {
             ItemStack module = group.getItemStackHandler().getStackInSlot(0);
             if (TextModuleBehaviour.isTextModule(module)) {
-                return new AuthoritativeModuleSnapshot(
+                return new AuthoritativeModuleState(
                         group.getModuleSlotIncarnation(),
                         TextModuleBehaviour.captureExpectedModule(module),
                         group.getTextConfigurationRevision());
             }
             if (ImageModuleBehaviour.isImageModule(module)) {
-                return new AuthoritativeModuleSnapshot(
+                return new AuthoritativeModuleState(
                         group.getModuleSlotIncarnation(),
                         ImageModuleBehaviour.captureExpectedModule(module),
                         NON_TEXT_CONFIGURATION_REVISION);
             }
-            return new AuthoritativeModuleSnapshot(
+            return new AuthoritativeModuleState(
                     group.getModuleSlotIncarnation(), module.copy(), NON_TEXT_CONFIGURATION_REVISION);
         }
 
-        private boolean differsFrom(@Nullable AuthoritativeModuleSnapshot other) {
+        private boolean differsFrom(@Nullable AuthoritativeModuleState other) {
             return other == null || !moduleSlotIncarnation.equals(other.moduleSlotIncarnation) ||
                     textConfigurationRevision != other.textConfigurationRevision ||
-                    !ItemStack.matches(moduleSnapshot, other.moduleSnapshot);
+                    !ItemStack.matches(moduleCopy, other.moduleCopy);
         }
     }
 
@@ -933,12 +933,12 @@ final class CentralMonitorElement extends UIElement implements IFancyUIProvider 
         void requestOverview();
     }
 
-    private record GroupSnapshot(UUID identity, UUID dynamicItemSlotIncarnation, String name,
-                                 Set<BlockPos> positions, @Nullable BlockPos target, int dataSlot,
-                                 UUID moduleSlotIncarnation) {
+    private record GroupState(UUID identity, UUID dynamicItemSlotIncarnation, String name,
+                              Set<BlockPos> positions, @Nullable BlockPos target, int dataSlot,
+                              UUID moduleSlotIncarnation) {
 
-        private static GroupSnapshot capture(MonitorGroup group) {
-            return new GroupSnapshot(group.getIdentity(), group.getDynamicItemSlotIncarnation(), group.getName(),
+        private static GroupState capture(MonitorGroup group) {
+            return new GroupState(group.getIdentity(), group.getDynamicItemSlotIncarnation(), group.getName(),
                     Set.copyOf(group.getMonitorPositions()), group.getTargetRaw(), group.getDataSlot(),
                     group.getModuleSlotIncarnation());
         }

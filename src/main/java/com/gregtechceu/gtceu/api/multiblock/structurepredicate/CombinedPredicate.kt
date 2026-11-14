@@ -34,6 +34,11 @@ class CombinedPredicate private constructor(private val expression: Expression) 
 	) {
 	internal override fun acceptObservation(state: MultiblockState, observation: PatternObservation): Boolean = expression.accept(state, observation)
 
+	internal val preparedSelection: Int get() = expression.selection.ordinal
+	internal val preparedBranches: List<PatternPredicate> get() = expression.branches.map { it.runtime }
+	internal val preparedPriorities: IntArray get() = expression.branches.map { branch -> expression.priority.indexOf(branch.id).let { if (it < 0) Int.MAX_VALUE else it } }.toIntArray()
+	internal fun restorePreparedExpression(observation: PatternObservation, selected: IntArray, children: List<PatternObservation>): PatternObservation = expression.restorePreparedPosition(observation, selected, children)
+
 	private enum class Selection { ALL, PRIORITY, EXCLUSIVE, NOT }
 	private data class Branch(val id: String, val definition: PatternPredicateDefinition, val runtime: PatternPredicate)
 	private class Expression(val selection: Selection, val branches: ObjectList<Branch>, val priority: ObjectList<String>) {
@@ -41,6 +46,13 @@ class CombinedPredicate private constructor(private val expression: Expression) 
 		fun observeCandidate(state: BlockState): PatternObservation = observe(false) { it.observeCandidate(state) }
 
 		private data class Position(val branches: ObjectList<Pair<Branch, PatternObservation>>) : PatternObservation.PositionMatch
+		fun restorePreparedPosition(observation: PatternObservation, selected: IntArray, children: List<PatternObservation>): PatternObservation = observation.withPositionMatch(
+			Position(
+				ObjectArrayList<Pair<Branch, PatternObservation>>().also { out ->
+					selected.forEach { out.add(branches[it] to children[it]) }
+				},
+			),
+		)
 
 		fun accept(state: MultiblockState, observation: PatternObservation): Boolean {
 			val selected = observation.positionMatch as Position

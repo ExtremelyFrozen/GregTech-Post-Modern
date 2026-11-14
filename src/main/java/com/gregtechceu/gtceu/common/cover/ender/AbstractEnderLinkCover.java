@@ -449,12 +449,12 @@ public abstract class AbstractEnderLinkCover<T extends VirtualEntry> extends Cov
                                                @NotNull Direction side,
                                                @NotNull List<? extends VirtualEntry> entries) {
         if (!(player.containerMenu instanceof ModularUIContainerMenu menu)) return;
-        List<VirtualEntry> snapshot = entries.stream().map(VirtualEntry::copy).toList();
+        List<VirtualEntry> channelCopies = entries.stream().map(VirtualEntry::copy).toList();
         menu.getModularUI().ui.rootElement.selfAndAllChildren()
                 .filter(EnderLinkChannelListReceiver.class::isInstance)
                 .map(EnderLinkChannelListReceiver.class::cast)
                 .filter(receiver -> receiver.acceptsEnderLinkChannelList(pos, side, coverDefinition.getId()))
-                .forEach(receiver -> receiver.receiveEnderLinkChannelList(snapshot, player.registryAccess()));
+                .forEach(receiver -> receiver.receiveEnderLinkChannelList(channelCopies, player.registryAccess()));
     }
 
     private static String normalizeColorInput(String color) {

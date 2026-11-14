@@ -16,6 +16,7 @@ import com.gregtechceu.gtceu.api.item.tool.ToolHelper;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.api.misc.virtualregistry.VirtualEnderRegistry;
 import com.gregtechceu.gtceu.api.multiblock.MultiblockWorldSavedData;
+import com.gregtechceu.gtceu.api.multiblock.scheduling.FormationExecutors;
 import com.gregtechceu.gtceu.api.registry.GTRegistries;
 import com.gregtechceu.gtceu.api.sync_system.managed.ManagedSyncBlockEntity;
 import com.gregtechceu.gtceu.client.TooltipsHandler;
@@ -70,6 +71,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.LevelChunk;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -82,6 +84,7 @@ import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.event.level.BlockEvent;
+import net.neoforged.neoforge.event.level.ChunkEvent;
 import net.neoforged.neoforge.event.level.ChunkWatchEvent;
 import net.neoforged.neoforge.event.level.LevelEvent;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
@@ -90,11 +93,16 @@ import net.neoforged.neoforge.event.server.ServerStoppingEvent;
 import net.neoforged.neoforge.event.tick.EntityTickEvent;
 import net.neoforged.neoforge.event.tick.LevelTickEvent;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.neoforged.neoforge.items.IItemHandler;
 import net.neoforged.neoforge.network.PacketDistributor;
 
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+
 @EventBusSubscriber(modid = GTCEu.MOD_ID)
 public class CommonEventListener {
+
+    private static int multiblockLevelStart;
 
     @SubscribeEvent
     public static void registerCapes(RegisterGTCapesEvent event) {
@@ -215,6 +223,32 @@ public class CommonEventListener {
     }
 
     @SubscribeEvent
+    public static void multiblockTick(ServerTickEvent.Post event) {
+        ObjectArrayList<ServerLevel> levels = new ObjectArrayList<>();
+        event.getServer().getAllLevels().forEach(levels::add);
+        if (levels.isEmpty()) return;
+        int start = Math.floorMod(multiblockLevelStart++, levels.size());
+        for (int index = 0; index < levels.size(); index++) {
+            ServerLevel level = levels.get((start + index) % levels.size());
+            MultiblockWorldSavedData.getOrCreate(level).tickFormationChecks(level);
+        }
+    }
+
+    @SubscribeEvent
+    public static void multiblockChunkLoad(ChunkEvent.Load event) {
+        if (event.getLevel() instanceof ServerLevel level && event.getChunk() instanceof LevelChunk chunk) {
+            MultiblockWorldSavedData.getOrCreate(level).rebuildChunkIndex(chunk);
+        }
+    }
+
+    @SubscribeEvent
+    public static void multiblockChunkUnload(ChunkEvent.Unload event) {
+        if (event.getLevel() instanceof ServerLevel level && event.getChunk() instanceof LevelChunk chunk) {
+            MultiblockWorldSavedData.getOrCreate(level).clearChunkIndex(chunk);
+        }
+    }
+
+    @SubscribeEvent
     public static void worldLoad(LevelEvent.Load event) {
         if (event.getLevel().isClientSide()) {
             WaypointManager.updateDimension(event.getLevel());
@@ -228,7 +262,7 @@ public class CommonEventListener {
         if (event.getLevel() instanceof ServerLevel serverLevel) {
             TaskHandler.onWorldUnLoad(serverLevel);
             ComputationNetworkManager.unload(serverLevel);
-            MultiblockWorldSavedData.getOrCreate(serverLevel).releaseExecutorService();
+            MultiblockWorldSavedData.getOrCreate(serverLevel).clear();
             ServerCache.instance.invalidateWorld(serverLevel);
         } else if (event.getLevel().isClientSide()) {
             ClientCacheManager.saveCaches(event.getLevel().registryAccess());
@@ -244,6 +278,7 @@ public class CommonEventListener {
 
     @SubscribeEvent
     public static void serverStopped(ServerStoppedEvent event) {
+        FormationExecutors.release(event.getServer());
         ServerCache.instance.clear();
         VirtualEnderRegistry.release();
     }
@@ -253,7 +288,7 @@ public class CommonEventListener {
         var levels = event.getServer().getAllLevels();
         for (var level : levels) {
             if (!level.isClientSide()) {
-                MultiblockWorldSavedData.getOrCreate(level).releaseExecutorService();
+                MultiblockWorldSavedData.getOrCreate(level).clear();
             }
         }
     }

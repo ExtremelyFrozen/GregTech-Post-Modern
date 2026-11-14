@@ -199,7 +199,7 @@ public final class PatternPreviewWidget extends UIElement {
             var layout = definition.getPattern(contribution.structureName())
                     .expandLayout(request.repetitions().toIntArray(), request.choices());
             var key = contribution.cellKey();
-            for (var cell : layout.cells()) {
+            for (var cell : layout.getCells()) {
                 if (cell.unit() != key.unitIndex() || cell.repetition() != key.repetition() ||
                         cell.inner() != key.innerSlice() || cell.row() != key.row() || cell.column() != key.column())
                     continue;
@@ -315,7 +315,8 @@ public final class PatternPreviewWidget extends UIElement {
                 var current = pendingStructures.getOrDefault(name, info.getStructures().get(name));
                 int[] resized = pattern.resizeLayout(current.repetitions().toIntArray(), current.choices(), index,
                         Integer.parseInt(value));
-                pendingStructures.put(name, current.withRepetitions(new IntArrayList(resized)));
+                pendingStructures.put(name, new BatchPlanner().normalizeChoices(definition,
+                        current.withRepetitions(new IntArrayList(resized))));
             });
             input.textFieldStyle(style -> style.fontSize(8).textColor(0xff404040).textShadow(false)
                     .focusOverlay(IGuiTexture.EMPTY));
@@ -332,6 +333,26 @@ public final class PatternPreviewWidget extends UIElement {
                     () -> changeStructure(value -> value.withChoice(choice.path(), values.get(index - 1))),
                     () -> changeStructure(value -> value.withChoice(choice.path(), values.get(index + 1))),
                     index > 0, index + 1 < values.size());
+            y += 30;
+        }
+        var measurementValues = pattern.getMeasurementValues(structure.choices());
+        for (var measurement : pattern.getMeasurements()) {
+            String key = "@measure:" + measurement.getParameter();
+            int value = measurementValues.getInt(measurement.getParameter());
+            addStep(y, width, Component.literal(measurement.getParameter() + ": " + value),
+                    () -> changeStructure(current -> current.withChoice(key, Integer.toString(value - 1))),
+                    () -> changeStructure(current -> current.withChoice(key, Integer.toString(value + 1))),
+                    value > measurement.getMinimum(), value < measurement.getMaximum());
+            y += 30;
+        }
+        var layout = pattern.expandLayout(repetitions, structure.choices());
+        for (var instance : layout.getModuleChoices()) {
+            var candidates = instance.getDescriptor().getCandidates();
+            int index = candidates.indexOf(instance.getSelection());
+            addStep(y, width, Component.literal(instance.getDescriptor().getId() + ": " + instance.getSelection()),
+                    () -> changeStructure(current -> current.withChoice(instance.getPath(), candidates.get(index - 1))),
+                    () -> changeStructure(current -> current.withChoice(instance.getPath(), candidates.get(index + 1))),
+                    index > 0, index + 1 < candidates.size());
             y += 30;
         }
         options.viewContainer.getLayout().width(width).height(y);
@@ -401,12 +422,14 @@ public final class PatternPreviewWidget extends UIElement {
         if (dimensionTicks > 0) {
             String name = structureName();
             pendingStructures.put(name,
-                    update.apply(pendingStructures.getOrDefault(name, info.getStructures().get(name))));
+                    new BatchPlanner().normalizeChoices(definition,
+                            update.apply(pendingStructures.getOrDefault(name, info.getStructures().get(name)))));
             dimensionTicks = 5;
             rebuildOptions();
             return;
         }
-        applyChange(() -> info.setStructure(update.apply(info.getStructures().get(structureName()))));
+        applyChange(() -> info.setStructure(new BatchPlanner().normalizeChoices(definition,
+                update.apply(info.getStructures().get(structureName())))));
     }
 
     private void applyChange(Runnable update) {

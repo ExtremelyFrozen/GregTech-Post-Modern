@@ -20,6 +20,7 @@ class DataHatchOrPredicate(val alternative: StructurePredicate) : AlternativePre
 	override fun alternatives(state: MultiblockState?): ObjectList<StructurePredicate> = if (ConfigHolder.INSTANCE.machines.enableResearch) ObjectList.of(dataHatches.get(), alternative) else ObjectList.of(alternative)
 
 	private data class Position(val selected: StructurePredicate, val child: PatternObservation, val requiredData: RestrictedPredicate?) : PatternObservation.PositionMatch
+	internal fun restorePreparedPosition(observation: PatternObservation, selected: StructurePredicate, child: PatternObservation, requiredData: RestrictedPredicate?): PatternObservation = observation.withPositionMatch(Position(selected, child, requiredData))
 
 	override fun observePosition(state: MultiblockState): PatternObservation {
 		val data = if (ConfigHolder.INSTANCE.machines.enableResearch) dataHatches.get() else null

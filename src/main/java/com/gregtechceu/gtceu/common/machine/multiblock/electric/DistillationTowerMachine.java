@@ -28,7 +28,6 @@ import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
 import com.gregtechceu.gtceu.common.data.GTRecipeTypes;
 
-import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
@@ -69,13 +68,13 @@ public class DistillationTowerMachine extends WorkableElectricMultiblockMachine
      * Keeps the client display supplied from a server-owned snapshot while the structure is formed.
      */
     @Getter(AccessLevel.PACKAGE)
-    private final ConditionalSubscriptionHandler displaySnapshotSubscription;
+    private final ConditionalSubscriptionHandler displaySubscription;
     /**
      * Carries the complete legacy display text without relying on the old Widget sync path.
      */
     @Getter(AccessLevel.PACKAGE)
     @SyncToClient
-    private List<Component> displaySnapshot = List.of();
+    private List<Component> displayText = List.of();
 
     public DistillationTowerMachine(BlockEntityCreationInfo info) {
         this(info, 1);
@@ -89,7 +88,7 @@ public class DistillationTowerMachine extends WorkableElectricMultiblockMachine
     public DistillationTowerMachine(BlockEntityCreationInfo info, int yOffset) {
         super(info, new DistillationTowerLogic());
         this.yOffset = yOffset;
-        this.displaySnapshotSubscription = new ConditionalSubscriptionHandler(this, this::refreshDisplaySnapshot,
+        this.displaySubscription = new ConditionalSubscriptionHandler(this, this::refreshDisplayText,
                 this::isFormed);
     }
 
@@ -97,8 +96,8 @@ public class DistillationTowerMachine extends WorkableElectricMultiblockMachine
     public void onLoad() {
         super.onLoad();
         if (!isRemote()) {
-            refreshDisplaySnapshot();
-            displaySnapshotSubscription.initialize(getLevel());
+            refreshDisplayText();
+            displaySubscription.initialize(getLevel());
         }
     }
 
@@ -149,8 +148,8 @@ public class DistillationTowerMachine extends WorkableElectricMultiblockMachine
                 }
             }
             if (!isRemote()) {
-                refreshDisplaySnapshot();
-                displaySnapshotSubscription.updateSubscription();
+                refreshDisplayText();
+                displaySubscription.updateSubscription();
             }
         } else invalidateStructure(structureName);
     }
@@ -168,45 +167,45 @@ public class DistillationTowerMachine extends WorkableElectricMultiblockMachine
         }
         super.invalidateStructure(structureName);
         if (DEFAULT_STRUCTURE.equals(structureName) && !isRemote()) {
-            refreshDisplaySnapshot();
-            displaySnapshotSubscription.updateSubscription();
+            refreshDisplayText();
+            displaySubscription.updateSubscription();
         }
     }
 
     @Override
     public void onUnload() {
         super.onUnload();
-        resetDisplaySnapshot();
+        resetDisplayText();
     }
 
     @Override
     public void onPartUnload() {
         super.onPartUnload();
-        resetDisplaySnapshot();
+        resetDisplayText();
     }
 
     /**
      * Clears runtime display state when the controller can no longer serve its UI.
      */
-    private void resetDisplaySnapshot() {
-        displaySnapshot = List.of();
-        displaySnapshotSubscription.unsubscribe();
+    private void resetDisplayText() {
+        displayText = List.of();
+        displaySubscription.unsubscribe();
     }
 
     @Override
     public void addDisplayText(List<Component> textList) {
-        textList.addAll(displaySnapshot);
+        textList.addAll(displayText);
     }
 
     /**
      * Rebuilds the immutable client snapshot from the server's complete legacy display contract.
      */
-    void refreshDisplaySnapshot() {
-        List<Component> nextSnapshot = new ArrayList<>();
-        collectServerDisplayText(nextSnapshot);
-        nextSnapshot = List.copyOf(nextSnapshot);
-        if (!displaySnapshot.equals(nextSnapshot)) {
-            displaySnapshot = nextSnapshot;
+    void refreshDisplayText() {
+        List<Component> nextText = new ArrayList<>();
+        collectServerDisplayText(nextText);
+        nextText = List.copyOf(nextText);
+        if (!displayText.equals(nextText)) {
+            displayText = nextText;
         }
     }
 

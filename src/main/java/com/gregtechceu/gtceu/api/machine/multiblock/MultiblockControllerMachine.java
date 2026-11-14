@@ -4,6 +4,7 @@ import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.block.MetaMachineBlock;
 import com.gregtechceu.gtceu.api.block.property.GTBlockStateProperties;
 import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo;
+import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMultiPart;
@@ -17,16 +18,23 @@ import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.BatchResult;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.StructureResult;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.BatchPlan;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.BatchPlanner;
+import com.gregtechceu.gtceu.api.multiblock.error.PatternStringError;
+import com.gregtechceu.gtceu.api.multiblock.index.ChunkStructureAccess;
 import com.gregtechceu.gtceu.api.multiblock.pattern.match.MultiBlockPattern;
 import com.gregtechceu.gtceu.api.sync_system.annotations.ClientFieldChangeListener;
 import com.gregtechceu.gtceu.api.sync_system.annotations.RerenderOnChanged;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCSender;
 import com.gregtechceu.gtceu.client.model.machine.MachineRenderState;
 import com.gregtechceu.gtceu.client.renderer.MultiblockInWorldPreviewRenderer;
 import com.gregtechceu.gtceu.common.machine.multiblock.part.ParallelHatchPartMachine;
 import com.gregtechceu.gtceu.config.ConfigHolder;
+import com.gregtechceu.gtceu.data.pattern.StructurePatternRegistry;
 import com.gregtechceu.gtceu.utils.ExtendedUseOnContext;
+
+import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerMenu;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -57,6 +65,9 @@ public class MultiblockControllerMachine extends MetaMachine {
     private final Map<String, Boolean> formedStructures = new LinkedHashMap<>();
     private final Map<String, List<IMultiPart>> structureParts = new LinkedHashMap<>();
     private final List<IMultiPart> parts = new ArrayList<>();
+    private @Nullable MultiblockState checkedPatternState;
+    private boolean checkedPatternMatched;
+    private @Nullable String committingStructure;
     private @Nullable ParallelHatchPartMachine parallelHatch = null;
     @Getter
     @SyncToClient
@@ -74,6 +85,22 @@ public class MultiblockControllerMachine extends MetaMachine {
     @SyncToClient
     @RerenderOnChanged
     protected boolean isFormed;
+
+    public enum StructureCheckStatus {
+        IDLE,
+        CHECKING
+    }
+
+    @Getter
+    @SyncToClient
+    private StructureCheckStatus structureCheckStatus = StructureCheckStatus.IDLE;
+
+    public void setStructureCheckStatus(StructureCheckStatus status) {
+        if (structureCheckStatus == status) return;
+        structureCheckStatus = status;
+        syncDataHolder.markClientSyncFieldDirty("structureCheckStatus");
+    }
+
     @Getter
     @SaveField
     @SyncToClient
@@ -91,7 +118,7 @@ public class MultiblockControllerMachine extends MetaMachine {
     public void onLoad() {
         super.onLoad();
         if (getLevel() instanceof ServerLevel serverLevel) {
-            MultiblockWorldSavedData.getOrCreate(serverLevel).addAsyncLogic(this);
+            MultiblockWorldSavedData.getOrCreate(serverLevel).registerController(this);
         }
     }
 
@@ -99,7 +126,9 @@ public class MultiblockControllerMachine extends MetaMachine {
     public void onUnload() {
         super.onUnload();
         if (getLevel() instanceof ServerLevel serverLevel) {
-            MultiblockWorldSavedData.getOrCreate(serverLevel).removeAsyncLogic(this);
+            var data = MultiblockWorldSavedData.getOrCreate(serverLevel);
+            data.unregisterController(this);
+            for (var state : multiblockStates.values()) data.removeMapping(state);
         }
     }
 
@@ -128,13 +157,85 @@ public class MultiblockControllerMachine extends MetaMachine {
         newParts.sort(getPartSorter());
         replaceStructureParts(structureName, newParts);
         for (var part : newParts) {
+            boolean alreadyAttached = part.hasController(getBlockPos(), structureName);
             part.addedToController(this, structureName);
+            if (!alreadyAttached) notifyPartDependency(part);
         }
         rebuildParts();
 
         for (var trait : getAllTraits()) {
             if (trait instanceof MultiblockMachineTrait multiblockMachineTrait)
                 multiblockMachineTrait.onStructureFormed(structureName);
+        }
+        if (committingStructure == null && getLevel() instanceof ServerLevel serverLevel) {
+            MultiblockWorldSavedData.getOrCreate(serverLevel).onStructureFormed(state, this);
+        }
+    }
+
+    /**
+     * Publishes a completed candidate on the server thread after controller-specific validation. Callbacks may
+     * reject formation; only their final accepted state is registered. A stale candidate only requests a new check.
+     */
+    public final boolean commitStructure(MultiblockState candidate, boolean matched) {
+        String structureName = candidate.getStructureName();
+        MultiblockState state = getMultiblockState(structureName);
+        MultiBlockPattern pattern = getPattern(structureName);
+        long generation = StructurePatternRegistry.generation();
+        var initialFacts = state.getFacts();
+        var initialCache = state.getMatchCache();
+        var initialFront = getFrontFacing();
+        var initialUp = getUpwardsFacing();
+        long version = state.getChangeVersion();
+        var data = MultiblockWorldSavedData.getOrCreate((ServerLevel) getLevel());
+        boolean accepted = validatePatternResult(candidate, matched);
+        if (generation != StructurePatternRegistry.generation() || getPattern(structureName) != pattern ||
+                state.getFacts() != initialFacts || state.getMatchCache() != initialCache ||
+                getFrontFacing() != initialFront || getUpwardsFacing() != initialUp ||
+                state.getChangeVersion() != version ||
+                candidate.getController() != this || !candidate.isMatchCurrent()) {
+            data.requestPatternCheck(state);
+            return false;
+        }
+        if (!accepted) {
+            if (!candidate.hasError())
+                candidate.setError(new PatternStringError("gtpm.multiblock.pattern.error.constraint"));
+            if (isStructureFormed(structureName)) invalidateStructure(structureName);
+            state.applyMatch(candidate);
+            if (DEFAULT_STRUCTURE.equals(structureName)) setStructureCheckStatus(StructureCheckStatus.IDLE);
+            data.addMapping(state);
+            return false;
+        }
+        boolean refresh = !isStructureFormed(structureName) || candidate.getFacts() != initialFacts;
+        state.applyMatch(candidate);
+        if (DEFAULT_STRUCTURE.equals(structureName)) {
+            setFlipped(state.isNeededFlip());
+            setStructureCheckStatus(StructureCheckStatus.IDLE);
+        }
+        if (!refresh) {
+            data.addMapping(state);
+            return true;
+        }
+        committingStructure = structureName;
+        try {
+            formStructure(structureName);
+            if (!isStructureFormed(structureName)) {
+                if (structureParts.containsKey(structureName)) invalidateStructure(structureName);
+                state.setError(new PatternStringError("gtpm.multiblock.pattern.error.constraint"));
+                data.addMapping(state);
+                return false;
+            }
+            data.onStructureFormed(state, this);
+            return true;
+        } catch (RuntimeException exception) {
+            try {
+                invalidateStructure(structureName);
+            } catch (RuntimeException cleanupException) {
+                exception.addSuppressed(cleanupException);
+                data.onStructureInvalidated(state, this);
+            }
+            throw exception;
+        } finally {
+            committingStructure = null;
         }
     }
 
@@ -149,11 +250,16 @@ public class MultiblockControllerMachine extends MetaMachine {
      */
     public void invalidateStructure(String structureName) {
         structureName = validateStructureName(structureName);
+        if (checkedPatternState != null && checkedPatternState.getStructureName().equals(structureName)) {
+            checkedPatternMatched = false;
+            return;
+        }
         setStructureFormed(structureName, false);
         detachStructureParts(structureName);
 
         if (getLevel() instanceof ServerLevel serverLevel) {
-            MultiblockWorldSavedData.getOrCreate(serverLevel).removeMapping(getMultiblockState(structureName));
+            MultiblockWorldSavedData.getOrCreate(serverLevel).onStructureInvalidated(getMultiblockState(structureName),
+                    this);
         }
 
         for (var trait : getAllTraits()) {
@@ -189,7 +295,7 @@ public class MultiblockControllerMachine extends MetaMachine {
             }
         }
         if (getLevel() instanceof ServerLevel serverLevel) {
-            MultiblockWorldSavedData.getOrCreate(serverLevel).addAsyncLogic(this);
+            MultiblockWorldSavedData.getOrCreate(serverLevel).registerController(this);
         }
         rebuildParts();
     }
@@ -207,6 +313,9 @@ public class MultiblockControllerMachine extends MetaMachine {
      * Get the named MultiblockState. It records all structure-related information.
      */
     public MultiblockState getMultiblockState(String structureName) {
+        if (checkedPatternState != null && checkedPatternState.getStructureName().equals(structureName)) {
+            return checkedPatternState;
+        }
         structureName = validateStructureName(structureName);
         return multiblockStates.computeIfAbsent(structureName,
                 name -> new MultiblockState(getLevel(), getBlockPos(), name));
@@ -298,10 +407,7 @@ public class MultiblockControllerMachine extends MetaMachine {
 
     @Override
     public void onRotated(Direction oldFacing, Direction newFacing) {
-        if (oldFacing != newFacing && getLevel() instanceof ServerLevel serverLevel) {
-            invalidateAllStructures();
-            MultiblockWorldSavedData.getOrCreate(serverLevel).addAsyncLogic(this);
-        }
+        if (oldFacing != newFacing) requestAllPatternChecks();
     }
 
     public boolean allowFlip() {
@@ -324,7 +430,7 @@ public class MultiblockControllerMachine extends MetaMachine {
                     blockState.setValue(GTBlockStateProperties.UPWARDS_FACING, upwardsFacing));
             if (getLevel() != null && !getLevel().isClientSide) {
                 notifyBlockUpdate();
-                checkAllPatternsWithLock();
+                requestAllPatternChecks();
             }
         }
     }
@@ -334,7 +440,7 @@ public class MultiblockControllerMachine extends MetaMachine {
         super.setFrontFacing(facing);
 
         if (getLevel() != null && !getLevel().isClientSide) {
-            checkAllPatternsWithLock();
+            requestAllPatternChecks();
         }
     }
 
@@ -400,85 +506,47 @@ public class MultiblockControllerMachine extends MetaMachine {
     @Getter
     private final Lock patternLock = new ReentrantLock();
 
-    /**
-     * Called in an async thread. It's unsafe, Don't modify anything of world but checking information.
-     * It will be called per 5 tick.
-     *
-     * @param periodID period Tick
-     */
-    public void asyncCheckPattern(long periodID) {
-        for (String structureName : getDefinition().getStructureNames()) {
-            MultiblockState state = getMultiblockState(structureName);
-            if ((state.hasError() || !isStructureFormed(structureName)) && (getOffset() + periodID) % 4 == 0 &&
-                    checkPatternWithTryLock(structureName)) { // per second
-                if (getLevel() instanceof ServerLevel serverLevel) {
-                    serverLevel.getServer().execute(() -> {
-                        patternLock.lock();
-                        try {
-                            if (checkPattern(structureName)) { // formed
-                                MultiblockState checkedState = getMultiblockState(structureName);
-                                if (DEFAULT_STRUCTURE.equals(structureName)) {
-                                    setFlipped(checkedState.isNeededFlip());
-                                }
-                                formStructure(structureName);
-                                var mwsd = MultiblockWorldSavedData.getOrCreate(serverLevel);
-                                mwsd.addMapping(checkedState);
-                                if (!hasPendingStructureSearch()) {
-                                    mwsd.removeAsyncLogic(this);
-                                }
-                            }
-                        } finally {
-                            patternLock.unlock();
-                        }
-                    });
-                }
-            }
+    /** Accepts manual checks only from the player whose valid menu still owns this controller. */
+    @RPCMethod
+    public void requestStructureCheck(RPCSender sender, boolean recheck) {
+        var player = sender.asPlayer();
+        if (player == null || !(player.containerMenu instanceof ModularUIContainerMenu menu) ||
+                !(menu.uiHolder instanceof MachineUIHolder holder) || holder.getMachine() != this ||
+                !menu.stillValid(player))
+            return;
+        if (!recheck && isFormed()) return;
+        setStructureCheckStatus(StructureCheckStatus.CHECKING);
+        var data = MultiblockWorldSavedData.getOrCreate((ServerLevel) getLevel());
+        for (String name : getDefinition().getStructureOrder()) {
+            if (recheck) data.recheckPatternFirst(getMultiblockState(name));
+            else data.requestPatternCheck(getMultiblockState(name));
         }
     }
 
     /**
      * Check a named MultiBlock Pattern. Just checking pattern without any other logic.
-     * You can override it but it's unsafe for calling. because it will also be called in an async thread.
-     * <br>
-     * you should always use {@link MultiblockControllerMachine#checkPatternWithLock(String)} )} and
-     * {@link MultiblockControllerMachine#checkPatternWithTryLock(String)} instead.
+     * Runs synchronously on the server thread for callers that need an immediate result. Automatic detection
+     * queues each named structure independently and invokes overrides against its completed candidate.
      *
      * @return whether it can be formed.
      */
     public boolean checkPattern(String structureName) {
+        if (checkedPatternState != null && checkedPatternState.getStructureName().equals(structureName)) {
+            return checkedPatternMatched;
+        }
         structureName = validateStructureName(structureName);
         MultiBlockPattern pattern = getPattern(structureName);
         return pattern.checkPatternAt(getMultiblockState(structureName), false);
     }
 
-    /**
-     * Check named pattern with a lock.
-     */
-    public boolean checkPatternWithLock(String structureName) {
-        var lock = getPatternLock();
-        lock.lock();
+    /** Runs existing controller overrides once against a completed server-thread candidate, without rematching. */
+    public boolean validatePatternResult(MultiblockState candidate, boolean matched) {
+        checkedPatternState = candidate;
+        checkedPatternMatched = matched;
         try {
-            return checkPattern(structureName);
+            return checkPattern(candidate.getStructureName()) && checkedPatternMatched;
         } finally {
-            lock.unlock();
-        }
-    }
-
-    /**
-     * Check named pattern with a try lock
-     *
-     * @return false - checking failed or cant get the lock.
-     */
-    public boolean checkPatternWithTryLock(String structureName) {
-        var lock = getPatternLock();
-        if (lock.tryLock()) {
-            try {
-                return checkPattern(structureName);
-            } finally {
-                lock.unlock();
-            }
-        } else {
-            return false;
+            checkedPatternState = null;
         }
     }
 
@@ -510,6 +578,7 @@ public class MultiblockControllerMachine extends MetaMachine {
         for (IMultiPart oldPart : oldParts) {
             if (!newPartSet.contains(oldPart)) {
                 oldPart.removedFromController(this, structureName);
+                notifyPartDependency(oldPart);
             }
         }
         structureParts.put(structureName, newParts);
@@ -517,12 +586,28 @@ public class MultiblockControllerMachine extends MetaMachine {
 
     private void detachStructureParts(String structureName) {
         List<IMultiPart> oldParts = structureParts.remove(structureName);
+        RuntimeException failure = null;
         if (oldParts != null) {
             for (IMultiPart part : oldParts) {
-                part.removedFromController(this, structureName);
+                try {
+                    part.removedFromController(this, structureName);
+                    notifyPartDependency(part);
+                } catch (RuntimeException exception) {
+                    if (failure == null) failure = exception;
+                    else failure.addSuppressed(exception);
+                }
             }
         }
         rebuildParts();
+        if (failure != null) throw failure;
+    }
+
+    private void notifyPartDependency(IMultiPart part) {
+        if (getLevel() instanceof ServerLevel serverLevel) {
+            BlockPos position = part.self().getBlockPos();
+            var chunk = serverLevel.getChunkSource().getChunkNow(position.getX() >> 4, position.getZ() >> 4);
+            if (chunk != null) ((ChunkStructureAccess) chunk).gtceu$notifyStructureChange(position);
+        }
     }
 
     private void rebuildParts() {
@@ -553,9 +638,12 @@ public class MultiblockControllerMachine extends MetaMachine {
         return false;
     }
 
-    private void checkAllPatternsWithLock() {
-        for (String structureName : getDefinition().getStructureNames()) {
-            checkPatternWithLock(structureName);
+    private void requestAllPatternChecks() {
+        if (getLevel() instanceof ServerLevel serverLevel) {
+            var data = MultiblockWorldSavedData.getOrCreate(serverLevel);
+            for (String structureName : getDefinition().getStructureNames()) {
+                data.requestPatternCheck(getMultiblockState(structureName));
+            }
         }
     }
 }

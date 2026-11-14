@@ -19,6 +19,7 @@ import com.gregtechceu.gtceu.data.lang.LangHandler;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Button.State;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 
 import net.minecraft.network.chat.Component;
@@ -56,7 +57,7 @@ public class CircuitFancyConfigurator implements IFancyConfigurator, IFancyCusto
     }
 
     @Override
-    public IGuiTexture getIcon() {
+    public IGuiTexture getIcon(State state) {
         ItemStack circuitStack = circuitMachine.getCircuitInventory().getStackInSlot(SELECTED_SLOT);
         if (IntCircuitBehaviour.isIntegratedCircuit(circuitStack)) {
             return GuiTextures.itemStack(circuitStack);

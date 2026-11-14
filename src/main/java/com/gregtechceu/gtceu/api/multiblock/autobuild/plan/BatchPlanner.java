@@ -10,6 +10,7 @@ import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.StructureOperation;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.StructureRequest;
 import com.gregtechceu.gtceu.api.multiblock.pattern.layout.PatternLayoutCell;
 import com.gregtechceu.gtceu.api.multiblock.pattern.match.MultiBlockPattern;
+import com.gregtechceu.gtceu.api.multiblock.pattern.match.PatternSelections;
 import com.gregtechceu.gtceu.data.pattern.StructurePatternRegistry;
 
 import net.minecraft.core.BlockPos;
@@ -84,9 +85,90 @@ public final class BatchPlanner {
                 structureName);
         Object2ObjectLinkedOpenHashMap<String, ResourceLocation> tiers = new Object2ObjectLinkedOpenHashMap<>();
         availableTiers.forEach((group, candidates) -> tiers.put(group, candidates.getFirst()));
-        Object2ObjectMap<String, String> choices = new Object2ObjectLinkedOpenHashMap<>();
-        for (var choice : pattern.getChoiceDescriptors()) choices.put(choice.path(), choice.alternatives().getFirst());
-        return new StructureRequest(structureName, repetitions, tiers, false, StructureOperation.BUILD, choices);
+        var choices = PatternSelections.empty();
+        for (var choice : pattern.getChoiceDescriptors())
+            choices = choices.with(choice.path(), choice.alternatives().getFirst());
+        for (var measurement : pattern.getMeasurements()) {
+            choices = choices.with("@measure:" + measurement.getParameter(),
+                    Integer.toString(measurement.getMinimum()));
+        }
+        return normalizeChoices(definition,
+                new StructureRequest(structureName, repetitions, tiers, false, StructureOperation.BUILD, choices));
+    }
+
+    /** Restores active instance selections and drops paths removed by an enclosing slot or chain change. */
+    public StructureRequest normalizeChoices(MultiblockMachineDefinition definition, StructureRequest request) {
+        var pattern = definition.getPattern(request.structureName());
+        var saved = request.choices();
+        var selected = PatternSelections.empty();
+        for (var measurement : pattern.getMeasurements()) {
+            String key = "@measure:" + measurement.getParameter();
+            int value = measurement.getMinimum();
+            String encoded = saved.get(key);
+            if (encoded != null) {
+                try {
+                    int restored = Integer.parseInt(encoded);
+                    if (restored >= measurement.getMinimum() && restored <= measurement.getMaximum()) value = restored;
+                } catch (NumberFormatException exception) {
+                    // Invalid persisted input is normalized at this source boundary.
+                    value = measurement.getMinimum();
+                }
+            }
+            selected = selected.with(key, Integer.toString(value));
+        }
+        for (var choice : pattern.getChoiceDescriptors()) {
+            String branch = saved.getOrDefault(choice.path(), saved.get(choice.id()));
+            if (choice.alternatives().contains(branch)) selected = selected.with(choice.path(), branch);
+        }
+        while (true) {
+            var layout = pattern.expandLayout(request.repetitions().toIntArray(), selected);
+            var next = selected;
+            var activeKeys = new ObjectOpenHashSet<String>();
+            for (var entry : selected.object2ObjectEntrySet()) {
+                String key = entry.getKey();
+                if (key.startsWith("@measure:") || pattern.getChoiceDescriptors().stream()
+                        .anyMatch(choice -> choice.path().equals(key)))
+                    activeKeys.add(key);
+            }
+            for (var choice : layout.getChoices()) {
+                var descriptor = choice.descriptor();
+                String branch = saved.getOrDefault(choice.path(), selected.get(choice.path()));
+                if (descriptor.alternatives().contains(branch)) {
+                    next = next.with(choice.path(), branch);
+                    activeKeys.add(choice.path());
+                }
+            }
+            var changedParents = new ObjectArrayList<String>();
+            for (var instance : layout.getModuleChoices()) {
+                if (changedParents.stream().anyMatch(parent -> instance.getPath().startsWith(parent + "/"))) continue;
+                var candidates = instance.getDescriptor().getCandidates();
+                String value = saved.getOrDefault(instance.getPath(), instance.getSelection());
+                String restored = candidates.contains(value) ? value : instance.getSelection();
+                next = next.with(instance.getPath(), restored);
+                activeKeys.add(instance.getPath());
+                if (!restored.equals(instance.getSelection())) changedParents.add(instance.getPath());
+            }
+            for (var instance : layout.getRepeats()) {
+                if (changedParents.stream().anyMatch(parent -> instance.path().startsWith(parent + "/"))) continue;
+                String key = instance.path() + "#repeat";
+                String encoded = saved.get(key);
+                if (encoded == null) continue;
+                try {
+                    int value = Integer.parseInt(encoded);
+                    if (value >= instance.descriptor().minimum() && value <= instance.descriptor().maximum()) {
+                        next = next.with(key, encoded);
+                        activeKeys.add(key);
+                    }
+                } catch (NumberFormatException exception) {
+                    // A stale persisted repeat value has no valid active selection.
+                    continue;
+                }
+            }
+            for (String key : next.keySet()) if (!activeKeys.contains(key)) next = next.without(key);
+            if (next == selected) return new StructureRequest(request.structureName(), request.repetitions(),
+                    request.tierChoices(), request.flipMode(), request.mode(), next);
+            selected = next;
+        }
     }
 
     /**
@@ -102,8 +184,10 @@ public final class BatchPlanner {
                                                                                           StructureRequest options) {
         var layout = definition.getPattern(options.structureName()).expandLayout(options.repetitions().toIntArray(),
                 options.choices());
-        return tierChoicesForPredicates(definition, layout.cells().stream().map(PatternLayoutCell::predicate).distinct()
-                .collect(ObjectArrayList.toList()));
+        if (!layout.getRejections().isEmpty()) return Object2ObjectMaps.emptyMap();
+        return tierChoicesForPredicates(definition,
+                layout.getCells().stream().map(PatternLayoutCell::predicate).distinct()
+                        .collect(ObjectArrayList.toList()));
     }
 
     /**

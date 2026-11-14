@@ -1,5 +1,7 @@
 package com.gregtechceu.gtceu.api.multiblock.pattern.model
 
+import com.gregtechceu.gtceu.api.multiblock.pattern.model.expression.PatternIntegerExpression
+
 import org.jspecify.annotations.NullMarked
 
 /** A value bound to a fragment parameter at a call site. */
@@ -12,6 +14,8 @@ sealed interface PatternBinding {
 	}
 
 	data class IntegerValue(val value: Int) : PatternBinding
+
+	data class IntegerExpression(val expression: PatternIntegerExpression) : PatternBinding
 
 	data class Direction(val value: PatternDirection) : PatternBinding
 

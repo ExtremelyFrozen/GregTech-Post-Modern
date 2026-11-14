@@ -18,7 +18,6 @@ import com.gregtechceu.gtceu.api.machine.multiblock.WorkableElectricMultiblockMa
 import com.gregtechceu.gtceu.api.multiblock.util.RelativeDirection;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
 
-import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
@@ -52,15 +51,15 @@ public class LargeMacerationTowerMachine extends WorkableElectricMultiblockMachi
     private TickableSubscription hurtSub;
     /** Keeps the client display supplied from a server-owned snapshot while the structure is formed. */
     @Getter(AccessLevel.PACKAGE)
-    private final ConditionalSubscriptionHandler displaySnapshotSubscription;
+    private final ConditionalSubscriptionHandler displaySubscription;
     /** Carries the complete legacy display text without relying on the old Widget sync path. */
     @Getter(AccessLevel.PACKAGE)
     @SyncToClient
-    private List<Component> displaySnapshot = List.of();
+    private List<Component> displayText = List.of();
 
     public LargeMacerationTowerMachine(BlockEntityCreationInfo info) {
         super(info);
-        this.displaySnapshotSubscription = new ConditionalSubscriptionHandler(this, this::refreshDisplaySnapshot,
+        this.displaySubscription = new ConditionalSubscriptionHandler(this, this::refreshDisplayText,
                 this::isFormed);
     }
 
@@ -68,8 +67,8 @@ public class LargeMacerationTowerMachine extends WorkableElectricMultiblockMachi
     public void onLoad() {
         super.onLoad();
         if (!isRemote()) {
-            refreshDisplaySnapshot();
-            displaySnapshotSubscription.initialize(getLevel());
+            refreshDisplayText();
+            displaySubscription.initialize(getLevel());
         }
     }
 
@@ -85,8 +84,8 @@ public class LargeMacerationTowerMachine extends WorkableElectricMultiblockMachi
         }
         hurtSub = subscribeServerTick(this::spinWheels);
         if (!isRemote()) {
-            refreshDisplaySnapshot();
-            displaySnapshotSubscription.updateSubscription();
+            refreshDisplayText();
+            displaySubscription.updateSubscription();
         }
     }
 
@@ -96,8 +95,8 @@ public class LargeMacerationTowerMachine extends WorkableElectricMultiblockMachi
         if (!DEFAULT_STRUCTURE.equals(structureName)) return;
         clearFormedRuntimeState();
         if (!isRemote()) {
-            refreshDisplaySnapshot();
-            displaySnapshotSubscription.updateSubscription();
+            refreshDisplayText();
+            displaySubscription.updateSubscription();
         }
     }
 
@@ -123,22 +122,22 @@ public class LargeMacerationTowerMachine extends WorkableElectricMultiblockMachi
     /** Clears every runtime subscription and snapshot when the controller can no longer serve its UI. */
     private void resetRuntimeState() {
         clearFormedRuntimeState();
-        displaySnapshot = List.of();
-        displaySnapshotSubscription.unsubscribe();
+        displayText = List.of();
+        displaySubscription.unsubscribe();
     }
 
     @Override
     public void addDisplayText(@NotNull List<Component> textList) {
-        textList.addAll(displaySnapshot);
+        textList.addAll(displayText);
     }
 
     /** Rebuilds the immutable client snapshot from the server's complete legacy display contract. */
-    void refreshDisplaySnapshot() {
-        List<Component> nextSnapshot = new ArrayList<>();
-        collectServerDisplayText(nextSnapshot);
-        nextSnapshot = List.copyOf(nextSnapshot);
-        if (!displaySnapshot.equals(nextSnapshot)) {
-            displaySnapshot = nextSnapshot;
+    void refreshDisplayText() {
+        List<Component> nextText = new ArrayList<>();
+        collectServerDisplayText(nextText);
+        nextText = List.copyOf(nextText);
+        if (!displayText.equals(nextText)) {
+            displayText = nextText;
         }
     }
 

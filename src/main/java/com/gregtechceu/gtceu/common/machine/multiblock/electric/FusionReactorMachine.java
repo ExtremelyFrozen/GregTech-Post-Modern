@@ -84,10 +84,10 @@ public class FusionReactorMachine extends WorkableElectricMultiblockMachine {
     @Getter
     private final int tier;
     @Getter(AccessLevel.PACKAGE)
-    private final ConditionalSubscriptionHandler displaySnapshotSubscription;
+    private final ConditionalSubscriptionHandler displaySubscription;
     @Getter(AccessLevel.PACKAGE)
     @SyncToClient
-    private List<Component> displaySnapshot = List.of();
+    private List<Component> displayText = List.of();
     @Nullable
     protected EnergyContainerList inputEnergyContainers;
     @SaveField
@@ -111,7 +111,7 @@ public class FusionReactorMachine extends WorkableElectricMultiblockMachine {
         super(info);
         this.tier = tier;
         this.energyContainer = attachTrait(new NotifiableEnergyContainer(0, 0, 0, 0, 0));
-        this.displaySnapshotSubscription = new ConditionalSubscriptionHandler(this, this::refreshDisplaySnapshot,
+        this.displaySubscription = new ConditionalSubscriptionHandler(this, this::refreshDisplayText,
                 this::isFormed);
         energyContainer.setCapabilityValidator(candidate -> candidate == null);
     }
@@ -125,8 +125,8 @@ public class FusionReactorMachine extends WorkableElectricMultiblockMachine {
         super.onLoad();
         if (!isRemote()) {
             updatePreHeatSubscription();
-            refreshDisplaySnapshot();
-            displaySnapshotSubscription.initialize(getLevel());
+            refreshDisplayText();
+            displaySubscription.initialize(getLevel());
         }
     }
 
@@ -156,8 +156,8 @@ public class FusionReactorMachine extends WorkableElectricMultiblockMachine {
         energyContainer.resetBasicInfo(calculateEnergyStorageFactor(getTier(), energyContainers.size()), 0, 0, 0, 0);
         updatePreHeatSubscription();
         if (!isRemote()) {
-            refreshDisplaySnapshot();
-            displaySnapshotSubscription.updateSubscription();
+            refreshDisplayText();
+            displaySubscription.updateSubscription();
         }
     }
 
@@ -171,8 +171,8 @@ public class FusionReactorMachine extends WorkableElectricMultiblockMachine {
         energyContainer.setEnergyStored(0);
         updatePreHeatSubscription();
         if (!isRemote()) {
-            refreshDisplaySnapshot();
-            displaySnapshotSubscription.updateSubscription();
+            refreshDisplayText();
+            displaySubscription.updateSubscription();
         }
     }
 
@@ -189,8 +189,8 @@ public class FusionReactorMachine extends WorkableElectricMultiblockMachine {
     }
 
     private void clearDisplayRuntimeState() {
-        displaySnapshot = List.of();
-        displaySnapshotSubscription.unsubscribe();
+        displayText = List.of();
+        displaySubscription.unsubscribe();
     }
 
     //////////////////////////////////////
@@ -329,15 +329,15 @@ public class FusionReactorMachine extends WorkableElectricMultiblockMachine {
     //////////////////////////////////////
     @Override
     public void addDisplayText(List<Component> textList) {
-        textList.addAll(displaySnapshot);
+        textList.addAll(displayText);
     }
 
-    void refreshDisplaySnapshot() {
-        List<Component> nextSnapshot = new ArrayList<>();
-        collectServerDisplayText(nextSnapshot);
-        nextSnapshot = List.copyOf(nextSnapshot);
-        if (!displaySnapshot.equals(nextSnapshot)) {
-            displaySnapshot = nextSnapshot;
+    void refreshDisplayText() {
+        List<Component> nextText = new ArrayList<>();
+        collectServerDisplayText(nextText);
+        nextText = List.copyOf(nextText);
+        if (!displayText.equals(nextText)) {
+            displayText = nextText;
         }
     }
 

@@ -3,18 +3,23 @@ package com.gregtechceu.gtceu.api.multiblock.structurepredicate
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition
 import com.gregtechceu.gtceu.api.multiblock.MultiblockBlockInfo
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState
+import com.gregtechceu.gtceu.api.multiblock.error.StructureIssue
 import com.gregtechceu.gtceu.api.multiblock.pattern.match.PatternDiagnostic
 import com.gregtechceu.gtceu.api.sync_system.FieldCodecs
 
+import net.minecraft.network.chat.Component
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.BlockState
 
 import com.mojang.serialization.Codec
 import com.mojang.serialization.DataResult
+import it.unimi.dsi.fastutil.longs.LongSet
 import it.unimi.dsi.fastutil.objects.ObjectArrayList
 import it.unimi.dsi.fastutil.objects.ObjectList
 import it.unimi.dsi.fastutil.objects.ObjectLists
+
+enum class RequirementScope { POSITION, ALTERNATIVE }
 
 /**
  * A registered structure rule owns its codec, actual match semantics and representative observations.
@@ -23,6 +28,17 @@ import it.unimi.dsi.fastutil.objects.ObjectLists
  * without replacing the rule's matching logic. Failed observations publish no facts or properties.
  */
 interface StructurePredicate {
+	/** Opt-in dependency contract. False retains full observation for custom or externally stateful rules. */
+	fun hasPositionDependencies(): Boolean = false
+
+	/** True only when observation does not read aggregate facts or count reservations. */
+	fun canReuseObservation(): Boolean = false
+
+	/** Registers every world position read by this rule, including positions outside the declared layout. */
+	fun collectDependencies(state: MultiblockState, positions: LongSet) {
+		positions.add(state.pos.asLong())
+	}
+
 	/** Observes a representative full state without creating block entities or consulting a world. */
 	fun observeCandidate(candidateState: BlockState): PatternObservation = PatternObservation.of(blockCandidates().contains(candidateState.block))
 
@@ -32,8 +48,18 @@ interface StructurePredicate {
 	/** Reads existing domain limits before a composite selects this branch; it never reserves counts. */
 	fun canAcceptPosition(state: MultiblockState): Boolean = true
 
-	/** Retains the original location context while allowing a rule to explain a failed position. */
-	fun diagnose(failure: PatternDiagnostic): PatternDiagnostic = failure
+	/** Describes visible candidates in the owning machine's context; null means no concrete candidate remains. */
+	fun description(state: MultiblockState, excluded: Block? = null): Component? = if (isAny()) null else StructureIssue.blocks(blockCandidates(), excluded)
+
+	/** Main-thread failure guidance; alternative-only abilities are exposed by their unmet count restrictions. */
+	fun requiredDescription(state: MultiblockState, excluded: Block?, scope: RequirementScope): Component? = description(state, excluded)
+
+	/**
+	 * Runs on the world thread at the failed cell, after count restoration and before publication. The returned
+	 * diagnostic owns its explanation; describing a failure must not change world state, facts or counts.
+	 */
+	fun diagnose(state: MultiblockState, failure: PatternDiagnostic): PatternDiagnostic =
+		failure.copy(issue = if (failure.missingFact.isEmpty()) StructureIssue.mismatch(failure, state.predicate.description(state, failure.actual?.block)) else StructureIssue.mixed(failure, Component.translatable(failure.missingFact)))
 
 	/** Supplies representative full states; state-sensitive rules override this with their candidate observer. */
 	fun candidateStates(): ObjectList<BlockState> = ObjectArrayList<BlockState>().also { states ->

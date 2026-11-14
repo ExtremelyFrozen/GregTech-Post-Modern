@@ -150,7 +150,7 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 	/**
 	 * Serializes one client field for validation without consuming pending changes or updating synchronization caches.
 	 */
-	fun serializeClientFieldSnapshot(registries: HolderLookup.Provider, fieldName: String): Dynamic<*>? {
+	fun serializeClientField(registries: HolderLookup.Provider, fieldName: String): Dynamic<*>? {
 		val field = syncData.getClientSyncFields().singleOrNull { candidate -> candidate.fieldName == fieldName }
 			?: throw IllegalArgumentException("Unknown or ambiguous client sync field: $fieldName")
 		return FieldSyncHandler.serializeFieldData(
@@ -295,7 +295,7 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 		for (field in fieldsToCheck) {
 			val savedValue = (fieldData[field.componentKey] ?: continue).orElse(null)
 			val previousClientValue = if (readingClientFields) {
-				snapshotClientValue(field.handle.get(holder))
+				copyClientValue(field.handle.get(holder))
 			} else {
 				null
 			}
@@ -369,7 +369,7 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 					PendingServerFieldUpdate(
 						field,
 						current,
-						CollectionCodecs.snapshot(field.type.rawType, current),
+						CollectionCodecs.copyCurrent(field.type.rawType, current),
 						FieldSyncHandler.decodeDetachedServerCandidate(registries, field, encodedValue),
 					),
 				)
@@ -404,14 +404,14 @@ class SyncDataHolder(private val holder: ISyncManaged) {
 		deserializeFieldData(registries, changes, readingClientFields = true, parseExplicitNull = true, fullSync, notifyUnchangedOnFullSync)
 	}
 
-	private fun snapshotClientValue(value: Any?): Any? = when (value) {
+	private fun copyClientValue(value: Any?): Any? = when (value) {
 		is Map<*, *> -> value.entries.associateTo(LinkedHashMap(value.size)) { entry ->
-			snapshotClientValue(entry.key) to snapshotClientValue(entry.value)
+			copyClientValue(entry.key) to copyClientValue(entry.value)
 		}
 
-		is Set<*> -> value.mapTo(LinkedHashSet(value.size), ::snapshotClientValue)
+		is Set<*> -> value.mapTo(LinkedHashSet(value.size), ::copyClientValue)
 
-		is Collection<*> -> value.map(::snapshotClientValue)
+		is Collection<*> -> value.map(::copyClientValue)
 
 		is Array<*> -> value.copyOf()
 

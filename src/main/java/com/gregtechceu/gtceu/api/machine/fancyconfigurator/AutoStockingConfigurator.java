@@ -11,6 +11,7 @@ import com.gregtechceu.gtceu.config.ConfigHolder;
 import com.gregtechceu.gtceu.integration.ae2.machine.feature.multiblock.AutoStockingPart;
 
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Button.State;
 
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
@@ -45,7 +46,7 @@ public final class AutoStockingConfigurator implements IFancyConfigurator {
     }
 
     @Override
-    public IGuiTexture getIcon() {
+    public IGuiTexture getIcon(State state) {
         return GuiTextures.itemStack(GTItems.TOOL_DATA_STICK.asStack());
     }
 

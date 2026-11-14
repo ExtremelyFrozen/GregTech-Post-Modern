@@ -160,7 +160,7 @@ public final class DynamicItemSlotServerOpening {
     /**
      * Marks that sendAllDataToRemote completed before the activation payload is enqueued.
      */
-    public DynamicItemSlotTransition markFullSnapshotSent(DynamicItemSlotOpeningToken token) {
+    public DynamicItemSlotTransition markFullStateSent(DynamicItemSlotOpeningToken token) {
         DynamicItemSlotTransition identityDecision = classifyIdentity(token);
         if (identityDecision != DynamicItemSlotTransition.ACCEPTED) {
             return identityDecision;

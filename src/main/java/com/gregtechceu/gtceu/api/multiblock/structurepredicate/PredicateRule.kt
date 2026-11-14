@@ -5,6 +5,8 @@ import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition
 import com.gregtechceu.gtceu.api.multiblock.MultiblockBlockInfo
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState
 import com.gregtechceu.gtceu.api.multiblock.error.SinglePredicateError
+import com.gregtechceu.gtceu.api.multiblock.error.StructureIssue
+import com.gregtechceu.gtceu.api.multiblock.pattern.match.PatternDiagnostic
 import com.gregtechceu.gtceu.data.lang.LangHandler
 
 import net.minecraft.network.chat.Component
@@ -37,6 +39,35 @@ open class PredicateRule {
 
 	/** Retains the real observed runtime when OR/copy flattens its metadata rule. */
 	internal var observedPredicate: ObservedPatternPredicate? = null
+
+	fun description(state: MultiblockState, excluded: Block? = null): Component? {
+		val source = source
+		return if (source == null) StructureIssue.blocks(candidateStates().mapTo(ObjectArrayList()) { it.block }, excluded) else source.description(state, excluded)
+	}
+
+	internal fun requiredDescription(state: MultiblockState, excluded: Block?, scope: RequirementScope): Component? {
+		if ((maxCount >= 0 && state.globalCount.getInt(this) >= maxCount) || (maxLayerCount >= 0 && state.layerCount.getInt(this) >= maxLayerCount)) return null
+		if (minCount > state.globalCount.getInt(this) || minLayerCount > state.layerCount.getInt(this)) return description(state, excluded)
+		val source = source
+		return if (source == null) description(state, excluded) else source.requiredDescription(state, excluded, scope)
+	}
+
+	internal fun diagnose(state: MultiblockState, failure: PatternDiagnostic): PatternDiagnostic {
+		if (maxCount >= 0 && state.globalCount.getInt(this) >= maxCount) return failure.copy(issue = StructureIssue.count(failure, StructureIssue.Count.MAXIMUM, description(state), maxCount, maxCount + 1))
+		if (maxLayerCount >= 0 && state.layerCount.getInt(this) >= maxLayerCount) return failure.copy(issue = StructureIssue.count(failure, StructureIssue.Count.LAYER_MAXIMUM, description(state), maxLayerCount, maxLayerCount + 1))
+		return source?.diagnose(state, failure) ?: observedPredicate?.diagnose(state, failure) ?: failure.copy(issue = StructureIssue.mismatch(failure, state.predicate.description(state, failure.actual?.block)))
+	}
+
+	private var preparedPredicate: Predicate<MultiblockState>? = null
+	private var preparedObserver: Function<MultiblockState, PatternObservation>? = null
+
+	internal fun supportsPreparation(): Boolean = javaClass == PredicateRule::class.java &&
+		(source != null || observedPredicate is CombinedPredicate) && predicate === preparedPredicate && positionObserver === preparedObserver
+
+	internal fun sealPreparedCallbacks() {
+		preparedPredicate = predicate
+		preparedObserver = positionObserver
+	}
 
 	var candidateObserver: Function<BlockState, PatternObservation>? = null
 	var positionObserver: Function<MultiblockState, PatternObservation>? = null
@@ -107,6 +138,8 @@ open class PredicateRule {
 		candidateObserver = Function(source::observeCandidate)
 		positionObserver = Function(source::observePosition)
 		previewStates = Supplier(source::candidateStates)
+		preparedPredicate = predicate
+		preparedObserver = positionObserver
 	}
 
 	constructor(
@@ -171,8 +204,10 @@ open class PredicateRule {
 
 	internal fun observePosition(state: MultiblockState, limited: Boolean): PatternObservation {
 		if (!canAcceptPosition(state, limited)) return PatternObservation.of(false)
-		return positionObserver?.apply(state) ?: PatternObservation.of(predicate.test(state))
+		return observeAvailablePosition(state)
 	}
+
+	internal fun observeAvailablePosition(state: MultiblockState): PatternObservation = positionObserver?.apply(state) ?: PatternObservation.of(predicate.test(state))
 
 	internal fun canAcceptPosition(state: MultiblockState, limited: Boolean): Boolean = (
 		!limited || (

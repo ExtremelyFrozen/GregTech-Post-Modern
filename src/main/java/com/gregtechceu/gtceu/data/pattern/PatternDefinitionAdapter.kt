@@ -22,6 +22,8 @@ object PatternDefinitionAdapter {
 		definition.fragments.forEach { (id, fragment) -> builder.fragment(id, fragment) }
 		definition.predicates.forEach { (symbol, predicate) -> builder.where(symbol, PatternPredicateCompiler.compile(predicate)) }
 		definition.constraints.forEach(builder::constraint)
+		definition.measurements.forEach(builder::measurement)
+		definition.sizeConstraints.forEach(builder::sizeConstraint)
 	}
 
 	@JvmStatic

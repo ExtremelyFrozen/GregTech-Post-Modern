@@ -4,6 +4,8 @@ import com.gregtechceu.gtceu.api.GTCEuAPI
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState
 import com.gregtechceu.gtceu.api.multiblock.autobuild.BlockCategories
 import com.gregtechceu.gtceu.api.multiblock.error.PatternStringError
+import com.gregtechceu.gtceu.api.multiblock.error.StructureIssue
+import com.gregtechceu.gtceu.api.multiblock.pattern.match.PatternDiagnostic
 import com.gregtechceu.gtceu.common.registry.GTRegistration.REGISTRATE
 
 import net.minecraft.world.level.block.state.BlockState
@@ -16,8 +18,14 @@ enum class CleanroomFilterPredicate : CategoryPredicate {
 	INSTANCE,
 	;
 
+	override fun hasPositionDependencies(): Boolean = true
+
 	override val category: String = BlockCategories.CLEANROOM_FILTERS
 	override fun type(): StructurePredicateType<*> = TYPE
+	override fun diagnose(state: MultiblockState, failure: PatternDiagnostic): PatternDiagnostic {
+		val actual = observeCandidate(state.blockState)
+		return failure.copy(issue = if (actual.matched && state.facts.get<Any>("FilterType") != actual.properties["FilterType"]) StructureIssue.mixed(failure, StructureIssue.text("filters")) else StructureIssue.mismatch(failure, state.predicate.description(state, failure.actual?.block)))
+	}
 
 	override fun observeCandidate(candidateState: BlockState): PatternObservation {
 		val stats = GTCEuAPI.CLEANROOM_FILTERS.entries.firstOrNull { it.value.get() == candidateState.block }?.key

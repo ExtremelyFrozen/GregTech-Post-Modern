@@ -9,8 +9,8 @@ import com.gregtechceu.gtceu.api.multiblock.autobuild.MaterialKey;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.StructureRequest;
 import com.gregtechceu.gtceu.api.multiblock.pattern.constraint.PatternConstraintEvaluator;
 import com.gregtechceu.gtceu.api.multiblock.pattern.constraint.PatternRequirement;
+import com.gregtechceu.gtceu.api.multiblock.pattern.layout.PatternAxis;
 import com.gregtechceu.gtceu.api.multiblock.pattern.layout.PatternLayout;
-import com.gregtechceu.gtceu.api.multiblock.pattern.layout.PatternLayoutCell;
 import com.gregtechceu.gtceu.api.multiblock.pattern.match.MultiBlockPattern;
 import com.gregtechceu.gtceu.api.multiblock.structurepredicate.AbilityPredicate;
 import com.gregtechceu.gtceu.api.multiblock.structurepredicate.AlternativePredicate;
@@ -107,15 +107,20 @@ public final class CandidateExpansion {
                     "gtpm.multiblock.autobuild.invalid_layout", options.structureName(), exception.getMessage()));
             return cells;
         }
+        for (var rejection : layout.getRejections()) {
+            problems.add(problem(context.worldPos(), "gtpm.multiblock.autobuild.invalid_layout",
+                    options.structureName(), rejection.getMessage()));
+        }
+        if (!problems.isEmpty()) return cells;
         for (PatternRequirement requirement : PatternConstraintEvaluator.requirements(pattern.getSourceDefinition(),
                 layout)) {
             ConstraintLimit limit = new ConstraintLimit(requirement, constraintIds.id(requirement),
                     requirement.minimum(), requirement.maximum(), -1, -1, -1);
             requirements.add(limit);
         }
-        int minimumDepth = layout.cells().stream().mapToInt(PatternLayoutCell::depth).min().orElse(0);
+        int minimumDepth = layout.minimum(PatternAxis.DEPTH);
         BuildProblem unavailable = null;
-        for (var cell : layout.cells()) {
+        for (var cell : layout.getCells()) {
             PatternPredicate predicate = cell.predicate();
             PatternCellKey cellKey = new PatternCellKey(cell.unit(), cell.repetition(), cell.inner(), cell.row(),
                     cell.column());

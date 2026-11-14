@@ -4,6 +4,8 @@ import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition
 import com.gregtechceu.gtceu.api.multiblock.MultiblockBlockInfo
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState
 import com.gregtechceu.gtceu.api.multiblock.error.PatternStringError
+import com.gregtechceu.gtceu.api.multiblock.error.StructureIssue
+import com.gregtechceu.gtceu.api.multiblock.pattern.match.PatternDiagnostic
 import com.gregtechceu.gtceu.common.registry.GTRegistration.REGISTRATE
 
 import net.minecraft.network.chat.Component
@@ -14,6 +16,7 @@ import net.minecraft.world.level.block.state.BlockState
 import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
+import it.unimi.dsi.fastutil.longs.LongSet
 import it.unimi.dsi.fastutil.objects.ObjectArrayList
 import it.unimi.dsi.fastutil.objects.ObjectImmutableList
 import it.unimi.dsi.fastutil.objects.ObjectList
@@ -22,9 +25,24 @@ import java.util.Optional
 
 @JvmRecord
 data class RestrictedPredicate(val predicate: StructurePredicate, val minCount: Optional<Int>, val maxCount: Optional<Int>, val minCountByLayer: Optional<Int>, val maxCountByLayer: Optional<Int>, val previewCount: Optional<Int>, val tooltips: Optional<ObjectList<Component>>) : StructurePredicate {
+	override fun hasPositionDependencies(): Boolean = predicate.hasPositionDependencies()
+	override fun collectDependencies(state: MultiblockState, positions: LongSet) = predicate.collectDependencies(state, positions)
 	override fun type(): StructurePredicateType<*> = TYPE
+	override fun description(state: MultiblockState, excluded: Block?): Component? = predicate.description(state, excluded)
+	override fun requiredDescription(state: MultiblockState, excluded: Block?, scope: RequirementScope): Component? {
+		if (!hasCapacity(state)) return null
+		return if (minCount.orElse(0) > state.structureGlobalCount.getInt(this) || minCountByLayer.orElse(0) > state.structureLayerCount.getInt(this)) predicate.description(state, excluded) else predicate.requiredDescription(state, excluded, scope)
+	}
+	override fun diagnose(state: MultiblockState, failure: PatternDiagnostic): PatternDiagnostic {
+		if (predicate.observeCandidate(state.blockState).matched) {
+			if (maxCount.isPresent && state.structureGlobalCount.getInt(this) >= maxCount.get()) return failure.copy(issue = StructureIssue.count(failure, StructureIssue.Count.MAXIMUM, description(state), maxCount.get(), maxCount.get() + 1))
+			if (maxCountByLayer.isPresent && state.structureLayerCount.getInt(this) >= maxCountByLayer.get()) return failure.copy(issue = StructureIssue.count(failure, StructureIssue.Count.LAYER_MAXIMUM, description(state), maxCountByLayer.get(), maxCountByLayer.get() + 1))
+		}
+		return predicate.diagnose(state, failure)
+	}
 	override fun observeCandidate(candidateState: BlockState): PatternObservation = predicate.observeCandidate(candidateState)
 	private data class Position(val child: PatternObservation) : PatternObservation.PositionMatch
+	internal fun restorePreparedPosition(observation: PatternObservation, child: PatternObservation): PatternObservation = observation.withPositionMatch(Position(child))
 	private fun hasCapacity(state: MultiblockState): Boolean = (maxCount.isEmpty || state.structureGlobalCount.getInt(this) < maxCount.get()) &&
 		(maxCountByLayer.isEmpty || state.structureLayerCount.getInt(this) < maxCountByLayer.get())
 	override fun observePosition(state: MultiblockState): PatternObservation = if (hasCapacity(state)) predicate.observePosition(state).let { it.withPositionMatch(Position(it)) } else PatternObservation.of(false)

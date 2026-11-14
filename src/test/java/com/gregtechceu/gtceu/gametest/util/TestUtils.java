@@ -224,7 +224,7 @@ public class TestUtils {
                     " has no pattern for structure " + structureName);
         }
 
-        boolean formed = controller.checkPatternWithLock(structureName);
+        boolean formed = controller.checkPattern(structureName);
         if (!formed) {
             var state = controller.getMultiblockState(structureName);
             String error = state.error == null ? "unknown" : state.error.getErrorInfo().getString();

@@ -19,10 +19,12 @@ import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CircuitFancyConfigura
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CombinedDirectionalFancyConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.DistinctPartConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.MachineModeFancyConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.StructureCheckConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.VoidingModeConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.BatchModeMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.DistinctPart;
+import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.client.gui.fancy.PreviewScene;
 import com.gregtechceu.gtceu.common.machine.trait.AutoOutputTrait;
 
@@ -134,9 +136,6 @@ public interface IFancyUIMachine extends IUIMachine, IFancyUIProvider {
         if (this instanceof BatchModeMachine batchModeMachine) {
             BatchModeConfigurator.attachConfigurators(configuratorPanel, batchModeMachine);
         }
-        if (this instanceof IControllable controllable) {
-            configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(controllable));
-        }
         AutoOutputTrait autoOutputTrait = self().getTrait(AutoOutputTrait.TYPE);
         if (autoOutputTrait != null) {
             AutoOutputConfigurator.attachConfigurators(configuratorPanel, autoOutputTrait);
@@ -146,6 +145,12 @@ public interface IFancyUIMachine extends IUIMachine, IFancyUIProvider {
         }
         if (this instanceof DistinctPart distinctPart) {
             DistinctPartConfigurator.attachConfigurators(configuratorPanel, distinctPart);
+        }
+        if (this instanceof MultiblockControllerMachine controller) {
+            configuratorPanel.attachConfigurators(new StructureCheckConfigurator(controller));
+        }
+        if (this instanceof IControllable controllable) {
+            configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(controllable));
         }
     }
 

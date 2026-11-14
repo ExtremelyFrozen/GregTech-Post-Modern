@@ -18,6 +18,7 @@ import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
 import com.gregtechceu.gtceu.api.gui.fancy.TooltipsPanel;
 import com.gregtechceu.gtceu.api.machine.ConditionalSubscriptionHandler;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.BatchModeConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.StructureCheckConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.VoidingModeConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
 import com.gregtechceu.gtceu.api.machine.feature.IFancyUIMachine;
@@ -374,6 +375,7 @@ public class WorkableElectricMultiblockMachine extends WorkableMultiblockMachine
                 configuratorPanel, WorkableElectricMultiblockMachine.this);
         BatchModeConfigurator.attachConfigurators(
                 configuratorPanel, WorkableElectricMultiblockMachine.this);
+        configuratorPanel.attachConfigurators(new StructureCheckConfigurator(this));
         configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
                 WorkableElectricMultiblockMachine.this));
     }

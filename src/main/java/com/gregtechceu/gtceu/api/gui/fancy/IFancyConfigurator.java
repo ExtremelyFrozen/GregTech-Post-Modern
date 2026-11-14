@@ -3,6 +3,7 @@ package com.gregtechceu.gtceu.api.gui.fancy;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Button.State;
 
 import net.minecraft.network.chat.Component;
 
@@ -23,9 +24,9 @@ public interface IFancyConfigurator {
     Component getTitle();
 
     /**
-     * Returns the icon shown on the configurator tab button.
+     * Returns the tab icon for the native button state forwarded by the client UI.
      */
-    IGuiTexture getIcon();
+    IGuiTexture getIcon(State state);
 
     /**
      * Returns the fixed content width for the expanded configurator body.

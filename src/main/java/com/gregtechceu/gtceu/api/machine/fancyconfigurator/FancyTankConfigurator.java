@@ -8,6 +8,7 @@ import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.transfer.fluid.CustomFluidTank;
 
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Button.State;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 
@@ -50,7 +51,7 @@ public class FancyTankConfigurator implements IFancyConfigurator {
     }
 
     @Override
-    public IGuiTexture getIcon() {
+    public IGuiTexture getIcon(State state) {
         return GuiTextures.BUTTON_FLUID_OUTPUT;
     }
 

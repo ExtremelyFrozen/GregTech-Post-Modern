@@ -19,6 +19,8 @@ enum class CharcoalLogOrAirPredicate : StructurePredicate {
 	INSTANCE,
 	;
 
+	override fun hasPositionDependencies(): Boolean = true
+
 	override fun type(): StructurePredicateType<*> = TYPE
 	override fun observeCandidate(candidateState: BlockState): PatternObservation = PatternObservation.of(candidateState.isAir || candidateState.`is`(BlockTags.LOGS_THAT_BURN))
 	private data class Position(val log: Boolean) : PatternObservation.PositionMatch

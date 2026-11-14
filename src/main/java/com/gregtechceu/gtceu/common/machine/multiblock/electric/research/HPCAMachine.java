@@ -104,10 +104,10 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
     private final HPCAGridHandler hpcaHandler;
     @Getter(AccessLevel.PACKAGE)
     @SyncToClient
-    private List<Component> hpcaDisplaySnapshot = List.of();
+    private List<Component> hpcaDisplayText = List.of();
     @Getter(AccessLevel.PACKAGE)
     @SyncToClient
-    private List<Component> hpcaInfoSnapshot = List.of();
+    private List<Component> hpcaInfoText = List.of();
 
     private boolean hasNotEnoughEnergy;
 
@@ -162,7 +162,7 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
         this.coolantHandler = new FluidHandlerList(coolantContainers);
         this.hpcaHandler.onStructureForm(componentTraits);
         if (!isRemote()) {
-            refreshHPCASnapshots();
+            refreshHPCADisplay();
         }
 
         scheduleForNextServerTick(this::updateTickSubscription);
@@ -172,7 +172,7 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
     public void onLoad() {
         super.onLoad();
         if (!isRemote()) {
-            refreshHPCASnapshots();
+            refreshHPCADisplay();
         }
         scheduleForNextServerTick(this::updateTickSubscription);
     }
@@ -180,7 +180,7 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
     @Override
     public void onUnload() {
         super.onUnload();
-        clearHPCASnapshots();
+        clearHPCADisplay();
         if (tickSubs != null) {
             tickSubs.unsubscribe();
             tickSubs = null;
@@ -204,7 +204,7 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
         this.energyContainer = EnergyContainerList.EMPTY;
         this.hpcaHandler.onStructureInvalidate();
         if (!isRemote()) {
-            refreshHPCASnapshots();
+            refreshHPCADisplay();
         }
     }
 
@@ -265,25 +265,25 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
             // passively cool (slowly) if not active
             temperature = Math.max(IDLE_TEMPERATURE, temperature - 0.25);
         }
-        refreshHPCASnapshots();
+        refreshHPCADisplay();
         this.updateActive(this.getEnergyContainer().getEnergyStored() > 0);
     }
 
     /** Refreshes the server-owned text snapshots consumed by the LDLib2 controller page. */
-    void refreshHPCASnapshots() {
-        List<Component> nextDisplaySnapshot = createHPCADisplaySnapshot();
-        if (!hpcaDisplaySnapshot.equals(nextDisplaySnapshot)) {
-            hpcaDisplaySnapshot = nextDisplaySnapshot;
+    void refreshHPCADisplay() {
+        List<Component> nextDisplayText = createHPCADisplayText();
+        if (!hpcaDisplayText.equals(nextDisplayText)) {
+            hpcaDisplayText = nextDisplayText;
         }
-        List<Component> nextSnapshot = hpcaHandler.createInfoSnapshot();
-        if (!hpcaInfoSnapshot.equals(nextSnapshot)) {
-            hpcaInfoSnapshot = nextSnapshot;
+        List<Component> nextText = hpcaHandler.createInfoText();
+        if (!hpcaInfoText.equals(nextText)) {
+            hpcaInfoText = nextText;
         }
     }
 
-    private void clearHPCASnapshots() {
-        hpcaDisplaySnapshot = List.of();
-        hpcaInfoSnapshot = List.of();
+    private void clearHPCADisplay() {
+        hpcaDisplayText = List.of();
+        hpcaInfoText = List.of();
     }
 
     private void updateActive(boolean active) {
@@ -393,12 +393,12 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
 
     @Override
     public void addDisplayText(List<Component> textList) {
-        textList.addAll(hpcaDisplaySnapshot);
+        textList.addAll(hpcaDisplayText);
     }
 
-    private List<Component> createHPCADisplaySnapshot() {
-        List<Component> snapshot = new ArrayList<>();
-        MultiblockDisplayText.builder(snapshot, isFormed())
+    private List<Component> createHPCADisplayText() {
+        List<Component> text = new ArrayList<>();
+        MultiblockDisplayText.builder(text, isFormed())
                 .setWorkingStatus(true, hpcaHandler.cachedCWUt > 0) // transform into two-state system for display
                 .setWorkingStatusKeys(
                         "gtpm.multiblock.idling",
@@ -424,7 +424,7 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
                     }
                 })
                 .addWorkingStatusLine();
-        return List.copyOf(snapshot);
+        return List.copyOf(text);
     }
 
     private ChatFormatting getDisplayTemperatureColor() {
@@ -813,10 +813,10 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
         }
 
         /** Captures the authoritative structural statistics sent to the LDLib2 status-grid tooltip. */
-        List<Component> createInfoSnapshot() {
-            List<Component> snapshot = new ArrayList<>();
-            addInfo(snapshot);
-            return List.copyOf(snapshot);
+        List<Component> createInfoText() {
+            List<Component> text = new ArrayList<>();
+            addInfo(text);
+            return List.copyOf(text);
         }
 
         public void addWarnings(List<Component> textList) {
@@ -918,7 +918,7 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
         ProgressTexture progressTexture = GuiTextures.progressBar(GuiTextures.HPCA_COMPONENT_OUTLINE);
         root.addChild(new HPCAStatusGridElement(
                 () -> hpcaHandler.cachedCWUt > 0 ? progressSupplier.getAsDouble() : 0,
-                () -> hpcaInfoSnapshot,
+                () -> hpcaInfoText,
                 hpcaHandler::getComponentTexture,
                 progressTexture));
         return root;

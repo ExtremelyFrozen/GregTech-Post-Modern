@@ -17,6 +17,8 @@ import it.unimi.dsi.fastutil.objects.ObjectList
 import java.util.function.Supplier
 
 class BlockPredicate(blockIds: Supplier<ObjectList<ResourceLocation>>) : StructurePredicate {
+	override fun hasPositionDependencies(): Boolean = true
+	override fun canReuseObservation(): Boolean = true
 	private val resolvedBlockIds = Lazy.of(blockIds)
 	private val resolvedBlocks = Lazy.of {
 		this.blockIds.stream().map(::resolveBlock).collect(ObjectImmutableList.toList())

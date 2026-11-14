@@ -5,11 +5,16 @@ import com.gregtechceu.gtceu.common.registry.GTRegistration.REGISTRATE
 
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
+import it.unimi.dsi.fastutil.longs.LongSet
 import it.unimi.dsi.fastutil.objects.ObjectArrayList
 import it.unimi.dsi.fastutil.objects.ObjectList
 
 @JvmRecord
 data class ConcatenatedPredicate(val predicates: ObjectList<StructurePredicate>) : AlternativePredicate {
+	override fun hasPositionDependencies(): Boolean = predicates.all { it.hasPositionDependencies() }
+	override fun collectDependencies(state: MultiblockState, positions: LongSet) {
+		predicates.forEach { it.collectDependencies(state, positions) }
+	}
 	override fun type(): StructurePredicateType<*> = TYPE
 	override fun alternatives(state: MultiblockState?): ObjectList<StructurePredicate> = predicates
 

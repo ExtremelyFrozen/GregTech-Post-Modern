@@ -13,6 +13,8 @@ import java.util.function.Predicate
 
 /** Marks the origin while retaining the same actual machine identity in Java and serialized forms. */
 open class PredicateController : PatternPredicate {
+	override fun hasPositionDependencies(): Boolean = javaClass == PredicateController::class.java && rulesHavePositionDependencies()
+
 	var owner: MachineDefinition? = null
 		private set
 	private var machineId: ResourceLocation? = null
@@ -32,6 +34,7 @@ open class PredicateController : PatternPredicate {
 		common.first().predicate = Predicate { state ->
 			MetaMachine.getMachine(state.world, state.pos)?.definition?.id == machine
 		}
+		common.first().sealPreparedCallbacks()
 	}
 
 	companion object {

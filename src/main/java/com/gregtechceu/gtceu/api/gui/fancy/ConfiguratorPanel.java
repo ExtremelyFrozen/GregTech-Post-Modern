@@ -9,6 +9,7 @@ import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.gui.texture.TextTexture;
 
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Button.State;
 import com.lowdragmc.lowdraglib2.gui.ui.event.HoverTooltips;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
@@ -151,14 +152,21 @@ public class ConfiguratorPanel extends UIElement {
             style(style -> style.overflowVisible(true));
 
             this.button = new GTButtonElement(0, 0, TAB_SIZE, TAB_SIZE, IGuiTexture.EMPTY,
-                    this::onClick);
+                    this::onClick) {
+
+                @Override
+                protected void setButtonState(State state) {
+                    super.setButtonState(state);
+                    icon.setTexture(configurator.getIcon(state));
+                }
+            };
             button.noText();
             button.style(style -> style.zIndex(310));
             button.addEventListener(UIEvents.HOVER_TOOLTIPS, this::applyTooltip);
             button.addEventListener(UIEvents.MOUSE_WHEEL, this::onMouseWheel);
 
             this.icon = new GTImageElement(TAB_SIZE - ICON_SIZE - border, border, ICON_SIZE, ICON_SIZE,
-                    configurator.getIcon());
+                    configurator.getIcon(State.DEFAULT));
             icon.setAllowHitTest(false);
             button.addChild(icon);
             addChild(button);
@@ -175,7 +183,7 @@ public class ConfiguratorPanel extends UIElement {
 
         @Override
         public void screenTick() {
-            icon.setTexture(configurator.getIcon());
+            icon.setTexture(configurator.getIcon(button.getState()));
             super.screenTick();
         }
 

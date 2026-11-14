@@ -7,7 +7,7 @@ import com.gregtechceu.gtceu.api.multiblock.PatternCondition
 import com.gregtechceu.gtceu.api.multiblock.RelativeOffset
 import com.gregtechceu.gtceu.api.multiblock.StructureDir
 import com.gregtechceu.gtceu.api.multiblock.error.PatternStringError
-import com.gregtechceu.gtceu.api.multiblock.error.SinglePredicateError
+import com.gregtechceu.gtceu.api.multiblock.error.StructureIssue
 import com.gregtechceu.gtceu.api.multiblock.pattern.compile.CompiledPattern
 import com.gregtechceu.gtceu.api.multiblock.pattern.compile.PatternCompiler
 import com.gregtechceu.gtceu.api.multiblock.pattern.layout.PatternChoiceDescriptor
@@ -15,7 +15,9 @@ import com.gregtechceu.gtceu.api.multiblock.pattern.layout.PatternLayout
 import com.gregtechceu.gtceu.api.multiblock.pattern.layout.PatternRepeatDescriptor
 import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternDefinition
 import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternFacts
+import com.gregtechceu.gtceu.api.multiblock.pattern.model.measurement.PatternMeasurement
 import com.gregtechceu.gtceu.api.multiblock.structurepredicate.PatternPredicate
+import com.gregtechceu.gtceu.api.multiblock.structurepredicate.PatternPredicateCompiler
 import com.gregtechceu.gtceu.api.multiblock.structurepredicate.PredicateRule
 import com.gregtechceu.gtceu.api.multiblock.structurepredicate.RestrictedPredicate
 import com.gregtechceu.gtceu.api.multiblock.structurepredicate.StructurePredicate
@@ -32,7 +34,11 @@ import net.minecraft.world.level.block.state.properties.Property
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
+import it.unimi.dsi.fastutil.longs.LongSet
+import it.unimi.dsi.fastutil.longs.LongSets
 import it.unimi.dsi.fastutil.objects.Object2IntMap
+import it.unimi.dsi.fastutil.objects.Object2IntMaps
+import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap
 import it.unimi.dsi.fastutil.objects.ObjectList
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet
@@ -44,6 +50,9 @@ import java.util.function.Consumer
 open class MultiBlockPattern private constructor(private val sourceDefinition: PatternDefinition) {
 	private val compiledPattern: CompiledPattern = PatternCompiler().compile(sourceDefinition)
 	private val layoutResolver = compiledPattern.layout
+	private val measurementRules = Array(sourceDefinition.measurements.size) { PatternPredicateCompiler.compile(sourceDefinition.measurements[it].boundary) }
+	private val cachedSearchRadius by lazy { layoutResolver.searchRadius() }
+	private val eventDriven by lazy { layoutResolver.allPredicates().all { it.hasPositionDependencies() } }
 	private val runtime = PatternRuntime(this, sourceDefinition)
 
 	private val minimumDepth = compiledPattern.cells.minOf { it.depth }
@@ -76,7 +85,7 @@ open class MultiBlockPattern private constructor(private val sourceDefinition: P
 
 	fun getLastMatchResult(): PatternMatchResult? = runtime.lastResult
 
-	/** Returns this attempt's diagnostic snapshot; machine lifecycle decisions remain with the caller. */
+	/** Returns this attempt's diagnostics; machine lifecycle decisions remain with the caller. */
 	fun matchPatternAt(worldState: MultiblockState, centerPos: BlockPos, frontFacing: Direction, upwardsFacing: Direction, isFlipped: Boolean, savePredicate: Boolean, expectedRepetitions: IntArray, expectedChoices: Map<String, String>): PatternMatchResult {
 		expandLayout(expectedRepetitions, expectedChoices)
 		return runtime.match(worldState, centerPos, frontFacing, upwardsFacing, isFlipped, savePredicate, expectedRepetitions, expectedChoices)
@@ -91,26 +100,106 @@ open class MultiBlockPattern private constructor(private val sourceDefinition: P
 
 	fun checkPatternAtExact(worldState: MultiblockState, centerPos: BlockPos, frontFacing: Direction, upwardsFacing: Direction, isFlipped: Boolean, savePredicate: Boolean, expectedRepetitions: IntArray, expectedChoices: Map<String, String>, instanceRepetitions: Object2IntMap<String>): Boolean {
 		expandLayout(expectedRepetitions, expectedChoices, instanceRepetitions)
-		val selections = Object2ObjectOpenHashMap(expectedChoices)
-		instanceRepetitions.object2IntEntrySet().forEach { selections["${it.key}#repeat"] = it.intValue.toString() }
+		var selections = PatternSelections.of(expectedChoices)
+		instanceRepetitions.object2IntEntrySet().forEach { selections = selections.with("${it.key}#repeat", it.intValue.toString()) }
 		return runtime.match(worldState, centerPos, frontFacing, upwardsFacing, isFlipped, savePredicate, expectedRepetitions, selections).matched
 	}
 
-	fun expandLayout(repetitions: IntArray, choices: Map<String, String>): PatternLayout = layoutResolver.expand(repetitions, choices)
+	fun expandLayout(repetitions: IntArray, choices: Map<String, String>): PatternLayout = layoutResolver.expand(repetitions, choices, Object2IntMaps.emptyMap(), getMeasurementValues(choices))
+
+	/** User selections are checked once before expansion; measured matching values come from world probes. */
+	fun getMeasurementValues(choices: Map<String, String>): Object2IntMap<String> = Object2IntOpenHashMap<String>().also { values ->
+		for (measurement in getMeasurements()) {
+			val selected = choices["@measure:${measurement.parameter}"]
+			val value = selected?.toInt() ?: measurement.minimum
+			values[measurement.parameter] = value
+		}
+	}
+
+	/** Expands an exact interpretation, with explicitly supplied measured parameter values. */
+	fun expandLayout(repetitions: IntArray, choices: Map<String, String>, instanceRepetitions: Object2IntMap<String>, parameters: Object2IntMap<String>): PatternLayout = layoutResolver.expand(repetitions, choices, instanceRepetitions, parameters)
+
+	internal fun expandResolvedLayout(repetitions: IntArray, selections: Map<String, String>, parameters: Object2IntMap<String>): PatternLayout = layoutResolver.expandResolved(repetitions, selections, parameters)
 
 	/** Returns depth, height and width without enumerating layout cells. */
-	fun getDimensions(repetitions: IntArray, choices: Map<String, String>): IntArray = layoutResolver.dimensions(repetitions, choices)
+	fun getDimensions(repetitions: IntArray, choices: Map<String, String>): IntArray = layoutResolver.dimensions(repetitions, choices, getMeasurementValues(choices))
 
 	/** Converts an actual dimension back into the nearest attainable repeat count. */
 	fun resizeLayout(repetitions: IntArray, choices: Map<String, String>, index: Int, size: Int): IntArray = layoutResolver.resize(repetitions, choices, index, size)
 
 	fun getSourceDefinition(): PatternDefinition = sourceDefinition
 
+	fun getMeasurements(): ObjectList<PatternMeasurement> = layoutResolver.measurements()
+
+	internal fun measurementRule(index: Int): PatternPredicate = measurementRules[index]
+
+	fun getSearchRadius(): IntArray = cachedSearchRadius
+
+	fun isEventDriven(): Boolean = eventDriven
+
 	fun getCompiledPattern(): CompiledPattern = compiledPattern
 
-	fun expandLayout(repetitions: IntArray, choices: Map<String, String>, instanceRepetitions: Object2IntMap<String>): PatternLayout = layoutResolver.expand(repetitions, choices, instanceRepetitions)
+	fun expandLayout(repetitions: IntArray, choices: Map<String, String>, instanceRepetitions: Object2IntMap<String>): PatternLayout = layoutResolver.expand(repetitions, choices, instanceRepetitions, getMeasurementValues(choices))
 
 	internal fun expandLayoutForMatch(repetitions: IntArray, selections: Map<String, String>): PatternLayout = layoutResolver.expandResolved(repetitions, selections)
+
+	internal suspend fun expandLayoutForMatch(work: PatternWork<*>, repetitions: IntArray, selections: Map<String, String>): PatternLayout = layoutResolver.expandResolved(work, repetitions, selections)
+
+	internal suspend fun expandLayoutForMatch(work: PatternWork<*>, repetitions: IntArray, selections: Map<String, String>, parameters: Object2IntMap<String>): PatternLayout = layoutResolver.expandResolved(work, repetitions, selections, parameters)
+
+	/** Creates a resumable server-thread search whose intermediate state is isolated from the machine. */
+	fun beginExactCheck(worldState: MultiblockState, front: Direction, up: Direction, flipped: Boolean, repetitions: IntArray, choices: Map<String, String>): PatternCheckSession {
+		val candidate = MultiblockState(worldState.world, worldState.controllerPos, worldState.structureName)
+		candidate.lastController = worldState.controller
+		val matcher = PatternRuntime(this, sourceDefinition)
+		val work = PatternWork { matcher.matchExact(this, candidate, worldState.controllerPos, front, up, flipped, true, repetitions, choices).matched }
+		return PatternCheckSession(candidate, work, worldState)
+	}
+
+	/** Creates an isolated search, with world capture and publication confined to server-thread drains. */
+	@JvmOverloads
+	fun beginCheck(worldState: MultiblockState, changedPositions: LongSet = LongSets.emptySet()): PatternCheckSession {
+		val candidate = MultiblockState(worldState.world, worldState.controllerPos, worldState.structureName)
+		val controller = worldState.controller
+		candidate.lastController = controller
+		val previous = worldState.matchCache?.takeIf { it.pattern === this }
+		val check = PatternWork {
+			if (controller == null) {
+				candidate.setError(PatternStringError("no controller found"))
+				false
+			} else {
+				candidate.clean()
+				if (previous != null && getMeasurements().isEmpty() && getChoiceDescriptors().isEmpty() && getRepeatDescriptors().all { it.minimum == it.maximum } && previous.eventDriven && !worldState.hasError() && changedPositions.isNotEmpty() &&
+					previous.front == (if (controller.hasFrontFacing()) controller.frontFacing else Direction.SOUTH) && previous.up == controller.upwardsFacing && !previous.flipped &&
+					previous.checkLocal(this, candidate, changedPositions)
+				) {
+					candidate.applyCachedMatch(worldState)
+					return@PatternWork true
+				}
+				val matcher = PatternRuntime(this@MultiBlockPattern, sourceDefinition, previous, changedPositions)
+				val facings = if (controller.hasFrontFacing()) arrayOf(controller.frontFacing) else arrayOf(Direction.SOUTH, Direction.NORTH, Direction.EAST, Direction.WEST)
+				val upwardsFacing = controller.upwardsFacing
+				val allowFlip = controller.allowFlip()
+				var matched = false
+				val failures = PatternFailureSelection()
+				for (facing in facings) {
+					if (matcher.search(this, candidate, controller.blockPos, facing, upwardsFacing, false, false)) {
+						matched = true
+						break
+					}
+					failures.include(candidate)
+					if (allowFlip && matcher.search(this, candidate, controller.blockPos, facing, upwardsFacing, true, false)) {
+						matched = true
+						break
+					}
+					if (allowFlip) failures.include(candidate)
+				}
+				if (!matched) failures.apply(candidate)
+				matched
+			}
+		}
+		return PatternCheckSession(candidate, check, worldState)
+	}
 
 	fun getFingerLength(): Int = fingerLength
 
@@ -135,13 +224,17 @@ open class MultiBlockPattern private constructor(private val sourceDefinition: P
 		}
 		val upwardsFacing = controller.upwardsFacing
 		val allowsFlip = controller.allowFlip()
+		val failures = PatternFailureSelection()
 		for (direction in facings) {
 			val result = checkPatternAt(worldState, centerPos, direction, upwardsFacing, false, savePredicate)
 			if (result) return true
+			failures.include(worldState)
 			if (allowsFlip && checkPatternAt(worldState, centerPos, direction, upwardsFacing, true, savePredicate)) {
 				return true
 			}
+			if (allowsFlip) failures.include(worldState)
 		}
+		failures.apply(worldState)
 		return false
 	}
 
@@ -181,7 +274,7 @@ open class MultiBlockPattern private constructor(private val sourceDefinition: P
 	internal fun checkLayerMinimums(worldState: MultiblockState, layerCount: Object2IntMap<PredicateRule>, structureLayerCount: Object2IntMap<StructurePredicate>): Boolean {
 		for (entry in layerCount.object2IntEntrySet()) {
 			if (entry.intValue < entry.key.minLayerCount) {
-				worldState.setError(SinglePredicateError(entry.key, 3))
+				worldState.setError(StructureIssue.count(null, StructureIssue.Count.LAYER_MINIMUM, entry.key.description(worldState), entry.key.minLayerCount, entry.intValue))
 				return false
 			}
 		}
@@ -190,7 +283,7 @@ open class MultiBlockPattern private constructor(private val sourceDefinition: P
 			if (predicate is RestrictedPredicate && predicate.minCountByLayer.isPresent &&
 				entry.intValue < predicate.minCountByLayer.get()
 			) {
-				worldState.setError(PatternStringError("gtpm.multiblock.pattern.error.limited"))
+				worldState.setError(StructureIssue.count(null, StructureIssue.Count.LAYER_MINIMUM, predicate.description(worldState), predicate.minCountByLayer.get(), entry.intValue))
 				return false
 			}
 		}
@@ -200,7 +293,7 @@ open class MultiBlockPattern private constructor(private val sourceDefinition: P
 	internal fun checkGlobalMinimums(worldState: MultiblockState, globalCount: Object2IntMap<PredicateRule>, structureGlobalCount: Object2IntMap<StructurePredicate>): Boolean {
 		for (entry in globalCount.object2IntEntrySet()) {
 			if (entry.intValue < entry.key.minCount) {
-				worldState.setError(SinglePredicateError(entry.key, 1))
+				worldState.setError(StructureIssue.count(null, StructureIssue.Count.MINIMUM, entry.key.description(worldState), entry.key.minCount, entry.intValue))
 				return false
 			}
 		}
@@ -209,7 +302,7 @@ open class MultiBlockPattern private constructor(private val sourceDefinition: P
 			if (predicate is RestrictedPredicate && predicate.minCount.isPresent &&
 				entry.intValue < predicate.minCount.get()
 			) {
-				worldState.setError(PatternStringError("gtpm.multiblock.pattern.error.limited"))
+				worldState.setError(StructureIssue.count(null, StructureIssue.Count.MINIMUM, predicate.description(worldState), predicate.minCount.get(), entry.intValue))
 				return false
 			}
 		}

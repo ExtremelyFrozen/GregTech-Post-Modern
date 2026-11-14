@@ -21,6 +21,8 @@ enum class PowerSubstationBatteryPredicate : CategoryPredicate {
 	INSTANCE,
 	;
 
+	override fun hasPositionDependencies(): Boolean = true
+
 	override val category: String = BlockCategories.POWER_SUBSTATION_BATTERIES
 	override fun type(): StructurePredicateType<*> = TYPE
 	override fun observeCandidate(candidateState: BlockState): PatternObservation = PatternObservation.of(

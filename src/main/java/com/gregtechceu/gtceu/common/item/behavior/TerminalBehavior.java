@@ -24,6 +24,7 @@ import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.StructureOperation;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.batch.StructureRequest;
 import com.gregtechceu.gtceu.api.multiblock.autobuild.plan.BatchPlanner;
 import com.gregtechceu.gtceu.api.multiblock.pattern.layout.PatternAxis;
+import com.gregtechceu.gtceu.api.multiblock.pattern.match.PatternSelections;
 import com.gregtechceu.gtceu.api.multiblock.preview.PreviewVisibility;
 import com.gregtechceu.gtceu.api.multiblock.preview.StructurePreview;
 import com.gregtechceu.gtceu.api.registry.GTRegistries;
@@ -202,6 +203,11 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                 String branch = choices.get(choice.id());
                 if (choice.alternatives().contains(branch)) request = request.withChoice(choice.path(), branch);
             }
+            var restored = PatternSelections.of(request.choices());
+            for (var entry : choices.object2ObjectEntrySet())
+                restored = restored.with(entry.getKey(), entry.getValue());
+            request = planner.normalizeChoices(definition, new StructureRequest(name, request.repetitions(),
+                    request.tierChoices(), request.flipMode(), request.mode(), restored));
             int[] repetitions = request.repetitions().toIntArray();
             var axes = pattern.getSourceDefinition().getAxes();
             for (var repeat : pattern.getRepeatDescriptors()) {
@@ -223,12 +229,21 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
             structures.put(name, normalize(definition, request));
             if (selectedStructures.contains(name)) included.add(name);
         }
+        choices.keySet().removeIf(key -> (key.startsWith("$") || key.startsWith("@measure:")) &&
+                structures.values().stream().noneMatch(request -> request.choices().containsKey(key)));
+        for (var request : structures.values()) {
+            for (var entry : request.choices().object2ObjectEntrySet()) {
+                if (!entry.getValue().equals(choices.get(entry.getKey())))
+                    choices.put(entry.getKey(), entry.getValue());
+            }
+        }
         if (included.isEmpty()) included.add(MultiblockControllerMachine.DEFAULT_STRUCTURE);
         for (String name : new ObjectArrayList<>(included)) includeDependencies(definition, name);
         patternGeneration = StructurePatternRegistry.generation();
     }
 
     private StructureRequest normalize(MultiblockMachineDefinition definition, StructureRequest request) {
+        request = new BatchPlanner().normalizeChoices(definition, request);
         var domains = new BatchPlanner().activeTierChoiceOptions(definition, request);
         var tiers = new Object2ObjectLinkedOpenHashMap<String, ResourceLocation>();
         for (var entry : domains.object2ObjectEntrySet()) {
@@ -603,9 +618,32 @@ public class TerminalBehavior extends ItemSyncHolder implements IItemUIFactory, 
                     var values = choice.alternatives();
                     int index = values.indexOf(structure.choices().getOrDefault(choice.path(), values.getFirst()));
                     addStep(y, contentWidth, text("variant_index", index + 1, values.size()),
-                            () -> change(() -> TerminalBehavior.this.choices.put(choice.id(), values.get(index - 1))),
-                            () -> change(() -> TerminalBehavior.this.choices.put(choice.id(), values.get(index + 1))),
+                            () -> change(() -> TerminalBehavior.this.choices.put(choice.path(), values.get(index - 1))),
+                            () -> change(() -> TerminalBehavior.this.choices.put(choice.path(), values.get(index + 1))),
                             index > 0, index + 1 < values.size());
+                    y += 30;
+                }
+                var measurementValues = pattern.getMeasurementValues(structure.choices());
+                for (var measurement : pattern.getMeasurements()) {
+                    String key = "@measure:" + measurement.getParameter();
+                    int value = measurementValues.getInt(measurement.getParameter());
+                    addStep(y, contentWidth, Component.literal(measurement.getParameter() + ": " + value),
+                            () -> change(() -> TerminalBehavior.this.choices.put(key, Integer.toString(value - 1))),
+                            () -> change(() -> TerminalBehavior.this.choices.put(key, Integer.toString(value + 1))),
+                            value > measurement.getMinimum(), value < measurement.getMaximum());
+                    y += 30;
+                }
+                var layout = pattern.expandLayout(repetitions, structure.choices());
+                for (var instance : layout.getModuleChoices()) {
+                    var candidates = instance.getDescriptor().getCandidates();
+                    int index = candidates.indexOf(instance.getSelection());
+                    addStep(y, contentWidth,
+                            Component.literal(instance.getDescriptor().getId() + ": " + instance.getSelection()),
+                            () -> change(() -> TerminalBehavior.this.choices.put(instance.getPath(),
+                                    candidates.get(index - 1))),
+                            () -> change(() -> TerminalBehavior.this.choices.put(instance.getPath(),
+                                    candidates.get(index + 1))),
+                            index > 0, index + 1 < candidates.size());
                     y += 30;
                 }
                 options.viewContainer.getLayout().width(contentWidth).height(y);
