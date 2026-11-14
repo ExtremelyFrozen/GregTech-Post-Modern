@@ -2,6 +2,7 @@ package com.gregtechceu.gtceu.api.multiblock;
 
 import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
+import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine.StructureCheckStatus;
 import com.gregtechceu.gtceu.api.multiblock.index.ChunkStructureAccess;
 import com.gregtechceu.gtceu.api.multiblock.index.ChunkStructureIndex;
 import com.gregtechceu.gtceu.api.multiblock.index.StructureSearchIndex;
@@ -164,6 +165,8 @@ public class MultiblockWorldSavedData extends SavedData {
 
     /** Synchronous construction and automatic checks publish through the same registration boundary. */
     public void onStructureFormed(MultiblockState state, MultiblockControllerMachine controller) {
+        if (state.getStructureName().equals(MultiblockControllerMachine.DEFAULT_STRUCTURE))
+            controller.setStructureCheckStatus(StructureCheckStatus.IDLE);
         PendingPatternCheck pending = scheduledChecks.remove(state);
         if (pending != null) {
             pendingChecks.remove(pending);
@@ -296,6 +299,8 @@ public class MultiblockWorldSavedData extends SavedData {
                 if (pending.session != null) pending.cancel();
                 pending.pattern = pattern;
                 pending.generation = generation;
+                if (structureName.equals(MultiblockControllerMachine.DEFAULT_STRUCTURE))
+                    controller.setStructureCheckStatus(StructureCheckStatus.CHECKING);
                 if (pending.executor == null)
                     pending.executor = FormationExecutors.get(level.getServer()).getFormation().executor();
                 pending.session = pending.fullCheck ? pattern.beginCheck(state) :
@@ -334,6 +339,8 @@ public class MultiblockWorldSavedData extends SavedData {
             }
             if (!pattern.isEventDriven()) schedulePatternCheck(state, level.getGameTime() + 200);
         } catch (RuntimeException exception) {
+            if (state.getStructureName().equals(MultiblockControllerMachine.DEFAULT_STRUCTURE))
+                controller.setStructureCheckStatus(StructureCheckStatus.IDLE);
             GTCEu.LOGGER.error("Error while assembling multiblock {} at {}", controller, state.controllerPos,
                     exception);
             scheduleRetry(pending, level.getGameTime());

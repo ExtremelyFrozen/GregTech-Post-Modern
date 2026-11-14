@@ -85,6 +85,22 @@ public class MultiblockControllerMachine extends MetaMachine {
     @SyncToClient
     @RerenderOnChanged
     protected boolean isFormed;
+
+    public enum StructureCheckStatus {
+        IDLE,
+        CHECKING
+    }
+
+    @Getter
+    @SyncToClient
+    private StructureCheckStatus structureCheckStatus = StructureCheckStatus.IDLE;
+
+    public void setStructureCheckStatus(StructureCheckStatus status) {
+        if (structureCheckStatus == status) return;
+        structureCheckStatus = status;
+        syncDataHolder.markClientSyncFieldDirty("structureCheckStatus");
+    }
+
     @Getter
     @SaveField
     @SyncToClient
@@ -185,12 +201,16 @@ public class MultiblockControllerMachine extends MetaMachine {
                 candidate.setError(new PatternStringError("gtpm.multiblock.pattern.error.constraint"));
             if (isStructureFormed(structureName)) invalidateStructure(structureName);
             state.applyMatch(candidate);
+            if (DEFAULT_STRUCTURE.equals(structureName)) setStructureCheckStatus(StructureCheckStatus.IDLE);
             data.addMapping(state);
             return false;
         }
         boolean refresh = !isStructureFormed(structureName) || candidate.getFacts() != initialFacts;
         state.applyMatch(candidate);
-        if (DEFAULT_STRUCTURE.equals(structureName)) setFlipped(state.isNeededFlip());
+        if (DEFAULT_STRUCTURE.equals(structureName)) {
+            setFlipped(state.isNeededFlip());
+            setStructureCheckStatus(StructureCheckStatus.IDLE);
+        }
         if (!refresh) {
             data.addMapping(state);
             return true;
@@ -495,6 +515,7 @@ public class MultiblockControllerMachine extends MetaMachine {
                 !menu.stillValid(player))
             return;
         if (!recheck && isFormed()) return;
+        setStructureCheckStatus(StructureCheckStatus.CHECKING);
         var data = MultiblockWorldSavedData.getOrCreate((ServerLevel) getLevel());
         for (String name : getDefinition().getStructureOrder()) {
             if (recheck) data.recheckPatternFirst(getMultiblockState(name));
