@@ -2,7 +2,6 @@ package com.gregtechceu.gtceu.api.multiblock.error
 
 import com.gregtechceu.gtceu.api.multiblock.pattern.match.PatternDiagnostic
 
-import net.minecraft.ChatFormatting
 import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.MutableComponent
 import net.minecraft.world.level.block.Block
@@ -27,25 +26,25 @@ class StructureIssue(val lines: ObjectList<Component>) : PatternError() {
 		fun mismatch(failure: PatternDiagnostic, expected: Component?): StructureIssue = located(
 			text("mismatch"),
 			failure,
-			expected?.let { text("expected", it.copy().withStyle(ChatFormatting.GREEN)) },
+			expected?.let { text("expected", it) },
 		)
 		fun forbidden(failure: PatternDiagnostic): StructureIssue = located(text("forbidden"), failure)
 		fun unloaded(failure: PatternDiagnostic): StructureIssue = located(text("unloaded"), failure, showFound = false)
 		fun shared(failure: PatternDiagnostic): StructureIssue = located(text("shared"), failure, showFound = false)
 		fun condition(failure: PatternDiagnostic, message: Component): StructureIssue = located(message, failure)
-		fun mixed(failure: PatternDiagnostic, material: Component): StructureIssue = located(text("mixed", material.copy().withStyle(ChatFormatting.YELLOW)), failure)
+		fun mixed(failure: PatternDiagnostic, material: Component): StructureIssue = located(text("mixed", material), failure)
 
 		fun count(failure: PatternDiagnostic?, kind: Count, subject: Component?, limit: Int, actual: Int): StructureIssue = located(
-			text(kind.key, subject?.copy()?.withStyle(ChatFormatting.YELLOW) ?: Component.empty()),
+			text(kind.key, subject ?: Component.empty()),
 			if (kind.located) failure else null,
-			if (kind == Count.MINIMUM || kind == Count.LAYER_MINIMUM) text("at_least", number(limit, ChatFormatting.GREEN), number(actual, ChatFormatting.RED)) else text("at_most", number(limit, ChatFormatting.GREEN)),
+			if (kind == Count.MINIMUM || kind == Count.LAYER_MINIMUM) text("at_least", limit, actual) else text("at_most", limit),
+			showFound = false,
 		)
 
 		fun size(): StructureIssue = located(text("size"), null, text("size.combination"))
 
 		fun size(parameter: String, minimum: Int, maximum: Int, actual: Int): StructureIssue {
-			val subject = Component.literal(parameter).withStyle(ChatFormatting.YELLOW)
-			val detail = if (actual < 0) text("size.unmeasured", subject, number(maximum, ChatFormatting.GREEN)) else text("size.range", subject, number(minimum, ChatFormatting.GREEN), number(maximum, ChatFormatting.GREEN), number(actual, ChatFormatting.RED))
+			val detail = if (actual < 0) text("size.unmeasured", parameter, maximum) else text("size.range", parameter, minimum, maximum, actual)
 			return located(text("size"), null, detail)
 		}
 
@@ -75,14 +74,11 @@ class StructureIssue(val lines: ObjectList<Component>) : PatternError() {
 
 		fun text(key: String, vararg args: Any): MutableComponent = Component.translatable("gtpm.structure.issue.$key", *args)
 
-		private fun number(value: Int, color: ChatFormatting): Component = Component.literal(value.toString()).withStyle(color)
-
 		private fun located(title: Component, failure: PatternDiagnostic?, detail: Component? = null, showFound: Boolean = true): StructureIssue {
-			val lines = ObjectArrayList<Component>(4)
-			lines.add(title.copy().withStyle(ChatFormatting.RED))
-			if (failure != null) lines.add(text("position", number(failure.world.x, ChatFormatting.AQUA), number(failure.world.y, ChatFormatting.AQUA), number(failure.world.z, ChatFormatting.AQUA)).withStyle(ChatFormatting.GRAY))
-			if (detail != null) lines.add(detail.copy().withStyle(ChatFormatting.GRAY))
-			if (showFound) failure?.actual?.let { lines.add(text("found", it.block.name.copy().withStyle(ChatFormatting.RED)).withStyle(ChatFormatting.GRAY)) }
+			val lines = ObjectArrayList<Component>(3)
+			lines.add(if (failure == null) title else title.copy().append(" ").append(text("position", failure.world.x, failure.world.y, failure.world.z)))
+			if (detail != null) lines.add(detail)
+			if (showFound) failure?.actual?.let { lines.add(text("found", it.block.name)) }
 			return StructureIssue(ObjectLists.unmodifiable(lines))
 		}
 	}

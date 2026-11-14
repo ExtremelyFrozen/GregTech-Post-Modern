@@ -1335,7 +1335,7 @@ public class LangHandler {
         provider.add("gtpm.structure.issue.mismatch", "Wrong block");
         provider.add("gtpm.structure.issue.mixed", "Mixed %s");
         provider.add("gtpm.structure.issue.more", "%s (%s kinds)");
-        provider.add("gtpm.structure.issue.position", "Position: %s, %s, %s");
+        provider.add("gtpm.structure.issue.position", "(%s, %s, %s)");
         provider.add("gtpm.structure.issue.shared", "Part used by another multiblock");
         provider.add("gtpm.structure.issue.forbidden", "Forbidden block inside");
         provider.add("gtpm.structure.issue.size", "Invalid size");

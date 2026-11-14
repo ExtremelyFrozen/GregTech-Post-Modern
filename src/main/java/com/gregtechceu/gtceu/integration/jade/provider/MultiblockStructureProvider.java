@@ -48,8 +48,7 @@ public class MultiblockStructureProvider extends MachineInfoProvider<MultiblockC
 
     private static ObjectList<Component> issueLines(MultiblockState state) {
         if (state.error == MultiblockState.UNINIT_ERROR)
-            return ObjectLists.singleton(Component.translatable("gtpm.structure.issue.unchecked")
-                    .withStyle(ChatFormatting.GRAY));
+            return ObjectLists.singleton(Component.translatable("gtpm.structure.issue.unchecked"));
         var result = state.getMatchResult();
         if (result != null && !result.getDiagnostics().isEmpty()) {
             var issue = result.getDiagnostics().getFirst().getIssue();
@@ -58,7 +57,7 @@ public class MultiblockStructureProvider extends MachineInfoProvider<MultiblockC
         if (state.error instanceof StructureIssue issue) return issue.getLines();
         Component message = state.error == null ? Component.translatable("gtpm.structure.issue.condition") :
                 state.error.getErrorInfo();
-        return ObjectLists.singleton(message.copy().withStyle(ChatFormatting.RED));
+        return ObjectLists.singleton(message);
     }
 
     @Override
@@ -77,7 +76,7 @@ public class MultiblockStructureProvider extends MachineInfoProvider<MultiblockC
             for (Tag serialized : data.getList(key + "issue", Tag.TAG_STRING)) {
                 Component line = Component.Serializer.fromJson(serialized.getAsString(),
                         accessor.getLevel().registryAccess());
-                if (line != null) tooltip.add(line);
+                if (line != null) tooltip.add(line.copy().withStyle(ChatFormatting.GRAY));
             }
         }
     }

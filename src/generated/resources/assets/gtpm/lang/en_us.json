@@ -6187,7 +6187,7 @@
     "gtpm.structure.issue.mismatch": "Wrong block",
     "gtpm.structure.issue.mixed": "Mixed %s",
     "gtpm.structure.issue.more": "%s (%s kinds)",
-    "gtpm.structure.issue.position": "Position: %s, %s, %s",
+    "gtpm.structure.issue.position": "(%s, %s, %s)",
     "gtpm.structure.issue.shared": "Part used by another multiblock",
     "gtpm.structure.issue.forbidden": "Forbidden block inside",
     "gtpm.structure.issue.size": "Invalid size",

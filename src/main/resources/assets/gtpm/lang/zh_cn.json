@@ -6174,7 +6174,7 @@
 	"gtpm.structure.issue.mismatch": "方块不符",
 	"gtpm.structure.issue.mixed": "%s不一致",
 	"gtpm.structure.issue.more": "%s 等 %s 种",
-	"gtpm.structure.issue.position": "位置：%s, %s, %s",
+	"gtpm.structure.issue.position": "(%s, %s, %s)",
 	"gtpm.structure.issue.shared": "部件已被其他多方块占用",
 	"gtpm.structure.issue.forbidden": "存在不允许的方块",
 	"gtpm.structure.issue.size": "尺寸不符",
