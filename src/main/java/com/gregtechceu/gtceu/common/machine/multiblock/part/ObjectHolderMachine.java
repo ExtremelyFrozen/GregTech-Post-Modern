@@ -109,17 +109,6 @@ public class ObjectHolderMachine extends MultiblockPartMachine {
     }
 
     @Override
-    public void setFrontFacing(Direction frontFacing) {
-        super.setFrontFacing(frontFacing);
-        var controllers = getControllers();
-        for (var controller : controllers) {
-            if (controller != null && controller.isFormed()) {
-                controller.checkPatternWithLock(getSubstructureName(controller));
-            }
-        }
-    }
-
-    @Override
     public List<RecipeHandlerList> getRecipeHandlers() {
         return List.of(
                 RecipeHandlerList.of(IO.IN, getPaintingColor(), inputItemHandler),

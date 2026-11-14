@@ -15,7 +15,6 @@ import com.gregtechceu.gtceu.api.multiblock.structurepredicate.StructurePredicat
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -259,26 +258,5 @@ public class MultiblockState {
 
     public Collection<BlockPos> getCache() {
         return cache.longStream().mapToObj(BlockPos::of).collect(Collectors.toSet());
-    }
-
-    public void onBlockStateChanged(BlockPos pos, BlockState state) {
-        LongOpenHashSet changedPositions = new LongOpenHashSet(1);
-        changedPositions.add(pos.asLong());
-        onBlockStateChanged(changedPositions);
-    }
-
-    public void onBlockStateChanged(LongOpenHashSet changedPositions) {
-        if (world instanceof ServerLevel serverLevel) {
-            if (lastController != null && changedPositions.contains(controllerPos.asLong()) &&
-                    world.getBlockEntity(controllerPos) != lastController) {
-                lastController.invalidateAllStructures();
-                var data = MultiblockWorldSavedData.getOrCreate(serverLevel);
-                data.unregisterController(lastController);
-                return;
-            }
-            MultiblockControllerMachine controller = getController();
-            if (controller == null) return;
-            MultiblockWorldSavedData.getOrCreate(serverLevel).requestPatternCheck(this, changedPositions);
-        }
     }
 }

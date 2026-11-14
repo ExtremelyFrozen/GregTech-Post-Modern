@@ -504,10 +504,8 @@ public class MultiblockControllerMachine extends MetaMachine {
 
     /**
      * Check a named MultiBlock Pattern. Just checking pattern without any other logic.
-     * Overrides run on the server thread during automatic detection. Callers outside that lifecycle use the lock.
-     * <br>
-     * you should always use {@link MultiblockControllerMachine#checkPatternWithLock(String)} )} and
-     * {@link MultiblockControllerMachine#checkPatternWithTryLock(String)} instead.
+     * Runs synchronously on the server thread for callers that need an immediate result. Automatic detection
+     * queues each named structure independently and invokes overrides against its completed candidate.
      *
      * @return whether it can be formed.
      */
@@ -528,37 +526,6 @@ public class MultiblockControllerMachine extends MetaMachine {
             return checkPattern(candidate.getStructureName()) && checkedPatternMatched;
         } finally {
             checkedPatternState = null;
-        }
-    }
-
-    /**
-     * Check named pattern with a lock.
-     */
-    public boolean checkPatternWithLock(String structureName) {
-        var lock = getPatternLock();
-        lock.lock();
-        try {
-            return checkPattern(structureName);
-        } finally {
-            lock.unlock();
-        }
-    }
-
-    /**
-     * Check named pattern with a try lock
-     *
-     * @return false - checking failed or cant get the lock.
-     */
-    public boolean checkPatternWithTryLock(String structureName) {
-        var lock = getPatternLock();
-        if (lock.tryLock()) {
-            try {
-                return checkPattern(structureName);
-            } finally {
-                lock.unlock();
-            }
-        } else {
-            return false;
         }
     }
 
