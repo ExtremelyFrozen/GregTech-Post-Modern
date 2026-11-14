@@ -2,7 +2,7 @@ dependencies {
     compileOnly(libs.jetbrains.annotations)
     compileOnly(libs.jspecify)
 
-    testApi(libs.testframework.get())
+    testImplementation(libs.testframework.get())
 
     jarJar(api(libs.zstd.get()))
     additionalRuntimeClasspath(libs.zstd)
@@ -11,13 +11,14 @@ dependencies {
         exclude group: 'org.jetbrains', module: 'annotations'
     }
 
-    jarJar(api(forge.ldlib2.get()))
-
     // Registrate
     jarJar(api(forge.registrate.get()))
 
     // Configuration
     jarJar(api(forge.configuration.get()))
+
+    // LDLIB2
+    api(forge.ldlib2.get())
 
     // Recipe Viewers
     compileOnly(forge.bundles.jei)
@@ -72,11 +73,11 @@ dependencies {
     localRuntime(forge.ae2)
     localRuntime(forge.spark)
     localRuntime(forge.modernfix)
-    localRuntime(forge.create) {
-        // Needed to prevent game-test crashes
-        exclude group: "maven.modrinth", module: "journeymap"
-        exclude group: "info.journeymap", module: "journeymap-api-neoforge"
-    }
+//    localRuntime(forge.create) {
+//        // Needed to prevent game-test crashes
+//        exclude group: "maven.modrinth", module: "journeymap"
+//        exclude group: "info.journeymap", module: "journeymap-api-neoforge"
+//    }
 
     // Runtime Recipe Viewers - uncomment whichever one you want to use //
     localRuntime(forge.emi)
