@@ -45,6 +45,13 @@ open class PredicateRule {
 		return if (source == null) StructureIssue.blocks(candidateStates().mapTo(ObjectArrayList()) { it.block }, excluded) else source.description(state, excluded)
 	}
 
+	internal fun requiredDescription(state: MultiblockState, excluded: Block?, scope: RequirementScope): Component? {
+		if ((maxCount >= 0 && state.globalCount.getInt(this) >= maxCount) || (maxLayerCount >= 0 && state.layerCount.getInt(this) >= maxLayerCount)) return null
+		if (minCount > state.globalCount.getInt(this) || minLayerCount > state.layerCount.getInt(this)) return description(state, excluded)
+		val source = source
+		return if (source == null) description(state, excluded) else source.requiredDescription(state, excluded, scope)
+	}
+
 	internal fun diagnose(state: MultiblockState, failure: PatternDiagnostic): PatternDiagnostic {
 		if (maxCount >= 0 && state.globalCount.getInt(this) >= maxCount) return failure.copy(issue = StructureIssue.count(failure, StructureIssue.Count.MAXIMUM, description(state), maxCount, maxCount + 1))
 		if (maxLayerCount >= 0 && state.layerCount.getInt(this) >= maxLayerCount) return failure.copy(issue = StructureIssue.count(failure, StructureIssue.Count.LAYER_MAXIMUM, description(state), maxLayerCount, maxLayerCount + 1))

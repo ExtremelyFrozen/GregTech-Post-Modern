@@ -19,6 +19,8 @@ import it.unimi.dsi.fastutil.objects.ObjectArrayList
 import it.unimi.dsi.fastutil.objects.ObjectList
 import it.unimi.dsi.fastutil.objects.ObjectLists
 
+enum class RequirementScope { POSITION, ALTERNATIVE }
+
 /**
  * A registered structure rule owns its codec, actual match semantics and representative observations.
  * Observations must be pure and safe for concurrent reads after registration; test runs on the world thread and
@@ -48,6 +50,9 @@ interface StructurePredicate {
 
 	/** Describes visible candidates in the owning machine's context; null means no concrete candidate remains. */
 	fun description(state: MultiblockState, excluded: Block? = null): Component? = if (isAny()) null else StructureIssue.blocks(blockCandidates(), excluded)
+
+	/** Main-thread failure guidance; alternative-only abilities are exposed by their unmet count restrictions. */
+	fun requiredDescription(state: MultiblockState, excluded: Block?, scope: RequirementScope): Component? = description(state, excluded)
 
 	/**
 	 * Runs on the world thread at the failed cell, after count restoration and before publication. The returned

@@ -64,12 +64,15 @@ open class PatternPredicate {
 		for (rule in limited) (rule.observedPredicate as? CombinedPredicate)?.preparedBranches?.forEach { it.collectDependencies(state, positions) }
 	}
 
-	open fun description(state: MultiblockState, excluded: Block? = null): Component? = StructureIssue.alternatives(
-		ObjectArrayList<Component?>().also { labels ->
-			for (rule in common) labels.add(rule.description(state, excluded))
-			for (rule in limited) labels.add(rule.description(state, excluded))
-		},
-	)
+	open fun description(state: MultiblockState, excluded: Block? = null): Component? {
+		val scope = if (common.size + limited.size == 1) RequirementScope.POSITION else RequirementScope.ALTERNATIVE
+		return StructureIssue.alternatives(
+			ObjectArrayList<Component?>().also { labels ->
+				for (rule in common) labels.add(rule.requiredDescription(state, excluded, scope))
+				for (rule in limited) labels.add(rule.requiredDescription(state, excluded, scope))
+			},
+		)
+	}
 
 	/** Uses the actual candidate family, never an unrelated first OR branch, to explain domain failures. */
 	open fun diagnose(state: MultiblockState, failure: PatternDiagnostic): PatternDiagnostic {

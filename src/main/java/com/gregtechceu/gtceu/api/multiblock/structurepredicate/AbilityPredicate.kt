@@ -38,6 +38,7 @@ data class AbilityPredicate(val abilities: ObjectList<PartAbility>, val range: O
 	constructor(abilities: ObjectList<PartAbility>) : this(abilities, Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty())
 
 	override fun type(): StructurePredicateType<*> = TYPE
+	override fun requiredDescription(state: MultiblockState, excluded: Block?, scope: RequirementScope): Component? = if (scope == RequirementScope.POSITION) description(state, excluded) else null
 	override fun description(state: MultiblockState, excluded: Block?): Component? {
 		val existing = excluded?.takeIf { observeCandidate(it.defaultBlockState()).matched }
 		return StructureIssue.alternatives(

@@ -29,6 +29,10 @@ data class RestrictedPredicate(val predicate: StructurePredicate, val minCount: 
 	override fun collectDependencies(state: MultiblockState, positions: LongSet) = predicate.collectDependencies(state, positions)
 	override fun type(): StructurePredicateType<*> = TYPE
 	override fun description(state: MultiblockState, excluded: Block?): Component? = predicate.description(state, excluded)
+	override fun requiredDescription(state: MultiblockState, excluded: Block?, scope: RequirementScope): Component? {
+		if (!hasCapacity(state)) return null
+		return if (minCount.orElse(0) > state.structureGlobalCount.getInt(this) || minCountByLayer.orElse(0) > state.structureLayerCount.getInt(this)) predicate.description(state, excluded) else predicate.requiredDescription(state, excluded, scope)
+	}
 	override fun diagnose(state: MultiblockState, failure: PatternDiagnostic): PatternDiagnostic {
 		if (predicate.observeCandidate(state.blockState).matched) {
 			if (maxCount.isPresent && state.structureGlobalCount.getInt(this) >= maxCount.get()) return failure.copy(issue = StructureIssue.count(failure, StructureIssue.Count.MAXIMUM, description(state), maxCount.get(), maxCount.get() + 1))

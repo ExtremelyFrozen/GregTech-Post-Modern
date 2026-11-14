@@ -28,6 +28,12 @@ interface AlternativePredicate : StructurePredicate {
 
 	override fun description(state: MultiblockState, excluded: Block?): Component? = StructureIssue.alternatives(alternatives(state).mapTo(ObjectArrayList()) { it.description(state, excluded) })
 
+	override fun requiredDescription(state: MultiblockState, excluded: Block?, scope: RequirementScope): Component? {
+		val alternatives = alternatives(state)
+		val childScope = if (alternatives.size > 1) RequirementScope.ALTERNATIVE else scope
+		return StructureIssue.alternatives(alternatives.mapTo(ObjectArrayList()) { it.requiredDescription(state, excluded, childScope) })
+	}
+
 	override fun diagnose(state: MultiblockState, failure: PatternDiagnostic): PatternDiagnostic {
 		for (child in alternatives(state)) if (child.observeCandidate(state.blockState).matched) return child.diagnose(state, failure)
 		return failure.copy(issue = StructureIssue.mismatch(failure, state.predicate.description(state, failure.actual?.block)))
