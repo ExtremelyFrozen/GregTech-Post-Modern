@@ -11,6 +11,7 @@ import com.gregtechceu.gtceu.api.multiblock.structurepredicate.PredicateRule
 import com.gregtechceu.gtceu.api.multiblock.structurepredicate.RestrictedPredicate
 import com.gregtechceu.gtceu.api.multiblock.structurepredicate.StructurePredicate
 
+import net.minecraft.ChatFormatting
 import net.minecraft.network.chat.Component
 import net.minecraft.world.level.block.Block
 
@@ -38,7 +39,7 @@ internal object MultiblockStructureText {
 		CONDITION("condition", true),
 		;
 
-		fun text(vararg args: Any): Component = Component.translatable("gtpm.structure.issue.$key", *args)
+		fun text(vararg args: Any): Component = Component.translatable("gtpm.structure.issue.$key", *args).withStyle(ChatFormatting.RED)
 	}
 	private enum class Rank { BLOCK, MACHINE, ABILITY }
 	private data class Label(val text: Component, val rank: Rank)
@@ -46,9 +47,9 @@ internal object MultiblockStructureText {
 
 	@JvmStatic
 	fun lines(state: MultiblockState): ObjectList<Component> {
-		if (state.error === MultiblockState.UNINIT_ERROR) return ObjectLists.singleton(text("unchecked"))
+		if (state.error === MultiblockState.UNINIT_ERROR) return ObjectLists.singleton(text("unchecked").withStyle(ChatFormatting.GRAY))
 		val issue = state.matchResult?.diagnostics?.firstOrNull()
-			?: return ObjectLists.singleton((state.error as? PatternStringError)?.errorInfo ?: Kind.CONDITION.text())
+			?: return ObjectLists.singleton((state.error as? PatternStringError)?.errorInfo?.copy()?.withStyle(ChatFormatting.RED) ?: Kind.CONDITION.text())
 		val expected = issue.expected
 		val count = when {
 			state.error is SinglePredicateError -> singleCount(state, state.error as SinglePredicateError)
@@ -76,28 +77,28 @@ internal object MultiblockStructureText {
 		} else {
 			count?.subject ?: Component.empty()
 		}
-		lines.add(kind.text(subject))
-		if (kind.located) lines.add(text("position", issue.world.x, issue.world.y, issue.world.z))
+		lines.add(kind.text(subject.copy().withStyle(ChatFormatting.YELLOW)))
+		if (kind.located) lines.add(text("position", number(issue.world.x, ChatFormatting.AQUA), number(issue.world.y, ChatFormatting.AQUA), number(issue.world.z, ChatFormatting.AQUA)).withStyle(ChatFormatting.GRAY))
 		when {
-			count != null -> lines.add(if (kind == Kind.TOO_FEW || kind == Kind.TOO_FEW_LAYER) text("at_least", count.limit, count.actual) else text("at_most", count.limit))
+			count != null -> lines.add((if (kind == Kind.TOO_FEW || kind == Kind.TOO_FEW_LAYER) text("at_least", number(count.limit, ChatFormatting.GREEN), number(count.actual, ChatFormatting.RED)) else text("at_most", number(count.limit, ChatFormatting.GREEN))).withStyle(ChatFormatting.GRAY))
 
-			kind == Kind.MISMATCH -> label(state.predicate)?.let { lines.add(text("expected", it)) }
+			kind == Kind.MISMATCH -> label(state.predicate)?.let { lines.add(text("expected", it.copy().withStyle(ChatFormatting.GREEN)).withStyle(ChatFormatting.GRAY)) }
 
 			kind == Kind.SIZE -> {
 				val measurement = state.lastController.getPattern(state.structureName).getMeasurements().firstOrNull { issue.path == "$/measurement:${it.id}" }
 				if (measurement == null) {
-					lines.add(text("size.combination"))
+					lines.add(text("size.combination").withStyle(ChatFormatting.GRAY))
 				} else if (expected.startsWith("measurement boundary")) {
-					lines.add(text("size.unmeasured", measurement.parameter, measurement.maximum))
+					lines.add(text("size.unmeasured", Component.literal(measurement.parameter).withStyle(ChatFormatting.YELLOW), number(measurement.maximum, ChatFormatting.GREEN)).withStyle(ChatFormatting.GRAY))
 				} else {
 					val measured = abs(issue.local.depth - measurement.start.depth) + abs(issue.local.height - measurement.start.height) + abs(issue.local.width - measurement.start.width)
-					lines.add(text("size.range", measurement.parameter, measurement.minimum, measurement.maximum, measured))
+					lines.add(text("size.range", Component.literal(measurement.parameter).withStyle(ChatFormatting.YELLOW), number(measurement.minimum, ChatFormatting.GREEN), number(measurement.maximum, ChatFormatting.GREEN), number(measured, ChatFormatting.RED)).withStyle(ChatFormatting.GRAY))
 				}
 			}
 
-			kind == Kind.CONDITION -> lines.add(if (expected == "orientation") text("orientation") else Component.translatable(expected))
+			kind == Kind.CONDITION -> lines.add((if (expected == "orientation") text("orientation") else Component.translatable(expected)).withStyle(ChatFormatting.RED))
 		}
-		if (kind != Kind.UNLOADED && kind != Kind.SHARED) issue.actual?.let { lines.add(text("found", it.block.name)) }
+		if (kind != Kind.UNLOADED && kind != Kind.SHARED) issue.actual?.let { lines.add(text("found", it.block.name.copy().withStyle(ChatFormatting.RED)).withStyle(ChatFormatting.GRAY)) }
 		return lines
 	}
 
@@ -208,5 +209,6 @@ internal object MultiblockStructureText {
 		}
 	}
 
-	private fun text(key: String, vararg args: Any): Component = Component.translatable("gtpm.structure.issue.$key", *args)
+	private fun number(value: Int, color: ChatFormatting): Component = Component.literal(value.toString()).withStyle(color)
+	private fun text(key: String, vararg args: Any) = Component.translatable("gtpm.structure.issue.$key", *args)
 }
