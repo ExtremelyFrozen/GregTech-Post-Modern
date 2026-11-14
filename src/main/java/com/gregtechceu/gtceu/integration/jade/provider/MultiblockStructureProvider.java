@@ -2,6 +2,8 @@ package com.gregtechceu.gtceu.integration.jade.provider;
 
 import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
+import com.gregtechceu.gtceu.api.multiblock.MultiblockState;
+import com.gregtechceu.gtceu.api.multiblock.error.StructureIssue;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.nbt.CompoundTag;
@@ -12,6 +14,8 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.entity.BlockEntity;
 
+import it.unimi.dsi.fastutil.objects.ObjectList;
+import it.unimi.dsi.fastutil.objects.ObjectLists;
 import snownee.jade.api.BlockAccessor;
 import snownee.jade.api.ITooltip;
 import snownee.jade.api.config.IPluginConfig;
@@ -34,12 +38,27 @@ public class MultiblockStructureProvider extends MachineInfoProvider<MultiblockC
             data.putBoolean(key + "formed", formed);
             if (formed) continue;
             ListTag issue = new ListTag();
-            for (Component line : MultiblockStructureText.lines(machine.getMultiblockState(name)))
+            for (Component line : issueLines(machine.getMultiblockState(name)))
                 issue.add(StringTag.valueOf(Component.Serializer.toJson(line, machine.getLevel().registryAccess())));
             data.put(key + "issue", issue);
         }
         data.put("structures", structures);
         return data;
+    }
+
+    private static ObjectList<Component> issueLines(MultiblockState state) {
+        if (state.error == MultiblockState.UNINIT_ERROR)
+            return ObjectLists.singleton(Component.translatable("gtpm.structure.issue.unchecked")
+                    .withStyle(ChatFormatting.GRAY));
+        var result = state.getMatchResult();
+        if (result != null && !result.getDiagnostics().isEmpty()) {
+            var issue = result.getDiagnostics().getFirst().getIssue();
+            if (issue != null) return issue.getLines();
+        }
+        if (state.error instanceof StructureIssue issue) return issue.getLines();
+        Component message = state.error == null ? Component.translatable("gtpm.structure.issue.condition") :
+                state.error.getErrorInfo();
+        return ObjectLists.singleton(message.copy().withStyle(ChatFormatting.RED));
     }
 
     @Override

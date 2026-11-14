@@ -25,7 +25,7 @@ internal class PreparedPatternEvaluator(private val input: PreparedPatternInput,
 	fun evaluate(): PreparedPatternResult {
 		input.checkpoint()
 		input.initialScopes.forEach { scopes.computeIfAbsent(it.name) { Object2IntOpenHashMap() } }
-		if (!input.orientationValid) problem(-1, "orientation")
+		if (!input.orientationValid) problem(-1, "orientation", kind = PreparedProblemKind.ORIENTATION)
 		var previousLayer = -1
 		for (index in indices ?: IntArray(input.cells.size) { it }) {
 			input.checkpoint()
@@ -34,14 +34,13 @@ internal class PreparedPatternEvaluator(private val input: PreparedPatternInput,
 			val cell = input.cells[index]
 			if (previousLayer != input.layerRuns[index]) {
 				if (previousLayer >= 0 && !minimums(layer, true)) {
-					problem(index, "layer minimum", atCenter = true)
 					break
 				}
 				layer.fill(-1)
 				previousLayer = input.layerRuns[index]
 			}
 			if (!cell.loaded) {
-				problem(index, "loaded position")
+				problem(index, "loaded position", kind = PreparedProblemKind.UNLOADED)
 				continue
 			}
 			io = 0
@@ -55,6 +54,11 @@ internal class PreparedPatternEvaluator(private val input: PreparedPatternInput,
 						!cell.directional -> "gtpm.structure.issue.orientation"
 						else -> "multiblocked.pattern.error.share"
 					},
+					kind = when {
+						!acceptedPosition -> PreparedProblemKind.PREDICATE
+						!cell.directional -> PreparedProblemKind.ORIENTATION
+						else -> PreparedProblemKind.SHARED
+					},
 				)
 				continue
 			}
@@ -62,7 +66,7 @@ internal class PreparedPatternEvaluator(private val input: PreparedPatternInput,
 				val previous = properties.put(property.key, property.value)
 				propertyReferences[property.key] = property
 				if (previous >= 0 && previous != property.value) {
-					problem(index, "consistent ${property.key}", property.key, 1)
+					problem(index, "consistent ${property.key}", property.key, 1, kind = PreparedProblemKind.MIXED)
 				}
 			}
 			val aliases = when (val root = cell.root) {
@@ -81,7 +85,7 @@ internal class PreparedPatternEvaluator(private val input: PreparedPatternInput,
 			}
 			accepted.add(PreparedAcceptedCell(index, observation, io))
 		}
-		if (problems.isEmpty && (!minimums(layer, true) || !minimums(global, false))) problem(-1, "minimum count", difference = 1)
+		if (problems.isEmpty && minimums(layer, true)) minimums(global, false)
 		for (requirement in input.requirements) {
 			if (!evaluateConstraints) break
 			if (problems.isNotEmpty()) break
@@ -384,7 +388,10 @@ internal class PreparedPatternEvaluator(private val input: PreparedPatternInput,
 	private fun minimums(values: IntArray, byLayer: Boolean): Boolean {
 		for (index in values.indices) {
 			val minimum = if (byLayer) input.counters[index].layerMinimum else input.counters[index].minimum
-			if (values[index] in 0..<minimum) return false
+			if (values[index] in 0..<minimum) {
+				problem(currentCell, if (byLayer) "layer minimum" else "minimum count", difference = minimum - values[index], kind = PreparedProblemKind.MINIMUM, counter = index, scope = if (byLayer) PreparedCountScope.LAYER else PreparedCountScope.GLOBAL, limit = minimum, actual = values[index])
+				return false
+			}
 		}
 		return true
 	}
@@ -402,14 +409,15 @@ internal class PreparedPatternEvaluator(private val input: PreparedPatternInput,
 				cell?.depth ?: instance?.depth ?: 0, cell?.height ?: instance?.height ?: 0, cell?.width ?: instance?.width ?: 0,
 				cell?.position ?: instance?.position ?: input.center, requirement.message, requirement.fact,
 				if (count < requirement.minimum) requirement.minimum - count else requirement.maximum - count,
+				PreparedProblemKind.CONSTRAINT, limit = if (count < requirement.minimum) requirement.minimum else requirement.maximum, actual = count,
 			),
 		)
 	}
 
-	private fun problem(index: Int, expected: String, fact: String = "", difference: Int = 0, atCenter: Boolean = false) {
+	private fun problem(index: Int, expected: String, fact: String = "", difference: Int = 0, kind: PreparedProblemKind = PreparedProblemKind.PREDICATE, counter: Int = -1, scope: PreparedCountScope = PreparedCountScope.GLOBAL, limit: Int = 0, actual: Int = 0) {
 		if (problems.isNotEmpty()) return
 		val cell = input.cells.getOrNull(index)
-		problems.add(PreparedPatternProblem(index, cell?.path ?: "$", cell?.repeatPath ?: "", cell?.depth ?: 0, cell?.height ?: 0, cell?.width ?: 0, if (atCenter) input.center else cell?.position ?: input.center, expected, fact, difference))
+		problems.add(PreparedPatternProblem(index, cell?.path ?: "$", cell?.repeatPath ?: "", cell?.depth ?: 0, cell?.height ?: 0, cell?.width ?: 0, cell?.position ?: input.center, expected, fact, difference, kind, counter, scope, limit, actual))
 	}
 
 	private fun failed(node: PreparedNode): PreparedObservation = PreparedObservation(node.id, false)

@@ -4,6 +4,8 @@ import com.gregtechceu.gtceu.api.multiblock.MultiblockState
 import com.gregtechceu.gtceu.api.multiblock.structurepredicate.*
 import com.gregtechceu.gtceu.common.machine.multiblock.part.RotorHolderPartMachine
 
+import net.minecraft.network.chat.Component
+
 import it.unimi.dsi.fastutil.longs.LongSet
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap
 import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap
@@ -46,6 +48,15 @@ internal class PreparedRuleCompiler(private val capturedBlocks: CapturedPatternB
 		var layer = this
 		while (id < layer.valueOffset) layer = layer.confirmed!!
 		return layer.values[id - layer.valueOffset]
+	}
+
+	fun counterDescription(id: Int): Component {
+		var layer = this
+		while (id < layer.counterOffset) layer = layer.confirmed!!
+		return when (val key = layer.counterKeys[id - layer.counterOffset]) {
+			is PredicateRule -> key.description()
+			else -> (key as StructurePredicate).description()
+		}
 	}
 
 	private fun native(id: Int): NativePreparedNode {

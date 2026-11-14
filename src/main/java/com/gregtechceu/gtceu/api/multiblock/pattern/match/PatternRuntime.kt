@@ -4,6 +4,7 @@ import com.gregtechceu.gtceu.api.block.ActiveBlock
 import com.gregtechceu.gtceu.api.capability.recipe.IO
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState
 import com.gregtechceu.gtceu.api.multiblock.error.PatternStringError
+import com.gregtechceu.gtceu.api.multiblock.error.StructureIssue
 import com.gregtechceu.gtceu.api.multiblock.pattern.constraint.PatternConstraintEvaluator
 import com.gregtechceu.gtceu.api.multiblock.pattern.layout.PatternAxis
 import com.gregtechceu.gtceu.api.multiblock.pattern.layout.PatternLayoutCell
@@ -15,6 +16,7 @@ import com.gregtechceu.gtceu.api.multiblock.pattern.preparation.PatternWorldColl
 
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
+import net.minecraft.network.chat.Component
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
@@ -57,6 +59,7 @@ internal class PatternRuntime(private val pattern: MultiBlockPattern, private va
 					"measured $parameter",
 					parameter,
 					requested.toInt() - measured.getValue(parameter),
+					StructureIssue.size(parameter, requested.toInt(), requested.toInt(), measured.getValue(parameter)),
 				)
 				state.setError(PatternStringError("gtpm.multiblock.pattern.error.constraint"))
 				return PatternMatchResult(false, state.facts, ObjectLists.singleton(problem)).also { state.matchResult = it }
@@ -78,16 +81,17 @@ internal class PatternRuntime(private val pattern: MultiBlockPattern, private va
 		facts.set("pattern.choices", choices)
 		facts.set("pattern.instance_repetitions", instanceCounts)
 		facts.set("pattern.repetitions", repetitions.copyOf())
-		fun error(path: String, repeatPath: String, depth: Int, height: Int, width: Int, pos: BlockPos, expected: String, fact: String = "", difference: Int = 0) {
-			errors.add(PatternDiagnostic(path, repeatPath, PatternCoordinate(depth, height, width), pos, if (state.world.isLoaded(pos)) state.world.getBlockState(pos) else null, expected, fact, difference))
+		fun error(path: String, repeatPath: String, depth: Int, height: Int, width: Int, pos: BlockPos, expected: String, fact: String = "", difference: Int = 0, explain: (PatternDiagnostic) -> StructureIssue = { state.error as StructureIssue }) {
+			val failure = PatternDiagnostic(path, repeatPath, PatternCoordinate(depth, height, width), pos, if (state.world.isLoaded(pos)) state.world.getBlockState(pos) else null, expected, fact, difference)
+			errors.add(failure.copy(issue = explain(failure)))
 		}
 		if ((flipped && !definition.orientation.allowMirror) || (front.axis == Direction.Axis.Y && !definition.orientation.allowExtendedFacing)) {
-			error("$", "", 0, 0, 0, center, "orientation")
+			error("$", "", 0, 0, 0, center, "orientation", explain = { StructureIssue.condition(it, StructureIssue.text("orientation")) })
 		}
 		var previousDepth = 0
 		val layout = pattern.expandLayoutForMatch(work, repetitions, choices, measured)
 		facts.set("pattern.measurements", measured)
-		layout.rejections.forEach { rejection -> error("$", "", 0, 0, 0, center, rejection.message) }
+		layout.rejections.forEach { rejection -> error("$", "", 0, 0, 0, center, rejection.message, explain = { StructureIssue.size() }) }
 		if (errors.isNotEmpty()) {
 			val result = PatternMatchResult(false, facts, ObjectLists.unmodifiable(errors))
 			lastResult = result
@@ -150,7 +154,7 @@ internal class PatternRuntime(private val pattern: MultiBlockPattern, private va
 			cellIndex++
 			if (!(if (cached == null) state.update(position, predicate) else state.updateCached(position, predicate, cached.block, cached.entity))) {
 				state.addPosCache(position)
-				error(path, repeatPath, depth, height, width, position, "loaded position")
+				error(path, repeatPath, depth, height, width, position, "loaded position", explain = StructureIssue::unloaded)
 				break
 			}
 			state.io = IO.BOTH
@@ -178,7 +182,13 @@ internal class PatternRuntime(private val pattern: MultiBlockPattern, private va
 					else -> "multiblocked.pattern.error.share"
 				}
 				val failure = PatternDiagnostic(path, repeatPath, PatternCoordinate(depth, height, width), position, if (state.world.isLoaded(position)) state.world.getBlockState(position) else null, expected, "", 0)
-				errors.add(predicate.diagnose(failure))
+				errors.add(
+					when {
+						!accepted -> predicate.diagnose(state, failure)
+						!directional -> failure.copy(issue = StructureIssue.condition(failure, StructureIssue.text("orientation")))
+						else -> failure.copy(issue = StructureIssue.shared(failure))
+					},
+				)
 				break
 			}
 			val positionFacts = ObjectOpenHashSet<String>()
@@ -193,6 +203,7 @@ internal class PatternRuntime(private val pattern: MultiBlockPattern, private va
 						depth,
 						height,
 						width, position, "consistent $key", key, 1,
+						explain = { predicate.diagnose(state, it).issue ?: StructureIssue.mixed(it, Component.translatable(key)) },
 					)
 				}
 				facts.set(key, value)
@@ -233,7 +244,10 @@ internal class PatternRuntime(private val pattern: MultiBlockPattern, private va
 						val height = cell?.height ?: instance?.height ?: 0
 						val width = cell?.width ?: instance?.width ?: 0
 						val pos = center.offset(pattern.getActualRelativeOffset(width, height, depth, front, up, flipped))
-						error(entry.key.substringAfter('@', "$/constraint:${entry.key}"), cell?.repeatPath ?: instance?.path ?: "", depth, height, width, pos, constraint.message, constraint.fact, if (count < constraint.minimum) constraint.minimum - count else constraint.maximum - count)
+						error(
+							entry.key.substringAfter('@', "$/constraint:${entry.key}"), cell?.repeatPath ?: instance?.path ?: "", depth, height, width, pos, constraint.message, constraint.fact, if (count < constraint.minimum) constraint.minimum - count else constraint.maximum - count,
+							explain = { StructureIssue.count(it, if (count < constraint.minimum) StructureIssue.Count.MINIMUM else StructureIssue.Count.MAXIMUM, Component.translatable(constraint.fact), if (count < constraint.minimum) constraint.minimum else constraint.maximum, count) },
+						)
 					}
 				}
 			}
@@ -298,7 +312,8 @@ internal class PatternRuntime(private val pattern: MultiBlockPattern, private va
 					return true
 				}
 				search.failurePath?.let { path ->
-					val error = PatternDiagnostic(path, "", PatternCoordinate(0, 0, 0), center, null, "unique choice branch", "", 1)
+					val failure = PatternDiagnostic(path, "", PatternCoordinate(0, 0, 0), center, null, "unique choice branch", "", 1)
+					val error = failure.copy(issue = StructureIssue.condition(failure, Component.translatable("gtpm.multiblock.pattern.error.ambiguous_choice")))
 					lastResult = PatternMatchResult(false, state.facts, ObjectLists.singleton(error), state.matchResult?.matchedPositions ?: 0)
 					state.matchResult = lastResult
 					state.setError(PatternStringError("gtpm.multiblock.pattern.error.ambiguous_choice"))
@@ -329,7 +344,8 @@ internal class PatternRuntime(private val pattern: MultiBlockPattern, private va
 				if (explore()) {
 					if (branch.priority.isNotEmpty()) return true
 					if (solution != null) {
-						val error = PatternDiagnostic(choice.path, "", PatternCoordinate(0, 0, 0), center, null, "unique choice branch", "", 1)
+						val failure = PatternDiagnostic(choice.path, "", PatternCoordinate(0, 0, 0), center, null, "unique choice branch", "", 1)
+						val error = failure.copy(issue = StructureIssue.condition(failure, Component.translatable("gtpm.multiblock.pattern.error.ambiguous_choice")))
 						lastResult = PatternMatchResult(false, state.facts, ObjectLists.singleton(error), state.matchResult.matchedPositions)
 						state.setMatchResult(lastResult)
 						state.setError(PatternStringError("gtpm.multiblock.pattern.error.ambiguous_choice"))

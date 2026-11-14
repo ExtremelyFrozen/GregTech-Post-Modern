@@ -1,9 +1,11 @@
 package com.gregtechceu.gtceu.api.multiblock.pattern.match
 
+import com.gregtechceu.gtceu.api.multiblock.error.StructureIssue
+
 import net.minecraft.core.BlockPos
 import net.minecraft.world.level.block.state.BlockState
 
 import org.jspecify.annotations.Nullable
 
 /** A single actionable mismatch with both local and world coordinates. */
-data class PatternDiagnostic(val path: String, val repeatPath: String, val local: PatternCoordinate, val world: BlockPos, val actual: @Nullable BlockState?, val expected: String, val missingFact: String, val difference: Int)
+data class PatternDiagnostic(val path: String, val repeatPath: String, val local: PatternCoordinate, val world: BlockPos, val actual: @Nullable BlockState?, val expected: String, val missingFact: String, val difference: Int, val issue: StructureIssue? = null)

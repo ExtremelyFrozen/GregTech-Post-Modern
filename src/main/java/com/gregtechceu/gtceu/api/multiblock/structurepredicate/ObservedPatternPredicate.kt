@@ -4,6 +4,7 @@ import com.gregtechceu.gtceu.api.capability.recipe.IO
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition
 import com.gregtechceu.gtceu.api.multiblock.MultiblockBlockInfo
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState
+import com.gregtechceu.gtceu.api.multiblock.error.StructureIssue
 import com.gregtechceu.gtceu.api.multiblock.pattern.match.PatternDiagnostic
 
 import net.minecraft.world.level.block.Block
@@ -11,6 +12,7 @@ import net.minecraft.world.level.block.state.BlockState
 
 import it.unimi.dsi.fastutil.objects.ObjectList
 
+import java.util.function.BiFunction
 import java.util.function.Function
 import java.util.function.Supplier
 
@@ -21,7 +23,7 @@ open class ObservedPatternPredicate(
 	private val kind: String = "",
 	private val candidateObservation: Function<BlockState, PatternObservation>? = null,
 	states: Supplier<ObjectList<BlockState>>? = null,
-	private val diagnostic: Function<PatternDiagnostic, PatternDiagnostic> = Function.identity(),
+	private val diagnostic: BiFunction<MultiblockState, PatternDiagnostic, PatternDiagnostic>? = null,
 ) : PatternPredicate(
 	{ state -> observer.apply(state).matched },
 	Supplier {
@@ -47,7 +49,7 @@ open class ObservedPatternPredicate(
 	override fun isAir(): Boolean = kind == "air" || super.isAir()
 	override fun addCache(): Boolean = kind != "any" && super.addCache()
 	fun observe(state: MultiblockState): PatternObservation = if (canAcceptObserved(state)) observer.apply(state).withAliases(facts) else PatternObservation.of(false)
-	override fun diagnose(failure: PatternDiagnostic): PatternDiagnostic = diagnostic.apply(failure)
+	override fun diagnose(state: MultiblockState, failure: PatternDiagnostic): PatternDiagnostic = diagnostic?.apply(state, failure) ?: failure.copy(issue = StructureIssue.mismatch(failure, description()))
 
 	/** Applies legacy limit/IO metadata only after a pure observation has succeeded. */
 	open fun accept(state: MultiblockState, observation: PatternObservation): Boolean = observation.matched && acceptObservation(state, observation) && acceptObserved(state)

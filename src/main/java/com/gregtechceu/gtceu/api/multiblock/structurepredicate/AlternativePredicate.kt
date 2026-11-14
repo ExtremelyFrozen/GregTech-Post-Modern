@@ -3,8 +3,11 @@ package com.gregtechceu.gtceu.api.multiblock.structurepredicate
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition
 import com.gregtechceu.gtceu.api.multiblock.MultiblockBlockInfo
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState
+import com.gregtechceu.gtceu.api.multiblock.error.StructureIssue
 import com.gregtechceu.gtceu.api.multiblock.pattern.layout.PatternLayout
+import com.gregtechceu.gtceu.api.multiblock.pattern.match.PatternDiagnostic
 
+import net.minecraft.network.chat.Component
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.BlockState
 
@@ -22,6 +25,13 @@ import it.unimi.dsi.fastutil.objects.ObjectList
 interface AlternativePredicate : StructurePredicate {
 	/** Returns the actual ordered branches; null state requests the context-free candidate domain. */
 	fun alternatives(state: MultiblockState?): ObjectList<StructurePredicate>
+
+	override fun description(): Component = StructureIssue.alternatives(alternatives(null).mapTo(ObjectArrayList()) { it.description() })
+
+	override fun diagnose(state: MultiblockState, failure: PatternDiagnostic): PatternDiagnostic {
+		for (child in alternatives(state)) if (child.observeCandidate(state.blockState).matched) return child.diagnose(state, failure)
+		return failure.copy(issue = StructureIssue.mismatch(failure, description()))
+	}
 
 	override fun collectDependencies(state: MultiblockState, positions: LongSet) {
 		positions.add(state.pos.asLong())

@@ -4,6 +4,8 @@ import com.gregtechceu.gtceu.api.block.MetaMachineBlock
 import com.gregtechceu.gtceu.api.machine.multiblock.PartAbility
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState
 import com.gregtechceu.gtceu.api.multiblock.autobuild.BlockCategories
+import com.gregtechceu.gtceu.api.multiblock.error.StructureIssue
+import com.gregtechceu.gtceu.api.multiblock.pattern.match.PatternDiagnostic
 import com.gregtechceu.gtceu.common.machine.multiblock.part.RotorHolderPartMachine
 import com.gregtechceu.gtceu.common.registry.GTRegistration.REGISTRATE
 
@@ -27,6 +29,15 @@ data class RotorHolderPredicate(val tier: Int) : CategoryPredicate {
 	}
 	override val category: String get() = BlockCategories.ROTOR_HOLDER
 	override fun type(): StructurePredicateType<*> = TYPE
+	override fun diagnose(state: MultiblockState, failure: PatternDiagnostic): PatternDiagnostic {
+		val rotor = state.blockEntity as? RotorHolderPartMachine
+		if (rotor == null || rotor.tier != tier) return failure.copy(issue = StructureIssue.mismatch(failure, description()))
+		val front = state.pos.relative(rotor.self().frontFacing)
+		state.recordRead(front)
+		val loaded = state.world.isLoaded(front)
+		val dependency = failure.copy(world = front, actual = if (loaded) state.world.getBlockState(front) else null)
+		return dependency.copy(issue = if (loaded) StructureIssue.forbidden(dependency) else StructureIssue.unloaded(dependency))
+	}
 	override fun observeCandidate(candidateState: BlockState): PatternObservation = PatternObservation.of(
 		(candidateState.block as? MetaMachineBlock)?.definition?.tier == tier && PartAbility.ROTOR_HOLDER.isApplicable(candidateState.block),
 	)

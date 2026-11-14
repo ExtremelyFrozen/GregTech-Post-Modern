@@ -8,10 +8,13 @@ import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMultiPart
 import com.gregtechceu.gtceu.api.machine.multiblock.PartAbility
 import com.gregtechceu.gtceu.api.multiblock.MultiblockBlockInfo
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState
+import com.gregtechceu.gtceu.api.multiblock.error.StructureIssue
+import com.gregtechceu.gtceu.api.multiblock.pattern.match.PatternDiagnostic
 import com.gregtechceu.gtceu.api.multiblock.util.RelativeDirection
 import com.gregtechceu.gtceu.common.registry.GTRegistration.REGISTRATE
 
 import net.minecraft.core.registries.BuiltInRegistries
+import net.minecraft.network.chat.Component
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.BlockState
 
@@ -35,6 +38,10 @@ data class AbilityPredicate(val abilities: ObjectList<PartAbility>, val range: O
 	constructor(abilities: ObjectList<PartAbility>) : this(abilities, Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty())
 
 	override fun type(): StructurePredicateType<*> = TYPE
+	override fun description(): Component = StructureIssue.alternatives(abilities.mapTo(ObjectArrayList()) { Component.translatable("gtpm.multiblock.ability.${it.name}") })
+	override fun diagnose(state: MultiblockState, failure: PatternDiagnostic): PatternDiagnostic = failure.copy(
+		issue = if (facing.isPresent && observeCandidate(state.blockState).matched) StructureIssue.condition(failure, StructureIssue.text("orientation")) else StructureIssue.mismatch(failure, description()),
+	)
 	override fun observeCandidate(candidateState: BlockState): PatternObservation {
 		val block = candidateState.block as? MetaMachineBlock
 		return observe(candidateState, block?.definition?.tier, block != null)

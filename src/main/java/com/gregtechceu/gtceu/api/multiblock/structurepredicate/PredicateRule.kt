@@ -5,6 +5,8 @@ import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition
 import com.gregtechceu.gtceu.api.multiblock.MultiblockBlockInfo
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState
 import com.gregtechceu.gtceu.api.multiblock.error.SinglePredicateError
+import com.gregtechceu.gtceu.api.multiblock.error.StructureIssue
+import com.gregtechceu.gtceu.api.multiblock.pattern.match.PatternDiagnostic
 import com.gregtechceu.gtceu.data.lang.LangHandler
 
 import net.minecraft.network.chat.Component
@@ -37,6 +39,14 @@ open class PredicateRule {
 
 	/** Retains the real observed runtime when OR/copy flattens its metadata rule. */
 	internal var observedPredicate: ObservedPatternPredicate? = null
+
+	fun description(): Component = source?.description() ?: StructureIssue.blocks(candidateStates().mapTo(ObjectArrayList()) { it.block })
+
+	internal fun diagnose(state: MultiblockState, failure: PatternDiagnostic): PatternDiagnostic {
+		if (maxCount >= 0 && state.globalCount.getInt(this) >= maxCount) return failure.copy(issue = StructureIssue.count(failure, StructureIssue.Count.MAXIMUM, description(), maxCount, maxCount + 1))
+		if (maxLayerCount >= 0 && state.layerCount.getInt(this) >= maxLayerCount) return failure.copy(issue = StructureIssue.count(failure, StructureIssue.Count.LAYER_MAXIMUM, description(), maxLayerCount, maxLayerCount + 1))
+		return source?.diagnose(state, failure) ?: observedPredicate?.diagnose(state, failure) ?: failure.copy(issue = StructureIssue.mismatch(failure, description()))
+	}
 
 	private var preparedPredicate: Predicate<MultiblockState>? = null
 	private var preparedObserver: Function<MultiblockState, PatternObservation>? = null

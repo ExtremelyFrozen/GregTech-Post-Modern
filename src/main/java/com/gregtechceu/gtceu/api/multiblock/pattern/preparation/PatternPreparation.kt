@@ -5,6 +5,7 @@ import com.gregtechceu.gtceu.api.capability.recipe.IO
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMultiPart
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState
 import com.gregtechceu.gtceu.api.multiblock.error.PatternStringError
+import com.gregtechceu.gtceu.api.multiblock.error.StructureIssue
 import com.gregtechceu.gtceu.api.multiblock.pattern.layout.PatternAxis
 import com.gregtechceu.gtceu.api.multiblock.pattern.layout.PatternLayout
 import com.gregtechceu.gtceu.api.multiblock.pattern.match.MultiBlockPattern
@@ -18,6 +19,7 @@ import com.gregtechceu.gtceu.config.ConfigHolder
 
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
+import net.minecraft.network.chat.Component
 import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.level.block.state.BlockState
 
@@ -120,7 +122,8 @@ class PatternPreparation private constructor(
 			state.io = decodeIO(result.lastIO)
 		}
 		val diagnostics = ObjectArrayList<PatternDiagnostic>(result.problems.size)
-		for ((cell, path, repeatPath, depth, height, width, position, expected, missingFact, difference) in result.problems) {
+		for (problem in result.problems) {
+			val (cell, path, repeatPath, depth, height, width, position, expected, missingFact, difference) = problem
 			val capture = captures.getOrNull(cell)
 			val diagnostic = PatternDiagnostic(
 				path,
@@ -132,7 +135,24 @@ class PatternPreparation private constructor(
 				missingFact,
 				difference,
 			)
-			diagnostics.add(if (capture != null && expected == layout.cells[cell].token) layout.cells[cell].predicate.diagnose(diagnostic) else diagnostic)
+			val described = when (problem.kind) {
+				PreparedProblemKind.PREDICATE, PreparedProblemKind.MIXED -> {
+					val predicate = layout.cells[cell].predicate
+					state.updateCached(capture!!.position, predicate, capture.block!!, capture.entity)
+					predicate.diagnose(state, diagnostic)
+				}
+
+				PreparedProblemKind.UNLOADED -> diagnostic.copy(issue = StructureIssue.unloaded(diagnostic))
+
+				PreparedProblemKind.ORIENTATION -> diagnostic.copy(issue = StructureIssue.condition(diagnostic, StructureIssue.text("orientation")))
+
+				PreparedProblemKind.SHARED -> diagnostic.copy(issue = StructureIssue.shared(diagnostic))
+
+				PreparedProblemKind.MINIMUM -> diagnostic.copy(issue = StructureIssue.count(null, if (problem.scope == PreparedCountScope.LAYER) StructureIssue.Count.LAYER_MINIMUM else StructureIssue.Count.MINIMUM, compiler.counterDescription(problem.counter), problem.limit, problem.actual))
+
+				PreparedProblemKind.CONSTRAINT -> diagnostic.copy(issue = StructureIssue.count(diagnostic, if (difference > 0) StructureIssue.Count.MINIMUM else StructureIssue.Count.MAXIMUM, Component.translatable(missingFact), problem.limit, problem.actual))
+			}
+			diagnostics.add(described)
 		}
 		val match = PatternMatchResult(result.matched, facts, ObjectLists.unmodifiable(diagnostics), matchedPositions)
 		facts.set("pattern.diagnostics", match.diagnostics)

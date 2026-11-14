@@ -2,7 +2,7 @@ package com.gregtechceu.gtceu.api.multiblock.pattern.match
 
 import com.gregtechceu.gtceu.api.capability.recipe.IO
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState
-import com.gregtechceu.gtceu.api.multiblock.error.PatternStringError
+import com.gregtechceu.gtceu.api.multiblock.error.StructureIssue
 import com.gregtechceu.gtceu.api.multiblock.pattern.layout.PatternAxis
 import com.gregtechceu.gtceu.api.multiblock.pattern.layout.PatternLayout
 import com.gregtechceu.gtceu.api.multiblock.pattern.layout.PatternLayoutCell
@@ -10,7 +10,6 @@ import com.gregtechceu.gtceu.api.multiblock.pattern.layout.PatternModuleDescript
 import com.gregtechceu.gtceu.api.multiblock.pattern.layout.PatternModuleInstance
 import com.gregtechceu.gtceu.api.multiblock.pattern.preparation.PatternPreparation
 import com.gregtechceu.gtceu.api.multiblock.pattern.preparation.PatternWorldCollection
-import com.gregtechceu.gtceu.api.multiblock.pattern.preparation.PreparedPatternInput
 
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
@@ -175,35 +174,16 @@ internal class PatternModuleSearch(private val pattern: MultiBlockPattern, priva
 			},
 		)
 
-		private fun prepare(pattern: MultiBlockPattern, target: MultiblockState, center: BlockPos, front: Direction, up: Direction, flipped: Boolean, repetitions: IntArray, step: Step.Probe, collection: PatternWorldCollection? = null): PreparedPatternInput? {
+		private fun prepare(pattern: MultiBlockPattern, target: MultiblockState, center: BlockPos, front: Direction, up: Direction, flipped: Boolean, repetitions: IntArray, step: Step.Probe, collection: PatternWorldCollection? = null): PatternPreparation? {
 			val scoped = scopedLayout(step)
-			val preparation = PatternPreparation.prepare(pattern, pattern.getSourceDefinition(), scoped, target, center, front, up, flipped, false, repetitions, step.selections, bounds = step.layout, collection = collection) ?: return null
-			return preparation.input.forModuleProbe()
+			return PatternPreparation.prepare(pattern, pattern.getSourceDefinition(), scoped, target, center, front, up, flipped, false, repetitions, step.selections, bounds = step.layout, collection = collection)
 		}
 
 		suspend fun evaluate(work: PatternWork<*>, pattern: MultiBlockPattern, target: MultiblockState, center: BlockPos, front: Direction, up: Direction, flipped: Boolean, repetitions: IntArray, step: Step.Probe, collection: PatternWorldCollection? = null): Boolean {
 			val prepared = prepare(pattern, target, center, front, up, flipped, repetitions, step, collection = collection)
 			if (prepared != null) {
-				val result = work.compute(prepared)
-				if (!result.matched) {
-					val diagnostics = ObjectArrayList<PatternDiagnostic>()
-					for ((_, path, repeatPath, depth, height, width, position, expected, missingFact, difference) in result.problems) {
-						diagnostics.add(
-							PatternDiagnostic(
-								path,
-								repeatPath,
-								PatternCoordinate(depth, height, width),
-								BlockPos.of(position),
-								null,
-								expected,
-								missingFact,
-								difference,
-							),
-						)
-					}
-					target.matchResult = PatternMatchResult(false, target.facts, diagnostics)
-					target.setError(PatternStringError("gtpm.multiblock.pattern.error.constraint"))
-				}
+				val result = work.compute(prepared.input.forModuleProbe())
+				if (!result.matched) prepared.apply(result)
 				return result.matched
 			}
 			return fallback(work, pattern, target, center, front, up, flipped, step, collection)
@@ -217,10 +197,13 @@ internal class PatternModuleSearch(private val pattern: MultiBlockPattern, priva
 			scratch.isNeededFlip = flipped
 			for (axis in PatternAxis.entries) scratch.facts.set("pattern.${axis.name.lowercase()}", step.layout.size(axis))
 			var previousDepth = 0
-			fun failed(cell: PatternLayoutCell, position: BlockPos, expected: String): Boolean {
-				val diagnostic = PatternDiagnostic(cell.path, cell.repeatPath, PatternCoordinate(cell.depth, cell.height, cell.width), position, null, expected, "", 0)
-				target.matchResult = PatternMatchResult(false, target.facts, ObjectArrayList<PatternDiagnostic>().also { it.add(diagnostic) })
-				target.setError(PatternStringError("gtpm.multiblock.pattern.error.constraint"))
+			var matchedPositions = 0
+			fun failed(cell: PatternLayoutCell, position: BlockPos, expected: String, fact: String = "", explain: (PatternDiagnostic) -> PatternDiagnostic): Boolean {
+				val diagnostic = PatternDiagnostic(cell.path, cell.repeatPath, PatternCoordinate(cell.depth, cell.height, cell.width), position, if (scratch.world.isLoaded(position)) scratch.world.getBlockState(position) else null, expected, fact, 0)
+				val described = explain(diagnostic)
+				scratch.matchResult = PatternMatchResult(false, scratch.facts, ObjectArrayList<PatternDiagnostic>().also { it.add(described) }, matchedPositions)
+				scratch.setError(described.issue)
+				target.applyMatch(scratch)
 				return false
 			}
 			for (cell in scopedLayout(step).cells) {
@@ -239,11 +222,12 @@ internal class PatternModuleSearch(private val pattern: MultiBlockPattern, priva
 					val captured = collection.read(target, position)
 					if (captured.block == null) false else scratch.updateCached(position, cell.predicate, captured.block, captured.entity)
 				}
-				if (!loaded) return failed(cell, position, "loaded position")
+				if (!loaded) return failed(cell, position, "loaded position") { it.copy(issue = StructureIssue.unloaded(it)) }
 				scratch.io = IO.BOTH
 				val observation = cell.predicate.observePosition(scratch)
 				val accepted = cell.predicate.acceptPosition(scratch, observation)
-				val matched = accepted && pattern.matchesDirectionalPredicate(cell.predicate, scratch, front, up, flipped) && pattern.checkPartSharing(scratch.facts, scratch, cell.predicate)
+				val directional = accepted && pattern.matchesDirectionalPredicate(cell.predicate, scratch, front, up, flipped)
+				val matched = directional && pattern.checkPartSharing(scratch.facts, scratch, cell.predicate)
 				val dependencies = LongOpenHashSet()
 				cell.predicate.collectDependencies(scratch, dependencies)
 				val dependencyIterator = dependencies.iterator()
@@ -252,10 +236,18 @@ internal class PatternModuleSearch(private val pattern: MultiBlockPattern, priva
 					target.recordRead(dependency)
 					target.addPosCache(dependency)
 				}
-				if (!matched) return failed(cell, position, cell.token)
+				if (!matched) {
+					return failed(cell, position, cell.token) {
+						when {
+							!accepted -> cell.predicate.diagnose(scratch, it)
+							!directional -> it.copy(issue = StructureIssue.condition(it, StructureIssue.text("orientation")))
+							else -> it.copy(issue = StructureIssue.shared(it))
+						}
+					}
+				}
 				for ((key, value) in observation.properties) {
 					val prior: Any? = scratch.facts.get(key)
-					if (prior != null && prior != value) return failed(cell, position, "consistent $key")
+					if (prior != null && prior != value) return failed(cell, position, "consistent $key", key) { cell.predicate.diagnose(scratch, it) }
 					scratch.facts.set(key, value)
 				}
 				val positionFacts = ObjectArrayList<String>()
@@ -267,6 +259,7 @@ internal class PatternModuleSearch(private val pattern: MultiBlockPattern, priva
 					if (!cell.predicate.facts.contains(fact)) scratch.facts.addFact(fact)
 					scratch.facts.addScopedFact(fact, cell.scopes)
 				}
+				if (!cell.predicate.isAny()) matchedPositions++
 			}
 			return true
 		}

@@ -12,6 +12,7 @@ import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition
 import com.gregtechceu.gtceu.api.machine.multiblock.PartAbility
 import com.gregtechceu.gtceu.api.multiblock.MultiblockBlockInfo
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState
+import com.gregtechceu.gtceu.api.multiblock.error.StructureIssue
 import com.gregtechceu.gtceu.api.multiblock.pattern.match.PatternDiagnostic
 import com.gregtechceu.gtceu.api.multiblock.util.RelativeDirection
 import com.gregtechceu.gtceu.api.recipe.GTRecipeType
@@ -63,8 +64,20 @@ open class PatternPredicate {
 		for (rule in limited) (rule.observedPredicate as? CombinedPredicate)?.preparedBranches?.forEach { it.collectDependencies(state, positions) }
 	}
 
-	/** Builds the failure shown at this position; extensions retain its path and coordinates when adding detail. */
-	open fun diagnose(failure: PatternDiagnostic): PatternDiagnostic = (limited.asSequence() + common.asSequence()).firstNotNullOfOrNull { it.source }?.diagnose(failure) ?: failure
+	open fun description(): Component = StructureIssue.alternatives(
+		ObjectArrayList<Component>().also { labels ->
+			for (rule in common) labels.add(rule.description())
+			for (rule in limited) labels.add(rule.description())
+		},
+	)
+
+	/** Uses the actual candidate family, never an unrelated first OR branch, to explain domain failures. */
+	open fun diagnose(state: MultiblockState, failure: PatternDiagnostic): PatternDiagnostic {
+		for (rule in limited) if (rule.observeCandidate(state.blockState).matched) return rule.diagnose(state, failure)
+		for (rule in common) if (rule.observeCandidate(state.blockState).matched) return rule.diagnose(state, failure)
+		if (limited.size + common.size == 1) (limited.firstOrNull() ?: common[0]).source?.let { return it.diagnose(state, failure) }
+		return failure.copy(issue = StructureIssue.mismatch(failure, description()))
+	}
 
 	/** Observes the actual rule without constructing entities or mutating runtime metadata. */
 	open fun observeCandidate(state: BlockState): PatternObservation = observeRulesCandidate(state) ?: PatternObservation.of(false)

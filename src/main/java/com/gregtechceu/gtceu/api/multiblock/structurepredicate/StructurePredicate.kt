@@ -3,9 +3,11 @@ package com.gregtechceu.gtceu.api.multiblock.structurepredicate
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition
 import com.gregtechceu.gtceu.api.multiblock.MultiblockBlockInfo
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState
+import com.gregtechceu.gtceu.api.multiblock.error.StructureIssue
 import com.gregtechceu.gtceu.api.multiblock.pattern.match.PatternDiagnostic
 import com.gregtechceu.gtceu.api.sync_system.FieldCodecs
 
+import net.minecraft.network.chat.Component
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.BlockState
@@ -44,8 +46,14 @@ interface StructurePredicate {
 	/** Reads existing domain limits before a composite selects this branch; it never reserves counts. */
 	fun canAcceptPosition(state: MultiblockState): Boolean = true
 
-	/** Retains the original location context while allowing a rule to explain a failed position. */
-	fun diagnose(failure: PatternDiagnostic): PatternDiagnostic = failure
+	/** Names this rule's expected input; wrappers keep the domain rule's description. */
+	fun description(): Component = StructureIssue.blocks(blockCandidates())
+
+	/**
+	 * Runs on the world thread at the failed cell, after count restoration and before publication. The returned
+	 * diagnostic owns its explanation; describing a failure must not change world state, facts or counts.
+	 */
+	fun diagnose(state: MultiblockState, failure: PatternDiagnostic): PatternDiagnostic = failure.copy(issue = if (failure.missingFact.isEmpty()) StructureIssue.mismatch(failure, description()) else StructureIssue.mixed(failure, Component.translatable(failure.missingFact)))
 
 	/** Supplies representative full states; state-sensitive rules override this with their candidate observer. */
 	fun candidateStates(): ObjectList<BlockState> = ObjectArrayList<BlockState>().also { states ->

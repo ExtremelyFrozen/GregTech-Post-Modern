@@ -84,8 +84,27 @@ data class PreparedObservation(
 	val available: BooleanArray = BooleanArray(0),
 )
 
-/** Serializable diagnostics retain both coordinates and the original structure path. */
-data class PreparedPatternProblem(val cell: Int, val path: String, val repeatPath: String, val depth: Int, val height: Int, val width: Int, val position: Long, val expected: String, val missingFact: String = "", val difference: Int = 0)
+enum class PreparedProblemKind { PREDICATE, UNLOADED, ORIENTATION, SHARED, MIXED, MINIMUM, CONSTRAINT }
+enum class PreparedCountScope { GLOBAL, LAYER }
+
+/** Failure ownership and count values travel with the failed candidate, without native rule references. */
+data class PreparedPatternProblem(
+	val cell: Int,
+	val path: String,
+	val repeatPath: String,
+	val depth: Int,
+	val height: Int,
+	val width: Int,
+	val position: Long,
+	val expected: String,
+	val missingFact: String = "",
+	val difference: Int = 0,
+	val kind: PreparedProblemKind = PreparedProblemKind.PREDICATE,
+	val counter: Int = -1,
+	val scope: PreparedCountScope = PreparedCountScope.GLOBAL,
+	val limit: Int = 0,
+	val actual: Int = 0,
+)
 
 data class PreparedFactCount(val fact: String, val count: Int)
 data class PreparedScopedCount(val scope: String, val fact: String, val count: Int)

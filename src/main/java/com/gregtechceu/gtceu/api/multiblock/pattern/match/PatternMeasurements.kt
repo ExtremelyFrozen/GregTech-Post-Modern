@@ -2,6 +2,7 @@ package com.gregtechceu.gtceu.api.multiblock.pattern.match
 
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState
 import com.gregtechceu.gtceu.api.multiblock.error.PatternStringError
+import com.gregtechceu.gtceu.api.multiblock.error.StructureIssue
 import com.gregtechceu.gtceu.api.multiblock.pattern.model.PatternDirection
 
 import net.minecraft.core.BlockPos
@@ -20,9 +21,9 @@ internal object PatternMeasurements {
 		if (measurements.isEmpty()) return Object2IntMaps.emptyMap()
 		val values = Object2IntLinkedOpenHashMap<String>()
 		val dependencies = LongOpenHashSet()
-		fun failure(id: String, position: BlockPos, depth: Int, height: Int, width: Int, expected: String): Object2IntMap<String>? {
+		fun failure(id: String, position: BlockPos, depth: Int, height: Int, width: Int, expected: String, explain: (PatternDiagnostic) -> StructureIssue): Object2IntMap<String>? {
 			val diagnostic = PatternDiagnostic("$/measurement:$id", "", PatternCoordinate(depth, height, width), position, if (state.hasReadPosition(position.asLong()) && state.world.isLoaded(position)) state.world.getBlockState(position) else null, expected, "measurement:$id", 1)
-			state.matchResult = PatternMatchResult(false, state.facts, ObjectLists.singleton(diagnostic))
+			state.matchResult = PatternMatchResult(false, state.facts, ObjectLists.singleton(diagnostic.copy(issue = explain(diagnostic))))
 			state.setError(PatternStringError("gtpm.multiblock.pattern.error.constraint"))
 			return null
 		}
@@ -37,7 +38,7 @@ internal object PatternMeasurements {
 				val width = start.width + if (direction == PatternDirection.LEFT || direction == PatternDirection.RIGHT) sign * distance else 0
 				val position = center.offset(pattern.getActualRelativeOffset(width, height, depth, front, up, flipped))
 				state.addPosCache(position)
-				if (!state.update(position, predicate)) return failure(id, position, depth, height, width, "loaded measurement position")
+				if (!state.update(position, predicate)) return failure(id, position, depth, height, width, "loaded measurement position", StructureIssue::unloaded)
 				dependencies.clear()
 				predicate.collectDependencies(state, dependencies)
 				val positions = dependencies.iterator()
@@ -54,7 +55,7 @@ internal object PatternMeasurements {
 				val height = start.height + if (direction == PatternDirection.UP || direction == PatternDirection.DOWN) sign * distance else 0
 				val width = start.width + if (direction == PatternDirection.LEFT || direction == PatternDirection.RIGHT) sign * distance else 0
 				val position = center.offset(pattern.getActualRelativeOffset(width, height, depth, front, up, flipped))
-				return failure(id, position, depth, height, width, if (found < 0) "measurement boundary within $maximum" else "measurement minimum $minimum")
+				return failure(id, position, depth, height, width, if (found < 0) "measurement boundary within $maximum" else "measurement minimum $minimum") { StructureIssue.size(parameter, minimum, maximum, found) }
 			}
 			values[parameter] = found
 		}
