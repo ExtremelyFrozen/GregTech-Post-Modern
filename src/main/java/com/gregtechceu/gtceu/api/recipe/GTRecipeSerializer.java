@@ -121,7 +121,7 @@ public class GTRecipeSerializer implements RecipeSerializer<GTRecipeDefinition> 
 
     @NotNull
     public static GTRecipeDefinition fromNetwork(@NotNull RegistryFriendlyByteBuf buf) {
-        return fromNetwork(buf, true);
+        return fromNetwork(buf, false);
     }
 
     @NotNull
