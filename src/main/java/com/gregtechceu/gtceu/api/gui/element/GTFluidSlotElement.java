@@ -5,6 +5,8 @@ import com.gregtechceu.gtceu.api.gui.texture.GuiTextureMetadata;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableFluidTank;
 import com.gregtechceu.gtceu.api.registry.GTRegistries;
 import com.gregtechceu.gtceu.client.TooltipsHandler;
+import com.gregtechceu.gtceu.integration.emi.gui.EmiIngredient;
+import com.gregtechceu.gtceu.integration.jei.gui.JeiIngredient;
 import com.gregtechceu.gtceu.integration.xei.GTXEIIngredientRole;
 import com.gregtechceu.gtceu.integration.xei.GTXEIIngredientRoleAdapter;
 import com.gregtechceu.gtceu.integration.xei.handlers.fluid.CycleFluidEntryHandler;
@@ -19,38 +21,27 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
 import com.lowdragmc.lowdraglib2.gui.util.DrawerHelper;
 import com.lowdragmc.lowdraglib2.integration.xei.IngredientIO;
-import com.lowdragmc.lowdraglib2.integration.xei.emi.LDLibEMIPlugin;
-import com.lowdragmc.lowdraglib2.integration.xei.jei.LDLibJEIPlugin;
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
 import com.lowdragmc.lowdraglib2.utils.XmlUtils;
 
 import net.minecraft.MethodsReturnNonnullByDefault;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.level.material.Fluid;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 
 import com.tterrag.registrate.util.RegistrateDistExecutor;
-import dev.emi.emi.api.stack.EmiStack;
-import dev.emi.emi.api.stack.FluidEmiStack;
-import dev.emi.emi.api.stack.ListEmiIngredient;
-import mezz.jei.api.ingredients.ITypedIngredient;
-import mezz.jei.api.neoforge.NeoForgeTypes;
 import org.jetbrains.annotations.Nullable;
 import org.w3c.dom.Element;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.IntSupplier;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -211,10 +202,10 @@ public class GTFluidSlotElement extends FluidSlot {
     public GTFluidSlotElement xeiPhantom() {
         RegistrateDistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> {
             if (GTCEu.MODS.isJEILoaded()) {
-                JEIIntegration.ghostIngredient(this);
+                JeiIngredient.ghostFluid(this);
             }
             if (GTCEu.MODS.isEMILoaded()) {
-                EMIIntegration.ghostIngredient(this);
+                EmiIngredient.ghostFluid(this);
             }
         });
         return this;
@@ -461,10 +452,10 @@ public class GTFluidSlotElement extends FluidSlot {
     private void addXEIRecipeIngredient(IngredientIO io, Supplier<Stream<FluidStack>> allPossibleFluids) {
         RegistrateDistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> {
             if (GTCEu.MODS.isJEILoaded()) {
-                JEIIntegration.recipeIngredient(this, io, allPossibleFluids);
+                JeiIngredient.recipeFluidIngredient(this, io, allPossibleFluids);
             }
             if (GTCEu.MODS.isEMILoaded()) {
-                EMIIntegration.recipeIngredient(this, io, allPossibleFluids);
+                EmiIngredient.recipeFluidIngredient(this, io, allPossibleFluids);
             }
         });
     }
@@ -473,78 +464,12 @@ public class GTFluidSlotElement extends FluidSlot {
                                   Supplier<Stream<FluidStack>> allPossibleFluids) {
         RegistrateDistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> {
             if (GTCEu.MODS.isJEILoaded()) {
-                JEIIntegration.recipeSlot(this, io, allPossibleFluids);
+                JeiIngredient.recipeFluidSlot(this, io, allPossibleFluids);
             }
             if (GTCEu.MODS.isEMILoaded()) {
-                EMIIntegration.recipeSlot(this, chance, amount, allPossibleFluids);
+                EmiIngredient.recipeFluidSlot(this, chance, amount, allPossibleFluids);
             }
         });
-    }
-
-    // Registered elements are verified before optional viewer availability can be checked.
-    private static final class JEIIntegration {
-
-        private static void ghostIngredient(GTFluidSlotElement element) {
-            LDLibJEIPlugin.ghostIngredient(element, NeoForgeTypes.FLUID_STACK, ingredient -> true, element::setFluid);
-        }
-
-        private static void recipeIngredient(GTFluidSlotElement element, IngredientIO io,
-                                             Supplier<Stream<FluidStack>> allPossibleFluids) {
-            LDLibJEIPlugin.recipeIngredient(element, io, () -> allPossibleFluids.get()
-                    .map(JEIIntegration::createJEIFluidIngredient)
-                    .flatMap(Optional::stream)
-                    .collect(Collectors.toList()));
-        }
-
-        private static void recipeSlot(GTFluidSlotElement element, IngredientIO io,
-                                       Supplier<Stream<FluidStack>> allPossibleFluids) {
-            element.registerValueListener(LDLibJEIPlugin.recipeSlot(element, io, NeoForgeTypes.FLUID_STACK,
-                    allPossibleFluids, fluid -> element.setFluid(fluid, false)));
-        }
-
-        private static Optional<ITypedIngredient<?>> createJEIFluidIngredient(FluidStack fluidStack) {
-            if (fluidStack.isEmpty()) {
-                return Optional.empty();
-            }
-            return LDLibJEIPlugin.createTypedIngredient(NeoForgeTypes.FLUID_STACK, fluidStack)
-                    .map(ingredient -> ingredient);
-        }
-    }
-
-    private static final class EMIIntegration {
-
-        private static void ghostIngredient(GTFluidSlotElement element) {
-            LDLibEMIPlugin.renderDragHandler(element, dragged -> dragged instanceof FluidEmiStack);
-            LDLibEMIPlugin.dropStackHandler(element,
-                    dragged -> dragged instanceof FluidEmiStack,
-                    dragged -> {
-                        if (dragged instanceof FluidEmiStack droppedFluid) {
-                            element.setFluid(new FluidStack(
-                                    BuiltInRegistries.FLUID.wrapAsHolder((Fluid) droppedFluid.getKey()),
-                                    Math.max(1000, (int) droppedFluid.getAmount()),
-                                    droppedFluid.getComponentChanges()));
-                        }
-                    });
-        }
-
-        private static void recipeIngredient(GTFluidSlotElement element, IngredientIO io,
-                                             Supplier<Stream<FluidStack>> allPossibleFluids) {
-            LDLibEMIPlugin.recipeIngredient(element, io, () -> allPossibleFluids.get()
-                    .map(fluid -> EmiStack.of(fluid.getFluid(), fluid.getComponentsPatch(), fluid.getAmount()))
-                    .collect(Collectors.toList()));
-        }
-
-        private static void recipeSlot(GTFluidSlotElement element, Supplier<Float> chance, IntSupplier amount,
-                                       Supplier<Stream<FluidStack>> allPossibleFluids) {
-            LDLibEMIPlugin.recipeSlot(element, () -> new ListEmiIngredient(
-                    allPossibleFluids.get()
-                            .map(fluid -> EmiStack.of(fluid.getFluid(),
-                                    fluid.getComponentsPatch(), fluid.getAmount()))
-                            .map(stack -> stack.setChance(chance.get()))
-                            .collect(Collectors.toList()),
-                    amount.getAsInt())
-                    .setChance(chance.get()));
-        }
     }
 
     private FillDirection parseFillDirection(String value) {

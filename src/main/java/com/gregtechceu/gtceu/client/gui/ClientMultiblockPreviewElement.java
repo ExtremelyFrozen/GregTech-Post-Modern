@@ -16,6 +16,8 @@ import com.gregtechceu.gtceu.api.multiblock.preview.PreviewVisibility;
 import com.gregtechceu.gtceu.api.multiblock.preview.StructurePreview;
 import com.gregtechceu.gtceu.api.multiblock.preview.StructurePreview.Cell;
 import com.gregtechceu.gtceu.api.multiblock.util.RelativeDirection;
+import com.gregtechceu.gtceu.integration.emi.gui.EmiIngredient;
+import com.gregtechceu.gtceu.integration.jei.gui.JeiIngredient;
 import com.gregtechceu.gtceu.integration.xei.GTXEIHelper;
 
 import com.lowdragmc.lowdraglib2.client.scene.ISceneBlockRenderHook;
@@ -26,9 +28,6 @@ import com.lowdragmc.lowdraglib2.gui.ui.event.HoverTooltips;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 import com.lowdragmc.lowdraglib2.gui.ui.rendering.GUIContext;
-import com.lowdragmc.lowdraglib2.integration.xei.IngredientIO;
-import com.lowdragmc.lowdraglib2.integration.xei.emi.LDLibEMIPlugin;
-import com.lowdragmc.lowdraglib2.integration.xei.jei.LDLibJEIPlugin;
 import com.lowdragmc.lowdraglib2.utils.data.BlockPosFace;
 
 import net.minecraft.client.Minecraft;
@@ -46,7 +45,6 @@ import net.neoforged.api.distmarker.OnlyIn;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
-import dev.emi.emi.api.stack.EmiStack;
 import dev.ftb.mods.ftblibrary.sidebar.SidebarGroupGuiButton;
 import dev.vfyjxf.taffy.style.TaffyPosition;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
@@ -59,7 +57,6 @@ import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
 import it.unimi.dsi.fastutil.objects.ObjectList;
 import lombok.Setter;
-import mezz.jei.api.constants.VanillaTypes;
 import org.joml.Vector3f;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
@@ -67,8 +64,6 @@ import org.jspecify.annotations.Nullable;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
-import java.util.stream.Stream;
 
 /**
  * Client-owned scene, focus/layer controls and paged materials for one preview window.
@@ -168,12 +163,14 @@ public final class ClientMultiblockPreviewElement extends UIElement {
         });
         // The container survives material changes; per-slot recipe widgets would retain removed slots.
         if (GTCEu.MODS.isEMILoaded()) {
-            EMISupport.recipeSlot(materialViewport, () -> getHoveredItem(materialViewport));
-            EMISupport.recipeSlot(predicateViewport, () -> getHoveredItem(predicateViewport));
+            EmiIngredient.recipeItemSlot(materialViewport, () -> getHoveredItem(materialViewport));
+            EmiIngredient.recipeItemSlot(predicateViewport, () -> getHoveredItem(predicateViewport));
         }
         if (GTCEu.MODS.isJEILoaded()) {
-            updateJEIMaterial = JEISupport.recipeSlot(materialViewport, () -> getHoveredItem(materialViewport));
-            updateJEIPredicate = JEISupport.recipeSlot(predicateViewport, () -> getHoveredItem(predicateViewport));
+            updateJEIMaterial = JeiIngredient.recipeItemSlot(materialViewport,
+                    () -> getHoveredItem(materialViewport));
+            updateJEIPredicate = JeiIngredient.recipeItemSlot(predicateViewport,
+                    () -> getHoveredItem(predicateViewport));
         }
         addChildren(materialViewport, previousMaterials, nextMaterials);
 
@@ -658,21 +655,6 @@ public final class ClientMultiblockPreviewElement extends UIElement {
                     sidebar.active = visible;
                 }
             }
-        }
-    }
-
-    private static final class EMISupport {
-
-        private static void recipeSlot(UIElement viewport, Supplier<ItemStack> hovered) {
-            LDLibEMIPlugin.recipeSlot(viewport, () -> EmiStack.of(hovered.get()));
-        }
-    }
-
-    private static final class JEISupport {
-
-        private static Consumer<ItemStack> recipeSlot(UIElement viewport, Supplier<ItemStack> hovered) {
-            return LDLibJEIPlugin.recipeSlot(viewport, IngredientIO.INPUT,
-                    VanillaTypes.ITEM_STACK, () -> Stream.of(hovered.get()), ignored -> {});
         }
     }
 
