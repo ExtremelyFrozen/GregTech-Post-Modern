@@ -1,3 +1,5 @@
+def recipeViewer = providers.gradleProperty("recipeViewer").getOrElse("emi").toLowerCase(Locale.ROOT)
+
 dependencies {
     compileOnly(libs.jetbrains.annotations)
     compileOnly(libs.jspecify)
@@ -80,8 +82,14 @@ dependencies {
 //    }
 
     // Runtime Recipe Viewers - uncomment whichever one you want to use //
-    localRuntime(forge.emi)
-    localRuntime(forge.jei.neoforge.impl)
+    if (recipeViewer == "jei") {
+        localRuntime(forge.jei.neoforge.impl)
+    } else if (recipeViewer == "emi") {
+        localRuntime(forge.emi)
+    } else if (recipeViewer == "all") {
+        localRuntime(forge.jei.neoforge.impl)
+        localRuntime(forge.emi)
+    }
 
     // Client-only runtime mods //
     clientLocalRuntime(forge.sodium)
