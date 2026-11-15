@@ -35,7 +35,9 @@ public final class RecipeDisplayReload {
                 // Proxy displays are not themselves entries in the synchronized RecipeManager.
                 for (RecipeType<?> proxy : gtType.getProxyRecipes().keySet()) {
                     for (RecipeHolder<?> holder : byType.getOrDefault(proxy, ObjectList.of())) {
-                        recipes.add(GTRecipeDefinition.fromRuntime(gtType.toGTRecipe(holder).value()));
+                        GTRecipeDefinition display = GTRecipeDefinition.fromRuntime(gtType.toGTRecipe(holder).value());
+                        display.setId(display.getId().withPrefix("/"));
+                        recipes.add(display);
                     }
                 }
                 // Include empty types so removals and server switches cannot retain the previous generation.
