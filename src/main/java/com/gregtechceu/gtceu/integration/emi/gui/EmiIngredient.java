@@ -45,7 +45,7 @@ public final class EmiIngredient {
 
     /** Supplies the current fluid alternatives when EMI collects recipe ingredients. */
     public static void recipeFluidIngredient(GTFluidSlotElement element, IngredientIO io,
-                                              Supplier<Stream<FluidStack>> fluids) {
+                                             Supplier<Stream<FluidStack>> fluids) {
         LDLibEMIPlugin.recipeIngredient(element, io, () -> fluids.get()
                 .map(fluid -> EmiStack.of(fluid.getFluid(), fluid.getComponentsPatch(), fluid.getAmount()))
                 .collect(ObjectArrayList::new, ObjectArrayList::add, ObjectArrayList::addAll));

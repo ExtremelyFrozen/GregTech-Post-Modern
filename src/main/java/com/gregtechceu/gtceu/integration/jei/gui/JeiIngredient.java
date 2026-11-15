@@ -34,7 +34,7 @@ public final class JeiIngredient {
 
     /** Supplies the current nonempty alternatives when JEI collects recipe ingredients. */
     public static void recipeFluidIngredient(GTFluidSlotElement element, IngredientIO io,
-                                              Supplier<Stream<FluidStack>> fluids) {
+                                             Supplier<Stream<FluidStack>> fluids) {
         LDLibJEIPlugin.recipeIngredient(element, io, () -> fluids.get()
                 .filter(fluid -> !fluid.isEmpty())
                 .map(fluid -> LDLibJEIPlugin.createTypedIngredient(NeoForgeTypes.FLUID_STACK, fluid))
