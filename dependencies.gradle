@@ -69,8 +69,6 @@ dependencies {
     compileOnly(forge.cc.tweaked.forge.api)
 
     // Standard runtime mods //
-    localRuntime(libs.testframework)
-
     localRuntime(forge.jade)
     localRuntime(forge.ae2)
     localRuntime(forge.spark)

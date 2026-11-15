@@ -31,9 +31,15 @@ neoForge {
         "${mod_id}" {
             sourceSet(sourceSets.main)
             sourceSet(sourceSets.client)
-            sourceSet(sourceSets.test)
             sourceSet(sourceSets.extra)
             sourceSet(sourceSets.clientExtra)
+        }
+        "${mod_id}_test" {
+            sourceSet(sourceSets.main)
+            sourceSet(sourceSets.client)
+            sourceSet(sourceSets.extra)
+            sourceSet(sourceSets.clientExtra)
+            sourceSet(sourceSets.test)
         }
     }
 
@@ -46,7 +52,6 @@ neoForge {
             ideName = "All Client"
 
             gameDirectory.set(file('run/all/client'))
-            systemProperty('neoforge.enabledGameTestNamespaces', project.mod_id)
         }
 
         server {
@@ -56,7 +61,6 @@ neoForge {
 
             gameDirectory.set(file('run/all/server'))
             programArguments.addAll('--nogui', '--world', 'world-extra')
-            systemProperty('neoforge.enabledGameTestNamespaces', project.mod_id)
         }
 
         // Client with GTM + Jade, EMI, AE2
@@ -66,7 +70,6 @@ neoForge {
             ideName = "Clean Client"
 
             gameDirectory.set(file('run/clean/client'))
-            systemProperty('neoforge.enabledGameTestNamespaces', project.mod_id)
         }
 
         cleanServer {
@@ -76,15 +79,15 @@ neoForge {
 
             gameDirectory.set(file('run/clean/server'))
             programArgument '--nogui'
-            systemProperty('neoforge.enabledGameTestNamespaces', project.mod_id)
         }
 
         // This run config launches GameTestServer and runs all registered gametests, then exits.
         // By default, the server will crash when no gametests are provided.
-        // The gametest system is also enabled by default for other run configs under the /test command.
+        // Test sources are loaded only by these explicit GameTest configurations.
         gameTestServer {
             type = "gameTestServer"
             sourceSet = sourceSets.test
+            loadedMods = [mods["${mod_id}_test"]]
             ideName = "Game Tests"
 
             gameDirectory.set(file('run/gametest/server'))
@@ -95,6 +98,7 @@ neoForge {
         gameTestClient {
             client()
             sourceSet = sourceSets.test
+            loadedMods = [mods["${mod_id}_test"]]
             ideName = "Game Tests (Client)"
 
             gameDirectory.set(file('run/gametest/client'))
@@ -117,6 +121,7 @@ neoForge {
 
         // applies to all the run configs above
         configureEach {
+            loadedMods.convention([mods[project.mod_id]])
             systemProperty 'forge.logging.markers', 'REGISTRIES'
             jvmArgument('-ea:com.gregtechceu.gtceu...')
             logLevel = org.slf4j.event.Level.INFO
