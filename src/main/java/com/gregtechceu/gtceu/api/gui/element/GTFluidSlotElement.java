@@ -51,7 +51,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
  */
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-@LDLRegister(name = "gtm-fluid-slot", group = "gtm", registry = "ldlib2:ui_element")
+@LDLRegister(name = GTCEu.MOD_ID + "-fluid-slot", group = GTCEu.MOD_ID, registry = "ldlib2:ui_element")
 public class GTFluidSlotElement extends FluidSlot {
 
     private IGuiTexture background = IGuiTexture.EMPTY;

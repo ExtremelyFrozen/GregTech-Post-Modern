@@ -179,7 +179,7 @@ final class RecipeUIXmlTemplate {
 
     private static Element createProgressElement(Document document, GTRecipeTypeUI recipeUI, int left, int top) {
         ProgressTexture progressTexture = recipeUI.getProgressBarTexture();
-        Element progress = document.createElement("gtm-progress-bar");
+        Element progress = document.createElement(GTCEu.MOD_ID + "-progress-bar");
         progress.setAttribute("id", "progress");
         progress.setAttribute("style", absoluteStyle(left, top, 20, 20));
         progress.setAttribute("fill-direction", switch (progressTexture.getFillDirection()) {

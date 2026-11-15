@@ -1,5 +1,6 @@
 package com.gregtechceu.gtceu.api.gui.element;
 
+import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.texture.GuiTextureMetadata;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
@@ -22,7 +23,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
  */
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-@LDLRegister(name = "gtm-image", group = "gtm", registry = "ldlib2:ui_element")
+@LDLRegister(name = GTCEu.MOD_ID + "-image", group = GTCEu.MOD_ID, registry = "ldlib2:ui_element")
 public class GTImageElement extends UIElement {
 
     private IGuiTexture texture = IGuiTexture.EMPTY;

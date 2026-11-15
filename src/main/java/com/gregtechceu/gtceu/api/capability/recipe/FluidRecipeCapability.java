@@ -1,5 +1,6 @@
 package com.gregtechceu.gtceu.api.capability.recipe;
 
+import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.gui.element.GTFluidSlotElement;
 import com.gregtechceu.gtceu.api.recipe.GTRecipe;
 import com.gregtechceu.gtceu.api.recipe.GTRecipeDefinition;
@@ -378,7 +379,7 @@ public class FluidRecipeCapability extends RecipeCapability<SizedFluidIngredient
 
     @Override
     public Element createXmlElement(Document document) {
-        Element element = document.createElement("gtm-fluid-slot");
+        Element element = document.createElement(GTCEu.MOD_ID + "-fluid-slot");
         element.setAttribute("draw-hover-overlay", "true");
         element.setAttribute("draw-hover-tips", "true");
         element.setAttribute("show-amount", "true");

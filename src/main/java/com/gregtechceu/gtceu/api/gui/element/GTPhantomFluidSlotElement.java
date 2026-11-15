@@ -1,5 +1,6 @@
 package com.gregtechceu.gtceu.api.gui.element;
 
+import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.utils.GTUtil;
 
@@ -21,7 +22,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
  */
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-@LDLRegister(name = "gtm-phantom-fluid-slot", group = "gtm", registry = "ldlib2:ui_element")
+@LDLRegister(name = GTCEu.MOD_ID + "-phantom-fluid-slot", group = GTCEu.MOD_ID, registry = "ldlib2:ui_element")
 public class GTPhantomFluidSlotElement extends GTFluidSlotElement {
 
     private Supplier<FluidStack> fluidSupplier;

@@ -435,7 +435,7 @@ public class ItemRecipeCapability extends RecipeCapability<SizedIngredient> {
 
     @Override
     public Element createXmlElement(Document document) {
-        Element element = document.createElement("gtm-item-slot");
+        Element element = document.createElement(GTCEu.MOD_ID + "-item-slot");
         element.setAttribute("draw-hover-overlay", "true");
         element.setAttribute("draw-hover-tips", "true");
         element.setAttribute("can-put-items", "true");

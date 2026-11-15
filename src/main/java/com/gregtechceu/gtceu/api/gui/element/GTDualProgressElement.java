@@ -21,7 +21,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
  */
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-@LDLRegister(name = "gtm-dual-progress", group = "gtm", registry = "ldlib2:ui_element")
+@LDLRegister(name = GTCEu.MOD_ID + "-dual-progress", group = GTCEu.MOD_ID, registry = "ldlib2:ui_element")
 public class GTDualProgressElement extends UIElement {
 
     private IGuiTexture background = IGuiTexture.EMPTY;

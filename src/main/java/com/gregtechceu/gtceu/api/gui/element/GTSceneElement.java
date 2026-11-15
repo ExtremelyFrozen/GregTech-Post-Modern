@@ -1,5 +1,6 @@
 package com.gregtechceu.gtceu.api.gui.element;
 
+import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
 
 import com.lowdragmc.lowdraglib2.gui.ui.elements.Scene;
@@ -14,7 +15,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
  */
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-@LDLRegister(name = "gtm-scene", group = "gtm", registry = "ldlib2:ui_element")
+@LDLRegister(name = GTCEu.MOD_ID + "-scene", group = GTCEu.MOD_ID, registry = "ldlib2:ui_element")
 public class GTSceneElement extends Scene {
 
     public GTSceneElement() {}
