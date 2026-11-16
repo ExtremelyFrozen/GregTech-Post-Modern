@@ -24,6 +24,10 @@ import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.DecoderException;
+import it.unimi.dsi.fastutil.objects.Object2ObjectArrayMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import it.unimi.dsi.fastutil.objects.ObjectList;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
@@ -69,6 +73,9 @@ public class GTRecipeSerializer implements RecipeSerializer<GTRecipeDefinition> 
             .of(GTRecipeSerializer::toNetwork, GTRecipeSerializer::fromNetwork);
     // spotless:on
 
+    private static final StreamCodec<RegistryFriendlyByteBuf, DataComponentMap> DATA_COMPONENT_STREAM_CODEC = ByteBufCodecs
+            .fromCodecWithRegistries(DataComponentMap.CODEC);
+
     @Override
     public @NotNull MapCodec<GTRecipeDefinition> codec() {
         return CODEC;
@@ -107,21 +114,21 @@ public class GTRecipeSerializer implements RecipeSerializer<GTRecipeDefinition> 
         buf.writeResourceLocation(GTRegistries.CHANCE_LOGICS.getKey(logic));
     }
 
-    public static Map<RecipeCapability<?>, List<Content>> tuplesToMap(List<Tuple<RecipeCapability<?>, List<Content>>> entries) {
-        Map<RecipeCapability<?>, List<Content>> map = new HashMap<>();
+    public static Object2ObjectMap<RecipeCapability<?>, List<Content>> tuplesToMap(List<Tuple<RecipeCapability<?>, List<Content>>> entries) {
+        Object2ObjectMap<RecipeCapability<?>, List<Content>> map = new Object2ObjectArrayMap<>(entries.size());
         entries.forEach(entry -> map.put(entry.getA(), entry.getB()));
         return map;
     }
 
-    public static Map<RecipeCapability<?>, ChanceLogic> logicTuplesToMap(List<Tuple<RecipeCapability<?>, ChanceLogic>> entries) {
-        Map<RecipeCapability<?>, ChanceLogic> map = new HashMap<>();
+    public static Object2ObjectMap<RecipeCapability<?>, ChanceLogic> logicTuplesToMap(List<Tuple<RecipeCapability<?>, ChanceLogic>> entries) {
+        Object2ObjectMap<RecipeCapability<?>, ChanceLogic> map = new Object2ObjectArrayMap<>(entries.size());
         entries.forEach(entry -> map.put(entry.getA(), entry.getB()));
         return map;
     }
 
     @NotNull
     public static GTRecipeDefinition fromNetwork(@NotNull RegistryFriendlyByteBuf buf) {
-        return fromNetwork(buf, true);
+        return fromNetwork(buf, false);
     }
 
     @NotNull
@@ -136,16 +143,12 @@ public class GTRecipeSerializer implements RecipeSerializer<GTRecipeDefinition> 
 
         List<RecipeCondition<?>> conditions = readCollection(buf, RecipeCondition::fromNetwork);
 
-        Map<RecipeCapability<?>, ChanceLogic> inputChanceLogics = logicTuplesToMap(
-                readCollection(buf, GTRecipeSerializer::changeLogicEntryReader));
-        Map<RecipeCapability<?>, ChanceLogic> outputChanceLogics = logicTuplesToMap(
-                readCollection(buf, GTRecipeSerializer::changeLogicEntryReader));
-        Map<RecipeCapability<?>, ChanceLogic> tickInputChanceLogics = logicTuplesToMap(
-                readCollection(buf, GTRecipeSerializer::changeLogicEntryReader));
-        Map<RecipeCapability<?>, ChanceLogic> tickOutputChanceLogics = logicTuplesToMap(
-                readCollection(buf, GTRecipeSerializer::changeLogicEntryReader));
+        Object2ObjectMap<RecipeCapability<?>, ChanceLogic> inputChanceLogics = readChanceLogics(buf);
+        Object2ObjectMap<RecipeCapability<?>, ChanceLogic> outputChanceLogics = readChanceLogics(buf);
+        Object2ObjectMap<RecipeCapability<?>, ChanceLogic> tickInputChanceLogics = readChanceLogics(buf);
+        Object2ObjectMap<RecipeCapability<?>, ChanceLogic> tickOutputChanceLogics = readChanceLogics(buf);
 
-        DataComponentMap data = ByteBufCodecs.fromCodecWithRegistries(DataComponentMap.CODEC).decode(buf);
+        DataComponentMap data = DATA_COMPONENT_STREAM_CODEC.decode(buf);
         int groupColor = buf.readInt();
         int tier = buf.readVarInt();
         ResourceLocation categoryLoc = buf.readResourceLocation();
@@ -195,16 +198,27 @@ public class GTRecipeSerializer implements RecipeSerializer<GTRecipeDefinition> 
         writeCollection(recipe.tickOutputChanceLogics.entrySet(), buf,
                 GTRecipeSerializer::changeLogicEntryWriter);
 
-        ByteBufCodecs.fromCodecWithRegistries(DataComponentMap.CODEC).encode(buf, recipe.data);
+        DATA_COMPONENT_STREAM_CODEC.encode(buf, recipe.data);
         buf.writeInt(recipe.groupColor);
         buf.writeVarInt(recipe.tier);
         buf.writeResourceLocation(recipe.recipeCategory.registryKey);
     }
 
-    public static <T> ArrayList<T> readCollection(RegistryFriendlyByteBuf buf,
-                                                  StreamDecoder<? super RegistryFriendlyByteBuf, T> decoder) {
+    private static Object2ObjectMap<RecipeCapability<?>, ChanceLogic> readChanceLogics(RegistryFriendlyByteBuf buf) {
+        int size = buf.readVarInt();
+        Object2ObjectMap<RecipeCapability<?>, ChanceLogic> logics = new Object2ObjectArrayMap<>(size);
+        for (int i = 0; i < size; i++) {
+            RecipeCapability<?> capability = GTRegistries.RECIPE_CAPABILITIES.get(buf.readResourceLocation());
+            ChanceLogic logic = GTRegistries.CHANCE_LOGICS.get(buf.readResourceLocation());
+            logics.put(capability, logic);
+        }
+        return logics;
+    }
+
+    public static <T> ObjectList<T> readCollection(RegistryFriendlyByteBuf buf,
+                                                   StreamDecoder<? super RegistryFriendlyByteBuf, T> decoder) {
         int len = buf.readVarInt();
-        var list = new ArrayList<T>(len);
+        ObjectList<T> list = new ObjectArrayList<>(len);
 
         for (int i = 0; i < len; i++) {
             list.add(decoder.decode(buf));

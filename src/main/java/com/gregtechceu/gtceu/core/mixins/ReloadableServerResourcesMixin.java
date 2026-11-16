@@ -4,28 +4,19 @@ import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.common.data.GTRecipes;
 import com.gregtechceu.gtceu.core.MixinHelpers;
 import com.gregtechceu.gtceu.data.loot.DungeonLootLoader;
+import com.gregtechceu.gtceu.data.pack.DynamicRecipeOutput;
 import com.gregtechceu.gtceu.data.pack.GTDynamicDataPack;
 import com.gregtechceu.gtceu.data.recipe.GTCraftingComponents;
 
-import net.minecraft.advancements.Advancement;
-import net.minecraft.advancements.AdvancementHolder;
 import net.minecraft.commands.Commands;
 import net.minecraft.core.LayeredRegistryAccess;
 import net.minecraft.core.RegistryAccess;
-import net.minecraft.data.recipes.RecipeBuilder;
-import net.minecraft.data.recipes.RecipeOutput;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.RegistryLayer;
 import net.minecraft.server.ReloadableServerResources;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.world.flag.FeatureFlagSet;
-import net.minecraft.world.item.crafting.Recipe;
-import net.neoforged.neoforge.common.conditions.ICondition;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
@@ -35,10 +26,6 @@ import java.util.concurrent.Executor;
 
 @Mixin(value = ReloadableServerResources.class, priority = 2000)
 public abstract class ReloadableServerResourcesMixin {
-
-    @Unique
-    private static final AdvancementHolder GTCEU$ROOT_RECIPE_ADVANCEMENT = Advancement.Builder.recipeAdvancement()
-            .build(RecipeBuilder.ROOT_RECIPE_ADVANCEMENT);
 
     @Inject(method = "loadResources", at = @At("HEAD"))
     private static void gtceu$init(ResourceManager resourceManager, LayeredRegistryAccess<RegistryLayer> access,
@@ -55,19 +42,10 @@ public abstract class ReloadableServerResourcesMixin {
         // Register recipes & unification data again
         long startTime = System.currentTimeMillis();
         GTCraftingComponents.init();
-        GTRecipes.recipeAddition(new RecipeOutput() {
-
-            @Override
-            public Advancement.@NotNull Builder advancement() {
-                return Advancement.Builder.recipeAdvancement().parent(GTCEU$ROOT_RECIPE_ADVANCEMENT);
-            }
-
-            @Override
-            public void accept(@NotNull ResourceLocation id, @NotNull Recipe<?> recipe,
-                               @Nullable AdvancementHolder advancement, ICondition @NotNull... conditions) {
-                GTDynamicDataPack.addRecipe(id, recipe, advancement, frozen);
-            }
-        });
+        DynamicRecipeOutput recipes = new DynamicRecipeOutput(frozen);
+        GTRecipes.recipeAddition(recipes);
+        GTCEu.LOGGER.info("GregTech generated {} recipes in {}ms", recipes.getRecipeCount(),
+                System.currentTimeMillis() - startTime);
         MixinHelpers.generateGTDynamicLoot(GTDynamicDataPack::addLootTable, frozen);
         // Initialize dungeon loot additions
         DungeonLootLoader.init();

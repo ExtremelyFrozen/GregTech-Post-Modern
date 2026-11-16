@@ -1,5 +1,6 @@
 package com.gregtechceu.gtceu.api.gui.element;
 
+import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
 
 import com.lowdragmc.lowdraglib2.gui.ui.elements.ScrollerView;
@@ -14,7 +15,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
  */
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-@LDLRegister(name = "gtm-scroller-view", group = "gtm", registry = "ldlib2:ui_element")
+@LDLRegister(name = GTCEu.MOD_ID + "-scroller-view", group = GTCEu.MOD_ID, registry = "ldlib2:ui_element")
 public class GTScrollerViewElement extends ScrollerView {
 
     public GTScrollerViewElement() {}

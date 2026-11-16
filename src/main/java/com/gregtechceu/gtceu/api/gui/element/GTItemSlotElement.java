@@ -51,7 +51,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
  */
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-@LDLRegister(name = "gtm-item-slot", group = "gtm", registry = "ldlib2:ui_element")
+@LDLRegister(name = GTCEu.MOD_ID + "-item-slot", group = GTCEu.MOD_ID, registry = "ldlib2:ui_element")
 public class GTItemSlotElement extends ItemSlot {
 
     private final List<Runnable> extraChangeListeners = new ArrayList<>();

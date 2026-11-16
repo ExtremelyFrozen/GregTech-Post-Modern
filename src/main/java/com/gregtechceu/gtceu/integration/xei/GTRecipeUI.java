@@ -56,6 +56,7 @@ import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 
 /**
  * Builds the shared recipe UI and ingredient elements used by recipe viewers.
@@ -71,7 +72,7 @@ public final class GTRecipeUI {
         var storages = Tables.newCustomTable(new EnumMap<>(IO.class), LinkedHashMap<RecipeCapability<?>, Object>::new);
         var contents = Tables.newCustomTable(new EnumMap<>(IO.class),
                 LinkedHashMap<RecipeCapability<?>, List<Content>>::new);
-        collectStorage(storages, contents, recipe);
+        collectStorage(storages, contents, recipe, capability -> true);
 
         return new RecipeView(recipe, storages, contents, recipeTier, chanceTier).createUI();
     }
@@ -81,16 +82,17 @@ public final class GTRecipeUI {
     }
 
     /**
-     * Creates only the bound recipe elements needed by recipe-viewer ingredient indexing.
-     * The complete XML UI is reserved for rendering a recipe display.
+     * Creates ingredient elements only for capabilities that need UI-based recipe-viewer extraction.
+     * Excluded capabilities do not allocate display containers or contribute a research slot.
      */
     public static List<UIElement> createXEIIngredientElements(GTRecipeDefinition recipe, int recipeTier,
-                                                              int chanceTier) {
+                                                              int chanceTier,
+                                                              Predicate<RecipeCapability<?>> capabilityFilter) {
         var storages = Tables.newCustomTable(new EnumMap<>(IO.class),
                 LinkedHashMap<RecipeCapability<?>, Object>::new);
         var contents = Tables.newCustomTable(new EnumMap<>(IO.class),
                 LinkedHashMap<RecipeCapability<?>, List<Content>>::new);
-        collectStorage(storages, contents, recipe);
+        collectStorage(storages, contents, recipe, capabilityFilter);
         var recipeHolder = new GTRecipeTypeUI.RecipeHolder(GTRecipeTypeUI.XEI_PROGRESS, storages,
                 DataComponentMap.EMPTY, recipe.conditions, false, false);
         List<UIElement> elements = new ArrayList<>();
@@ -113,7 +115,7 @@ public final class GTRecipeUI {
             }
         }
 
-        if (recipe.recipeType.isHasResearchSlot()) {
+        if (recipe.recipeType.isHasResearchSlot() && capabilityFilter.test(ItemRecipeCapability.CAP)) {
             GTItemSlotElement element = ItemRecipeCapability.CAP.createElement();
             int index = recipe.recipeType.getMaxInputs(ItemRecipeCapability.CAP);
             element.setId("%s_%d".formatted(ItemRecipeCapability.CAP.slotName(IO.IN), index));
@@ -464,21 +466,26 @@ public final class GTRecipeUI {
 
     public static void collectStorage(Table<IO, RecipeCapability<?>, Object> storages,
                                       Table<IO, RecipeCapability<?>, List<Content>> contents,
-                                      GTRecipeDefinition recipe) {
-        collectContents(contents, recipe.inputs, IO.IN);
-        collectContents(contents, recipe.tickInputs, IO.IN);
+                                      GTRecipeDefinition recipe,
+                                      Predicate<RecipeCapability<?>> capabilityFilter) {
+        collectContents(contents, recipe.inputs, IO.IN, capabilityFilter);
+        collectContents(contents, recipe.tickInputs, IO.IN, capabilityFilter);
         collectContainers(storages, contents, recipe, IO.IN);
 
-        collectContents(contents, recipe.outputs, IO.OUT);
-        collectContents(contents, recipe.tickOutputs, IO.OUT);
+        collectContents(contents, recipe.outputs, IO.OUT, capabilityFilter);
+        collectContents(contents, recipe.tickOutputs, IO.OUT, capabilityFilter);
         collectContainers(storages, contents, recipe, IO.OUT);
     }
 
     private static void collectContents(Table<IO, RecipeCapability<?>, List<Content>> contents,
                                         ContentListMap recipeContents,
-                                        IO io) {
+                                        IO io,
+                                        Predicate<RecipeCapability<?>> capabilityFilter) {
         for (var entry : recipeContents.entrySet()) {
             RecipeCapability<?> cap = entry.getKey();
+            if (!capabilityFilter.test(cap)) {
+                continue;
+            }
             List<Content> entryContents = entry.getValue();
             List<Content> existing = contents.get(io, cap);
             if (existing == null) {

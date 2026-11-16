@@ -1,5 +1,6 @@
 package com.gregtechceu.gtceu.api.gui.element;
 
+import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
 
 import com.lowdragmc.lowdraglib2.LDLib2;
@@ -42,7 +43,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
  */
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-@LDLRegister(name = "gtm-component-panel", group = "gtm", registry = "ldlib2:ui_element")
+@LDLRegister(name = GTCEu.MOD_ID + "-component-panel", group = GTCEu.MOD_ID, registry = "ldlib2:ui_element")
 public class GTComponentPanelElement extends UIElement {
 
     private static final String BUTTON_PREFIX = "@!";

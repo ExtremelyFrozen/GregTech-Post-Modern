@@ -1,6 +1,6 @@
 [versions]
 ldlib2 = "2.2.44"
-registrate = "MC1.21-1.3.0+67"
+registrate = "MC1.21.1-1.4.8"
 configuration = "3.1.1-neoforge"
 
 jei = "19.51.0.417"

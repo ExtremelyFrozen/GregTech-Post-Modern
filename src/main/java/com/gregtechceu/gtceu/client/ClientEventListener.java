@@ -5,9 +5,6 @@ import com.gregtechceu.gtceu.api.GTValues;
 import com.gregtechceu.gtceu.api.cosmetics.CapeRegistry;
 import com.gregtechceu.gtceu.api.item.tool.ToolHelper;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
-import com.gregtechceu.gtceu.api.recipe.GTRecipeDefinition;
-import com.gregtechceu.gtceu.api.recipe.GTRecipeType;
-import com.gregtechceu.gtceu.api.registry.GTRegistries;
 import com.gregtechceu.gtceu.client.renderer.BlockHighlightRenderer;
 import com.gregtechceu.gtceu.client.renderer.MultiblockInWorldPreviewRenderer;
 import com.gregtechceu.gtceu.client.renderer.cover.FacadeCoverRenderer;
@@ -19,6 +16,7 @@ import com.gregtechceu.gtceu.core.mixins.client.AbstractClientPlayerAccessor;
 import com.gregtechceu.gtceu.core.mixins.client.PlayerSkinAccessor;
 import com.gregtechceu.gtceu.data.recipe.CustomTags;
 import com.gregtechceu.gtceu.integration.map.ClientCacheManager;
+import com.gregtechceu.gtceu.integration.xei.RecipeDisplayReload;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Camera;
@@ -26,6 +24,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.resources.PlayerSkin;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
@@ -33,7 +32,6 @@ import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.crafting.RecipeManager;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
@@ -245,12 +243,6 @@ public class ClientEventListener {
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public static void recipesSynced(RecipesUpdatedEvent event) {
-        RecipeManager manager = event.getRecipeManager();
-        for (var category : GTRegistries.RECIPE_CATEGORIES) {
-            GTRecipeType type = category.getRecipeType();
-            for (GTRecipeDefinition recipe : type.getRecipesInCategory(category)) {
-                manager.byKey(recipe.id).ifPresent(holder -> recipe.setId(holder.id()));
-            }
-        }
+        RecipeDisplayReload.replaceRecipes(event.getRecipeManager(), BuiltInRegistries.RECIPE_TYPE);
     }
 }

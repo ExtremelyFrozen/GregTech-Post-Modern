@@ -6,6 +6,7 @@ import com.gregtechceu.gtceu.utils.GTMath;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
 import net.minecraft.core.component.DataComponentPatch;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.material.Fluid;
@@ -40,9 +41,9 @@ public abstract class FluidEmiStackMixin extends EmiStack {
             remap = false,
             require = 0)
     private void gtceu$addFluidTooltip(CallbackInfoReturnable<List<ClientTooltipComponent>> cir,
-                                       @Local(ordinal = 0) List<ClientTooltipComponent> list) {
+                                       @Local(name = "list") List<ClientTooltipComponent> list) {
         TooltipsHandler.appendFluidTooltips(new FluidStack(
-                this.fluid.builtInRegistryHolder(),
+                BuiltInRegistries.FLUID.wrapAsHolder(this.fluid),
                 Math.max(GTMath.saturatedCast(this.getAmount()), 1),
                 this.getComponentChanges()),
                 text -> list.add(EmiTooltipComponents.of(text)),

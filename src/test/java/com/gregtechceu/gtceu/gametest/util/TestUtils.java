@@ -25,7 +25,6 @@ import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.RedstoneLampBlock;
 import net.neoforged.bus.api.EventPriority;
@@ -85,7 +84,7 @@ public class TestUtils {
 
     private static void registerTestRecipeType(String name, int maxInputs, int maxOutputs, int maxFluidInputs,
                                                int maxFluidOutputs) {
-        GTRecipeTypes.register(GTCEu.id(name), ELECTRIC, RecipeType.SMELTING)
+        GTRecipeTypes.register(GTCEu.id(name), ELECTRIC)
                 .setEUIO(IO.IN)
                 .setMaxIOSize(maxInputs, maxOutputs, maxFluidInputs, maxFluidOutputs);
     }

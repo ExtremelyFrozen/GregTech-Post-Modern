@@ -25,7 +25,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
  */
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-@LDLRegister(name = "gtm-progress-bar", group = "gtm", registry = "ldlib2:ui_element")
+@LDLRegister(name = GTCEu.MOD_ID + "-progress-bar", group = GTCEu.MOD_ID, registry = "ldlib2:ui_element")
 public class GTProgressBarElement extends ProgressBar {
 
     private IGuiTexture emptyBarTexture = IGuiTexture.EMPTY;

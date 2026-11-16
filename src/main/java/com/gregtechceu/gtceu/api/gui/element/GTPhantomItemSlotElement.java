@@ -1,5 +1,6 @@
 package com.gregtechceu.gtceu.api.gui.element;
 
+import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
 
 import com.lowdragmc.lowdraglib2.registry.annotation.LDLRegister;
@@ -20,7 +21,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
  */
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-@LDLRegister(name = "gtm-phantom-item-slot", group = "gtm", registry = "ldlib2:ui_element")
+@LDLRegister(name = GTCEu.MOD_ID + "-phantom-item-slot", group = GTCEu.MOD_ID, registry = "ldlib2:ui_element")
 public class GTPhantomItemSlotElement extends GTItemSlotElement {
 
     private Supplier<ItemStack> itemSupplier;

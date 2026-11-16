@@ -59,7 +59,7 @@ public final class MachineUIXmlTemplates {
             appendRecipeTemplate(machineDocument, root, recipeDocument, 0,
                     (height - recipeSize.height()) / 2, recipeSize);
 
-            Element batterySlot = machineDocument.createElement("gtm-item-slot");
+            Element batterySlot = machineDocument.createElement(GTCEu.MOD_ID + "-item-slot");
             batterySlot.setAttribute("id", BATTERY_SLOT_ID);
             batterySlot.setAttribute("style", absoluteBounds(width / 2 - 9, height - 18, 18, 18));
             batterySlot.setAttribute("draw-hover-overlay", "true");
@@ -99,7 +99,7 @@ public final class MachineUIXmlTemplates {
             appendRecipeTemplate(machineDocument, root, recipeDocument, recipeX,
                     (height - recipeSize.height()) / 2, recipeSize);
 
-            Element energyBar = machineDocument.createElement("gtm-progress-bar");
+            Element energyBar = machineDocument.createElement(GTCEu.MOD_ID + "-progress-bar");
             energyBar.setAttribute("id", ENERGY_BAR_ID);
             energyBar.setAttribute("style", absoluteBounds(GENERATOR_ENERGY_BAR_X,
                     (height - GENERATOR_ENERGY_BAR_HEIGHT) / 2,
