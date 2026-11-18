@@ -2,6 +2,7 @@ package com.gregtechceu.gtceu.common.machine.multiblock.generator;
 
 import com.gregtechceu.gtceu.api.GTValues;
 import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo;
+import com.gregtechceu.gtceu.api.capability.recipe.FluidRecipeCapability;
 import com.gregtechceu.gtceu.api.capability.recipe.IO;
 import com.gregtechceu.gtceu.api.fluids.store.FluidStorageKeys;
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
@@ -313,19 +314,21 @@ public class LargeCombustionEngineMachine extends WorkableElectricMultiblockMach
 
     @Nullable
     public String getRecipeFluidInputInfo() {
-        // Previous Recipe is always null on first world load, so try to acquire a new recipe
         GTRecipe recipe = recipeLogic.getLastRecipe();
-        if (recipe == null) {
+        boolean preview = recipe == null;
+        if (preview) {
             Iterator<GTRecipe> iterator = recipeLogic.searchRecipe();
-            recipe = iterator.hasNext() ? iterator.next() : null;
-            if (recipe == null) return null;
+            if (!iterator.hasNext()) return null;
+            recipe = iterator.next();
         }
-        FluidStack requiredFluidInput = RecipeHelper.getInputFluids(recipe).get(0);
 
         long outputEUt = recipe.getOutputEUt();
         if (outputEUt <= 0) return null;
-        long ocAmount = getMaxVoltage() / outputEUt;
-        int neededAmount = GTMath.saturatedCast(ocAmount * requiredFluidInput.getAmount());
+        // The running recipe already includes the parallel used by the engine.
+        long parallel = preview ? getOverclockVoltage() / outputEUt : 1;
+        var fuel = FluidRecipeCapability.CAP
+                .of(recipe.getInputContents(FluidRecipeCapability.CAP).getFirst().getContent());
+        int neededAmount = GTMath.saturatedCast(parallel * fuel.amount());
         return ChatFormatting.RED + FormattingUtil.formatNumbers(neededAmount) + "mB";
     }
 

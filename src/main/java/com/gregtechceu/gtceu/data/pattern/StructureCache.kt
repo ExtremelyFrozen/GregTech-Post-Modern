@@ -126,7 +126,7 @@ object StructureCache {
 						type,
 						binaryMap,
 						createClaimedSources(jsonMap, CacheSection.JSON),
-						{ file, _ -> PatternBinaryCodec.read(file) },
+						PatternBinaryCodec::read,
 					)
 				}
 
@@ -192,7 +192,7 @@ object StructureCache {
 							normalizedRoot.resolve(resource.relativePath.toString()).toAbsolutePath().normalize(),
 							binaryMap,
 							claimedSources,
-							{ file, _ -> PatternBinaryCodec.read(file) },
+							PatternBinaryCodec::read,
 						)
 					}
 					val binaryPatterns = ConcurrentHashMap(current.binaryPatterns)
@@ -254,7 +254,7 @@ object StructureCache {
 						file,
 						binaryMap,
 						createSingleClaimedSource(key, current.jsonDefinitions, CacheSection.JSON),
-						{ file, _ -> PatternBinaryCodec.read(file) },
+						PatternBinaryCodec::read,
 					)
 					check(key in binaryMap) {
 						"Reloaded structure key '$key' was not produced from ${type.directoryName} definition"
@@ -633,7 +633,7 @@ object StructureCache {
 			StructureDefinitionType.BINARY_ZSTD,
 			binaryMap,
 			claimedSources,
-			{ file, _ -> PatternBinaryCodec.read(file) },
+			PatternBinaryCodec::read,
 		)
 		loadTypeFromFileSystem(
 			dataDir,
