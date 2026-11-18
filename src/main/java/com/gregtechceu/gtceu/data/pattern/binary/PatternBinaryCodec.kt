@@ -34,7 +34,11 @@ object PatternBinaryCodec {
 
 	@JvmStatic
 	@Throws(IOException::class)
-	fun read(file: Path): PatternDefinition {
+	fun read(file: Path): PatternDefinition = read(file, fileResource(file))
+
+	@JvmStatic
+	@Throws(IOException::class)
+	fun read(file: Path, structure: ResourceLocation): PatternDefinition {
 		val encoded = Files.readAllBytes(file)
 		if (encoded.size <= HEADER_SIZE) throw IOException("Compressed pattern definition is shorter than its header: $file")
 		val header = ByteBuffer.wrap(encoded, 0, HEADER_SIZE)
@@ -47,7 +51,7 @@ object PatternBinaryCodec {
 		val compressed = encoded.copyOfRange(HEADER_SIZE, encoded.size)
 		val payload = decompress(compressed, uncompressedLength)
 		if (crc32(payload) != checksum) throw IOException("Pattern binary checksum mismatch in $file")
-		return decodePayload(payload, file)
+		return decodePayload(payload, file, structure)
 	}
 
 	@JvmStatic
@@ -90,12 +94,12 @@ object PatternBinaryCodec {
 		}
 	}
 
-	private fun decodePayload(payload: ByteArray, file: Path): PatternDefinition {
+	private fun decodePayload(payload: ByteArray, file: Path, structure: ResourceLocation): PatternDefinition {
 		DataInputStream(ByteArrayInputStream(payload)).use { input ->
 			val length = readVarInt(input)
 			val json = input.readNBytes(length)
 			if (json.size != length || input.available() != 0) throw IOException("Trailing pattern binary data in $file")
-			return PatternJsonCodec.decode(fileResource(file), JsonParser.parseString(String(json, StandardCharsets.UTF_8)))
+			return PatternJsonCodec.decode(structure, JsonParser.parseString(String(json, StandardCharsets.UTF_8)))
 		}
 	}
 
