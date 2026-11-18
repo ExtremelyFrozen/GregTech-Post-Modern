@@ -5,6 +5,7 @@ import com.gregtechceu.gtceu.data.pattern.json.PatternJsonCodec
 
 import net.minecraft.resources.ResourceLocation
 
+import com.github.luben.zstd.Zstd
 import com.github.luben.zstd.ZstdInputStream
 import com.github.luben.zstd.ZstdOutputStream
 import com.google.gson.JsonParser
@@ -16,6 +17,7 @@ import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.IOException
 import java.nio.ByteBuffer
+import java.nio.channels.Channels
 import java.nio.channels.FileChannel
 import java.nio.charset.StandardCharsets
 import java.nio.file.AtomicMoveNotSupportedException
@@ -30,7 +32,9 @@ object PatternBinaryCodec {
 	private const val MAGIC = 0x4754504D
 	private const val COMPRESSION_ZSTD = 1
 	private const val HEADER_SIZE = Int.SIZE_BYTES * 4
-	private const val ZSTD_LEVEL = 5
+	private val zstdLevel = Zstd.maxCompressionLevel()
+	private const val MAX_PAYLOAD_BYTES = 16 * 1024 * 1024
+	private val maxFileBytes = HEADER_SIZE + Zstd.compressBound(MAX_PAYLOAD_BYTES.toLong())
 
 	@JvmStatic
 	@Throws(IOException::class)
@@ -38,26 +42,32 @@ object PatternBinaryCodec {
 
 	@JvmStatic
 	@Throws(IOException::class)
-	fun read(file: Path, structure: ResourceLocation): PatternDefinition {
-		val encoded = Files.readAllBytes(file)
-		if (encoded.size <= HEADER_SIZE) throw IOException("Compressed pattern definition is shorter than its header: $file")
-		val header = ByteBuffer.wrap(encoded, 0, HEADER_SIZE)
-		val magic = header.int
-		val compression = header.int
-		val uncompressedLength = header.int
-		val checksum = header.int
+	fun read(file: Path, structure: ResourceLocation): PatternDefinition = FileChannel.open(file).use { channel ->
+		if (channel.size() > maxFileBytes) throw IOException("Compressed pattern definition exceeds $maxFileBytes bytes: $file")
+		val input = DataInputStream(Channels.newInputStream(channel).buffered())
+		val magic = input.readInt()
+		val compression = input.readInt()
+		val uncompressedLength = input.readInt()
+		val checksum = input.readInt()
 		if (magic != MAGIC) throw IOException("Invalid pattern binary magic in $file")
 		if (compression != COMPRESSION_ZSTD) throw IOException("Unsupported pattern binary compression $compression in $file")
-		val compressed = encoded.copyOfRange(HEADER_SIZE, encoded.size)
-		val payload = decompress(compressed, uncompressedLength)
+		if (uncompressedLength !in 1..MAX_PAYLOAD_BYTES) throw IOException("Invalid pattern binary length $uncompressedLength in $file")
+
+		val payload = ByteArray(uncompressedLength)
+		ZstdInputStream(input).use { decoded ->
+			if (decoded.readNBytes(payload, 0, payload.size) != payload.size || decoded.read() != -1) {
+				throw IOException("Pattern binary length mismatch in $file")
+			}
+		}
 		if (crc32(payload) != checksum) throw IOException("Pattern binary checksum mismatch in $file")
-		return decodePayload(payload, file, structure)
+		decodePayload(payload, file, structure)
 	}
 
 	@JvmStatic
 	@Throws(IOException::class)
 	fun write(file: Path, definition: PatternDefinition) {
 		val payload = encodePayload(definition)
+		if (payload.size > MAX_PAYLOAD_BYTES) throw IOException("Pattern binary payload exceeds $MAX_PAYLOAD_BYTES bytes: $file")
 		val compressed = compress(payload)
 		val header = ByteBuffer.allocate(HEADER_SIZE)
 			.putInt(MAGIC).putInt(COMPRESSION_ZSTD)
@@ -97,28 +107,18 @@ object PatternBinaryCodec {
 	private fun decodePayload(payload: ByteArray, file: Path, structure: ResourceLocation): PatternDefinition {
 		DataInputStream(ByteArrayInputStream(payload)).use { input ->
 			val length = readVarInt(input)
-			val json = input.readNBytes(length)
-			if (json.size != length || input.available() != 0) throw IOException("Trailing pattern binary data in $file")
-			return PatternJsonCodec.decode(structure, JsonParser.parseString(String(json, StandardCharsets.UTF_8)))
+			if (length != input.available()) throw IOException("Pattern binary JSON length mismatch in $file")
+			return PatternJsonCodec.decode(structure, JsonParser.parseReader(input.reader(StandardCharsets.UTF_8)))
 		}
 	}
 
 	private fun fileResource(file: Path): ResourceLocation = ResourceLocation.parse("gtpm:" + file.fileName.toString().removeSuffix(".bin.zst"))
 
 	private fun compress(payload: ByteArray): ByteArray = ByteArrayOutputStream(payload.size).use { bytes ->
-		ZstdOutputStream(bytes, ZSTD_LEVEL).use { output ->
+		ZstdOutputStream(bytes, zstdLevel).use { output ->
 			output.write(payload)
 		}
 		bytes.toByteArray()
-	}
-
-	private fun decompress(compressed: ByteArray, expectedLength: Int): ByteArray = ZstdInputStream(ByteArrayInputStream(compressed)).use { input ->
-		ByteArrayOutputStream(expectedLength).use { bytes ->
-			input.transferTo(bytes)
-			bytes.toByteArray().also { payload ->
-				if (payload.size != expectedLength) throw IOException("Pattern binary length mismatch")
-			}
-		}
 	}
 
 	private fun writeFully(channel: FileChannel, buffer: ByteBuffer) {
