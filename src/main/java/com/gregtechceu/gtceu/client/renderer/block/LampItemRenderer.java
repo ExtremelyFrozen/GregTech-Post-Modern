@@ -1,7 +1,5 @@
 package com.gregtechceu.gtceu.client.renderer.block;
 
-import com.gregtechceu.gtceu.common.block.LampBlock;
-import com.gregtechceu.gtceu.common.data.GTDataComponents;
 import com.gregtechceu.gtceu.common.item.LampBlockItem;
 
 import net.minecraft.client.Minecraft;
@@ -51,11 +49,7 @@ public class LampItemRenderer extends BlockEntityWithoutLevelRenderer {
             return;
         }
 
-        LampBlockItem.LampData data = stack.getOrDefault(GTDataComponents.LAMP_DATA, LampBlockItem.LampData.EMPTY);
-        BlockState state = item.getBlock().defaultBlockState()
-                .setValue(LampBlock.INVERTED, data.inverted())
-                .setValue(LampBlock.BLOOM, data.bloom())
-                .setValue(LampBlock.LIGHT, data.lit());
+        BlockState state = item.applyLampData(item.getBlock().defaultBlockState(), stack);
 
         BakedModel p_model = blockRenderer.getBlockModel(state);
 
