@@ -52,6 +52,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.material.Fluid;
 import net.neoforged.neoforge.common.crafting.SizedIngredient;
 import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.crafting.DataComponentFluidIngredient;
 import net.neoforged.neoforge.fluids.crafting.FluidIngredient;
 import net.neoforged.neoforge.fluids.crafting.SizedFluidIngredient;
 
@@ -1071,7 +1072,7 @@ public class GTRecipeBuilder {
     }
 
     public GTRecipeBuilder inputFluidsRanged(FluidStack input, IntProvider intProvider) {
-        return inputFluidsRanged(FluidIngredient.of(input), intProvider);
+        return inputFluidsRanged(exactFluidIngredient(input), intProvider);
     }
 
     public GTRecipeBuilder inputFluids(SizedFluidIngredient... inputs) {
@@ -1086,12 +1087,12 @@ public class GTRecipeBuilder {
     }
 
     public GTRecipeBuilder outputFluids(FluidStack output) {
-        return output(FluidRecipeCapability.CAP, SizedFluidIngredient.of(output));
+        return output(FluidRecipeCapability.CAP, sizedFluidOutput(output));
     }
 
     public GTRecipeBuilder outputFluids(FluidStack... outputs) {
         return output(FluidRecipeCapability.CAP,
-                Arrays.stream(outputs).map(SizedFluidIngredient::of).toArray(SizedFluidIngredient[]::new));
+                Arrays.stream(outputs).map(GTRecipeBuilder::sizedFluidOutput).toArray(SizedFluidIngredient[]::new));
     }
 
     public GTRecipeBuilder outputFluids(SizedFluidIngredient... outputs) {
@@ -1114,7 +1115,16 @@ public class GTRecipeBuilder {
     }
 
     public GTRecipeBuilder outputFluidsRanged(FluidStack output, IntProvider intProvider) {
-        return outputFluidsRanged(FluidIngredient.of(output), intProvider);
+        return outputFluidsRanged(exactFluidIngredient(output), intProvider);
+    }
+
+    private static SizedFluidIngredient sizedFluidOutput(FluidStack stack) {
+        return new SizedFluidIngredient(exactFluidIngredient(stack), stack.getAmount());
+    }
+
+    private static FluidIngredient exactFluidIngredient(FluidStack stack) {
+        return stack.isComponentsPatchEmpty() ? FluidIngredient.single(stack.getFluid()) :
+                DataComponentFluidIngredient.of(true, stack);
     }
 
     //////////////////////////////////////
