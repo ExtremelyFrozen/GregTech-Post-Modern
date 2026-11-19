@@ -32,16 +32,18 @@ public class GTEmiOreProcessing extends ModularUIEMIRecipe {
         var diagram = new GTOreByProduct(material);
         var itemInputs = diagram.getVisibleItemInputs();
         var itemOutputs = diagram.getItemOutputs();
-        inputs = new ObjectArrayList<>(itemInputs.size() + diagram.getFluidInputs().size());
+        var fluidInputs = diagram.getFluidInputs();
+        inputs = new ObjectArrayList<>(itemInputs.size() + fluidInputs.size());
         outputs = new ObjectArrayList<>(itemOutputs.size());
-        for (var entry : itemInputs) {
-            for (var item : entry.getStacks()) {
-                if (!item.isEmpty()) {
-                    inputs.add(EmiStack.of(item));
+        // LDLib2 dispatches ingredient events to siblings at the same z-index in reverse insertion order.
+        for (int slot = fluidInputs.size() - 1; slot >= 0; slot--) {
+            for (var fluid : fluidInputs.get(slot).getStacks()) {
+                if (!fluid.isEmpty()) {
+                    inputs.add(EmiStack.of(fluid.getFluid(), fluid.getComponentsPatch(), fluid.getAmount()));
                 }
             }
         }
-        for (int slot = 0; slot < itemOutputs.size(); slot++) {
+        for (int slot = itemOutputs.size() - 1; slot >= 0; slot--) {
             var item = itemOutputs.get(slot);
             if (item.isEmpty()) continue;
             outputs.add(EmiStack.of(item));
@@ -49,10 +51,10 @@ public class GTEmiOreProcessing extends ModularUIEMIRecipe {
                 inputs.add(EmiStack.of(item));
             }
         }
-        for (var entry : diagram.getFluidInputs()) {
-            for (var fluid : entry.getStacks()) {
-                if (!fluid.isEmpty()) {
-                    inputs.add(EmiStack.of(fluid.getFluid(), fluid.getComponentsPatch(), fluid.getAmount()));
+        for (int slot = itemInputs.size() - 1; slot >= 0; slot--) {
+            for (var item : itemInputs.get(slot).getStacks()) {
+                if (!item.isEmpty()) {
+                    inputs.add(EmiStack.of(item));
                 }
             }
         }

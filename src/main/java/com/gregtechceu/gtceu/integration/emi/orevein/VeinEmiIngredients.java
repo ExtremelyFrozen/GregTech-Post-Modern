@@ -24,8 +24,9 @@ final class VeinEmiIngredients {
         if (markers.isEmpty()) return ObjectList.of();
 
         var catalysts = new EmiIngredient[markers.size()];
+        // LDLib2 visits the dimension slots in reverse insertion order.
         for (int i = 0; i < catalysts.length; i++) {
-            catalysts[i] = EmiStack.of(markers.get(i).getIcon());
+            catalysts[i] = EmiStack.of(markers.get(catalysts.length - 1 - i).getIcon());
         }
         return new ObjectImmutableList<>(catalysts);
     }

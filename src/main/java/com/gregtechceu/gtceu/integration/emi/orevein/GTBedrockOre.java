@@ -30,9 +30,13 @@ public class GTBedrockOre extends ModularUIEMIRecipe {
         this.bedrockOre = bedrockOre;
         var definition = bedrockOre.value();
         catalysts = VeinEmiIngredients.dimensionCatalysts(definition.dimensionFilter());
-        outputs = GTBedrockOreWidget.getRawMaterialList(definition).stream()
-                .map(EmiStack::of)
-                .collect(ObjectImmutableList.toList());
+        var materials = GTBedrockOreWidget.getRawMaterialList(definition);
+        var stacks = new EmiStack[materials.size()];
+        // The ingredient event visits the last displayed slot first.
+        for (int i = 0; i < stacks.length; i++) {
+            stacks[i] = EmiStack.of(materials.get(stacks.length - 1 - i));
+        }
+        outputs = new ObjectImmutableList<>(stacks);
     }
 
     @Override

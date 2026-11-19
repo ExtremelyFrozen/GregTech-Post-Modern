@@ -52,7 +52,8 @@ public class GTProgrammedCircuitCategory extends EmiRecipeCategory {
             outputStacks[0] = EmiStack.of(IntCircuitBehaviour.stack(0));
             for (int configuration = 1; configuration < max; configuration++) {
                 var stack = EmiStack.of(IntCircuitBehaviour.stack(configuration));
-                inputStacks[configuration - 1] = stack;
+                // The ingredient event visits the input slots from highest configuration to lowest.
+                inputStacks[max - 1 - configuration] = stack;
                 outputStacks[configuration] = stack.copy();
             }
             outputStacks[max] = EmiStack.of(IntCircuitBehaviour.stack(max));
