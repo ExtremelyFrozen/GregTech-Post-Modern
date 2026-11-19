@@ -7,6 +7,7 @@ import com.gregtechceu.gtceu.api.cover.CoverBehavior;
 import com.gregtechceu.gtceu.api.item.IComponentItem;
 import com.gregtechceu.gtceu.api.item.component.IItemComponent;
 import com.gregtechceu.gtceu.api.item.component.IMonitorModuleItem;
+import com.gregtechceu.gtceu.api.placeholder.PlaceholderContext;
 import com.gregtechceu.gtceu.api.sync_system.SyncDataHolder;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
@@ -19,50 +20,67 @@ import com.gregtechceu.gtceu.utils.GlobalPosWithRot;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Vec3i;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.neoforged.neoforge.items.IItemHandler;
 
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.ints.IntSet;
-import org.jetbrains.annotations.Nullable;
+import lombok.Getter;
+import lombok.Setter;
+import org.jspecify.annotations.Nullable;
 
 import java.util.*;
 import java.util.function.UnaryOperator;
 
 public class MonitorGroup implements ISyncManaged {
 
+    @Getter
     @SaveField
     @SyncToClient
     private UUID identity;
+    @Getter
     @SaveField
     @SyncToClient
     private UUID dynamicItemSlotIncarnation;
+    @Getter
     @SaveField
     @SyncToClient
     private UUID moduleSlotIncarnation;
+    @Getter
     @SaveField
     @SyncToClient
     private long textConfigurationRevision;
+    @Getter
     @SaveField
     @SyncToClient
     private final Set<BlockPos> monitorPositions = new HashSet<>();
+    @Getter
     @SaveField
     @SyncToClient
     private String name;
+    @Getter
     @SaveField
     @SyncToClient
     private final CustomItemStackHandler itemStackHandler;
+    @Getter
     @SaveField
     @SyncToClient
     private final CustomItemStackHandler placeholderSlotsHandler;
     @SaveField
     @SyncToClient
+    @Setter
     private @Nullable BlockPos target;
     @SaveField
     @SyncToClient
+    @Getter
+    @Setter
     private @Nullable Direction targetCoverSide;
     @SaveField
     @SyncToClient
+    @Getter
+    @Setter
     private int dataSlot = 0;
 
     private SyncDataHolder syncDataHolder;
@@ -159,26 +177,6 @@ public class MonitorGroup implements ISyncManaged {
                 createPlaceholderHandler());
     }
 
-    public Set<BlockPos> getMonitorPositions() {
-        return monitorPositions;
-    }
-
-    public UUID getIdentity() {
-        return identity;
-    }
-
-    public UUID getDynamicItemSlotIncarnation() {
-        return dynamicItemSlotIncarnation;
-    }
-
-    public UUID getModuleSlotIncarnation() {
-        return moduleSlotIncarnation;
-    }
-
-    public long getTextConfigurationRevision() {
-        return textConfigurationRevision;
-    }
-
     /**
      * Invalidates actions opened for the previous physical module-slot occupant.
      */
@@ -204,38 +202,6 @@ public class MonitorGroup implements ISyncManaged {
         long nextRevision = Math.incrementExact(textConfigurationRevision);
         itemStackHandler.getStackInSlot(0).set(GTDataComponents.FORMAT_STRING_LIST.get(), configuration);
         textConfigurationRevision = nextRevision;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public CustomItemStackHandler getItemStackHandler() {
-        return itemStackHandler;
-    }
-
-    public CustomItemStackHandler getPlaceholderSlotsHandler() {
-        return placeholderSlotsHandler;
-    }
-
-    public void setTarget(@Nullable BlockPos target) {
-        this.target = target;
-    }
-
-    public @Nullable Direction getTargetCoverSide() {
-        return targetCoverSide;
-    }
-
-    public void setTargetCoverSide(@Nullable Direction targetCoverSide) {
-        this.targetCoverSide = targetCoverSide;
-    }
-
-    public int getDataSlot() {
-        return dataSlot;
-    }
-
-    public void setDataSlot(int dataSlot) {
-        this.dataSlot = dataSlot;
     }
 
     /**
@@ -281,11 +247,8 @@ public class MonitorGroup implements ISyncManaged {
     }
 
     public @Nullable CoverBehavior getTargetCover(Level level) {
-        if (getTarget(level) != null && targetCoverSide != null) {
-            ICoverable coverable = GTCapabilityHelper.getCoverable(level, getTarget(level), targetCoverSide);
-            if (coverable != null) return coverable.getCoverAtSide(targetCoverSide);
-        }
-        return null;
+        PlaceholderContext context = resolvePlaceholderContext(level, identity);
+        return context == null ? null : context.cover();
     }
 
     public @Nullable BlockPos getTargetRaw() {
@@ -293,33 +256,49 @@ public class MonitorGroup implements ISyncManaged {
     }
 
     public @Nullable BlockPos getTarget(Level level) {
-        if (target == null) return null;
-
-        IMonitorComponent component = GTCapabilityHelper.getMonitorComponent(level, target, null);
-        if (component != null && component.getDataItems() != null) {
-            ItemStack stack = component.getDataItems().getStackInSlot(dataSlot);
-            GlobalPosWithRot pos = stack.get(GTDataComponents.MONITOR_TARGET);
-            if (pos == null) {
-                return null;
-            }
-            Direction face = pos.side();
-            setTargetCoverSide(face);
-            return pos.pos();
-        }
-        return target;
+        PlaceholderContext context = resolvePlaceholderContext(level, identity);
+        if (context == null) return null;
+        setTargetCoverSide(context.side());
+        return context.pos();
     }
 
     public Level getTargetLevel(Level level) {
-        if (target == null) return level;
+        PlaceholderContext context = resolvePlaceholderContext(level, identity);
+        return context == null ? level : context.level();
+    }
 
-        IMonitorComponent component = GTCapabilityHelper.getMonitorComponent(level, target, null);
-        if (component != null && component.getDataItems() != null) {
-            ItemStack stack = component.getDataItems().getStackInSlot(dataSlot);
-            GlobalPosWithRot pos = stack.get(GTDataComponents.MONITOR_TARGET);
-            if (pos == null) return level;
-            if (level.getServer() == null) return level;
-            return level.getServer().getLevel(pos.dimension());
+    /**
+     * Resolves a loaded target in the monitor's level or through its selected data hatch slot.
+     * The caller can skip evaluation while the target or its level is unavailable.
+     */
+    public @Nullable PlaceholderContext resolvePlaceholderContext(Level monitorLevel, UUID uuid) {
+        BlockPos pos = target;
+        if (pos == null || !monitorLevel.isLoaded(pos)) return null;
+
+        Level targetLevel = monitorLevel;
+        Direction side = targetCoverSide;
+        IMonitorComponent component = GTCapabilityHelper.getMonitorComponent(monitorLevel, pos, null);
+        IItemHandler dataItems = component == null ? null : component.getDataItems();
+        if (dataItems != null) {
+            if (dataSlot < 0 || dataSlot >= dataItems.getSlots()) return null;
+            GlobalPosWithRot link = dataItems.getStackInSlot(dataSlot).get(GTDataComponents.MONITOR_TARGET);
+            if (link == null) return null;
+            if (!link.dimension().equals(monitorLevel.dimension())) {
+                MinecraftServer server = monitorLevel.getServer();
+                if (server == null) return null;
+                targetLevel = server.getLevel(link.dimension());
+                if (targetLevel == null) return null;
+            }
+            pos = link.pos();
+            if (!targetLevel.isLoaded(pos)) return null;
+            side = link.side();
         }
-        return level;
+
+        CoverBehavior cover = null;
+        if (side != null) {
+            ICoverable coverable = GTCapabilityHelper.getCoverable(targetLevel, pos, side);
+            if (coverable != null) cover = coverable.getCoverAtSide(side);
+        }
+        return new PlaceholderContext(targetLevel, pos, side, placeholderSlotsHandler, cover, null, uuid);
     }
 }

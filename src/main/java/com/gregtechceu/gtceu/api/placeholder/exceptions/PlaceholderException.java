@@ -1,17 +1,12 @@
 package com.gregtechceu.gtceu.api.placeholder.exceptions;
 
-import net.minecraft.network.chat.Component;
-
 public class PlaceholderException extends Exception {
 
-    private final Component message;
+    private final String message;
     private int line = 0, symbol = 0;
 
     public PlaceholderException(String message) {
-        this(Component.literal(String.valueOf(message)));
-    }
-
-    public PlaceholderException(Component message) {
+        super(message);
         this.message = message;
     }
 
@@ -20,12 +15,8 @@ public class PlaceholderException extends Exception {
         this.symbol = symbol;
     }
 
-    public Component getMessageComponent() {
-        return Component.literal("%d:%d: ".formatted(line, symbol)).append(message);
-    }
-
     @Override
     public String getMessage() {
-        return getMessageComponent().getString();
+        return "%d:%d: %s".formatted(line, symbol, message);
     }
 }

@@ -37,7 +37,7 @@ public class GTCreateIntegration {
         GTCreateDisplaySources.init();
         GTCreateDisplayTargets.init();
 
-        PlaceholderHandler.addPlaceholder(new Placeholder("redstone", 1, true) {
+        PlaceholderHandler.addPlaceholder(new Placeholder("redstone", 1) {
 
             @Override
             public MultiLineComponent apply(PlaceholderContext ctx,
@@ -45,14 +45,14 @@ public class GTCreateIntegration {
                 return processRedstonePlaceholder(ctx, args);
             }
         });
-        PlaceholderHandler.addPlaceholder(new Placeholder("displayTarget", true) {
+        PlaceholderHandler.addPlaceholder(new Placeholder("displayTarget") {
 
             @Override
             public MultiLineComponent apply(PlaceholderContext ctx,
                                             List<MultiLineComponent> args) throws PlaceholderException {
                 PlaceholderUtils.checkArgs(args, 1);
                 if (!(ctx.cover() instanceof IPlaceholderInfoProviderCover cover)) throw new NotSupportedException();
-                int i = PlaceholderUtils.toInt(args.get(0));
+                int i = PlaceholderUtils.toInt(args.getFirst());
                 PlaceholderUtils.checkRange("line number", 1, 100, i);
                 return MultiLineComponent.of(cover.getCreateDisplayTargetBuffer().get(i - 1));
             }
@@ -112,7 +112,7 @@ public class GTCreateIntegration {
     private static MultiLineComponent processRedstonePlaceholder(PlaceholderContext ctx,
                                                                  List<MultiLineComponent> args) throws PlaceholderException {
         PlaceholderUtils.checkArgs(args, 1, true);
-        if (GTStringUtils.equals(args.get(0), "get")) {
+        if (GTStringUtils.equals(args.getFirst(), "get")) {
             PlaceholderUtils.checkArgs(args, 2, true);
             if (GTStringUtils.equals(args.get(1), "link")) {
                 PlaceholderUtils.checkArgs(args, 4);
@@ -135,7 +135,7 @@ public class GTCreateIntegration {
                     throw new InvalidArgsException();
                 return MultiLineComponent.literal(ctx.level().getSignal(ctx.pos().relative(direction), direction));
             }
-        } else if (GTStringUtils.equals(args.get(0), "set")) {
+        } else if (GTStringUtils.equals(args.getFirst(), "set")) {
             PlaceholderUtils.checkArgs(args, 2, true);
             if (GTStringUtils.equals(args.get(1), "link")) {
                 PlaceholderUtils.checkArgs(args, 5);

@@ -11,7 +11,6 @@ import com.gregtechceu.gtceu.utils.GTUtil;
 import net.minecraft.ChatFormatting;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.core.component.DataComponentMap;
-import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
@@ -83,9 +82,6 @@ public class PlaceholderHandler {
         String name = placeholder.getFirst().toString();
         Placeholder action = placeholders.get(name);
         if (action == null) throw new UnknownPlaceholderException(name);
-        if (action.isRequiresTarget() && context.pos() == null) {
-            throw new PlaceholderException(Component.translatable("gtpm.computer_monitor_cover.error.no_target"));
-        }
         int index = indices.addTo(name, 1) + 1;
         return action.apply(context.withIndex(index), placeholder.subList(1, placeholder.size()));
     }
@@ -176,8 +172,7 @@ public class PlaceholderHandler {
         MultiLineComponent out = MultiLineComponent.literal("Exceptions:");
         out.appendNewline();
         exceptions.forEach(exception -> {
-            out.append(exception instanceof PlaceholderException error ? error.getMessageComponent() :
-                    Component.literal(String.valueOf(exception.getMessage())));
+            out.append(exception.getMessage());
             out.appendNewline();
         });
         return out.withStyle(ChatFormatting.DARK_RED);
