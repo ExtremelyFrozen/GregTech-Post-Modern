@@ -16,7 +16,6 @@ import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
 import com.gregtechceu.gtceu.api.gui.fancy.TooltipsPanel;
-import com.gregtechceu.gtceu.api.machine.ConditionalSubscriptionHandler;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.BatchModeConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.StructureCheckConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.VoidingModeConfigurator;
@@ -32,7 +31,6 @@ import com.gregtechceu.gtceu.api.misc.EnergyContainerList;
 import com.gregtechceu.gtceu.api.recipe.modifier.RecipeModifierList;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncBoth;
-import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
 import com.gregtechceu.gtceu.common.data.GTRecipeModifiers;
 import com.gregtechceu.gtceu.common.machine.multiblock.part.ParallelHatchPartMachine;
 
@@ -42,23 +40,19 @@ import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
 import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollerMode;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
-import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
+import com.lowdragmc.lowdraglib2.gui.util.ClickData;
 
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.inventory.AbstractContainerMenu;
 
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
-import lombok.AccessLevel;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.IdentityHashMap;
 import java.util.List;
-import java.util.Map;
 
 public class WorkableElectricMultiblockMachine extends WorkableMultiblockMachine implements BatchModeMachine,
                                                IDisplayUIMachine, ITieredMachine, IOverclockMachine, IFancyUIMachine {
@@ -76,24 +70,13 @@ public class WorkableElectricMultiblockMachine extends WorkableMultiblockMachine
     @SyncBoth
     @Getter
     protected boolean batchEnabled;
-    private final ConditionalSubscriptionHandler displaySubscription;
-    @Getter(AccessLevel.PACKAGE)
-    @SyncToClient
-    private List<Component> display = List.of();
-    private final Map<FancyMachineUIWidget, DisplayOpening> displayOpenings = new IdentityHashMap<>();
 
     public WorkableElectricMultiblockMachine(BlockEntityCreationInfo info, RecipeLogic recipeLogic) {
         super(info, recipeLogic);
-        displaySubscription = new ConditionalSubscriptionHandler(this,
-                this::tickDisplayTracking,
-                () -> !displayOpenings.isEmpty());
     }
 
     public WorkableElectricMultiblockMachine(BlockEntityCreationInfo info) {
         super(info);
-        displaySubscription = new ConditionalSubscriptionHandler(this,
-                this::tickDisplayTracking,
-                () -> !displayOpenings.isEmpty());
     }
 
     @Override
@@ -110,7 +93,6 @@ public class WorkableElectricMultiblockMachine extends WorkableMultiblockMachine
         if (DEFAULT_STRUCTURE.equals(structureName)) {
             this.energyContainer = null;
             this.tier = 0;
-            refreshDisplayTracking();
         }
     }
 
@@ -120,14 +102,7 @@ public class WorkableElectricMultiblockMachine extends WorkableMultiblockMachine
         if (DEFAULT_STRUCTURE.equals(structureName)) {
             this.energyContainer = getEnergyContainer();
             this.tier = energyContainer.getTier();
-            refreshDisplayTracking();
         }
-    }
-
-    @Override
-    public void onUnload() {
-        super.onUnload();
-        clearDisplayOpenings();
     }
 
     @Override
@@ -135,42 +110,6 @@ public class WorkableElectricMultiblockMachine extends WorkableMultiblockMachine
         super.onPartUnload();
         this.energyContainer = null;
         this.tier = 0;
-        refreshDisplayTracking();
-    }
-
-    private void refreshDisplayTracking() {
-        if (displayOpenings.isEmpty() || isRemote()) return;
-        displaySubscription.updateSubscription();
-        refreshDisplay();
-    }
-
-    private void startDisplayTracking(FancyMachineUIWidget page, Player player,
-                                      AbstractContainerMenu menu) {
-        if (isRemote()) return;
-        boolean firstAttach = !displayOpenings.containsKey(page);
-        displayOpenings.put(page, new DisplayOpening(player, menu));
-        if (firstAttach) {
-            refreshDisplayTracking();
-        }
-    }
-
-    private void tickDisplayTracking() {
-        displayOpenings.values().removeIf(opening -> opening.player().containerMenu != opening.menu());
-        if (displayOpenings.isEmpty()) {
-            stopDisplayTracking();
-        } else if (isFormed()) {
-            refreshDisplay();
-        }
-    }
-
-    private void clearDisplayOpenings() {
-        displayOpenings.clear();
-        stopDisplayTracking();
-    }
-
-    private void stopDisplayTracking() {
-        display = List.of();
-        displaySubscription.unsubscribe();
     }
 
     @Override
@@ -193,32 +132,12 @@ public class WorkableElectricMultiblockMachine extends WorkableMultiblockMachine
     public UI createUI(Player player, MachineUIHolder holder) {
         FancyMachineUIWidget shell = new FancyMachineUIWidget(this, player.getInventory(), holder,
                 getPageWidth(), getPageHeight());
-        shell.addEventListener(UIEvents.MUI_CHANGED, event -> {
-            var modularUI = shell.getModularUI();
-            if (modularUI != null) {
-                var menu = modularUI.getMenu();
-                if (menu != null) {
-                    startDisplayTracking(shell, player, menu);
-                }
-            }
-        });
-        return UI.of(shell);
+        return createDisplayUI(shell, this);
     }
 
-    void refreshDisplay() {
-        List<Component> nextDisplay = new ArrayList<>();
-        addDisplayText(nextDisplay);
-        nextDisplay = List.copyOf(nextDisplay);
-        if (!display.equals(nextDisplay)) {
-            display = nextDisplay;
-        }
+    protected void handleDisplayClick(FancyMachineUIWidget shell, String componentData, ClickData clickData) {
+        handleDisplayClick(componentData, clickData);
     }
-
-    private void appendSyncedDisplay(List<Component> textList) {
-        textList.addAll(display);
-    }
-
-    private record DisplayOpening(Player player, AbstractContainerMenu menu) {}
 
     @Override
     public void addDisplayText(@NotNull List<Component> textList) {
@@ -332,7 +251,7 @@ public class WorkableElectricMultiblockMachine extends WorkableMultiblockMachine
 
     @Override
     public UIElement createUIWidget(FancyMachineUIWidget shell) {
-        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
+        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, getPageWidth(), getPageHeight());
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
 
         GTScrollerViewElement screen = new GTScrollerViewElement(4, 4, 182, 117);
@@ -353,10 +272,9 @@ public class WorkableElectricMultiblockMachine extends WorkableMultiblockMachine
                 .textAlignHorizontal(Horizontal.LEFT)
                 .textAlignVertical(Vertical.CENTER));
         screen.addScrollViewChild(title);
-        screen.addScrollViewChild(new GTComponentPanelElement(4, 17,
-                WorkableElectricMultiblockMachine.this::appendSyncedDisplay)
+        screen.addScrollViewChild(new GTComponentPanelElement(4, 17, this::getDisplay)
                 .setMaxWidthLimit(DISPLAY_TEXT_WIDTH)
-                .clickHandler(WorkableElectricMultiblockMachine.this::handleDisplayClick));
+                .clickHandler((componentData, clickData) -> handleDisplayClick(shell, componentData, clickData)));
         root.addChild(screen);
         return root;
     }
