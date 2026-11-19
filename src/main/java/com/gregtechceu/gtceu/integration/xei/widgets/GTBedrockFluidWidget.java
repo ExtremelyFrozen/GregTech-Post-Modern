@@ -8,10 +8,8 @@ import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.gui.texture.TextTexture;
-import com.gregtechceu.gtceu.api.registry.GTRegistries;
 import com.gregtechceu.gtceu.api.transfer.fluid.CustomFluidTank;
 import com.gregtechceu.gtceu.api.transfer.item.CustomItemStackHandler;
-import com.gregtechceu.gtceu.common.recipe.condition.DimensionCondition;
 import com.gregtechceu.gtceu.config.ConfigHolder;
 import com.gregtechceu.gtceu.integration.xei.GTXEIHelper;
 
@@ -25,13 +23,11 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.material.Fluid;
 import net.neoforged.neoforge.fluids.FluidStack;
 
 import dev.vfyjxf.taffy.style.TaffyPosition;
 
-import java.util.Comparator;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
@@ -41,6 +37,7 @@ public class GTBedrockFluidWidget {
     public static final int WIDTH = 120;
     public static final int JEI_HEIGHT = 120;
     public static final int HEIGHT = 140;
+    public static final int DISPLAY_AMOUNT = 1000;
 
     private static final int TEXT_X = 5;
     private static final int TITLE_Y = 0;
@@ -102,7 +99,7 @@ public class GTBedrockFluidWidget {
 
     private GTFluidSlotElement createFluidSlot(BedrockFluidDefinition definition) {
         Fluid storedFluid = definition.getStoredFluid();
-        FluidStack stack = new FluidStack(storedFluid, 1000);
+        FluidStack stack = new FluidStack(storedFluid, DISPLAY_AMOUNT);
         CustomFluidTank tank = new CustomFluidTank(stack);
         Supplier<Stream<FluidStack>> fluidSupplier = () -> Stream.of(stack);
         GTFluidSlotElement slot = new GTFluidSlotElement();
@@ -141,15 +138,10 @@ public class GTBedrockFluidWidget {
         }
 
         int rowSlots = (WIDTH - 2 * TEXT_X + DIMENSION_INTERVAL) / (DIMENSION_SLOT_SIZE + DIMENSION_INTERVAL);
-        DimensionMarker[] dimMarkers = dimensionFilter.stream()
-                .map(dimension -> GTRegistries.DIMENSION_MARKERS.getOptional(dimension.location())
-                        .orElseGet(() -> new DimensionMarker(DimensionMarker.MAX_TIER, () -> Blocks.BARRIER,
-                                DimensionCondition.getDimensionName(dimension))))
-                .sorted(Comparator.comparingInt(DimensionMarker::getTier))
-                .toArray(DimensionMarker[]::new);
-        var handler = new CustomItemStackHandler(dimMarkers.length);
-        for (int i = 0; i < dimMarkers.length; i++) {
-            DimensionMarker dimMarker = dimMarkers[i];
+        var dimMarkers = VeinDimensionMarkers.resolve(dimensionFilter);
+        var handler = new CustomItemStackHandler(dimMarkers.size());
+        for (int i = 0; i < dimMarkers.size(); i++) {
+            DimensionMarker dimMarker = dimMarkers.get(i);
             ItemStack icon = dimMarker.getIcon();
             handler.setStackInSlot(i, icon);
             root.addChild(createDimensionMarker(handler, i, dimMarker, rowSlots));
