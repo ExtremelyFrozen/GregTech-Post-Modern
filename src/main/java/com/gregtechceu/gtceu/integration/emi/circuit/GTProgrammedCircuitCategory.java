@@ -13,12 +13,13 @@ import net.minecraft.resources.ResourceLocation;
 
 import dev.emi.emi.api.EmiRegistry;
 import dev.emi.emi.api.recipe.EmiRecipeCategory;
+import dev.emi.emi.api.stack.EmiIngredient;
 import dev.emi.emi.api.stack.EmiStack;
-import org.jetbrains.annotations.NotNull;
+import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
+import it.unimi.dsi.fastutil.objects.ObjectList;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
-import java.util.stream.IntStream;
 
 public class GTProgrammedCircuitCategory extends EmiRecipeCategory {
 
@@ -40,9 +41,23 @@ public class GTProgrammedCircuitCategory extends EmiRecipeCategory {
     public static class GTProgrammedCircuitWrapper extends ModularUIEMIRecipe {
 
         private final GTProgrammedCircuitWidget widget = new GTProgrammedCircuitWidget();
+        private final ObjectList<EmiIngredient> inputs;
+        private final ObjectList<EmiStack> outputs;
 
         public GTProgrammedCircuitWrapper() {
             super(GTProgrammedCircuitWrapper::createModularUI);
+            int max = IntCircuitBehaviour.CIRCUIT_MAX;
+            var inputStacks = new EmiIngredient[max - 1];
+            var outputStacks = new EmiStack[max + 1];
+            outputStacks[0] = EmiStack.of(IntCircuitBehaviour.stack(0));
+            for (int configuration = 1; configuration < max; configuration++) {
+                var stack = EmiStack.of(IntCircuitBehaviour.stack(configuration));
+                inputStacks[configuration - 1] = stack;
+                outputStacks[configuration] = stack.copy();
+            }
+            outputStacks[max] = EmiStack.of(IntCircuitBehaviour.stack(max));
+            inputs = new ObjectImmutableList<>(inputStacks);
+            outputs = new ObjectImmutableList<>(outputStacks);
         }
 
         @Override
@@ -66,11 +81,18 @@ public class GTProgrammedCircuitCategory extends EmiRecipeCategory {
         }
 
         @Override
-        public @NotNull List<EmiStack> getOutputs() {
-            return IntStream.range(0, 33)
-                    .mapToObj(IntCircuitBehaviour::stack)
-                    .map(EmiStack::of)
-                    .toList();
+        public List<EmiIngredient> getInputs() {
+            return inputs;
+        }
+
+        @Override
+        public List<EmiIngredient> getCatalysts() {
+            return ObjectList.of();
+        }
+
+        @Override
+        public List<EmiStack> getOutputs() {
+            return outputs;
         }
 
         @Override
