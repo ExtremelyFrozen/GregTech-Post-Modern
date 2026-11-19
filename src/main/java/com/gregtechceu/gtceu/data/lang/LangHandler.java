@@ -1704,7 +1704,8 @@ public class LangHandler {
                 "  {data getp <slot>} -> p",
                 "  {data setp <slot> <value>} -> sets p, returns an empty string",
                 "  {data inc <slot>} -> increments p by 1, if p becomes more than or equal to capacity, sets p to 0",
-                "  {data dec <slot>} -> decrements p by 1, if p becomes less than 0, sets p to (capacity - 1)");
+                "  {data dec <slot>} -> decrements p by 1, if p becomes less than 0, sets p to (capacity - 1)",
+                "If the slot argument is equal to 0, this placeholder will manipulate the data stick that is currently targeted by this text module inside a data hatch.");
         multiLang(provider, "gtpm.placeholder_info.combine",
                 "Combines all of it's arguments into a single string (by escaping all spaces between the arguments)",
                 "Example: {combine abc def ghi jkl mno} -> \"abc\\ def\\ ghi\\ jkl\\ mno\"",

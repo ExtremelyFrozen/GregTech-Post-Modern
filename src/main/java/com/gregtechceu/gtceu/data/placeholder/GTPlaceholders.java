@@ -53,6 +53,7 @@ import net.neoforged.api.distmarker.OnlyIn;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import net.neoforged.neoforge.items.IItemHandler;
+import net.neoforged.neoforge.items.IItemHandlerModifiable;
 
 import com.tterrag.registrate.util.RegistrateDistExecutor;
 import org.jetbrains.annotations.NotNull;
@@ -421,54 +422,74 @@ public class GTPlaceholders {
             public MultiLineComponent apply(PlaceholderContext ctx,
                                             List<MultiLineComponent> args) throws PlaceholderException {
                 PlaceholderUtils.checkArgs(args, 2, true);
-                try {
-                    int slot = PlaceholderUtils.toInt(args.get(1));
-                    if (ctx.itemStackHandler() == null) throw new NotSupportedException();
-                    PlaceholderUtils.checkRange("slot index", 1, ctx.itemStackHandler().getSlots(), slot);
-                    ItemStack stack = ctx.itemStackHandler().getStackInSlot(slot - 1);
-                    DataItem component = stack.get(GTDataComponents.DATA_ITEM);
-                    if (component == null) {
-                        throw new MissingItemException("any data item", slot);
-                    }
-                    int capacity = component.capacity();
-
-                    PlaceholderUtils.checkRange("index", 0, capacity - 1, PlaceholderUtils.toInt(args.get(2)));
-
-                    FormatStringList immutableData = stack.get(GTDataComponents.COMPUTER_MONITOR_DATA);
-                    if (immutableData == null) {
-                        throw new MissingItemException("any data item", slot);
-                    }
-                    FormatStringList.Mutable monitorData = immutableData.mutable();
-                    while (monitorData.size() <= PlaceholderUtils.toInt(args.get(2))) {
-                        monitorData.add("");
-                    }
-
-                    int p = stack.getOrDefault(GTDataComponents.COMPUTER_MONITOR_P, 0);
-                    if (GTStringUtils.equals(args.get(2), "")) {
-                        args.set(2, MultiLineComponent.literal(p));
-                    }
-                    if (GTStringUtils.equals(args.getFirst(), "get")) {
-                        return MultiLineComponent.literal(
-                                monitorData.get(PlaceholderUtils.toInt(args.get(2)) % capacity)).setIgnoreSpaces(true);
-                    } else if (args.getFirst().equalsString("set")) {
-                        monitorData.set(PlaceholderUtils.toInt(args.get(2)) % capacity, args.get(3).toString());
-                        stack.set(GTDataComponents.COMPUTER_MONITOR_DATA, monitorData.toImmutable());
-                        return MultiLineComponent.empty();
-                    } else if (args.getFirst().equalsString("setp")) {
-                        stack.set(GTDataComponents.COMPUTER_MONITOR_P, PlaceholderUtils.toInt(args.get(3)) % capacity);
-                        return MultiLineComponent.empty();
-                    } else if (args.getFirst().equalsString("inc")) {
-                        stack.set(GTDataComponents.COMPUTER_MONITOR_P, (p + 1) % capacity);
-                        return MultiLineComponent.empty();
-                    } else if (args.getFirst().equalsString("dec")) {
-                        stack.set(GTDataComponents.COMPUTER_MONITOR_P, p == 0 ? capacity - 1 : p - 1);
-                        return MultiLineComponent.empty();
-                    } else {
-                        throw new InvalidArgsException();
-                    }
-                } catch (IndexOutOfBoundsException e) {
-                    throw new InvalidArgsException();
+                int slot = PlaceholderUtils.toInt(args.get(1));
+                int inventorySlot;
+                IItemHandler inventory;
+                if (slot == 0) {
+                    MonitorGroup group = ctx.monitorGroup();
+                    if (group == null) throw new NotSupportedException();
+                    inventory = group.getTargetDataItems(ctx.monitorLevel());
+                    if (inventory == null) throw new NotSupportedException();
+                    inventorySlot = group.getDataSlot();
+                    PlaceholderUtils.checkRange("target slot", 0, inventory.getSlots() - 1, inventorySlot);
+                } else {
+                    inventory = ctx.itemStackHandler();
+                    if (inventory == null) throw new NotSupportedException();
+                    PlaceholderUtils.checkRange("slot index", 1, inventory.getSlots(), slot);
+                    inventorySlot = slot - 1;
                 }
+
+                ItemStack stack = inventory.getStackInSlot(inventorySlot);
+                DataItem component = stack.get(GTDataComponents.DATA_ITEM);
+                FormatStringList data = stack.get(GTDataComponents.COMPUTER_MONITOR_DATA);
+                if (component == null || data == null) throw new MissingItemException("any data item", slot);
+
+                int capacity = component.capacity();
+                int pointer = Math.floorMod(stack.getOrDefault(GTDataComponents.COMPUTER_MONITOR_P, 0), capacity);
+                String operation = args.getFirst().toString();
+                if (operation.equals("getp")) return MultiLineComponent.literal(pointer);
+                if (operation.equals("get")) {
+                    int index = getDataIndex(args.size() > 2 ? args.get(2) : null, pointer, capacity);
+                    String value = index < data.lines().size() ? data.lines().get(index) : "";
+                    return MultiLineComponent.literal(value).setIgnoreSpaces(true);
+                }
+
+                if (!(inventory instanceof IItemHandlerModifiable writable)) throw new NotSupportedException();
+                ItemStack updated = stack.copy();
+                switch (operation) {
+                    case "set" -> {
+                        PlaceholderUtils.checkArgs(args, 3, true);
+                        boolean hasIndex = args.size() > 3;
+                        int index = getDataIndex(hasIndex ? args.get(2) : null, pointer, capacity);
+                        FormatStringList.Mutable contents = data.mutable();
+                        while (contents.size() <= index) {
+                            contents.add("");
+                        }
+                        contents.set(index, args.get(hasIndex ? 3 : 2).toString());
+                        updated.set(GTDataComponents.COMPUTER_MONITOR_DATA, contents.toImmutable());
+                    }
+                    case "setp" -> {
+                        PlaceholderUtils.checkArgs(args, 3, true);
+                        // Older scripts can supply an unused index before the new pointer.
+                        int value = PlaceholderUtils.toInt(args.get(args.size() > 3 ? 3 : 2));
+                        updated.set(GTDataComponents.COMPUTER_MONITOR_P, Math.floorMod(value, capacity));
+                    }
+                    case "inc" -> updated.set(GTDataComponents.COMPUTER_MONITOR_P, (pointer + 1) % capacity);
+                    case "dec" -> updated.set(GTDataComponents.COMPUTER_MONITOR_P,
+                            Math.floorMod(pointer - 1, capacity));
+                    default -> throw new InvalidArgsException();
+                }
+
+                if (!ItemStack.matches(stack, updated)) writable.setStackInSlot(inventorySlot, updated);
+                return MultiLineComponent.empty();
+            }
+
+            private int getDataIndex(@Nullable MultiLineComponent arg, int pointer,
+                                     int capacity) throws PlaceholderException {
+                if (arg == null || arg.equalsString("")) return pointer;
+                int index = PlaceholderUtils.toInt(arg);
+                PlaceholderUtils.checkRange("index", 0, capacity - 1, index);
+                return index;
             }
         });
         PlaceholderHandler.addPlaceholder(new Placeholder("combine") {

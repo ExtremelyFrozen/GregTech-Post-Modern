@@ -3763,6 +3763,7 @@
     "gtpm.placeholder_info.data.6": "  {data setp <slot> <value>} -> sets p, returns an empty string",
     "gtpm.placeholder_info.data.7": "  {data inc <slot>} -> increments p by 1, if p becomes more than or equal to capacity, sets p to 0",
     "gtpm.placeholder_info.data.8": "  {data dec <slot>} -> decrements p by 1, if p becomes less than 0, sets p to (capacity - 1)",
+    "gtpm.placeholder_info.data.9": "If the slot argument is equal to 0, this placeholder will manipulate the data stick that is currently targeted by this text module inside a data hatch.",
     "gtpm.placeholder_info.displayTarget.0": "Returns the specified line that was transmitted to this cover using a display link.",
     "gtpm.placeholder_info.displayTarget.1": "Usage:",
     "gtpm.placeholder_info.displayTarget.2": "  {displayTarget <line_number>} -> the text on the specified line (line number is 1-100)",
