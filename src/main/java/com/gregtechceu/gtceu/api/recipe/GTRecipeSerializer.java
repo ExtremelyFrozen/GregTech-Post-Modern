@@ -6,7 +6,6 @@ import com.gregtechceu.gtceu.api.recipe.chance.logic.ChanceLogic;
 import com.gregtechceu.gtceu.api.recipe.content.Content;
 import com.gregtechceu.gtceu.api.recipe.content.ContentListMap;
 import com.gregtechceu.gtceu.api.registry.GTRegistries;
-import com.gregtechceu.gtceu.common.recipe.condition.ResearchCondition;
 
 import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -161,20 +160,8 @@ public class GTRecipeSerializer implements RecipeSerializer<GTRecipeDefinition> 
                 inputChanceLogics, outputChanceLogics, tickInputChanceLogics, tickOutputChanceLogics,
                 conditions, data, tier, duration, category, groupColor);
 
-        if (!addToRecipeCategory) {
-            return recipe;
-        }
-
-        recipe.recipeCategory.addRecipe(recipe);
-
-        // a little special piece of code for loading all the research entries into the recipe type's list on the
-        // client.
-        ResearchCondition researchCondition = conditions.stream().filter(ResearchCondition.class::isInstance).findAny()
-                .map(ResearchCondition.class::cast).orElse(null);
-        if (researchCondition != null) {
-            for (ResearchData.ResearchEntry entry : researchCondition.data) {
-                type.addDataStickEntry(entry.researchId(), recipe);
-            }
+        if (addToRecipeCategory) {
+            type.addClientRecipe(recipe);
         }
         return recipe;
     }

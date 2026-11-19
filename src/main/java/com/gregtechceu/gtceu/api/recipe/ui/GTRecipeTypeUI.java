@@ -417,7 +417,7 @@ public class GTRecipeTypeUI {
             EmiApi.displayRecipeCategory(GTRecipeEMICategory.machineCategory(recipeType.getCategory()));
         } else if (GTCEu.MODS.isJEILoaded()) {
             GTJEIPlugin.jeiRuntime.getRecipesGui().showTypes(
-                    recipeType.getCategories().stream()
+                    recipeType.getClientCategories().stream()
                             .filter(GTRecipeCategory::isXEIVisible)
                             .map(GTRecipeJEICategory::machineType)
                             .collect(Collectors.toList()));
@@ -618,7 +618,7 @@ public class GTRecipeTypeUI {
      * @return the height used to determine size of background texture in JEI
      */
     public int getPropertyHeightShift() {
-        int maxPropertyCount = maxTooltips + recipeType.getDataInfos().size() + recipeType.getMinRecipeConditions();
+        int maxPropertyCount = maxTooltips + recipeType.getDataInfos().size() + recipeType.getClientMinRecipeConditions();
         return maxPropertyCount * 10; // GTRecipeXEIHelper#LINE_HEIGHT
     }
 
