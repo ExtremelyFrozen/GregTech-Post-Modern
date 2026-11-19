@@ -2,6 +2,9 @@
 title: "NBT Predicate Ingredients（NBT 谓词原料）"
 ---
 
+!!! note "上游示例"
+    本页示例面向 GregTech CEu Modern。GTPM 1.21.1 的数据包和附属模组入口见[整合包制作](../../index.md#upstream-kubejs)。
+
 在某些使用场景中，Partial 或 Strict NBT Ingredients 提供的控制力不够。这时可以使用 NBT Predicate Ingredients。
 该系统允许你在配方匹配期间查询 NBT 内容，以对 ItemStacks 执行更高级的查询验证。
 

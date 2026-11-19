@@ -1,7 +1,9 @@
 package com.gregtechceu.gtceu.api.item.tool.behavior;
 
-import com.lowdragmc.lowdraglib.gui.factory.HeldItemUIFactory;
-import com.lowdragmc.lowdraglib.gui.modular.ModularUI;
+import com.gregtechceu.gtceu.api.gui.factory.HeldItemUIHelper;
+import com.gregtechceu.gtceu.api.gui.factory.HeldItemUIHolder;
+
+import com.lowdragmc.lowdraglib2.gui.ui.UI;
 
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -19,13 +21,31 @@ public interface IToolUIBehavior<T extends IToolUIBehavior<T>> extends IToolBeha
                                                                          @NotNull InteractionHand hand) {
         var heldItem = player.getItemInHand(hand);
         if (player instanceof ServerPlayer serverPlayer && openUI(serverPlayer, hand)) {
-            HeldItemUIFactory.INSTANCE.openUI(serverPlayer, hand);
+            HeldItemUIHelper.open(serverPlayer, hand);
             return InteractionResultHolder.success(heldItem);
         }
         return InteractionResultHolder.pass(heldItem);
     }
 
+    /**
+     * Returns whether this behavior has a migrated LDLib2 held-item UI for the provided context.
+     */
     boolean openUI(@NotNull Player player, @NotNull InteractionHand hand);
 
-    ModularUI createUI(Player player, HeldItemUIFactory.HeldItemHolder holder);
+    /**
+     * Returns whether this behavior owns an LDLib2 UI for the currently opened held item context.
+     */
+    boolean canCreateUI(Player player, HeldItemUIHolder holder);
+
+    /**
+     * Returns whether the currently held stack still belongs to this behavior's opened LDLib2 UI.
+     */
+    default boolean isUIStillValid(Player player, HeldItemUIHolder holder) {
+        return ItemStack.matches(holder.getHeld(), holder.getOpenedStack());
+    }
+
+    /**
+     * Builds the migrated LDLib2 held-item UI for this behavior.
+     */
+    UI createUI(Player player, HeldItemUIHolder holder);
 }

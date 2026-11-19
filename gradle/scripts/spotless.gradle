@@ -32,7 +32,7 @@ spotless {
         ktlint()
             .setEditorConfigPath(orderFile)
             .editorConfigOverride([
-                'max_line_length': '200',
+                'max_line_length': '300',
                 'ktlint_standard_no-unused-imports': 'enabled',
                 'ktlint_standard_package-name': 'disabled',
             ])

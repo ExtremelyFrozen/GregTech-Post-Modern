@@ -1,5 +1,7 @@
 package com.gregtechceu.gtceu.common.item.datacomponents;
 
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
+
 import net.minecraft.core.UUIDUtil;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
@@ -33,6 +35,11 @@ public record BindingData(int permissionLevel, UUID uuid) implements TooltipProv
             UUIDUtil.STREAM_CODEC, BindingData::uuid,
             BindingData::new
     );
+
+    static {
+        FieldCodecs.register(BindingData.class, CODEC);
+        FieldCodecs.registerStream(BindingData.class, STREAM_CODEC);
+    }
     //spotless:on
 
     public @Nullable Component getBoundPlayerName(@Nullable EntityGetter level) {

@@ -6,7 +6,7 @@ import com.gregtechceu.gtceu.api.data.worldgen.GTOreDefinition;
 import com.gregtechceu.gtceu.api.data.worldgen.ores.GeneratedVeinMetadata;
 import com.gregtechceu.gtceu.api.data.worldgen.ores.OreGenerator;
 import com.gregtechceu.gtceu.api.data.worldgen.ores.OrePlacer;
-import com.gregtechceu.gtceu.api.gui.factory.GTUIEditorFactory;
+import com.gregtechceu.gtceu.api.gui.factory.GTUIEditorMenu;
 import com.gregtechceu.gtceu.api.machine.MachineDefinition;
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
 import com.gregtechceu.gtceu.api.registry.GTRegistries;
@@ -69,6 +69,8 @@ public class GTCommands {
             Component.translatable("command.gtpm.cape.give.failed"));
     private static final SimpleCommandExceptionType ERROR_TAKE_FAILED = new SimpleCommandExceptionType(
             Component.translatable("command.gtpm.cape.take.failed"));
+    private static final SimpleCommandExceptionType ERROR_UI_EDITOR_OPEN_FAILED = new SimpleCommandExceptionType(
+            Component.translatable("command.gtpm.ui_editor.open.failed"));
     private static final Dynamic2CommandExceptionType ERROR_USE_FAILED = new Dynamic2CommandExceptionType(
             (player, cape) -> Component.translatable("command.gtpm.cape.use.failed", player, cape));
 
@@ -83,7 +85,9 @@ public class GTCommands {
                 .then(literal("ui_editor")
                         .requires(ctx -> ctx.hasPermission(LEVEL_ADMINS))
                         .executes(context -> {
-                            GTUIEditorFactory.INSTANCE.openUI(GTUIEditorFactory.INSTANCE, context.getSource().getPlayerOrException());
+                            if (!GTUIEditorMenu.open(context.getSource().getPlayerOrException())) {
+                                throw ERROR_UI_EDITOR_OPEN_FAILED.create();
+                            }
                             return 1;
                         }))
                 .then(literal("place_vein")
@@ -102,19 +106,19 @@ public class GTCommands {
                                 .executes(ctx -> reloadStructureCache(ctx.getSource()))
                                 .then(literal("binary")
                                         .executes(ctx -> reloadStructureCacheType(ctx.getSource(),
-                                                StructureDefinitionType.SERIALIZED_BLOCK_PATTERN))
+                                                StructureDefinitionType.BINARY_ZSTD))
                                         .then(argument("id", ResourceLocationArgument.id())
                                                 .suggests(STRUCTURE_IDS)
                                                 .executes(ctx -> reloadStructureCacheEntry(ctx.getSource(),
-                                                        StructureDefinitionType.SERIALIZED_BLOCK_PATTERN,
+                                                        StructureDefinitionType.BINARY_ZSTD,
                                                         ResourceLocationArgument.getId(ctx, "id")))))
                                 .then(literal("json")
                                         .executes(ctx -> reloadStructureCacheType(ctx.getSource(),
-                                                StructureDefinitionType.STRING_ARRAY_JSON))
+                                                StructureDefinitionType.JSON))
                                         .then(argument("id", ResourceLocationArgument.id())
                                                 .suggests(STRUCTURE_IDS)
                                                 .executes(ctx -> reloadStructureCacheEntry(ctx.getSource(),
-                                                        StructureDefinitionType.STRING_ARRAY_JSON,
+                                                        StructureDefinitionType.JSON,
                                                         ResourceLocationArgument.getId(ctx, "id")))))))
                 .then(literal("cape")
                         .then(literal("give")

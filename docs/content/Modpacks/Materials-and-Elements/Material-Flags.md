@@ -5,6 +5,9 @@ title: "Material Flags（材料 Flag）"
 
 # Material Flags（材料 Flag）
 
+!!! note "上游示例"
+    本页示例面向 GregTech CEu Modern。GTPM 1.21.1 的数据包和附属模组入口见[整合包制作](../index.md#upstream-kubejs)。
+
 使用 Material Flags 可以为每种 Material 指定若干属性，
 这些属性会影响该 Material 的行为，以及会为它生成哪些物品。
 

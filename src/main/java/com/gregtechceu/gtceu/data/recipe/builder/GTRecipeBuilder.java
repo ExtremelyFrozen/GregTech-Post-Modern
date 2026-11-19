@@ -58,6 +58,7 @@ import net.neoforged.neoforge.fluids.crafting.SizedFluidIngredient;
 import com.google.gson.JsonObject;
 import com.mojang.serialization.JsonOps;
 import dev.ftb.mods.ftbquests.quest.QuestObjectBase;
+import it.unimi.dsi.fastutil.objects.ObjectList;
 import it.unimi.dsi.fastutil.objects.Reference2LongOpenHashMap;
 import lombok.Getter;
 import lombok.Setter;
@@ -1079,9 +1080,9 @@ public class GTRecipeBuilder {
 
     public GTRecipeBuilder inputFluids(IntProviderFluidIngredient... inputs) {
         return input(FluidRecipeCapability.CAP,
-                Arrays.stream(inputs).<SizedFluidIngredient>map(
+                Arrays.stream(inputs).map(
                         ingredient -> new SizedFluidIngredient(ingredient, ingredient.getCountProvider().getMaxValue()))
-                        .toList().toArray(new SizedFluidIngredient[0]));
+                        .toArray(SizedFluidIngredient[]::new));
     }
 
     public GTRecipeBuilder outputFluids(FluidStack output) {
@@ -1099,9 +1100,9 @@ public class GTRecipeBuilder {
 
     public GTRecipeBuilder outputFluids(IntProviderFluidIngredient... outputs) {
         return output(FluidRecipeCapability.CAP,
-                Arrays.stream(outputs).<SizedFluidIngredient>map(
+                Arrays.stream(outputs).map(
                         ingredient -> new SizedFluidIngredient(ingredient, ingredient.getCountProvider().getMaxValue()))
-                        .toList().toArray(new SizedFluidIngredient[0]));
+                        .toArray(SizedFluidIngredient[]::new));
     }
 
     public GTRecipeBuilder outputFluidsRanged(IntProviderFluidIngredient provider) {
@@ -1337,7 +1338,7 @@ public class GTRecipeBuilder {
     }
 
     public GTRecipeBuilder heraclesQuest(String questId, boolean isReverse) {
-        if (!GTCEu.Mods.isHeraclesLoaded()) {
+        if (!GTCEu.MODS.HERACLES.isLoaded()) {
             GTCEu.LOGGER.error("Heracles not loaded!");
             return this;
         }
@@ -1365,7 +1366,7 @@ public class GTRecipeBuilder {
     // }
 
     public GTRecipeBuilder ftbQuest(String questId, boolean isReverse) {
-        if (!GTCEu.Mods.isFTBQuestsLoaded()) {
+        if (!GTCEu.MODS.FTB_QUESTS.isLoaded()) {
             GTCEu.LOGGER.error("FTBQuests is not loaded!");
             return this;
         }
@@ -1569,8 +1570,8 @@ public class GTRecipeBuilder {
     }
 
     private void addOutputMaterialInfo() {
-        var itemOutputs = output.getOrDefault(ItemRecipeCapability.CAP, new ArrayList<>());
-        var itemInputs = input.getOrDefault(ItemRecipeCapability.CAP, new ArrayList<>());
+        var itemOutputs = output.getOrDefault(ItemRecipeCapability.CAP, ObjectList.of());
+        var itemInputs = input.getOrDefault(ItemRecipeCapability.CAP, ObjectList.of());
         if (itemOutputs.size() == 1 && (!itemInputs.isEmpty() || !tempFluidStacks.isEmpty())) {
             var currOutput = ItemRecipeCapability.CAP.of(itemOutputs.getFirst().content);
             Item out = null;
@@ -1661,7 +1662,7 @@ public class GTRecipeBuilder {
         return new GTRecipe(recipeType, id.withPrefix(recipeType.registryName.getPath() + "/"),
                 input, output, tickInput, tickOutput,
                 inputChanceLogic, outputChanceLogic, tickInputChanceLogic, tickOutputChanceLogic,
-                conditions, List.of(), data, tier, duration, recipeCategory, -1);
+                conditions, data, tier, duration, recipeCategory, -1);
     }
 
     public GTRecipeDefinition buildDefinition() {
@@ -1670,7 +1671,7 @@ public class GTRecipeBuilder {
                 ContentListMap.copyOf(tickInput), ContentListMap.copyOf(tickOutput),
                 new HashMap<>(inputChanceLogic), new HashMap<>(outputChanceLogic),
                 new HashMap<>(tickInputChanceLogic), new HashMap<>(tickOutputChanceLogic),
-                new ArrayList<>(conditions), List.of(), RecipeData.copy(data), tier, duration, recipeCategory, -1);
+                new ArrayList<>(conditions), RecipeData.copy(data), tier, duration, recipeCategory, -1);
     }
 
     protected void warnTooManyIngredients(RecipeCapability<?> capability,

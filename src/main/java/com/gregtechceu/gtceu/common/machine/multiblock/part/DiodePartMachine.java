@@ -3,6 +3,7 @@ package com.gregtechceu.gtceu.common.machine.multiblock.part;
 import com.gregtechceu.gtceu.api.GTValues;
 import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo;
 import com.gregtechceu.gtceu.api.capability.recipe.IO;
+import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
 import com.gregtechceu.gtceu.api.machine.multiblock.part.TieredIOPartMachine;
 import com.gregtechceu.gtceu.api.machine.property.GTMachineModelProperties;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableEnergyContainer;
@@ -82,9 +83,15 @@ public class DiodePartMachine extends TieredIOPartMachine {
     }
 
     private void cycleAmpMode() {
-        amps = amps == getMaxAmperage() ? 1 : amps << 1;
+        setAmps(amps == getMaxAmperage() ? 1 : amps << 1);
+    }
+
+    void setAmps(int amps) {
+        if (this.amps == amps) {
+            return;
+        }
+        this.amps = amps;
         if (!isRemote()) {
-            syncDataHolder.markClientSyncFieldDirty("amps");
             reinitializeEnergyContainer();
             notifyBlockUpdate();
         }
@@ -138,5 +145,10 @@ public class DiodePartMachine extends TieredIOPartMachine {
         setRenderState(
                 getRenderState().setValue(GTMachineModelProperties.DIODE_AMP_MODE, AmpMode.getByValue(this.amps)));
         scheduleRenderUpdate();
+    }
+
+    @Override
+    public IFancyUIProvider.PageGroupingData getPageGroupingData() {
+        return new IFancyUIProvider.PageGroupingData("gtpm.multiblock.page_switcher.io.both", 3);
     }
 }

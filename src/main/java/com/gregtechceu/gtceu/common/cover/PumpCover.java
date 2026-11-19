@@ -8,18 +8,22 @@ import com.gregtechceu.gtceu.api.capability.recipe.IO;
 import com.gregtechceu.gtceu.api.cover.CoverBehavior;
 import com.gregtechceu.gtceu.api.cover.CoverDefinition;
 import com.gregtechceu.gtceu.api.cover.IIOCover;
-import com.gregtechceu.gtceu.api.cover.IUICover;
 import com.gregtechceu.gtceu.api.cover.filter.FilterHandler;
 import com.gregtechceu.gtceu.api.cover.filter.FilterHandlers;
 import com.gregtechceu.gtceu.api.cover.filter.FluidFilter;
-import com.gregtechceu.gtceu.api.gui.widget.EnumSelectorWidget;
-import com.gregtechceu.gtceu.api.gui.widget.IntInputWidget;
-import com.gregtechceu.gtceu.api.gui.widget.NumberInputWidget;
+import com.gregtechceu.gtceu.api.gui.GuiTextures;
+import com.gregtechceu.gtceu.api.gui.UITemplate;
+import com.gregtechceu.gtceu.api.gui.element.GTEnumSelectorElement;
+import com.gregtechceu.gtceu.api.gui.element.GTIntInputElement;
+import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
+import com.gregtechceu.gtceu.api.gui.factory.CoverUIProvider;
+import com.gregtechceu.gtceu.api.gui.factory.UICoverHolder;
 import com.gregtechceu.gtceu.api.machine.ConditionalSubscriptionHandler;
 import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.RerenderOnChanged;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
 import com.gregtechceu.gtceu.api.transfer.fluid.FluidHandlerDelegate;
 import com.gregtechceu.gtceu.api.transfer.fluid.IFluidHandlerModifiable;
 import com.gregtechceu.gtceu.api.transfer.fluid.ModifiableFluidHandlerWrapper;
@@ -27,17 +31,19 @@ import com.gregtechceu.gtceu.common.cover.data.BucketMode;
 import com.gregtechceu.gtceu.common.cover.data.ManualIOMode;
 import com.gregtechceu.gtceu.utils.GTTransferUtils;
 
-import com.lowdragmc.lowdraglib.gui.widget.LabelWidget;
-import com.lowdragmc.lowdraglib.gui.widget.Widget;
-import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
+import com.lowdragmc.lowdraglib2.gui.ui.UI;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
+import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
-import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Block;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 
@@ -51,7 +57,8 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Arrays;
 import java.util.List;
 
-public class PumpCover extends CoverBehavior implements IIOCover, IUICover, IControllable {
+public class PumpCover extends CoverBehavior
+                       implements IIOCover, CoverUIProvider, IControllable {
 
     // .5b 2b 8b
     public static final Int2IntFunction PUMP_SCALING = tier -> 64 * (int) Math.pow(4, Math.min(tier - 1, GTValues.IV));
@@ -86,7 +93,7 @@ public class PumpCover extends CoverBehavior implements IIOCover, IUICover, ICon
     @SyncToClient
     protected final FilterHandler<FluidStack, FluidFilter> filterHandler;
     protected final ConditionalSubscriptionHandler subscriptionHandler;
-    private NumberInputWidget<Integer> transferRateWidget;
+    private @Nullable GTIntInputElement transferRateInput;
 
     public PumpCover(CoverDefinition definition, ICoverable coverHolder, Direction attachedSide, int tier,
                      int maxTransferRate) {
@@ -106,6 +113,10 @@ public class PumpCover extends CoverBehavior implements IIOCover, IUICover, ICon
 
     public PumpCover(CoverDefinition definition, ICoverable coverHolder, Direction attachedSide, int tier) {
         this(definition, coverHolder, attachedSide, tier, PUMP_SCALING.applyAsInt(tier));
+    }
+
+    public int getMaxFluidTransferRate() {
+        return maxFluidTransferRate;
     }
 
     protected boolean isSubscriptionActive() {
@@ -132,7 +143,10 @@ public class PumpCover extends CoverBehavior implements IIOCover, IUICover, ICon
 
     public void setIo(IO io) {
         if (io == IO.IN || io == IO.OUT) {
-            this.io = io;
+            if (this.io != io) {
+                this.io = io;
+                syncDataHolder.markClientSyncFieldDirty("io");
+            }
         }
     }
 
@@ -158,7 +172,7 @@ public class PumpCover extends CoverBehavior implements IIOCover, IUICover, ICon
     }
 
     @Override
-    public void onNeighborChanged(net.minecraft.world.level.block.Block block, BlockPos fromPos, boolean isMoving) {
+    public void onNeighborChanged(Block block, BlockPos fromPos, boolean isMoving) {
         subscriptionHandler.updateSubscription();
     }
 
@@ -176,31 +190,31 @@ public class PumpCover extends CoverBehavior implements IIOCover, IUICover, ICon
     //////////////////////////////////////
 
     public void setTransferRate(int milliBucketsPerTick) {
-        this.transferRate = Math.min(Math.max(milliBucketsPerTick, 0), maxFluidTransferRate);
+        int clamped = Math.min(Math.max(milliBucketsPerTick, 0), maxFluidTransferRate);
+        if (this.transferRate != clamped) {
+            this.transferRate = clamped;
+            syncDataHolder.markClientSyncFieldDirty("transferRate");
+        }
     }
 
     public void setBucketMode(BucketMode bucketMode) {
         var oldMultiplier = this.bucketMode.multiplier;
         var newMultiplier = bucketMode.multiplier;
 
+        if (this.bucketMode == bucketMode) {
+            configureTransferRateInput(oldMultiplier, newMultiplier);
+            return;
+        }
         this.bucketMode = bucketMode;
         syncDataHolder.markClientSyncFieldDirty("bucketMode");
-        if (transferRateWidget == null) return;
-
-        if (oldMultiplier > newMultiplier) {
-            transferRateWidget.setValue(getCurrentBucketModeTransferRate());
-        }
-
-        transferRateWidget.setMax(maxFluidTransferRate / bucketMode.multiplier);
-
-        if (newMultiplier > oldMultiplier) {
-            transferRateWidget.setValue(getCurrentBucketModeTransferRate());
-        }
+        configureTransferRateInput(oldMultiplier, newMultiplier);
     }
 
-    protected void setManualIOMode(ManualIOMode manualIOMode) {
-        this.manualIOMode = manualIOMode;
-        syncDataHolder.markClientSyncFieldDirty("manualIOMode");
+    public void setManualIOMode(ManualIOMode manualIOMode) {
+        if (this.manualIOMode != manualIOMode) {
+            this.manualIOMode = manualIOMode;
+            syncDataHolder.markClientSyncFieldDirty("manualIOMode");
+        }
     }
 
     protected void update() {
@@ -280,32 +294,37 @@ public class PumpCover extends CoverBehavior implements IIOCover, IUICover, ICon
     //////////////////////////////////////
 
     @Override
-    public Widget createUIWidget() {
-        final var group = new WidgetGroup(0, 0, 176, 137);
-        group.addWidget(new LabelWidget(10, 5, Component.translatable(getUITitle(), GTValues.VN[tier]).getString()));
+    public boolean canCreateUI(Player player, UICoverHolder holder) {
+        return holder.getCover() == this;
+    }
 
-        transferRateWidget = new IntInputWidget(10, 20, 134, 20,
-                this::getCurrentBucketModeTransferRate, this::setCurrentBucketModeTransferRate).setMin(0);
-        setBucketMode(this.bucketMode); // initial input widget config happens here
-        group.addWidget(transferRateWidget);
+    @Override
+    public UI createUI(Player player, UICoverHolder holder) {
+        UIElement root = new UIElement();
+        UITemplate.setBounds(root, 0, 0, 176, 219);
+        root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));
 
-        group.addWidget(new EnumSelectorWidget<>(
-                146, 20, 20, 20,
-                Arrays.stream(BucketMode.values()).filter(m -> m.multiplier <= maxFluidTransferRate).toList(),
-                bucketMode, this::setBucketMode).setTooltipSupplier(this::getBucketModeTooltip));
+        root.addChild(createLabel());
+        transferRateInput = new GTIntInputElement(10, 20, 134, 20,
+                this::getCurrentBucketModeTransferRate,
+                value -> setCurrentBucketModeTransferRate(player, holder, value))
+                .setMin(0);
+        configureTransferRateInput(bucketMode.multiplier, bucketMode.multiplier);
+        root.addChild(transferRateInput);
 
-        group.addWidget(new EnumSelectorWidget<>(10, 45, 20, 20, List.of(IO.IN, IO.OUT), io, this::setIo));
+        root.addChild(GTEnumSelectorElement.selectable(146, 20, 20, 20, getAvailableBucketModes(),
+                this::getBucketMode, mode -> setBucketMode(player, holder, mode))
+                .setTooltipSupplier(this::getBucketModeTooltip));
+        root.addChild(GTEnumSelectorElement.selectable(10, 45, 20, 20, List.of(IO.IN, IO.OUT), this::getIo,
+                mode -> setIo(player, holder, mode)));
+        root.addChild(GTEnumSelectorElement.selectable(146, 107, 20, 20, ManualIOMode.VALUES,
+                this::getManualIOMode, mode -> setManualIOMode(player, holder, mode)));
 
-        group.addWidget(new EnumSelectorWidget<>(146, 107, 20, 20,
-                ManualIOMode.VALUES, manualIOMode, this::setManualIOMode)
-                .setHoverTooltips("cover.universal.manual_import_export.mode.description"));
-
-        group.addWidget(filterHandler.createFilterSlotUI(125, 108));
-        group.addWidget(filterHandler.createFilterConfigUI(10, 72, 156, 60));
-
-        buildAdditionalUI(group);
-
-        return group;
+        root.addChild(filterHandler.createFilterSlotUI(125, 108));
+        root.addChild(filterHandler.createFilterConfigUI(10, 72, 156, 60));
+        buildAdditionalUI(root, player, holder);
+        root.addChild(UITemplate.bindPlayerInventory(player.getInventory(), GuiTextures.SLOT, 7, 137, true));
+        return UI.of(root);
     }
 
     private List<Component> getBucketModeTooltip(BucketMode mode, String langKey) {
@@ -313,12 +332,31 @@ public class PumpCover extends CoverBehavior implements IIOCover, IUICover, ICon
                 Component.translatable(langKey).append(Component.translatable("gtpm.gui.content.units.per_tick")));
     }
 
+    private List<BucketMode> getAvailableBucketModes() {
+        return Arrays.stream(BucketMode.values()).filter(mode -> mode.multiplier <= maxFluidTransferRate).toList();
+    }
+
     private int getCurrentBucketModeTransferRate() {
         return this.transferRate / this.bucketMode.multiplier;
     }
 
     private void setCurrentBucketModeTransferRate(int transferRate) {
-        this.setTransferRate(transferRate * this.bucketMode.multiplier);
+        long milliBucketsPerTick = (long) transferRate * this.bucketMode.multiplier;
+        this.setTransferRate((int) Math.min(milliBucketsPerTick, maxFluidTransferRate));
+    }
+
+    private void configureTransferRateInput(int oldMultiplier, int newMultiplier) {
+        if (transferRateInput == null) return;
+
+        if (oldMultiplier > newMultiplier) {
+            transferRateInput.setValue(getCurrentBucketModeTransferRate());
+        }
+
+        transferRateInput.setMax(maxFluidTransferRate / bucketMode.multiplier);
+
+        if (newMultiplier > oldMultiplier) {
+            transferRateInput.setValue(getCurrentBucketModeTransferRate());
+        }
     }
 
     @NotNull
@@ -326,12 +364,59 @@ public class PumpCover extends CoverBehavior implements IIOCover, IUICover, ICon
         return "cover.pump.title";
     }
 
-    protected void buildAdditionalUI(WidgetGroup group) {
+    protected void buildAdditionalUI(UIElement root, Player player, UICoverHolder holder) {
         // Do nothing in the base implementation. This is intended to be overridden by subclasses.
     }
 
     protected void configureFilter() {
         // Do nothing in the base implementation. This is intended to be overridden by subclasses.
+    }
+
+    private GTLabelElement createLabel() {
+        GTLabelElement label = new GTLabelElement(10, 5, 156, 10, Component.translatable(getUITitle(),
+                GTValues.VN[tier]));
+        label.textStyle(style -> style
+                .textColor(0x404040)
+                .textShadow(false)
+                .textAlignHorizontal(Horizontal.LEFT)
+                .textAlignVertical(Vertical.CENTER));
+        return label;
+    }
+
+    private void setCurrentBucketModeTransferRate(Player player, UICoverHolder holder, int transferRate) {
+        setCurrentBucketModeTransferRate(transferRate);
+        sendConfigAction(player, holder);
+    }
+
+    private void setBucketMode(Player player, UICoverHolder holder, BucketMode mode) {
+        setBucketMode(mode);
+        sendConfigAction(player, holder);
+    }
+
+    private void setIo(Player player, UICoverHolder holder, IO io) {
+        setIo(io);
+        sendConfigAction(player, holder);
+    }
+
+    private void setManualIOMode(Player player, UICoverHolder holder, ManualIOMode mode) {
+        setManualIOMode(mode);
+        sendConfigAction(player, holder);
+    }
+
+    @RPCMethod
+    public boolean configurePump(int transferRate, IO io, BucketMode bucketMode, ManualIOMode manualIOMode) {
+        setTransferRate(transferRate);
+        setIo(io);
+        setBucketMode(bucketMode);
+        setManualIOMode(manualIOMode);
+        return true;
+    }
+
+    private void sendConfigAction(Player player, UICoverHolder holder) {
+        if (player.level().isClientSide()) {
+            holder.getCover().rpcToServer("configurePump", getTransferRate(), getIo(), getBucketMode(),
+                    getManualIOMode());
+        }
     }
 
     /////////////////////////////////////
@@ -392,27 +477,26 @@ public class PumpCover extends CoverBehavior implements IIOCover, IUICover, ICon
     }
 
     @Override
-    public DataComponentMap copyConfig(HolderLookup.Provider registries) {
+    public SyncFieldData copyConfig(HolderLookup.Provider registries) {
         return ConfigCopyHelper.withFields(super.copyConfig(registries), fields -> fields
                 .put(SyncFieldData.key("transferRate"),
-                        ConfigCopyHelper.intValue(getTransferRate()))
+                        getTransferRate())
                 .put(SyncFieldData.key("io"),
-                        ConfigCopyHelper.intValue(getIo().ordinal()))
+                        getIo().ordinal())
                 .put(SyncFieldData.key("manualIO"),
-                        ConfigCopyHelper.intValue(getManualIOMode().ordinal()))
-                .put(SyncFieldData.key("filter"),
-                        ConfigCopyHelper.encodeItem(registries, filterHandler.getFilterItem()))
+                        getManualIOMode().ordinal())
+                .put(SyncFieldData.key("filter"), ItemStack.OPTIONAL_CODEC, filterHandler.getFilterItem(), registries)
                 .put(SyncFieldData.key("bucketMode"),
-                        ConfigCopyHelper.intValue(getBucketMode().ordinal())));
+                        getBucketMode().ordinal()));
     }
 
     @Override
-    public void pasteConfig(ServerPlayer player, HolderLookup.Provider registries, DataComponentMap config) {
+    public void pasteConfig(ServerPlayer player, HolderLookup.Provider registries, SyncFieldData config) {
         setTransferRate(ConfigCopyHelper.getInt(config, "transferRate"));
         setIo(IO.values()[ConfigCopyHelper.getInt(config, "io")]);
         setManualIOMode(ManualIOMode.values()[ConfigCopyHelper.getInt(config, "manualIO")]);
         filterHandler
-                .setFilterItem(ConfigCopyHelper.decodeItem(registries, ConfigCopyHelper.getField(config, "filter")));
+                .setFilterItem(ConfigCopyHelper.getItem(registries, config, "filter"));
         setBucketMode(BucketMode.values()[ConfigCopyHelper.getInt(config, "bucketMode")]);
         super.pasteConfig(player, registries, config);
     }

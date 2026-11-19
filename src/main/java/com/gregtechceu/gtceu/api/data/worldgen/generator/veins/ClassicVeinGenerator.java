@@ -7,6 +7,7 @@ import com.gregtechceu.gtceu.api.data.worldgen.generator.VeinGenerator;
 import com.gregtechceu.gtceu.api.data.worldgen.ores.OreBlockPlacer;
 import com.gregtechceu.gtceu.api.data.worldgen.ores.OreVeinUtil;
 import com.gregtechceu.gtceu.api.registry.GTRegistries;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
@@ -233,6 +234,10 @@ public class ClassicVeinGenerator extends VeinGenerator {
                 Codec.either(OreConfiguration.TargetBlockState.CODEC.listOf(), GTRegistries.MATERIALS.byNameCodec()).fieldOf("targets").forGetter(layer -> layer.target),
                 ExtraCodecs.intRange(-1, Integer.MAX_VALUE).optionalFieldOf("layers", -1).forGetter(layer -> layer.layers)
         ).apply(instance, Layer::new));
+
+    static {
+        FieldCodecs.register(Layer.class, CODEC);
+    }
         // spotless:on
         public final Either<List<OreConfiguration.TargetBlockState>, Material> target;
         public int layers;

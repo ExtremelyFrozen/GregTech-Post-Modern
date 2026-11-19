@@ -2,6 +2,9 @@
 title: 创建 Active Block
 ---
 
+!!! note "上游示例"
+    本页示例面向 GregTech CEu Modern。GTPM 1.21.1 的数据包和附属模组入口见[整合包制作](../index.md#upstream-kubejs)。
+
 **Active Block** 是一种会在其所属 Multiblock 运行时切换模型的 Block，
 例如 Engine Intake Casing 或 Assembly Line casing。
 

@@ -2,14 +2,19 @@ package com.gregtechceu.gtceu.common.machine.multiblock.electric.research;
 
 import com.gregtechceu.gtceu.api.GTValues;
 import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo;
-import com.gregtechceu.gtceu.api.capability.IControllable;
 import com.gregtechceu.gtceu.api.capability.IDataAccessMachine;
 import com.gregtechceu.gtceu.api.capability.IEnergyContainer;
 import com.gregtechceu.gtceu.api.capability.recipe.EURecipeCapability;
 import com.gregtechceu.gtceu.api.capability.recipe.IO;
+import com.gregtechceu.gtceu.api.gui.GuiTextures;
+import com.gregtechceu.gtceu.api.gui.UITemplate;
+import com.gregtechceu.gtceu.api.gui.element.GTComponentPanelElement;
+import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
+import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
+import com.gregtechceu.gtceu.api.gui.fancy.TooltipsPanel;
+import com.gregtechceu.gtceu.api.machine.ConditionalSubscriptionHandler;
 import com.gregtechceu.gtceu.api.machine.TickableSubscription;
-import com.gregtechceu.gtceu.api.machine.feature.IFancyUIMachine;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.IDisplayUIMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMaintenanceMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMultiPart;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockDisplayText;
@@ -18,13 +23,21 @@ import com.gregtechceu.gtceu.api.machine.multiblock.WorkableElectricMultiblockMa
 import com.gregtechceu.gtceu.api.machine.trait.WorkLogic;
 import com.gregtechceu.gtceu.api.misc.EnergyContainerList;
 import com.gregtechceu.gtceu.api.recipe.GTRecipeType;
+import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
 import com.gregtechceu.gtceu.config.ConfigHolder;
+
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
+import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
+import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollerMode;
+import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMaps;
+import lombok.AccessLevel;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -33,7 +46,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class DataBankMachine extends WorkableElectricMultiblockMachine
-                             implements IFancyUIMachine, IDisplayUIMachine, IControllable, IDataAccessMachine {
+                             implements IDataAccessMachine {
+
+    private static final int PAGE_WIDTH = 190;
+    private static final int PAGE_HEIGHT = 125;
 
     public static final int EUT_PER_HATCH = GTValues.VA[GTValues.EV];
     public static final int EUT_PER_HATCH_CHAINED = GTValues.VA[GTValues.LuV];
@@ -50,10 +66,16 @@ public class DataBankMachine extends WorkableElectricMultiblockMachine
 
     @Nullable
     protected TickableSubscription tickSubs;
+    private final ConditionalSubscriptionHandler displaySubscription;
+    @Getter(AccessLevel.PACKAGE)
+    @SyncToClient
+    private List<Component> displayText = List.of();
 
     public DataBankMachine(BlockEntityCreationInfo info) {
         super(info);
         this.energyContainer = EnergyContainerList.EMPTY;
+        this.displaySubscription = new ConditionalSubscriptionHandler(this, this::refreshDisplayText,
+                this::isFormed);
     }
 
     @Override
@@ -64,7 +86,7 @@ public class DataBankMachine extends WorkableElectricMultiblockMachine
         receivers.clear();
         transmitters.clear();
         List<IEnergyContainer> energyContainers = new ArrayList<>();
-        Long2ObjectMap<IO> ioMap = getMultiblockState(DEFAULT_STRUCTURE).getMatchContext().getOrDefault("ioMap",
+        Long2ObjectMap<IO> ioMap = getMultiblockState(DEFAULT_STRUCTURE).getFacts().getOrDefault("ioMap",
                 Long2ObjectMaps.emptyMap());
         for (IMultiPart part : getParts()) {
             IO io = ioMap.getOrDefault(part.self().getBlockPos().asLong(), IO.BOTH);
@@ -100,6 +122,10 @@ public class DataBankMachine extends WorkableElectricMultiblockMachine
         }
         updateTickSubscription();
         notifyListeners();
+        if (!isRemote()) {
+            refreshDisplayText();
+            displaySubscription.updateSubscription();
+        }
     }
 
     protected int calculateEnergyUsage() {
@@ -135,6 +161,11 @@ public class DataBankMachine extends WorkableElectricMultiblockMachine
             this.dataAccesses.clear();
             this.receivers.clear();
             this.transmitters.clear();
+            updateTickSubscription();
+            if (!isRemote()) {
+                refreshDisplayText();
+                displaySubscription.updateSubscription();
+            }
         }
     }
 
@@ -182,16 +213,32 @@ public class DataBankMachine extends WorkableElectricMultiblockMachine
     @Override
     public void onLoad() {
         super.onLoad();
+        if (!isRemote()) {
+            refreshDisplayText();
+            displaySubscription.initialize(getLevel());
+        }
         scheduleForNextServerTick(this::updateTickSubscription);
     }
 
     @Override
     public void onUnload() {
         super.onUnload();
+        clearDisplayRuntimeState();
+    }
+
+    @Override
+    public void onPartUnload() {
+        super.onPartUnload();
+        clearDisplayRuntimeState();
+    }
+
+    private void clearDisplayRuntimeState() {
         if (tickSubs != null) {
             tickSubs.unsubscribe();
             tickSubs = null;
         }
+        displayText = List.of();
+        displaySubscription.unsubscribe();
     }
 
     protected void updateTickSubscription() {
@@ -233,20 +280,49 @@ public class DataBankMachine extends WorkableElectricMultiblockMachine
         if (wasProviding != getWorkLogic().isWorking()) {
             notifyListeners();
         }
+        refreshDisplayText();
         updateTickSubscription();
     }
 
     @Override
+    public void setWorkingEnabled(boolean isWorkingAllowed) {
+        super.setWorkingEnabled(isWorkingAllowed);
+        if (!isRemote()) {
+            refreshDisplayText();
+        }
+    }
+
+    @Override
     public void addDisplayText(List<Component> textList) {
-        MultiblockDisplayText.builder(textList, isFormed())
-                .setWorkingStatus(true, isActive() && isWorkingEnabled()) // transform into two-state system for display
+        textList.addAll(displayText);
+    }
+
+    void refreshDisplayText() {
+        DisplayState state = captureDisplayState(isFormed(), isWorkingEnabled(), isActive(), getEnergyUsage());
+        List<Component> nextText = createDisplayText(state);
+        if (!displayText.equals(nextText)) {
+            displayText = nextText;
+        }
+    }
+
+    static DisplayState captureDisplayState(boolean formed, boolean workingEnabled, boolean active, int energyUsage) {
+        return new DisplayState(formed, workingEnabled, active, energyUsage);
+    }
+
+    static List<Component> createDisplayText(DisplayState state) {
+        List<Component> text = new ArrayList<>(2);
+        MultiblockDisplayText.builder(text, state.formed())
+                .setWorkingStatus(true, state.active() && state.workingEnabled())
                 .setWorkingStatusKeys(
                         "gtpm.multiblock.idling",
                         "gtpm.multiblock.idling",
                         "gtpm.multiblock.data_bank.providing")
-                .addEnergyUsageExactLine(getEnergyUsage())
+                .addEnergyUsageExactLine(state.energyUsage())
                 .addWorkingStatusLine();
+        return List.copyOf(text);
     }
+
+    record DisplayState(boolean formed, boolean workingEnabled, boolean active, int energyUsage) {}
 
     /*
      * @Override
@@ -265,5 +341,43 @@ public class DataBankMachine extends WorkableElectricMultiblockMachine
     @Override
     public int getMaxProgress() {
         return 0;
+    }
+
+    @Override
+    public UIElement createUIWidget(FancyMachineUIWidget shell) {
+        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
+        UITemplate.setBackgroundTexture(root, GuiTextures.BACKGROUND_INVERSE);
+
+        GTScrollerViewElement screen = new GTScrollerViewElement(4, 4, 182, 117);
+        UITemplate.setBackgroundTexture(screen, getScreenTexture());
+        screen.viewPort.layout(layout -> layout.paddingAll(0));
+        UITemplate.setBackgroundTexture(screen.viewPort, getScreenTexture());
+        screen.scrollerStyle(style -> style
+                .mode(ScrollerMode.VERTICAL)
+                .verticalScrollDisplay(ScrollDisplay.AUTO)
+                .horizontalScrollDisplay(ScrollDisplay.NEVER));
+
+        GTLabelElement title = new GTLabelElement(4, 5, 174, 10,
+                getBlockState().getBlock().getDescriptionId(), true);
+        title.textStyle(style -> style
+                .textColor(0x404040)
+                .textShadow(false)
+                .textAlignHorizontal(Horizontal.LEFT)
+                .textAlignVertical(Vertical.CENTER));
+        screen.addScrollViewChild(title);
+        screen.addScrollViewChild(new GTComponentPanelElement(4, 17, DataBankMachine.this::addDisplayText)
+                .setMaxWidthLimit(150)
+                .clickHandler(DataBankMachine.this::handleDisplayClick));
+        root.addChild(screen);
+        return root;
+    }
+
+    @Override
+    public void attachTooltips(TooltipsPanel tooltipsPanel) {
+        for (IMultiPart part : getParts()) {
+            if (part instanceof IMaintenanceMachine maintenanceMachine) {
+                maintenanceMachine.attachMaintenanceTooltips(tooltipsPanel);
+            }
+        }
     }
 }

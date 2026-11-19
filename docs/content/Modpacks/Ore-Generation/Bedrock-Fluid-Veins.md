@@ -5,6 +5,9 @@ title: "Bedrock Fluid Veins（基岩流体矿脉）"
 
 # Bedrock Fluid Veins（基岩流体矿脉）
 
+!!! note "上游示例"
+    本页示例面向 GregTech CEu Modern。GTPM 1.21.1 的数据包和附属模组入口见[整合包制作](../index.md#upstream-kubejs)。
+
 Bedrock Fluid Veins 是存在于基岩层下方的不可见矿脉；要找到 Fluid Veins，至少需要 HV 等级的 Prospector。必须使用 Fluid Drilling Rig 才能从矿脉中取得流体。
 
 ## 创建 Bedrock Fluid Vein

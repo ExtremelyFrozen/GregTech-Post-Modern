@@ -7,6 +7,7 @@ import com.gregtechceu.gtceu.api.data.worldgen.generator.VeinGenerator;
 import com.gregtechceu.gtceu.api.data.worldgen.ores.OreBlockPlacer;
 import com.gregtechceu.gtceu.api.data.worldgen.ores.OreVeinUtil;
 import com.gregtechceu.gtceu.api.registry.GTRegistries;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 import com.gregtechceu.gtceu.utils.GTUtil;
 import com.gregtechceu.gtceu.utils.WeightedEntry;
 
@@ -80,6 +81,7 @@ public class DikeVeinGenerator extends VeinGenerator {
         int size = entry.clusterSize().sample(random);
 
         int radius = Mth.ceil(size / 2f);
+        long radiusSquared = (long) radius * radius;
 
         int xPos = chunkPos.getMinBlockX() + level.getRandom().nextInt(16);
         int zPos = chunkPos.getMinBlockZ() + level.getRandom().nextInt(16);
@@ -87,17 +89,15 @@ public class DikeVeinGenerator extends VeinGenerator {
         int yTop = maxYLevel;
         int yBottom = minYLevel;
 
-        BlockPos basePos = new BlockPos(xPos, yBottom, zPos);
-
         for (int dY = yBottom; dY <= yTop; dY++) {
             for (int dX = -radius; dX <= radius; dX++) {
+                long xSquared = (long) dX * dX;
                 for (int dZ = -radius; dZ <= radius; dZ++) {
-                    float dist = (dX * dX) + (dZ * dZ);
-                    if (dist > radius * 2) {
+                    if (xSquared + (long) dZ * dZ > radiusSquared) {
                         continue;
                     }
-                    BlockPos pos = new BlockPos(basePos.getX() + dX, dY, basePos.getZ() + dZ);
                     if (normalNoise.getValue(dX, dY, dZ) >= 0.5 && random.nextFloat() <= density) {
+                        BlockPos pos = new BlockPos(xPos + dX, dY, zPos + dZ);
                         final var randomSeed = random.nextLong(); // Fully deterministic regardless of chunk order
 
                         generatedBlocks.put(pos,
@@ -186,6 +186,10 @@ public class DikeVeinGenerator extends VeinGenerator {
                         Codec.INT.fieldOf("min_y").orElse(320).forGetter(x -> x.minY),
                         Codec.INT.fieldOf("max_y").orElse(-64).forGetter(x -> x.maxY))
                 .apply(instance, DikeBlockDefinition::new));
+
+    static {
+        FieldCodecs.register(DikeBlockDefinition.class, CODEC);
+    }
 
         // spotless:on
         public DikeBlockDefinition(Material block, int weight, int minY, int maxY) {

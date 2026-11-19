@@ -1,261 +1,204 @@
 package com.gregtechceu.gtceu.api.gui.fancy;
 
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
+import com.gregtechceu.gtceu.api.gui.UITemplate;
+import com.gregtechceu.gtceu.api.gui.element.GTButtonElement;
+import com.gregtechceu.gtceu.api.gui.element.GTImageElement;
+import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
+import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 
-import com.lowdragmc.lowdraglib.gui.editor.Icons;
-import com.lowdragmc.lowdraglib.gui.texture.GuiTextureGroup;
-import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
-import com.lowdragmc.lowdraglib.gui.texture.ResourceTexture;
-import com.lowdragmc.lowdraglib.gui.widget.Widget;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.event.HoverTooltips;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.util.Mth;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 
 import lombok.Getter;
 import lombok.Setter;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.List;
-import java.util.function.BiConsumer;
+import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
-@Getter
-public class TabsWidget extends Widget {
+/**
+ * LDLib2 tab strip used by the Fancy shell for local page navigation.
+ */
+public class TabsWidget extends UIElement {
 
-    protected final Consumer<IFancyUIProvider> onTabClick;
-    protected IFancyUIProvider mainTab;
-    protected List<IFancyUIProvider> subTabs;
-    @Nullable
-    protected IFancyUIProvider selectedTab;
-    @Setter
-    protected IGuiTexture leftButtonTexture = new GuiTextureGroup(GuiTextures.BUTTON, Icons.LEFT.copy().scale(0.7f)),
-            leftButtonHoverTexture = new GuiTextureGroup(GuiTextures.BUTTON,
-                    Icons.LEFT.copy().setColor(0xffaaaaaa).scale(0.7f));
-    @Setter
-    protected IGuiTexture rightButtonTexture = new GuiTextureGroup(GuiTextures.BUTTON, Icons.RIGHT.copy().scale(0.7f)),
-            rightButtonHoverTexture = new GuiTextureGroup(GuiTextures.BUTTON,
-                    Icons.RIGHT.copy().setColor(0xffaaaaaa).scale(0.7f));
-    @Setter
-    protected IGuiTexture tabTexture = new ResourceTexture("gtpm:textures/gui/tab/tabs_top.png").getSubTexture(1 / 3f,
-            0, 1 / 3f, 0.5f);
-    @Setter
-    protected IGuiTexture tabHoverTexture = new ResourceTexture("gtpm:textures/gui/tab/tabs_top.png")
-            .getSubTexture(1 / 3f, 0.5f, 1 / 3f, 0.5f);
-    @Setter
-    protected IGuiTexture tabPressedTexture = tabHoverTexture;
+    private static final int TAB_SIZE = 24;
+    private static final int TAB_ICON_SIZE = 16;
+
+    private final Consumer<IFancyUIProvider> onTabClick;
     @Getter
-    protected int offset;
-    /**
-     * (old tab, new tab)
-     */
+    private final Player player;
+    @Getter
     @Setter
-    @Nullable
-    protected BiConsumer<IFancyUIProvider, IFancyUIProvider> onTabSwitch;
+    private MachineUIHolder holder;
+    private final boolean vertical;
+    private final List<IFancyUIProvider> subTabs = new ArrayList<>();
+    private final Map<IFancyUIProvider, Map<ResourceLocation, IFancyUIProvider>> subTabCache = new IdentityHashMap<>();
 
-    public TabsWidget(Consumer<IFancyUIProvider> onTabClick) {
-        this(onTabClick, 0, -20, 200, 24);
+    @Nullable
+    private IFancyUIProvider mainTab;
+    @Nullable
+    private IFancyUIProvider selectedTab;
+
+    private IGuiTexture tabTexture = GuiTextures.resource("gtpm:textures/gui/tab/tabs_top.png")
+            .getSubTexture(1 / 3f, 0, 1 / 3f, 0.5f);
+    private IGuiTexture tabHoverTexture = GuiTextures.resource("gtpm:textures/gui/tab/tabs_top.png")
+            .getSubTexture(1 / 3f, 0.5f, 1 / 3f, 0.5f);
+    private IGuiTexture tabPressedTexture = tabHoverTexture;
+
+    public TabsWidget(Consumer<IFancyUIProvider> onTabClick, Player player, MachineUIHolder holder,
+                      int x, int y, int width, int height,
+                      boolean vertical) {
+        this.onTabClick = onTabClick;
+        this.player = player;
+        this.holder = holder;
+        this.vertical = vertical;
+        UITemplate.setBounds(this, x, y, width, height);
+        style(style -> style.overflowVisible(true));
+        if (vertical) {
+            var tabsLeft = GuiTextures.resource("gtpm:textures/gui/tab/tabs_left.png");
+            setTabTexture(tabsLeft.getSubTexture(0, 1 / 3f, 0.5f, 1 / 3f));
+            setTabHoverTexture(tabsLeft.getSubTexture(0.5f, 1 / 3f, 0.5f, 1 / 3f));
+            setTabPressedTexture(tabsLeft.getSubTexture(0.5f, 1 / 3f, 0.5f, 1 / 3f));
+        }
     }
 
-    public TabsWidget(Consumer<IFancyUIProvider> onTabClick, int x, int y, int width, int height) {
-        super(x, y, width, height);
-        this.subTabs = new ArrayList<>();
-        this.onTabClick = onTabClick;
+    public TabsWidget setTabTexture(IGuiTexture tabTexture) {
+        this.tabTexture = tabTexture;
+        rebuildTabs();
+        return this;
+    }
+
+    public TabsWidget setTabHoverTexture(IGuiTexture tabHoverTexture) {
+        this.tabHoverTexture = tabHoverTexture;
+        rebuildTabs();
+        return this;
+    }
+
+    public TabsWidget setTabPressedTexture(IGuiTexture tabPressedTexture) {
+        this.tabPressedTexture = tabPressedTexture;
+        rebuildTabs();
+        return this;
     }
 
     public void setMainTab(IFancyUIProvider mainTab) {
         this.mainTab = mainTab;
         if (this.selectedTab == null) {
-            this.selectedTab = this.mainTab;
+            this.selectedTab = mainTab;
         }
+        rebuildTabs();
     }
 
     public void clearSubTabs() {
         subTabs.clear();
+        rebuildTabs();
     }
 
     public void attachSubTab(IFancyUIProvider subTab) {
         subTabs.add(subTab);
+        rebuildTabs();
     }
 
-    public boolean hasButton() {
-        return (subTabs.size() + 1) * 24 + 16 > getSize().width;
-    }
-
-    @Override
-    public void handleClientAction(int id, RegistryFriendlyByteBuf buffer) {
-        super.handleClientAction(id, buffer);
-        if (id == 0) {
-            var index = buffer.readVarInt();
-            var old = selectedTab;
-            if (index < 0) {
-                selectedTab = mainTab;
-            } else if (index < subTabs.size()) {
-                selectedTab = subTabs.get(index);
-            } else {
-                return;
-            }
-            if (onTabSwitch != null) {
-                onTabSwitch.accept(old, selectedTab);
-            }
-            onTabClick.accept(selectedTab);
+    /**
+     * Attaches a sub-tab provider that remains stable for the current home page and cache key.
+     *
+     * <p>
+     * The Fancy shell caches pages by provider identity. Reusing the provider prevents repeated home-page setup from
+     * creating duplicate cached pages while keeping identical keys isolated between different home providers.
+     *
+     * @return the provider created for this home page and key, or the previously cached instance.
+     */
+    public IFancyUIProvider attachCachedSubTab(
+                                               ResourceLocation key,
+                                               Supplier<? extends IFancyUIProvider> factory) {
+        IFancyUIProvider homeTab = mainTab;
+        if (homeTab == null) {
+            throw new IllegalStateException("Cannot cache a Fancy sub-tab before setting the main tab.");
         }
-    }
 
-    public int getSubTabsWidth() {
-        return getSize().width - 8 - 24 - 4 - 16 - 8 - 16;
-    }
-
-    @Override
-    @OnlyIn(Dist.CLIENT)
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (isMouseOverElement(mouseX, mouseY)) {
-            var hoveredTab = getHoveredTab(mouseX, mouseY);
-            // click tab
-            if (hoveredTab != null && hoveredTab != selectedTab) {
-                if (onTabSwitch != null) {
-                    onTabSwitch.accept(selectedTab, hoveredTab);
-                }
-                selectedTab = hoveredTab;
-                writeClientAction(0,
-                        buf -> buf.writeVarInt(selectedTab == mainTab ? -1 : subTabs.indexOf(selectedTab)));
-                onTabClick.accept(selectedTab);
-                playButtonClickSound();
+        Map<ResourceLocation, IFancyUIProvider> homeCache = subTabCache.computeIfAbsent(homeTab,
+                ignored -> new HashMap<>());
+        IFancyUIProvider subTab = homeCache.get(key);
+        if (subTab == null) {
+            subTab = factory.get();
+            if (subTab == null) {
+                throw new IllegalStateException("Fancy sub-tab factory returned null for " + key + ".");
             }
-            // click button
-            if (hasButton()) {
-                if (isHoverLeftButton(mouseX, mouseY)) {
-                    offset = Mth.clamp(offset - 24, 0, subTabs.size() * 24 - getSubTabsWidth());
-                    playButtonClickSound();
-                } else if (isHoverRightButton(mouseX, mouseY)) {
-                    offset = Mth.clamp(offset + 24, 0, subTabs.size() * 24 - getSubTabsWidth());
-                    playButtonClickSound();
-                }
-            }
+            homeCache.put(key, subTab);
         }
-        return super.mouseClicked(mouseX, mouseY, button);
-    }
-
-    @Override
-    @OnlyIn(Dist.CLIENT)
-    public boolean mouseWheelMove(double mouseX, double mouseY, double scrollX, double scrollY) {
-        var sx = getPosition().x + 8 + 24 + 4 + 16;
-        if (isMouseOver(sx, getPosition().y, getSubTabsWidth(), 24, mouseX, mouseY)) {
-            offset = Mth.clamp(offset + 5 * (scrollY > 0 ? -1 : 1), 0, subTabs.size() * 24 - getSubTabsWidth());
-        }
-        return super.mouseWheelMove(mouseX, mouseY, scrollX, scrollY);
-    }
-
-    @Override
-    @OnlyIn(Dist.CLIENT)
-    public void drawInBackground(@NotNull GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
-        super.drawInBackground(graphics, mouseX, mouseY, partialTicks);
-        var position = getPosition();
-        var size = getSize();
-        var hoveredTab = getHoveredTab(mouseX, mouseY);
-        // main tab
-        drawTab(mainTab, graphics, mouseX, mouseY, position.x + 8, position.y, 24, 24, hoveredTab);
-        // render sub tabs
-        if (hasButton()) { // need a scrollable bar
-            // render buttons
-            if (isHoverLeftButton(mouseX, mouseY)) {
-                leftButtonHoverTexture.draw(graphics, mouseX, mouseY, position.x + 8 + 24 + 4, position.y, 16, 24);
-            } else {
-                leftButtonTexture.draw(graphics, mouseX, mouseY, position.x + 8 + 24 + 4, position.y, 16, 24);
-            }
-            if (isHoverRightButton(mouseX, mouseY)) {
-                rightButtonHoverTexture.draw(graphics, mouseX, mouseY, position.x + size.width - 8 - 16, position.y, 16,
-                        24);
-            } else {
-                rightButtonTexture.draw(graphics, mouseX, mouseY, position.x + size.width - 8 - 16, position.y, 16, 24);
-            }
-            // render sub tabs
-            var sx = position.x + 8 + 24 + 4 + 16;
-            graphics.enableScissor(sx, position.y - 1, sx + getSubTabsWidth(), position.y - 1 + 24 + 2);
-            for (int i = 0; i < subTabs.size(); i++) {
-                drawTab(subTabs.get(i), graphics, mouseX, mouseY, sx + i * 24 - offset, position.y, 24, 24, hoveredTab);
-            }
-            graphics.disableScissor();
-        } else {
-            for (int i = subTabs.size() - 1; i >= 0; i--) {
-                drawTab(subTabs.get(i), graphics, mouseX, mouseY,
-                        position.x + size.width - 8 - 24 * (subTabs.size() - i), position.y, 24, 24, hoveredTab);
-            }
-        }
-    }
-
-    @Override
-    @OnlyIn(Dist.CLIENT)
-    public void drawInForeground(@NotNull GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
-        var hoveredTab = getHoveredTab(mouseX, mouseY);
-        if (hoveredTab != null && gui != null && gui.getModularUIGui() != null) {
-            gui.getModularUIGui().setHoverTooltip(hoveredTab.getTabTooltips(), ItemStack.EMPTY, null,
-                    hoveredTab.getTabTooltipComponent());
-        }
-        super.drawInForeground(graphics, mouseX, mouseY, partialTicks);
-    }
-
-    @OnlyIn(Dist.CLIENT)
-    public boolean isHoverLeftButton(double mouseX, double mouseY) {
-        return isMouseOver(getPosition().x + 8 + 24 + 4, getPosition().y, 16, 24, mouseX, mouseY);
-    }
-
-    @OnlyIn(Dist.CLIENT)
-    public boolean isHoverRightButton(double mouseX, double mouseY) {
-        return isMouseOver(getPosition().x + getSize().width - 8 - 16, getPosition().y, 16, 24, mouseX, mouseY);
-    }
-
-    @OnlyIn(Dist.CLIENT)
-    @Nullable
-    public IFancyUIProvider getHoveredTab(double mouseX, double mouseY) {
-        if (isMouseOverElement(mouseX, mouseY)) {
-            var position = getPosition();
-            var size = getSize();
-            // main tab
-            if (isMouseOver(position.x + 8, position.y, 24, 24, mouseX, mouseY)) {
-                return mainTab;
-            }
-            // others
-            if (hasButton()) { // need a scrollable bar
-                var sx = position.x + 8 + 24 + 4 + 16;
-                if (isMouseOver(sx, position.y, getSubTabsWidth(), 24, mouseX, mouseY)) {
-                    var i = ((int) mouseX - sx + getOffset()) / 24;
-                    if (i < subTabs.size()) {
-                        return subTabs.get(i);
-                    }
-                }
-            } else {
-                int i = (position.x + size.width - 8 - (int) mouseX) / 24;
-                if (i < subTabs.size()) {
-                    return subTabs.get(subTabs.size() - 1 - i);
-                }
-            }
-        }
-        return null;
-    }
-
-    @OnlyIn(Dist.CLIENT)
-    public void drawTab(IFancyUIProvider tab, @NotNull GuiGraphics graphics, int mouseX, int mouseY, int x, int y,
-                        int width, int height, IFancyUIProvider hoveredTab) {
-        // render background
-        if (tab == selectedTab) {
-            tabPressedTexture.draw(graphics, mouseX, mouseY, x, y, width, height);
-        } else if (tab == hoveredTab) {
-            tabHoverTexture.draw(graphics, mouseX, mouseY, x, y, width, height);
-        } else {
-            tabTexture.draw(graphics, mouseX, mouseY, x, y, width, height);
-        }
-        // render icon
-        tab.getTabIcon().draw(graphics, mouseX, mouseY, x + (width - 16) / 2f, y + (height - 16) / 2f, 16, 16);
+        attachSubTab(subTab);
+        return subTab;
     }
 
     public void selectTab(IFancyUIProvider selectedTab) {
         this.selectedTab = selectedTab;
-        this.detectAndSendChanges();
+        rebuildTabs();
+    }
+
+    public int getTabSize() {
+        return TAB_SIZE;
+    }
+
+    private void rebuildTabs() {
+        clearAllChildren();
+        if (mainTab == null) {
+            return;
+        }
+
+        addTabButton(mainTab, 0);
+        for (int index = 0; index < subTabs.size(); index++) {
+            addTabButton(subTabs.get(index), index + 1);
+        }
+    }
+
+    private void addTabButton(IFancyUIProvider tab, int index) {
+        int x = vertical ? 0 : 8 + index * TAB_SIZE;
+        int y = vertical ? 8 + index * TAB_SIZE : 0;
+        GTButtonElement button = new GTButtonElement(x, y, TAB_SIZE, TAB_SIZE);
+        button.noText();
+        if (tab == selectedTab) {
+            button.setButtonTextures(tabPressedTexture, tabPressedTexture, tabPressedTexture);
+        } else {
+            button.setButtonTextures(tabTexture, tabHoverTexture, tabPressedTexture);
+        }
+        button.setOnClick(event -> onTabClicked(tab));
+        button.addEventListener(UIEvents.HOVER_TOOLTIPS, event -> applyTabTooltips(event, tab));
+        GTImageElement icon = new GTImageElement((TAB_SIZE - TAB_ICON_SIZE) / 2,
+                (TAB_SIZE - TAB_ICON_SIZE) / 2,
+                TAB_ICON_SIZE,
+                TAB_ICON_SIZE,
+                tab.getTabIcon());
+        icon.setAllowHitTest(false);
+        button.addChild(icon);
+        addChild(button);
+    }
+
+    private void onTabClicked(IFancyUIProvider tab) {
+        if (tab == selectedTab) {
+            return;
+        }
+        selectedTab = tab;
+        rebuildTabs();
+        onTabClick.accept(tab);
+    }
+
+    private static void applyTabTooltips(UIEvent event, IFancyUIProvider tab) {
+        List<Component> tooltips = tab.getTabTooltips();
+        var tooltipComponent = tab.getTabTooltipComponent();
+        if (!tooltips.isEmpty() || tooltipComponent != null) {
+            event.hoverTooltips = new HoverTooltips(tooltips, tooltipComponent, null, ItemStack.EMPTY);
+        }
     }
 }

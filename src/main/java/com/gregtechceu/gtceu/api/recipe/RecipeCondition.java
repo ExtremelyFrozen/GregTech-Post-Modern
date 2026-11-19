@@ -1,11 +1,11 @@
 package com.gregtechceu.gtceu.api.recipe;
 
+import com.gregtechceu.gtceu.api.gui.GuiTextures;
+import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.trait.RecipeLogic;
 import com.gregtechceu.gtceu.api.recipe.condition.RecipeConditionType;
 import com.gregtechceu.gtceu.api.registry.GTRegistries;
-
-import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
-import com.lowdragmc.lowdraglib.gui.texture.ResourceTexture;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
@@ -31,6 +31,10 @@ public abstract class RecipeCondition<T extends RecipeCondition<T>> {
 
     public static final Codec<RecipeCondition<?>> CODEC = GTRegistries.RECIPE_CONDITIONS.byNameCodec()
             .dispatch(RecipeCondition::getType, RecipeConditionType::getCodec);
+
+    static {
+        FieldCodecs.register(RecipeCondition.class, CODEC);
+    }
 
     // spotless:off
     public static <RC extends RecipeCondition<RC>> Products.P1<RecordCodecBuilder.Mu<RC>, Boolean> isReverse(RecordCodecBuilder.Instance<RC> instance) {
@@ -61,11 +65,12 @@ public abstract class RecipeCondition<T extends RecipeCondition<T>> {
     }
 
     public IGuiTexture getInValidTexture() {
-        return new ResourceTexture("gtpm:textures/gui/condition/" + getType() + ".png").getSubTexture(0, 0, 1, 0.5f);
+        return GuiTextures.resource("gtpm:textures/gui/condition/" + getType() + ".png").getSubTexture(0, 0, 1,
+                0.5f);
     }
 
     public IGuiTexture getValidTexture() {
-        return new ResourceTexture("gtpm:textures/gui/condition/" + getType() + ".png").getSubTexture(0, 0.5f, 1,
+        return GuiTextures.resource("gtpm:textures/gui/condition/" + getType() + ".png").getSubTexture(0, 0.5f, 1,
                 0.5f);
     }
 

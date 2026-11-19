@@ -3,7 +3,10 @@ package com.gregtechceu.gtceu.integration.ae2.machine;
 import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo;
 import com.gregtechceu.gtceu.api.capability.recipe.IO;
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
+import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
+import com.gregtechceu.gtceu.api.gui.util.FluidContainerSlotInteraction;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
 import com.gregtechceu.gtceu.api.machine.TickableSubscription;
@@ -17,24 +20,24 @@ import com.gregtechceu.gtceu.api.machine.trait.NotifiableFluidTank;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler;
 import com.gregtechceu.gtceu.api.recipe.handler.RecipeHandlerList;
 import com.gregtechceu.gtceu.api.recipe.ingredient.SizedIngredientExtensions;
+import com.gregtechceu.gtceu.api.sync_system.ContextualFieldCodec;
+import com.gregtechceu.gtceu.api.sync_system.ContextualFieldCodec.Context;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCSender;
 import com.gregtechceu.gtceu.api.transfer.item.CustomItemStackHandler;
 import com.gregtechceu.gtceu.common.data.GTDataComponents;
 import com.gregtechceu.gtceu.common.data.machines.GTAEMachines;
 import com.gregtechceu.gtceu.common.item.behavior.IntCircuitBehaviour;
-import com.gregtechceu.gtceu.integration.ae2.gui.widget.AETextInputButtonWidget;
-import com.gregtechceu.gtceu.integration.ae2.gui.widget.slot.AEPatternViewSlotWidget;
+import com.gregtechceu.gtceu.integration.ae2.gui.element.MEPatternBufferPageElement;
 import com.gregtechceu.gtceu.integration.ae2.machine.trait.InternalSlotRecipeHandler;
 import com.gregtechceu.gtceu.utils.FluidStackHashStrategy;
 import com.gregtechceu.gtceu.utils.GTMath;
 import com.gregtechceu.gtceu.utils.ItemStackHashStrategy;
 
-import com.lowdragmc.lowdraglib.gui.texture.GuiTextureGroup;
-import com.lowdragmc.lowdraglib.gui.util.ClickData;
-import com.lowdragmc.lowdraglib.gui.widget.LabelWidget;
-import com.lowdragmc.lowdraglib.gui.widget.Widget;
-import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -44,6 +47,7 @@ import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.common.crafting.SizedIngredient;
 import net.neoforged.neoforge.fluids.FluidStack;
 import net.neoforged.neoforge.fluids.FluidType;
+import net.neoforged.neoforge.fluids.FluidUtil;
 import net.neoforged.neoforge.fluids.crafting.SizedFluidIngredient;
 
 import appeng.api.crafting.IPatternDetails;
@@ -60,6 +64,9 @@ import appeng.crafting.pattern.EncodedPatternItem;
 import appeng.helpers.patternprovider.PatternContainer;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+import com.mojang.datafixers.util.Pair;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import it.unimi.dsi.fastutil.objects.*;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenCustomHashMap;
 import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
@@ -73,6 +80,7 @@ import org.jetbrains.annotations.VisibleForTesting;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -81,6 +89,7 @@ public class MEPatternBufferPartMachine extends MEBusPartMachine
                                         implements ICraftingProvider, PatternContainer, IDataStickInteractable {
 
     protected static final int MAX_PATTERN_COUNT = 27;
+
     private final InternalInventory internalPatternInventory = new InternalInventory() {
 
         @Override
@@ -124,6 +133,7 @@ public class MEPatternBufferPartMachine extends MEBusPartMachine
 
     @SyncToClient
     @SaveField
+    @Getter
     private String customName = "";
 
     private boolean needPatternSync;
@@ -177,9 +187,10 @@ public class MEPatternBufferPartMachine extends MEBusPartMachine
     }
 
     public void setCustomName(String newName) {
+        if (customName.equals(newName)) {
+            return;
+        }
         customName = newName;
-        syncDataHolder.markClientSyncFieldDirty("customName");
-        markAsDirty();
     }
 
     @Override
@@ -227,22 +238,33 @@ public class MEPatternBufferPartMachine extends MEBusPartMachine
 
     @UnmodifiableView
     public Set<MEPatternBufferProxyPartMachine> getProxies() {
-        if (proxyMachines.size() != proxies.size()) {
-            proxyMachines.clear();
-            for (var pos : proxies) {
-                if (MetaMachine.getMachine(getLevel(), pos) instanceof MEPatternBufferProxyPartMachine proxy) {
-                    proxyMachines.add(proxy);
+        var level = getLevel();
+        if (level == null) {
+            return Collections.unmodifiableSet(proxyMachines);
+        }
+        Set<MEPatternBufferProxyPartMachine> resolvedProxies = new ReferenceOpenHashSet<>();
+        Set<BlockPos> stalePositions = new ObjectOpenHashSet<>();
+        for (var pos : List.copyOf(proxies)) {
+            MetaMachine machine = MetaMachine.getMachine(level, pos);
+            if (machine instanceof MEPatternBufferProxyPartMachine proxy) {
+                if (proxy.getBuffer() == this) {
+                    resolvedProxies.add(proxy);
+                } else {
+                    stalePositions.add(pos);
                 }
+            } else if (machine != null) {
+                stalePositions.add(pos);
             }
         }
+        proxies.removeAll(stalePositions);
+        proxyMachines.clear();
+        proxyMachines.addAll(resolvedProxies);
         return Collections.unmodifiableSet(proxyMachines);
     }
 
-    private void refundAll(ClickData clickData) {
-        if (!clickData.isRemote) {
-            for (InternalSlot internalSlot : internalInventory) {
-                internalSlot.refund();
-            }
+    private void refundAllContents() {
+        for (InternalSlot internalSlot : internalInventory) {
+            internalSlot.refund();
         }
     }
 
@@ -268,64 +290,39 @@ public class MEPatternBufferPartMachine extends MEBusPartMachine
     //////////////////////////////////////
     // ********** GUI ***********//
     //////////////////////////////////////
-    @Override
-    public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
-        configuratorPanel.attachConfigurators(new ButtonConfigurator(
-                new GuiTextureGroup(GuiTextures.BUTTON, GuiTextures.REFUND_OVERLAY), this::refundAll)
-                .setTooltips(List.of(Component.translatable("gui.gtpm.refund_all.desc"))));
-        if (isHasCircuitSlot() && isCircuitSlotEnabled()) {
-            configuratorPanel.attachConfigurators(new CircuitFancyConfigurator(circuitInventory.storage));
-        }
-        configuratorPanel.attachConfigurators(new FancyInvConfigurator(
-                shareInventory.storage, Component.translatable("gui.gtpm.share_inventory.title"))
-                .setTooltips(List.of(
-                        Component.translatable("gui.gtpm.share_inventory.desc.0"),
-                        Component.translatable("gui.gtpm.share_inventory.desc.1"))));
-        configuratorPanel.attachConfigurators(new FancyTankConfigurator(
-                shareTank.getStorages(), Component.translatable("gui.gtpm.share_tank.title"))
-                .setTooltips(List.of(
-                        Component.translatable("gui.gtpm.share_tank.desc.0"),
-                        Component.translatable("gui.gtpm.share_inventory.desc.1"))));
+
+    public int getPageWidth() {
+        return MEPatternBufferPageElement.WIDTH;
     }
 
-    @Override
-    public Widget createUIWidget() {
-        int rowSize = 9;
-        int colSize = 3;
-        var group = new WidgetGroup(0, 0, 18 * rowSize + 16, 18 * colSize + 16);
-        int index = 0;
-        for (int y = 0; y < colSize; ++y) {
-            for (int x = 0; x < rowSize; ++x) {
-                int finalI = index;
-                var slot = new AEPatternViewSlotWidget(patternInventory, index++, 8 + x * 18, 14 + y * 18)
-                        .setOccupiedTexture(GuiTextures.SLOT)
-                        .setItemHook(stack -> {
-                            if (!stack.isEmpty() && stack.getItem() instanceof EncodedPatternItem<?> iep) {
-                                final ItemStack out = iep.getOutput(stack);
-                                if (!out.isEmpty()) {
-                                    return out;
-                                }
-                            }
-                            return stack;
-                        })
-                        .setChangeListener(() -> onPatternChange(finalI))
-                        .setBackground(GuiTextures.SLOT, GuiTextures.PATTERN_OVERLAY);
-                group.addWidget(slot);
-            }
-        }
-        // ME Network status
-        group.addWidget(new LabelWidget(
-                8,
-                2,
-                () -> this.isOnline ? "gtpm.gui.me_network.online" : "gtpm.gui.me_network.offline"));
-
-        group.addWidget(new AETextInputButtonWidget(18 * rowSize + 8 - 70, 2, 70, 10)
-                .setText(customName)
-                .setOnConfirm(this::setCustomName)
-                .setButtonTooltips(Component.translatable("gui.gtpm.rename.desc")));
-
-        return group;
+    public int getPageHeight() {
+        return MEPatternBufferPageElement.HEIGHT;
     }
+
+    @RPCMethod
+    public void setMEPatternBufferName(String name) {
+        setCustomName(name);
+    }
+
+    @RPCMethod
+    public void refundMEPatternBufferContents() {
+        refundAllContents();
+    }
+
+    public int getMEPatternBufferShareTankCount() {
+        return shareTank.getStorages().length;
+    }
+
+    @RPCMethod
+    public void clickMEPatternBufferShareTank(RPCSender sender, int tankIndex, boolean shiftDown) {
+        var player = sender.asPlayer();
+        new FluidContainerSlotInteraction(shareTank.getStorages()[tankIndex], true, true)
+                .click(player, shiftDown);
+    }
+
+    /**
+     * Owns one menu opening's page-local state, holder, actions, and directional subpage.
+     */
 
     @Override
     public List<IPatternDetails> getAvailablePatterns() {
@@ -439,6 +436,43 @@ public class MEPatternBufferPartMachine extends MEBusPartMachine
     }
 
     public class InternalSlot {
+
+        static {
+            ContextualFieldCodec<InternalSlot> codec = InternalSlot::codec;
+            FieldCodecs.registerContextual(InternalSlot.class, codec);
+        }
+
+        /** Decodes both inventories before replacing the live slot and invalidates its cached views once. */
+        public static Codec<InternalSlot> codec(Context<InternalSlot> context) {
+            return RecordCodecBuilder.create(instance -> instance.group(
+                    amountCodec(ItemStack.OPTIONAL_CODEC).listOf().fieldOf("items")
+                            .forGetter((InternalSlot slot) -> slot.itemInventory.object2LongEntrySet().stream()
+                                    .map(entry -> Pair.of(entry.getKey(), entry.getLongValue())).toList()),
+                    amountCodec(FluidStack.OPTIONAL_CODEC).listOf().fieldOf("fluids")
+                            .forGetter((InternalSlot slot) -> slot.fluidInventory.object2LongEntrySet().stream()
+                                    .map(entry -> Pair.of(entry.getKey(), entry.getLongValue())).toList()))
+                    .apply(instance, (items, fluids) -> {
+                        InternalSlot slot = Objects.requireNonNull(context.currentValue(),
+                                "Pattern buffer internal slot must be initialized");
+                        slot.itemInventory.clear();
+                        for (Pair<ItemStack, Long> item : items) {
+                            slot.itemInventory.put(item.getFirst(), item.getSecond().longValue());
+                        }
+                        slot.fluidInventory.clear();
+                        for (Pair<FluidStack, Long> fluid : fluids) {
+                            slot.fluidInventory.put(fluid.getFirst(), fluid.getSecond().longValue());
+                        }
+                        slot.onContentsChanged();
+                        return slot;
+                    }));
+        }
+
+        private static <T> Codec<Pair<T, Long>> amountCodec(Codec<T> stackCodec) {
+            return RecordCodecBuilder.create(instance -> instance.group(
+                    stackCodec.fieldOf("stack").forGetter(Pair<T, Long>::getFirst),
+                    Codec.LONG.fieldOf("amount").forGetter(Pair<T, Long>::getSecond))
+                    .apply(instance, Pair::of));
+        }
 
         @Getter
         @Setter
@@ -656,5 +690,46 @@ public class MEPatternBufferPartMachine extends MEBusPartMachine
             if (changed) onContentsChanged();
             return left;
         }
+    }
+
+    @Override
+    public UIElement createUIWidget(FancyMachineUIWidget shell) {
+        Player player = shell.getOpeningPlayer();
+        MachineUIHolder holder = shell.getHolder(this);
+        return new MEPatternBufferPageElement(MEPatternBufferPartMachine.this, player.level(), holder);
+    }
+
+    @Override
+    public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
+        Player player = configuratorPanel.getPlayer();
+
+        configuratorPanel.attachConfigurators(new ButtonConfigurator(
+                GuiTextures.group(GuiTextures.BUTTON, GuiTextures.REFUND_OVERLAY), event -> {
+                    if (player.level().isClientSide()) {
+                        rpcToServer("refundMEPatternBufferContents");
+                    }
+                }).setTooltips(List.of(Component.translatable("gui.gtpm.refund_all.desc"))));
+        if (isHasCircuitSlot() && isCircuitSlotEnabled()) {
+            configuratorPanel.attachConfigurators(new CircuitFancyConfigurator(
+                    MEPatternBufferPartMachine.this));
+        }
+        configuratorPanel.attachConfigurators(new FancyInvConfigurator(
+                shareInventory.storage, Component.translatable("gui.gtpm.share_inventory.title"))
+                .setTooltips(List.of(
+                        Component.translatable("gui.gtpm.share_inventory.desc.0"),
+                        Component.translatable("gui.gtpm.share_inventory.desc.1"))));
+        configuratorPanel.attachConfigurators(new FancyTankConfigurator(
+                shareTank.getStorages(), Component.translatable("gui.gtpm.share_tank.title"))
+                .setTankClickHandler((tankIndex, event) -> {
+                    if (!player.level().isClientSide() ||
+                            FluidUtil.getFluidHandler(player.containerMenu.getCarried()).isEmpty()) {
+                        return false;
+                    }
+                    rpcToServer("clickMEPatternBufferShareTank", tankIndex, event.isShiftDown());
+                    return true;
+                })
+                .setTooltips(List.of(
+                        Component.translatable("gui.gtpm.share_tank.desc.0"),
+                        Component.translatable("gui.gtpm.share_inventory.desc.1"))));
     }
 }

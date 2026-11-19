@@ -1,449 +1,270 @@
 package com.gregtechceu.gtceu.api.gui.fancy;
 
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
-import com.gregtechceu.gtceu.config.ConfigHolder;
+import com.gregtechceu.gtceu.api.gui.UITemplate;
+import com.gregtechceu.gtceu.api.gui.element.GTButtonElement;
+import com.gregtechceu.gtceu.api.gui.element.GTImageElement;
+import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
+import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
+import com.gregtechceu.gtceu.api.gui.texture.TextTexture;
 
-import com.lowdragmc.lowdraglib.gui.animation.Animation;
-import com.lowdragmc.lowdraglib.gui.animation.Transform;
-import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
-import com.lowdragmc.lowdraglib.gui.texture.TextTexture;
-import com.lowdragmc.lowdraglib.gui.util.ClickData;
-import com.lowdragmc.lowdraglib.gui.widget.ButtonWidget;
-import com.lowdragmc.lowdraglib.gui.widget.ImageWidget;
-import com.lowdragmc.lowdraglib.gui.widget.Widget;
-import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
-import com.lowdragmc.lowdraglib.utils.Position;
-import com.lowdragmc.lowdraglib.utils.Size;
-import com.lowdragmc.lowdraglib.utils.interpolate.Eases;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Button.State;
+import com.lowdragmc.lowdraglib2.gui.ui.event.HoverTooltips;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
 
-import com.mojang.blaze3d.systems.RenderSystem;
 import lombok.Getter;
 import lombok.Setter;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
-public class ConfiguratorPanel extends WidgetGroup {
+/**
+ * LDLib2 left-side Fancy configurator panel.
+ */
+public class ConfiguratorPanel extends UIElement {
 
+    private static final int TAB_SIZE = 24;
+    private static final int TAB_GAP = 2;
+    private static final int ICON_SIZE = 16;
+    private static final int EXPANDED_GAP = 2;
+
+    private final List<Tab> tabs = new ArrayList<>();
     @Getter
-    protected List<Tab> tabs = new ArrayList<>();
+    private final Player player;
     @Getter
+    @Setter
+    private MachineUIHolder holder;
+    private int x;
+    private int y;
+    private int border = 4;
+    private IGuiTexture texture = GuiTextures.BACKGROUND;
+
     @Nullable
-    protected Tab expanded;
-    @Setter
-    protected int border = 4;
-    @Setter
-    protected IGuiTexture texture = GuiTextures.BACKGROUND;
+    private Tab expanded;
 
-    public ConfiguratorPanel(int x, int y) {
-        super(x, y, 24, 0);
+    public ConfiguratorPanel(Player player, MachineUIHolder holder, int x, int y) {
+        this.player = player;
+        this.holder = holder;
+        this.x = x;
+        this.y = y;
+        UITemplate.setBounds(this, x, y, TAB_SIZE, 0);
+        style(style -> style.overflowVisible(true));
     }
 
+    /**
+     * Returns the machine holder captured when the owning Fancy screen opened.
+     */
     public void clear() {
-        clearAllWidgets();
+        clearAllChildren();
         tabs.clear();
         expanded = null;
+        updatePanelBounds();
     }
 
     public int getTabSize() {
-        return getSize().width;
+        return TAB_SIZE;
     }
 
-    public void attachConfigurators(IFancyConfigurator... fancyConfigurators) {
-        for (IFancyConfigurator fancyConfigurator : fancyConfigurators) {
-            var tab = new Tab(fancyConfigurator);
-            tab.setBackground(texture);
+    public int getPanelContentHeight() {
+        return Math.max(0, tabs.size() * (TAB_SIZE + TAB_GAP) - TAB_GAP);
+    }
+
+    public ConfiguratorPanel setBorder(int border) {
+        this.border = border;
+        rebuildTabs();
+        return this;
+    }
+
+    public ConfiguratorPanel setTexture(IGuiTexture texture) {
+        this.texture = texture;
+        rebuildTabs();
+        return this;
+    }
+
+    public void moveTo(int x, int y) {
+        this.x = x;
+        this.y = y;
+        updatePanelBounds();
+    }
+
+    public void attachConfigurators(IFancyConfigurator... configurators) {
+        for (IFancyConfigurator configurator : configurators) {
+            Tab tab = new Tab(configurator, tabs.size());
             tabs.add(tab);
-            addWidgetAnima(tab, new Transform()
-                    .scale(0)
-                    .duration(getAnimationTime())
-                    .ease(Eases.EaseQuadOut));
+            addChild(tab);
         }
-        setSize(new Size(getSize().width, Math.max(0, tabs.size() * (getTabSize() + 2) - 2)));
+        updatePanelBounds();
     }
 
     public void expandTab(Tab tab) {
-        tab.expand();
-        int i = 0;
+        expanded = tab;
+        int index = 0;
         for (Tab otherTab : tabs) {
-            if (otherTab != tab) {
-                otherTab.collapseTo(0, i++ * (getTabSize() + 2));
+            if (otherTab == tab) {
+                otherTab.expand();
+            } else {
+                otherTab.collapseTo(0, index * (TAB_SIZE + TAB_GAP));
+                index++;
             }
         }
-        expanded = tab;
     }
 
     public void collapseTab() {
-        if (expanded != null) {
-            for (int i = 0; i < tabs.size(); i++) {
-                tabs.get(i).collapseTo(0, i * (getTabSize() + 2));
-            }
-            if (expanded instanceof FloatingTab) {
-                expanded.collapseTo(0, 0);
-            }
+        for (int index = 0; index < tabs.size(); index++) {
+            tabs.get(index).collapseTo(0, index * (TAB_SIZE + TAB_GAP));
         }
         expanded = null;
     }
 
-    @Override
-    @OnlyIn(Dist.CLIENT)
-    protected void drawWidgetsBackground(@NotNull GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
-        for (Widget widget : widgets) {
-            if (widget.isVisible() && widget != expanded) {
-                RenderSystem.setShaderColor(1, 1, 1, 1);
-                RenderSystem.enableBlend();
-                if (widget.inAnimate()) {
-                    widget.getAnimation().drawInBackground(graphics, mouseX, mouseY, partialTicks);
-                } else {
-                    widget.drawInBackground(graphics, mouseX, mouseY, partialTicks);
-                }
-            }
-        }
-        if (expanded != null && expanded.isVisible()) {
-            graphics.pose().pushPose();
-            graphics.pose().translate(0, 0, 300);
-            RenderSystem.setShaderColor(1, 1, 1, 1);
-            RenderSystem.enableBlend();
-            if (expanded.inAnimate()) {
-                expanded.getAnimation().drawInBackground(graphics, mouseX, mouseY, partialTicks);
-            } else {
-                expanded.drawInBackground(graphics, mouseX, mouseY, partialTicks);
-            }
-            graphics.pose().popPose();
-        }
+    private void rebuildTabs() {
+        List<IFancyConfigurator> configurators = tabs.stream().map(tab -> tab.configurator).toList();
+        clear();
+        attachConfigurators(configurators.toArray(IFancyConfigurator[]::new));
     }
 
-    @Override
-    @OnlyIn(Dist.CLIENT)
-
-    protected void drawWidgetsForeground(@NotNull GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
-        // remove previous tooltip
-        if (isMouseOverElement(mouseX, mouseY)) {
-            gui.getModularUIGui().setHoverTooltip(Collections.emptyList(), ItemStack.EMPTY, null, null);
-        }
-        for (Widget widget : widgets) {
-            if (widget.isVisible() && widget != expanded) {
-                RenderSystem.setShaderColor(1, 1, 1, 1);
-                RenderSystem.enableBlend();
-                if (widget.inAnimate()) {
-                    widget.getAnimation().drawInForeground(graphics, mouseX, mouseY, partialTicks);
-                } else {
-                    widget.drawInForeground(graphics, mouseX, mouseY, partialTicks);
-                }
-            }
-        }
-        if (expanded != null && expanded.isVisible()) {
-            RenderSystem.setShaderColor(1, 1, 1, 1);
-            RenderSystem.enableBlend();
-            if (expanded.inAnimate()) {
-                expanded.getAnimation().drawInForeground(graphics, mouseX, mouseY, partialTicks);
-            } else {
-                expanded.drawInForeground(graphics, mouseX, mouseY, partialTicks);
-            }
-        }
+    private void updatePanelBounds() {
+        UITemplate.setBounds(this, x, y, TAB_SIZE, getPanelContentHeight());
     }
 
-    @Override
-    @OnlyIn(Dist.CLIENT)
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (expanded != null && expanded.isVisible() && expanded.isActive() &&
-                expanded.mouseClicked(mouseX, mouseY, button)) {
-            return true;
-        }
-        return super.mouseClicked(mouseX, mouseY, button);
-    }
+    /**
+     * A collapsed or expanded configurator tab in the LDLib2 Fancy configurator panel.
+     */
+    public class Tab extends UIElement {
 
-    public FloatingTab createFloatingTab(IFancyConfigurator configurator) {
-        return new FloatingTab(configurator);
-    }
+        private final IFancyConfigurator configurator;
+        private final GTButtonElement button;
+        private final GTImageElement icon;
 
-    public class Tab extends WidgetGroup {
-
-        protected final IFancyConfigurator configurator;
-        protected final ButtonWidget button;
         @Nullable
-        protected final WidgetGroup view;
-        // dragging
-        protected double lastDeltaX, lastDeltaY;
-        protected int dragOffsetX, dragOffsetY;
-        protected boolean isDragging;
+        private final UIElement view;
 
-        public Tab(IFancyConfigurator configurator) {
-            super(0, tabs.size() * (getTabSize() + 2), getTabSize(), getTabSize());
+        private Tab(IFancyConfigurator configurator, int index) {
             this.configurator = configurator;
-            this.button = new ButtonWidget(0, 0, getTabSize(), getTabSize(), null, this::onClick) {
+            UITemplate.setBounds(this, 0, index * (TAB_SIZE + TAB_GAP), TAB_SIZE, TAB_SIZE);
+            UITemplate.setBackgroundTexture(this, texture);
+            style(style -> style.overflowVisible(true));
+
+            this.button = new GTButtonElement(0, 0, TAB_SIZE, TAB_SIZE, IGuiTexture.EMPTY,
+                    this::onClick) {
 
                 @Override
-                public boolean mouseWheelMove(double mouseX, double mouseY, double scrollX, double scrollY) {
-                    if (!(configurator instanceof IFancyCustomMouseWheelAction hasActions)) return false;
-                    if (isMouseOverElement(mouseX, mouseY))
-                        return hasActions.mouseWheelMove(this::writeClientAction, mouseX, mouseY, scrollY);
-                    return false;
-                }
-
-                @Override
-                public void handleClientAction(int id, RegistryFriendlyByteBuf buffer) {
-                    if (configurator instanceof IFancyCustomClientActionHandler handler && id > 1)
-                        handler.handleClientAction(id, buffer);
-                    else
-                        super.handleClientAction(id, buffer);
+                protected void setButtonState(State state) {
+                    super.setButtonState(state);
+                    icon.setTexture(configurator.getIcon(state));
                 }
             };
+            button.noText();
+            button.style(style -> style.zIndex(310));
+            button.addEventListener(UIEvents.HOVER_TOOLTIPS, this::applyTooltip);
+            button.addEventListener(UIEvents.MOUSE_WHEEL, this::onMouseWheel);
+
+            this.icon = new GTImageElement(TAB_SIZE - ICON_SIZE - border, border, ICON_SIZE, ICON_SIZE,
+                    configurator.getIcon(State.DEFAULT));
+            icon.setAllowHitTest(false);
+            button.addChild(icon);
+            addChild(button);
+
             if (configurator instanceof IFancyConfiguratorButton) {
                 this.view = null;
-                this.addWidget(button);
             } else {
-                var widget = configurator.createConfigurator();
-                widget.setSelfPosition(new Position(border, getTabSize()));
-
-                this.view = new WidgetGroup(0, 0, 0, 0) {
-
-                    @Override
-                    protected void onChildSizeUpdate(Widget child) {
-                        super.onChildSizeUpdate(child);
-                        if (widget == child) {
-                            this.setSize(new Size(widget.getSize().width + border * 2,
-                                    widget.getSize().height + getTabSize() + border));
-                        }
-                    }
-                };
-
+                this.view = createView(configurator);
                 this.view.setVisible(false);
                 this.view.setActive(false);
-                this.view.setSize(new Size(widget.getSize().width + border * 2,
-                        widget.getSize().height + button.getSize().height + border));
-                this.view.addWidget(widget);
-                this.view.addWidget(new ImageWidget(border + 5, border, widget.getSize().width - getTabSize() - 5,
-                        getTabSize() - border,
-                        new TextTexture(configurator.getTitle().getString())
-                                .setType(TextTexture.TextType.LEFT_HIDE)
-                                .setWidth(widget.getSize().width - getTabSize())));
-                this.addWidget(button);
-                this.addWidget(view);
+                addChild(this.view);
             }
         }
 
         @Override
-        public void writeInitialData(RegistryFriendlyByteBuf buffer) {
-            super.writeInitialData(buffer);
-            configurator.writeInitialData(buffer);
+        public void screenTick() {
+            icon.setTexture(configurator.getIcon(button.getState()));
+            super.screenTick();
         }
 
-        @Override
-        public void readInitialData(RegistryFriendlyByteBuf buffer) {
-            super.readInitialData(buffer);
-            configurator.readInitialData(buffer);
+        private UIElement createView(IFancyConfigurator configurator) {
+            int width = configurator.getConfiguratorWidth() + border * 2;
+            int height = configurator.getConfiguratorHeight() + TAB_SIZE + border;
+            UIElement createdView = UITemplate.setBounds(new UIElement(), 0, 0, width, height);
+            UITemplate.setBackgroundTexture(createdView, texture);
+            createdView.style(style -> style.overflowVisible(true));
+
+            UIElement configuratorBody = configurator.createConfigurator();
+            UITemplate.setBounds(configuratorBody, border, TAB_SIZE,
+                    configurator.getConfiguratorWidth(),
+                    configurator.getConfiguratorHeight());
+            createdView.addChild(configuratorBody);
+            createdView.addChild(new GTImageElement(border + ICON_SIZE + 1, border,
+                    configurator.getConfiguratorWidth() - TAB_SIZE - 1,
+                    TAB_SIZE - border,
+                    GuiTextures.text(configurator.getTitle().getString())
+                            .setType(TextTexture.TextType.LEFT_HIDE)
+                            .setWidth(configurator.getConfiguratorWidth() - TAB_SIZE)));
+            return createdView;
         }
 
-        @Override
-        public void detectAndSendChanges() {
-            super.detectAndSendChanges();
-            configurator.detectAndSendChange((id, sender) -> writeUpdateInfo(0, buf -> {
-                buf.writeVarInt(id);
-                sender.accept(buf);
-            }));
+        private void onMouseWheel(UIEvent event) {
+            if (configurator instanceof IFancyCustomMouseWheelAction mouseWheelAction &&
+                    mouseWheelAction.mouseWheelMove(event)) {
+                event.stopImmediatePropagation();
+                event.hasHandler = true;
+            }
         }
 
-        @Override
-        public void readUpdateInfo(int id, RegistryFriendlyByteBuf buffer) {
-            if (id == 0) {
-                configurator.readUpdateInfo(buffer.readVarInt(), buffer);
+        private void onClick(UIEvent event) {
+            if (event.button == GLFW.GLFW_MOUSE_BUTTON_MIDDLE &&
+                    configurator instanceof IFancyCustomMiddleClickAction middleClickAction) {
+                middleClickAction.onMiddleClick(event);
+                event.stopImmediatePropagation();
+                event.hasHandler = true;
+                return;
+            }
+            if (configurator instanceof IFancyConfiguratorButton configuratorButton) {
+                configuratorButton.onClick(event);
+                return;
+            }
+            if (expanded == this) {
+                collapseTab();
             } else {
-                super.readUpdateInfo(id, buffer);
+                expandTab(this);
             }
-        }
-
-        @Override
-        protected void onChildSizeUpdate(Widget child) {
-            if (this.view != null && this.view == child) {
-                if (expanded == this) {
-                    var size = view.getSize();
-                    animation(new Animation()
-                            .duration(getAnimationTime())
-                            .position(new Position(dragOffsetX + (-size.width + (tabs.size() > 1 ? -2 : getTabSize())),
-                                    dragOffsetY))
-                            .size(size)
-                            .ease(Eases.EaseQuadOut)
-                            .onFinish(() -> {
-                                view.setVisible(true);
-                                view.setActive(true);
-                            }));
-                }
-            }
-        }
-
-        private void onClick(ClickData clickData) {
-            if (clickData.button == 2 && configurator instanceof IFancyCustomMiddleClickAction middleAction) {
-                middleAction.onMiddleClick(this::writeClientAction);
-            } else if (configurator instanceof IFancyConfiguratorButton fancyButton) {
-                fancyButton.onClick(clickData);
-            } else {
-                if (expanded == this) {
-                    collapseTab();
-                } else {
-                    expandTab(this);
-                }
-            }
-        }
-
-        @Override
-        public void setSize(Size size) {
-            super.setSize(size);
-            button.setSelfPosition(new Position(size.width - getTabSize(), 0));
         }
 
         private void expand() {
-            if (view == null) return;
-            var size = view.getSize();
-            this.dragOffsetX = 0;
-            this.dragOffsetY = 0;
-            if (isRemote()) {
-                if (getParentPosition().x - size.width + (tabs.size() > 1 ? -2 : getTabSize()) < 0) {
-                    this.dragOffsetX -= (view.getParentPosition().x - size.width +
-                            (tabs.size() > 1 ? -2 : getTabSize()));
-                }
-                if (getParentPosition().y + size.height > gui.getScreenHeight()) {
-                    this.dragOffsetY -= view.getParentPosition().y + size.height - gui.getScreenHeight();
-                }
+            if (view == null) {
+                return;
             }
-            Position position = new Position(dragOffsetX - size.width + (tabs.size() > 1 ? -2 : getTabSize()),
-                    dragOffsetY);
-
-            animation(new Animation()
-                    .duration(getAnimationTime())
-                    .position(position)
-                    .size(size)
-                    .ease(Eases.EaseQuadOut)
-                    .onFinish(() -> {
-                        view.setVisible(true);
-                        view.setActive(true);
-                    }));
+            int viewWidth = configurator.getConfiguratorWidth() + border * 2;
+            int viewHeight = configurator.getConfiguratorHeight() + TAB_SIZE + border;
+            int expandedX = -viewWidth + (tabs.size() > 1 ? -EXPANDED_GAP : TAB_SIZE);
+            UITemplate.setBounds(this, expandedX, 0, viewWidth, viewHeight);
+            positionButton(viewWidth - TAB_SIZE);
+            view.setVisible(true);
+            view.setActive(true);
+            style(style -> style.zIndex(300));
         }
 
-        protected void collapseTo(int x, int y) {
+        private void collapseTo(int x, int y) {
             if (view != null) {
                 view.setVisible(false);
                 view.setActive(false);
             }
-            animation(new Animation()
-                    .duration(getAnimationTime())
-                    .position(new Position(x, y))
-                    .size(new Size(getTabSize(), getTabSize()))
-                    .ease(Eases.EaseQuadOut));
+            UITemplate.setBounds(this, x, y, TAB_SIZE, TAB_SIZE);
+            positionButton(0);
+            style(style -> style.zIndex(0));
         }
 
-        @Override
-        @OnlyIn(Dist.CLIENT)
-        public void drawInBackground(@NotNull GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
-            drawBackgroundTexture(graphics, mouseX, mouseY);
-            var position = getPosition();
-            var size = getSize();
-            if (inAnimate()) {
-                graphics.enableScissor(position.x + border - 1, position.y + border - 1,
-                        position.x + border - 1 + size.width - (border - 1) * 2,
-                        position.y + border - 1 + size.height - (border - 1) * 2);
-                drawWidgetsBackground(graphics, mouseX, mouseY, partialTicks);
-                graphics.disableScissor();
-            } else {
-                drawWidgetsBackground(graphics, mouseX, mouseY, partialTicks);
-            }
-            configurator.getIcon().draw(graphics, mouseX, mouseY, position.x + size.width - 20, position.y + 4, 16, 16);
+        private void applyTooltip(UIEvent event) {
+            event.hoverTooltips = new HoverTooltips(configurator.getTooltips(), null, null, ItemStack.EMPTY);
         }
 
-        @Override
-        @OnlyIn(Dist.CLIENT)
-        public void drawInForeground(@NotNull GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
-            super.drawInForeground(graphics, mouseX, mouseY, partialTicks);
-            if (isMouseOver(getPosition().x + getSize().width - 20, getPosition().y + 4, 16, 16, mouseX, mouseY) &&
-                    gui != null && gui.getModularUIGui() != null) {
-                gui.getModularUIGui().setHoverTooltip(configurator.getTooltips(), ItemStack.EMPTY, null, null);
-            }
+        private void positionButton(int x) {
+            UITemplate.setBounds(button, x, 0, TAB_SIZE, TAB_SIZE);
         }
-
-        @Override
-        @OnlyIn(Dist.CLIENT)
-        public boolean mouseClicked(double mouseX, double mouseY, int button) {
-            this.lastDeltaX = 0;
-            this.lastDeltaY = 0;
-            this.isDragging = false;
-            if (expanded == this && isMouseOver(getPosition().x, getPosition().y, getSize().width - getTabSize(),
-                    getTabSize(), mouseX, mouseY)) {
-                isDragging = true;
-                return true;
-            }
-            return super.mouseClicked(mouseX, mouseY, button) || isMouseOverElement(mouseX, mouseY);
-        }
-
-        @Override
-        @OnlyIn(Dist.CLIENT)
-        public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
-            double dx = dragX + lastDeltaX;
-            double dy = dragY + lastDeltaY;
-            dragX = (int) dx;
-            dragY = (int) dy;
-            lastDeltaX = dx - dragX;
-            lastDeltaY = dy - dragY;
-            if (isDragging) {
-                this.dragOffsetX += (int) dragX;
-                this.dragOffsetY += (int) dragY;
-                this.addSelfPosition((int) dragX, (int) dragY);
-            }
-            return super.mouseDragged(mouseX, mouseY, button, dragX, dragY) || isMouseOverElement(mouseX, mouseY);
-        }
-
-        @Override
-        @OnlyIn(Dist.CLIENT)
-        public boolean mouseReleased(double mouseX, double mouseY, int button) {
-            this.lastDeltaX = 0;
-            this.lastDeltaY = 0;
-            this.isDragging = false;
-            return super.mouseReleased(mouseX, mouseY, button) || isMouseOverElement(mouseX, mouseY);
-        }
-
-        @Override
-        @OnlyIn(Dist.CLIENT)
-        public boolean mouseWheelMove(double mouseX, double mouseY, double scrollX, double scrollY) {
-            return super.mouseWheelMove(mouseX, mouseY, scrollX, scrollY) || isMouseOverElement(mouseX, mouseY);
-        }
-
-        @Override
-        @OnlyIn(Dist.CLIENT)
-        public boolean mouseMoved(double mouseX, double mouseY) {
-            return super.mouseMoved(mouseX, mouseY) || isMouseOverElement(mouseX, mouseY);
-        }
-    }
-
-    public class FloatingTab extends Tab {
-
-        protected Runnable closeCallback = () -> {};
-
-        public FloatingTab(IFancyConfigurator configurator) {
-            super(configurator);
-            this.view.setBackground(GuiTextures.BACKGROUND);
-        }
-
-        @Override
-        public void collapseTo(int x, int y) {
-            super.collapseTo(x, y);
-            ConfiguratorPanel.this.removeWidget(this);
-            closeCallback.run();
-        }
-
-        public void onClose(Runnable closeCallback) {
-            this.closeCallback = closeCallback;
-        }
-    }
-
-    private static int getAnimationTime() {
-        return ConfigHolder.INSTANCE.client.animationTime;
     }
 }

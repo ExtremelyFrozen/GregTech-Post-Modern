@@ -1,8 +1,8 @@
 package com.gregtechceu.gtceu.data.pattern
 
 enum class StructureDefinitionType(val directoryName: String, val fileExtension: String) {
-	SERIALIZED_BLOCK_PATTERN("binary", ".cbor.zst"),
-	STRING_ARRAY_JSON("json", ".json"),
+	BINARY_ZSTD("binary", ".bin.zst"),
+	JSON("json", ".json"),
 	;
 
 	fun matchesFileName(fileName: String): Boolean = fileName.endsWith(fileExtension)

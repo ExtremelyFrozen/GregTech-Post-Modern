@@ -2,13 +2,16 @@ package com.gregtechceu.gtceu.api.cover;
 
 import com.gregtechceu.gtceu.api.blockentity.ICopyable;
 import com.gregtechceu.gtceu.api.capability.ICoverable;
-import com.gregtechceu.gtceu.api.gui.GuiTextures;
-import com.gregtechceu.gtceu.api.gui.factory.CoverUIFactory;
-import com.gregtechceu.gtceu.api.gui.fancy.IFancyConfigurator;
+import com.gregtechceu.gtceu.api.gui.factory.CoverUIHelper;
 import com.gregtechceu.gtceu.api.item.tool.GTToolType;
+import com.gregtechceu.gtceu.api.item.tool.GridHighlightTexture;
 import com.gregtechceu.gtceu.api.item.tool.IToolGridHighlight;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
+import com.gregtechceu.gtceu.api.registry.GTRegistries;
+import com.gregtechceu.gtceu.api.sync_system.ContextualFieldCodec;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 import com.gregtechceu.gtceu.api.sync_system.SyncDataHolder;
+import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
 import com.gregtechceu.gtceu.api.sync_system.managed.ISyncManaged;
@@ -16,8 +19,6 @@ import com.gregtechceu.gtceu.api.transfer.fluid.IFluidHandlerModifiable;
 import com.gregtechceu.gtceu.client.renderer.cover.ICoverRenderer;
 import com.gregtechceu.gtceu.client.renderer.cover.IDynamicCoverRenderer;
 import com.gregtechceu.gtceu.utils.ExtendedUseOnContext;
-
-import com.lowdragmc.lowdraglib.gui.texture.ResourceTexture;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -30,6 +31,8 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.items.IItemHandlerModifiable;
 
 import com.mojang.datafixers.util.Pair;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import lombok.Getter;
 import org.jetbrains.annotations.MustBeInvokedByOverriders;
 import org.jetbrains.annotations.Nullable;
@@ -44,6 +47,34 @@ import java.util.function.Supplier;
  * Cover filters out interaction and logic of meta tile entity
  */
 public abstract class CoverBehavior implements ISyncManaged, IToolGridHighlight, ICopyable {
+
+    /** Restores a cover from its registered definition and side while retaining incremental managed field data. */
+    public static final ContextualFieldCodec<CoverBehavior> CODEC = context -> RecordCodecBuilder
+            .create(instance -> instance.group(
+                    Codec.intRange(0, 5).fieldOf("side")
+                            .forGetter((CoverBehavior cover) -> cover.attachedSide.get3DDataValue()),
+                    GTRegistries.COVERS.byNameCodec().fieldOf("coverType")
+                            .forGetter(cover -> cover.coverDefinition),
+                    SyncFieldData.CODEC.fieldOf("data").forGetter(cover -> {
+                        var storage = cover.getSyncDataHolder();
+                        return context.isClientSync() && context.readOnly() ? storage.getClientData(context.lookup()) :
+                                storage.serializeToFieldData(context.lookup(), context.isClientSync(),
+                                        context.isClientFullSyncUpdate());
+                    }))
+                    .apply(instance, (side, definition, data) -> {
+                        Direction attachedSide = Direction.from3DDataValue(side);
+                        CoverBehavior current = context.currentValue();
+                        CoverBehavior cover = current != null && current.coverDefinition == definition &&
+                                current.attachedSide == attachedSide ? current :
+                                        definition.createCoverBehavior((ICoverable) context.holder(), attachedSide);
+                        cover.getSyncDataHolder().deserializeFieldData(context.lookup(), data,
+                                context.isClientSync(), true, context.isClientFullSyncUpdate(), false);
+                        return cover;
+                    }));
+
+    static {
+        FieldCodecs.registerContextual(CoverBehavior.class, CODEC);
+    }
 
     @Getter
     protected final SyncDataHolder syncDataHolder = new SyncDataHolder(this);
@@ -147,9 +178,9 @@ public abstract class CoverBehavior implements ISyncManaged, IToolGridHighlight,
     }
 
     public InteractionResult onScrewdriverClick(ExtendedUseOnContext context) {
-        if (this instanceof IUICover) {
+        if (hasCoverUI()) {
             if (context.getPlayer() instanceof ServerPlayer serverPlayer) {
-                CoverUIFactory.INSTANCE.openUI(this, serverPlayer);
+                CoverUIHelper.open(this, serverPlayer);
             }
             return InteractionResult.sidedSuccess(coverHolder.isRemote());
         }
@@ -179,27 +210,27 @@ public abstract class CoverBehavior implements ISyncManaged, IToolGridHighlight,
         return coverDefinition.getCoverRenderer();
     }
 
-    public @Nullable IFancyConfigurator getConfigurator() {
-        return null;
-    }
-
     @Override
     public boolean shouldRenderGrid(Player player, BlockPos pos, BlockState state, ItemStack held,
                                     Set<GTToolType> toolTypes) {
         return toolTypes.contains(GTToolType.CROWBAR) ||
-                ((toolTypes.isEmpty() || toolTypes.contains(GTToolType.SCREWDRIVER)) && this instanceof IUICover);
+                ((toolTypes.isEmpty() || toolTypes.contains(GTToolType.SCREWDRIVER)) && hasCoverUI());
     }
 
     @Override
-    public @Nullable ResourceTexture sideTips(Player player, BlockPos pos, BlockState state, Set<GTToolType> toolTypes,
-                                              ItemStack held, Direction side) {
+    public @Nullable GridHighlightTexture sideTips(Player player, BlockPos pos, BlockState state,
+                                                   Set<GTToolType> toolTypes, ItemStack held, Direction side) {
         if (toolTypes.contains(GTToolType.CROWBAR)) {
-            return GuiTextures.TOOL_REMOVE_COVER;
+            return GridHighlightTexture.TOOL_REMOVE_COVER;
         }
-        if ((toolTypes.isEmpty() || toolTypes.contains(GTToolType.SCREWDRIVER)) && this instanceof IUICover) {
-            return GuiTextures.TOOL_COVER_SETTINGS;
+        if ((toolTypes.isEmpty() || toolTypes.contains(GTToolType.SCREWDRIVER)) && hasCoverUI()) {
+            return GridHighlightTexture.TOOL_COVER_SETTINGS;
         }
         return null;
+    }
+
+    private boolean hasCoverUI() {
+        return CoverUIHelper.hasUI(this);
     }
 
     /**

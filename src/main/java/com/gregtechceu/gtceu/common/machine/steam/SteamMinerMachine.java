@@ -6,10 +6,13 @@ import com.gregtechceu.gtceu.api.capability.IMiner;
 import com.gregtechceu.gtceu.api.capability.recipe.IO;
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
-import com.gregtechceu.gtceu.api.gui.widget.PredicatedImageWidget;
-import com.gregtechceu.gtceu.api.gui.widget.SlotWidget;
+import com.gregtechceu.gtceu.api.gui.element.GTImageElement;
+import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
+import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
+import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.machine.TickableSubscription;
-import com.gregtechceu.gtceu.api.machine.feature.*;
+import com.gregtechceu.gtceu.api.machine.feature.IDataInfoProvider;
+import com.gregtechceu.gtceu.api.machine.feature.IUIMachine;
 import com.gregtechceu.gtceu.api.machine.steam.SteamWorkableMachine;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
@@ -19,16 +22,18 @@ import com.gregtechceu.gtceu.common.machine.trait.miner.SteamMinerLogic;
 import com.gregtechceu.gtceu.utils.GTTransferUtils;
 import com.gregtechceu.gtceu.utils.ISubscription;
 
-import com.lowdragmc.lowdraglib.gui.modular.ModularUI;
-import com.lowdragmc.lowdraglib.gui.widget.ComponentPanelWidget;
-import com.lowdragmc.lowdraglib.gui.widget.ImageWidget;
-import com.lowdragmc.lowdraglib.gui.widget.LabelWidget;
+import com.lowdragmc.lowdraglib2.gui.ui.UI;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
+import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
+import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.Block;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
@@ -40,6 +45,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Consumer;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 
@@ -89,7 +95,7 @@ public class SteamMinerMachine extends SteamWorkableMachine implements IControll
     }
 
     @Override
-    public void onNeighborChanged(net.minecraft.world.level.block.Block block, BlockPos fromPos, boolean isMoving) {
+    public void onNeighborChanged(Block block, BlockPos fromPos, boolean isMoving) {
         super.onNeighborChanged(block, fromPos, isMoving);
         updateAutoOutputSubscription();
         getRecipeLogic().updateTickSubscription();
@@ -137,34 +143,82 @@ public class SteamMinerMachine extends SteamWorkableMachine implements IControll
     //////////////////////////////////////
     // *********** GUI ***********//
     //////////////////////////////////////
+
     @Override
-    public ModularUI createUI(Player entityPlayer) {
+    public UI createUI(Player player, MachineUIHolder holder) {
         int rowSize = (int) Math.sqrt(inventorySize);
 
-        ModularUI builder = new ModularUI(175, 176, this, entityPlayer)
-                .background(GuiTextures.BACKGROUND_STEAM.get(isHighPressure()));
-        builder.widget(UITemplate.bindPlayerInventory(entityPlayer.getInventory(),
-                GuiTextures.SLOT_STEAM.get(isHighPressure()), 7,
-                94, true));
+        UIElement root = new UIElement();
+        UITemplate.setBounds(root, 0, 0, 175, 176);
+        root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_STEAM.get(isHighPressure())));
+        root.addChild(UITemplate.bindPlayerInventory(player.getInventory(),
+                GuiTextures.SLOT_STEAM.get(isHighPressure()), 7, 94, true));
 
         for (int y = 0; y < rowSize; y++) {
             for (int x = 0; x < rowSize; x++) {
                 int index = y * rowSize + x;
-                builder.widget(new SlotWidget(exportItems, index, 142 - rowSize * 9 + x * 18, 18 + y * 18, true, false)
-                        .setBackgroundTexture(GuiTextures.SLOT_STEAM.get(isHighPressure())));
+                GTItemSlotElement slot = new GTItemSlotElement(exportItems, index)
+                        .setBackgroundTexture(GuiTextures.SLOT_STEAM.get(isHighPressure()))
+                        .setCanTakeItems(true)
+                        .setCanPutItems(false);
+                UITemplate.setBounds(slot, 142 - rowSize * 9 + x * 18, 18 + y * 18, 18, 18);
+                root.addChild(slot);
             }
         }
 
-        builder.widget(new LabelWidget(5, 5, getBlockState().getBlock().getDescriptionId()));
-        builder.widget(new PredicatedImageWidget(79, 42, 18, 18, GuiTextures.INDICATOR_NO_STEAM.get(isHighPressure()))
-                .setPredicate(() -> !drainInput(true)));
-        builder.widget(new ImageWidget(7, 16, 105, 75, GuiTextures.DISPLAY_STEAM.get(isHighPressure())));
-        builder.widget(new ComponentPanelWidget(10, 19, this::addDisplayText)
-                .setMaxWidthLimit(84));
-        builder.widget(new ComponentPanelWidget(70, 19, this::addDisplayText2)
-                .setMaxWidthLimit(84));
+        root.addChild(createTitleLabel());
+        root.addChild(new GTImageElement(7, 16, 105, 75, GuiTextures.DISPLAY_STEAM.get(isHighPressure())));
+        root.addChild(new GTImageElement(79, 42, 18, 18,
+                GuiTextures.INDICATOR_NO_STEAM.get(isHighPressure())).setVisibleSupplier(() -> !drainInput(true)));
+        root.addChild(createDisplayTextPanel(10, 19, this::addDisplayText));
+        root.addChild(createDisplayTextPanel(70, 19, this::addDisplayText2));
 
-        return builder;
+        return UI.of(root);
+    }
+
+    private GTLabelElement createTitleLabel() {
+        GTLabelElement label = new GTLabelElement(5, 5, 166, 10,
+                getBlockState().getBlock().getDescriptionId(), true);
+        label.textStyle(style -> style
+                .textColor(0x404040)
+                .textShadow(false)
+                .textAlignHorizontal(Horizontal.LEFT)
+                .textAlignVertical(Vertical.CENTER));
+        return label;
+    }
+
+    private GTLabelElement createDisplayTextPanel(int x, int y, Consumer<List<Component>> displayTextAppender) {
+        GTLabelElement label = new GTLabelElement(x, y, 84, 70) {
+
+            @Override
+            public void screenTick() {
+                setText(buildDisplayText(displayTextAppender));
+                super.screenTick();
+            }
+        };
+        label.setText(buildDisplayText(displayTextAppender));
+        label.textStyle(style -> style
+                .textColor(0xFFFFFF)
+                .textShadow(false)
+                .textAlignHorizontal(Horizontal.LEFT)
+                .textAlignVertical(Vertical.TOP)
+                .textWrap(TextWrap.WRAP)
+                .fontSize(9f)
+                .lineSpacing(0f));
+        return label;
+    }
+
+    private MutableComponent buildDisplayText(Consumer<List<Component>> displayTextAppender) {
+        List<Component> displayText = new ArrayList<>();
+        displayTextAppender.accept(displayText);
+        MutableComponent text = Component.empty();
+        for (int index = 0; index < displayText.size(); index++) {
+            if (index > 0) {
+                text.append("\n");
+            }
+            text.append(displayText.get(index));
+        }
+        return text;
     }
 
     void addDisplayText(List<Component> textList) {

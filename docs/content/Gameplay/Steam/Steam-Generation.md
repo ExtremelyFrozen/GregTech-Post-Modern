@@ -9,12 +9,12 @@ Title: 生成蒸汽
 游戏前期生成 Steam 有两个选择：
 
 ### 锅炉（Boilers）
- * Liquid Boiler（流体锅炉）- 允许你使用 Lava（岩浆）等热流体加热水并获得 Steam。
- * Solid Boiler（固体锅炉）- 使用 Coal（煤）加热水。
+ * 蒸汽液体燃料锅炉可以用岩浆等热流体加热水并生产蒸汽。
+ * 蒸汽固体燃料锅炉可以用煤等固体燃料加热水。
 ### 太阳能锅炉（Solar Boilers）
  * 通过 Solar Boiler 生成 Steam，_夜晚无法工作_。
 
-供水方面，你可以使用 **Primitive Pump（原始泵）**
+供水方面，你可以使用**原始水泵**。
 ![Primitive Water Pump（原始水泵）](./assets/primitive_water_pump.png)
 
 或者使用其他 mod 提供的供水连接。

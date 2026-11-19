@@ -1,5 +1,7 @@
 package com.gregtechceu.gtceu.api.item.datacomponents;
 
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
+
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.world.level.block.Block;
@@ -22,6 +24,11 @@ public record FacadeWrapper(BlockState state) {
             buffer.writeById(Block.BLOCK_STATE_REGISTRY::getId, value.state());
         }
     };
+
+    static {
+        FieldCodecs.register(FacadeWrapper.class, CODEC);
+        FieldCodecs.registerStream(FacadeWrapper.class, STREAM_CODEC);
+    }
 
     @Override
     public boolean equals(Object o) {

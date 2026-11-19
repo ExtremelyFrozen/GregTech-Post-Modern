@@ -1,5 +1,6 @@
 package com.gregtechceu.gtceu.api.placeholder;
 
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 import com.gregtechceu.gtceu.common.data.GTDataComponents;
 
 import net.minecraft.core.component.DataComponentMap;
@@ -17,6 +18,10 @@ public final class PlaceholderRenderData {
                 Codec.FLOAT.fieldOf("height").forGetter(Rect::height),
                 Codec.INT.fieldOf("color").forGetter(Rect::color))
                 .apply(instance, Rect::new));
+
+        static {
+            FieldCodecs.register(Rect.class, CODEC);
+        }
     }
 
     public record Quad(float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4,
@@ -36,6 +41,10 @@ public final class PlaceholderRenderData {
                 Codec.INT.fieldOf("color3").forGetter(Quad::color3),
                 Codec.INT.fieldOf("color4").forGetter(Quad::color4))
                 .apply(instance, Quad::new));
+
+        static {
+            FieldCodecs.register(Quad.class, CODEC);
+        }
     }
 
     public static DataComponentMap rect(float width, float height, int color) {

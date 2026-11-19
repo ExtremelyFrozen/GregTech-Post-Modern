@@ -3,19 +3,20 @@ package com.gregtechceu.gtceu.api.recipe;
 import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.capability.recipe.*;
 import com.gregtechceu.gtceu.api.gui.SteamTexture;
+import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
+import com.gregtechceu.gtceu.api.gui.texture.ProgressTexture;
 import com.gregtechceu.gtceu.api.recipe.category.GTRecipeCategory;
 import com.gregtechceu.gtceu.api.recipe.chance.boost.ChanceBoostFunction;
 import com.gregtechceu.gtceu.api.recipe.lookup.RecipeAdditionHandler;
 import com.gregtechceu.gtceu.api.recipe.lookup.RecipeDB;
 import com.gregtechceu.gtceu.api.recipe.ui.GTRecipeTypeUI;
 import com.gregtechceu.gtceu.api.sound.SoundEntry;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
+import com.gregtechceu.gtceu.common.recipe.condition.ResearchCondition;
 import com.gregtechceu.gtceu.data.recipe.builder.GTRecipeBuilder;
 import com.gregtechceu.gtceu.utils.FormattingUtil;
 
-import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
-import com.lowdragmc.lowdraglib.gui.texture.ProgressTexture;
-import com.lowdragmc.lowdraglib.gui.texture.ResourceTexture;
-import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.component.DataComponentMap;
@@ -40,6 +41,11 @@ import java.util.function.*;
 
 @Accessors(chain = true)
 public class GTRecipeType implements RecipeType<GTRecipeDefinition> {
+
+    static {
+        FieldCodecs.register(GTRecipeType.class, ResourceLocation.CODEC
+                .xmap(id -> (GTRecipeType) BuiltInRegistries.RECIPE_TYPE.get(id), GTRecipeType::getRegistryName));
+    }
 
     public static final String LANGUAGE_KEY_PATH = "recipe_type";
 
@@ -89,6 +95,11 @@ public class GTRecipeType implements RecipeType<GTRecipeDefinition> {
     private final GTRecipeCategory category;
     @Getter
     private final Map<GTRecipeCategory, Set<GTRecipeDefinition>> categoryMap = new Object2ObjectOpenHashMap<>();
+    /**
+     * Prevents recipe-viewer reloads from appending the same synthetic display recipes to the current recipe
+     * generation. The flag is reset when a new recipe staging cycle starts.
+     */
+    private boolean representativeRecipesBuilt;
     private final RecipeDB db = new RecipeDB();
     @ApiStatus.Internal
     @Getter
@@ -155,8 +166,8 @@ public class GTRecipeType implements RecipeType<GTRecipeDefinition> {
         return this;
     }
 
-    public GTRecipeType setProgressBar(ResourceTexture progressBar, ProgressTexture.FillDirection moveType) {
-        this.recipeUI.setProgressBar(progressBar, moveType);
+    public GTRecipeType setProgressBar(ProgressTexture progressBar) {
+        this.recipeUI.setProgressBar(progressBar);
         return this;
     }
 
@@ -166,7 +177,12 @@ public class GTRecipeType implements RecipeType<GTRecipeDefinition> {
         return this;
     }
 
-    public GTRecipeType setUiBuilder(BiConsumer<GTRecipeDefinition, WidgetGroup> uiBuilder) {
+    public GTRecipeType setUiBuilder(BiConsumer<GTRecipeDefinition, UIElement> uiBuilder) {
+        this.recipeUI.setUiBuilder((recipe, root, rootSize) -> uiBuilder.accept(recipe, root));
+        return this;
+    }
+
+    public GTRecipeType setUiBuilder(GTRecipeTypeUI.RecipeUIBuilder uiBuilder) {
         this.recipeUI.setUiBuilder(uiBuilder);
         return this;
     }
@@ -317,10 +333,14 @@ public class GTRecipeType implements RecipeType<GTRecipeDefinition> {
         return new RecipeHolder<>(built.id, built);
     }
 
-    public void buildRepresentativeRecipes() {
+    public synchronized void buildRepresentativeRecipes() {
+        if (representativeRecipesBuilt) {
+            return;
+        }
         for (ICustomRecipeLogic logic : customRecipeLogicRunners) {
             logic.buildRepresentativeRecipes();
         }
+        representativeRecipesBuilt = true;
     }
 
     public void addToMainCategory(GTRecipeDefinition recipe) {
@@ -328,6 +348,7 @@ public class GTRecipeType implements RecipeType<GTRecipeDefinition> {
     }
 
     public void addToCategoryMap(GTRecipeCategory category, GTRecipeDefinition recipe) {
+        setMinRecipeConditions(recipe.conditions.size());
         categoryMap.computeIfAbsent(category, k -> new ObjectLinkedOpenHashSet<>()).add(recipe);
     }
 
@@ -352,9 +373,53 @@ public class GTRecipeType implements RecipeType<GTRecipeDefinition> {
     }
 
     @ApiStatus.Internal
-    public void beginStagingRecipes() {
-        categoryMap.clear();
+    public synchronized void beginStagingRecipes() {
         additionHandler.beginStaging();
+        clearRecipeGeneration();
+    }
+
+    /**
+     * Replaces the active lookup database with the recipes collected for the current reload.
+     */
+    @ApiStatus.Internal
+    public synchronized void completeStagingRecipes() {
+        additionHandler.completeStaging();
+        for (Set<GTRecipeDefinition> recipes : categoryMap.values()) {
+            for (GTRecipeDefinition recipe : recipes) {
+                addResearchEntries(recipe);
+            }
+        }
+    }
+
+    /**
+     * Rebuilds the client-side recipe-viewer generation from the recipes that were accepted by the current
+     * {@link net.minecraft.world.item.crafting.RecipeManager}. This removes decoded recipes from prior server syncs
+     * before recipe-viewer preload data is generated.
+     */
+    @ApiStatus.Internal
+    public synchronized void replaceClientRecipes(Iterable<GTRecipeDefinition> recipes) {
+        clearRecipeGeneration();
+        for (GTRecipeDefinition recipe : recipes) {
+            addToCategoryMap(recipe.recipeCategory, recipe);
+            addResearchEntries(recipe);
+        }
+    }
+
+    private void clearRecipeGeneration() {
+        categoryMap.clear();
+        researchEntries.clear();
+        representativeRecipesBuilt = false;
+        minRecipeConditions = 0;
+    }
+
+    private void addResearchEntries(GTRecipeDefinition recipe) {
+        for (RecipeCondition<?> condition : recipe.conditions) {
+            if (condition instanceof ResearchCondition researchCondition) {
+                for (ResearchData.ResearchEntry entry : researchCondition.data) {
+                    addDataStickEntry(entry.researchId(), recipe);
+                }
+            }
+        }
     }
 
     public interface ICustomRecipeLogic {

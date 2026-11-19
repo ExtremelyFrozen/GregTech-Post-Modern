@@ -1,5 +1,6 @@
 package com.gregtechceu.gtceu.api.data.worldgen.bedrockore;
 
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 import com.gregtechceu.gtceu.config.ConfigHolder;
 
 import net.minecraft.core.Holder;
@@ -20,6 +21,10 @@ public class OreVeinWorldEntry {
             Codec.INT.fieldOf("oreYield").forGetter(OreVeinWorldEntry::getOreYield),
             Codec.INT.fieldOf("operationsRemaining").forGetter(OreVeinWorldEntry::getOperationsRemaining)
     ).apply(instance, OreVeinWorldEntry::newEntry));
+
+    static {
+        FieldCodecs.register(OreVeinWorldEntry.class, CODEC);
+    }
     // spotless:on
 
     @Nullable

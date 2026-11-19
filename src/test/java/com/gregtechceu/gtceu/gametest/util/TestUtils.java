@@ -14,32 +14,80 @@ import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.placeholder.MultiLineComponent;
 import com.gregtechceu.gtceu.api.recipe.GTRecipeType;
-import com.gregtechceu.gtceu.api.recipe.category.GTRecipeCategory;
-import com.gregtechceu.gtceu.api.registry.GTRegistries;
+import com.gregtechceu.gtceu.common.data.GTRecipeTypes;
 import com.gregtechceu.gtceu.common.item.behavior.CoverPlaceBehavior;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.MappedRegistry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.gametest.framework.GameTestAssertPosException;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.RedstoneLampBlock;
+import net.neoforged.bus.api.EventPriority;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.fluids.FluidStack;
+import net.neoforged.neoforge.registries.RegisterEvent;
 
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
-import java.util.Objects;
 
 import static com.gregtechceu.gtceu.common.data.GTRecipeTypes.ELECTRIC;
 
+@EventBusSubscriber(modid = GTCEu.MOD_ID)
 public class TestUtils {
+
+    private static boolean recipeTypesRegistered;
+
+    @SubscribeEvent(priority = EventPriority.LOW)
+    public static void registerTestRecipeTypes(RegisterEvent event) {
+        if (recipeTypesRegistered) {
+            return;
+        }
+        recipeTypesRegistered = true;
+
+        // CommonProxy initializes production types at NORMAL priority on the first registration event.
+        // Register test types here too so their categories and serializers are available before registries freeze.
+        registerTestRecipeType("pattern_buffer_tests", GTRecipeTypes.LARGE_CHEMICAL_RECIPES);
+        registerTestRecipeType("recipe_logic_test_lcr", GTRecipeTypes.LARGE_CHEMICAL_RECIPES);
+        registerTestRecipeType("recipe_logic_test_cr", GTRecipeTypes.CHEMICAL_RECIPES);
+        registerTestRecipeType("adjacent_fluid_conditions_tests", GTRecipeTypes.ROCK_BREAKER_RECIPES);
+        registerTestRecipeType("overclock_logic_lcr_tests", GTRecipeTypes.LARGE_CHEMICAL_RECIPES);
+        registerTestRecipeType("overclock_logic_cr_tests", GTRecipeTypes.CHEMICAL_RECIPES);
+        registerTestRecipeType("ranged_ingredient_cr_tests", GTRecipeTypes.CHEMICAL_RECIPES);
+        registerTestRecipeType("ranged_ingredient_lcr_tests", GTRecipeTypes.LARGE_CHEMICAL_RECIPES);
+        registerTestRecipeType("ranged_ingredient_centrifuge_tests", GTRecipeTypes.CENTRIFUGE_RECIPES);
+        registerTestRecipeType("multiple_energy_hatch_lcr_tests", GTRecipeTypes.LARGE_CHEMICAL_RECIPES);
+        registerTestRecipeType("ranged_fluid_ingredient_cr_tests", GTRecipeTypes.CHEMICAL_RECIPES);
+        registerTestRecipeType("ranged_fluid_ingredient_lcr_tests", GTRecipeTypes.LARGE_CHEMICAL_RECIPES);
+        registerTestRecipeType("ranged_fluid_ingredient_centrifuge_tests", GTRecipeTypes.CENTRIFUGE_RECIPES);
+        registerTestRecipeType("input_separation_logic_lcr_tests", GTRecipeTypes.LARGE_CHEMICAL_RECIPES);
+        registerTestRecipeType("recipe_lookup", 2, 2, 2, 2);
+        registerTestRecipeType("recipe_lookup_definition_staging", 2, 2, 2, 2);
+        registerTestRecipeType("stress_tests", 3, 3, 3, 3);
+        registerTestRecipeType("assline_tests", GTRecipeTypes.ASSEMBLY_LINE_RECIPES);
+        registerTestRecipeType("research_computation_tests", GTRecipeTypes.RESEARCH_STATION_RECIPES);
+    }
+
+    private static void registerTestRecipeType(String name, GTRecipeType original) {
+        registerTestRecipeType(name,
+                original.getMaxInputs(ItemRecipeCapability.CAP),
+                original.getMaxOutputs(ItemRecipeCapability.CAP),
+                original.getMaxInputs(FluidRecipeCapability.CAP),
+                original.getMaxOutputs(FluidRecipeCapability.CAP));
+    }
+
+    private static void registerTestRecipeType(String name, int maxInputs, int maxOutputs, int maxFluidInputs,
+                                               int maxFluidOutputs) {
+        GTRecipeTypes.register(GTCEu.id(name), ELECTRIC)
+                .setEUIO(IO.IN)
+                .setMaxIOSize(maxInputs, maxOutputs, maxFluidInputs, maxFluidOutputs);
+    }
 
     /**
      * Compares two itemstacks' items and amounts
@@ -175,7 +223,7 @@ public class TestUtils {
                     " has no pattern for structure " + structureName);
         }
 
-        boolean formed = controller.checkPatternWithLock(structureName);
+        boolean formed = controller.checkPattern(structureName);
         if (!formed) {
             var state = controller.getMultiblockState(structureName);
             String error = state.error == null ? "unknown" : state.error.getErrorInfo().getString();
@@ -199,11 +247,10 @@ public class TestUtils {
     }
 
     /**
-     * Creates a dummy recipe type that also includes a basic, HV, 1 tick, cobblestone -> stone recipe
-     * Requires a {@link GTRecipeType} to inherit I/O counts from
+     * Returns a registered recipe type and adds a basic, HV, 1 tick, cobblestone -> stone recipe.
      */
-    public static GTRecipeType createRecipeTypeAndInsertRecipe(String name, GTRecipeType original) {
-        GTRecipeType type = createRecipeType(name, original);
+    public static GTRecipeType getRecipeTypeAndInsertRecipe(String name) {
+        GTRecipeType type = getRecipeType(name);
         type.getAdditionHandler().beginStaging();
         type.getAdditionHandler().addRuntimeStaging(type
                 .recipeBuilder(GTCEu.id("test_recipe"))
@@ -215,43 +262,12 @@ public class TestUtils {
     }
 
     /**
-     * Creates a dummy recipe type. Safe for use in recipe lookup.
-     * DO NOT USE THIS FOR MACHINE RECIPES. Use {@link #createRecipeType(String, GTRecipeType)} for that.
+     * Returns a test recipe type whose I/O limits were declared during registration.
      */
-    @Deprecated
-    public static GTRecipeType createRecipeType(String name) {
-        return createRecipeType(name, 2, 2, 2, 2);
-    }
-
-    /**
-     * Creates a recipe type for writing test cases.
-     * Requires a {@link GTRecipeType} to inherit I/O counts from.
-     */
-    public static GTRecipeType createRecipeType(String name, GTRecipeType original) {
-        return createRecipeType(name,
-                original.getMaxInputs(ItemRecipeCapability.CAP),
-                original.getMaxOutputs(ItemRecipeCapability.CAP),
-                original.getMaxInputs(FluidRecipeCapability.CAP),
-                original.getMaxOutputs(FluidRecipeCapability.CAP));
-    }
-
-    /**
-     * Creates a recipe type for writing test cases.
-     * Requires setting I/O counts manually.
-     * You probably want to be using {@link #createRecipeType(String, GTRecipeType)}
-     */
-    public static GTRecipeType createRecipeType(String name, int maxInputs, int maxOutputs, int maxFluidInputs,
-                                                int maxFluidOutputs) {
-        if (BuiltInRegistries.RECIPE_TYPE.containsKey(GTCEu.id(name)))
-            return (GTRecipeType) BuiltInRegistries.RECIPE_TYPE.get(GTCEu.id(name));
-        ((MappedRegistry<GTRecipeCategory>) GTRegistries.RECIPE_CATEGORIES).unfreeze();
-        ((MappedRegistry<RecipeType<?>>) BuiltInRegistries.RECIPE_TYPE).unfreeze();
-        GTRecipeType type = new GTRecipeType(GTCEu.id(name), ELECTRIC, RecipeType.SMELTING)
-                .setEUIO(IO.IN)
-                .setMaxIOSize(maxInputs, maxOutputs, maxFluidInputs, maxFluidOutputs);
-
-        GTRegistries.RECIPE_CATEGORIES.freeze();
-        BuiltInRegistries.RECIPE_TYPE.freeze();
+    public static GTRecipeType getRecipeType(String name) {
+        if (!(BuiltInRegistries.RECIPE_TYPE.get(GTCEu.id(name)) instanceof GTRecipeType type)) {
+            throw new IllegalArgumentException("Test recipe type was not registered: " + name);
+        }
         return type;
     }
 
@@ -280,7 +296,9 @@ public class TestUtils {
 
     public static MetaMachine setMachine(GameTestHelper helper, BlockPos pos, MachineDefinition machineDefinition) {
         helper.setBlock(pos, machineDefinition.getBlock());
-        return ((MetaMachine) Objects.requireNonNull(helper.getBlockEntity(pos)));
+        var blockEntity = helper.getBlockEntity(pos);
+        helper.assertTrue(blockEntity instanceof MetaMachine, "expected a meta machine block entity");
+        return (MetaMachine) blockEntity;
     }
 
     public static void assertEqual(GameTestHelper helper, List<MutableComponent> text, String s) {

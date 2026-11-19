@@ -36,17 +36,17 @@ public class KeyValuePartCondition implements PartCondition {
                 value = value.substring(1);
             }
 
-            List<String> unparsedPredicates = PIPE_SPLITTER.splitToList(value);
-            if (unparsedPredicates.isEmpty()) {
+            List<String> unparsedPatternPredicates = PIPE_SPLITTER.splitToList(value);
+            if (unparsedPatternPredicates.isEmpty()) {
                 throw new RuntimeException(
                         String.format(Locale.ROOT, "Empty value '%s' for property '%s' on machine '%s'",
                                 this.value, this.key, def.getOwner()));
             } else {
                 Predicate<MachineRenderState> predicate;
-                if (unparsedPredicates.size() == 1) {
+                if (unparsedPatternPredicates.size() == 1) {
                     predicate = this.getStatePredicate(def, property, value);
                 } else {
-                    List<Predicate<MachineRenderState>> parsed = unparsedPredicates.stream()
+                    List<Predicate<MachineRenderState>> parsed = unparsedPatternPredicates.stream()
                             .map((string) -> this.getStatePredicate(def, property, string))
                             .toList();
                     predicate = (state) -> parsed.stream().anyMatch((p) -> p.test(state));

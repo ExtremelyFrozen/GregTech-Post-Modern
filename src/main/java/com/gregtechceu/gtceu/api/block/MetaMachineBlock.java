@@ -6,12 +6,13 @@ import com.gregtechceu.gtceu.api.capability.*;
 import com.gregtechceu.gtceu.api.capability.compat.EnergyStorageList;
 import com.gregtechceu.gtceu.api.computation.ComputationPort;
 import com.gregtechceu.gtceu.api.data.RotationState;
+import com.gregtechceu.gtceu.api.gui.factory.MachineUIHelper;
 import com.gregtechceu.gtceu.api.item.IGTTool;
 import com.gregtechceu.gtceu.api.item.MetaMachineItem;
 import com.gregtechceu.gtceu.api.machine.MachineDefinition;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
-import com.gregtechceu.gtceu.api.machine.feature.*;
+import com.gregtechceu.gtceu.api.machine.feature.IUIMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMaintenanceMachine;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.machine.trait.MachineTrait;
@@ -291,9 +292,13 @@ public class MetaMachineBlock extends Block implements ManagedSyncEntityBlock {
             shouldOpenUi = gtToolItem.definition$shouldOpenUIAfterUse(new UseOnContext(player, hand, hit));
         }
 
-        if (shouldOpenUi && machine instanceof IUIMachine uiMachine &&
-                MachineOwner.canOpenOwnerMachine(player, machine)) {
-            return uiMachine.tryToOpenUI(player, hand, hit);
+        if (shouldOpenUi && MachineOwner.canOpenOwnerMachine(player, machine)) {
+            if (machine instanceof IUIMachine) {
+                if (player instanceof ServerPlayer serverPlayer) {
+                    MachineUIHelper.open(machine, serverPlayer);
+                }
+                return ItemInteractionResult.sidedSuccess(level.isClientSide);
+            }
         }
         return shouldOpenUi ? ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION : ItemInteractionResult.CONSUME;
     }
@@ -303,9 +308,12 @@ public class MetaMachineBlock extends Block implements ManagedSyncEntityBlock {
                                                Player player, BlockHitResult hit) {
         var machine = MetaMachine.getMachine(level, pos);
         if (machine == null) return InteractionResult.PASS;
-        if (machine instanceof IUIMachine uiMachine &&
-                MachineOwner.canOpenOwnerMachine(player, machine)) {
-            uiMachine.tryToOpenUI(player, InteractionHand.MAIN_HAND, hit).result();
+        if (MachineOwner.canOpenOwnerMachine(player, machine)) {
+            if (machine instanceof IUIMachine) {
+                if (player instanceof ServerPlayer serverPlayer) {
+                    MachineUIHelper.open(machine, serverPlayer);
+                }
+            }
         }
         return machine.onUse(new ExtendedUseOnContext(player, InteractionHand.MAIN_HAND, hit));
     }
@@ -551,7 +559,7 @@ public class MetaMachineBlock extends Block implements ManagedSyncEntityBlock {
             }
             return null;
         }, this);
-        if (GTCEu.Mods.isAE2Loaded()) {
+        if (GTCEu.MODS.AE2.isLoaded()) {
             event.registerBlock(AECapabilities.IN_WORLD_GRID_NODE_HOST, (level, pos, state, blockEntity, side) -> {
                 if (blockEntity instanceof MetaMachine machine) {
                     if (machine instanceof IInWorldGridNodeHost nodeHost) {

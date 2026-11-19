@@ -12,8 +12,7 @@ import com.gregtechceu.gtceu.api.recipe.ui.GTRecipeTypeUI;
 import com.gregtechceu.gtceu.api.registry.GTRegistries;
 import com.gregtechceu.gtceu.utils.codec.DispatchedMapCodec;
 
-import com.lowdragmc.lowdraglib.gui.widget.Widget;
-import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 
 import net.minecraft.core.Holder;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -26,10 +25,11 @@ import com.mojang.serialization.DataResult;
 import io.netty.buffer.Unpooled;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
-import org.apache.commons.lang3.mutable.MutableInt;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Unmodifiable;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 
 import java.util.*;
 
@@ -99,9 +99,7 @@ public abstract class RecipeCapability<T> {
         return copyWithModifier((T) content, modifier);
     }
 
-    /**
-     * used for recipe builder via KubeJs.
-     */
+    /** Converts a recipe builder input to this capability's content type. */
     public T of(Object o) {
         return serializer.of(o);
     }
@@ -176,12 +174,13 @@ public abstract class RecipeCapability<T> {
         return isRecipeSearchFilter();
     }
 
-    public void addXEIInfo(WidgetGroup group, int xOffset, GTRecipeDefinition recipe, List<Content> contents,
-                           boolean perTick, boolean isInput, MutableInt yOffset) {}
-
     @NotNull
     public List<Object> createXEIContainerContents(List<Content> contents, GTRecipeDefinition recipe, IO io) {
         return new ArrayList<>();
+    }
+
+    protected int getXEIContainerSlotCount(GTRecipeDefinition recipe, IO io) {
+        return io == IO.IN ? recipe.recipeType.getMaxInputs(this) : recipe.recipeType.getMaxOutputs(this);
     }
 
     @Nullable
@@ -189,28 +188,36 @@ public abstract class RecipeCapability<T> {
         return null;
     }
 
-    @Nullable("null when getWidgetClass() == null")
-    public Widget createWidget() {
+    @Nullable("null when this capability does not have a LDLib2 recipe element")
+    public UIElement createElement() {
         return null;
     }
 
     /**
-     * Return the class of the supported widget that should be used to display this capability.
+     * Return the class of the supported LDLib2 element that should be used to display this capability.
      */
     @Nullable
-    public Class<? extends Widget> getWidgetClass() {
+    public Class<? extends UIElement> getElementClass() {
         return null;
     }
 
-    public void applyWidgetInfo(@NotNull Widget widget,
-                                int index,
-                                boolean isXEI,
-                                IO io,
-                                @Nullable("null when storage == null") GTRecipeTypeUI.RecipeHolder recipeHolder,
-                                @NotNull GTRecipeType recipeType,
-                                @Nullable("null when content == null") GTRecipeDefinition recipe,
-                                @Nullable Content content,
-                                @Nullable Object storage, int recipeTier, int chanceTier) {}
+    /**
+     * Creates the unbound XML element used by generated LDLib2 recipe templates.
+     */
+    @Nullable("null when this capability does not have a LDLib2 recipe element")
+    public Element createXmlElement(Document document) {
+        return null;
+    }
+
+    public void applyElementInfo(@NotNull UIElement element,
+                                 int index,
+                                 boolean isXEI,
+                                 IO io,
+                                 @Nullable("null when storage == null") GTRecipeTypeUI.RecipeHolder recipeHolder,
+                                 @NotNull GTRecipeType recipeType,
+                                 @Nullable("null when content == null") GTRecipeDefinition recipe,
+                                 @Nullable Content content,
+                                 @Nullable Object storage, int recipeTier, int chanceTier) {}
 
     /**
      * Create a cache map for chanced outputs

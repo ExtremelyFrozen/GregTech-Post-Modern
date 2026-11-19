@@ -7,6 +7,7 @@ import com.gregtechceu.gtceu.api.recipe.GTRecipe;
 import com.gregtechceu.gtceu.api.recipe.GTRecipeDefinition;
 import com.gregtechceu.gtceu.api.recipe.GTRecipeSerializer;
 import com.gregtechceu.gtceu.api.recipe.GTRecipeType;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 import com.gregtechceu.gtceu.common.data.GTDataComponents;
 import com.gregtechceu.gtceu.common.data.GTItems;
 import com.gregtechceu.gtceu.common.data.GTRecipeTypes;
@@ -131,6 +132,11 @@ public final class ResearchManager {
                 ByteBufCodecs.STRING_UTF8, ResearchItem::researchId,
                 GTRecipeSerializer.GT_RECIPE_TYPE_STREAM_CODEC, ResearchItem::recipeType,
                 ResearchItem::new);
+
+        static {
+            FieldCodecs.register(ResearchItem.class, CODEC);
+            FieldCodecs.registerStream(ResearchItem.class, STREAM_CODEC);
+        }
 
         @Override
         public void addToTooltip(Item.TooltipContext context, Consumer<Component> tooltipAdder,

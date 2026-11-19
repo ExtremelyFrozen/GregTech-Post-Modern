@@ -638,7 +638,7 @@ public class MetaTileEntityMachineRecipeLoader {
 
         // ME Parts
 
-        if (GTCEu.Mods.isAE2Loaded()) {
+        if (GTCEu.MODS.AE2.isLoaded()) {
 
             ItemStack meInterface = AEParts.INTERFACE.stack(1);
             ItemStack accelerationCard = AEItems.SPEED_CARD.stack(2);

@@ -4,17 +4,29 @@ import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo;
 import com.gregtechceu.gtceu.api.capability.IControllable;
 import com.gregtechceu.gtceu.api.capability.recipe.IO;
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
-import com.gregtechceu.gtceu.api.gui.widget.PhantomSlotWidget;
-import com.gregtechceu.gtceu.api.gui.widget.SlotWidget;
-import com.gregtechceu.gtceu.api.gui.widget.ToggleButtonWidget;
+import com.gregtechceu.gtceu.api.gui.UITemplate;
+import com.gregtechceu.gtceu.api.gui.element.GTButtonElement;
+import com.gregtechceu.gtceu.api.gui.element.GTImageElement;
+import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
+import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
+import com.gregtechceu.gtceu.api.gui.element.GTPhantomItemSlotElement;
+import com.gregtechceu.gtceu.api.gui.element.GTToggleButtonElement;
+import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
+import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
+import com.gregtechceu.gtceu.api.gui.fancy.IFancyConfiguratorButton;
 import com.gregtechceu.gtceu.api.item.datacomponents.LargeItemContent;
 import com.gregtechceu.gtceu.api.item.tool.GTToolType;
+import com.gregtechceu.gtceu.api.item.tool.GridHighlightTexture;
 import com.gregtechceu.gtceu.api.machine.TieredMachine;
 import com.gregtechceu.gtceu.api.machine.feature.IFancyUIMachine;
 import com.gregtechceu.gtceu.api.machine.trait.MachineTrait;
 import com.gregtechceu.gtceu.api.machine.trait.MachineTraitType;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
+import com.gregtechceu.gtceu.api.sync_system.annotations.SyncBoth;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
+import com.gregtechceu.gtceu.api.sync_system.rpc.RPCSender;
 import com.gregtechceu.gtceu.api.transfer.fluid.IFluidHandlerModifiable;
 import com.gregtechceu.gtceu.api.transfer.item.CustomItemStackHandler;
 import com.gregtechceu.gtceu.common.data.GTDataComponents;
@@ -24,19 +36,20 @@ import com.gregtechceu.gtceu.utils.FormattingUtil;
 import com.gregtechceu.gtceu.utils.GTMath;
 import com.gregtechceu.gtceu.utils.GTTransferUtils;
 
-import com.lowdragmc.lowdraglib.gui.editor.Icons;
-import com.lowdragmc.lowdraglib.gui.texture.GuiTextureGroup;
-import com.lowdragmc.lowdraglib.gui.texture.ResourceBorderTexture;
-import com.lowdragmc.lowdraglib.gui.texture.ResourceTexture;
-import com.lowdragmc.lowdraglib.gui.widget.*;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
+import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.component.DataComponentMap;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.neoforged.neoforge.items.IItemHandlerModifiable;
@@ -45,6 +58,7 @@ import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Predicate;
@@ -60,7 +74,11 @@ public class QuantumChestMachine extends TieredMachine implements IControllable,
      */
     public static final Object2LongOpenHashMap<UUID> INTERACTION_LOGGER = new Object2LongOpenHashMap<>();
 
+    private static final int PAGE_WIDTH = 109;
+    private static final int PAGE_HEIGHT = 63;
+
     @SaveField
+    @SyncBoth
     private boolean isVoiding;
 
     private final long maxAmount;
@@ -204,8 +222,7 @@ public class QuantumChestMachine extends TieredMachine implements IControllable,
                 var drained = cache.extractItem(0, player.isShiftKeyDown() ? stored.getMaxStackSize() : 1, false);
                 if (!drained.isEmpty()) {
                     if (!player.addItem(drained)) {
-                        net.minecraft.world.level.block.Block.popResourceFromFace(getLevel(), getBlockPos(),
-                                getFrontFacing(), drained);
+                        Block.popResourceFromFace(getLevel(), getBlockPos(), getFrontFacing(), drained);
                     }
                 }
             }
@@ -226,6 +243,35 @@ public class QuantumChestMachine extends TieredMachine implements IControllable,
         }
     }
 
+    protected void setLocked(ItemStack stack) {
+        if (stack.isEmpty()) {
+            setLocked(false);
+        } else if (canLockItem(stack)) {
+            lockedItem.setStackInSlot(0, stack.copyWithCount(1));
+        }
+    }
+
+    @RPCMethod
+    public void setQuantumChestLockedItem(ItemStack stack) {
+        if (stack.isEmpty()) {
+            setLocked(false);
+            return;
+        }
+        if (!canLockItem(stack)) {
+            throw new IllegalArgumentException("Quantum chest locked item does not match stored item.");
+        }
+        lockedItem.setStackInSlot(0, stack.copyWithCount(1));
+    }
+
+    @RPCMethod
+    public void setQuantumChestLocked(boolean locked) {
+        setLocked(locked);
+    }
+
+    private boolean canLockItem(ItemStack stack) {
+        return stored.isEmpty() || ItemStack.isSameItemSameComponents(stack, stored);
+    }
+
     public ItemStack getLockedItem() {
         return lockedItem.getStackInSlot(0);
     }
@@ -234,65 +280,194 @@ public class QuantumChestMachine extends TieredMachine implements IControllable,
     // *********** GUI ***********//
     //////////////////////////////////////
 
-    public Widget createUIWidget() {
-        var group = new WidgetGroup(0, 0, 109, 63);
-        var importItems = createImportItems();
-        group.addWidget(new ImageWidget(4, 4, 81, 55, GuiTextures.DISPLAY))
-                .addWidget(new LabelWidget(8, 8, "gtpm.machine.quantum_chest.items_stored"))
-                .addWidget(new LabelWidget(8, 18, () -> FormattingUtil.formatNumbers(storedAmount))
-                        .setTextColor(-1)
-                        .setDropShadow(true))
-                .addWidget(new SlotWidget(importItems, 0, 87, 5, false, true)
-                        .setBackgroundTexture(new GuiTextureGroup(GuiTextures.SLOT, GuiTextures.IN_SLOT_OVERLAY)))
-                .addWidget(new SlotWidget(cache, 0, 87, 23, false, false)
-                        .setItemHook(s -> s.copyWithCount((int) Math.min(storedAmount, s.getMaxStackSize())))
-                        .setBackgroundTexture(GuiTextures.SLOT))
-                .addWidget(new ButtonWidget(87, 42, 18, 18,
-                        new GuiTextureGroup(ResourceBorderTexture.BUTTON_COMMON, Icons.DOWN.scale(0.7f)), cd -> {
-                            if (!cd.isRemote) {
-                                if (!stored.isEmpty()) {
-                                    var extracted = cache.extractItem(0,
-                                            (int) Math.min(storedAmount, stored.getMaxStackSize()), false);
-                                    if (!group.getGui().entityPlayer.addItem(extracted)) {
-                                        net.minecraft.world.level.block.Block.popResource(
-                                                group.getGui().entityPlayer.level(),
-                                                group.getGui().entityPlayer.getOnPos(), extracted);
-                                    }
-                                }
-                            }
-                        }))
-                .addWidget(new PhantomSlotWidget(lockedItem, 0, 58, 41,
-                        stack -> stored.isEmpty() || ItemStack.isSameItemSameComponents(stack, stored))
-                        .setMaxStackSize(1))
-                .addWidget(new ToggleButtonWidget(4, 41, 18, 18,
-                        GuiTextures.BUTTON_ITEM_OUTPUT, this.autoOutput::isAutoOutputItems,
-                        this.autoOutput::setAllowAutoOutputItems)
-                        .setShouldUseBaseBackground()
-                        .setTooltipText("gtpm.gui.item_auto_output.tooltip"))
-                .addWidget(new ToggleButtonWidget(22, 41, 18, 18,
-                        GuiTextures.BUTTON_LOCK, this::isLocked, this::setLocked)
-                        .setShouldUseBaseBackground()
-                        .setTooltipText("gtpm.gui.item_lock.tooltip"))
-                .addWidget(new ToggleButtonWidget(40, 41, 18, 18,
-                        GuiTextures.BUTTON_VOID, () -> isVoiding, (b) -> isVoiding = b)
-                        .setShouldUseBaseBackground()
-                        .setTooltipText("gtpm.gui.item_voiding_partial.tooltip"));
-        group.setBackground(GuiTextures.BACKGROUND_INVERSE);
-        return group;
+    private static GTLabelElement createStoredAmountLabel() {
+        GTLabelElement label = new GTLabelElement(8, 8, 76, 10,
+                "gtpm.machine.quantum_chest.items_stored", true);
+        label.textStyle(style -> style
+                .textColor(0x404040)
+                .textShadow(false)
+                .textAlignHorizontal(Horizontal.LEFT)
+                .textAlignVertical(Vertical.CENTER));
+        return label;
     }
 
-    private CustomItemStackHandler createImportItems() {
-        var importItems = new CustomItemStackHandler();
-        importItems.setFilter(cache::canInsert);
-        importItems.setOnContentsChanged(() -> {
-            var item = importItems.getStackInSlot(0).copy();
-            if (!item.isEmpty()) {
-                importItems.setStackInSlot(0, ItemStack.EMPTY);
-                importItems.onContentsChanged(0);
-                cache.insertItem(0, item.copy(), false);
+    private GTLabelElement createStoredAmountValueLabel() {
+        GTLabelElement label = new GTLabelElement(8, 18, 58, 10) {
+
+            @Override
+            public void screenTick() {
+                setValue(Component.literal(FormattingUtil.formatNumbers(storedAmount)));
+                super.screenTick();
+            }
+        };
+        label.setValue(Component.literal(FormattingUtil.formatNumbers(storedAmount)));
+        label.textStyle(style -> style
+                .textColor(-1)
+                .textShadow(true)
+                .textAlignHorizontal(Horizontal.LEFT)
+                .textAlignVertical(Vertical.CENTER));
+        return label;
+    }
+
+    private GTItemSlotElement createImportSlot(Player player, MachineUIHolder holder) {
+        GTItemSlotElement slot = new GTItemSlotElement()
+                .setCanPutItems(false)
+                .setCanTakeItems(false)
+                .setBackgroundTexture(GuiTextures.group(GuiTextures.SLOT, GuiTextures.IN_SLOT_OVERLAY));
+        slot.addEventListener(UIEvents.MOUSE_DOWN, event -> {
+            if (!player.level().isClientSide()) {
+                return;
+            }
+            ItemStack carried = player.containerMenu.getCarried();
+            if ((event.button == 0 || event.button == 1) && !carried.isEmpty()) {
+                ItemStack item = carried.copy();
+                boolean rightClick = event.button == 1;
+                int sequence = ItemStack.hashItemAndComponents(item) * 31 + item.getCount();
+                holder.getMachine().rpcToServer("clickQuantumChestImportSlot", item, rightClick);
+                event.stopImmediatePropagation();
+                event.hasHandler = true;
             }
         });
-        return importItems;
+        return UITemplate.setBounds(slot, 87, 5, 18, 18);
+    }
+
+    private GTItemSlotElement createStoredDisplaySlot() {
+        GTItemSlotElement slot = new GTItemSlotElement() {
+
+            @Override
+            public void screenTick() {
+                setValue(getDisplayedStoredItem(), false);
+                super.screenTick();
+            }
+        };
+        slot.setValue(getDisplayedStoredItem(), false);
+        slot.setCanPutItems(false)
+                .setCanTakeItems(false)
+                .setBackgroundTexture(GuiTextures.SLOT);
+        return UITemplate.setBounds(slot, 87, 23, 18, 18);
+    }
+
+    private ItemStack getDisplayedStoredItem() {
+        if (stored.isEmpty()) {
+            return ItemStack.EMPTY;
+        }
+        return stored.copyWithCount((int) Math.min(storedAmount, stored.getMaxStackSize()));
+    }
+
+    private GTButtonElement createExportButton(Player player, MachineUIHolder holder) {
+        return new GTButtonElement(87, 42, 18, 18,
+                GuiTextures.group(GuiTextures.VANILLA_BUTTON, GuiTextures.ICON_DOWN.copy().scale(0.7f)),
+                event -> {
+                    if (player.level().isClientSide()) {
+                        holder.getMachine().rpcToServer("exportQuantumChestItem");
+                    }
+                    event.stopImmediatePropagation();
+                    event.hasHandler = true;
+                });
+    }
+
+    private GTPhantomItemSlotElement createLockedItemSlot(Player player, MachineUIHolder holder) {
+        GTPhantomItemSlotElement slot = new GTPhantomItemSlotElement(this::getLockedItem,
+                stack -> setLockedItem(player, holder, stack), () -> 1) {
+
+            @Override
+            public void screenTick() {
+                refreshFromSupplier();
+                super.screenTick();
+            }
+        };
+        UITemplate.setBounds(slot, 58, 41, 18, 18);
+        slot.addEventListener(UIEvents.MOUSE_DOWN, event -> {
+            if (!player.level().isClientSide()) {
+                return;
+            }
+            if (event.button == 0 || event.button == 1) {
+                ItemStack carried = player.containerMenu.getCarried();
+                if (event.button == 0 && !carried.isEmpty() && canLockItem(carried)) {
+                    slot.setItem(carried.copyWithCount(1));
+                } else if (event.button == 1) {
+                    slot.setItem(ItemStack.EMPTY);
+                }
+                event.stopImmediatePropagation();
+                event.hasHandler = true;
+            }
+        });
+        return slot;
+    }
+
+    private IFancyConfiguratorButton.Toggle createWorkingEnabledConfigurator(Player player,
+                                                                             MachineUIHolder holder) {
+        return new IFancyConfiguratorButton.Toggle(
+                GuiTextures.BUTTON_POWER.getSubTexture(0, 0, 1, 0.5),
+                GuiTextures.BUTTON_POWER.getSubTexture(0, 0.5, 1, 0.5),
+                this::isWorkingEnabled,
+                (event, pressed) -> {
+                    setWorkingEnabled(pressed);
+                    event.stopImmediatePropagation();
+                    event.hasHandler = true;
+                })
+                .setTooltipsSupplier(pressed -> List.of(Component.translatable(
+                        pressed ? "behaviour.soft_hammer.enabled" : "behaviour.soft_hammer.disabled")));
+    }
+
+    private void setLockedItem(Player player, MachineUIHolder holder, ItemStack item) {
+        setLocked(item);
+        if (player.level().isClientSide()) {
+            ItemStack locked = item.isEmpty() ? ItemStack.EMPTY : item.copyWithCount(1);
+            holder.getMachine().rpcToServer("setQuantumChestLockedItem", locked);
+        }
+    }
+
+    private void setLocked(Player player, MachineUIHolder holder, boolean locked) {
+        setLocked(locked);
+        if (player.level().isClientSide()) {
+            holder.getMachine().rpcToServer("setQuantumChestLocked", locked);
+        }
+    }
+
+    GTToggleButtonElement createVoidingButton() {
+        return new GTToggleButtonElement(40, 41, 18, 18,
+                GuiTextures.BUTTON_VOID, () -> isVoiding, value -> isVoiding = value)
+                .setShouldUseBaseBackground()
+                .setTooltipText("gtpm.gui.item_voiding_partial.tooltip");
+    }
+
+    @RPCMethod
+    public void clickQuantumChestImportSlot(RPCSender sender, ItemStack requestedItem, boolean rightClick) {
+        var player = sender.asPlayer();
+        ItemStack carried = player.containerMenu.getCarried();
+        if (requestedItem.isEmpty() || carried.isEmpty() ||
+                !ItemStack.isSameItemSameComponents(requestedItem, carried)) {
+            return;
+        }
+        int requestedCount = rightClick ? 1 : Math.min(requestedItem.getCount(), carried.getCount());
+        ItemStack item = carried.copyWithCount(requestedCount);
+        if (!cache.canInsert(item)) {
+            return;
+        }
+        ItemStack remainder = cache.insertItem(0, item, false);
+        int inserted = item.getCount() - remainder.getCount();
+        if (inserted > 0) {
+            carried.shrink(inserted);
+            player.containerMenu.setCarried(carried.isEmpty() ? ItemStack.EMPTY : carried);
+            player.containerMenu.broadcastChanges();
+        }
+    }
+
+    @RPCMethod
+    public void exportQuantumChestItem(RPCSender sender) {
+        var player = sender.asPlayer();
+        if (stored.isEmpty()) {
+            return;
+        }
+        ItemStack extracted = cache.extractItem(0, (int) Math.min(storedAmount, stored.getMaxStackSize()), false);
+        if (extracted.isEmpty()) {
+            return;
+        }
+        if (!player.addItem(extracted)) {
+            Block.popResource(player.level(), player.getOnPos(), extracted);
+        }
+        player.containerMenu.broadcastChanges();
     }
 
     //////////////////////////////////////
@@ -300,8 +475,8 @@ public class QuantumChestMachine extends TieredMachine implements IControllable,
     //////////////////////////////////////
 
     @Override
-    public @Nullable ResourceTexture sideTips(Player player, BlockPos pos, BlockState state,
-                                              Set<GTToolType> toolTypes, ItemStack held, Direction side) {
+    public @Nullable GridHighlightTexture sideTips(Player player, BlockPos pos, BlockState state,
+                                                   Set<GTToolType> toolTypes, ItemStack held, Direction side) {
         if (toolTypes.contains(GTToolType.SOFT_MALLET)) {
             if (side == getFrontFacing()) return null;
         }
@@ -393,5 +568,49 @@ public class QuantumChestMachine extends TieredMachine implements IControllable,
         public boolean canInsert(ItemStack stack) {
             return filter.test(stack) && (insertItem(0, stack, true).getCount() != stack.getCount());
         }
+    }
+
+    @Override
+    public UIElement createUIWidget(FancyMachineUIWidget shell) {
+        Player player = shell.getOpeningPlayer();
+        MachineUIHolder holder = shell.getHolder(this);
+        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
+        root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
+        root.addChild(new GTImageElement(4, 4, 81, 55, GuiTextures.DISPLAY));
+        root.addChild(createStoredAmountLabel());
+        root.addChild(createStoredAmountValueLabel());
+        root.addChild(createImportSlot(player, holder));
+        root.addChild(createStoredDisplaySlot());
+        root.addChild(createExportButton(player, holder));
+        root.addChild(createLockedItemSlot(player, holder));
+        root.addChild(new GTToggleButtonElement(4, 41, 18, 18,
+                GuiTextures.BUTTON_ITEM_OUTPUT, this.autoOutput::isAutoOutputItems,
+                this::setWorkingEnabled)
+                .setShouldUseBaseBackground()
+                .setTooltipText("gtpm.gui.item_auto_output.tooltip"));
+        root.addChild(new GTToggleButtonElement(22, 41, 18, 18,
+                GuiTextures.BUTTON_LOCK, this::isLocked,
+                locked -> setLocked(player, holder, locked))
+                .setShouldUseBaseBackground()
+                .setTooltipText("gtpm.gui.item_lock.tooltip"));
+        root.addChild(createVoidingButton());
+        return root;
+    }
+
+    @Override
+    public int getPageWidth() {
+        return PAGE_WIDTH;
+    }
+
+    @Override
+    public int getPageHeight() {
+        return PAGE_HEIGHT;
+    }
+
+    @Override
+    public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
+        Player player = configuratorPanel.getPlayer();
+        MachineUIHolder holder = configuratorPanel.getHolder();
+        configuratorPanel.attachConfigurators(createWorkingEnabledConfigurator(player, holder));
     }
 }

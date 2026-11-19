@@ -3,6 +3,7 @@ package com.gregtechceu.gtceu.common.item.tool.behavior;
 import com.gregtechceu.gtceu.api.item.tool.ToolHelper;
 import com.gregtechceu.gtceu.api.item.tool.behavior.IToolBehavior;
 import com.gregtechceu.gtceu.api.item.tool.behavior.ToolBehaviorType;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 import com.gregtechceu.gtceu.common.data.GTToolBehaviors;
 import com.gregtechceu.gtceu.common.data.item.GTItemAbilities;
 
@@ -32,6 +33,11 @@ public class RotateRailBehavior implements IToolBehavior<RotateRailBehavior> {
     public static final RotateRailBehavior INSTANCE = new RotateRailBehavior();
     public static final Codec<RotateRailBehavior> CODEC = Codec.unit(INSTANCE);
     public static final StreamCodec<ByteBuf, RotateRailBehavior> STREAM_CODEC = StreamCodec.unit(INSTANCE);
+
+    static {
+        FieldCodecs.register(RotateRailBehavior.class, CODEC);
+        FieldCodecs.registerStream(RotateRailBehavior.class, STREAM_CODEC);
+    }
 
     protected RotateRailBehavior() {}
 

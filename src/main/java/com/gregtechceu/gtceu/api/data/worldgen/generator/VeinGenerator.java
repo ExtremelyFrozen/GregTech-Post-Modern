@@ -18,7 +18,6 @@ import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.MapCodec;
-import dev.latvian.mods.rhino.util.HideFromJS;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.objects.ObjectIntPair;
@@ -78,11 +77,9 @@ public abstract class VeinGenerator {
      * Note that, if in any way possible, this is NOT supposed to directly place any of the vein's blocks, as their
      * respective ore placers are invoked at a later time, when the chunk containing them is actually generated.
      */
-    @HideFromJS
     public abstract Map<BlockPos, OreBlockPlacer> generate(WorldGenLevel level, RandomSource random,
                                                            GTOreDefinition entry, BlockPos origin);
 
-    @HideFromJS
     public abstract VeinGenerator build();
 
     public abstract VeinGenerator copy();

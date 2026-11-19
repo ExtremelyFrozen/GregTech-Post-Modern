@@ -1,0 +1,359 @@
+{
+	"machine": "gtpm:cleanroom",
+	"axes": {
+		"depth": "front",
+		"height": "up",
+		"width": "left"
+	},
+	"orientation": {
+		"allowMirror": false,
+		"allowExtendedFacing": false
+	},
+	"origin": {
+		"token": "controller"
+	},
+	"parameters": {
+		"left": {
+			"type": "integer",
+			"min": 2,
+			"max": 7
+		},
+		"right": {
+			"type": "integer",
+			"min": 2,
+			"max": 7
+		},
+		"front": {
+			"type": "integer",
+			"min": 2,
+			"max": 7
+		},
+		"back": {
+			"type": "integer",
+			"min": 2,
+			"max": 7
+		},
+		"down": {
+			"type": "integer",
+			"min": 4,
+			"max": 14
+		}
+	},
+	"measurements": [
+		{
+			"id": "left_edge",
+			"parameter": "left",
+			"direction": "left",
+			"min": 2,
+			"max": 7,
+			"boundary": {
+				"type": "gtpm:block",
+				"ids": ["gtpm:plascrete", "gtpm:cleanroom_glass"]
+			}
+		},
+		{
+			"id": "right_edge",
+			"parameter": "right",
+			"direction": "right",
+			"min": 2,
+			"max": 7,
+			"boundary": {
+				"type": "gtpm:block",
+				"ids": ["gtpm:plascrete", "gtpm:cleanroom_glass"]
+			}
+		},
+		{
+			"id": "front_edge",
+			"parameter": "front",
+			"direction": "front",
+			"min": 2,
+			"max": 7,
+			"boundary": {
+				"type": "gtpm:block",
+				"ids": ["gtpm:plascrete", "gtpm:cleanroom_glass"]
+			}
+		},
+		{
+			"id": "back_edge",
+			"parameter": "back",
+			"direction": "back",
+			"min": 2,
+			"max": 7,
+			"boundary": {
+				"type": "gtpm:block",
+				"ids": ["gtpm:plascrete", "gtpm:cleanroom_glass"]
+			}
+		},
+		{
+			"id": "floor",
+			"parameter": "down",
+			"direction": "down",
+			"min": 4,
+			"max": 14,
+			"boundary": {
+				"type": "gtpm:concatenated",
+				"predicates": [
+					{
+						"type": "gtpm:block",
+						"ids": ["gtpm:plascrete", "gtpm:cleanroom_glass"]
+					},
+					{ "type": "gtpm:block_tag", "tag": "gtpm:cleanroom_floors" }
+				]
+			}
+		}
+	],
+	"sizeConstraints": [
+		{
+			"left": { "type": "subtract", "left": "$left", "right": "$right" },
+			"comparison": "less_or_equal",
+			"right": 1,
+			"message": "Cleanroom left and right radii differ by more than one"
+		},
+		{
+			"left": { "type": "subtract", "left": "$right", "right": "$left" },
+			"comparison": "less_or_equal",
+			"right": 1,
+			"message": "Cleanroom left and right radii differ by more than one"
+		},
+		{
+			"left": { "type": "subtract", "left": "$front", "right": "$back" },
+			"comparison": "less_or_equal",
+			"right": 1,
+			"message": "Cleanroom front and back radii differ by more than one"
+		},
+		{
+			"left": { "type": "subtract", "left": "$back", "right": "$front" },
+			"comparison": "less_or_equal",
+			"right": 1,
+			"message": "Cleanroom front and back radii differ by more than one"
+		}
+	],
+	"fragments": {
+		"row": {
+			"parameters": {
+				"B": "token",
+				"I": "token",
+				"C": "token"
+			},
+			"body": {
+				"type": "sequence",
+				"axis": "width",
+				"children": [
+					{
+						"type": "fixed",
+						"layers": [["B"]]
+					},
+					{
+						"type": "repeat",
+						"id": "left_interior",
+						"axis": "width",
+						"direction": "positive",
+						"min": 1,
+						"max": 6,
+						"countExpression": {
+							"type": "subtract",
+							"left": "$right",
+							"right": 1
+						},
+						"body": {
+							"type": "fixed",
+							"layers": [["I"]]
+						}
+					},
+					{
+						"type": "fixed",
+						"layers": [["C"]]
+					},
+					{
+						"type": "repeat",
+						"id": "right_interior",
+						"axis": "width",
+						"direction": "positive",
+						"min": 1,
+						"max": 6,
+						"countExpression": {
+							"type": "subtract",
+							"left": "$left",
+							"right": 1
+						},
+						"body": {
+							"type": "fixed",
+							"layers": [["I"]]
+						}
+					},
+					{
+						"type": "fixed",
+						"layers": [["B"]]
+					}
+				]
+			}
+		},
+		"plane": {
+			"parameters": {
+				"B": "token",
+				"I": "token",
+				"C": "token"
+			},
+			"body": {
+				"type": "sequence",
+				"axis": "depth",
+				"children": [
+					{
+						"type": "fragment",
+						"id": "row",
+						"bindings": {
+							"B": "B",
+							"I": "B",
+							"C": "B"
+						}
+					},
+					{
+						"type": "repeat",
+						"id": "front_interior",
+						"axis": "depth",
+						"direction": "positive",
+						"min": 1,
+						"max": 6,
+						"countExpression": {
+							"type": "subtract",
+							"left": "$back",
+							"right": 1
+						},
+						"body": {
+							"type": "fragment",
+							"id": "row",
+							"bindings": {
+								"B": "B",
+								"I": "I",
+								"C": "I"
+							}
+						}
+					},
+					{
+						"type": "fragment",
+						"id": "row",
+						"bindings": {
+							"B": "B",
+							"I": "I",
+							"C": "C"
+						}
+					},
+					{
+						"type": "repeat",
+						"id": "back_interior",
+						"axis": "depth",
+						"direction": "positive",
+						"min": 1,
+						"max": 6,
+						"countExpression": {
+							"type": "subtract",
+							"left": "$front",
+							"right": 1
+						},
+						"body": {
+							"type": "fragment",
+							"id": "row",
+							"bindings": {
+								"B": "B",
+								"I": "I",
+								"C": "I"
+							}
+						}
+					},
+					{
+						"type": "fragment",
+						"id": "row",
+						"bindings": {
+							"B": "B",
+							"I": "B",
+							"C": "B"
+						}
+					}
+				]
+			}
+		}
+	},
+	"predicates": {
+		"A": {
+			"type": "gtpm:cleanroom_base",
+			"allowFloorBlocks": false,
+			"allowDoors": false
+		},
+		"W": {
+			"type": "gtpm:cleanroom_base",
+			"allowFloorBlocks": false,
+			"allowDoors": true
+		},
+		"E": {
+			"type": "gtpm:cleanroom_base",
+			"allowFloorBlocks": true,
+			"allowDoors": false
+		},
+		"D": {
+			"type": "gtpm:block",
+			"ids": "gtpm:plascrete"
+		},
+		"F": {
+			"type": "gtpm:filter"
+		},
+		"I": {
+			"type": "gtpm:cleanroom_inner"
+		},
+		"K": {
+			"type": "gtpm:concatenated",
+			"predicates": [
+				{
+					"type": "gtpm:block",
+					"ids": ["gtpm:plascrete", "gtpm:cleanroom_glass"]
+				},
+				{
+					"type": "gtpm:block_tag",
+					"tag": "gtpm:cleanroom_floors"
+				}
+			]
+		}
+	},
+	"body": {
+		"type": "sequence",
+		"axis": "height",
+		"children": [
+			{
+				"type": "fragment",
+				"id": "plane",
+				"bindings": {
+					"B": "A",
+					"I": "E",
+					"C": "K"
+				}
+			},
+			{
+				"type": "repeat",
+				"id": "walls",
+				"axis": "height",
+				"direction": "positive",
+				"min": 3,
+				"max": 13,
+				"countExpression": { "type": "subtract", "left": "$down", "right": 1 },
+				"body": {
+					"type": "fragment",
+					"id": "plane",
+					"bindings": {
+						"B": "W",
+						"I": "I",
+						"C": "I"
+					}
+				}
+			},
+			{
+				"type": "fragment",
+				"id": "plane",
+				"bindings": {
+					"B": "D",
+					"I": "F",
+					"C": "~"
+				}
+			}
+		]
+	},
+	"constraints": []
+}

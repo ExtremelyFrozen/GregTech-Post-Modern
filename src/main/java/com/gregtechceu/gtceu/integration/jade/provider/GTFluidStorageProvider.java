@@ -58,7 +58,7 @@ public enum GTFluidStorageProvider implements IServerExtensionProvider<CompoundT
             CompoundTag tag = FluidView.writeDefault(fluidObject, qtm.getMaxAmount());
 
             return Collections.singletonList(new ViewGroup<>(Collections.singletonList(tag)));
-        } else if (GTCEu.Mods.isAE2Loaded() && accessor.getTarget() instanceof MEPatternBufferPartMachine buffer) {
+        } else if (GTCEu.MODS.AE2.isLoaded() && accessor.getTarget() instanceof MEPatternBufferPartMachine buffer) {
             var tank = buffer.getShareTank();
             List<CompoundTag> list = new ArrayList<>(tank.getTanks());
             for (var storage : tank.getStorages()) {
@@ -69,7 +69,7 @@ public enum GTFluidStorageProvider implements IServerExtensionProvider<CompoundT
                 list.add(FluidView.writeDefault(JadeForgeUtils.fromFluidStack(stack), capacity));
             }
             return list.isEmpty() ? Collections.emptyList() : Collections.singletonList(new ViewGroup<>(list));
-        } else if (GTCEu.Mods.isAE2Loaded() && accessor.getTarget() instanceof MEPatternBufferProxyPartMachine proxy) {
+        } else if (GTCEu.MODS.AE2.isLoaded() && accessor.getTarget() instanceof MEPatternBufferProxyPartMachine proxy) {
             var buffer = proxy.getBuffer();
             if (buffer == null) return Collections.emptyList();
 

@@ -5,6 +5,9 @@ title: "添加 Stone Types"
 
 # 为矿石方块添加 Stone Types
 
+!!! note "上游示例"
+    本页示例面向 GregTech CEu Modern。GTPM 1.21.1 的数据包和附属模组入口见[整合包制作](../index.md#upstream-kubejs)。
+
 在整合包中，你可能想添加自己的 stone types，以便将 GT 的 Ore Generation 与其他 mod 的方块整合。
 
 为此，你需要为矿石注册 tag prefix、添加语言键，并允许你的矿石实际生成。

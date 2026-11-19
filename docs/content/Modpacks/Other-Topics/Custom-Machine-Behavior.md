@@ -54,14 +54,14 @@ public class Greenhouse extends WorkableElectricMultiblockMachine {
         .recipeType(MyRecipeTypes.GREENHOUSE)
         .recipeModifiers(OC_PERFECT_SUBTICK, BATCH_MODE)
         .appearanceBlock(CASING_PTFE_INERT)
-        .pattern(definition -> {
+        .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> {
             var casing = blocks(CASING_PTFE_INERT.get()).setMinGlobalLimited(10);
-            var abilities = Predicates.autoAbilities(definition.getRecipeTypes())
-                    .or(Predicates.autoAbilities(true, false, false));
-            return FactoryBlockPattern.start()
+            var abilities = PatternPredicate.autoAbilities(definition.getRecipeTypes())
+                    .or(PatternPredicate.autoAbilities(true, false, false));
+            return PatternBuilder.start(definition)
                     .aisle("XSX", "XXX", "XXX")
                     .aisle("XXX", "XXX", "XXX")
-                    .where('S', Predicates.controller(blocks(definition.getBlock())))
+                    .where('S', PatternPredicate.controller(blocks(definition.getBlock())))
                     .where('X', casing.or(abilities))
                     .build();
         })

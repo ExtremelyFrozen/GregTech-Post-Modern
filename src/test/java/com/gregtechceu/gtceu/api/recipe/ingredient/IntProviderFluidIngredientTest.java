@@ -11,7 +11,6 @@ import com.gregtechceu.gtceu.api.machine.trait.NotifiableFluidTank;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler;
 import com.gregtechceu.gtceu.api.recipe.GTRecipeType;
 import com.gregtechceu.gtceu.common.data.GTMaterials;
-import com.gregtechceu.gtceu.common.data.GTRecipeTypes;
 import com.gregtechceu.gtceu.common.machine.multiblock.part.FluidHatchPartMachine;
 import com.gregtechceu.gtceu.common.machine.multiblock.part.ItemBusPartMachine;
 import com.gregtechceu.gtceu.common.machine.multiblock.part.ParallelHatchPartMachine;
@@ -73,11 +72,9 @@ public class IntProviderFluidIngredientTest {
 
     @BeforeBatch(batch = "RangedFluidIngredients")
     public static void prepare(ServerLevel level) {
-        CR_RECIPE_TYPE = TestUtils.createRecipeType("ranged_fluid_ingredient_cr_tests", GTRecipeTypes.CHEMICAL_RECIPES);
-        LCR_RECIPE_TYPE = TestUtils.createRecipeType("ranged_fluid_ingredient_lcr_tests",
-                GTRecipeTypes.LARGE_CHEMICAL_RECIPES);
-        CENTRIFUGE_RECIPE_TYPE = TestUtils.createRecipeType("ranged_fluid_ingredient_centrifuge_tests",
-                GTRecipeTypes.CENTRIFUGE_RECIPES);
+        CR_RECIPE_TYPE = TestUtils.getRecipeType("ranged_fluid_ingredient_cr_tests");
+        LCR_RECIPE_TYPE = TestUtils.getRecipeType("ranged_fluid_ingredient_lcr_tests");
+        CENTRIFUGE_RECIPE_TYPE = TestUtils.getRecipeType("ranged_fluid_ingredient_centrifuge_tests");
 
         var CRHandler = CR_RECIPE_TYPE.getAdditionHandler();
         CRHandler.beginStaging();

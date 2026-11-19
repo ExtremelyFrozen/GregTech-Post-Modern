@@ -1,14 +1,16 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmDefaultMode
+
 plugins {
     id 'java-library'
-    id 'org.jetbrains.kotlin.jvm'
     id 'eclipse'
     id 'idea'
     id 'maven-publish'
-    id 'jacoco'
     alias libs.plugins.modDevGradle
     //alias libs.plugins.shadow
     alias libs.plugins.spotless
     alias libs.plugins.lombok
+    alias libs.plugins.kotlin.jvm
+    alias libs.plugins.kotlin.lombok
 }
 
 group = maven_group
@@ -19,6 +21,13 @@ boolean isCI = System.getenv("CI") != null
 
 java {
     toolchain.languageVersion = JavaLanguageVersion.of(21)
+}
+
+kotlin {
+    jvmToolchain(21)
+    compilerOptions {
+        jvmDefault = JvmDefaultMode.NO_COMPATIBILITY
+    }
 }
 
 sourceSets {
@@ -87,46 +96,14 @@ tasks.named('delombok') {
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = "UTF-8"
+    options.compilerArgs << '-Xmaxerrs' << '2000'
     options.compilerArgs << "-Xlint:-removal"
-}
-
-kotlin {
-    compilerOptions {
-        freeCompilerArgs.add("-Xjvm-default=all")
-    }
 }
 
 lombok {
     version = "1.18.38"
 }
 
-jacoco {
-    applyTo runGameTestServer
-}
-
-jacocoTestReport {
-    doFirst {
-        try {
-            runGameTestServer.exec()
-        } catch (RuntimeException ignored) {}
-    }
-    doLast {
-        println "Coverage report location:"
-        println " - file://${layout.buildDirectory.dir('coverage').map(a -> a.file('index.html')).get()}"
-        println " - file://${layout.buildDirectory.dir('coverage').map(a -> a.file('coverage.xml')).get()}"
-    }
-    executionData runGameTestServer
-    sourceSets sourceSets.test
-    reports {
-        csv.required = false
-        xml.required = true
-        html.outputLocation = layout.buildDirectory.dir('coverage')
-        xml.outputLocation = layout.buildDirectory.dir('coverage').map(a -> a.file('coverage.xml'))
-    }
-    afterEvaluate {
-        classDirectories.setFrom(files(classDirectories.files.collect {
-            fileTree(dir: it, exclude: '**/client/**')
-            fileTree(dir: it, exclude: '**/mixins/**')
-        }))
-    }
+kotlinLombok {
+    lombokConfigurationFile(file('lombok.config'))
 }

@@ -1,5 +1,6 @@
 package com.gregtechceu.gtceu.api.item.datacomponents;
 
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 import com.gregtechceu.gtceu.utils.codec.CodecUtils;
 
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -29,6 +30,11 @@ public record LargeItemContent(@With ItemStack stored, @With long amount) {
             ItemStack.OPTIONAL_STREAM_CODEC, LargeItemContent::stored,
             ByteBufCodecs.VAR_LONG, LargeItemContent::amount,
             LargeItemContent::new);
+
+    static {
+        FieldCodecs.register(LargeItemContent.class, CODEC);
+        FieldCodecs.registerStream(LargeItemContent.class, STREAM_CODEC);
+    }
     // spotless:on
 
     public static final LargeItemContent EMPTY = new LargeItemContent(ItemStack.EMPTY, 0);

@@ -45,7 +45,6 @@ public class GTRecipeDefinition implements Recipe<RecipeInput> {
     public final Map<RecipeCapability<?>, ChanceLogic> tickInputChanceLogics;
     public final Map<RecipeCapability<?>, ChanceLogic> tickOutputChanceLogics;
     public final List<RecipeCondition<?>> conditions;
-    public final List<?> ingredientActions;
     @NotNull
     public final DataComponentMap data;
     public final int tier;
@@ -63,7 +62,6 @@ public class GTRecipeDefinition implements Recipe<RecipeInput> {
                               Map<RecipeCapability<?>, ChanceLogic> tickInputChanceLogics,
                               Map<RecipeCapability<?>, ChanceLogic> tickOutputChanceLogics,
                               List<RecipeCondition<?>> conditions,
-                              List<?> ingredientActions,
                               @NotNull DataComponentMap data,
                               int tier,
                               int duration,
@@ -80,7 +78,6 @@ public class GTRecipeDefinition implements Recipe<RecipeInput> {
         this.tickInputChanceLogics = tickInputChanceLogics;
         this.tickOutputChanceLogics = tickOutputChanceLogics;
         this.conditions = conditions;
-        this.ingredientActions = ingredientActions;
         this.data = data;
         this.tier = tier;
         this.duration = duration;
@@ -94,7 +91,7 @@ public class GTRecipeDefinition implements Recipe<RecipeInput> {
                 ContentListMap.copyOf(recipe.tickInputs), ContentListMap.copyOf(recipe.tickOutputs),
                 new HashMap<>(recipe.inputChanceLogics), new HashMap<>(recipe.outputChanceLogics),
                 new HashMap<>(recipe.tickInputChanceLogics), new HashMap<>(recipe.tickOutputChanceLogics),
-                new ArrayList<>(recipe.conditions), new ArrayList<>(recipe.ingredientActions),
+                new ArrayList<>(recipe.conditions),
                 RecipeData.copy(recipe.data), recipe.tier, recipe.duration, recipe.recipeCategory, recipe.groupColor);
     }
 
@@ -104,7 +101,7 @@ public class GTRecipeDefinition implements Recipe<RecipeInput> {
                 tickInputs.copy().asContentMap(), tickOutputs.copy().asContentMap(),
                 new HashMap<>(inputChanceLogics), new HashMap<>(outputChanceLogics),
                 new HashMap<>(tickInputChanceLogics), new HashMap<>(tickOutputChanceLogics),
-                new ArrayList<>(conditions), new ArrayList<>(ingredientActions), RecipeData.copy(data), tier, duration,
+                new ArrayList<>(conditions), RecipeData.copy(data), tier, duration,
                 recipeCategory, groupColor);
     }
 
@@ -113,7 +110,7 @@ public class GTRecipeDefinition implements Recipe<RecipeInput> {
                 inputs.copy(), outputs.copy(), tickInputs.copy(), tickOutputs.copy(),
                 new HashMap<>(inputChanceLogics), new HashMap<>(outputChanceLogics),
                 new HashMap<>(tickInputChanceLogics), new HashMap<>(tickOutputChanceLogics),
-                new ArrayList<>(conditions), new ArrayList<>(ingredientActions), RecipeData.copy(data), tier, duration,
+                new ArrayList<>(conditions), RecipeData.copy(data), tier, duration,
                 recipeCategory, groupColor);
     }
 

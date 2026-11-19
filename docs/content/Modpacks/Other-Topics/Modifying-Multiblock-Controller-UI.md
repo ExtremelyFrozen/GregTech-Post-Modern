@@ -3,6 +3,9 @@ title: 修改 Multiblock Controller UI
 ---
 # 修改 Multiblock Controller UI
 
+!!! note "上游示例"
+    本页示例面向 GregTech CEu Modern。GTPM 1.21.1 的数据包和附属模组入口见[整合包制作](../index.md#upstream-kubejs)。
+
 ## 添加 text component
 要向 UI 添加 text component，需要在 multiblock registration builder 中使用 `.additionalDisplay`。
 `.additionalDisplay` 接收一个 lambda，该 lambda 接收 2 个参数：正在被添加 component 的 `IMultiController` machine，以及现有 components 的 `List<Component>`。

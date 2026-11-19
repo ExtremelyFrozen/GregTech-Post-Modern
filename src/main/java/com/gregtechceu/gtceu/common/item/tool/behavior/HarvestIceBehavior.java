@@ -2,6 +2,7 @@ package com.gregtechceu.gtceu.common.item.tool.behavior;
 
 import com.gregtechceu.gtceu.api.item.tool.behavior.IToolBehavior;
 import com.gregtechceu.gtceu.api.item.tool.behavior.ToolBehaviorType;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 import com.gregtechceu.gtceu.common.data.GTToolBehaviors;
 
 import net.minecraft.network.chat.Component;
@@ -24,6 +25,11 @@ public class HarvestIceBehavior implements IToolBehavior<HarvestIceBehavior> {
     public static final HarvestIceBehavior INSTANCE = new HarvestIceBehavior();
     public static final Codec<HarvestIceBehavior> CODEC = Codec.unit(INSTANCE);
     public static final StreamCodec<ByteBuf, HarvestIceBehavior> STREAM_CODEC = StreamCodec.unit(INSTANCE);
+
+    static {
+        FieldCodecs.register(HarvestIceBehavior.class, CODEC);
+        FieldCodecs.registerStream(HarvestIceBehavior.class, STREAM_CODEC);
+    }
 
     protected HarvestIceBehavior() {/**/}
 

@@ -5,6 +5,9 @@ title: "机器耗时缩减"
 
 # 缩短所有机器配方的耗时
 
+!!! note "上游示例"
+    本页示例面向 GregTech CEu Modern。GTPM 1.21.1 的数据包和附属模组入口见[整合包制作](../index.md#upstream-kubejs)。
+
 ## 缩短耗时脚本
 
 ```js title="Reduce_Duration.js"

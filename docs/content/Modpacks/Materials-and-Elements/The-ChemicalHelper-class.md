@@ -5,6 +5,9 @@ title: "ChemicalHelper Class（ChemicalHelper 类）"
 
 # `ChemicalHelper` Class（ChemicalHelper 类）
 
+!!! note "上游示例"
+    本页示例面向 GregTech CEu Modern。GTPM 1.21.1 的数据包和附属模组入口见[整合包制作](../index.md#upstream-kubejs)。
+
 使用 GregTech Post Modern 制作整合包时，了解 ChemicalHelper class 会很有帮助。
 
 此 class 可在 server scripts 中使用，包含许多实用方法；当无法使用物品或方块 tags，

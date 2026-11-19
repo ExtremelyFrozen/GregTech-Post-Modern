@@ -15,10 +15,8 @@ public int mySaveInt = 10;
 
 ### `@SyncToClient`
 
-`@SyncToClient` 注解定义了值应同步到 client 的字段。
+`@SyncToClient` 将字段的变更同步到客户端。同步系统在受管 Tick 中自动检测变更，可以直接给字段赋值。
 
-!!! warning
-    client 同步字段**不会**自动检测变更。修改 client 同步字段时，请调用 `ISyncManaged.getSyncDataHolder().markClientSyncFieldDirty(FIELD_NAME)`。
 ```java
 @SaveField(nbtKey="nbtKeyToSaveTo")
 @SyncToClient
@@ -29,20 +27,12 @@ public int mySaveAndSyncInt = 10;
 public long mySyncRerenderLong = 10000L;
 
 public void serverTick() {
-    int newIntValue = getNewIntValue();
-    long newLongValue = getNewLongValue();
-    if (mySaveAndSyncInt != newIntValue) {
-        mySaveAndSyncInt = newIntValue;
-        getSyncDataHolder().markClientSyncFieldDirty("mySaveAndSyncInt");
-    }
-    if (mySyncRerenderLong != newLongValue) {
-        mySyncRerenderLong = newLongValue;
-        getSyncDataHolder().markClientSyncFieldDirty("mySyncRerenderLong");
-    }
+    mySaveAndSyncInt = getNewIntValue();
+    mySyncRerenderLong = getNewLongValue();
 }
 ```
 
-### `@ClientFieldChangeListener` and `@RerenderOnChanged`
+### `@ClientFieldChangeListener` 与 `@RerenderOnChanged`
 
 `@ClientFieldChangeListener` 注解定义了当 client 同步字段的值发生变化时，应在 client 调用的方法。
 

@@ -2,6 +2,7 @@ package com.gregtechceu.gtceu.common.item.tool.behavior;
 
 import com.gregtechceu.gtceu.api.item.tool.behavior.IToolBehavior;
 import com.gregtechceu.gtceu.api.item.tool.behavior.ToolBehaviorType;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 import com.gregtechceu.gtceu.common.data.GTToolBehaviors;
 
 import net.minecraft.core.Holder;
@@ -71,6 +72,11 @@ public class EntityDamageBehavior implements IToolBehavior<EntityDamageBehavior>
             ByteBufCodecs.optional(ByteBufCodecs.stringUtf8(128)), val -> val.mobType,
             BONUS_LIST_STREAM_CODEC, EntityDamageBehavior::getBonusList,
             EntityDamageBehavior::new);
+
+    static {
+        FieldCodecs.register(EntityDamageBehavior.class, CODEC);
+        FieldCodecs.registerStream(EntityDamageBehavior.class, STREAM_CODEC);
+    }
     // spotless:on
 
     private @Nullable Reference2FloatMap<TagKey<EntityType<?>>> tempTagBonusList = null;

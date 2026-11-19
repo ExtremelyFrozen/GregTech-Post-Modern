@@ -2,8 +2,6 @@ package com.gregtechceu.gtceu.api.machine.multiblock;
 
 import com.gregtechceu.gtceu.api.GTValues;
 import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo;
-import com.gregtechceu.gtceu.api.machine.feature.IOverclockMachine;
-import com.gregtechceu.gtceu.api.machine.feature.ITieredMachine;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 
 import lombok.Getter;
@@ -13,8 +11,7 @@ import lombok.Getter;
  * @date 2023/7/11
  * @implNote TieredWorkableElectricMultiblockMachine
  */
-public class TieredWorkableElectricMultiblockMachine extends WorkableElectricMultiblockMachine
-                                                     implements ITieredMachine, IOverclockMachine {
+public class TieredWorkableElectricMultiblockMachine extends WorkableElectricMultiblockMachine {
 
     private final int tier;
     @SaveField

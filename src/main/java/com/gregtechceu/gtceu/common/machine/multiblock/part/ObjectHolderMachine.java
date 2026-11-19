@@ -3,7 +3,11 @@ package com.gregtechceu.gtceu.common.machine.multiblock.part;
 import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo;
 import com.gregtechceu.gtceu.api.capability.recipe.IO;
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
-import com.gregtechceu.gtceu.api.gui.widget.BlockableSlotWidget;
+import com.gregtechceu.gtceu.api.gui.UITemplate;
+import com.gregtechceu.gtceu.api.gui.element.GTImageElement;
+import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
+import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.machine.multiblock.part.MultiblockPartMachine;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler;
@@ -14,10 +18,7 @@ import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
 import com.gregtechceu.gtceu.api.transfer.item.CustomItemStackHandler;
 import com.gregtechceu.gtceu.common.data.GTDataComponents;
 
-import com.lowdragmc.lowdraglib.gui.widget.ImageWidget;
-import com.lowdragmc.lowdraglib.gui.widget.Widget;
-import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
-import com.lowdragmc.lowdraglib.utils.Position;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 
 import net.minecraft.core.Direction;
 import net.minecraft.world.item.ItemStack;
@@ -29,6 +30,10 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 public class ObjectHolderMachine extends MultiblockPartMachine {
+
+    private static final int SLOT_LOCKED_OVERLAY_COLOR = 0x80404040;
+    private static final int UI_WIDTH = 176;
+    private static final int PAGE_HEIGHT = 84;
 
     @SaveField
     private final ObjectInputHandler inputItemHandler;
@@ -46,7 +51,6 @@ public class ObjectHolderMachine extends MultiblockPartMachine {
 
     public void setLocked(boolean locked) {
         isLocked = locked;
-        syncDataHolder.markClientSyncFieldDirty("isLocked");
     }
 
     public boolean isLocked() {
@@ -78,26 +82,30 @@ public class ObjectHolderMachine extends MultiblockPartMachine {
     }
 
     @Override
-    public Widget createUIWidget() {
-        return new WidgetGroup(new Position(0, 0))
-                .addWidget(new ImageWidget(46, 15, 84, 60, GuiTextures.PROGRESS_BAR_RESEARCH_STATION_BASE))
-                .addWidget(new BlockableSlotWidget(inputItemHandler, 0, 79, 36)
-                        .setIsBlocked(this::isLocked)
-                        .setBackground(GuiTextures.SLOT, GuiTextures.RESEARCH_STATION_OVERLAY))
-                .addWidget(new BlockableSlotWidget(dataItemHandler, 0, 15, 36)
-                        .setIsBlocked(this::isLocked)
-                        .setBackground(GuiTextures.SLOT, GuiTextures.DATA_ORB_OVERLAY));
+    public UIElement createUIWidget(FancyMachineUIWidget widget) {
+        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, UI_WIDTH, PAGE_HEIGHT);
+        root.addChild(new GTImageElement(46, 15, 84, 60, GuiTextures.PROGRESS_BAR_RESEARCH_STATION_BASE));
+        root.addChild(createItemSlot(inputItemHandler, 79, 36, GuiTextures.RESEARCH_STATION_OVERLAY));
+        root.addChild(createLockedOverlay(79, 36));
+        root.addChild(createItemSlot(dataItemHandler, 15, 36, GuiTextures.DATA_ORB_OVERLAY));
+        root.addChild(createLockedOverlay(15, 36));
+        return root;
     }
 
-    @Override
-    public void setFrontFacing(Direction frontFacing) {
-        super.setFrontFacing(frontFacing);
-        var controllers = getControllers();
-        for (var controller : controllers) {
-            if (controller != null && controller.isFormed()) {
-                controller.checkPatternWithLock(getSubstructureName(controller));
-            }
-        }
+    private GTItemSlotElement createItemSlot(NotifiableItemStackHandler handler, int x, int y,
+                                             IGuiTexture overlay) {
+        GTItemSlotElement slot = new GTItemSlotElement(handler, 0)
+                .setBackgroundTexture(GuiTextures.SLOT)
+                .setContentOverlay(overlay)
+                .setCanPut(stack -> !isLocked())
+                .setCanTake(player -> !isLocked());
+        UITemplate.setBounds(slot, x, y, 18, 18);
+        return slot;
+    }
+
+    private GTImageElement createLockedOverlay(int slotX, int slotY) {
+        return new GTImageElement(slotX + 1, slotY + 1, 16, 16, GuiTextures.colorRect(SLOT_LOCKED_OVERLAY_COLOR))
+                .setVisibleSupplier(this::isLocked);
     }
 
     @Override
@@ -188,5 +196,15 @@ public class ObjectHolderMachine extends MultiblockPartMachine {
         public int getSlotLimit(int slot) {
             return 1;
         }
+    }
+
+    @Override
+    public int getPageWidth() {
+        return UI_WIDTH;
+    }
+
+    @Override
+    public int getPageHeight() {
+        return PAGE_HEIGHT;
     }
 }

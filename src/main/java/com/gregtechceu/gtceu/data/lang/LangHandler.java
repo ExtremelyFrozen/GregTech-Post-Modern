@@ -1,7 +1,6 @@
 package com.gregtechceu.gtceu.data.lang;
 
 import com.gregtechceu.gtceu.common.data.GTBlocks;
-import com.gregtechceu.gtceu.common.data.GTMaterials;
 
 import net.minecraft.locale.Language;
 import net.minecraft.network.chat.Component;
@@ -31,16 +30,10 @@ public class LangHandler {
         ConfigurationLang.init(provider);
         RecipeLogicLang.init(provider);
 
-        provider.add("gtpm.gui.editor.tips.citation", "Number of citations");
-        provider.add("gtpm.gui.editor.group.recipe_type", "cap");
-        provider.add("ldlib.gui.editor.register.editor.gtpm.rtui", "RecipeType UI Project");
-        provider.add("ldlib.gui.editor.register.editor.gtpm.mui", "Machine UI Project");
-        provider.add("ldlib.gui.editor.register.editor.gtpm.template_tab", "templates");
-        provider.add("ldlib.gui.editor.group.widget.gtm_container", "GTM Container Widgets");
-        provider.add("ldlib.gui.editor.register.widget.container.gtm_item_slot", "GTM Item Slot");
-        provider.add("ldlib.gui.editor.register.widget.container.gtm_fluid_slot", "GTM Fluid Slot");
-        provider.add("ldlib.gui.editor.register.widget.container.gtm_phantom_item_slot", "GTM Phantom Item Slot");
-        provider.add("ldlib.gui.editor.register.widget.container.gtm_phantom_fluid_slot", "GTM Phantom Fluid Slot");
+        provider.add("gtpm.gui.editor.project.xml", "GTPM XML UI Project");
+        provider.add("gtpm.gui.editor.templates", "Templates");
+        provider.add("gtpm.gui.editor.templates.machine", "Machine UI Templates");
+        provider.add("gtpm.gui.editor.templates.recipe_type", "Recipe Type UI Templates");
 
         provider.add("curios.identifier.gtpm_magnet", "GTCEu Magnet");
         // capabilities
@@ -136,6 +129,7 @@ public class LangHandler {
         provider.add("command.gtpm.place_vein.failure", "Failed to place vein %s at position %s");
         provider.add("command.gtpm.place_vein.success", "Placed vein %s at position %s");
         provider.add("command.gtpm.share_prospection_data.notification", "%s is sharing prospecting data with you!");
+        provider.add("command.gtpm.ui_editor.open.failed", "Failed to open the GT UI editor");
         provider.add("command.gtpm.cape.failure.does_not_exist", "Cape %s does not exist");
         provider.add("command.gtpm.cape.give.failed", "No new capes were unlocked");
         provider.add("command.gtpm.cape.give.success.multiple", "Unlocked %s capes for %s players");
@@ -547,75 +541,6 @@ public class LangHandler {
         provider.add("cover.shutter.message.disabled", "Opened shutter");
 
         provider.add("item.gtpm.bucket", "%s Bucket");
-        replace(provider, GTMaterials.FullersEarth.getUnlocalizedName(), "Fuller's Earth");
-        replace(provider, GTMaterials.Cooperite.getUnlocalizedName(), "Sheldonite"); // greg's humor is now on
-                                                                                     // 1.19...
-        replace(provider, GTMaterials.YellowLimonite.getUnlocalizedName(), "Yellow Limonite");
-        replace(provider, GTMaterials.HSSG.getUnlocalizedName(), "HSS-G");
-        replace(provider, GTMaterials.HSSE.getUnlocalizedName(), "HSS-E");
-        replace(provider, GTMaterials.HSSS.getUnlocalizedName(), "HSS-S");
-        replace(provider, GTMaterials.RTMAlloy.getUnlocalizedName(), "RTM Alloy");
-        replace(provider, GTMaterials.HSLASteel.getUnlocalizedName(), "HSLA Steel");
-
-        replace(provider, GTMaterials.UUMatter.getUnlocalizedName(), "UU-Matter");
-        replace(provider, GTMaterials.PCBCoolant.getUnlocalizedName(), "PCB Coolant");
-        replace(provider, GTMaterials.TungstenSteel.getUnlocalizedName(), "Tungstensteel");
-        replace(provider, GTMaterials.Iron3Chloride.getUnlocalizedName(), "Iron III Chloride");
-        replace(provider, GTMaterials.Iron2Chloride.getUnlocalizedName(), "Iron II Chloride");
-
-        replace(provider, GTMaterials.HydroCrackedButadiene.getUnlocalizedName(), "Hydro-Cracked Butadiene");
-        replace(provider, GTMaterials.HydroCrackedButane.getUnlocalizedName(), "Hydro-Cracked Butane");
-        replace(provider, GTMaterials.HydroCrackedButene.getUnlocalizedName(), "Hydro-Cracked Butene");
-        replace(provider, GTMaterials.HydroCrackedButene.getUnlocalizedName(), "Hydro-Cracked Butene");
-        replace(provider, GTMaterials.HydroCrackedEthane.getUnlocalizedName(), "Hydro-Cracked Ethane");
-        replace(provider, GTMaterials.HydroCrackedEthylene.getUnlocalizedName(), "Hydro-Cracked Ethylene");
-        replace(provider, GTMaterials.HydroCrackedPropane.getUnlocalizedName(), "Hydro-Cracked Propane");
-        replace(provider, GTMaterials.HydroCrackedPropene.getUnlocalizedName(), "Hydro-Cracked Propene");
-        replace(provider, GTMaterials.SteamCrackedButadiene.getUnlocalizedName(), "Steam-Cracked Butadiene");
-        replace(provider, GTMaterials.SteamCrackedButane.getUnlocalizedName(), "Steam-Cracked Butane");
-        replace(provider, GTMaterials.SteamCrackedButene.getUnlocalizedName(), "Steam-Cracked Butene");
-        replace(provider, GTMaterials.SteamCrackedButene.getUnlocalizedName(), "Steam-Cracked Butene");
-        replace(provider, GTMaterials.SteamCrackedEthane.getUnlocalizedName(), "Steam-Cracked Ethane");
-        replace(provider, GTMaterials.SteamCrackedEthylene.getUnlocalizedName(), "Steam-Cracked Ethylene");
-        replace(provider, GTMaterials.SteamCrackedPropane.getUnlocalizedName(), "Steam-Cracked Propane");
-        replace(provider, GTMaterials.SteamCrackedPropene.getUnlocalizedName(), "Steam-Cracked Propene");
-        replace(provider, GTMaterials.LightlyHydroCrackedGas.getUnlocalizedName(), "Lightly Hydro-Cracked Gas");
-        replace(provider, GTMaterials.LightlyHydroCrackedHeavyFuel.getUnlocalizedName(),
-                "Lightly Hydro-Cracked Heavy Fuel");
-        replace(provider, GTMaterials.LightlyHydroCrackedLightFuel.getUnlocalizedName(),
-                "Lightly Hydro-Cracked Light Fuel");
-        replace(provider, GTMaterials.LightlyHydroCrackedNaphtha.getUnlocalizedName(),
-                "Lightly Hydro-Cracked Naphtha");
-        replace(provider, GTMaterials.LightlySteamCrackedGas.getUnlocalizedName(), "Lightly Steam-Cracked Gas");
-        replace(provider, GTMaterials.LightlySteamCrackedHeavyFuel.getUnlocalizedName(),
-                "Lightly Steam-Cracked Heavy Fuel");
-        replace(provider, GTMaterials.LightlySteamCrackedLightFuel.getUnlocalizedName(),
-                "Lightly Steam-Cracked Light Fuel");
-        replace(provider, GTMaterials.LightlySteamCrackedNaphtha.getUnlocalizedName(),
-                "Lightly Steam-Cracked Naphtha");
-        replace(provider, GTMaterials.SeverelyHydroCrackedGas.getUnlocalizedName(),
-                "Severely Hydro-Cracked Gas");
-        replace(provider, GTMaterials.SeverelyHydroCrackedHeavyFuel.getUnlocalizedName(),
-                "Severely Hydro-Cracked Heavy Fuel");
-        replace(provider, GTMaterials.SeverelyHydroCrackedLightFuel.getUnlocalizedName(),
-                "Severely Hydro-Cracked Light Fuel");
-        replace(provider, GTMaterials.SeverelyHydroCrackedNaphtha.getUnlocalizedName(),
-                "Severely Hydro-Cracked Naphtha");
-        replace(provider, GTMaterials.SeverelySteamCrackedGas.getUnlocalizedName(),
-                "Severely Steam-Cracked Gas");
-        replace(provider, GTMaterials.SeverelySteamCrackedHeavyFuel.getUnlocalizedName(),
-                "Severely Steam-Cracked Heavy Fuel");
-        replace(provider, GTMaterials.SeverelySteamCrackedLightFuel.getUnlocalizedName(),
-                "Severely Steam-Cracked Light Fuel");
-        replace(provider, GTMaterials.SeverelySteamCrackedNaphtha.getUnlocalizedName(),
-                "Severely Steam-Cracked Naphtha");
-        replace(provider, GTMaterials.LPG.getUnlocalizedName(), "LPG");
-
-        replace(provider, GTMaterials.Zeron100.getUnlocalizedName(), "Zeron-100");
-        replace(provider, GTMaterials.IncoloyMA956.getUnlocalizedName(), "Incoloy MA-956");
-        replace(provider, GTMaterials.Stellite100.getUnlocalizedName(), "Stellite-100");
-        replace(provider, GTMaterials.HastelloyC276.getUnlocalizedName(), "Hastelloy C-276");
-
         replace(provider, GTBlocks.BATTERY_EMPTY_TIER_I.get().getDescriptionId(), "Empty Tier I Capacitor");
         replace(provider, GTBlocks.BATTERY_LAPOTRONIC_EV.get().getDescriptionId(), "EV Lapotronic Capacitor");
         replace(provider, GTBlocks.BATTERY_LAPOTRONIC_IV.get().getDescriptionId(), "IV Lapotronic Capacitor");
@@ -1240,11 +1165,132 @@ public class LangHandler {
         provider.add("gtpm.multiblock.pattern.error.coils", "§cAll heating coils must be the same§r");
         provider.add("gtpm.multiblock.pattern.error.filters", "§cAll filters must be the same§r");
         provider.add("gtpm.multiblock.pattern.error.batteries", "§cAll batteries must be the same§r");
+        provider.add("gtpm.multiblock.pattern.error.constraint",
+                "§cMultiblock structure constraints are not satisfied§r");
+        provider.add("gtpm.multiblock.pattern.error.ambiguous_choice",
+                "§cMultiple structure variants match simultaneously§r");
         provider.add("gtpm.multiblock.pattern.clear_amount_1", "§6Must have a clear 1x1x1 space in front§r");
         provider.add("gtpm.multiblock.pattern.clear_amount_3", "§6Must have a clear 3x3x1 space in front§r");
         provider.add("gtpm.multiblock.pattern.single", "§6Only this block can be used§r");
         provider.add("gtpm.multiblock.pattern.location_end", "§cVery End§r");
         provider.add("gtpm.multiblock.pattern.replaceable_air", "Replaceable by Air");
+        provider.add("gtpm.multiblock.autobuild.success",
+                "Auto-build completed: placed %d, removed %d, stages %d.");
+        provider.add("gtpm.multiblock.autobuild.failed", "Auto-build failed.");
+        provider.add("gtpm.multiblock.autobuild.server_only", "Auto-build can only run on the server.");
+        provider.add("gtpm.multiblock.autobuild.unknown_structure", "Unknown multiblock structure: %s.");
+        provider.add("gtpm.multiblock.autobuild.pattern_unavailable",
+                "Multiblock structure pattern is not available: %s.");
+        provider.add("gtpm.multiblock.autobuild.invalid_layout", "Invalid layout for structure %s: %s.");
+        provider.add("gtpm.multiblock.autobuild.permission_denied", "No permission at %s.");
+        provider.add("gtpm.multiblock.autobuild.invalid_repeat", "Invalid repeat count: %d.");
+        provider.add("gtpm.multiblock.autobuild.flip_not_allowed",
+                "This multiblock does not support flipped auto-build.");
+        provider.add("gtpm.multiblock.autobuild.unknown_tier_category", "Unknown tier block category: %s.");
+        provider.add("gtpm.multiblock.autobuild.invalid_tier", "Invalid tier %2$d for category %1$s.");
+        provider.add("gtpm.multiblock.autobuild.unloaded", "Target position is not loaded: %s.");
+        provider.add("gtpm.multiblock.autobuild.outside_build_height",
+                "Target position is outside the world's build height: %s.");
+        provider.add("gtpm.multiblock.autobuild.blocked", "Target position is blocked: %s.");
+        provider.add("gtpm.multiblock.autobuild.no_candidate", "No placeable candidate for %s.");
+        provider.add("gtpm.multiblock.autobuild.missing_material", "Missing material for %s.");
+        provider.add("gtpm.multiblock.autobuild.material_changed",
+                "Materials in the player inventory changed before extraction.");
+        provider.add("gtpm.multiblock.autobuild.not_placeable", "%s cannot be placed.");
+        provider.add("gtpm.multiblock.autobuild.unsupported_liquid_candidate",
+                "Liquid candidate is not supported: %s.");
+        provider.add("gtpm.multiblock.autobuild.commit_material_failed", "Could not commit material for %s.");
+        provider.add("gtpm.multiblock.autobuild.demolition_failed", "Could not demolish block at %s.");
+        provider.add("gtpm.multiblock.autobuild.place_failed", "Could not place block at %s.");
+        provider.add("gtpm.multiblock.autobuild.controller_protected", "The controller cannot be removed.");
+        provider.add("gtpm.multiblock.autobuild.unbreakable", "Target block is unbreakable: %s.");
+        provider.add("gtpm.multiblock.autobuild.me_source_changed",
+                "The ME material source changed before extraction.");
+        provider.add("gtpm.multiblock.autobuild.structure_check_failed",
+                "Auto-built structure failed final pattern check: %s.");
+        provider.add("gtpm.multiblock.autobuild.break_event_denied",
+                "A block-break event denied automatic building at %s.");
+        provider.add("gtpm.multiblock.autobuild.constraint_unsatisfied",
+                "The selected pattern constraints cannot be satisfied.");
+        provider.add("gtpm.multiblock.autobuild.controller_changed",
+                "The bound multiblock controller changed before execution.");
+        provider.add("gtpm.multiblock.autobuild.controller_unloaded", "The bound multiblock controller is not loaded.");
+        provider.add("gtpm.multiblock.autobuild.count_overflow",
+                "Automatic-build material counts exceeded the supported range.");
+        provider.add("gtpm.multiblock.autobuild.dependency_mode_conflict",
+                "Required structure %s cannot be built and demolished in the same batch.");
+        provider.add("gtpm.multiblock.autobuild.direction_update_failed",
+                "Could not apply the required block direction at %s.");
+        provider.add("gtpm.multiblock.autobuild.execution_failed",
+                "Automatic building failed; the bound terminal session was closed.");
+        provider.add("gtpm.multiblock.autobuild.execution_result", "Auto-build %s: %s placed, %s removed");
+        provider.add("gtpm.multiblock.autobuild.extraction_changed",
+                "Reserved material became unavailable during extraction for %s.");
+        provider.add("gtpm.multiblock.autobuild.invalid_target_level",
+                "The player and multiblock controller are not in the same server level.");
+        provider.add("gtpm.multiblock.autobuild.missing_dependency",
+                "Structure %1$s requires selected build structure %2$s.");
+        provider.add("gtpm.multiblock.autobuild.planning_failed", "Automatic-build planning failed.");
+        provider.add("gtpm.multiblock.autobuild.player_inventory_unavailable",
+                "The player's inventory is unavailable.");
+        provider.add("gtpm.multiblock.autobuild.refund_failed",
+                "Committed automatic-build material could not be returned to its source.");
+        provider.add("gtpm.multiblock.autobuild.rejected_stacks",
+                "A material source returned unexpected stacks during its transaction.");
+        provider.add("gtpm.multiblock.autobuild.spectator_denied", "Spectators cannot execute automatic building.");
+        provider.add("gtpm.multiblock.autobuild.stale_plan", "The automatic-build preview changed before execution.");
+        provider.add("gtpm.multiblock.autobuild.tier_candidate_invalid",
+                "Block %1$s is not a candidate of tier group %2$s in structure %3$s.");
+        provider.add("gtpm.multiblock.autobuild.tier_domain_empty",
+                "The tier selection removed every candidate at pattern cell %s.");
+        provider.add("gtpm.multiblock.autobuild.too_far",
+                "The player is too far from the bound multiblock controller.");
+        provider.add("gtpm.multiblock.autobuild.status.failed", "Failed");
+        provider.add("gtpm.multiblock.autobuild.status.partial_success", "Partially successful");
+        provider.add("gtpm.multiblock.autobuild.status.success", "Successful");
+        provider.add("gtpm.multiblock.autobuild.terminal.access_denied",
+                "You do not have permission to use this controller.");
+        provider.add("gtpm.multiblock.autobuild.terminal.bound", "Bound to %s at %s.");
+        provider.add("gtpm.multiblock.autobuild.terminal.controller_missing",
+                "The bound controller is missing or has been replaced.");
+        provider.add("gtpm.multiblock.autobuild.terminal.execute", "Execute");
+        provider.add("gtpm.multiblock.check_structure", "Check structure");
+        provider.add("gtpm.multiblock.check_structure.recheck",
+                "Shift-click to recheck the structure");
+        provider.add("gtpm.structure.issue.at_least", "At least %s, found %s");
+        provider.add("gtpm.structure.issue.at_most", "At most %s");
+        provider.add("gtpm.structure.issue.condition", "Requirement not met");
+        provider.add("gtpm.structure.issue.expected", "Expected: %s");
+        provider.add("gtpm.structure.issue.found", "Found: %s");
+        provider.add("gtpm.structure.issue.mismatch", "Wrong block");
+        provider.add("gtpm.structure.issue.mixed", "Mixed %s");
+        provider.add("gtpm.structure.issue.more", "%s (%s kinds)");
+        provider.add("gtpm.structure.issue.position", "(%s, %s, %s)");
+        provider.add("gtpm.structure.issue.shared", "Part used by another multiblock");
+        provider.add("gtpm.structure.issue.forbidden", "Forbidden block inside");
+        provider.add("gtpm.structure.issue.size", "Invalid size");
+        provider.add("gtpm.structure.issue.size.combination", "Size combination not allowed");
+        provider.add("gtpm.structure.issue.size.range", "%s: %s~%s allowed, measured %s");
+        provider.add("gtpm.structure.issue.size.unmeasured", "%s: no boundary within %s blocks");
+        provider.add("gtpm.structure.issue.too_few", "Not enough %s");
+        provider.add("gtpm.structure.issue.too_few_layer", "Not enough %s in a layer");
+        provider.add("gtpm.structure.issue.too_many", "Too many %s");
+        provider.add("gtpm.structure.issue.too_many_layer", "Too many %s in a layer");
+        provider.add("gtpm.structure.issue.unchecked", "Waiting for structure check");
+        provider.add("gtpm.structure.issue.unloaded", "Chunk not loaded");
+        provider.add("gtpm.structure.issue.variants", "%s (%s variants)");
+        provider.add("gtpm.structure.issue.matching", "matching blocks");
+        provider.add("gtpm.structure.issue.orientation", "Block facing does not match the structure");
+        provider.add("gtpm.structure.issue.coils", "Heating coils");
+        provider.add("gtpm.structure.issue.filters", "Filters");
+        provider.add("gtpm.multiblock.autobuild.terminal.open_failed", "Could not open the terminal interface.");
+        provider.add("gtpm.multiblock.autobuild.terminal.out_of_range", "The bound controller is out of reach.");
+        provider.add("gtpm.multiblock.autobuild.terminal.result", "%s · P:%s R:%s");
+        provider.add("gtpm.multiblock.autobuild.terminal.unbound",
+                "Bind the terminal to a multiblock controller first.");
+        provider.add("gtpm.multiblock.autobuild.terminal.unloaded", "The bound controller's chunk is not loaded.");
+        provider.add("gtpm.multiblock.autobuild.terminal.wrong_dimension",
+                "The bound controller is in another dimension.");
 
         provider.add("gtpm.multiblock.computation.max", "Max CWU/t: %s");
         provider.add("gtpm.multiblock.computation.usage", "Using: %s");
@@ -1418,6 +1464,7 @@ public class LangHandler {
         provider.add("gtpm.gui.me_network.offline", "Network Status: §4Offline§r");
         provider.add("gtpm.gui.waiting_list", "Sending Queue:");
         provider.add("gtpm.gui.config_slot", "§fConfig Slot§r");
+        provider.add("gtpm.gui.config_slot.amount", "Amount");
         provider.add("gtpm.gui.config_slot.set", "§7Click to §bset/select§7 config slot.§r");
         provider.add("gtpm.gui.config_slot.scroll", "§7Scroll wheel to §achange§7 config amount.§r");
         provider.add("gtpm.gui.config_slot.remove", "§7Right click to §4clear§7 config slot.§r");
@@ -1807,6 +1854,7 @@ public class LangHandler {
         provider.add("gtpm.computer_monitor_cover.error.not_supported",
                 "This feature is not supported by this block/cover!");
         provider.add("gtpm.central_monitor.gui.create_group", "Create group");
+        provider.add("gtpm.central_monitor.gui.data_slot", "Data slot");
         provider.add("gtpm.central_monitor.gui.remove_from_group", "Remove from group");
         provider.add("gtpm.central_monitor.gui.set_target", "Set target");
         provider.add("gtpm.central_monitor.gui.currently_editing", "Currently editing: %s");

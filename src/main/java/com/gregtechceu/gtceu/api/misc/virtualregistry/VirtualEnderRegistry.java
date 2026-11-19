@@ -1,34 +1,57 @@
 package com.gregtechceu.gtceu.api.misc.virtualregistry;
 
 import com.gregtechceu.gtceu.GTCEu;
-import com.gregtechceu.gtceu.common.data.GTDataComponents;
-import com.gregtechceu.gtceu.common.data.datacomponents.VirtualEntryData;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
+import com.gregtechceu.gtceu.api.sync_system.SyncDataHolder;
+import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
+import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
+import com.gregtechceu.gtceu.api.sync_system.managed.ISyncManaged;
 
 import net.minecraft.core.HolderLookup;
-import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.world.level.saveddata.SavedData;
 
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Predicate;
 
-public class VirtualEnderRegistry extends SavedData {
+public class VirtualEnderRegistry extends SavedData implements ISyncManaged {
+
+    static {
+        FieldCodecs.registerFactory(VirtualRegistryMap.class, VirtualRegistryMap::new);
+    }
 
     private static final String DATA_ID = GTCEu.MOD_ID + ".virtual_entry_data";
     private static volatile VirtualEnderRegistry data;
-    private final Map<UUID, VirtualRegistryMap> VIRTUAL_REGISTRIES = new HashMap<>();
+    @SaveField
+    private final VirtualRegistryMap publicEntries = new VirtualRegistryMap();
+    @SaveField
+    private final Map<UUID, VirtualRegistryMap> privateEntries = new Object2ObjectOpenHashMap<>();
+    private SyncDataHolder syncDataHolder;
+
+    @Override
+    public SyncDataHolder getSyncDataHolder() {
+        if (syncDataHolder == null) syncDataHolder = new SyncDataHolder(this);
+        return syncDataHolder;
+    }
+
+    @Override
+    public @Nullable ISyncManaged getParentSyncObject() {
+        return null;
+    }
 
     public VirtualEnderRegistry() {}
 
     public VirtualEnderRegistry(CompoundTag name, HolderLookup.@NotNull Provider registries) {
-        importComponents(registries, readComponents(registries, name));
+        SyncFieldData decoded = SyncFieldData.CODEC.parse(registries.createSerializationContext(NbtOps.INSTANCE), name)
+                .getOrThrow();
+        getSyncDataHolder().deserializeFieldData(registries, decoded, false);
     }
 
     public static VirtualEnderRegistry getInstance() {
@@ -98,63 +121,16 @@ public class VirtualEnderRegistry extends SavedData {
     }
 
     private VirtualRegistryMap getRegistry(UUID owner) {
-        return VIRTUAL_REGISTRIES.computeIfAbsent(owner, key -> new VirtualRegistryMap());
-    }
-
-    public DataComponentMap exportComponents(HolderLookup.@NotNull Provider registries) {
-        DataComponentMap publicEntries = DataComponentMap.EMPTY;
-        Map<String, DataComponentMap> privateEntries = new HashMap<>();
-        for (Map.Entry<UUID, VirtualRegistryMap> entry : VIRTUAL_REGISTRIES.entrySet()) {
-            DataComponentMap registryComponents = entry.getValue().exportComponents(registries);
-            if (entry.getKey() == null) {
-                publicEntries = registryComponents;
-            } else {
-                privateEntries.put(entry.getKey().toString(), registryComponents);
-            }
-        }
-        VirtualEntryData.RegistryRoot root = new VirtualEntryData.RegistryRoot(publicEntries, privateEntries);
-        if (root.isEmpty()) {
-            return DataComponentMap.EMPTY;
-        }
-        return DataComponentMap.builder()
-                .set(GTDataComponents.VIRTUAL_REGISTRY_ROOT, root)
-                .build();
-    }
-
-    public void importComponents(HolderLookup.@NotNull Provider registries, DataComponentMap components) {
-        VIRTUAL_REGISTRIES.clear();
-        if (components.isEmpty()) {
-            return;
-        }
-        VirtualEntryData.RegistryRoot root = components.get(GTDataComponents.VIRTUAL_REGISTRY_ROOT.get());
-        if (root == null) {
-            throw new IllegalArgumentException("Virtual ender registry data is missing root component");
-        }
-        if (!root.publicEntries().isEmpty()) {
-            VIRTUAL_REGISTRIES.put(null, new VirtualRegistryMap(registries, root.publicEntries()));
-        }
-        for (Map.Entry<String, DataComponentMap> entry : root.privateEntries().entrySet()) {
-            UUID owner = UUID.fromString(entry.getKey());
-            VIRTUAL_REGISTRIES.put(owner, new VirtualRegistryMap(registries, entry.getValue()));
-        }
+        return owner == null ? publicEntries : privateEntries.computeIfAbsent(owner, key -> new VirtualRegistryMap());
     }
 
     @NotNull
     @Override
     public final CompoundTag save(@NotNull CompoundTag tag, HolderLookup.@NotNull Provider registries) {
-        return writeComponents(registries, exportComponents(registries));
-    }
-
-    private static DataComponentMap readComponents(HolderLookup.Provider registries, CompoundTag tag) {
-        return DataComponentMap.CODEC
-                .parse(registries.createSerializationContext(NbtOps.INSTANCE), tag)
-                .getOrThrow();
-    }
-
-    private static CompoundTag writeComponents(HolderLookup.Provider registries, DataComponentMap components) {
-        return (CompoundTag) DataComponentMap.CODEC
-                .encodeStart(registries.createSerializationContext(NbtOps.INSTANCE), components)
-                .getOrThrow();
+        SyncFieldData fields = getSyncDataHolder().serializeToSaveFieldData(registries);
+        return tag.merge((CompoundTag) SyncFieldData.CODEC
+                .encodeStart(registries.createSerializationContext(NbtOps.INSTANCE), fields)
+                .getOrThrow());
     }
 
     @Override

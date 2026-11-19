@@ -4,6 +4,7 @@ import com.gregtechceu.gtceu.api.capability.recipe.IO;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler;
 import com.gregtechceu.gtceu.api.recipe.GTRecipe;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
+import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
 import com.gregtechceu.gtceu.api.transfer.item.CustomItemStackHandler;
 
 import net.minecraft.world.item.ItemStack;
@@ -19,6 +20,7 @@ public class ExportOnlyAEItemList extends NotifiableItemStackHandler implements 
 
     @SaveField
     @Getter
+    @SyncToClient
     protected ExportOnlyAEItemSlot[] inventory;
 
     private @Nullable CustomItemStackHandler itemHandler;

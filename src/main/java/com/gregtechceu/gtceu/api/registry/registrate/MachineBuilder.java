@@ -57,7 +57,6 @@ import com.tterrag.registrate.util.entry.BlockEntry;
 import com.tterrag.registrate.util.nullness.NonNullBiConsumer;
 import com.tterrag.registrate.util.nullness.NonNullConsumer;
 import com.tterrag.registrate.util.nullness.NonNullUnaryOperator;
-import dev.latvian.mods.rhino.util.RemapPrefixForJS;
 import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import lombok.Getter;
@@ -74,7 +73,6 @@ import java.util.function.*;
 import static com.gregtechceu.gtceu.common.data.models.GTMachineModels.*;
 
 @SuppressWarnings("unused")
-@RemapPrefixForJS("kjs$")
 @Accessors(chain = true, fluent = true)
 public class MachineBuilder<DEFINITION extends MachineDefinition, TYPE extends MachineBuilder<DEFINITION, TYPE>> {
 
@@ -520,22 +518,6 @@ public class MachineBuilder<DEFINITION extends MachineDefinition, TYPE extends M
         return getThis();
     }
 
-    // KJS helpers for model property defaults
-    // These don't need to be copied to the multiblock builder because KJS doesn't care about the return type downgrade
-
-    public TYPE kjs$modelPropertyBool(Property<Boolean> property, boolean defaultValue) {
-        return modelProperty(property, defaultValue);
-    }
-
-    public TYPE kjs$modelPropertyInt(Property<Integer> property, int defaultValue) {
-        return modelProperty(property, defaultValue);
-    }
-
-    public <T extends Enum<T> & Comparable<T>> TYPE kjs$modelPropertyEnum(Property<T> property,
-                                                                          T defaultValue) {
-        return modelProperty(property, defaultValue);
-    }
-
     @Tolerate
     public TYPE modelProperties(Property<?>... properties) {
         return this.modelProperties(List.of(properties));
@@ -705,7 +687,6 @@ public class MachineBuilder<DEFINITION extends MachineDefinition, TYPE extends M
                             MachineModelBuilder<BlockModelBuilder> builder);
 
         default ModelInitializer andThen(ModelInitializer after) {
-            Objects.requireNonNull(after);
             return (ctx, prov, builder) -> {
                 this.configureModel(ctx, prov, builder);
                 after.configureModel(ctx, prov, builder);
@@ -713,7 +694,6 @@ public class MachineBuilder<DEFINITION extends MachineDefinition, TYPE extends M
         }
 
         default ModelInitializer andThen(Consumer<MachineModelBuilder<BlockModelBuilder>> after) {
-            Objects.requireNonNull(after);
             return (ctx, prov, builder) -> {
                 this.configureModel(ctx, prov, builder);
                 after.accept(builder);
@@ -721,7 +701,6 @@ public class MachineBuilder<DEFINITION extends MachineDefinition, TYPE extends M
         }
 
         default ModelInitializer compose(ModelInitializer before) {
-            Objects.requireNonNull(before);
             return (ctx, prov, builder) -> {
                 before.configureModel(ctx, prov, builder);
                 this.configureModel(ctx, prov, builder);
@@ -729,7 +708,6 @@ public class MachineBuilder<DEFINITION extends MachineDefinition, TYPE extends M
         }
 
         default ModelInitializer compose(UnaryOperator<MachineModelBuilder<BlockModelBuilder>> before) {
-            Objects.requireNonNull(before);
             return (ctx, prov, builder) -> this.configureModel(ctx, prov, before.apply(builder));
         }
     }

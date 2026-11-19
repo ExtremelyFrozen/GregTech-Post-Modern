@@ -4,6 +4,9 @@ title: Element 创建
 
 
 ## Element 创建
+!!! note "上游示例"
+    本页示例面向 GregTech CEu Modern。GTPM 1.21.1 的数据包和附属模组入口见[整合包制作](../index.md#upstream-kubejs)。
+
 !!! Note
     你只能添加元素周期表中尚不存在的 elements。
     对于这些 elements，请参见 GTElements。

@@ -4,6 +4,7 @@ import com.gregtechceu.gtceu.api.item.datacomponents.AoESymmetrical;
 import com.gregtechceu.gtceu.api.item.tool.ToolHelper;
 import com.gregtechceu.gtceu.api.item.tool.behavior.IToolBehavior;
 import com.gregtechceu.gtceu.api.item.tool.behavior.ToolBehaviorType;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 import com.gregtechceu.gtceu.common.data.GTToolBehaviors;
 
 import net.minecraft.core.BlockPos;
@@ -36,6 +37,11 @@ public class WaxOffBehavior implements IToolBehavior<WaxOffBehavior> {
     public static final WaxOffBehavior INSTANCE = new WaxOffBehavior();
     public static final Codec<WaxOffBehavior> CODEC = Codec.unit(INSTANCE);
     public static final StreamCodec<ByteBuf, WaxOffBehavior> STREAM_CODEC = StreamCodec.unit(INSTANCE);
+
+    static {
+        FieldCodecs.register(WaxOffBehavior.class, CODEC);
+        FieldCodecs.registerStream(WaxOffBehavior.class, STREAM_CODEC);
+    }
 
     protected WaxOffBehavior() {/**/}
 

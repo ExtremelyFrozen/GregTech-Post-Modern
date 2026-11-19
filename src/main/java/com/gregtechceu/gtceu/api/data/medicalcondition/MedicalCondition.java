@@ -1,6 +1,7 @@
 package com.gregtechceu.gtceu.api.data.medicalcondition;
 
 import com.gregtechceu.gtceu.GTCEu;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 import com.gregtechceu.gtceu.common.capability.MedicalConditionTracker;
 import com.gregtechceu.gtceu.data.recipe.builder.GTRecipeBuilder;
 import com.gregtechceu.gtceu.data.recipe.misc.AirScrubberRecipes;
@@ -26,6 +27,10 @@ public class MedicalCondition {
     public static final Map<String, MedicalCondition> CONDITIONS = new HashMap<>();
     public static final Codec<MedicalCondition> CODEC = Codec.stringResolver(MedicalCondition::getName,
             MedicalCondition.CONDITIONS::get);
+
+    static {
+        FieldCodecs.register(MedicalCondition.class, CODEC);
+    }
 
     @Getter
     public final String name;

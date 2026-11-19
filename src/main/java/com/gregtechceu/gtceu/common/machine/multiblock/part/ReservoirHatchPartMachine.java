@@ -6,9 +6,10 @@ import com.gregtechceu.gtceu.api.capability.recipe.IO;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableFluidTank;
 import com.gregtechceu.gtceu.api.transfer.fluid.CustomFluidTank;
 
-import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.world.level.material.Fluids;
 import net.neoforged.neoforge.fluids.FluidStack;
+
+import com.mojang.serialization.Codec;
 
 import java.util.Collections;
 
@@ -21,6 +22,10 @@ public class ReservoirHatchPartMachine extends FluidHatchPartMachine {
     public ReservoirHatchPartMachine(BlockEntityCreationInfo info) {
         super(info, GTValues.EV, IO.IN, FLUID_AMOUNT, 1);
     }
+
+    /** Reservoir definitions always reuse their compatible generic fluid hatch page. */
+
+    /** Reuses the reservoir-compatible generic page for one controller UI opening. */
 
     //////////////////////////////////
     // ****** Initialization ****** //
@@ -95,12 +100,8 @@ public class ReservoirHatchPartMachine extends FluidHatchPartMachine {
         }
 
         @Override
-        public DataComponentMap exportComponents() {
-            // Component persistence is unnecessary here. The tank can always be recreated full and will refill anyway.
-            return DataComponentMap.EMPTY;
+        public Codec<CustomFluidTank> codec() {
+            return Codec.unit(this);
         }
-
-        @Override
-        public void importComponents(DataComponentMap components) {}
     }
 }

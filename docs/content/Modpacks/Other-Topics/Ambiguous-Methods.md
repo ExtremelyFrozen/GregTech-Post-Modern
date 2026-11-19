@@ -3,6 +3,9 @@ title: Ambiguous Methods（歧义方法）
 ---
 
 ## Ambiguous Methods（歧义方法）
+!!! note "上游示例"
+    本页示例面向 GregTech CEu Modern。GTPM 1.21.1 的数据包和附属模组入口见[整合包制作](../index.md#upstream-kubejs)。
+
 有时在 KJS 中调用函数时会遇到 ambiguous methods。
 当存在多个 overloads（例如同名但类型不同的方法）且 KubeJS 无法根据你的参数判断应该调用哪个函数时，就会发生这种情况。
 
@@ -55,6 +58,8 @@ GTCEuStartupEvents.registry('gtceu:machine', event => {
 由于 JavaScript 索引的工作方式，`.foo` 和 `["foo"]` 是同一件事，因此之后仍然可以继续链式调用函数，因为它只是一个“普通”的 builder method，只是用更具体的方式调用。
 
 ## Ambiguous Constructors（歧义构造函数）
+
+为 GTPM 编写 Java 附属模组时，可以用 `GuiTextures.resource(...)` 创建资源纹理。下面的构造函数示例和报错来自上游的 KubeJS 与 Rhino 环境。
 尝试调用 constructor 时也可能遇到同样的问题。
 例如，当你这样写：
 ```js

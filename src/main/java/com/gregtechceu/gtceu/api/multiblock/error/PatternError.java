@@ -1,24 +1,23 @@
 package com.gregtechceu.gtceu.api.multiblock.error;
 
 import com.gregtechceu.gtceu.api.multiblock.MultiblockState;
-import com.gregtechceu.gtceu.api.multiblock.TraceabilityPredicate;
-import com.gregtechceu.gtceu.api.multiblock.predicates.SimplePredicate;
+import com.gregtechceu.gtceu.api.multiblock.structurepredicate.PatternPredicate;
+import com.gregtechceu.gtceu.api.multiblock.structurepredicate.PredicateRule;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 
+import lombok.Setter;
+
 import java.util.ArrayList;
 import java.util.List;
 
 public class PatternError {
 
+    @Setter
     protected MultiblockState worldState;
-
-    public void setWorldState(MultiblockState worldState) {
-        this.worldState = worldState;
-    }
 
     public Level getWorld() {
         return worldState.getWorld();
@@ -29,12 +28,12 @@ public class PatternError {
     }
 
     public List<List<ItemStack>> getCandidates() {
-        TraceabilityPredicate predicate = worldState.predicate;
+        PatternPredicate predicate = worldState.predicate;
         List<List<ItemStack>> candidates = new ArrayList<>();
-        for (SimplePredicate common : predicate.common) {
+        for (PredicateRule common : predicate.common) {
             candidates.add(common.getCandidates());
         }
-        for (SimplePredicate limited : predicate.limited) {
+        for (PredicateRule limited : predicate.limited) {
             candidates.add(limited.getCandidates());
         }
         return candidates;

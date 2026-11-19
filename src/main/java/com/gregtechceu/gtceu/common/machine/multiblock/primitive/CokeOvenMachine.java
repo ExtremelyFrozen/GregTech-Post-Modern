@@ -4,27 +4,33 @@ import com.gregtechceu.gtceu.api.GTValues;
 import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo;
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
-import com.gregtechceu.gtceu.api.gui.widget.SlotWidget;
-import com.gregtechceu.gtceu.api.gui.widget.TankWidget;
+import com.gregtechceu.gtceu.api.gui.element.GTFluidSlotElement;
+import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
+import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
+import com.gregtechceu.gtceu.api.gui.element.GTProgressBarElement;
+import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.machine.feature.IUIMachine;
 import com.gregtechceu.gtceu.config.ConfigHolder;
 import com.gregtechceu.gtceu.utils.ExtendedUseOnContext;
+import com.gregtechceu.gtceu.utils.FormattingUtil;
 
-import com.lowdragmc.lowdraglib.gui.modular.ModularUI;
-import com.lowdragmc.lowdraglib.gui.texture.GuiTextureGroup;
-import com.lowdragmc.lowdraglib.gui.texture.ProgressTexture;
-import com.lowdragmc.lowdraglib.gui.widget.LabelWidget;
-import com.lowdragmc.lowdraglib.gui.widget.ProgressWidget;
+import com.lowdragmc.lowdraglib2.gui.ui.UI;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
+import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.neoforged.neoforge.fluids.FluidUtil;
+
+import java.util.List;
 
 public class CokeOvenMachine extends PrimitiveWorkableMachine implements IUIMachine {
 
@@ -33,25 +39,75 @@ public class CokeOvenMachine extends PrimitiveWorkableMachine implements IUIMach
     }
 
     @Override
-    public ModularUI createUI(Player entityPlayer) {
-        return new ModularUI(176, 166, this, entityPlayer)
-                .background(GuiTextures.PRIMITIVE_BACKGROUND)
-                .widget(new LabelWidget(5, 5, getBlockState().getBlock().getDescriptionId()))
-                .widget(new SlotWidget(importItems.storage, 0, 52, 30, true, true)
-                        .setBackgroundTexture(
-                                new GuiTextureGroup(GuiTextures.PRIMITIVE_SLOT, GuiTextures.PRIMITIVE_FURNACE_OVERLAY)))
-                .widget(new ProgressWidget(recipeLogic::getProgressPercent, 76, 32, 20, 15,
-                        GuiTextures.PRIMITIVE_BLAST_FURNACE_PROGRESS_BAR))
-                .widget(new SlotWidget(exportItems.storage, 0, 103, 30, true, false)
-                        .setBackgroundTexture(
-                                new GuiTextureGroup(GuiTextures.PRIMITIVE_SLOT, GuiTextures.PRIMITIVE_FURNACE_OVERLAY)))
-                .widget(new TankWidget(exportFluids.getStorages()[0], 134, 13, 20, 58, true, false)
-                        .setBackground(GuiTextures.PRIMITIVE_LARGE_FLUID_TANK)
-                        .setFillDirection(ProgressTexture.FillDirection.DOWN_TO_UP)
-                        .setShowAmountOverlay(false)
-                        .setOverlay(GuiTextures.PRIMITIVE_LARGE_FLUID_TANK_OVERLAY))
-                .widget(UITemplate.bindPlayerInventory(entityPlayer.getInventory(), GuiTextures.PRIMITIVE_SLOT, 7, 84,
-                        true));
+    public UI createUI(Player player, MachineUIHolder holder) {
+        UIElement root = new UIElement();
+        UITemplate.setBounds(root, 0, 0, 176, 166);
+        root.style(style -> style.backgroundTexture(GuiTextures.PRIMITIVE_BACKGROUND));
+        root.addChild(createTitleLabel());
+        root.addChild(createInputSlot());
+        root.addChild(createProgressBar());
+        root.addChild(createOutputSlot());
+        root.addChild(createFluidTank());
+        root.addChild(UITemplate.bindPlayerInventory(player.getInventory(), GuiTextures.PRIMITIVE_SLOT, 7, 84,
+                true));
+        return UI.of(root);
+    }
+
+    private GTLabelElement createTitleLabel() {
+        GTLabelElement label = new GTLabelElement(5, 5, 166, 10,
+                getBlockState().getBlock().getDescriptionId(), true);
+        label.textStyle(style -> style
+                .textColor(0x404040)
+                .textShadow(false)
+                .textAlignHorizontal(Horizontal.LEFT)
+                .textAlignVertical(Vertical.CENTER));
+        return label;
+    }
+
+    private GTItemSlotElement createInputSlot() {
+        GTItemSlotElement slot = new GTItemSlotElement(importItems.storage, 0)
+                .setBackgroundTexture(GuiTextures.group(GuiTextures.PRIMITIVE_SLOT,
+                        GuiTextures.PRIMITIVE_FURNACE_OVERLAY))
+                .setCanTakeItems(true)
+                .setCanPutItems(true);
+        return UITemplate.setBounds(slot, 52, 30, 18, 18);
+    }
+
+    private GTProgressBarElement createProgressBar() {
+        GTProgressBarElement progress = new GTProgressBarElement(recipeLogic::getProgressPercent)
+                .setProgressTexture(
+                        GuiTextures.PRIMITIVE_BLAST_FURNACE_PROGRESS_BAR.getSubTexture(0, 0, 1, 0.5),
+                        GuiTextures.PRIMITIVE_BLAST_FURNACE_PROGRESS_BAR.getSubTexture(0, 0.5, 1, 0.5));
+        return UITemplate.setBounds(progress, 76, 32, 20, 15);
+    }
+
+    private GTItemSlotElement createOutputSlot() {
+        GTItemSlotElement slot = new GTItemSlotElement(exportItems.storage, 0)
+                .setBackgroundTexture(GuiTextures.group(GuiTextures.PRIMITIVE_SLOT,
+                        GuiTextures.PRIMITIVE_FURNACE_OVERLAY))
+                .setCanTakeItems(true)
+                .setCanPutItems(false);
+        return UITemplate.setBounds(slot, 103, 30, 18, 18);
+    }
+
+    private GTFluidSlotElement createFluidTank() {
+        GTFluidSlotElement tank = new GTFluidSlotElement()
+                .setFluidTank(exportFluids, 0)
+                .setBackgroundTexture(GuiTextures.PRIMITIVE_LARGE_FLUID_TANK)
+                .setShowAmount(false)
+                .setAllowClickFilled(false)
+                .setAllowClickDrained(false)
+                .setOnAddedTooltips(this::addFluidAmountTooltip)
+                .setContentOverlay(GuiTextures.PRIMITIVE_LARGE_FLUID_TANK_OVERLAY);
+        return UITemplate.setBounds(tank, 134, 13, 20, 58);
+    }
+
+    private void addFluidAmountTooltip(GTFluidSlotElement tank, List<Component> tooltips) {
+        int fluidAmount = tank.getFluid().getAmount();
+        int capacity = Math.max(tank.getCapacity(), fluidAmount);
+        tooltips.add(Component.translatable("gtpm.fluid.amount",
+                FormattingUtil.formatNumbers(fluidAmount),
+                FormattingUtil.formatNumbers(capacity)));
     }
 
     @Override

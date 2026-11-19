@@ -5,6 +5,9 @@ title: "添加与移除配方"
 
 # 添加与移除配方
 
+!!! note "上游示例"
+    本页示例面向 GregTech CEu Modern。GTPM 1.21.1 的数据包和附属模组入口见[整合包制作](../index.md#upstream-kubejs)。
+
 ## 移除配方
 
 用 KubeJS 移除 GregTech Post Modern 配方的方式与其他配方相同，可以按：
@@ -183,7 +186,7 @@ ServerEvents.recipes(event => {
 
 碎石机配方使用 AdjacentFluidConditions。
 
-要添加条件，可以使用 `adjacentFluids(Fluid...)` 方法，参见[其他 condition builder 方法](https://github.com/ExtremelyFrozen/GregTech-Post-Modern/blob/1.21/src/main/java/com/gregtechceu/gtceu/integration/kjs/recipe/GTRecipeSchema.java#L894)。
+在 GTPM 附属模组中，可以用 `GTRecipeBuilder.adjacentFluids(...)` 添加相邻流体条件。[GTRecipeBuilder](https://github.com/ExtremelyFrozen/GregTech-Post-Modern/blob/1.21/src/main/java/com/gregtechceu/gtceu/data/recipe/builder/GTRecipeBuilder.java)
 
 ```js title="rock_breaker.js"
 ServerEvents.recipes(event => {

@@ -1,40 +1,45 @@
 package com.gregtechceu.gtceu.common.machine.multiblock.part;
 
 import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo;
-import com.gregtechceu.gtceu.api.blockentity.IPaintable;
 import com.gregtechceu.gtceu.api.capability.recipe.IO;
 import com.gregtechceu.gtceu.api.cover.filter.FilterHandler;
 import com.gregtechceu.gtceu.api.cover.filter.FilterHandlers;
 import com.gregtechceu.gtceu.api.cover.filter.ItemFilter;
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
+import com.gregtechceu.gtceu.api.gui.UITemplate;
+import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
 import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
-import com.gregtechceu.gtceu.api.gui.widget.SlotWidget;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
 import com.gregtechceu.gtceu.api.machine.MachineDefinition;
 import com.gregtechceu.gtceu.api.machine.TickableSubscription;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CircuitFancyConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.DistinctPartConfigurator;
+import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
 import com.gregtechceu.gtceu.api.machine.feature.IHasCircuitSlot;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IDistinctPart;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.machine.multiblock.part.TieredIOPartMachine;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
+import com.gregtechceu.gtceu.api.sync_system.annotations.ServerFieldChangeListener;
+import com.gregtechceu.gtceu.api.sync_system.annotations.SyncBoth;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
 import com.gregtechceu.gtceu.common.data.GTMachines;
 import com.gregtechceu.gtceu.common.item.behavior.IntCircuitBehaviour;
 import com.gregtechceu.gtceu.config.ConfigHolder;
+import com.gregtechceu.gtceu.integration.xei.GTXEIHelper;
 import com.gregtechceu.gtceu.utils.ExtendedUseOnContext;
 import com.gregtechceu.gtceu.utils.GTTransferUtils;
 import com.gregtechceu.gtceu.utils.ISubscription;
 
-import com.lowdragmc.lowdraglib.gui.widget.Widget;
-import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
-import com.lowdragmc.lowdraglib.jei.IngredientIO;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 
 import lombok.AccessLevel;
@@ -42,7 +47,7 @@ import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
 
 public class ItemBusPartMachine extends TieredIOPartMachine
-                                implements IDistinctPart, IHasCircuitSlot, IPaintable {
+                                implements IDistinctPart, IHasCircuitSlot {
 
     @Getter
     @SaveField
@@ -62,7 +67,7 @@ public class ItemBusPartMachine extends TieredIOPartMachine
     protected final NotifiableItemStackHandler circuitInventory;
     @Getter
     @SaveField
-    @SyncToClient
+    @SyncBoth
     private boolean isDistinct = false;
     @SaveField
     @SyncToClient
@@ -135,9 +140,13 @@ public class ItemBusPartMachine extends TieredIOPartMachine
 
     @Override
     public void setDistinct(boolean distinct) {
-        isDistinct = (io != IO.OUT && distinct);
-        syncDataHolder.markClientSyncFieldDirty("isDistinct");
+        isDistinct = io != IO.OUT && distinct;
         getHandlerList().setDistinctAndNotify(isDistinct);
+    }
+
+    @ServerFieldChangeListener(fieldName = "isDistinct")
+    private void onDistinctChanged(boolean oldDistinct, boolean newDistinct) {
+        getHandlerList().setDistinctAndNotify(newDistinct);
     }
 
     @Override
@@ -173,7 +182,6 @@ public class ItemBusPartMachine extends TieredIOPartMachine
 
     public void setCircuitSlotEnabled(boolean enabled) {
         circuitSlotEnabled = enabled;
-        syncDataHolder.markClientSyncFieldDirty("circuitSlotEnabled");
     }
 
     //////////////////////////////////////
@@ -181,7 +189,7 @@ public class ItemBusPartMachine extends TieredIOPartMachine
     //////////////////////////////////////
 
     @Override
-    public void onNeighborChanged(net.minecraft.world.level.block.Block block, BlockPos fromPos, boolean isMoving) {
+    public void onNeighborChanged(Block block, BlockPos fromPos, boolean isMoving) {
         super.onNeighborChanged(block, fromPos, isMoving);
         updateInventorySubscription();
     }
@@ -223,8 +231,8 @@ public class ItemBusPartMachine extends TieredIOPartMachine
     }
 
     @Override
-    public void setWorkingEnabled(boolean workingEnabled) {
-        super.setWorkingEnabled(workingEnabled);
+    protected void onWorkingEnabledChanged() {
+        super.onWorkingEnabledChanged();
         updateInventorySubscription();
     }
 
@@ -270,43 +278,87 @@ public class ItemBusPartMachine extends TieredIOPartMachine
     // ********** GUI ***********//
     //////////////////////////////////////
 
-    public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
-        if (this.io.support(IO.OUT)) {
-            IDistinctPart.super.superAttachConfigurators(configuratorPanel);
-        } else if (this.io.support(IO.IN)) {
-            IDistinctPart.super.attachConfigurators(configuratorPanel);
-            if (hasCircuitSlot && isCircuitSlotEnabled()) {
-                configuratorPanel.attachConfigurators(new CircuitFancyConfigurator(circuitInventory.storage));
+    /**
+     * Determines whether this definition may reuse the generic holder-scoped LDLib2 Item Bus page.
+     */
+
+    int getInventoryPageWidth() {
+        return 18 * getRowSize() + 16;
+    }
+
+    int getInventoryPageHeight() {
+        return 18 * getColumnSize() + 16;
+    }
+
+    private int getRowSize() {
+        return getInventorySize() == 8 ? 4 : (int) Math.sqrt(getInventorySize());
+    }
+
+    private int getColumnSize() {
+        return getInventorySize() == 8 ? 2 : (int) Math.sqrt(getInventorySize());
+    }
+
+    private GTItemSlotElement createInventorySlot(int index, int x, int y) {
+        GTItemSlotElement slot = new GTItemSlotElement(getInventory().storage, index)
+                .setCanPutItems(io.support(IO.IN))
+                .setCanTakeItems(true)
+                .setBackgroundTexture(GuiTextures.SLOT)
+                .setIngredientIO(io.support(IO.IN) ? GTXEIHelper.input() : GTXEIHelper.output());
+        return UITemplate.setBounds(slot, x, y, 18, 18);
+    }
+
+    /**
+     * Captures the validated opening-scoped holder for all Item Bus page actions and contextual tabs.
+     */
+
+    @Override
+    public UIElement createUIWidget(FancyMachineUIWidget shell) {
+        int rowSize = getRowSize();
+        int columnSize = getColumnSize();
+        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0,
+                getInventoryPageWidth(), getInventoryPageHeight());
+        UIElement container = UITemplate.setBounds(new UIElement(), 4, 4,
+                18 * rowSize + 8, 18 * columnSize + 8);
+        UITemplate.setBackgroundTexture(container, GuiTextures.BACKGROUND_INVERSE);
+
+        int index = 0;
+        for (int y = 0; y < columnSize; y++) {
+            for (int x = 0; x < rowSize; x++) {
+                container.addChild(createInventorySlot(index++, 4 + x * 18, 4 + y * 18));
             }
         }
+
+        if (io == IO.OUT) {
+            UIElement filterSlot = filterHandler.createFilterSlotUI(
+                    71 + (18 * rowSize) / 2, 35 + 9 * rowSize);
+            filterSlot.style(style -> style.tooltips(Component.translatable("cover.item_filter.title")));
+            root.addChild(filterSlot);
+        }
+        root.addChild(container);
+        return root;
     }
 
     @Override
-    public Widget createUIWidget() {
-        int rowSize = (int) Math.sqrt(getInventorySize());
-        int colSize = rowSize;
-        if (getInventorySize() == 8) {
-            rowSize = 4;
-            colSize = 2;
-        }
-        var group = new WidgetGroup(0, 0, 18 * rowSize + 16, 18 * colSize + 16);
-        var container = new WidgetGroup(4, 4, 18 * rowSize + 8, 18 * colSize + 8);
-        int index = 0;
-        if (this.io == IO.OUT) {
-            group.addWidget(filterHandler.createFilterSlotUI(71 + (18 * rowSize) / 2, 35 + 9 * rowSize)
-                    .setHoverTooltips(Component.translatable("cover.item_filter.title")));
-        }
-        for (int y = 0; y < colSize; y++) {
-            for (int x = 0; x < rowSize; x++) {
-                container.addWidget(
-                        new SlotWidget(getInventory().storage, index++, 4 + x * 18, 4 + y * 18, true, io.support(IO.IN))
-                                .setBackgroundTexture(GuiTextures.SLOT)
-                                .setIngredientIO(this.io.support(IO.IN) ? IngredientIO.INPUT : IngredientIO.OUTPUT));
-            }
-        }
+    public int getPageWidth() {
+        return ItemBusPartMachine.this.getInventoryPageWidth();
+    }
 
-        container.setBackground(GuiTextures.BACKGROUND_INVERSE);
-        group.addWidget(container);
-        return group;
+    @Override
+    public int getPageHeight() {
+        return ItemBusPartMachine.this.getInventoryPageHeight();
+    }
+
+    @Override
+    public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
+        configuratorPanel.attachConfigurators(new WorkingEnabledConfigurator(
+                ItemBusPartMachine.this));
+        if (io != IO.IN) {
+            return;
+        }
+        DistinctPartConfigurator.attachConfigurators(configuratorPanel, ItemBusPartMachine.this);
+        if (isHasCircuitSlot() && isCircuitSlotEnabled()) {
+            configuratorPanel.attachConfigurators(new CircuitFancyConfigurator(
+                    ItemBusPartMachine.this));
+        }
     }
 }

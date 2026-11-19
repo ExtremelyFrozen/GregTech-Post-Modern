@@ -5,6 +5,9 @@ title: "Bedrock Ore Veins（基岩矿脉）"
 
 # Bedrock Ore Veins（基岩矿脉）
 
+!!! note "上游示例"
+    本页示例面向 GregTech CEu Modern。GTPM 1.21.1 的数据包和附属模组入口见[整合包制作](../index.md#upstream-kubejs)。
+
 虽然默认未启用，但 GregTech Post Modern 包含 bedrock ore veins 和 bedrock ore miners。
 
 要启用此功能，需要启用配置选项 **Machines -> doBedrockOres** 并重启游戏。

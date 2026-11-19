@@ -4,11 +4,16 @@ import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.sync_system.annotations.ClientFieldChangeListener
 import com.gregtechceu.gtceu.api.sync_system.annotations.ItemSave
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField
+import com.gregtechceu.gtceu.api.sync_system.annotations.ServerFieldChangeListener
+import com.gregtechceu.gtceu.api.sync_system.annotations.ServerFieldNormalizer
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncBoth
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToServer
 import com.gregtechceu.gtceu.api.sync_system.managed.ISyncAnnotated
 import com.gregtechceu.gtceu.api.sync_system.managed.ISyncManaged
+import com.gregtechceu.gtceu.api.sync_system.serialization.CollectionCodecs
+
+import net.minecraft.resources.ResourceLocation
 
 import com.mojang.serialization.Codec
 import it.unimi.dsi.fastutil.objects.ObjectArrayList
@@ -16,9 +21,10 @@ import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet
 
 import java.lang.invoke.MethodHandle
 import java.lang.invoke.MethodHandles
+import java.lang.reflect.Field
+import java.lang.reflect.Method
 import java.lang.reflect.Modifier
 import java.util.Comparator
-import java.util.Objects
 
 /**
  * Static data for [com.gregtechceu.gtceu.api.sync_system.managed.ISyncManaged] classes.
@@ -54,28 +60,55 @@ class ClassSyncData private constructor(clazz: Class<*>) {
 
 		val changeListeners = HashMap<String, MutableList<MethodHandle>>()
 		val clientListenerTargets = HashSet<String>()
+		val serverNormalizerMethods = HashMap<String, Method>()
+		val serverChangeListenerMethods = HashMap<String, Method>()
 
 		for (method in clazz.declaredMethods) {
-			val listener = method.getAnnotation(ClientFieldChangeListener::class.java) ?: continue
+			val clientListener = method.getAnnotation(ClientFieldChangeListener::class.java)
+			if (clientListener != null) {
+				if (Modifier.isStatic(method.modifiers)) {
+					throw IllegalArgumentException("Cannot apply syncdata annotation to static method: ${clazz.name}.${method.name}")
+				}
 
-			if (Modifier.isStatic(method.modifiers)) {
-				throw IllegalArgumentException("Cannot apply syncdata annotation to static method: ${clazz.name}.${method.name}")
+				val handle = try {
+					privateLookup.unreflect(method)
+				} catch (e: IllegalAccessException) {
+					GTCEu.LOGGER.error("Sync: Failed to acquire method handle for method {} {}", method.name, clazz.name)
+					GTCEu.LOGGER.error(e)
+					continue
+				}
+
+				for (fieldName in clientListener.fieldName) {
+					changeListeners.computeIfAbsent(fieldName) { ObjectArrayList() }.add(handle)
+					clientListenerTargets.add(fieldName)
+				}
 			}
 
-			val handle = try {
-				privateLookup.unreflect(method)
-			} catch (e: IllegalAccessException) {
-				GTCEu.LOGGER.error("Sync: Failed to acquire method handle for method {} {}", method.name, clazz.name)
-				GTCEu.LOGGER.error(e)
-				continue
+			val normalizer = method.getAnnotation(ServerFieldNormalizer::class.java)
+			if (normalizer != null) {
+				validateServerMethodDeclaration(clazz, method, "@ServerFieldNormalizer")
+				for (fieldName in normalizer.fieldName) {
+					val previous = serverNormalizerMethods.put(fieldName, method)
+					if (previous != null) {
+						throw IllegalArgumentException(
+							"Duplicate @ServerFieldNormalizer for ${clazz.name}.$fieldName: ${previous.name}, ${method.name}",
+						)
+					}
+				}
 			}
 
-			if (listener.fieldName.isBlank()) {
-				throw IllegalArgumentException("@ClientFieldChangeListener requires a non-blank fieldName: ${clazz.name}.${method.name}")
+			val serverListener = method.getAnnotation(ServerFieldChangeListener::class.java)
+			if (serverListener != null) {
+				validateServerMethodDeclaration(clazz, method, "@ServerFieldChangeListener")
+				for (fieldName in serverListener.fieldName) {
+					val previous = serverChangeListenerMethods.put(fieldName, method)
+					if (previous != null) {
+						throw IllegalArgumentException(
+							"Duplicate @ServerFieldChangeListener for ${clazz.name}.$fieldName: ${previous.name}, ${method.name}",
+						)
+					}
+				}
 			}
-
-			changeListeners.computeIfAbsent(listener.fieldName) { ArrayList() }.add(handle)
-			clientListenerTargets.add(listener.fieldName)
 		}
 
 		val localFieldsByName = HashMap<String, FieldSyncData>()
@@ -95,6 +128,11 @@ class ClassSyncData private constructor(clazz: Class<*>) {
 			if (Modifier.isStatic(field.modifiers)) {
 				throw IllegalArgumentException("Cannot apply syncdata annotations to static field: ${field.declaringClass.name}.${field.name}")
 			}
+			if ((hasServerSync || hasSyncBoth) && Modifier.isFinal(field.modifiers) && !CollectionCodecs.isContainer(field.genericType)) {
+				throw IllegalArgumentException(
+					"@SyncToServer and @SyncBoth require a writable field: ${field.declaringClass.name}.${field.name}",
+				)
+			}
 
 			val handle = try {
 				privateLookup.unreflectVarHandle(field)
@@ -103,7 +141,35 @@ class ClassSyncData private constructor(clazz: Class<*>) {
 				throw e
 			}
 
-			val syncData = FieldSyncData(field, handle, changeListeners.getOrDefault(field.name, listOf()))
+			val normalizerMethod = serverNormalizerMethods.remove(field.name)
+			val serverChangeListenerMethod = serverChangeListenerMethods.remove(field.name)
+			if (normalizerMethod != null && !hasSyncBoth) {
+				throw IllegalArgumentException(
+					"@ServerFieldNormalizer requires @SyncBoth for authoritative acknowledgements: ${clazz.name}.${field.name}",
+				)
+			}
+			if (serverChangeListenerMethod != null && !hasServerSync && !hasSyncBoth) {
+				throw IllegalArgumentException(
+					"@ServerFieldChangeListener requires @SyncToServer or @SyncBoth: ${clazz.name}.${field.name}",
+				)
+			}
+			val normalizerHandle = normalizerMethod?.let {
+				validateNormalizerSignature(clazz, field, it)
+				unreflectServerMethod(privateLookup, clazz, it, "@ServerFieldNormalizer")
+			}
+			val serverChangeListenerHandle = serverChangeListenerMethod?.let {
+				validateServerListenerSignature(clazz, field, it)
+				val listener = unreflectServerMethod(privateLookup, clazz, it, "@ServerFieldChangeListener")
+				if (it.parameterCount == 0) MethodHandles.dropArguments(listener, 1, field.type, field.type) else listener
+			}
+
+			val syncData = FieldSyncData(
+				field,
+				handle,
+				changeListeners.getOrDefault(field.name, listOf()),
+				normalizerHandle,
+				serverChangeListenerHandle,
+			)
 			if (localFieldsByName.put(syncData.fieldName, syncData) != null) {
 				throw IllegalArgumentException("Duplicate managed field name in ${clazz.name}: ${syncData.fieldName}")
 			}
@@ -117,7 +183,7 @@ class ClassSyncData private constructor(clazz: Class<*>) {
 				serverSaveFields.add(syncData)
 			}
 			if (hasItemSave) {
-				checkDuplicateKey(localItemKeys, syncData.itemDataName, clazz, "item")
+				checkDuplicateKey(localItemKeys, syncData.nbtSaveKey, clazz, "item")
 				itemSaveFields.add(syncData)
 			}
 			if (hasServerSync) {
@@ -135,6 +201,15 @@ class ClassSyncData private constructor(clazz: Class<*>) {
 			}
 		}
 
+		if (serverNormalizerMethods.isNotEmpty()) {
+			val fieldName = serverNormalizerMethods.keys.minOf { it }
+			throw IllegalArgumentException("@ServerFieldNormalizer targets unknown field: ${clazz.name}.$fieldName")
+		}
+		if (serverChangeListenerMethods.isNotEmpty()) {
+			val fieldName = serverChangeListenerMethods.keys.minOf { it }
+			throw IllegalArgumentException("@ServerFieldChangeListener targets unknown field: ${clazz.name}.$fieldName")
+		}
+
 		val parent = clazz.superclass
 		if (parent != null && (ISyncManaged::class.java.isAssignableFrom(parent) || ISyncAnnotated::class.java.isAssignableFrom(parent))) {
 			val parentHandles = CACHE.get(parent)
@@ -146,6 +221,7 @@ class ClassSyncData private constructor(clazz: Class<*>) {
 			bothSyncFields.addAll(parentHandles.bothSyncFields)
 			serverUpdateFields.addAll(parentHandles.serverUpdateFields)
 		}
+		validateUniqueServerUpdateComponentKeys(clazz, serverUpdateFields)
 
 		for (fieldName in clientListenerTargets) {
 			val localField = localFieldsByName[fieldName]
@@ -193,7 +269,7 @@ class ClassSyncData private constructor(clazz: Class<*>) {
 	 */
 	fun setCustomCodecForField(fieldName: String, codec: Codec<*>) {
 		managedFields.stream()
-			.filter { f -> Objects.equals(f.fieldName, fieldName) }
+			.filter { f -> f.fieldName == fieldName }
 			.findFirst()
 			.ifPresent { fieldData -> fieldData.setCodec(codec) }
 	}
@@ -206,7 +282,7 @@ class ClassSyncData private constructor(clazz: Class<*>) {
 	 */
 	fun setCustomContextualCodecForField(fieldName: String, codec: ContextualFieldCodec<*>) {
 		managedFields.stream()
-			.filter { f -> Objects.equals(f.fieldName, fieldName) }
+			.filter { f -> f.fieldName == fieldName }
 			.findFirst()
 			.ifPresent { fieldData -> fieldData.setContextualCodec(codec) }
 	}
@@ -222,6 +298,53 @@ class ClassSyncData private constructor(clazz: Class<*>) {
 		 */
 		@JvmStatic
 		fun getClassData(cls: Class<*>): ClassSyncData = CACHE.get(cls)
+
+		private fun validateServerMethodDeclaration(clazz: Class<*>, method: Method, annotationName: String) {
+			if (Modifier.isStatic(method.modifiers)) {
+				throw IllegalArgumentException("$annotationName cannot target a static method: ${clazz.name}.${method.name}")
+			}
+		}
+
+		private fun validateNormalizerSignature(clazz: Class<*>, field: Field, method: Method) {
+			if (method.parameterCount != 1 || method.parameterTypes[0] != field.type || method.returnType != field.type) {
+				throw IllegalArgumentException(
+					"@ServerFieldNormalizer must have signature ${field.type.typeName} ${method.name}(${field.type.typeName}) for ${clazz.name}.${field.name}",
+				)
+			}
+		}
+
+		private fun validateServerListenerSignature(clazz: Class<*>, field: Field, method: Method) {
+			if (
+				method.returnType != Void.TYPE ||
+				(method.parameterCount != 0 && !method.parameterTypes.contentEquals(arrayOf(field.type, field.type)))
+			) {
+				throw IllegalArgumentException(
+					"@ServerFieldChangeListener must return void and accept no arguments or (${field.type.typeName}, ${field.type.typeName}) for ${clazz.name}.${field.name}",
+				)
+			}
+		}
+
+		private fun unreflectServerMethod(privateLookup: MethodHandles.Lookup, clazz: Class<*>, method: Method, annotationName: String): MethodHandle = try {
+			privateLookup.unreflect(method)
+		} catch (e: IllegalAccessException) {
+			GTCEu.LOGGER.error("Sync: Failed to acquire $annotationName method handle for {} {}", method.name, clazz.name, e)
+			throw e
+		}
+
+		private fun validateUniqueServerUpdateComponentKeys(owner: Class<*>, fields: Set<FieldSyncData>) {
+			val fieldsByKey = HashMap<ResourceLocation, FieldSyncData>()
+			for (field in fields) {
+				val previous = fieldsByKey.put(field.componentKey, field)
+				if (previous != null) {
+					throw IllegalArgumentException(
+						"Duplicate server update component key ${field.componentKey} in ${owner.name}: " +
+							"${describeServerUpdateField(previous)} conflicts with ${describeServerUpdateField(field)}",
+					)
+				}
+			}
+		}
+
+		private fun describeServerUpdateField(field: FieldSyncData): String = "${field.handle.coordinateTypes().first().name}.${field.fieldName}"
 
 		private fun checkDuplicateKey(keys: MutableSet<String>, key: String, owner: Class<*>, kind: String) {
 			if (!keys.add(key)) {

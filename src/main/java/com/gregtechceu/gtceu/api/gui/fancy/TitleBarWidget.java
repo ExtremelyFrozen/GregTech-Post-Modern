@@ -1,116 +1,136 @@
 package com.gregtechceu.gtceu.api.gui.fancy;
 
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
+import com.gregtechceu.gtceu.api.gui.UITemplate;
+import com.gregtechceu.gtceu.api.gui.element.GTButtonElement;
+import com.gregtechceu.gtceu.api.gui.element.GTImageElement;
+import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
+import com.gregtechceu.gtceu.api.gui.texture.TextTexture;
 
-import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
-import com.lowdragmc.lowdraglib.gui.texture.TextTexture;
-import com.lowdragmc.lowdraglib.gui.util.ClickData;
-import com.lowdragmc.lowdraglib.gui.widget.ButtonWidget;
-import com.lowdragmc.lowdraglib.gui.widget.ImageWidget;
-import com.lowdragmc.lowdraglib.gui.widget.Widget;
-import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
-import com.lowdragmc.lowdraglib.utils.Position;
-import com.lowdragmc.lowdraglib.utils.Size;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
+import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 
-import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
 
 import java.util.function.Consumer;
 
-public class TitleBarWidget extends WidgetGroup {
+/**
+ * LDLib2 title bar for Fancy pages.
+ */
+public class TitleBarWidget extends UIElement {
 
     private static final int BORDER_SIZE = 3;
     private static final int HORIZONTAL_MARGIN = 8;
     private static final int HEIGHT = 16;
-    private static final int BTN_WIDTH = 18;
-
+    private static final int BUTTON_WIDTH = 18;
+    private static final int TITLE_COLOR = 0x000000;
     private static final float ROLL_SPEED = 0.7f;
 
+    private final int innerHeight = HEIGHT - BORDER_SIZE;
+    private final UIElement buttonGroup;
+    private final GTButtonElement backButton;
+    private final GTButtonElement menuButton;
+    private final UIElement mainSection;
+    private final GTImageElement tabIcon;
+    private final GTImageElement tabTitle;
+
     private int width;
-    private boolean showBackButton = false;
-    private boolean showMenuButton = false;
-    private final int innerHeight;
+    private boolean showBackButton;
+    private boolean showMenuButton;
+    private TextTexture titleText = GuiTextures.text("");
 
-    /**
-     * The button group is rendered behind the main section and contains the back and menu buttons.
-     * <p>
-     * For easier texture reuse, the background is applied to the group itself, instead of the individual buttons.<br>
-     * The button group therefore needs to be rendered behind the main section.
-     */
-    private final WidgetGroup buttonGroup;
-    private final Widget backButton;
-    private final Widget menuButton;
+    public TitleBarWidget(int parentWidth, Consumer<UIEvent> onBackClicked,
+                          Consumer<UIEvent> onMenuClicked) {
+        UITemplate.setBounds(this, HORIZONTAL_MARGIN, -HEIGHT, parentWidth, HEIGHT);
+        style(style -> style.overflowVisible(true));
+        this.width = parentWidth - 2 * HORIZONTAL_MARGIN;
 
-    /**
-     * The main section contains the current tab's icon and title text
-     */
-    private final WidgetGroup mainSection;
-    private final ImageWidget tabIcon;
-    private final ImageWidget tabTitle;
-    private TextTexture titleText;
+        this.buttonGroup = UITemplate.setBounds(new UIElement(), 0, BORDER_SIZE, width, innerHeight);
+        UITemplate.setBackgroundTexture(buttonGroup, GuiTextures.TITLE_BAR_BACKGROUND);
+        addChild(buttonGroup);
 
-    public TitleBarWidget(int parentWidth, Consumer<ClickData> onBackClicked, Consumer<ClickData> onMenuClicked) {
-        super(HORIZONTAL_MARGIN, -HEIGHT, parentWidth, HEIGHT);
-        this.innerHeight = HEIGHT - BORDER_SIZE;
-        this.width = parentWidth - (2 * HORIZONTAL_MARGIN);
+        this.backButton = createTextButton(0, onBackClicked, Component.literal("<"),
+                Component.translatable("gtpm.gui.title_bar.back"));
+        this.menuButton = createTextButton(width - BUTTON_WIDTH, onMenuClicked, Component.literal("+"),
+                Component.translatable("gtpm.gui.title_bar.page_switcher"));
+        buttonGroup.addChildren(backButton, menuButton);
 
-        addWidget(this.buttonGroup = new WidgetGroup(0, BORDER_SIZE, width, innerHeight));
-        buttonGroup.setBackground(GuiTextures.TITLE_BAR_BACKGROUND);
-        buttonGroup.addWidget(this.backButton = new ButtonWidget(0, BORDER_SIZE, BTN_WIDTH, HEIGHT - BORDER_SIZE,
-                new TextTexture(" <").setDropShadow(false).setColor(ChatFormatting.BLACK.getColor()), onBackClicked)
-                .setHoverTooltips("gtpm.gui.title_bar.back"));
-        buttonGroup.addWidget(this.menuButton = new ButtonWidget(width - BTN_WIDTH, BORDER_SIZE, BTN_WIDTH,
-                HEIGHT - BORDER_SIZE,
-                new TextTexture("+").setDropShadow(false).setColor(ChatFormatting.BLACK.getColor()), onMenuClicked)
-                .setHoverTooltips("gtpm.gui.title_bar.page_switcher"));
+        this.mainSection = UITemplate.setBounds(new UIElement(), BUTTON_WIDTH, 0, width, HEIGHT);
+        UITemplate.setBackgroundTexture(mainSection, GuiTextures.TITLE_BAR_BACKGROUND);
+        addChild(mainSection);
 
-        addWidget(this.mainSection = new WidgetGroup(BTN_WIDTH, 0, width, HEIGHT));
-        mainSection.setBackground(GuiTextures.TITLE_BAR_BACKGROUND);
-        mainSection.addWidget(this.tabIcon = new ImageWidget(
-                BORDER_SIZE + 1, BORDER_SIZE + 1,
-                innerHeight - 2, innerHeight - 2,
-                IGuiTexture.EMPTY));
-        mainSection.addWidget(this.tabTitle = new ImageWidget(
-                BORDER_SIZE + innerHeight, BORDER_SIZE, 0, 0, IGuiTexture.EMPTY));
+        this.tabIcon = new GTImageElement(BORDER_SIZE + 1, BORDER_SIZE + 1,
+                innerHeight - 2, innerHeight - 2, IGuiTexture.EMPTY);
+        this.tabTitle = new GTImageElement(BORDER_SIZE + innerHeight, BORDER_SIZE, 0, HEIGHT - BORDER_SIZE,
+                IGuiTexture.EMPTY);
+        tabIcon.setAllowHitTest(false);
+        tabTitle.setAllowHitTest(false);
+        mainSection.addChildren(tabIcon, tabTitle);
     }
 
     public void updateState(IFancyUIProvider currentPage, boolean showBackButton, boolean showMenuButton) {
         this.showBackButton = showBackButton;
         this.showMenuButton = showMenuButton;
 
-        titleText = new TextTexture(ChatFormatting.BLACK + currentPage.getTitle().copy().getString())
+        titleText = GuiTextures.text(currentPage.getTitle().copy().getString())
                 .setDropShadow(false)
+                .setColor(TITLE_COLOR)
                 .setType(TextTexture.TextType.ROLL);
         titleText.setRollSpeed(ROLL_SPEED);
 
-        tabIcon.setImage(currentPage.getTabIcon());
-        tabTitle.setImage(titleText);
+        tabIcon.setTexture(currentPage.getTabIcon());
+        tabTitle.setTexture(titleText);
 
         backButton.setVisible(showBackButton);
         backButton.setActive(showBackButton);
-
         menuButton.setVisible(showMenuButton);
         menuButton.setActive(showMenuButton);
 
-        onSizeUpdate();
+        resize(getSizeWidthValue() + 2 * HORIZONTAL_MARGIN);
     }
 
-    @Override
-    protected void onSizeUpdate() {
-        this.width = getSize().getWidth() - (2 * HORIZONTAL_MARGIN);
+    public void resize(int parentWidth) {
+        this.width = parentWidth - 2 * HORIZONTAL_MARGIN;
+        UITemplate.setBounds(this, HORIZONTAL_MARGIN, -HEIGHT, parentWidth, HEIGHT);
 
-        var hiddenButtons = 2;
-        if (showBackButton) hiddenButtons--;
-        if (showMenuButton) hiddenButtons--;
+        int hiddenButtons = 2;
+        if (showBackButton) {
+            hiddenButtons--;
+        }
+        if (showMenuButton) {
+            hiddenButtons--;
+        }
 
-        int buttonGroupWidth = this.width - (BTN_WIDTH * hiddenButtons);
-        buttonGroup.setSize(new Size(buttonGroupWidth, innerHeight));
-        buttonGroup.setSelfPosition(new Position(showBackButton ? 0 : BTN_WIDTH, BORDER_SIZE));
-        menuButton.setSelfPosition(new Position(buttonGroupWidth - BTN_WIDTH, BORDER_SIZE));
+        int buttonGroupWidth = this.width - BUTTON_WIDTH * hiddenButtons;
+        UITemplate.setBounds(buttonGroup, showBackButton ? 0 : BUTTON_WIDTH, BORDER_SIZE,
+                buttonGroupWidth, innerHeight);
+        UITemplate.setBounds(menuButton, buttonGroupWidth - BUTTON_WIDTH, 0, BUTTON_WIDTH, innerHeight);
 
-        int mainSectionWidth = this.width - (BTN_WIDTH * 2);
-        int titleWidth = mainSectionWidth - (2 * BORDER_SIZE) - innerHeight;
-        mainSection.setSize(new Size(mainSectionWidth, HEIGHT));
+        int mainSectionWidth = this.width - BUTTON_WIDTH * 2;
+        int titleWidth = mainSectionWidth - 2 * BORDER_SIZE - innerHeight;
+        UITemplate.setBounds(mainSection, BUTTON_WIDTH, 0, mainSectionWidth, HEIGHT);
+        UITemplate.setBounds(tabTitle, BORDER_SIZE + innerHeight, BORDER_SIZE, titleWidth,
+                HEIGHT - BORDER_SIZE);
         titleText.setWidth(titleWidth);
-        tabTitle.setSize(new Size(titleWidth, HEIGHT - BORDER_SIZE));
+    }
+
+    private int getSizeWidthValue() {
+        return width;
+    }
+
+    private static GTButtonElement createTextButton(int x, Consumer<UIEvent> clickHandler, Component text,
+                                                    Component tooltip) {
+        GTButtonElement button = new GTButtonElement(x, 0, BUTTON_WIDTH, HEIGHT - BORDER_SIZE,
+                IGuiTexture.EMPTY, clickHandler);
+        button.setText(text);
+        button.textStyle(style -> style
+                .textColor(TITLE_COLOR)
+                .textShadow(false)
+                .textAlignHorizontal(Horizontal.CENTER)
+                .textAlignVertical(Vertical.CENTER));
+        button.style(style -> style.tooltips(tooltip));
+        return button;
     }
 }

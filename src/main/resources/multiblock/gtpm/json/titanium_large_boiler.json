@@ -1,0 +1,110 @@
+{
+	"machine": "gtpm:titanium_large_boiler",
+	"axes": {
+		"depth": "front",
+		"height": "up",
+		"width": "left"
+	},
+	"orientation": {
+		"allowMirror": false,
+		"allowExtendedFacing": false
+	},
+	"origin": {
+		"token": "controller"
+	},
+	"parameters": {},
+	"fragments": {},
+	"predicates": {
+		"P": {
+			"type": "gtpm:block",
+			"ids": "gtpm:titanium_pipe_casing"
+		},
+		"X": {
+			"type": "gtpm:concatenated",
+			"predicates": [
+				{
+					"type": "gtpm:restricted",
+					"predicate": {
+						"type": "gtpm:block",
+						"ids": "gtpm:titanium_firebox_casing"
+					},
+					"minCount": 3
+				},
+				{
+					"type": "gtpm:restricted",
+					"predicate": {
+						"type": "gtpm:part",
+						"abilities": "import_fluids"
+					},
+					"minCount": 1,
+					"previewCount": 1
+				},
+				{
+					"type": "gtpm:restricted",
+					"predicate": {
+						"type": "gtpm:part",
+						"abilities": "import_items"
+					},
+					"maxCount": 1,
+					"previewCount": 1
+				},
+				{
+					"type": "gtpm:restricted",
+					"predicate": {
+						"type": "gtpm:part",
+						"abilities": "muffler"
+					},
+					"minCount": 1,
+					"maxCount": 1
+				},
+				{
+					"type": "gtpm:auto_maintenance",
+					"checkMaintenance": true,
+					"checkMuffler": false,
+					"checkParallel": false
+				}
+			]
+		},
+		"C": {
+			"type": "gtpm:concatenated",
+			"predicates": [
+				{
+					"type": "gtpm:restricted",
+					"predicate": {
+						"type": "gtpm:block",
+						"ids": "gtpm:stable_machine_casing"
+					},
+					"minCount": 20
+				},
+				{
+					"type": "gtpm:restricted",
+					"predicate": {
+						"type": "gtpm:part",
+						"abilities": "export_fluids"
+					},
+					"minCount": 1,
+					"previewCount": 1
+				}
+			]
+		}
+	},
+	"body": {
+		"type": "sequence",
+		"axis": "depth",
+		"children": [
+			{
+				"type": "fixed",
+				"layers": [["XXX", "CCC", "CCC", "CCC"]]
+			},
+			{
+				"type": "fixed",
+				"layers": [["XXX", "CPC", "CPC", "CCC"]]
+			},
+			{
+				"type": "fixed",
+				"layers": [["XXX", "C~C", "CCC", "CCC"]]
+			}
+		]
+	},
+	"constraints": []
+}

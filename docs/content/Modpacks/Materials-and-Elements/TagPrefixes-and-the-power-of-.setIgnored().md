@@ -5,6 +5,9 @@ title: "TagPrefixes 与 .setIgnored()"
 
 # TagPrefixes 与 `.setIgnored()` 的作用
 
+!!! note "上游示例"
+    本页示例面向 GregTech CEu Modern。GTPM 1.21.1 的数据包和附属模组入口见[整合包制作](../index.md#upstream-kubejs)。
+
 ## 什么是 TagPrefix？
 
 TagPrefixes 是 GregTech Post Modern 用来简化给 Materials 应用物品和方块 tags 的方式，同时还承担一些其他

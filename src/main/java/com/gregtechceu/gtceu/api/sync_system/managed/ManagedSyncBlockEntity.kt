@@ -2,13 +2,17 @@ package com.gregtechceu.gtceu.api.sync_system.managed
 
 import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo
-import com.gregtechceu.gtceu.api.sync_system.SyncDataHolder
+import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder
+import com.gregtechceu.gtceu.api.machine.MetaMachine
+import com.gregtechceu.gtceu.api.sync_system.SyncFieldData
 import com.gregtechceu.gtceu.common.network.packets.CPacketMachineSyncToServer
 import com.gregtechceu.gtceu.common.network.packets.SPacketMachineSyncToClient
 
+import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerMenu
+
 import net.minecraft.core.BlockPos
 import net.minecraft.core.HolderLookup
-import net.minecraft.core.component.DataComponentMap
+import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.nbt.NbtOps
 import net.minecraft.network.Connection
@@ -23,10 +27,9 @@ import net.minecraft.world.level.block.entity.BlockEntityType
 import net.minecraft.world.level.block.state.BlockState
 import net.neoforged.neoforge.network.PacketDistributor
 
+import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet
 import org.jetbrains.annotations.MustBeInvokedByOverriders
 import org.jetbrains.annotations.Nullable
-
-import java.util.*
 
 /**
  * A BlockEntity that manages sync and save data via the `ISyncManaged` syncdata system.
@@ -38,15 +41,11 @@ abstract class ManagedSyncBlockEntity :
 	ISyncManaged {
 	private val savedSyncDataKey = "${GTCEu.MOD_ID}_sync_data"
 
-	@JvmField
-	protected val syncDataHolder: SyncDataHolder = SyncDataHolder(this)
 	private var dirty = false
 
 	constructor(info: BlockEntityCreationInfo) : super(info.type(), info.pos(), info.state())
 
 	constructor(type: BlockEntityType<*>, pos: BlockPos, blockState: BlockState) : super(type, pos, blockState)
-
-	override fun getSyncDataHolder(): SyncDataHolder = syncDataHolder
 
 	fun isDirty(): Boolean = dirty
 
@@ -59,11 +58,11 @@ abstract class ManagedSyncBlockEntity :
 	 */
 	final override fun saveAdditional(tag: CompoundTag, registries: HolderLookup.Provider) {
 		super.saveAdditional(tag, registries)
-		val savedData = getSyncDataHolder().serializeToComponents(registries, writeClientFields = false, fullSync = false)
-		if (!savedData.isEmpty) {
+		val savedData = getSyncDataHolder().serializeToSaveFieldData(registries)
+		if (!savedData.isEmpty()) {
 			tag.put(
 				savedSyncDataKey,
-				DataComponentMap.CODEC
+				SyncFieldData.CODEC
 					.encodeStart(registries.createSerializationContext(NbtOps.INSTANCE), savedData)
 					.getOrThrow(),
 			)
@@ -80,10 +79,10 @@ abstract class ManagedSyncBlockEntity :
 	override fun loadAdditional(tag: CompoundTag, registries: HolderLookup.Provider) {
 		super.loadAdditional(tag, registries)
 		if (tag.contains(savedSyncDataKey)) {
-			val savedData = DataComponentMap.CODEC
+			val savedData = SyncFieldData.CODEC
 				.parse(registries.createSerializationContext(NbtOps.INSTANCE), tag.get(savedSyncDataKey))
 				.getOrThrow()
-			getSyncDataHolder().deserializeComponents(registries, savedData, false)
+			getSyncDataHolder().deserializeFieldData(registries, savedData, false)
 		}
 	}
 
@@ -123,19 +122,23 @@ abstract class ManagedSyncBlockEntity :
 	open fun serverTick() {
 		setChanged()
 		val serverLevel = level as? ServerLevel
-		if (serverLevel != null && syncDataHolder.scanAndMarkChanges(serverLevel.registryAccess())) {
-			val changes = syncDataHolder.collectClientNetworkChanges(serverLevel.registryAccess(), false)
-			if (!changes.isEmpty) {
-				PacketDistributor.sendToPlayersTrackingChunk(
-					serverLevel,
-					ChunkPos(blockPos),
-					SPacketMachineSyncToClient(blockPos, changes),
-				)
+		val storage = getSyncDataHolder()
+		val fullSync = storage.isFullSyncPending()
+		if (serverLevel != null && storage.scanAndMarkChanges(serverLevel.registryAccess())) {
+			val changes = storage.collectClientNetworkChanges(serverLevel.registryAccess(), false)
+			if (!changes.isEmpty()) {
+				val recipients = ReferenceOpenHashSet(serverLevel.chunkSource.chunkMap.getPlayers(ChunkPos(blockPos), false))
+				for (player in serverLevel.players()) {
+					val holder = (player.containerMenu as? ModularUIContainerMenu)?.uiHolder as? MachineUIHolder
+					if (holder?.getMachine() === this) recipients.add(player)
+				}
+				val packet = SPacketMachineSyncToClient(blockPos, changes, fullSync)
+				for (player in recipients) PacketDistributor.sendToPlayer(player, packet)
 			}
 			dirty = true
 		}
 		if (dirty) {
-			Objects.requireNonNull(level)!!.sendBlockUpdated(blockPos, blockState, blockState, Block.UPDATE_CLIENTS)
+			level!!.sendBlockUpdated(blockPos, blockState, blockState, Block.UPDATE_CLIENTS)
 			dirty = false
 		}
 	}
@@ -147,9 +150,19 @@ abstract class ManagedSyncBlockEntity :
 			return
 		}
 
-		val changes = syncDataHolder.collectServerNetworkChanges(level!!.registryAccess())
-		if (!changes.isEmpty) {
-			PacketDistributor.sendToServer(CPacketMachineSyncToServer(blockPos, changes))
+		val registryAccess = level!!.registryAccess()
+		val rootChanges = getSyncDataHolder().collectServerNetworkChanges(registryAccess)
+		if (!rootChanges.isEmpty()) {
+			PacketDistributor.sendToServer(CPacketMachineSyncToServer(blockPos, BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(type)!!, rootChanges))
+		}
+
+		if (this is MetaMachine) {
+			for (trait in syncTraits) {
+				val traitChanges = trait.getSyncDataHolder().collectServerNetworkChanges(registryAccess)
+				if (!traitChanges.isEmpty()) {
+					PacketDistributor.sendToServer(CPacketMachineSyncToServer.forMachineTrait(this, trait, traitChanges))
+				}
+			}
 		}
 	}
 }

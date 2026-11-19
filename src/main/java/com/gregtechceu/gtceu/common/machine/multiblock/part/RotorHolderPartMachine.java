@@ -5,8 +5,12 @@ import com.gregtechceu.gtceu.api.capability.recipe.IO;
 import com.gregtechceu.gtceu.api.data.chemical.material.Material;
 import com.gregtechceu.gtceu.api.data.chemical.material.properties.PropertyKey;
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
+import com.gregtechceu.gtceu.api.gui.UITemplate;
+import com.gregtechceu.gtceu.api.gui.element.GTImageElement;
+import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
+import com.gregtechceu.gtceu.api.gui.fancy.IFancyTooltip;
 import com.gregtechceu.gtceu.api.gui.fancy.TooltipsPanel;
-import com.gregtechceu.gtceu.api.gui.widget.BlockableSlotWidget;
 import com.gregtechceu.gtceu.api.machine.TickableSubscription;
 import com.gregtechceu.gtceu.api.machine.feature.ITieredMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.*;
@@ -23,8 +27,7 @@ import com.gregtechceu.gtceu.common.item.behavior.TurbineRotorBehaviour;
 import com.gregtechceu.gtceu.utils.ExtendedUseOnContext;
 import com.gregtechceu.gtceu.utils.ISubscription;
 
-import com.lowdragmc.lowdraglib.gui.widget.Widget;
-import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.MethodsReturnNonnullByDefault;
@@ -49,6 +52,9 @@ public class RotorHolderPartMachine extends TieredPartMachine {
 
     public static final int SPEED_INCREMENT = 1;
     public static final int SPEED_DECREMENT = 3;
+    private static final int PAGE_WIDTH = 34;
+    private static final int PAGE_HEIGHT = 34;
+    private static final int ROTOR_SLOT_LOCKED_OVERLAY_COLOR = 0x80404040;
     @SaveField
     public final NotifiableItemStackHandler inventory;
     @Getter
@@ -230,16 +236,37 @@ public class RotorHolderPartMachine extends TieredPartMachine {
     //////////////////////////////////////
     // ********** GUI ***********//
     //////////////////////////////////////
+
     @Override
-    public Widget createUIWidget() {
-        var group = new WidgetGroup(0, 0, 18 + 16, 18 + 16);
-        var container = new WidgetGroup(4, 4, 18 + 8, 18 + 8);
-        container.addWidget(new BlockableSlotWidget(inventory.storage, 0, 4, 4)
-                .setIsBlocked(() -> rotorSpeed != 0)
-                .setBackground(GuiTextures.SLOT, GuiTextures.TURBINE_OVERLAY));
-        container.setBackground(GuiTextures.BACKGROUND_INVERSE);
-        group.addWidget(container);
-        return group;
+    public UIElement createUIWidget(FancyMachineUIWidget widget) {
+        UIElement root = new UIElement();
+        UITemplate.setBounds(root, 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
+
+        UIElement container = new UIElement();
+        UITemplate.setBounds(container, 4, 4, 26, 26);
+        UITemplate.setBackgroundTexture(container, GuiTextures.BACKGROUND_INVERSE);
+        root.addChild(container);
+        root.addChild(createRotorSlot());
+        root.addChild(createRotorLockedOverlay());
+        return root;
+    }
+
+    private GTItemSlotElement createRotorSlot() {
+        GTItemSlotElement slot = new GTItemSlotElement(inventory.storage, 0)
+                .setBackgroundTexture(GuiTextures.SLOT)
+                .setContentOverlay(GuiTextures.TURBINE_OVERLAY)
+                .setCanPut(stack -> !isRotorSlotBlocked())
+                .setCanTake(player -> !isRotorSlotBlocked());
+        return UITemplate.setBounds(slot, 8, 8, 18, 18);
+    }
+
+    private GTImageElement createRotorLockedOverlay() {
+        return new GTImageElement(9, 9, 16, 16, GuiTextures.colorRect(ROTOR_SLOT_LOCKED_OVERLAY_COLOR))
+                .setVisibleSupplier(this::isRotorSlotBlocked);
+    }
+
+    private boolean isRotorSlotBlocked() {
+        return rotorSpeed != 0;
     }
 
     //////////////////////////////////////
@@ -257,18 +284,18 @@ public class RotorHolderPartMachine extends TieredPartMachine {
     // ******* FANCY GUI ********//
     //////////////////////////////////////
     @Override
-    public void attachFancyTooltipsToController(MultiblockControllerMachine controller, TooltipsPanel tooltipsPanel) {
-        attachTooltips(tooltipsPanel);
+    public void attachFancyTooltipsToController(MultiblockControllerMachine controller,
+                                                TooltipsPanel tooltipsPanel) {
+        tooltipsPanel.attachTooltips(createRotorObstructionTooltip());
     }
 
-    @Override
-    public void attachTooltips(TooltipsPanel tooltipsPanel) {
-        tooltipsPanel.attachTooltips(new Basic(
+    private IFancyTooltip.Basic createRotorObstructionTooltip() {
+        return new IFancyTooltip.Basic(
                 () -> GuiTextures.INDICATOR_NO_STEAM.get(false),
                 () -> List.of(Component.translatable("gtpm.multiblock.universal.rotor_obstructed")
                         .setStyle(Style.EMPTY.withColor(ChatFormatting.RED))),
                 () -> !isFrontFaceFree(),
-                () -> null));
+                () -> null);
     }
 
     /**
@@ -386,5 +413,20 @@ public class RotorHolderPartMachine extends TieredPartMachine {
             }
         }
         return true;
+    }
+
+    @Override
+    public int getPageWidth() {
+        return PAGE_WIDTH;
+    }
+
+    @Override
+    public int getPageHeight() {
+        return PAGE_HEIGHT;
+    }
+
+    @Override
+    public void attachTooltips(TooltipsPanel tooltipsPanel) {
+        tooltipsPanel.attachTooltips(createRotorObstructionTooltip());
     }
 }

@@ -1,72 +1,79 @@
 package com.gregtechceu.gtceu.api.gui.fancy;
 
-import com.lowdragmc.lowdraglib.gui.widget.Widget;
-import com.lowdragmc.lowdraglib.utils.Size;
+import com.gregtechceu.gtceu.api.gui.UITemplate;
+import com.gregtechceu.gtceu.api.gui.element.GTImageElement;
 
-import net.minecraft.client.gui.GuiGraphics;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.event.HoverTooltips;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
+
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.api.distmarker.OnlyIn;
-
-import lombok.Getter;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class TooltipsPanel extends Widget {
+/**
+ * LDLib2 right-side tooltip indicator panel for Fancy pages.
+ */
+public class TooltipsPanel extends UIElement {
 
-    @Getter
-    protected List<IFancyTooltip> tooltips = new ArrayList<>();
+    private static final int ICON_SIZE = 20;
+    private static final int ICON_GAP = 2;
 
-    public TooltipsPanel() {
-        super(202, 2, 20, 0);
+    private final List<IFancyTooltip> tooltips = new ArrayList<>();
+    private int x;
+    private int y;
+
+    public TooltipsPanel(int x, int y) {
+        this.x = x;
+        this.y = y;
+        UITemplate.setBounds(this, x, y, ICON_SIZE, 0);
     }
 
     public void clear() {
         tooltips.clear();
+        refreshTooltips();
     }
 
     public void attachTooltips(IFancyTooltip... tooltips) {
         this.tooltips.addAll(Arrays.asList(tooltips));
+        refreshTooltips();
+    }
+
+    public void moveTo(int x, int y) {
+        this.x = x;
+        this.y = y;
+        refreshTooltips();
     }
 
     @Override
-    @OnlyIn(Dist.CLIENT)
-    public void drawInBackground(@NotNull GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
-        super.drawInBackground(graphics, mouseX, mouseY, partialTicks);
-        var position = getPosition();
-        var size = getSize();
+    public void screenTick() {
+        refreshTooltips();
+        super.screenTick();
+    }
+
+    private void refreshTooltips() {
+        clearAllChildren();
         int offsetY = 0;
-        for (IFancyTooltip tooltip : this.tooltips) {
+        for (IFancyTooltip tooltip : tooltips) {
             if (tooltip.showFancyTooltip()) {
-                // draw icon
-                tooltip.getFancyTooltipIcon().draw(graphics, mouseX, mouseY, position.x, position.y + offsetY,
-                        size.width, size.width);
-                offsetY += size.getWidth() + 2;
+                GTImageElement icon = new GTImageElement(0, offsetY, ICON_SIZE, ICON_SIZE,
+                        tooltip.getFancyTooltipIcon());
+                icon.addEventListener(UIEvents.HOVER_TOOLTIPS, event -> applyTooltip(event, tooltip));
+                addChild(icon);
+                offsetY += ICON_SIZE + ICON_GAP;
             }
         }
-        setSize(new Size(getSize().width, Math.max(0, offsetY)));
+        if (offsetY > 0) {
+            offsetY -= ICON_GAP;
+        }
+        UITemplate.setBounds(this, x, y, ICON_SIZE, offsetY);
     }
 
-    @Override
-    @OnlyIn(Dist.CLIENT)
-    public void drawInForeground(@NotNull GuiGraphics graphics, int mouseX, int mouseY, float partialTicks) {
-        if (getHoverElement(mouseX, mouseY) == this && gui != null && gui.getModularUIGui() != null) {
-            var position = getPosition();
-            var size = getSize();
-            int offsetY = 0;
-            for (IFancyTooltip tooltip : this.tooltips) {
-                if (tooltip.showFancyTooltip()) {
-                    if (isMouseOver(position.x, position.y + offsetY, size.width, size.width, mouseX, mouseY)) {
-                        gui.getModularUIGui().setHoverTooltip(tooltip.getFancyTooltip(), ItemStack.EMPTY, null,
-                                tooltip.getFancyComponent());
-                        return;
-                    }
-                    offsetY += size.getWidth() + 2;
-                }
-            }
-        }
+    private static void applyTooltip(UIEvent event, IFancyTooltip tooltip) {
+        event.hoverTooltips = new HoverTooltips(tooltip.getFancyTooltip(), tooltip.getFancyComponent(), null,
+                ItemStack.EMPTY);
     }
 }

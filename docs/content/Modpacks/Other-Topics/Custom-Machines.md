@@ -6,6 +6,9 @@ title: 自定义 Machine
 # 自定义 Machine
 
 
+!!! note "上游示例"
+    本页示例面向 GregTech CEu Modern。GTPM 1.21.1 的数据包和附属模组入口见[整合包制作](../index.md#upstream-kubejs)。
+
 ## 创建自定义 Steam Machine
 
 ```js title="test_steam_machine.js"
@@ -91,7 +94,7 @@ GTCEuStartupEvents.registry('gtceu:machine', event => {
 
 ### Shape Info（形状信息）
 
-Shape Info 用于手动定义你的 Multiblock 在 JEI/REI/EMI multiblock preview tab 中的显示方式。
+在上游示例中，Shape Info 定义多方块在配方查看器里的预览。GTPM 的 JEI 和 EMI 预览使用机器的多方块结构定义。
 
 ```js title="shape_info_test.js"
 GTCEuStartupEvents.registry('gtceu:machine', event => {

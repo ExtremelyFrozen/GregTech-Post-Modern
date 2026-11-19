@@ -5,6 +5,9 @@ title: "修改现有 Materials"
 
 # 修改现有 Materials
 
+!!! note "上游示例"
+    本页示例面向 GregTech CEu Modern。GTPM 1.21.1 的数据包和附属模组入口见[整合包制作](../index.md#upstream-kubejs)。
+
 GT 中包含所有周期表元素，但其中一部分没有附加任何属性。你也可以为 EBF 自动生成配方添加 BlastProperty。对于 Obsidian 等其他 Material 也可以这样做。添加方式如下：
 
 ```js title="periodic_table_elements.js"

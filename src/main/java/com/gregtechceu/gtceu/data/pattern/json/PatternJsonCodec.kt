@@ -1,0 +1,805 @@
+package com.gregtechceu.gtceu.data.pattern.json
+
+import com.gregtechceu.gtceu.api.multiblock.pattern.layout.PatternAxis
+import com.gregtechceu.gtceu.api.multiblock.pattern.model.*
+import com.gregtechceu.gtceu.api.multiblock.pattern.model.expression.PatternIntegerExpression
+import com.gregtechceu.gtceu.api.multiblock.pattern.model.expression.PatternSizeConstraint
+import com.gregtechceu.gtceu.api.multiblock.pattern.model.measurement.PatternMeasurement
+import com.gregtechceu.gtceu.api.multiblock.pattern.model.module.PatternModule
+import com.gregtechceu.gtceu.api.multiblock.pattern.model.module.PatternModuleSlot
+import com.gregtechceu.gtceu.api.multiblock.pattern.model.module.PatternPortBoundary
+
+import net.minecraft.resources.ResourceLocation
+
+import com.google.gson.*
+import it.unimi.dsi.fastutil.chars.Char2ObjectLinkedOpenHashMap
+import it.unimi.dsi.fastutil.chars.Char2ObjectMap
+import it.unimi.dsi.fastutil.chars.Char2ObjectMaps
+import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap
+import it.unimi.dsi.fastutil.objects.Object2ObjectMap
+import it.unimi.dsi.fastutil.objects.Object2ObjectMaps
+import it.unimi.dsi.fastutil.objects.ObjectArrayList
+import it.unimi.dsi.fastutil.objects.ObjectList
+import it.unimi.dsi.fastutil.objects.ObjectLists
+import org.jspecify.annotations.NullMarked
+
+import java.io.IOException
+import java.io.Writer
+import java.nio.file.Files
+import java.nio.file.Path
+
+@NullMarked
+object PatternJsonCodec {
+	private val topLevelFields = setOf("machine", "axes", "orientation", "origin", "parameters", "fragments", "predicates", "body", "constraints", "measurements", "sizeConstraints")
+	private val gson = GsonBuilder().setPrettyPrinting().create()
+
+	@JvmStatic
+	@Throws(IOException::class)
+	fun read(file: Path, structure: ResourceLocation): PatternDefinition = Files.newBufferedReader(file).use { decode(structure, JsonParser.parseReader(it)) }
+
+	@JvmStatic
+	fun decode(structure: ResourceLocation, input: JsonElement): PatternDefinition {
+		val root = obj(input, "$")
+		rejectUnknown(root, topLevelFields, "$")
+		val machine = if (root.has("machine")) ResourceLocation.parse(str(root["machine"], "$.machine")) else structure
+		return PatternDefinition(
+			machine, structure, axes(root["axes"]), orientation(root["orientation"]), origin(root["origin"]),
+			parameters(root["parameters"]), fragments(root["fragments"]), predicates(root["predicates"]),
+			node(required(root, "body", "$.body"), "$.body"), constraints(root["constraints"]),
+			measurements(root["measurements"]), sizeConstraints(root["sizeConstraints"]),
+		)
+	}
+
+	@JvmStatic
+	@Throws(IOException::class)
+	fun write(file: Path, definition: PatternDefinition) {
+		file.toAbsolutePath().normalize().parent?.let(Files::createDirectories)
+			?: throw IOException("Pattern JSON has no parent directory: $file")
+		Files.newBufferedWriter(file).use { writer: Writer -> gson.toJson(encode(definition), writer) }
+	}
+
+	@JvmStatic
+	fun encode(definition: PatternDefinition): JsonObject = JsonObject().apply {
+		addProperty("machine", definition.machine.toString())
+		add("axes", encodeAxes(definition.axes))
+		add("orientation", encodeOrientation(definition.orientation))
+		add("origin", encodeOrigin(definition.origin))
+		add("parameters", encodeParameters(definition.parameters))
+		add("fragments", JsonObject().also { out -> definition.fragments.forEach { (id, value) -> out.add(id, encodeFragment(value)) } })
+		add("predicates", JsonObject().also { out -> definition.predicates.forEach { (symbol, value) -> out.add(symbol.toString(), encodePredicate(value)) } })
+		add("body", encodeNode(definition.body))
+		add("constraints", JsonArray().also { out -> definition.constraints.forEach { out.add(encodeConstraint(it)) } })
+		if (definition.measurements.isNotEmpty()) add("measurements", JsonArray().also { out -> definition.measurements.forEach { out.add(encodeMeasurement(it)) } })
+		if (definition.sizeConstraints.isNotEmpty()) add("sizeConstraints", JsonArray().also { out -> definition.sizeConstraints.forEach { out.add(encodeSizeConstraint(it)) } })
+	}
+
+	private fun axes(element: JsonElement?): PatternAxes {
+		if (element == null) return PatternAxes.defaults()
+		val value = obj(element, "$.axes")
+		rejectUnknown(value, setOf("depth", "height", "width"), "$.axes")
+		return PatternAxes(
+			direction(required(value, "depth", "$.axes.depth"), "$.axes.depth"),
+			direction(required(value, "height", "$.axes.height"), "$.axes.height"),
+			direction(required(value, "width", "$.axes.width"), "$.axes.width"),
+		)
+	}
+
+	private fun orientation(element: JsonElement?): PatternOrientation {
+		if (element == null) return PatternOrientation.defaults()
+		val value = obj(element, "$.orientation")
+		rejectUnknown(value, setOf("allowMirror", "allowExtendedFacing"), "$.orientation")
+		return PatternOrientation(booleanValue(value["allowMirror"], "$.orientation.allowMirror"), booleanValue(value["allowExtendedFacing"], "$.orientation.allowExtendedFacing"))
+	}
+
+	private fun origin(element: JsonElement?): PatternOrigin {
+		if (element == null) return PatternOrigin.controller()
+		val value = obj(element, "$.origin")
+		rejectUnknown(value, setOf("token", "offset"), "$.origin")
+		require(value.has("token") || value.has("offset")) { "Origin requires token or offset" }
+		return PatternOrigin(value["token"]?.let { str(it, "$.origin.token") } ?: "offset", offset(value["offset"], "$.origin.offset"))
+	}
+
+	private fun parameters(element: JsonElement?): Object2ObjectMap<String, PatternParameter> {
+		if (element == null) return Object2ObjectMaps.emptyMap()
+		val result = Object2ObjectLinkedOpenHashMap<String, PatternParameter>()
+		obj(element, "$.parameters").entrySet().forEach { (name, value) -> result[name] = parameter(value, "$.parameters.$name") }
+		return result
+	}
+
+	private fun parameter(element: JsonElement, path: String): PatternParameter {
+		if (element.isJsonPrimitive && element.asJsonPrimitive.isString) return parameterType(element.asString, null, path)
+		val value = obj(element, path)
+		rejectUnknown(value, setOf("type", "min", "max"), path)
+		return parameterType(str(required(value, "type", "$path.type"), "$path.type"), value, path)
+	}
+
+	private fun parameterType(type: String, value: JsonObject?, path: String): PatternParameter = when (type) {
+		"token" -> PatternParameter.Token()
+		"predicate" -> PatternParameter.Predicate()
+		"direction" -> PatternParameter.Direction()
+		"fragment" -> PatternParameter.Fragment()
+		"integer" -> PatternParameter.IntegerRange(integer(value?.get("min"), "$path.min"), integer(value?.get("max"), "$path.max"))
+		else -> fail("Unknown parameter type '$type' at $path")
+	}
+
+	private fun fragments(element: JsonElement?): Object2ObjectMap<String, PatternFragment> {
+		if (element == null) return Object2ObjectMaps.emptyMap()
+		val result = Object2ObjectLinkedOpenHashMap<String, PatternFragment>()
+		obj(element, "$.fragments").entrySet().forEach { (id, value) ->
+			val path = "$.fragments.$id"
+			val fragment = obj(value, path)
+			rejectUnknown(fragment, setOf("parameters", "anchors", "ports", "predicates", "body"), path)
+			val anchors = Object2ObjectLinkedOpenHashMap<String, PatternOrigin.Offset>()
+			fragment["anchors"]?.let { obj(it, "$path.anchors").entrySet().forEach { (name, value) -> anchors[name] = offset(value, "$path.anchors.$name") } }
+			val ports = Object2ObjectLinkedOpenHashMap<String, PatternFragment.Port>()
+			fragment["ports"]?.let {
+				obj(it, "$path.ports").entrySet().forEach { (name, value) ->
+					val portPath = "$path.ports.$name"
+					val port = obj(value, portPath)
+					rejectUnknown(port, setOf("offset", "direction", "up", "boundary"), portPath)
+					val facing = direction(required(port, "direction", "$portPath.direction"), "$portPath.direction")
+					val boundary = port["boundary"]?.let { element ->
+						val value = obj(element, "$portPath.boundary")
+						rejectUnknown(value, setOf("axis", "side"), "$portPath.boundary")
+						PatternPortBoundary(PatternAxis.of(direction(required(value, "axis", "$portPath.boundary.axis"), "$portPath.boundary.axis")), PatternPortBoundary.Side.valueOf(str(required(value, "side", "$portPath.boundary.side"), "$portPath.boundary.side").uppercase()))
+					}
+					ports[name] = PatternFragment.Port(offset(port["offset"], "$portPath.offset"), facing, port["up"]?.let { jsonElement -> direction(jsonElement, "$portPath.up") } ?: if (facing.isHeight()) PatternDirection.FRONT else PatternDirection.UP, boundary)
+				}
+			}
+			result[id] = PatternFragment(parameters(fragment["parameters"]), anchors, ports, node(required(fragment, "body", "$path.body"), "$path.body"), predicates(fragment["predicates"]))
+		}
+		return result
+	}
+
+	private fun predicates(element: JsonElement?): Char2ObjectMap<PatternPredicateDefinition> {
+		if (element == null) return Char2ObjectMaps.emptyMap()
+		val result = Char2ObjectLinkedOpenHashMap<PatternPredicateDefinition>()
+		obj(element, "$.predicates").entrySet().forEach { (symbol, value) ->
+			if (symbol.length != 1) fail("Predicate key must contain one character at $.predicates")
+			val path = "$.predicates.$symbol"
+			val predicate = obj(value, path)
+			val type = str(required(predicate, "type", "$path.type"), "$path.type")
+			val name = predicate["name"]?.let { str(it, "$path.name") } ?: ""
+			val facts = ObjectArrayList<String>()
+			predicate["facts"]?.let { array(it, "$path.facts").forEach { jsonElement -> facts.add(str(jsonElement, "$path.facts")) } }
+			val properties = Object2ObjectLinkedOpenHashMap<String, Any>()
+			predicate.entrySet().forEach { (key, property) -> if (key != "type" && key != "name" && key != "facts") valueOf(property)?.let { properties[key] = it } }
+			result[symbol[0]] = PatternPredicateDefinition(type, name, properties, facts)
+		}
+		return result
+	}
+
+	private fun node(element: JsonElement, path: String): PatternNode {
+		if (element.isJsonArray) return PatternNode.Sequence(PatternDirection.FRONT, ObjectArrayList<PatternNode>().also { out -> element.asJsonArray.forEachIndexed { i, child -> out.add(node(child, "$path[$i]")) } })
+		val value = obj(element, path)
+		return when (val type = str(required(value, "type", "$path.type"), "$path.type")) {
+			"assembly" -> {
+				rejectUnknown(value, setOf("type", "root", "slots"), path)
+				val root = node(required(value, "root", "$path.root"), "$path.root")
+				require(root is PatternNode.Fragment) { "Assembly root must be a fragment at $path" }
+				PatternNode.Assembly(root, moduleSlots(value["slots"], "$path.slots"))
+			}
+
+			"placed" -> PatternNode.Placed(node(required(value, "body", "$path.body"), "$path.body"), offset(required(value, "offset", "$path.offset"), "$path.offset"))
+
+			"fixed" -> {
+				rejectUnknown(value, setOf("type", "layers"), path)
+				PatternNode.Fixed(layers(required(value, "layers", "$path.layers"), "$path.layers"))
+			}
+
+			"sequence" -> {
+				rejectUnknown(value, setOf("type", "axis", "children"), path)
+				PatternNode.Sequence(direction(required(value, "axis", "$path.axis"), "$path.axis"), array(required(value, "children", "$path.children"), "$path.children").mapIndexedTo(ObjectArrayList()) { index, child -> node(child, "$path.children[$index]") })
+			}
+
+			"repeat" -> {
+				rejectUnknown(value, setOf("type", "id", "axis", "direction", "min", "max", "body", "count", "countExpression"), path)
+				PatternNode.Repeat(
+					str(required(value, "id", "$path.id"), "$path.id"),
+					if (str(required(value, "axis", "$path.axis"), "$path.axis").startsWith("$")) PatternDirection.FRONT else direction(required(value, "axis", "$path.axis"), "$path.axis"),
+					PatternRepeatDirection.valueOf(str(required(value, "direction", "$path.direction"), "$path.direction").uppercase()),
+					if (value["min"].asJsonPrimitive.isString) 0 else integer(required(value, "min", "$path.min"), "$path.min"),
+					if (value["max"].asJsonPrimitive.isString) Int.MAX_VALUE - 1 else integer(required(value, "max", "$path.max"), "$path.max"),
+					node(required(value, "body", "$path.body"), "$path.body"),
+					if (value["min"].asJsonPrimitive.isString) value["min"].asString.removePrefix("$") else "",
+					if (value["max"].asJsonPrimitive.isString) value["max"].asString.removePrefix("$") else "",
+					if (value["axis"].asString.startsWith("$")) value["axis"].asString.substring(1) else "",
+					value["count"]?.let { element ->
+						val count = obj(element, "$path.count")
+						PatternNode.Repeat.Count(str(required(count, "parameter", "$path.count.parameter"), "$path.count.parameter"), count["offset"]?.let { integer(it, "$path.count.offset") } ?: 0, count["divisor"]?.let { integer(it, "$path.count.divisor") } ?: 1)
+					},
+					value["countExpression"]?.let { expression(it, "$path.countExpression") },
+				)
+			}
+
+			"choice" -> {
+				rejectUnknown(value, setOf("type", "id", "alternatives", "priority"), path)
+				PatternNode.Choice(
+					str(required(value, "id", "$path.id"), "$path.id"),
+					array(required(value, "alternatives", "$path.alternatives"), "$path.alternatives").mapIndexedTo(ObjectArrayList()) { index, item ->
+						val alternativePath = "$path.alternatives[$index]"
+						val alternative = obj(item, alternativePath)
+						rejectUnknown(alternative, setOf("id", "node"), alternativePath)
+						PatternNode.Choice.Alternative(str(required(alternative, "id", "$alternativePath.id"), "$alternativePath.id"), node(required(alternative, "node", "$alternativePath.node"), "$alternativePath.node"))
+					},
+					ObjectArrayList<String>().also { out -> value["priority"]?.let { array(it, "$path.priority").forEach { item -> out.add(str(item, "$path.priority")) } } },
+				)
+			}
+
+			"fragment" -> {
+				rejectUnknown(value, setOf("type", "id", "bindings"), path)
+				val bindings = Object2ObjectLinkedOpenHashMap<String, PatternBinding>()
+				value["bindings"]?.let {
+					obj(it, "$path.bindings").entrySet().forEach { (name, binding) ->
+						bindings[name] =
+							binding(binding, "$path.bindings.$name")
+					}
+				}
+				PatternNode.Fragment(str(required(value, "id", "$path.id"), "$path.id"), bindings)
+			}
+
+			else -> fail("Unknown pattern node type '$type' at $path")
+		}
+	}
+
+	private fun binding(element: JsonElement, path: String): PatternBinding {
+		if (element.isJsonPrimitive && element.asJsonPrimitive.isString) return PatternBinding.Token(element.asString)
+		val value = obj(element, path)
+		rejectUnknown(value, setOf("type", "value"), path)
+		val type = str(required(value, "type", "$path.type"), "$path.type")
+		val item = required(value, "value", "$path.value")
+		return when (type) {
+			"token" -> PatternBinding.Token(str(item, "$path.value"))
+			"predicate" -> if (item.isJsonObject) PatternBinding.Predicate(predicates(JsonObject().also { it.add("X", item) }).getValue('X')) else PatternBinding.Predicate(str(item, "$path.value"))
+			"integer" -> PatternBinding.IntegerValue(integer(item, "$path.value"))
+			"integerExpression" -> PatternBinding.IntegerExpression(expression(item, "$path.value"))
+			"direction" -> PatternBinding.Direction(direction(item, "$path.value"))
+			"fragment" -> PatternBinding.Fragment(str(item, "$path.value"))
+			else -> fail("Unknown binding type '$type' at $path")
+		}
+	}
+
+	private fun moduleSlots(element: JsonElement?, path: String): ObjectList<PatternModuleSlot> {
+		if (element == null) return ObjectLists.emptyList()
+		return array(element, path).mapIndexedTo(ObjectArrayList()) { index, item ->
+			val slotPath = "$path[$index]"
+			val value = obj(item, slotPath)
+			val type = str(required(value, "type", "$slotPath.type"), "$slotPath.type")
+			val id = str(required(value, "id", "$slotPath.id"), "$slotPath.id")
+			val host = str(required(value, "hostPort", "$slotPath.hostPort"), "$slotPath.hostPort")
+			rejectUnknown(value, setOf("type", "id", "hostPort", "fragment", "in", "out", "bindings", "children", "min", "max", "backtrack", "alternatives", "priority"), slotPath)
+			when (type) {
+				"one" -> PatternModuleSlot.One(id, host, module(value, slotPath))
+
+				"optional" -> PatternModuleSlot.Optional(id, host, module(value, slotPath))
+
+				"chain" -> PatternModuleSlot.Chain(id, host, module(value, slotPath), integer(required(value, "min", "$slotPath.min"), "$slotPath.min"), integer(required(value, "max", "$slotPath.max"), "$slotPath.max"), value["backtrack"]?.let { booleanValue(it, "$slotPath.backtrack") } ?: true)
+
+				"orderedChoice" -> PatternModuleSlot.OrderedChoice(
+					id,
+					host,
+					array(required(value, "alternatives", "$slotPath.alternatives"), "$slotPath.alternatives").mapIndexedTo(ObjectArrayList()) { alternativeIndex, candidate ->
+						val alternativePath = "$slotPath.alternatives[$alternativeIndex]"
+						val alternative = obj(candidate, alternativePath)
+						rejectUnknown(alternative, setOf("id", "fragment", "in", "out", "bindings", "children"), alternativePath)
+						PatternModuleSlot.OrderedChoice.Alternative(str(required(alternative, "id", "$alternativePath.id"), "$alternativePath.id"), module(alternative, alternativePath))
+					},
+					value["priority"]?.let { array(it, "$slotPath.priority").mapTo(ObjectArrayList()) { item -> str(item, "$slotPath.priority") } } ?: ObjectLists.emptyList(),
+				)
+
+				else -> fail("Unknown module slot '$type' at $slotPath")
+			}
+		}
+	}
+
+	private fun module(value: JsonObject, path: String): PatternModule {
+		val bindings = Object2ObjectLinkedOpenHashMap<String, PatternBinding>()
+		value["bindings"]?.let { obj(it, "$path.bindings").entrySet().forEach { (name, item) -> bindings[name] = binding(item, "$path.bindings.$name") } }
+		return PatternModule(str(required(value, "fragment", "$path.fragment"), "$path.fragment"), str(required(value, "in", "$path.in"), "$path.in"), value["out"]?.let { str(it, "$path.out") } ?: "", bindings, moduleSlots(value["children"], "$path.children"))
+	}
+
+	private fun expression(element: JsonElement, path: String): PatternIntegerExpression {
+		if (element.isJsonPrimitive) {
+			if (element.asJsonPrimitive.isNumber) return PatternIntegerExpression.Constant(integer(element, path))
+			val name = str(element, path)
+			require(name.startsWith("$") && name.length > 1) { "Parameter expression must begin with '$' at $path" }
+			return PatternIntegerExpression.Parameter(name.substring(1))
+		}
+		val value = obj(element, path)
+		val type = str(required(value, "type", "$path.type"), "$path.type")
+		rejectUnknown(value, setOf("type", "value", "parameter", "axis", "left", "right"), path)
+		return when (type) {
+			"constant" -> PatternIntegerExpression.Constant(integer(required(value, "value", "$path.value"), "$path.value"))
+
+			"parameter" -> PatternIntegerExpression.Parameter(str(required(value, "parameter", "$path.parameter"), "$path.parameter"))
+
+			"span" -> PatternIntegerExpression.Span(PatternAxis.of(direction(required(value, "axis", "$path.axis"), "$path.axis")))
+
+			"add", "subtract", "multiply", "floorDivide" -> {
+				val left = expression(required(value, "left", "$path.left"), "$path.left")
+				val right = expression(required(value, "right", "$path.right"), "$path.right")
+				when (type) {
+					"add" -> PatternIntegerExpression.Add(left, right)
+					"subtract" -> PatternIntegerExpression.Subtract(left, right)
+					"multiply" -> PatternIntegerExpression.Multiply(left, right)
+					else -> PatternIntegerExpression.FloorDivide(left, right)
+				}
+			}
+
+			else -> fail("Unknown integer expression '$type' at $path")
+		}
+	}
+
+	private fun measurements(element: JsonElement?): ObjectList<PatternMeasurement> {
+		if (element == null) return ObjectLists.emptyList()
+		return array(element, "$.measurements").mapIndexedTo(ObjectArrayList()) { index, item ->
+			val path = "$.measurements[$index]"
+			val value = obj(item, path)
+			rejectUnknown(value, setOf("id", "parameter", "start", "direction", "min", "max", "boundary"), path)
+			val boundary = predicates(JsonObject().also { it.add("X", required(value, "boundary", "$path.boundary")) }).getValue('X')
+			PatternMeasurement(
+				str(required(value, "id", "$path.id"), "$path.id"),
+				str(required(value, "parameter", "$path.parameter"), "$path.parameter"),
+				offset(value["start"], "$path.start"),
+				direction(required(value, "direction", "$path.direction"), "$path.direction"),
+				integer(required(value, "min", "$path.min"), "$path.min"),
+				integer(required(value, "max", "$path.max"), "$path.max"),
+				boundary,
+			)
+		}
+	}
+
+	private fun sizeConstraints(element: JsonElement?): ObjectList<PatternSizeConstraint> {
+		if (element == null) return ObjectLists.emptyList()
+		return array(element, "$.sizeConstraints").mapIndexedTo(ObjectArrayList()) { index, item ->
+			val path = "$.sizeConstraints[$index]"
+			val value = obj(item, path)
+			rejectUnknown(value, setOf("left", "comparison", "right", "message"), path)
+			PatternSizeConstraint(
+				expression(required(value, "left", "$path.left"), "$path.left"),
+				PatternSizeConstraint.Comparison.valueOf(str(required(value, "comparison", "$path.comparison"), "$path.comparison").uppercase()),
+				expression(required(value, "right", "$path.right"), "$path.right"),
+				value["message"]?.let { str(it, "$path.message") } ?: "",
+			)
+		}
+	}
+
+	private fun constraints(element: JsonElement?): ObjectList<PatternConstraint> {
+		if (element == null) return ObjectLists.emptyList()
+		return array(element, "$.constraints").mapIndexedTo(ObjectArrayList()) { index, item ->
+			val path = "$.constraints[$index]"
+			val value = obj(item, path)
+			rejectUnknown(value, setOf("type", "fact", "scope", "min", "max", "message"), path)
+			if (str(required(value, "type", "$path.type"), "$path.type") != "count") fail("Unknown constraint type at $path")
+			PatternConstraint.Count(
+				str(required(value, "fact", "$path.fact"), "$path.fact"),
+				scope(required(value, "scope", "$path.scope"), "$path.scope"),
+				integer(required(value, "min", "$path.min"), "$path.min"),
+				integer(required(value, "max", "$path.max"), "$path.max"),
+				value["message"]?.let { str(it, "$path.message") } ?: "",
+			)
+		}
+	}
+
+	private fun scope(element: JsonElement, path: String): PatternConstraint.Scope = str(element, path).let { value ->
+		when {
+			value == "all" -> PatternConstraint.Scope.All()
+			value.startsWith("fragment:") -> PatternConstraint.Scope.Fragment(value.substring(9))
+			value.startsWith("node:") -> PatternConstraint.Scope.Node(value.substring(5))
+			value.startsWith("repeat:") -> PatternConstraint.Scope.Repeat(value.substring(7))
+			else -> fail("Unknown constraint scope '$value' at $path")
+		}
+	}
+
+	private fun layers(element: JsonElement, path: String): ObjectList<ObjectList<String>> = array(element, path).mapIndexedTo(ObjectArrayList()) { index, layer -> array(layer, "$path[$index]").mapTo(ObjectArrayList()) { str(it, "$path[$index]") } }
+	private fun offset(element: JsonElement?, path: String): PatternOrigin.Offset {
+		if (element ==
+			null
+		) {
+			return PatternOrigin.Offset(0, 0, 0)
+		}
+		val values = array(element, path)
+		if (values.size() != 3) fail("Offset must contain exactly three integers at $path")
+		return PatternOrigin.Offset(integer(values[0], "$path[0]"), integer(values[1], "$path[1]"), integer(values[2], "$path[2]"))
+	}
+	private fun direction(element: JsonElement, path: String): PatternDirection = when (val value = str(element, path).uppercase()) {
+		"DEPTH" -> PatternDirection.FRONT
+		"HEIGHT" -> PatternDirection.UP
+		"WIDTH" -> PatternDirection.LEFT
+		else -> PatternDirection.entries.firstOrNull { it.name == value } ?: fail("Unknown direction at $path")
+	}
+	private fun required(obj: JsonObject, name: String, path: String): JsonElement = obj[name] ?: fail("Missing required field at $path")
+	private fun obj(element: JsonElement, path: String): JsonObject = element.takeIf { it.isJsonObject }?.asJsonObject ?: fail("Expected object at $path")
+	private fun array(element: JsonElement, path: String): JsonArray = element.takeIf { it.isJsonArray }?.asJsonArray ?: fail("Expected array at $path")
+	private fun str(element: JsonElement, path: String): String = element.takeIf { it.isJsonPrimitive && it.asJsonPrimitive.isString }?.asString ?: fail("Expected string at $path")
+	private fun integer(element: JsonElement?, path: String): Int {
+		if (element == null || !element.isJsonPrimitive || !element.asJsonPrimitive.isNumber) fail("Expected integer at $path")
+		return try {
+			element.asBigDecimal.intValueExact()
+		} catch (exception: ArithmeticException) {
+			fail("Expected a 32-bit integer at $path: ${exception.message}")
+		}
+	}
+	private fun booleanValue(element: JsonElement?, path: String): Boolean {
+		if (element == null) return false
+		if (!element.isJsonPrimitive || !element.asJsonPrimitive.isBoolean) fail("Expected boolean at $path")
+		return element.asBoolean
+	}
+	private fun rejectUnknown(obj: JsonObject, allowed: Set<String>, path: String) {
+		obj.keySet().firstOrNull { it !in allowed }?.let { fail("Unknown field '$it' at $path") }
+	}
+	private fun valueOf(element: JsonElement): Any? = when {
+		element.isJsonNull -> null
+
+		element.isJsonPrimitive -> element.asJsonPrimitive.let {
+			if (it.isBoolean) {
+				it.asBoolean
+			} else if (it.isNumber) {
+				it.asNumber
+			} else {
+				it.asString
+			}
+		}
+
+		element.isJsonArray -> ObjectArrayList<Any?>(element.asJsonArray.size()).also { out -> for (item in element.asJsonArray) out.add(valueOf(item)) }
+
+		else -> Object2ObjectLinkedOpenHashMap<String, Any?>().also {
+			element.asJsonObject.entrySet().forEach { (key, value) ->
+				it[key] =
+					valueOf(value)
+			}
+		}
+	}
+	private fun encodeAxes(value: PatternAxes) = JsonObject().apply {
+		addProperty("depth", value.depth.name.lowercase())
+		addProperty("height", value.height.name.lowercase())
+		addProperty("width", value.width.name.lowercase())
+	}
+	private fun encodeOrientation(value: PatternOrientation) = JsonObject().apply {
+		addProperty("allowMirror", value.allowMirror)
+		addProperty("allowExtendedFacing", value.allowExtendedFacing)
+	}
+	private fun encodeOrigin(value: PatternOrigin) = JsonObject().apply {
+		addProperty("token", value.token)
+		add(
+			"offset",
+			JsonArray().also {
+				it.add(value.offset.depth)
+				it.add(value.offset.height)
+				it.add(value.offset.width)
+			},
+		)
+	}
+	private fun encodeParameters(value: Map<String, PatternParameter>) = JsonObject().also { out ->
+		value.forEach { (name, parameter) ->
+			if (parameter is PatternParameter.IntegerRange) {
+				out.add(
+					name,
+					JsonObject().apply {
+						addProperty("type", "integer")
+						addProperty("min", parameter.minimum)
+						addProperty("max", parameter.maximum)
+					},
+				)
+			} else {
+				out.addProperty(name, parameterName(parameter))
+			}
+		}
+	}
+	private fun parameterName(value: PatternParameter) = when (value) {
+		is PatternParameter.Token -> "token"
+		is PatternParameter.Predicate -> "predicate"
+		is PatternParameter.Direction -> "direction"
+		is PatternParameter.Fragment -> "fragment"
+		else -> "integer"
+	}
+	private fun encodeFragment(value: PatternFragment) = JsonObject().apply {
+		add("predicates", JsonObject().also { out -> value.predicates.forEach { (symbol, predicate) -> out.add(symbol.toString(), encodePredicate(predicate)) } })
+		add("parameters", encodeParameters(value.parameters))
+		add(
+			"anchors",
+			JsonObject().also { out ->
+				value.anchors.forEach { (id, offset) ->
+					out.add(
+						id,
+						JsonArray().also {
+							it.add(offset.depth)
+							it.add(offset.height)
+							it.add(offset.width)
+						},
+					)
+				}
+			},
+		)
+		add(
+			"ports",
+			JsonObject().also { out ->
+				value.ports.forEach { (id, port) ->
+					out.add(
+						id,
+						JsonObject().apply {
+							add(
+								"offset",
+								JsonArray().also {
+									it.add(port.offset.depth)
+									it.add(port.offset.height)
+									it.add(port.offset.width)
+								},
+							)
+							addProperty("direction", port.direction.name.lowercase())
+							addProperty("up", port.up.name.lowercase())
+							port.boundary?.let { boundary ->
+								add(
+									"boundary",
+									JsonObject().apply {
+										addProperty("axis", boundary.axis.name.lowercase())
+										addProperty("side", boundary.side.name.lowercase())
+									},
+								)
+							}
+						},
+					)
+				}
+			},
+		)
+		add("body", encodeNode(value.body))
+	}
+	private fun encodePredicate(value: PatternPredicateDefinition) = JsonObject().apply {
+		addProperty("type", value.type)
+		if (value.name.isNotEmpty()) addProperty("name", value.name)
+		value.properties.forEach { (name, item) -> add(name, gson.toJsonTree(item)) }
+		if (value.facts.isNotEmpty()) add("facts", JsonArray().also { out -> value.facts.forEach(out::add) })
+	}
+	private fun encodeNode(node: PatternNode): JsonObject = when (node) {
+		is PatternNode.Assembly -> JsonObject().apply {
+			addProperty("type", "assembly")
+			add("root", encodeNode(node.root))
+			add("slots", encodeModuleSlots(node.slots))
+		}
+
+		is PatternNode.Placed -> JsonObject().apply {
+			addProperty("type", "placed")
+			add("body", encodeNode(node.body))
+			add(
+				"offset",
+				JsonArray().also {
+					it.add(node.offset.depth)
+					it.add(node.offset.height)
+					it.add(node.offset.width)
+				},
+			)
+		}
+
+		is PatternNode.Fixed -> JsonObject().apply {
+			addProperty("type", "fixed")
+			add("layers", JsonArray().also { out -> node.layers.forEach { layer -> out.add(JsonArray().also { rows -> layer.forEach(rows::add) }) } })
+		}
+
+		is PatternNode.Sequence -> JsonObject().apply {
+			addProperty("type", "sequence")
+			addProperty("axis", node.axis.name.lowercase())
+			add("children", JsonArray().also { out -> node.children.forEach { out.add(encodeNode(it)) } })
+		}
+
+		is PatternNode.Repeat -> JsonObject().apply {
+			addProperty("type", "repeat")
+			node.countExpression?.let { add("countExpression", encodeExpression(it)) }
+			addProperty("id", node.id)
+			addProperty("axis", if (node.axisParameter.isEmpty()) node.axis.name.lowercase() else "$${node.axisParameter}")
+			addProperty("direction", node.direction.name.lowercase())
+			if (node.minimumParameter.isEmpty()) addProperty("min", node.minimum) else addProperty("min", "$${node.minimumParameter}")
+			if (node.maximumParameter.isEmpty()) addProperty("max", node.maximum) else addProperty("max", "$${node.maximumParameter}")
+			node.count?.let { count ->
+				add(
+					"count",
+					JsonObject().apply {
+						addProperty("parameter", count.parameter)
+						if (count.offset != 0) addProperty("offset", count.offset)
+						if (count.divisor != 1) addProperty("divisor", count.divisor)
+					},
+				)
+			}
+			add("body", encodeNode(node.body))
+		}
+
+		is PatternNode.Choice -> JsonObject().apply {
+			addProperty("type", "choice")
+			addProperty("id", node.id)
+			if (node.priority.isNotEmpty()) add("priority", JsonArray().also { out -> node.priority.forEach(out::add) })
+			add(
+				"alternatives",
+				JsonArray().also { out ->
+					node.alternatives.forEach {
+						out.add(
+							JsonObject().apply {
+								addProperty("id", it.id)
+								add("node", encodeNode(it.node))
+							},
+						)
+					}
+				},
+			)
+		}
+
+		is PatternNode.Fragment -> JsonObject().apply {
+			addProperty("type", "fragment")
+			addProperty("id", node.id)
+			if (node.bindings.isNotEmpty()) add("bindings", JsonObject().also { out -> node.bindings.forEach { (name, value) -> out.add(name, encodeBinding(value)) } })
+		}
+	}
+
+	private fun encodeBinding(binding: PatternBinding): JsonObject = JsonObject().apply {
+		when (binding) {
+			is PatternBinding.Token -> {
+				addProperty("type", "token")
+				addProperty("value", binding.value)
+			}
+
+			is PatternBinding.Predicate -> {
+				addProperty("type", "predicate")
+				if (binding.definition == null) addProperty("value", binding.value) else add("value", encodePredicate(binding.definition))
+			}
+
+			is PatternBinding.IntegerValue -> {
+				addProperty("type", "integer")
+				addProperty("value", binding.value)
+			}
+
+			is PatternBinding.IntegerExpression -> {
+				addProperty("type", "integerExpression")
+				add("value", encodeExpression(binding.expression))
+			}
+
+			is PatternBinding.Direction -> {
+				addProperty("type", "direction")
+				addProperty("value", binding.value.name.lowercase())
+			}
+
+			is PatternBinding.Fragment -> {
+				addProperty("type", "fragment")
+				addProperty("value", binding.value)
+			}
+		}
+	}
+	private fun encodeModuleSlots(slots: ObjectList<PatternModuleSlot>): JsonArray = JsonArray().also { out ->
+		slots.forEach { slot ->
+			out.add(
+				JsonObject().apply {
+					addProperty("id", slot.id)
+					addProperty("hostPort", slot.hostPort)
+					when (slot) {
+						is PatternModuleSlot.One -> {
+							addProperty("type", "one")
+							encodeModule(this, slot.module)
+						}
+
+						is PatternModuleSlot.Optional -> {
+							addProperty("type", "optional")
+							encodeModule(this, slot.module)
+						}
+
+						is PatternModuleSlot.Chain -> {
+							addProperty("type", "chain")
+							encodeModule(this, slot.module)
+							addProperty("min", slot.minimum)
+							addProperty("max", slot.maximum)
+							addProperty("backtrack", slot.backtrack)
+						}
+
+						is PatternModuleSlot.OrderedChoice -> {
+							addProperty("type", "orderedChoice")
+							add(
+								"alternatives",
+								JsonArray().also { alternatives ->
+									slot.alternatives.forEach { alternative ->
+										alternatives.add(
+											JsonObject().apply {
+												addProperty("id", alternative.id)
+												encodeModule(this, alternative.module)
+											},
+										)
+									}
+								},
+							)
+							if (slot.priority.isNotEmpty()) add("priority", JsonArray().also { priority -> slot.priority.forEach(priority::add) })
+						}
+					}
+				},
+			)
+		}
+	}
+
+	private fun encodeModule(out: JsonObject, module: PatternModule) {
+		out.addProperty("fragment", module.fragment)
+		out.addProperty("in", module.input)
+		if (module.output.isNotEmpty()) out.addProperty("out", module.output)
+		if (module.bindings.isNotEmpty()) out.add("bindings", JsonObject().also { bindings -> module.bindings.forEach { (name, value) -> bindings.add(name, encodeBinding(value)) } })
+		if (module.children.isNotEmpty()) out.add("children", encodeModuleSlots(module.children))
+	}
+
+	private fun encodeExpression(value: PatternIntegerExpression): JsonObject = JsonObject().apply {
+		when (value) {
+			is PatternIntegerExpression.Constant -> {
+				addProperty("type", "constant")
+				addProperty("value", value.value)
+			}
+
+			is PatternIntegerExpression.Parameter -> {
+				addProperty("type", "parameter")
+				addProperty("parameter", value.name)
+			}
+
+			is PatternIntegerExpression.Span -> {
+				addProperty("type", "span")
+				addProperty("axis", value.axis.name.lowercase())
+			}
+
+			is PatternIntegerExpression.Add -> {
+				addProperty("type", "add")
+				add("left", encodeExpression(value.left))
+				add("right", encodeExpression(value.right))
+			}
+
+			is PatternIntegerExpression.Subtract -> {
+				addProperty("type", "subtract")
+				add("left", encodeExpression(value.left))
+				add("right", encodeExpression(value.right))
+			}
+
+			is PatternIntegerExpression.Multiply -> {
+				addProperty("type", "multiply")
+				add("left", encodeExpression(value.left))
+				add("right", encodeExpression(value.right))
+			}
+
+			is PatternIntegerExpression.FloorDivide -> {
+				addProperty("type", "floorDivide")
+				add("left", encodeExpression(value.left))
+				add("right", encodeExpression(value.right))
+			}
+		}
+	}
+
+	private fun encodeMeasurement(value: PatternMeasurement): JsonObject = JsonObject().apply {
+		addProperty("id", value.id)
+		addProperty("parameter", value.parameter)
+		add(
+			"start",
+			JsonArray().also {
+				it.add(value.start.depth)
+				it.add(value.start.height)
+				it.add(value.start.width)
+			},
+		)
+		addProperty("direction", value.direction.name.lowercase())
+		addProperty("min", value.minimum)
+		addProperty("max", value.maximum)
+		add("boundary", encodePredicate(value.boundary))
+	}
+
+	private fun encodeSizeConstraint(value: PatternSizeConstraint): JsonObject = JsonObject().apply {
+		add("left", encodeExpression(value.left))
+		addProperty("comparison", value.comparison.name.lowercase())
+		add("right", encodeExpression(value.right))
+		if (value.message.isNotEmpty()) addProperty("message", value.message)
+	}
+
+	private fun encodeConstraint(value: PatternConstraint): JsonObject {
+		val count = value as PatternConstraint.Count
+		return JsonObject().apply {
+			addProperty("type", "count")
+			addProperty("fact", count.fact)
+			addProperty("scope", scopeName(count.scope))
+			addProperty("min", count.minimum)
+			addProperty("max", count.maximum)
+			if (count.message.isNotEmpty()) addProperty("message", count.message)
+		}
+	}
+	private fun scopeName(scope: PatternConstraint.Scope) = when (scope) {
+		is PatternConstraint.Scope.All -> "all"
+		is PatternConstraint.Scope.Fragment -> "fragment:${scope.id}"
+		is PatternConstraint.Scope.Node -> "node:${scope.id}"
+		is PatternConstraint.Scope.Repeat -> "repeat:${scope.id}"
+	}
+	private fun fail(message: String): Nothing = throw IllegalArgumentException(message)
+}

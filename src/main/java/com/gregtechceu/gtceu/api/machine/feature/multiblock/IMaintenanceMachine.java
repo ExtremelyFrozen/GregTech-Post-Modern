@@ -154,38 +154,50 @@ public interface IMaintenanceMachine extends IMultiPart {
     //////////////////////////////////////
 
     @Override
-    default void attachFancyTooltipsToController(MultiblockControllerMachine controller, TooltipsPanel tooltipsPanel) {
-        attachTooltips(tooltipsPanel);
+    default void attachFancyTooltipsToController(MultiblockControllerMachine controller,
+                                                 TooltipsPanel tooltipsPanel) {
+        attachMaintenanceTooltips(tooltipsPanel);
     }
 
-    @Override
-    default void attachTooltips(TooltipsPanel tooltipsPanel) {
+    /**
+     * Registers the maintenance warning on an LDLib2 Fancy surface without adding a generic machine tooltip.
+     *
+     * @param tooltipsPanel tooltip panel owned by the current LDLib2 Fancy shell
+     */
+    default void attachMaintenanceTooltips(TooltipsPanel tooltipsPanel) {
         if (ConfigHolder.INSTANCE.machines.enableMaintenance) {
-            tooltipsPanel.attachTooltips(new IFancyTooltip.Basic(() -> GuiTextures.MAINTENANCE_ICON, () -> {
-                var tooltips = new ArrayList<Component>();
-                tooltips.add(Component.translatable("gtpm.multiblock.universal.has_problems_header")
-                        .setStyle(Style.EMPTY.withColor(ChatFormatting.RED)));
-
-                if ((getMaintenanceProblems() & 1) == 0)
-                    tooltips.add(Component.translatable("gtpm.multiblock.universal.problem.wrench"));
-
-                if (((getMaintenanceProblems() >> 1) & 1) == 0)
-                    tooltips.add(Component.translatable("gtpm.multiblock.universal.problem.screwdriver"));
-
-                if (((getMaintenanceProblems() >> 2) & 1) == 0)
-                    tooltips.add(Component.translatable("gtpm.multiblock.universal.problem.soft_mallet"));
-
-                if (((getMaintenanceProblems() >> 3) & 1) == 0)
-                    tooltips.add(Component.translatable("gtpm.multiblock.universal.problem.hard_hammer"));
-
-                if (((getMaintenanceProblems() >> 4) & 1) == 0)
-                    tooltips.add(Component.translatable("gtpm.multiblock.universal.problem.wire_cutter"));
-
-                if (((getMaintenanceProblems() >> 5) & 1) == 0)
-                    tooltips.add(Component.translatable("gtpm.multiblock.universal.problem.crowbar"));
-
-                return tooltips;
-            }, this::hasMaintenanceProblems, () -> null));
+            tooltipsPanel.attachTooltips(createMaintenanceFancyTooltip());
         }
+    }
+
+    /**
+     * Creates the lazy maintenance warning used by LDLib2 Fancy tooltip panels.
+     */
+    private IFancyTooltip.Basic createMaintenanceFancyTooltip() {
+        return new IFancyTooltip.Basic(() -> GuiTextures.MAINTENANCE_ICON, () -> {
+            var tooltips = new ArrayList<Component>();
+            tooltips.add(Component.translatable("gtpm.multiblock.universal.has_problems_header")
+                    .setStyle(Style.EMPTY.withColor(ChatFormatting.RED)));
+
+            if ((getMaintenanceProblems() & 1) == 0)
+                tooltips.add(Component.translatable("gtpm.multiblock.universal.problem.wrench"));
+
+            if (((getMaintenanceProblems() >> 1) & 1) == 0)
+                tooltips.add(Component.translatable("gtpm.multiblock.universal.problem.screwdriver"));
+
+            if (((getMaintenanceProblems() >> 2) & 1) == 0)
+                tooltips.add(Component.translatable("gtpm.multiblock.universal.problem.soft_mallet"));
+
+            if (((getMaintenanceProblems() >> 3) & 1) == 0)
+                tooltips.add(Component.translatable("gtpm.multiblock.universal.problem.hard_hammer"));
+
+            if (((getMaintenanceProblems() >> 4) & 1) == 0)
+                tooltips.add(Component.translatable("gtpm.multiblock.universal.problem.wire_cutter"));
+
+            if (((getMaintenanceProblems() >> 5) & 1) == 0)
+                tooltips.add(Component.translatable("gtpm.multiblock.universal.problem.crowbar"));
+
+            return tooltips;
+        }, this::hasMaintenanceProblems, () -> null);
     }
 }

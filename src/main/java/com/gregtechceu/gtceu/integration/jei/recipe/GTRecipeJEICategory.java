@@ -1,23 +1,27 @@
 package com.gregtechceu.gtceu.integration.jei.recipe;
 
 import com.gregtechceu.gtceu.GTCEu;
+import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.MachineDefinition;
 import com.gregtechceu.gtceu.api.recipe.GTRecipeDefinition;
 import com.gregtechceu.gtceu.api.recipe.GTRecipeType;
+import com.gregtechceu.gtceu.api.recipe.RecipeHelper;
 import com.gregtechceu.gtceu.api.recipe.category.GTRecipeCategory;
 import com.gregtechceu.gtceu.api.registry.GTRegistries;
 import com.gregtechceu.gtceu.common.data.GTRecipeTypes;
+import com.gregtechceu.gtceu.integration.xei.GTRecipeUI;
 
-import com.lowdragmc.lowdraglib.jei.IGui2IDrawable;
-import com.lowdragmc.lowdraglib.jei.ModularUIRecipeCategory;
+import com.lowdragmc.lowdraglib2.gui.ui.ModularUI;
+import com.lowdragmc.lowdraglib2.integration.xei.jei.ModularUIRecipeCategory;
 
 import net.minecraft.Util;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 
+import com.mojang.blaze3d.systems.RenderSystem;
 import mezz.jei.api.constants.RecipeTypes;
-import mezz.jei.api.helpers.IGuiHelper;
-import mezz.jei.api.helpers.IJeiHelpers;
+import mezz.jei.api.gui.drawable.IDrawable;
 import mezz.jei.api.recipe.RecipeType;
 import mezz.jei.api.registration.IRecipeCatalystRegistration;
 import mezz.jei.api.registration.IRecipeRegistration;
@@ -28,6 +32,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
+/**
+ * JEI category for GT recipe displays.
+ */
 public class GTRecipeJEICategory extends ModularUIRecipeCategory<GTRecipeDefinition> {
 
     public static final Function<GTRecipeCategory, RecipeType<GTRecipeDefinition>> TYPES = Util
@@ -36,23 +43,19 @@ public class GTRecipeJEICategory extends ModularUIRecipeCategory<GTRecipeDefinit
     private final GTRecipeCategory category;
     private final int width;
     private final int height;
-    private final mezz.jei.api.gui.drawable.IDrawable icon;
+    private final IDrawable icon;
 
-    public GTRecipeJEICategory(IJeiHelpers helpers,
-                               @NotNull GTRecipeCategory category) {
-        super(GTRecipeWrapper::new);
+    public GTRecipeJEICategory(@NotNull GTRecipeCategory category) {
+        super(GTRecipeJEICategory::createModularUI);
         this.category = category;
-        var recipeType = category.getRecipeType();
-        IGuiHelper guiHelper = helpers.getGuiHelper();
-        var size = recipeType.getRecipeUI().getJEISize();
-        this.width = size.width;
-        this.height = size.height;
-        this.icon = IGui2IDrawable.toDrawable(category.getIcon(), 16, 16);
+        var size = category.getRecipeType().getRecipeUI().getXEIRecipeUISize();
+        this.width = size.width();
+        this.height = size.height();
+        this.icon = toDrawable(category.getIcon(), 16, 16);
     }
 
     public static void registerRecipes(IRecipeRegistration registration) {
         List<GTRecipeCategory> subCategories = new ArrayList<>();
-        // run main categories first
         for (GTRecipeCategory category : GTRegistries.RECIPE_CATEGORIES) {
             if (!category.shouldRegisterDisplays()) continue;
             var type = category.getRecipeType();
@@ -65,7 +68,6 @@ public class GTRecipeJEICategory extends ModularUIRecipeCategory<GTRecipeDefinit
             var wrapped = List.copyOf(type.getRecipesInCategory(category));
             registration.addRecipes(TYPES.apply(category), wrapped);
         }
-        // run subcategories
         for (GTRecipeCategory subCategory : subCategories) {
             if (!subCategory.shouldRegisterDisplays()) continue;
             var type = subCategory.getRecipeType();
@@ -97,7 +99,7 @@ public class GTRecipeJEICategory extends ModularUIRecipeCategory<GTRecipeDefinit
     }
 
     @Override
-    public mezz.jei.api.gui.drawable.IDrawable getIcon() {
+    public IDrawable getIcon() {
         return icon;
     }
 
@@ -120,5 +122,32 @@ public class GTRecipeJEICategory extends ModularUIRecipeCategory<GTRecipeDefinit
     @Override
     public @Nullable ResourceLocation getRegistryName(@NotNull GTRecipeDefinition recipe) {
         return recipe.id;
+    }
+
+    private static ModularUI createModularUI(GTRecipeDefinition recipe) {
+        int tier = RecipeHelper.getRecipeEUtTier(recipe);
+        return GTRecipeUI.createModularUI(recipe, tier, tier);
+    }
+
+    private static IDrawable toDrawable(IGuiTexture texture, int width, int height) {
+        return new IDrawable() {
+
+            @Override
+            public int getWidth() {
+                return width;
+            }
+
+            @Override
+            public int getHeight() {
+                return height;
+            }
+
+            @Override
+            public void draw(GuiGraphics graphics, int xOffset, int yOffset) {
+                texture.draw(graphics, 0, 0, xOffset, yOffset, width, height);
+                RenderSystem.enableDepthTest();
+                RenderSystem.depthMask(true);
+            }
+        };
     }
 }

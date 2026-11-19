@@ -1,102 +1,122 @@
 package com.gregtechceu.gtceu.api.machine.fancyconfigurator;
 
+import com.gregtechceu.gtceu.api.gui.ColorPattern;
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
+import com.gregtechceu.gtceu.api.gui.UITemplate;
+import com.gregtechceu.gtceu.api.gui.element.GTButtonElement;
+import com.gregtechceu.gtceu.api.gui.element.GTImageElement;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
+import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
+import com.gregtechceu.gtceu.api.gui.texture.TextTexture;
 import com.gregtechceu.gtceu.api.machine.feature.IRecipeLogicMachine;
 import com.gregtechceu.gtceu.common.data.GTItems;
 
-import com.lowdragmc.lowdraglib.gui.editor.ColorPattern;
-import com.lowdragmc.lowdraglib.gui.texture.*;
-import com.lowdragmc.lowdraglib.gui.widget.ButtonWidget;
-import com.lowdragmc.lowdraglib.gui.widget.ImageWidget;
-import com.lowdragmc.lowdraglib.gui.widget.Widget;
-import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 
-import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 
-import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * LDLib2 Fancy page for selecting the active recipe type of a recipe logic machine.
+ *
+ * <p>
+ * The page updates the client field; the owning UI synchronizes the change.
+ */
 public class MachineModeFancyConfigurator implements IFancyUIProvider {
 
-    protected IRecipeLogicMachine machine;
+    private static final int PAGE_WIDTH = 140;
+    private static final int BUTTON_HEIGHT = 20;
+    private static final int BUTTON_X = 2;
+    private static final int BUTTON_Y = 2;
+    private static final int BUTTON_WIDTH = 136;
 
+    private final IRecipeLogicMachine machine;
+
+    /**
+     * Creates a mode selector page for one recipe logic machine.
+     */
     public MachineModeFancyConfigurator(IRecipeLogicMachine machine) {
         this.machine = machine;
     }
 
+    /**
+     * Builds fixed-height LDLib2 buttons that request a recipe type switch through GTM field sync.
+     */
+    @Override
+    public UIElement createUIWidget(FancyMachineUIWidget shell) {
+        UIElement root = new UIElement();
+        UITemplate.setBounds(root, 0, 0, getPageWidth(), getPageHeight());
+        root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
+
+        for (int index = 0; index < machine.getRecipeTypes().length; index++) {
+            int activeRecipeType = index;
+            int y = BUTTON_Y + index * BUTTON_HEIGHT;
+            GTButtonElement button = new GTButtonElement(BUTTON_X, y, BUTTON_WIDTH, BUTTON_HEIGHT, IGuiTexture.EMPTY,
+                    event -> {
+                        machine.setActiveRecipeType(activeRecipeType);
+                        event.stopImmediatePropagation();
+                        event.hasHandler = true;
+                    });
+            button.noText();
+            root.addChild(button);
+
+            GTImageElement label = new GTImageElement(BUTTON_X, y, BUTTON_WIDTH, BUTTON_HEIGHT,
+                    createModeTexture(activeRecipeType));
+            label.setAllowHitTest(false);
+            root.addChild(label);
+        }
+        return root;
+    }
+
+    /**
+     * Returns the fixed content width used by the legacy machine mode selector.
+     */
+    @Override
+    public int getPageWidth() {
+        return PAGE_WIDTH;
+    }
+
+    /**
+     * Returns the height required for all machine recipe type buttons.
+     */
+    @Override
+    public int getPageHeight() {
+        return BUTTON_HEIGHT * machine.getRecipeTypes().length + BUTTON_Y * 2;
+    }
+
+    /**
+     * Returns the translated page title shown in the Fancy title bar.
+     */
     @Override
     public Component getTitle() {
         return Component.translatable("gtpm.gui.machinemode.title");
     }
 
+    /**
+     * Uses the robot arm icon from the legacy machine mode tab.
+     */
     @Override
     public IGuiTexture getTabIcon() {
-        return new ItemStackTexture(GTItems.ROBOT_ARM_LV.get());
+        return GuiTextures.itemStack(GTItems.ROBOT_ARM_LV.get());
     }
 
-    @Override
-    public Widget createMainPage(FancyMachineUIWidget widget) {
-        var group = new MachineModeConfigurator(0, 0, 140, 20 * machine.getRecipeTypes().length + 4);
-        group.setBackground(GuiTextures.BACKGROUND_INVERSE);
-        for (int i = 0; i < machine.getRecipeTypes().length; i++) {
-            int finalI = i;
-            group.addWidget(new ButtonWidget(2, 2 + i * 20, 136, 20, IGuiTexture.EMPTY,
-                    cd -> setActiveRecipeTypeAndUpdateTickSubs(finalI)));
-            group.addWidget(new ImageWidget(2, 2 + i * 20, 136, 20,
-                    () -> new GuiTextureGroup(
-                            ResourceBorderTexture.BUTTON_COMMON.copy()
-                                    .setColor(machine.getActiveRecipeType() == finalI ? ColorPattern.CYAN.color : -1),
-                            new TextTexture(machine.getRecipeTypes()[finalI].getTranslationKey()).setWidth(136)
-                                    .setType(TextTexture.TextType.ROLL))));
-
-        }
-        return group;
-    }
-
+    /**
+     * Returns the legacy machine mode tab tooltip.
+     */
     @Override
     public List<Component> getTabTooltips() {
-        List<Component> tooltip = new ArrayList<>();
-        tooltip.add(Component.translatable("gtpm.gui.machinemode.tab_tooltip"));
-        return tooltip;
+        return List.of(Component.translatable("gtpm.gui.machinemode.tab_tooltip"));
     }
 
-    private void setActiveRecipeTypeAndUpdateTickSubs(int activeRecipeType) {
-        boolean needUpdateTickSubs = !machine.keepSubscribing() && activeRecipeType != machine.getActiveRecipeType();
-        machine.setActiveRecipeType(activeRecipeType);
-        if (needUpdateTickSubs) {
-            machine.getRecipeLogic().updateTickSubscription();
-        }
-    }
-
-    public class MachineModeConfigurator extends WidgetGroup {
-
-        public MachineModeConfigurator(int x, int y, int width, int height) {
-            super(x, y, width, height);
-        }
-
-        @Override
-        public void writeInitialData(RegistryFriendlyByteBuf buffer) {
-            buffer.writeVarInt(machine.getActiveRecipeType());
-        }
-
-        @Override
-        public void readInitialData(RegistryFriendlyByteBuf buffer) {
-            machine.setActiveRecipeType(buffer.readVarInt());
-        }
-
-        @Override
-        public void detectAndSendChanges() {
-            this.writeUpdateInfo(0, buf -> buf.writeVarInt(machine.getActiveRecipeType()));
-        }
-
-        @Override
-        public void readUpdateInfo(int id, RegistryFriendlyByteBuf buffer) {
-            if (id == 0) {
-                machine.setActiveRecipeType(buffer.readVarInt());
-            }
-        }
+    private IGuiTexture createModeTexture(int activeRecipeType) {
+        return GuiTextures.group(
+                GuiTextures.VANILLA_BUTTON.copy()
+                        .setDynamicColor(() -> machine.getActiveRecipeType() == activeRecipeType ?
+                                ColorPattern.CYAN.color : -1),
+                GuiTextures.text(machine.getRecipeTypes()[activeRecipeType].getTranslationKey())
+                        .setWidth(BUTTON_WIDTH)
+                        .setType(TextTexture.TextType.ROLL));
     }
 }

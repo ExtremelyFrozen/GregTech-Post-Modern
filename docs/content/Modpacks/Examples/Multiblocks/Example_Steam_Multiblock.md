@@ -4,6 +4,9 @@ title: "Steam Multiblock 示例"
 
 ### 大型蒸汽压缩机 Multiblock
 
+!!! note "上游示例"
+    本页示例面向 GregTech CEu Modern。GTPM 1.21.1 的数据包和附属模组入口见[整合包制作](../../index.md#upstream-kubejs)。
+
 下面是一个使用 SteamParallelMultiblockMachine 类的 Multiblock 示例。
 Steam Grinder、Steam Oven 等蒸汽 Multiblock 会使用这个类。
 

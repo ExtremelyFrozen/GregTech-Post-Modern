@@ -1,5 +1,7 @@
 package com.gregtechceu.gtceu.common.worldgen.feature.configurations;
 
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
+
 import net.minecraft.util.valueproviders.IntProvider;
 import net.minecraft.world.level.levelgen.feature.configurations.FeatureConfiguration;
 import net.minecraft.world.level.levelgen.feature.configurations.OreConfiguration;
@@ -15,4 +17,8 @@ public record StoneBlobConfiguration(OreConfiguration.TargetBlockState state, In
                     OreConfiguration.TargetBlockState.CODEC.fieldOf("state").forGetter(StoneBlobConfiguration::state),
                     IntProvider.codec(1, 64).fieldOf("size").forGetter(StoneBlobConfiguration::size))
                     .apply(instance, StoneBlobConfiguration::new));
+
+    static {
+        FieldCodecs.register(StoneBlobConfiguration.class, CODEC);
+    }
 }

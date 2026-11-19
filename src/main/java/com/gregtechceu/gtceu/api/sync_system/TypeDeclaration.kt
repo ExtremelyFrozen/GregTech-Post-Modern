@@ -32,9 +32,10 @@ class TypeDeclaration(type: Type) {
 			}
 
 			is WildcardType -> {
-				classValue = null
-				genericTypeArgs = emptyArray()
-				arrayComponentType = null
+				val bound = TypeDeclaration(type.upperBounds.single())
+				classValue = bound.classValue
+				genericTypeArgs = bound.genericTypeArgs
+				arrayComponentType = bound.arrayComponentType
 			}
 
 			else -> {
@@ -44,11 +45,6 @@ class TypeDeclaration(type: Type) {
 			}
 		}
 	}
-
-	fun isArray(): Boolean = classValue?.isArray == true || rawType is GenericArrayType
-
-	fun getArrayComponentType(): TypeDeclaration = arrayComponentType
-		?: throw IllegalStateException("Attempted to get array component for non-array type $rawType")
 
 	override fun toString(): String = rawType.toString()
 }

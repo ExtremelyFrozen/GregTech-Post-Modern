@@ -6,6 +6,7 @@ import com.gregtechceu.gtceu.api.item.tool.GTToolType;
 import com.gregtechceu.gtceu.api.item.tool.ToolHelper;
 import com.gregtechceu.gtceu.api.item.tool.behavior.IToolBehavior;
 import com.gregtechceu.gtceu.api.item.tool.behavior.ToolBehaviorType;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 import com.gregtechceu.gtceu.common.data.GTDataComponents;
 import com.gregtechceu.gtceu.common.data.GTSoundEntries;
 import com.gregtechceu.gtceu.common.data.GTToolBehaviors;
@@ -47,6 +48,11 @@ public class ToolModeSwitchBehavior implements IToolBehavior<ToolModeSwitchBehav
     public static final Codec<ToolModeSwitchBehavior> CODEC = Codec.unit(INSTANCE);
     public static final StreamCodec<ByteBuf, ToolModeSwitchBehavior> STREAM_CODEC = StreamCodec.unit(INSTANCE);
 
+    static {
+        FieldCodecs.register(ToolModeSwitchBehavior.class, CODEC);
+        FieldCodecs.registerStream(ToolModeSwitchBehavior.class, STREAM_CODEC);
+    }
+
     protected ToolModeSwitchBehavior() {}
 
     @Override
@@ -71,7 +77,7 @@ public class ToolModeSwitchBehavior implements IToolBehavior<ToolModeSwitchBehav
         Set<GTToolType> toolTypes = ToolHelper.getToolTypes(itemStack);
         // Copied and adapted from
         // https://github.com/Creators-of-Create/Create/blob/mc1.20.1/dev/src/main/java/com/simibubi/create/content/equipment/wrench/WrenchItem.java
-        if (toolTypes.contains(GTToolType.WRENCH) && GTCEu.Mods.isCreateLoaded() &&
+        if (toolTypes.contains(GTToolType.WRENCH) && GTCEu.MODS.CREATE.isLoaded() &&
                 state.is(CustomTags.CREATE_WRENCH_PICKUP)) {
             if (!(world instanceof ServerLevel serverLevel))
                 return InteractionResult.SUCCESS;
@@ -129,6 +135,11 @@ public class ToolModeSwitchBehavior implements IToolBehavior<ToolModeSwitchBehav
         public static final Codec<ModeType> CODEC = StringRepresentable.fromEnum(ModeType::values);
         public static final StreamCodec<ByteBuf, ModeType> STREAM_CODEC = ByteBufCodecs.BYTE
                 .map(aByte -> ModeType.values()[aByte], val -> (byte) val.ordinal());
+
+        static {
+            FieldCodecs.register(ModeType.class, CODEC);
+            FieldCodecs.registerStream(ModeType.class, STREAM_CODEC);
+        }
 
         @Getter
         private final @NotNull String serializedName;

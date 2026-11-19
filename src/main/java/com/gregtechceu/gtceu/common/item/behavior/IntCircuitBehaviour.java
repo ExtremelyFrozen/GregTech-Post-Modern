@@ -1,7 +1,10 @@
 package com.gregtechceu.gtceu.common.item.behavior;
 
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
-import com.gregtechceu.gtceu.api.gui.widget.SlotWidget;
+import com.gregtechceu.gtceu.api.gui.element.GTButtonElement;
+import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
+import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
+import com.gregtechceu.gtceu.api.gui.factory.HeldItemUIHolder;
 import com.gregtechceu.gtceu.api.item.component.IAddInformation;
 import com.gregtechceu.gtceu.api.item.component.IItemUIFactory;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
@@ -12,15 +15,14 @@ import com.gregtechceu.gtceu.common.data.GTDataComponents;
 import com.gregtechceu.gtceu.common.data.GTItems;
 import com.gregtechceu.gtceu.config.ConfigHolder;
 
-import com.lowdragmc.lowdraglib.gui.factory.HeldItemUIFactory;
-import com.lowdragmc.lowdraglib.gui.modular.ModularUI;
-import com.lowdragmc.lowdraglib.gui.texture.GuiTextureGroup;
-import com.lowdragmc.lowdraglib.gui.texture.ItemStackTexture;
-import com.lowdragmc.lowdraglib.gui.widget.ButtonWidget;
-import com.lowdragmc.lowdraglib.gui.widget.LabelWidget;
+import com.lowdragmc.lowdraglib2.gui.sync.rpc.RPCEmitter;
+import com.lowdragmc.lowdraglib2.gui.sync.rpc.RPCEventBuilder;
+import com.lowdragmc.lowdraglib2.gui.ui.UI;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
+import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 
 import net.minecraft.network.chat.Component;
-import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
@@ -30,6 +32,8 @@ import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.block.entity.BlockEntity;
 
 import java.util.List;
+
+import static com.gregtechceu.gtceu.api.gui.UITemplate.setBounds;
 
 public class IntCircuitBehaviour implements IItemUIFactory, IAddInformation {
 
@@ -41,13 +45,12 @@ public class IntCircuitBehaviour implements IItemUIFactory, IAddInformation {
         return stack;
     }
 
-    public static void setCircuitConfiguration(HeldItemUIFactory.HeldItemHolder holder, int configuration) {
+    public static void setCircuitConfiguration(HeldItemUIHolder holder, int configuration) {
         setCircuitConfiguration(holder.getHeld(), configuration);
-        holder.markAsDirty();
     }
 
     public static void setCircuitConfiguration(ItemStack itemStack, int configuration) {
-        if (configuration < 0 || configuration > CIRCUIT_MAX)
+        if (!isValidCircuitConfiguration(configuration))
             throw new IllegalArgumentException("Given configuration number is out of range!");
         itemStack.set(GTDataComponents.CIRCUIT_CONFIG, configuration);
     }
@@ -60,21 +63,8 @@ public class IntCircuitBehaviour implements IItemUIFactory, IAddInformation {
         return GTItems.PROGRAMMED_CIRCUIT.isIn(itemStack);
     }
 
-    // deprecated, not needed (for now)
-    @Deprecated
-    public static void adjustConfiguration(HeldItemUIFactory.HeldItemHolder holder, int amount) {
-        adjustConfiguration(holder.getHeld(), amount);
-        holder.markAsDirty();
-    }
-
-    // deprecated, not needed (for now)
-    @Deprecated
-    public static void adjustConfiguration(ItemStack stack, int amount) {
-        if (!isIntegratedCircuit(stack)) return;
-        int configuration = getCircuitConfiguration(stack);
-        configuration += amount;
-        configuration = Mth.clamp(configuration, 0, CIRCUIT_MAX);
-        setCircuitConfiguration(stack, configuration);
+    private static boolean isValidCircuitConfiguration(int configuration) {
+        return configuration >= 0 && configuration <= CIRCUIT_MAX;
     }
 
     @Override
@@ -85,40 +75,69 @@ public class IntCircuitBehaviour implements IItemUIFactory, IAddInformation {
     }
 
     @Override
-    public ModularUI createUI(HeldItemUIFactory.HeldItemHolder holder, Player entityPlayer) {
-        LabelWidget label = new LabelWidget(9, 8, "Programmed Circuit Configuration");
-        label.setDropShadow(false);
-        label.setTextColor(0x404040);
-        var modular = new ModularUI(184, 132, holder, entityPlayer)
-                .widget(label);
-        SlotWidget slotwidget = new SlotWidget(
-                new CustomItemStackHandler(stack(getCircuitConfiguration(holder.getHeld()))), 0, 82, 20, false, false);
-        slotwidget.setBackground(GuiTextures.SLOT);
-        modular.widget(slotwidget);
+    public boolean canCreateUI(HeldItemUIHolder holder, Player entityPlayer) {
+        return isIntegratedCircuit(holder.getHeld());
+    }
+
+    @Override
+    public boolean isUIStillValid(HeldItemUIHolder holder, Player entityPlayer) {
+        return isIntegratedCircuit(holder.getHeld()) && ItemStack.isSameItem(holder.getHeld(), holder.getOpenedStack());
+    }
+
+    @Override
+    public UI createUI(HeldItemUIHolder holder, Player entityPlayer) {
+        UIElement root = new UIElement();
+        RPCEmitter configureCircuit = root.addRPCEvent(RPCEventBuilder.simple(Integer.class,
+                configuration -> setCircuitConfiguration(holder.getHeld(), configuration)));
+        setBounds(root, 0, 0, 184, 132);
+        root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND));
+
+        GTLabelElement label = new GTLabelElement(9, 8, 166, 10,
+                "Programmed Circuit Configuration", false);
+        label.textStyle(style -> style
+                .textColor(0x404040)
+                .textShadow(false)
+                .textAlignHorizontal(Horizontal.LEFT)
+                .textAlignVertical(Vertical.CENTER));
+        root.addChild(label);
+
+        GTItemSlotElement selectedSlot = new GTItemSlotElement(
+                new CustomItemStackHandler(stack(getCircuitConfiguration(holder.getHeld()))), 0);
+        selectedSlot.setBackgroundTexture(GuiTextures.SLOT)
+                .setCanPutItems(false)
+                .setCanTakeItems(false);
+        setBounds(selectedSlot, 82, 20, 18, 18);
+        root.addChild(selectedSlot);
+
         int idx = 0;
         for (int x = 0; x <= 2; x++) {
             for (int y = 0; y <= 8; y++) {
-                int finalIdx = idx;
-                modular.widget(new ButtonWidget(10 + (18 * y), 48 + (18 * x), 18, 18,
-                        new GuiTextureGroup(GuiTextures.SLOT, new ItemStackTexture(stack(finalIdx)).scale(16f / 18)),
-                        data -> {
-                            setCircuitConfiguration(holder, finalIdx);
-                            slotwidget.setHandlerSlot(new CustomItemStackHandler(stack(finalIdx)), 0);
-                        }));
+                root.addChild(createCircuitButton(holder, selectedSlot, configureCircuit,
+                        idx, 10 + 18 * y, 48 + 18 * x));
                 idx++;
             }
         }
         for (int x = 0; x <= 5; x++) {
-            int finalIdx = x + 27;
-            modular.widget(new ButtonWidget(10 + (18 * x), 102, 18, 18,
-                    new GuiTextureGroup(GuiTextures.SLOT, new ItemStackTexture(stack(finalIdx)).scale(16f / 18)),
-                    data -> {
-                        setCircuitConfiguration(holder, finalIdx);
-                        slotwidget.setHandlerSlot(new CustomItemStackHandler(stack(finalIdx)), 0);
-                    }));
+            int configuration = x + 27;
+            root.addChild(createCircuitButton(holder, selectedSlot, configureCircuit,
+                    configuration, 10 + 18 * x, 102));
         }
-        modular.mainGroup.setBackground(GuiTextures.BACKGROUND);
-        return modular;
+        return UI.of(root);
+    }
+
+    private static GTButtonElement createCircuitButton(HeldItemUIHolder holder, GTItemSlotElement selectedSlot,
+                                                       RPCEmitter configureCircuit, int configuration, int x, int y) {
+        var texture = GuiTextures.group(GuiTextures.SLOT,
+                GuiTextures.itemStack(stack(configuration)).scale(16f / 18));
+        GTButtonElement button = new GTButtonElement(x, y, 18, 18, texture,
+                event -> {
+                    if (holder.getPlayer().level().isClientSide()) {
+                        configureCircuit.send(configuration);
+                    }
+                    selectedSlot.setHandlerSlot(new CustomItemStackHandler(stack(configuration)), 0);
+                });
+        button.noText();
+        return button;
     }
 
     @Override

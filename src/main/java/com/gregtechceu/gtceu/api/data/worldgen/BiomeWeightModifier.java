@@ -1,5 +1,7 @@
 package com.gregtechceu.gtceu.api.data.worldgen;
 
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
+
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderSet;
 import net.minecraft.core.RegistryCodecs;
@@ -29,6 +31,10 @@ public class BiomeWeightModifier implements ToIntFunction<Holder<Biome>> {
     public static final Codec<BiomeWeightModifier> CODEC = Codec
             .lazyInitialized(() -> Codec.withAlternative(FromList.CODEC, SINGLE_CODEC, BiomeWeightModifier::flattenAndWrap))
             .xmap(Function.identity(), BiomeWeightModifier::flattenAndWrap);
+
+    static {
+        FieldCodecs.register(BiomeWeightModifier.class, CODEC);
+    }
     // spotless:on
 
     public HolderSet<Biome> biomes;
@@ -82,6 +88,10 @@ public class BiomeWeightModifier implements ToIntFunction<Holder<Biome>> {
 
         public static final Codec<FromList> CODEC = SINGLE_CODEC.listOf()
                 .xmap(FromList::new, FromList::getOriginalModifiers);
+
+        static {
+            FieldCodecs.register(FromList.class, CODEC);
+        }
 
         @Getter
         private final List<BiomeWeightModifier> originalModifiers;

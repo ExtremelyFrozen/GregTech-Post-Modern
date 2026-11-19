@@ -5,6 +5,9 @@ title: 自定义 Sound
 
 ## 创建自定义 Sound
 
+!!! note "上游示例"
+    本页示例面向 GregTech CEu Modern。GTPM 1.21.1 的数据包和附属模组入口见[整合包制作](../index.md#upstream-kubejs)。
+
 !!! Warning "警告"
     注册自定义 sound 目前仅在 Java 中受支持，不过 sound 定义后可以在 KubeJS 脚本中使用。
 

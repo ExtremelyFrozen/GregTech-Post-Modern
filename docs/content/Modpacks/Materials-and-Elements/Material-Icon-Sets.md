@@ -5,6 +5,9 @@ title: "Icon Sets（图标集）"
 
 # Icon Sets（图标集）
 
+!!! note "上游示例"
+    本页示例面向 GregTech CEu Modern。GTPM 1.21.1 的数据包和附属模组入口见[整合包制作](../index.md#upstream-kubejs)。
+
 Material 系统使用 Icon Sets 来决定生成方块和物品的贴图。
 
 
@@ -40,7 +43,7 @@ Material 系统使用 Icon Sets 来决定生成方块和物品的贴图。
 
 ## 自定义 Icon Sets
 
-也可以使用 `gtceu:matieral_icon_set` 事件指定自定义 iconsets：
+也可以使用 `gtceu:material_icon_set` 事件指定自定义材质图标集。
 
 ```js title="custom_iconsets.js"
 GTCEuStartupEvents.registry('gtceu:material_icon_set', event => {

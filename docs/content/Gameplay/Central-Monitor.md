@@ -1,26 +1,26 @@
 ---
-title: Central Monitor（中央监视器）与 Placeholder（占位符）系统
+title: 中央监控器与占位符系统
 ---
 
-### Central Monitor（中央监视器）
+### 中央监控器 { #central-monitor }
 
-Central Monitor 是一个多方块结构，可以插入模块来渲染图片和文本。<br>
+中央监控器是一个多方块结构，可以插入模块来渲染图片和文本。<br>
 图片每 120 秒更新一次，文本更新速度取决于提供给该多方块结构的电压。
-Central Monitor 使用指南：
+按以下步骤创建一个显示组。
 
 1. 右键点击 Controller
 2. 在 UI 中，你会看到一个由 Monitor 组成的网格，以及 Controller、Energy Hatch 和（可选的）Data Hatch
 3. 左键选择一些 Monitor（任意形状都可以）
-4. 点击 "Create group" 按钮
+4. 点击“创建组”按钮
 5. 你应当会在 UI 左侧看到一个 group，点击它会选中该 group 中的全部 Monitor，再次点击则取消选择
 6. 点击要编辑的 group 名称旁边的齿轮图标
 7. 此时会打开一个只有单个槽位的 UI，将模块放入该槽位（虽然可以放入一整组模块，但那没有任何实际效果）
 8. 如果放入的是文本或图片模块，会出现一个新输入框，你可以在其中输入文本（图片模块则是一行 URL）
 9. 输入文本后，点击槽位下方的绿色对勾，这会保存你输入的文本
 10. 点击正在编辑的 group 旁边的齿轮图标，返回主菜单
-11. 此时你应当能在 Central Monitor 上看到文本或图片
+11. 此时你应当能在中央监控器上看到文本或图片
 
-要移除一个 group，选中它并点击 "Remove from group"。要从 group 中移除单个 Monitor，只选中它并点击 "Remove from group"。
+要移除整组，选中该组后点击“从组中移除”。要移除单个监控器，只选中该方块后点击同一个按钮。
 group 创建后不能再向其中添加 Monitor。图片尺寸由该 group 的左上角和右下角决定，
 两者之间的方块必须属于同一个 group。Text Module 只会在其 group 的 Monitor 上显示文本。
 

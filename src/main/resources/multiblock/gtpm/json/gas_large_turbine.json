@@ -1,0 +1,100 @@
+{
+	"machine": "gtpm:gas_large_turbine",
+	"axes": {
+		"depth": "front",
+		"height": "up",
+		"width": "left"
+	},
+	"orientation": {
+		"allowMirror": false,
+		"allowExtendedFacing": false
+	},
+	"origin": {
+		"token": "controller"
+	},
+	"parameters": {},
+	"fragments": {},
+	"predicates": {
+		"C": {
+			"type": "gtpm:block",
+			"ids": "gtpm:stainless_steel_turbine_casing"
+		},
+		"G": {
+			"type": "gtpm:block",
+			"ids": "gtpm:stainless_steel_gearbox"
+		},
+		"R": {
+			"type": "gtpm:concatenated",
+			"predicates": [
+				{
+					"type": "gtpm:restricted",
+					"predicate": {
+						"type": "gtpm:rotor_holder",
+						"tier": 4
+					},
+					"minCount": 1,
+					"maxCount": 1
+				},
+				{
+					"type": "gtpm:restricted",
+					"predicate": {
+						"type": "gtpm:part",
+						"abilities": "output_energy"
+					},
+					"minCount": 1,
+					"maxCount": 1
+				}
+			]
+		},
+		"H": {
+			"type": "gtpm:concatenated",
+			"predicates": [
+				{
+					"type": "gtpm:block",
+					"ids": "gtpm:stainless_steel_turbine_casing"
+				},
+				{
+					"type": "gtpm:part",
+					"abilities": "import_items"
+				},
+				{
+					"type": "gtpm:part",
+					"abilities": "export_items"
+				},
+				{
+					"type": "gtpm:part",
+					"abilities": "import_fluids"
+				},
+				{
+					"type": "gtpm:part",
+					"abilities": "export_fluids"
+				},
+				{
+					"type": "gtpm:auto_maintenance",
+					"checkMaintenance": true,
+					"checkMuffler": true,
+					"checkParallel": false
+				}
+			]
+		}
+	},
+	"body": {
+		"type": "sequence",
+		"axis": "depth",
+		"children": [
+			{
+				"type": "fixed",
+				"layers": [["CCCC", "CHHC", "CCCC"]]
+			},
+			{
+				"type": "fixed",
+				"layers": [["CHHC", "RGGR", "CHHC"]]
+			},
+			{
+				"type": "fixed",
+				"layers": [["CCCC", "C~HC", "CCCC"]]
+			}
+		]
+	},
+	"constraints": []
+}

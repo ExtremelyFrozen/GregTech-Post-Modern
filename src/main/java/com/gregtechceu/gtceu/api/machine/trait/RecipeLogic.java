@@ -5,6 +5,7 @@ import com.gregtechceu.gtceu.api.capability.recipe.EURecipeCapability;
 import com.gregtechceu.gtceu.api.capability.recipe.IO;
 import com.gregtechceu.gtceu.api.capability.recipe.RecipeCapability;
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
+import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.api.machine.feature.IRecipeLogicMachine;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
@@ -19,11 +20,8 @@ import com.gregtechceu.gtceu.api.sync_system.ClassSyncData;
 import com.gregtechceu.gtceu.api.sync_system.annotations.RerenderOnChanged;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
-import com.gregtechceu.gtceu.api.sync_system.codecs.RecipeChanceCachesCodec;
 import com.gregtechceu.gtceu.common.cover.MachineControllerCover;
 import com.gregtechceu.gtceu.utils.GTMath;
-
-import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
 
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -32,6 +30,9 @@ import net.minecraft.world.level.block.state.properties.EnumProperty;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 
+import com.mojang.datafixers.util.Pair;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
@@ -40,6 +41,26 @@ import org.jetbrains.annotations.VisibleForTesting;
 import java.util.*;
 
 public class RecipeLogic extends WorkLogic {
+
+    private static final Codec<IdentityHashMap<RecipeCapability<?>, Object2IntMap<?>>> CHANCE_CACHE_CODEC = Codec
+            .dispatchedMap(RecipeCapability.DIRECT_CODEC, RecipeLogic::chanceCacheCodec)
+            .xmap(IdentityHashMap::new, cache -> cache);
+
+    private static <T> Codec<Object2IntMap<?>> chanceCacheCodec(RecipeCapability<T> capability) {
+        Codec<Pair<T, Integer>> entry = RecordCodecBuilder.create(instance -> instance.group(
+                capability.serializer.codec().fieldOf("entry").forGetter(Pair::getFirst),
+                Codec.INT.fieldOf("chance").forGetter(Pair::getSecond)).apply(instance, Pair::of));
+        return entry.listOf().xmap(entries -> {
+            Object2IntMap<T> cache = capability.makeChanceCache();
+            entries.forEach(value -> cache.put(value.getFirst(), value.getSecond().intValue()));
+            return cache;
+        }, cache -> {
+            var entries = new ArrayList<Pair<T, Integer>>(cache.size());
+            cache.object2IntEntrySet()
+                    .forEach(value -> entries.add(Pair.of(capability.of(value.getKey()), value.getIntValue())));
+            return entries;
+        });
+    }
 
     public static final MachineTraitType<RecipeLogic> TYPE = new MachineTraitType<>(RecipeLogic.class, false);
 
@@ -603,7 +624,7 @@ public class RecipeLogic extends WorkLogic {
 
     static {
         ClassSyncData.getClassData(RecipeLogic.class)
-                .setCustomContextualCodecForField("chanceCaches", RecipeChanceCachesCodec.INSTANCE);
+                .setCustomCodecForField("chanceCaches", CHANCE_CACHE_CODEC);
     }
 
     public static void putFailureReason(Object machine, GTRecipe recipe, Component reason) {

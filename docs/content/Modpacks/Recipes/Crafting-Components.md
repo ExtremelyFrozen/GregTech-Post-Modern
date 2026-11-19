@@ -4,6 +4,9 @@ title: "合成组件"
 
 # 合成组件
 
+!!! note "上游示例"
+    本页示例面向 GregTech CEu Modern。GTPM 1.21.1 的数据包和附属模组入口见[整合包制作](../index.md#upstream-kubejs)。
+
 Crafting Components 是一种组织和简化 GregTech 生成的各类相似配方的方式。例如：所有 tier 的合金炉配方可以迭代写出，而不必逐个手写。
 
 Crafting Components 是一个 map，将 Voltage tier（tier number）映射到一个值。该值可以是 `MaterialEntry`、`ItemStack` 或 `TagPrefix<Item>`。

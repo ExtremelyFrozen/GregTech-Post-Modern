@@ -1,5 +1,7 @@
 package com.gregtechceu.gtceu.api.placeholder;
 
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
+
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.*;
 
@@ -23,6 +25,10 @@ public class MultiLineComponent extends ArrayList<MutableComponent> {
             ComponentSerialization.CODEC.listOf().fieldOf("text").forGetter(MultiLineComponent::toImmutable),
             GraphicsComponent.CODEC.listOf().orElse(Collections.emptyList()).fieldOf("graphics").forGetter(MultiLineComponent::getGraphics)
     ).apply(instance, MultiLineComponent::of));
+
+    static {
+        FieldCodecs.register(MultiLineComponent.class, CODEC);
+    }
     // spotless:on
 
     public MultiLineComponent() {}

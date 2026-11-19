@@ -1,13 +1,13 @@
 package com.gregtechceu.gtceu.api.recipe.category;
 
 import com.gregtechceu.gtceu.GTCEu;
+import com.gregtechceu.gtceu.api.gui.GuiTextures;
+import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.recipe.GTRecipeDefinition;
 import com.gregtechceu.gtceu.api.recipe.GTRecipeType;
 import com.gregtechceu.gtceu.api.registry.GTRegistries;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 import com.gregtechceu.gtceu.common.data.GTRecipeTypes;
-
-import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
-import com.lowdragmc.lowdraglib.gui.texture.ItemStackTexture;
 
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Items;
@@ -20,6 +20,10 @@ import org.jetbrains.annotations.Nullable;
 
 @Accessors(chain = true)
 public class GTRecipeCategory {
+
+    static {
+        FieldCodecs.register(GTRecipeCategory.class, GTRegistries.RECIPE_CATEGORIES.byNameCodec());
+    }
 
     // Placeholder category used if category isn't defined for a recipe for registration
     public static final GTRecipeCategory DEFAULT = new GTRecipeCategory(GTCEu.id("default"),
@@ -60,8 +64,8 @@ public class GTRecipeCategory {
 
     public IGuiTexture getIcon() {
         if (icon == null) {
-            if (recipeType.getIconSupplier() != null) icon = new ItemStackTexture(recipeType.getIconSupplier().get());
-            else icon = new ItemStackTexture(Items.BARRIER);
+            if (recipeType.getIconSupplier() != null) icon = GuiTextures.itemStack(recipeType.getIconSupplier().get());
+            else icon = GuiTextures.itemStack(Items.BARRIER);
         }
         return icon;
     }

@@ -1,6 +1,7 @@
 package com.gregtechceu.gtceu.common.item.datacomponents;
 
 import com.gregtechceu.gtceu.api.placeholder.MultiLineComponent;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.ComponentSerialization;
@@ -20,6 +21,10 @@ public record TextLineList(@With List<Component> lines, @With float scale) {
             ComponentSerialization.CODEC.listOf().fieldOf("lines").forGetter(TextLineList::lines),
             Codec.FLOAT.fieldOf("scale").forGetter(TextLineList::scale)
     ).apply(instance, TextLineList::new));
+
+    static {
+        FieldCodecs.register(TextLineList.class, CODEC);
+    }
     // spotless:on
 
     public static final TextLineList EMPTY = new TextLineList(Collections.emptyList(), 1.0f);

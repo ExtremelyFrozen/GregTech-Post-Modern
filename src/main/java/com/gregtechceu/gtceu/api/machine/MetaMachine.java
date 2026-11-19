@@ -16,7 +16,9 @@ import com.gregtechceu.gtceu.api.cover.CoverBehavior;
 import com.gregtechceu.gtceu.api.data.RotationState;
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyTooltip;
+import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.item.tool.GTToolType;
+import com.gregtechceu.gtceu.api.item.tool.GridHighlightTexture;
 import com.gregtechceu.gtceu.api.item.tool.IToolGridHighlight;
 import com.gregtechceu.gtceu.api.item.tool.ToolHelper;
 import com.gregtechceu.gtceu.api.machine.feature.*;
@@ -50,13 +52,12 @@ import com.gregtechceu.gtceu.common.item.behavior.MachineConfigCopyBehaviour;
 import com.gregtechceu.gtceu.common.machine.owner.MachineOwner;
 import com.gregtechceu.gtceu.common.machine.owner.PlayerOwner;
 import com.gregtechceu.gtceu.common.machine.trait.AutoOutputTrait;
+import com.gregtechceu.gtceu.common.network.packets.PacketRPCBlockEntity;
 import com.gregtechceu.gtceu.utils.ExtendedUseOnContext;
 import com.gregtechceu.gtceu.utils.GTStringUtils;
 import com.gregtechceu.gtceu.utils.data.TagCompatibilityFixer;
 
-import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
-import com.lowdragmc.lowdraglib.gui.texture.ResourceTexture;
-import com.lowdragmc.lowdraglib.utils.DummyWorld;
+import com.lowdragmc.lowdraglib2.utils.virtuallevel.DummyWorld;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.resources.model.BakedModel;
@@ -78,6 +79,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.BlockAndTintGetter;
 import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
@@ -146,6 +148,26 @@ public class MetaMachine extends ManagedSyncBlockEntity implements IGregtechBloc
         this.coverContainer = attachTrait(new MachineCoverContainer(this));
         this.serverTicks = new ArrayList<>();
         this.waitingToAdd = new ArrayList<>();
+    }
+
+    @Override
+    public SyncDataHolder getRootStorage() {
+        return syncDataHolder;
+    }
+
+    @Override
+    public PacketRPCBlockEntity createRPCPacket(byte[] data) {
+        return new PacketRPCBlockEntity(this, data);
+    }
+
+    @Override
+    public ServerLevel getServerLevel() {
+        return (ServerLevel) getLevel();
+    }
+
+    @Override
+    public ChunkPos getTrackingPos() {
+        return new ChunkPos(getBlockPos());
     }
 
     //////////////////////////////////////
@@ -236,9 +258,9 @@ public class MetaMachine extends ManagedSyncBlockEntity implements IGregtechBloc
     protected void applyImplicitComponents(DataComponentInput componentInput) {
         if (getLevel() == null) return;
 
-        DataComponentMap itemData = componentInput.get(GTDataComponents.BLOCK_ITEM_DATA);
+        SyncFieldData itemData = componentInput.get(GTDataComponents.ITEM_DATA);
         if (itemData != null && !itemData.isEmpty()) {
-            syncDataHolder.deserializeItemComponents(getLevel().registryAccess(), itemData);
+            syncDataHolder.deserializeItemFieldData(getLevel().registryAccess(), itemData);
         }
     }
 
@@ -250,9 +272,9 @@ public class MetaMachine extends ManagedSyncBlockEntity implements IGregtechBloc
     public void collectImplicitComponents(DataComponentMap.Builder components) {
         if (getLevel() == null) return;
 
-        DataComponentMap itemData = syncDataHolder.serializeToItemComponents(getLevel().registryAccess());
+        SyncFieldData itemData = syncDataHolder.serializeToItemFieldData(getLevel().registryAccess());
         if (!itemData.isEmpty()) {
-            components.set(GTDataComponents.BLOCK_ITEM_DATA, itemData);
+            components.set(GTDataComponents.ITEM_DATA, itemData);
         }
     }
 
@@ -329,6 +351,13 @@ public class MetaMachine extends ManagedSyncBlockEntity implements IGregtechBloc
      */
     public @Unmodifiable List<MachineTrait> getAllTraits() {
         return traitHolder.getAllTraits();
+    }
+
+    /**
+     * Returns traits in stable attachment order for client-to-server sync target identities.
+     */
+    public @Unmodifiable List<MachineTrait> getSyncTraits() {
+        return traitHolder.getSyncTraits();
     }
 
     /**
@@ -643,21 +672,23 @@ public class MetaMachine extends ManagedSyncBlockEntity implements IGregtechBloc
     }
 
     @Override
-    public @Nullable ResourceTexture sideTips(Player player, BlockPos pos, BlockState state,
-                                              Set<GTToolType> toolTypes, ItemStack held, Direction side) {
+    public @Nullable GridHighlightTexture sideTips(Player player, BlockPos pos, BlockState state,
+                                                   Set<GTToolType> toolTypes, ItemStack held, Direction side) {
         if (toolTypes.contains(GTToolType.WRENCH) || held.canPerformAction(GTItemAbilities.WRENCH_ROTATE)) {
             if (!player.isShiftKeyDown()) {
                 if (isFacingValid(side) || (allowExtendedFacing() && hasFrontFacing() && side == getFrontFacing())) {
-                    return GuiTextures.TOOL_FRONT_FACING_ROTATION;
+                    return GridHighlightTexture.TOOL_FRONT_FACING_ROTATION;
                 }
             }
         } else if (toolTypes.contains(GTToolType.SOFT_MALLET) || held.canPerformAction(GTItemAbilities.MALLET_PAUSE)) {
             if (this instanceof IControllable controllable) {
-                return controllable.isWorkingEnabled() ? GuiTextures.TOOL_START : GuiTextures.TOOL_PAUSE;
+                return controllable.isWorkingEnabled() ? GridHighlightTexture.TOOL_START :
+                        GridHighlightTexture.TOOL_PAUSE;
             }
         } else if (toolTypes.contains(GTToolType.HARD_HAMMER) || held.canPerformAction(GTItemAbilities.HAMMER_MUTE)) {
             if (this instanceof IMufflableMachine mufflableMachine) {
-                return mufflableMachine.isMuffled() ? GuiTextures.TOOL_SOUND : GuiTextures.TOOL_MUTE;
+                return mufflableMachine.isMuffled() ? GridHighlightTexture.TOOL_SOUND :
+                        GridHighlightTexture.TOOL_MUTE;
             }
         }
 
@@ -1022,41 +1053,38 @@ public class MetaMachine extends ManagedSyncBlockEntity implements IGregtechBloc
     private static final String CIRCUIT = "circuit_config";
 
     @Override
-    public DataComponentMap copyConfig(HolderLookup.Provider registries) {
-        DataComponentMap config = ConfigCopyHelper.withFields(ICopyable.super.copyConfig(registries), fields -> fields
+    public SyncFieldData copyConfig(HolderLookup.Provider registries) {
+        SyncFieldData config = ConfigCopyHelper.withFields(ICopyable.super.copyConfig(registries), fields -> fields
                 .put(SyncFieldData.key(FACING_DIR),
-                        ConfigCopyHelper.stringValue(MachineConfigCopyBehaviour.directionToString(getFrontFacing()))));
+                        MachineConfigCopyBehaviour.directionToString(getFrontFacing())));
 
         var outputTrait = getTrait(AutoOutputTrait.TYPE);
         if (outputTrait != null && outputTrait.supportsAutoOutputItems() &&
                 outputTrait.getItemOutputDirection() != null) {
             config = ConfigCopyHelper.withFields(config, fields -> fields
                     .put(SyncFieldData.key(ITEM_OUTPUT_SIDE),
-                            ConfigCopyHelper.stringValue(
-                                    MachineConfigCopyBehaviour.directionToString(outputTrait.getItemOutputDirection())))
+                            MachineConfigCopyBehaviour.directionToString(outputTrait.getItemOutputDirection()))
                     .put(SyncFieldData.key(ITEM_AUTO_OUTPUT),
-                            ConfigCopyHelper.booleanValue(outputTrait.isAutoOutputItems()))
+                            outputTrait.isAutoOutputItems())
                     .put(SyncFieldData.key(ALLOW_ITEM_IN_FROM_OUT),
-                            ConfigCopyHelper.booleanValue(outputTrait.allowsItemInputFromOutputSide())));
+                            outputTrait.allowsItemInputFromOutputSide()));
         }
 
         if (outputTrait != null && outputTrait.supportsAutoOutputFluids() &&
                 outputTrait.getFluidOutputDirection() != null) {
             config = ConfigCopyHelper.withFields(config, fields -> fields
                     .put(SyncFieldData.key(FLUID_OUTPUT_SIDE),
-                            ConfigCopyHelper.stringValue(
-                                    MachineConfigCopyBehaviour
-                                            .directionToString(outputTrait.getFluidOutputDirection())))
+                            MachineConfigCopyBehaviour.directionToString(outputTrait.getFluidOutputDirection()))
                     .put(SyncFieldData.key(FLUID_AUTO_OUTPUT),
-                            ConfigCopyHelper.booleanValue(outputTrait.isAutoOutputFluids()))
+                            outputTrait.isAutoOutputFluids())
                     .put(SyncFieldData.key(ALLOW_FLUID_IN_FROM_OUT),
-                            ConfigCopyHelper.booleanValue(outputTrait.allowsFluidInputFromOutputSide())));
+                            outputTrait.allowsFluidInputFromOutputSide()));
         }
 
         if (this instanceof IMufflableMachine mufflableMachine) {
             config = ConfigCopyHelper.withFields(config, fields -> fields
                     .put(SyncFieldData.key(MUFFLED),
-                            ConfigCopyHelper.booleanValue(mufflableMachine.isMuffled())));
+                            mufflableMachine.isMuffled()));
         }
 
         if (this instanceof IHasCircuitSlot circuitMachine) {
@@ -1065,15 +1093,15 @@ public class MetaMachine extends ManagedSyncBlockEntity implements IGregtechBloc
             if (circuitMachine.isCircuitSlotEnabled() && circuit != 0) {
                 config = ConfigCopyHelper.withFields(config, fields -> fields
                         .put(SyncFieldData.key(CIRCUIT),
-                                ConfigCopyHelper.intValue(circuit)));
+                                circuit));
             }
         }
 
-        return ConfigCopyHelper.mergeComponents(config, getCoverContainer().copyConfig(registries));
+        return ConfigCopyHelper.merge(config, getCoverContainer().copyConfig(registries));
     }
 
     @Override
-    public void pasteConfig(ServerPlayer player, HolderLookup.Provider registries, DataComponentMap config) {
+    public void pasteConfig(ServerPlayer player, HolderLookup.Provider registries, SyncFieldData config) {
         var outputTrait = getTrait(AutoOutputTrait.TYPE);
         if (outputTrait != null) {
             if (ConfigCopyHelper.contains(config, ITEM_OUTPUT_SIDE)) {

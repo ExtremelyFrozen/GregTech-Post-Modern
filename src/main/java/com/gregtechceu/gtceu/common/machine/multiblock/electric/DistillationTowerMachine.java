@@ -3,6 +3,15 @@ package com.gregtechceu.gtceu.common.machine.multiblock.electric;
 import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo;
 import com.gregtechceu.gtceu.api.capability.recipe.*;
+import com.gregtechceu.gtceu.api.gui.GuiTextures;
+import com.gregtechceu.gtceu.api.gui.UITemplate;
+import com.gregtechceu.gtceu.api.gui.element.GTComponentPanelElement;
+import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
+import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
+import com.gregtechceu.gtceu.api.gui.fancy.TooltipsPanel;
+import com.gregtechceu.gtceu.api.machine.ConditionalSubscriptionHandler;
+import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMaintenanceMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMultiPart;
 import com.gregtechceu.gtceu.api.machine.multiblock.PartAbility;
 import com.gregtechceu.gtceu.api.machine.multiblock.WorkableElectricMultiblockMachine;
@@ -19,6 +28,13 @@ import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
 import com.gregtechceu.gtceu.common.data.GTRecipeTypes;
 
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
+import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
+import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollerMode;
+import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
+
+import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import net.neoforged.neoforge.fluids.capability.IFluidHandler.FluidAction;
@@ -26,13 +42,21 @@ import net.neoforged.neoforge.fluids.capability.templates.VoidFluidHandler;
 import net.neoforged.neoforge.fluids.crafting.SizedFluidIngredient;
 
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import lombok.AccessLevel;
 import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
+import javax.annotation.ParametersAreNonnullByDefault;
+
+@ParametersAreNonnullByDefault
+@MethodsReturnNonnullByDefault
 public class DistillationTowerMachine extends WorkableElectricMultiblockMachine
                                       implements FluidRecipeCapability.ICustomParallel {
+
+    private static final int PAGE_WIDTH = 190;
+    private static final int PAGE_HEIGHT = 125;
 
     @Getter
     private @Nullable List<IFluidHandler> fluidOutputs;
@@ -40,6 +64,17 @@ public class DistillationTowerMachine extends WorkableElectricMultiblockMachine
     @Nullable
     private IFluidHandler firstValid = null;
     private final int yOffset;
+    /**
+     * Keeps the client display supplied from a server-owned snapshot while the structure is formed.
+     */
+    @Getter(AccessLevel.PACKAGE)
+    private final ConditionalSubscriptionHandler displaySubscription;
+    /**
+     * Carries the complete legacy display text without relying on the old Widget sync path.
+     */
+    @Getter(AccessLevel.PACKAGE)
+    @SyncToClient
+    private List<Component> displayText = List.of();
 
     public DistillationTowerMachine(BlockEntityCreationInfo info) {
         this(info, 1);
@@ -53,6 +88,17 @@ public class DistillationTowerMachine extends WorkableElectricMultiblockMachine
     public DistillationTowerMachine(BlockEntityCreationInfo info, int yOffset) {
         super(info, new DistillationTowerLogic());
         this.yOffset = yOffset;
+        this.displaySubscription = new ConditionalSubscriptionHandler(this, this::refreshDisplayText,
+                this::isFormed);
+    }
+
+    @Override
+    public void onLoad() {
+        super.onLoad();
+        if (!isRemote()) {
+            refreshDisplayText();
+            displaySubscription.initialize(getLevel());
+        }
     }
 
     @Override
@@ -72,7 +118,7 @@ public class DistillationTowerMachine extends WorkableElectricMultiblockMachine
 
         if (!parts.isEmpty()) {
             // Loop from controller y + offset -> the highest output hatch
-            int maxY = parts.get(parts.size() - 1).self().getBlockPos().getY();
+            int maxY = parts.getLast().self().getBlockPos().getY();
             fluidOutputs = new ObjectArrayList<>(maxY - startY);
             int outputIndex = 0;
             for (int y = startY; y <= maxY; ++y) {
@@ -83,7 +129,7 @@ public class DistillationTowerMachine extends WorkableElectricMultiblockMachine
 
                 var part = parts.get(outputIndex);
                 if (part.self().getBlockPos().getY() == y) {
-                    var handler = part.getRecipeHandlers().get(0).getCapability(FluidRecipeCapability.CAP)
+                    var handler = part.getRecipeHandlers().getFirst().getCapability(FluidRecipeCapability.CAP)
                             .stream()
                             .filter(IFluidHandler.class::isInstance)
                             .findFirst()
@@ -101,6 +147,10 @@ public class DistillationTowerMachine extends WorkableElectricMultiblockMachine
                     return;
                 }
             }
+            if (!isRemote()) {
+                refreshDisplayText();
+                displaySubscription.updateSubscription();
+            }
         } else invalidateStructure(structureName);
     }
 
@@ -116,7 +166,59 @@ public class DistillationTowerMachine extends WorkableElectricMultiblockMachine
             firstValid = null;
         }
         super.invalidateStructure(structureName);
+        if (DEFAULT_STRUCTURE.equals(structureName) && !isRemote()) {
+            refreshDisplayText();
+            displaySubscription.updateSubscription();
+        }
     }
+
+    @Override
+    public void onUnload() {
+        super.onUnload();
+        resetDisplayText();
+    }
+
+    @Override
+    public void onPartUnload() {
+        super.onPartUnload();
+        resetDisplayText();
+    }
+
+    /**
+     * Clears runtime display state when the controller can no longer serve its UI.
+     */
+    private void resetDisplayText() {
+        displayText = List.of();
+        displaySubscription.unsubscribe();
+    }
+
+    @Override
+    public void addDisplayText(List<Component> textList) {
+        textList.addAll(displayText);
+    }
+
+    /**
+     * Rebuilds the immutable client snapshot from the server's complete legacy display contract.
+     */
+    void refreshDisplayText() {
+        List<Component> nextText = new ArrayList<>();
+        collectServerDisplayText(nextText);
+        nextText = List.copyOf(nextText);
+        if (!displayText.equals(nextText)) {
+            displayText = nextText;
+        }
+    }
+
+    /**
+     * Separates live server-state collection from snapshot publication for direct lifecycle verification.
+     */
+    protected void collectServerDisplayText(List<Component> textList) {
+        super.addDisplayText(textList);
+    }
+
+    /**
+     * Owns the opening-scoped controller, optional machine-mode, directional, and contextual part pages.
+     */
 
     @Override
     public int limitFluidParallel(GTRecipe recipe, int multiplier, boolean tick) {
@@ -155,7 +257,6 @@ public class DistillationTowerMachine extends WorkableElectricMultiblockMachine
                 recipe.tickInputs, cm.applyContents(recipe.tickOutputs), recipe.inputChanceLogics,
                 recipe.outputChanceLogics,
                 recipe.tickInputChanceLogics, recipe.tickOutputChanceLogics, recipe.conditions,
-                recipe.ingredientActions,
                 RecipeData.copy(recipe.data), recipe.tier, recipe.duration, recipe.recipeCategory, recipe.groupColor);
     }
 
@@ -264,15 +365,12 @@ public class DistillationTowerMachine extends WorkableElectricMultiblockMachine
         }
 
         private boolean applyFluidOutputs(GTRecipe recipe, FluidAction action, VoidingMode voidMode) {
-            var fluids = recipe.getOutputContents(FluidRecipeCapability.CAP)
-                    .stream()
-                    .map(Content::getContent)
-                    .map(FluidRecipeCapability.CAP::of)
-                    .toList();
+            var fluids = recipe.getOutputContents(FluidRecipeCapability.CAP);
+            if (fluids.isEmpty()) return true;
 
             // Distillery recipes should output to the first non-void handler
             if (recipe.recipeType == GTRecipeTypes.DISTILLERY_RECIPES) {
-                var fluid = fluids.getFirst().getFluids()[0];
+                var fluid = FluidRecipeCapability.CAP.of(fluids.getFirst().getContent()).getFluids()[0];
                 var handler = getMachine().getFirstValid();
                 if (handler == null) return false;
                 int filled = (handler instanceof NotifiableFluidTank nft) ?
@@ -283,9 +381,10 @@ public class DistillationTowerMachine extends WorkableElectricMultiblockMachine
 
             boolean valid = true;
             var outputs = getMachine().getFluidOutputs();
-            for (int i = 0; i < Math.min(fluids.size(), outputs.size()); ++i) {
+            int outputCount = Math.min(fluids.size(), outputs.size());
+            for (int i = 0; i < outputCount; ++i) {
                 var handler = outputs.get(i);
-                var fluid = fluids.get(i).getFluids()[0];
+                var fluid = FluidRecipeCapability.CAP.of(fluids.get(i).getContent()).getFluids()[0];
                 int filled = (handler instanceof NotifiableFluidTank nft) ?
                         nft.fillInternal(fluid, action) :
                         handler.fill(fluid, action);
@@ -293,6 +392,46 @@ public class DistillationTowerMachine extends WorkableElectricMultiblockMachine
                 if (action.simulate() && !valid) break;
             }
             return valid;
+        }
+    }
+
+    @Override
+    public UIElement createUIWidget(FancyMachineUIWidget shell) {
+        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
+        root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
+
+        GTScrollerViewElement screen = new GTScrollerViewElement(4, 4, 182, 117);
+        screen.style(style -> style.backgroundTexture(getScreenTexture()));
+        screen.viewPort(viewPort -> viewPort
+                .layout(layout -> layout.paddingAll(0))
+                .style(style -> style.backgroundTexture(getScreenTexture())));
+        screen.scrollerStyle(style -> style
+                .mode(ScrollerMode.VERTICAL)
+                .verticalScrollDisplay(ScrollDisplay.AUTO)
+                .horizontalScrollDisplay(ScrollDisplay.NEVER));
+
+        GTLabelElement title = new GTLabelElement(4, 5, 174, 10,
+                getBlockState().getBlock().getDescriptionId(), true);
+        title.textStyle(style -> style
+                .textColor(0x404040)
+                .textShadow(false)
+                .textAlignHorizontal(Horizontal.LEFT)
+                .textAlignVertical(Vertical.CENTER));
+        screen.addScrollViewChild(title);
+        screen.addScrollViewChild(new GTComponentPanelElement(4, 17,
+                DistillationTowerMachine.this::addDisplayText)
+                .setMaxWidthLimit(200)
+                .clickHandler(DistillationTowerMachine.this::handleDisplayClick));
+        root.addChild(screen);
+        return root;
+    }
+
+    @Override
+    public void attachTooltips(TooltipsPanel tooltipsPanel) {
+        for (IMultiPart part : getParts()) {
+            if (part instanceof IMaintenanceMachine maintenanceMachine) {
+                maintenanceMachine.attachMaintenanceTooltips(tooltipsPanel);
+            }
         }
     }
 }

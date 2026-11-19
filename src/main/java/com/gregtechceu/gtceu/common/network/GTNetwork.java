@@ -15,13 +15,23 @@ public class GTNetwork {
     public static void registerPayloads(RegisterPayloadHandlersEvent event) {
         PayloadRegistrar registar = event.registrar(GTCEuAPI.NETWORK_VERSION);
         // spotless:off
-        registar.playBidirectional(SCPacketMonitorGroupDataChange.TYPE, SCPacketMonitorGroupDataChange.CODEC, SCPacketMonitorGroupDataChange::execute);
+        registar.playToClient(SCPacketMonitorGroupDataChange.TYPE, SCPacketMonitorGroupDataChange.CODEC, SCPacketMonitorGroupDataChange::execute);
 
         registar.playToServer(CPacketImageRequest.TYPE, CPacketImageRequest.CODEC, CPacketImageRequest::execute);
         registar.playToServer(CPacketMachineSyncToServer.TYPE, CPacketMachineSyncToServer.CODEC, CPacketMachineSyncToServer::execute);
-        registar.playToServer(CPacketCoverSyncToServer.TYPE, CPacketCoverSyncToServer.CODEC, CPacketCoverSyncToServer::execute);
+        registar.playBidirectional(PacketRPCBlockEntity.TYPE, PacketRPCBlockEntity.CODEC, PacketRPCBlockEntity::execute);
+        registar.playBidirectional(PacketRPCMenu.TYPE, PacketRPCMenu.CODEC, PacketRPCMenu::execute);
+        registar.playBidirectional(PacketRPCPacket.TYPE, PacketRPCPacket.CODEC, PacketRPCPacket::execute);
+        registar.playToServer(CPacketDynamicItemSlotPreparedToServer.TYPE, CPacketDynamicItemSlotPreparedToServer.CODEC, CPacketDynamicItemSlotPreparedToServer::execute);
+        registar.playToServer(CPacketDynamicItemSlotActivatedToServer.TYPE, CPacketDynamicItemSlotActivatedToServer.CODEC, CPacketDynamicItemSlotActivatedToServer::execute);
+        registar.playToServer(CPacketDynamicItemSlotSelectionToServer.TYPE, CPacketDynamicItemSlotSelectionToServer.CODEC, CPacketDynamicItemSlotSelectionToServer::execute);
         registar.playToClient(SPacketImageResponse.TYPE, SPacketImageResponse.CODEC, SPacketImageResponse::execute);
         registar.playToClient(SPacketMachineSyncToClient.TYPE, SPacketMachineSyncToClient.CODEC, SPacketMachineSyncToClient::execute);
+        registar.playBidirectional(PacketMenuSync.TYPE, PacketMenuSync.CODEC, PacketMenuSync::execute);
+        registar.playToClient(SPacketDynamicItemSlotManifestToClient.TYPE, SPacketDynamicItemSlotManifestToClient.CODEC, SPacketDynamicItemSlotManifestToClient::execute);
+        registar.playToClient(SPacketDynamicItemSlotActivationToClient.TYPE, SPacketDynamicItemSlotActivationToClient.CODEC, SPacketDynamicItemSlotActivationToClient::execute);
+        registar.playToClient(SPacketDynamicItemSlotSelectionToClient.TYPE, SPacketDynamicItemSlotSelectionToClient.CODEC, SPacketDynamicItemSlotSelectionToClient::execute);
+        registar.playToClient(SPacketProspectingMapData.TYPE, SPacketProspectingMapData.CODEC, SPacketProspectingMapData::execute);
 
         registar.playToServer(CPacketKeyDown.TYPE, CPacketKeyDown.CODEC, CPacketKeyDown::execute);
 

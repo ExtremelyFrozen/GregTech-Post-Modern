@@ -6,6 +6,9 @@ title: "Layers 与 Dimensions"
 # Layers 与 Dimensions
 
 
+!!! note "上游示例"
+    本页示例面向 GregTech CEu Modern。GTPM 1.21.1 的数据包和附属模组入口见[整合包制作](../index.md#upstream-kubejs)。
+
 ## 创建新的 World Gen Layer
 
 要在其他 Dimension 中（或只在某些方块所在位置）创建 Ore Veins，需要创建新的 worldgen layer。
@@ -14,7 +17,7 @@ title: "Layers 与 Dimensions"
 ```js title="startup_scripts/world_gen_layers.js"
 GTCEuStartupEvents.registry('gtceu:world_gen_layer', event => {
     event.create('my_custom_layer')
-        .targets('#minecraft:stone_ore_replaceables', 'minecraft:endstone') // [*] (1)
+        .targets('#minecraft:stone_ore_replaceables', 'minecraft:end_stone') // [*] (1)
         .dimensions('minecraft:overworld', 'minecraft:the_end') // [*]
 })
 ```

@@ -1,0 +1,94 @@
+{
+	"machine": "gtpm:extreme_combustion_engine",
+	"axes": {
+		"depth": "front",
+		"height": "up",
+		"width": "left"
+	},
+	"orientation": {
+		"allowMirror": false,
+		"allowExtendedFacing": false
+	},
+	"origin": {
+		"token": "controller"
+	},
+	"parameters": {},
+	"fragments": {},
+	"predicates": {
+		"X": {
+			"type": "gtpm:block",
+			"ids": "gtpm:robust_machine_casing"
+		},
+		"G": {
+			"type": "gtpm:block",
+			"ids": "gtpm:tungstensteel_gearbox"
+		},
+		"C": {
+			"type": "gtpm:concatenated",
+			"predicates": [
+				{
+					"type": "gtpm:restricted",
+					"predicate": {
+						"type": "gtpm:block",
+						"ids": "gtpm:robust_machine_casing"
+					},
+					"minCount": 3
+				},
+				{
+					"type": "gtpm:part",
+					"abilities": "import_items"
+				},
+				{
+					"type": "gtpm:part",
+					"abilities": "export_items"
+				},
+				{
+					"type": "gtpm:part",
+					"abilities": "import_fluids"
+				},
+				{
+					"type": "gtpm:part",
+					"abilities": "export_fluids"
+				},
+				{
+					"type": "gtpm:auto_maintenance",
+					"checkMaintenance": true,
+					"checkMuffler": true,
+					"checkParallel": false
+				}
+			]
+		},
+		"D": {
+			"type": "gtpm:part",
+			"abilities": "output_energy",
+			"allowedTiers": [5, 6, 7, 8, 9, 10]
+		},
+		"A": {
+			"type": "gtpm:block",
+			"ids": "gtpm:extreme_engine_intake_casing"
+		}
+	},
+	"body": {
+		"type": "sequence",
+		"axis": "depth",
+		"children": [
+			{
+				"type": "fixed",
+				"layers": [["XXX", "XDX", "XXX"]]
+			},
+			{
+				"type": "fixed",
+				"layers": [["XCX", "CGC", "XCX"]]
+			},
+			{
+				"type": "fixed",
+				"layers": [["XCX", "CGC", "XCX"]]
+			},
+			{
+				"type": "fixed",
+				"layers": [["AAA", "A~A", "AAA"]]
+			}
+		]
+	},
+	"constraints": []
+}

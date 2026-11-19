@@ -5,6 +5,9 @@ title: "Material Properties（材料属性）"
 
 # Material Properties（材料属性）
 
+!!! note "上游示例"
+    本页示例面向 GregTech CEu Modern。GTPM 1.21.1 的数据包和附属模组入口见[整合包制作](../index.md#upstream-kubejs)。
+
 Properties 可以应用到 Material 上，用于决定它们的行为。下面是一个示例：
 
 === "Javascript"

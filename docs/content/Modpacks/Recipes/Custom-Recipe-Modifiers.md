@@ -4,6 +4,9 @@ title: 自定义 Recipe Modifiers
 
 # 自定义 Recipe Modifiers / Data Logic
 
+!!! note "上游示例"
+    本页示例面向 GregTech CEu Modern。GTPM 1.21.1 的数据包和附属模组入口见[整合包制作](../index.md#upstream-kubejs)。
+
 ## 添加 Modifier
 KubeJS 中的自定义 recipe modifiers 通过函数实现。这个示例会制作一个像 EBF 一样要求配方温度的多方块。
 ```js title="temperature_recipe_modifier.js"

@@ -5,6 +5,9 @@ title: "自定义 Ore Veins"
 
 # 创建和修改 Ore Veins
 
+!!! note "上游示例"
+    本页示例面向 GregTech CEu Modern。GTPM 1.21.1 的数据包和附属模组入口见[整合包制作](../index.md#upstream-kubejs)。
+
 你可以使用 KJS 创建自己的自定义 Ore Veins。
 也可以修改甚至删除已有矿脉。
 

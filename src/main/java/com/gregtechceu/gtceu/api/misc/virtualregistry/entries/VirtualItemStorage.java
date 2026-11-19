@@ -2,13 +2,11 @@ package com.gregtechceu.gtceu.api.misc.virtualregistry.entries;
 
 import com.gregtechceu.gtceu.api.misc.virtualregistry.EntryTypes;
 import com.gregtechceu.gtceu.api.misc.virtualregistry.VirtualEntry;
+import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
+import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
 import com.gregtechceu.gtceu.api.transfer.item.CustomItemStackHandler;
-import com.gregtechceu.gtceu.common.data.GTDataComponents;
-import com.gregtechceu.gtceu.common.data.datacomponents.VirtualEntryData;
 
 import net.minecraft.MethodsReturnNonnullByDefault;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.core.component.DataComponentMap;
 
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
@@ -23,6 +21,8 @@ public class VirtualItemStorage extends VirtualEntry {
 
     @NotNull
     @Getter
+    @SaveField
+    @SyncToClient
     private final CustomItemStackHandler handler;
 
     public VirtualItemStorage() {
@@ -45,22 +45,12 @@ public class VirtualItemStorage extends VirtualEntry {
     }
 
     @Override
-    public DataComponentMap exportComponents(HolderLookup.Provider provider) {
-        return putBaseComponent(DataComponentMap.builder())
-                .set(GTDataComponents.VIRTUAL_ITEM_STORAGE.get(), new VirtualEntryData.Items(handler.getStacks()))
-                .build();
-    }
-
-    @Override
-    public void importComponents(HolderLookup.Provider provider, DataComponentMap components) {
-        super.importComponents(provider, components);
-        VirtualEntryData.Items data = components.get(GTDataComponents.VIRTUAL_ITEM_STORAGE.get());
-        if (data == null) {
-            throw new IllegalArgumentException("Virtual item storage entry is missing item data component");
-        }
-        int size = Math.min(data.stacks().size(), handler.getSlots());
-        for (int i = 0; i < size; i++) {
-            handler.setStackInSlot(i, data.stacks().get(i));
+    public void copyFrom(VirtualEntry source) {
+        super.copyFrom(source);
+        VirtualItemStorage storage = (VirtualItemStorage) source;
+        if (handler.getSlots() != storage.handler.getSlots()) handler.setSize(storage.handler.getSlots());
+        for (int i = 0; i < handler.getSlots(); i++) {
+            handler.setStackInSlot(i, storage.handler.getStackInSlot(i).copy());
         }
     }
 

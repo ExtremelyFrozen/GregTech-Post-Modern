@@ -1,5 +1,6 @@
 package com.gregtechceu.gtceu.api.recipe;
 
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 import com.gregtechceu.gtceu.common.data.GTRecipeDataComponents;
 
 import net.minecraft.core.component.DataComponentMap;
@@ -23,7 +24,7 @@ import java.util.function.Consumer;
  * Recipe data stored as a typed data component instead of runtime NBT.
  *
  * <p>
- * The open keyed map preserves the existing recipe JSON and KubeJS data surface while keeping recipe runtime and
+ * The open keyed map preserves the existing recipe JSON data surface while keeping recipe runtime and
  * network payloads on {@link DataComponentMap}.
  * </p>
  */
@@ -56,6 +57,11 @@ public record RecipeData(Map<String, JsonElement> values) {
             }
         }
     };
+
+    static {
+        FieldCodecs.register(RecipeData.class, CODEC);
+        FieldCodecs.registerStream(RecipeData.class, STREAM_CODEC);
+    }
 
     public RecipeData {
         values = Map.copyOf(values);

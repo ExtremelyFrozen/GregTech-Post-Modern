@@ -1,6 +1,7 @@
 package com.gregtechceu.gtceu.common.data.datacomponents;
 
 import com.gregtechceu.gtceu.api.data.medicalcondition.MedicalCondition;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
@@ -28,6 +29,11 @@ public record MedicalConditionTrackerData(List<Entry> medicalConditions, List<Me
                     MedicalConditionTrackerData::permanentConditions,
                     MedicalConditionTrackerData::new);
 
+    static {
+        FieldCodecs.register(MedicalConditionTrackerData.class, CODEC);
+        FieldCodecs.registerStream(MedicalConditionTrackerData.class, STREAM_CODEC);
+    }
+
     public MedicalConditionTrackerData {
         medicalConditions = List.copyOf(medicalConditions);
         permanentConditions = List.copyOf(permanentConditions);
@@ -47,6 +53,11 @@ public record MedicalConditionTrackerData(List<Entry> medicalConditions, List<Me
                 MedicalConditionStreamCodec.INSTANCE, Entry::condition,
                 ByteBufCodecs.FLOAT, Entry::progression,
                 Entry::new);
+
+        static {
+            FieldCodecs.register(Entry.class, CODEC);
+            FieldCodecs.registerStream(Entry.class, STREAM_CODEC);
+        }
     }
 
     private enum MedicalConditionStreamCodec implements StreamCodec<RegistryFriendlyByteBuf, MedicalCondition> {

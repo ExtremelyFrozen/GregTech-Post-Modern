@@ -1,18 +1,18 @@
 package com.gregtechceu.gtceu.api.transfer.item;
 
-import com.gregtechceu.gtceu.api.transfer.DataComponentTransfer;
-import com.gregtechceu.gtceu.common.data.GTDataComponents;
-import com.gregtechceu.gtceu.common.data.datacomponents.TransferData;
+import com.gregtechceu.gtceu.GTCEu;
+import com.gregtechceu.gtceu.api.sync_system.ContextualFieldCodec;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.NonNullList;
-import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.ItemContainerContents;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.neoforged.neoforge.items.ItemStackHandler;
 
+import com.mojang.serialization.Codec;
 import lombok.Getter;
 import lombok.Setter;
 import org.jetbrains.annotations.ApiStatus;
@@ -20,7 +20,12 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.function.Predicate;
 
-public class CustomItemStackHandler extends ItemStackHandler implements DataComponentTransfer {
+public class CustomItemStackHandler extends ItemStackHandler implements NonMutatingItemCapacity {
+
+    static {
+        ContextualFieldCodec<CustomItemStackHandler> codec = CustomItemStackHandler::codec;
+        FieldCodecs.registerContextual(CustomItemStackHandler.class, codec);
+    }
 
     @Getter
     @Setter
@@ -28,6 +33,14 @@ public class CustomItemStackHandler extends ItemStackHandler implements DataComp
     @Getter
     @Setter
     protected Predicate<ItemStack> filter = stack -> true;
+
+    /**
+     * Enables the non-mutating capacity query only for handlers whose validation and insertion limits do not depend
+     * on the current occupant.
+     */
+    @Getter
+    @Setter
+    private boolean nonMutatingEmptySlotCapacityQueryEnabled;
 
     public CustomItemStackHandler() {
         super();
@@ -56,6 +69,27 @@ public class CustomItemStackHandler extends ItemStackHandler implements DataComp
     }
 
     /**
+     * Returns the amount this handler would accept into an empty slot without mutating the current occupant.
+     */
+    @Override
+    public int getMaxStackSizeForEmptySlot(int slot, ItemStack stack) {
+        if (!isNonMutatingEmptySlotCapacityQueryEnabled()) {
+            GTCEu.LOGGER.error("Handler {} does not support the default non-mutating empty-slot capacity query",
+                    getClass().getSimpleName());
+            throw new UnsupportedOperationException(
+                    "Handler does not support the default non-mutating empty-slot capacity query");
+        }
+        validateSlotIndex(slot);
+        if (stack.isEmpty()) {
+            return stack.getMaxStackSize();
+        }
+        if (!isItemValid(slot, stack)) {
+            return 0;
+        }
+        return getStackLimit(slot, stack);
+    }
+
+    /**
      * Don't use unless necessary.<br>
      * (A good use case is loading/saving this container's items from/to a {@link ItemContainerContents} component)
      *
@@ -78,27 +112,17 @@ public class CustomItemStackHandler extends ItemStackHandler implements DataComp
         clear();
     }
 
-    @Override
-    public DataComponentMap exportComponents() {
-        return DataComponentMap.builder()
-                .set(GTDataComponents.TRANSFER_ITEM_HANDLER.get(),
-                        new TransferData.ItemHandler(stacks.size(), stacks))
-                .build();
+    public static Codec<CustomItemStackHandler> codec(ContextualFieldCodec.Context<CustomItemStackHandler> context) {
+        return context.currentValue().codec();
     }
 
-    @Override
-    public void importComponents(DataComponentMap components) {
-        TransferData.ItemHandler data = components.get(GTDataComponents.TRANSFER_ITEM_HANDLER.get());
-        if (data == null) {
-            throw new IllegalArgumentException("Item handler component data is missing transfer_item_handler");
-        }
-        if (data.slots() != stacks.size()) {
-            throw new IllegalArgumentException("Item handler expected " + stacks.size() + " slots but received " +
-                    data.slots());
-        }
-        for (int i = 0; i < data.stacks().size(); i++) {
-            stacks.set(i, data.stacks().get(i).copy());
-        }
-        onContentsChanged.run();
+    public Codec<CustomItemStackHandler> codec() {
+        return ItemStack.OPTIONAL_CODEC.listOf().xmap(items -> {
+            for (int i = 0; i < stacks.size(); i++) {
+                stacks.set(i, items.get(i).copy());
+            }
+            onContentsChanged.run();
+            return this;
+        }, handler -> handler.stacks.stream().map(ItemStack::copy).toList());
     }
 }

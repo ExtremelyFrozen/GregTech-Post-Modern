@@ -10,14 +10,12 @@ import com.gregtechceu.gtceu.api.machine.multiblock.part.MultiblockPartMachine;
 import com.gregtechceu.gtceu.api.recipe.GTRecipeType;
 
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.phys.BlockHitResult;
 
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 
-public class OpticalDataHatchMachine extends MultiblockPartMachine implements IOpticalDataAccessHatch {
+public class OpticalDataHatchMachine extends MultiblockPartMachine
+                                     implements IOpticalDataAccessHatch {
 
     @Getter
     private final boolean isTransmitter;
@@ -63,10 +61,7 @@ public class OpticalDataHatchMachine extends MultiblockPartMachine implements IO
         }
     }
 
-    @Override
-    public boolean shouldOpenUI(Player player, InteractionHand hand, BlockHitResult hit) {
-        return false;
-    }
+    /** Creates the holder-scoped default preview used by a surrounding multiblock controller. */
 
     @Override
     public boolean canShared(MultiblockControllerMachine controller, String structureName) {

@@ -4,6 +4,9 @@ title: "材料条目"
 
 # 材料条目
 
+!!! note "上游示例"
+    本页示例面向 GregTech CEu Modern。GTPM 1.21.1 的数据包和附属模组入口见[整合包制作](../index.md#upstream-kubejs)。
+
 GregTech 中有大量物品，也就会有大量用于合成这些物品的配方。不过，有时你会制作过多某种物品，并希望回收损失的材料。幸运的是，GT 内置的回收系统可以做到这一点。
 
 任何会合成物品的配方，无论是通过 crafting table 还是 GT 机器，都可以指定为额外生成一个配方，用于在 Macerator、Arc Furnace 和 Extractor 中分解该输出物品。

@@ -1,34 +1,44 @@
 package com.gregtechceu.gtceu.api.machine.fancyconfigurator;
 
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
+import com.gregtechceu.gtceu.api.gui.UITemplate;
+import com.gregtechceu.gtceu.api.gui.element.GTFluidSlotElement;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyConfigurator;
-import com.gregtechceu.gtceu.api.gui.widget.TankWidget;
+import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.transfer.fluid.CustomFluidTank;
 
-import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
-import com.lowdragmc.lowdraglib.gui.widget.Widget;
-import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Button.State;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 
 import net.minecraft.network.chat.Component;
 
-import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
+import org.jetbrains.annotations.Nullable;
+import org.lwjgl.glfw.GLFW;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.function.BiPredicate;
 
+/**
+ * LDLib2 Fancy configurator for display-only fluid tank grids.
+ *
+ * <p>
+ * Bucket transfer must be wired by the owning machine through a GT action before this replaces legacy TankWidget
+ * behavior.
+ */
 @Accessors(chain = true)
 public class FancyTankConfigurator implements IFancyConfigurator {
 
     private final CustomFluidTank[] tanks;
-
-    @Getter
     private final Component title;
-
-    @Getter
-    @Setter
     private List<Component> tooltips = Collections.emptyList();
+    @Setter
+    @Nullable
+    private BiPredicate<Integer, UIEvent> tankClickHandler;
 
     public FancyTankConfigurator(CustomFluidTank[] tanks, Component title) {
         this.tanks = tanks;
@@ -36,33 +46,84 @@ public class FancyTankConfigurator implements IFancyConfigurator {
     }
 
     @Override
-    public IGuiTexture getIcon() {
+    public Component getTitle() {
+        return title;
+    }
+
+    @Override
+    public IGuiTexture getIcon(State state) {
         return GuiTextures.BUTTON_FLUID_OUTPUT;
     }
 
     @Override
-    public Widget createConfigurator() {
-        int rowSize = (int) Math.sqrt(tanks.length);
-        int colSize = rowSize;
-        if (tanks.length == 8) {
-            rowSize = 4;
-            colSize = 2;
-        }
+    public List<Component> getTooltips() {
+        return tooltips;
+    }
 
-        var group = new WidgetGroup(0, 0, 18 * rowSize + 16, 18 * colSize + 16);
-        var container = new WidgetGroup(4, 4, 18 * rowSize + 8, 18 * colSize + 8);
+    public FancyTankConfigurator setTooltips(List<Component> tooltips) {
+        this.tooltips = tooltips;
+        return this;
+    }
+
+    @Override
+    public int getConfiguratorWidth() {
+        return 18 * getRowSize() + 16;
+    }
+
+    @Override
+    public int getConfiguratorHeight() {
+        return 18 * getColSize() + 16;
+    }
+
+    @Override
+    public UIElement createConfigurator() {
+        UIElement group = new UIElement();
+        UITemplate.setBounds(group, 0, 0, getConfiguratorWidth(), getConfiguratorHeight());
+
+        int rowSize = getRowSize();
+        int colSize = getColSize();
+        UIElement container = new UIElement();
+        UITemplate.setBounds(container, 4, 4, 18 * rowSize + 8, 18 * colSize + 8);
+        container.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
 
         int index = 0;
         for (int y = 0; y < colSize; y++) {
             for (int x = 0; x < rowSize; x++) {
-                container.addWidget(new TankWidget(tanks[index++], 4 + x * 18, 4 + y * 18, true, true)
-                        .setBackground(GuiTextures.FLUID_SLOT));
+                int tankIndex = index++;
+                GTFluidSlotElement slot = new GTFluidSlotElement()
+                        .setFluidTank(tanks[tankIndex], 0)
+                        .setBackgroundTexture(GuiTextures.FLUID_SLOT)
+                        .setAllowClickFilled(tankClickHandler != null)
+                        .setAllowClickDrained(tankClickHandler != null)
+                        .setShowAmount(true);
+                if (tankClickHandler != null) {
+                    slot.addEventListener(UIEvents.MOUSE_DOWN, event -> {
+                        if (event.button == GLFW.GLFW_MOUSE_BUTTON_LEFT && tankClickHandler.test(tankIndex, event)) {
+                            event.stopImmediatePropagation();
+                            event.hasHandler = true;
+                        }
+                    });
+                }
+                UITemplate.setBounds(slot, 4 + x * 18, 4 + y * 18, 18, 18);
+                container.addChild(slot);
             }
         }
 
-        container.setBackground(GuiTextures.BACKGROUND_INVERSE);
-        group.addWidget(container);
-
+        group.addChild(container);
         return group;
+    }
+
+    private int getRowSize() {
+        if (tanks.length == 8) {
+            return 4;
+        }
+        return (int) Math.sqrt(tanks.length);
+    }
+
+    private int getColSize() {
+        if (tanks.length == 8) {
+            return 2;
+        }
+        return getRowSize();
     }
 }

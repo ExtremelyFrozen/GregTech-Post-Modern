@@ -20,12 +20,12 @@ title: "外部资源"
     - [MCJty's Modding Wiki](https://www.mcjty.eu/docs/intro)
 
 
-## LDLib 库
+## LDLib2
 
-LDLib 是 GregTech Post Modern 使用的主要库。
+GregTech Post Modern 使用 LDLib2 构建机器、覆板和配方界面。
 
-!!! link "LDLib 文档"
-    [:material-github: LDLib-Architectury :material-arrow-right: Wiki](https://github.com/Low-Drag-MC/LDLib-Architectury/wiki)
+!!! link "LDLib2 文档"
+    [:material-github: LDLib2 :material-arrow-right: 文档](https://low-drag-mc.github.io/LowDragMC-Doc/en/ldlib2/)
 
 
 ## Mixins 混入

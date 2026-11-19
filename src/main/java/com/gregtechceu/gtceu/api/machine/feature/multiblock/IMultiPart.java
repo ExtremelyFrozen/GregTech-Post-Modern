@@ -142,7 +142,11 @@ public interface IMultiPart extends IMachineFeature, IFancyUIMachine {
     default void addMultiText(List<Component> textList) {}
 
     /**
-     * Attach part's tooltips to the controller.
+     * Attaches warnings owned by this part to an LDLib2 controller page.
+     *
+     * @param controller    controller whose page exposes the warning
+     * @param tooltipsPanel tooltip panel owned by the current Fancy opening
      */
-    default void attachFancyTooltipsToController(MultiblockControllerMachine controller, TooltipsPanel tooltipsPanel) {}
+    default void attachFancyTooltipsToController(MultiblockControllerMachine controller,
+                                                 TooltipsPanel tooltipsPanel) {}
 }

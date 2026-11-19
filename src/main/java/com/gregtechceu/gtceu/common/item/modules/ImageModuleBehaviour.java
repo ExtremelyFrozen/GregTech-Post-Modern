@@ -1,45 +1,107 @@
 package com.gregtechceu.gtceu.common.item.modules;
 
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
+import com.gregtechceu.gtceu.api.gui.UITemplate;
+import com.gregtechceu.gtceu.api.gui.element.GTButtonElement;
+import com.gregtechceu.gtceu.api.gui.element.GTTextFieldElement;
+import com.gregtechceu.gtceu.api.item.IComponentItem;
 import com.gregtechceu.gtceu.api.item.component.IMonitorModuleItem;
 import com.gregtechceu.gtceu.client.renderer.monitor.IMonitorRenderer;
 import com.gregtechceu.gtceu.client.renderer.monitor.MonitorImageRenderer;
 import com.gregtechceu.gtceu.common.data.GTDataComponents;
 import com.gregtechceu.gtceu.common.machine.multiblock.electric.CentralMonitorMachine;
 import com.gregtechceu.gtceu.common.machine.multiblock.electric.monitor.MonitorGroup;
-import com.gregtechceu.gtceu.common.network.packets.SCPacketMonitorGroupDataChange;
 
-import com.lowdragmc.lowdraglib.gui.widget.ButtonWidget;
-import com.lowdragmc.lowdraglib.gui.widget.TextFieldWidget;
-import com.lowdragmc.lowdraglib.gui.widget.Widget;
-import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.neoforge.network.PacketDistributor;
+
+import java.util.UUID;
+import java.util.function.Consumer;
 
 public class ImageModuleBehaviour implements IMonitorModuleItem {
 
     @Override
     public IMonitorRenderer getRenderer(ItemStack stack) {
-        return new MonitorImageRenderer(stack.getOrDefault(GTDataComponents.IMAGE_MODULE_URL, null));
+        return new MonitorImageRenderer(stack.getOrDefault(GTDataComponents.IMAGE_MODULE_URL, ""));
     }
 
     @Override
-    public Widget createUIWidget(ItemStack stack, CentralMonitorMachine machine, MonitorGroup group) {
-        WidgetGroup builder = new WidgetGroup();
-        TextFieldWidget textField = new TextFieldWidget(0, 0, 100, 10, null, null);
-        textField.setCurrentString(stack.getOrDefault(GTDataComponents.IMAGE_MODULE_URL, null));
+    public UIElement createConfigurationElement(ItemStack stack, CentralMonitorMachine machine, MonitorGroup group,
+                                                Consumer<Runnable> actionSender) {
+        UIElement builder = new UIElement();
+        UITemplate.setBounds(builder, 0, 0, 248, 42);
 
-        ButtonWidget saveButton = new ButtonWidget(-40, 22, 20, 20, click -> {
-            if (!click.isRemote) return;
+        GTTextFieldElement textField = new GTTextFieldElement(0, 0, 220, 12);
+        textField.setAnyString();
+        textField.setText(stack.getOrDefault(GTDataComponents.IMAGE_MODULE_URL, ""), false);
+        ImageEditSession editSession = ImageEditSession.open(machine, group, stack);
 
-            stack.set(GTDataComponents.IMAGE_MODULE_URL, textField.getCurrentString());
-            PacketDistributor.sendToServer(new SCPacketMonitorGroupDataChange(stack, group, machine));
-        });
-        saveButton.setButtonTexture(GuiTextures.BUTTON_CHECK);
-        builder.addWidget(textField);
-        builder.addWidget(saveButton);
+        GTButtonElement saveButton = new GTButtonElement(228, 0, 20, 20,
+                GuiTextures.group(GuiTextures.VANILLA_BUTTON, GuiTextures.BUTTON_CHECK),
+                event -> {
+                    if (!machine.isRemote()) return;
+                    sendUrlChange(machine, editSession, textField.getValue(), actionSender);
+                });
+        saveButton.noText();
+
+        builder.addChildren(textField, saveButton);
         return builder;
+    }
+
+    private static void sendUrlChange(CentralMonitorMachine machine, ImageEditSession editSession, String requestedUrl,
+                                      Consumer<Runnable> actionSender) {
+        String expectedUrl = editSession.expectedModule.get(GTDataComponents.IMAGE_MODULE_URL);
+        if (requestedUrl.equals(expectedUrl)) {
+            return;
+        }
+        actionSender.accept(() -> machine.rpcToServer("setCentralMonitorImageModuleUrl",
+                editSession.holderIncarnation,
+                editSession.groupIdentity,
+                editSession.moduleSlotIncarnation,
+                editSession.expectedModule,
+                requestedUrl));
+    }
+
+    private static final class ImageEditSession {
+
+        private final UUID holderIncarnation;
+        private final UUID groupIdentity;
+        private final UUID moduleSlotIncarnation;
+        private final ItemStack expectedModule;
+
+        private ImageEditSession(UUID holderIncarnation, UUID groupIdentity, UUID moduleSlotIncarnation,
+                                 ItemStack expectedModule) {
+            this.holderIncarnation = holderIncarnation;
+            this.groupIdentity = groupIdentity;
+            this.moduleSlotIncarnation = moduleSlotIncarnation;
+            this.expectedModule = expectedModule;
+        }
+
+        private static ImageEditSession open(CentralMonitorMachine machine, MonitorGroup group, ItemStack module) {
+            return new ImageEditSession(
+                    machine.getCentralMonitorActionIncarnation(),
+                    group.getIdentity(),
+                    group.getModuleSlotIncarnation(),
+                    captureExpectedModule(module));
+        }
+    }
+
+    /** Captures editable module data without the server-derived display text. */
+    public static ItemStack captureExpectedModule(ItemStack module) {
+        ItemStack moduleCopy = module.copy();
+        moduleCopy.remove(GTDataComponents.TEXT_LINE_LIST.get());
+        return moduleCopy;
+    }
+
+    /** Compares stable module data so server-derived display changes do not invalidate an editor. */
+    public static boolean matchesExpectedModule(ItemStack current, ItemStack expected) {
+        return ItemStack.matches(captureExpectedModule(current), expected);
+    }
+
+    public static boolean isImageModule(ItemStack stack) {
+        return stack.getItem() instanceof IComponentItem componentItem &&
+                componentItem.getComponents().stream().anyMatch(ImageModuleBehaviour.class::isInstance);
     }
 
     @Override

@@ -1,32 +1,56 @@
 package com.gregtechceu.gtceu.api.gui.fancy;
 
-import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
-import com.lowdragmc.lowdraglib.gui.widget.Widget;
+import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 
-import net.minecraft.network.RegistryFriendlyByteBuf;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Button.State;
+
 import net.minecraft.network.chat.Component;
 
 import java.util.List;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 
+/**
+ * Describes an expandable LDLib2 Fancy configurator.
+ *
+ * <p>
+ * The configurator owns only UI construction and metadata. Field persistence and business actions must be wired
+ * through GTM sync fields or GTM action packets by concrete callers.
+ */
 public interface IFancyConfigurator {
 
+    /**
+     * Returns the title shown in the expanded configurator header.
+     */
     Component getTitle();
 
-    IGuiTexture getIcon();
+    /**
+     * Returns the tab icon for the native button state forwarded by the client UI.
+     */
+    IGuiTexture getIcon(State state);
 
-    Widget createConfigurator();
+    /**
+     * Returns the fixed content width for the expanded configurator body.
+     */
+    default int getConfiguratorWidth() {
+        return 120;
+    }
 
+    /**
+     * Returns the fixed content height for the expanded configurator body.
+     */
+    default int getConfiguratorHeight() {
+        return 80;
+    }
+
+    /**
+     * Builds the LDLib2 element tree for the expanded configurator body.
+     */
+    UIElement createConfigurator();
+
+    /**
+     * Returns tooltip text for the collapsed configurator tab.
+     */
     default List<Component> getTooltips() {
         return List.of(getTitle());
     }
-
-    default void detectAndSendChange(BiConsumer<Integer, Consumer<RegistryFriendlyByteBuf>> sender) {}
-
-    default void readUpdateInfo(int id, RegistryFriendlyByteBuf buf) {}
-
-    default void writeInitialData(RegistryFriendlyByteBuf buffer) {}
-
-    default void readInitialData(RegistryFriendlyByteBuf buffer) {}
 }

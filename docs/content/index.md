@@ -7,8 +7,7 @@ title: 首页
 
 # 欢迎阅读 GregTech Post Modern 1.21.1 文档！
 
-GregTech Post Modern 是 [GregTech Community Edition Unofficial](https://github.com/GregTechCEu/GregTech)
-面向现代 Minecraft 版本的移植版。
+GregTech Post Modern（GTPM）基于 [GregTech CEu Modern](https://github.com/GregTechCEu/GregTech-Modern)。本站介绍 Minecraft 1.21.1 与 NeoForge 下的 GTPM，模组 ID 为 `gtpm`。
 
 !!! danger "施工中"
     请注意，这份文档目前仍处于大量施工阶段，因此还有许多内容缺失。
@@ -17,8 +16,9 @@ GregTech Post Modern 是 [GregTech Community Edition Unofficial](https://github.
 
 
 ## 下载
-你可以在这里下载此 wiki 的离线版本：
-[下载 Zip](https://github.com/ExtremelyFrozen/GregTech-Post-Modern/archive/refs/heads/gh-pages.zip)
+
+- [下载模组](https://github.com/ExtremelyFrozen/GregTech-Post-Modern/releases)
+- [下载离线文档 ZIP](https://github.com/ExtremelyFrozen/GregTech-Post-Modern/archive/refs/heads/gh-pages.zip)
 
 
 ## 想参与贡献？

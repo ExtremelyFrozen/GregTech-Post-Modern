@@ -8,7 +8,10 @@ import com.gregtechceu.gtceu.api.capability.IElectricItem;
 import com.gregtechceu.gtceu.api.capability.IMonitorComponent;
 import com.gregtechceu.gtceu.api.capability.compat.FeCompat;
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
-import com.gregtechceu.gtceu.api.gui.widget.SlotWidget;
+import com.gregtechceu.gtceu.api.gui.UITemplate;
+import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
+import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.machine.TieredEnergyMachine;
 import com.gregtechceu.gtceu.api.machine.feature.IFancyUIMachine;
 import com.gregtechceu.gtceu.api.machine.property.GTMachineModelProperties;
@@ -21,11 +24,7 @@ import com.gregtechceu.gtceu.client.model.machine.MachineRenderState;
 import com.gregtechceu.gtceu.config.ConfigHolder;
 import com.gregtechceu.gtceu.utils.GTUtil;
 
-import com.lowdragmc.lowdraglib.gui.texture.GuiTextureGroup;
-import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
-import com.lowdragmc.lowdraglib.gui.widget.Widget;
-import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
-import com.lowdragmc.lowdraglib.utils.Position;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 
 import net.minecraft.core.Direction;
 import net.minecraft.util.StringRepresentable;
@@ -43,6 +42,14 @@ public class BatteryBufferMachine extends TieredEnergyMachine
 
     public static final long AMPS_PER_BATTERY_NORMAL = 2L;
     public static final long AMPS_PER_BATTERY_CHARGER = 4L;
+    private static final int SLOT_SIZE = 18;
+    private static final int TEMPLATE_PADDING = 8;
+    private static final int TEMPLATE_SLOT_OFFSET = 4;
+    private static final int ENERGY_BAR_WIDTH = 18;
+    private static final int ENERGY_BAR_HEIGHT = 60;
+    private static final int ENERGY_BAR_X = 3;
+    private static final int PAGE_MIN_WIDTH = 172;
+    private static final int PAGE_ENERGY_TEMPLATE_GAP = 4;
 
     public enum State implements StringRepresentable {
 
@@ -121,40 +128,80 @@ public class BatteryBufferMachine extends TieredEnergyMachine
     //////////////////////////////////////
 
     @Override
-    public Widget createUIWidget() {
-        int rowSize = (int) Math.sqrt(inventorySize);
-        int colSize = rowSize;
-        if (inventorySize == 8) {
-            rowSize = 4;
-            colSize = 2;
-        }
-        var template = new WidgetGroup(0, 0, 18 * rowSize + 8, 18 * colSize + 8);
-        template.setBackground(GuiTextures.BACKGROUND_INVERSE);
+    public UIElement createUIWidget(FancyMachineUIWidget shell) {
+        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0,
+                getPageWidth(), getPageHeight());
+
+        UIElement energyBar = createEnergyBar();
+        UITemplate.setBounds(energyBar, ENERGY_BAR_X,
+                (getPageHeight() - ENERGY_BAR_HEIGHT) / 2, ENERGY_BAR_WIDTH, ENERGY_BAR_HEIGHT);
+        root.addChild(energyBar);
+
+        UIElement template = UITemplate.setBounds(new UIElement(),
+                getBatteryTemplateX(), getBatteryTemplateY(),
+                getBatteryTemplateWidth(), getBatteryTemplateHeight());
+        template.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
         int index = 0;
-        for (int y = 0; y < colSize; y++) {
-            for (int x = 0; x < rowSize; x++) {
-                template.addWidget(new SlotWidget(batteryInventory, index++, 4 + x * 18, 4 + y * 18, true, true)
-                        .setBackgroundTexture(new GuiTextureGroup(GuiTextures.SLOT,
-                                chargerMode ? GuiTextures.CHARGER_OVERLAY : GuiTextures.BATTERY_OVERLAY)));
+        for (int y = 0; y < getBatteryColSize(); y++) {
+            for (int x = 0; x < getBatteryRowSize(); x++) {
+                template.addChild(createBatterySlot(index++, TEMPLATE_SLOT_OFFSET + x * SLOT_SIZE,
+                        TEMPLATE_SLOT_OFFSET + y * SLOT_SIZE));
             }
         }
 
-        var editableUI = createEnergyBar();
-        var energyBar = editableUI.createDefault();
+        root.addChild(template);
+        return root;
+    }
 
-        var group = new WidgetGroup(0, 0,
-                Math.max(energyBar.getSize().width + template.getSize().width + 4 + 8, 172),
-                Math.max(template.getSize().height + 8, energyBar.getSize().height + 8));
-        var size = group.getSize();
-        energyBar.setSelfPosition(new Position(3, (size.height - energyBar.getSize().height) / 2));
-        template.setSelfPosition(new Position(
-                (size.width - energyBar.getSize().width - 4 - template.getSize().width) / 2 + 2 +
-                        energyBar.getSize().width + 2,
-                (size.height - template.getSize().height) / 2));
-        group.addWidget(energyBar);
-        group.addWidget(template);
-        editableUI.setupUI(group, this);
-        return group;
+    @Override
+    public int getPageWidth() {
+        return Math.max(ENERGY_BAR_WIDTH + getBatteryTemplateWidth() + PAGE_ENERGY_TEMPLATE_GAP +
+                TEMPLATE_PADDING, PAGE_MIN_WIDTH);
+    }
+
+    @Override
+    public int getPageHeight() {
+        return Math.max(getBatteryTemplateHeight() + TEMPLATE_PADDING, ENERGY_BAR_HEIGHT + TEMPLATE_PADDING);
+    }
+
+    private GTItemSlotElement createBatterySlot(int index, int x, int y) {
+        GTItemSlotElement slot = new GTItemSlotElement(batteryInventory, index)
+                .setCanPutItems(true)
+                .setCanTakeItems(true)
+                .setBackgroundTexture(GuiTextures.group(GuiTextures.SLOT,
+                        chargerMode ? GuiTextures.CHARGER_OVERLAY : GuiTextures.BATTERY_OVERLAY));
+        return UITemplate.setBounds(slot, x, y, SLOT_SIZE, SLOT_SIZE);
+    }
+
+    private int getBatteryTemplateX() {
+        return (getPageWidth() - ENERGY_BAR_WIDTH - PAGE_ENERGY_TEMPLATE_GAP -
+                getBatteryTemplateWidth()) / 2 + 2 + ENERGY_BAR_WIDTH + 2;
+    }
+
+    private int getBatteryTemplateY() {
+        return (getPageHeight() - getBatteryTemplateHeight()) / 2;
+    }
+
+    private int getBatteryTemplateWidth() {
+        return SLOT_SIZE * getBatteryRowSize() + TEMPLATE_PADDING;
+    }
+
+    private int getBatteryTemplateHeight() {
+        return SLOT_SIZE * getBatteryColSize() + TEMPLATE_PADDING;
+    }
+
+    private int getBatteryRowSize() {
+        if (inventorySize == 8) {
+            return 4;
+        }
+        return (int) Math.sqrt(inventorySize);
+    }
+
+    private int getBatteryColSize() {
+        if (inventorySize == 8) {
+            return 2;
+        }
+        return getBatteryRowSize();
     }
 
     //////////////////////////////////////
@@ -222,7 +269,6 @@ public class BatteryBufferMachine extends TieredEnergyMachine
     private void changeState(State newState) {
         if (state == newState) return;
         state = newState;
-        syncDataHolder.markClientSyncFieldDirty("state");
         MachineRenderState renderState = getRenderState();
         if (renderState.hasProperty(GTMachineModelProperties.CHARGER_STATE)) {
             setRenderState(renderState.setValue(GTMachineModelProperties.CHARGER_STATE, newState));
@@ -331,7 +377,6 @@ public class BatteryBufferMachine extends TieredEnergyMachine
                 }
 
                 if (changed) {
-                    getMachine().markAsDirty();
                     checkOutputSubscription();
                 }
 
@@ -390,7 +435,6 @@ public class BatteryBufferMachine extends TieredEnergyMachine
                 }
 
                 if (changed) {
-                    getMachine().markAsDirty();
                     getMachine().changeState(State.RUNNING);
                     checkOutputSubscription();
                 }

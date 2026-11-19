@@ -5,6 +5,9 @@ title: "Coil Multiblock 示例"
 ### 过热热解炉 Multiblock（作者：Phoenixvine）
 
 
+!!! note "上游示例"
+    本页示例面向 GregTech CEu Modern。GTPM 1.21.1 的数据包和附属模组入口见[整合包制作](../../index.md#upstream-kubejs)。
+
 下面是一个使用 CoilWorkableElectricMultiblockMachine 类和 pyrolyseOvenOverclock 机器逻辑的 Multiblock 示例。
 
 ### Multiblock 结构

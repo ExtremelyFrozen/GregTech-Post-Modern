@@ -3,6 +3,9 @@ title: Material 创建
 ---
 
 
+!!! note "上游示例"
+    本页示例面向 GregTech CEu Modern。GTPM 1.21.1 的数据包和附属模组入口见[整合包制作](../index.md#upstream-kubejs)。
+
 Materials 是游戏内物品或流体。它们可以是 dusts、ingots、gems、fluids 及其所有派生形态。
 !!! note
     如果要添加一种存在于元素周期表中、但没有任何游戏内物品/流体的 material，请查看 [material 修改页面](./Modifying-Existing-Materials.md)。

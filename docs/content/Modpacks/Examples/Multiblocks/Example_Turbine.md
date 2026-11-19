@@ -4,6 +4,9 @@ title: "Turbine 示例"
 
 ### Turbine 示例
 
+!!! note "上游示例"
+    本页示例面向 GregTech CEu Modern。GTPM 1.21.1 的数据包和附属模组入口见[整合包制作](../../index.md#upstream-kubejs)。
+
 下面是一个使用 LargeTurbineMachine 类创建自定义大型涡轮的 Multiblock 示例。
 
 ### Multiblock 结构

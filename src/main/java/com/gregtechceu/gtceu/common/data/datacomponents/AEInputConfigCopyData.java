@@ -1,5 +1,7 @@
 package com.gregtechceu.gtceu.common.data.datacomponents;
 
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
+
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
@@ -34,6 +36,11 @@ public record AEInputConfigCopyData(List<@Nullable GenericStack> stacks, byte gh
                     ByteBufCodecs.BOOL, AEInputConfigCopyData::distinctBuses,
                     ByteBufCodecs.BOOL, AEInputConfigCopyData::autoPull,
                     AEInputConfigCopyData::new);
+
+    static {
+        FieldCodecs.register(AEInputConfigCopyData.class, CODEC);
+        FieldCodecs.registerStream(AEInputConfigCopyData.class, STREAM_CODEC);
+    }
 
     public AEInputConfigCopyData {
         stacks = Collections.unmodifiableList(new ArrayList<>(stacks));

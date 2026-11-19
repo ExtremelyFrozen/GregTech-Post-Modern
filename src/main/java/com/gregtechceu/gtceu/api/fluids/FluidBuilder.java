@@ -331,18 +331,20 @@ public class FluidBuilder {
 
     @ApiStatus.Internal
     public void determineTextures(Material material, FluidStorageKey key) {
-        if (hasCustomStill || material.isNull()) {
-            still = ResourceLocation.fromNamespaceAndPath(material.getModid(), "block/fluids/fluid." + name);
-        } else {
-            still = key.getIconType().getBlockTexturePath(material.getMaterialIconSet(), true);
+        if (still == null) {
+            still = hasCustomStill || material.isNull() ?
+                    ResourceLocation.fromNamespaceAndPath(material.getModid(), "block/fluids/fluid." + name) :
+                    key.getIconType().getBlockTexturePath(material.getMaterialIconSet(), true);
         }
 
-        if (hasCustomFlowing) {
-            flowing = ResourceLocation.fromNamespaceAndPath(material.getModid(),
-                    "block/fluids/fluid." + name + "_flow");
-        } else {
-            // FIXME this is actually wrong, flowing fluids should have 32x32 textures (double the size of still ones).
-            flowing = still;
+        if (flowing == null) {
+            if (hasCustomFlowing) {
+                flowing = ResourceLocation.fromNamespaceAndPath(material.getModid(),
+                        "block/fluids/fluid." + name + "_flow");
+            } else {
+                // FIXME flowing textures should be 32x32, twice the dimensions of still textures.
+                flowing = still;
+            }
         }
     }
 

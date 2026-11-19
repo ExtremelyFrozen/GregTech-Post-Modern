@@ -25,7 +25,7 @@ Batteries 有四种用途：
   最多 4 Amps 的速率接受电力，并在其中的电池之间分配这些电力。
 * Batteries 可以放入 Battery Buffers，下一节会讨论这一点。
 
-## 电池缓冲器（Battery Buffers） { #battery-buffers }
+## 电池箱（Battery Buffers） { #battery-buffers }
 
 Battery Buffer 是一种包含 1、4、8 或 16 个物品栏槽位的方块。每个槽位都可以容纳一块 Battery。
 Battery Buffers 会按其中每个电动物品 2 Amps 的速率接受电力，并按每块 Battery **输出** 1 Amp 电力。
@@ -37,7 +37,7 @@ Advanced Energy Detector Cover，以读取其中电池持有的总能量。该�
 Machine Controller Cover。这样就可以在电池电量偏低时自动开启 Turbine，在电池充满时关闭 Turbine，
 从而大幅节省燃料，并确保无论 Turbine 是否已经升速完成，都能随时获得完整供电。
 
-## 电力变电站（Power Substation） { #power-substation }
+## 蓄能变电站（Power Substation） { #power-substation }
 
 Power Substation 是 GregTech Post Modern 对能量存储、集中化和分配需求的最强解决方案。PSS
 是一个多方块结构，在 EV 中期可用，由 Palladium、Laminated Glass 和 Capacitor Blocks 建造。

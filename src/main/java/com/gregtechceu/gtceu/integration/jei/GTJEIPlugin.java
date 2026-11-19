@@ -24,15 +24,19 @@ import com.gregtechceu.gtceu.integration.xei.widgets.GTProgrammedCircuitWidget;
 
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.fluids.FluidStack;
 
 import mezz.jei.api.IModPlugin;
 import mezz.jei.api.JeiPlugin;
+import mezz.jei.api.constants.VanillaTypes;
 import mezz.jei.api.helpers.IJeiHelpers;
 import mezz.jei.api.helpers.IPlatformFluidHelper;
 import mezz.jei.api.neoforge.NeoForgeTypes;
 import mezz.jei.api.registration.*;
+import mezz.jei.api.runtime.IJeiRuntime;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -41,17 +45,34 @@ import java.util.List;
 @JeiPlugin
 public class GTJEIPlugin implements IModPlugin {
 
+    private MultiblockInfoCategory multiblocks;
+    public static IJeiRuntime jeiRuntime;
+    public static IJeiHelpers jeiHelpers;
+
     @Override
     public @NotNull ResourceLocation getPluginUid() {
         return GTCEu.id("jei_plugin");
     }
 
     @Override
-    public void registerCategories(@NotNull IRecipeCategoryRegistration registry) {
-        if (!GTCEu.Mods.isJEILoaded()) return;
+    public void onRuntimeAvailable(@NotNull IJeiRuntime jeiRuntime) {
+        GTJEIPlugin.jeiRuntime = jeiRuntime;
+    }
 
-        IJeiHelpers jeiHelpers = registry.getJeiHelpers();
-        registry.addRecipeCategories(new MultiblockInfoCategory(jeiHelpers));
+    @Nullable
+    public static Object getItemIngredient(ItemStack itemStack, int x, int y, int width, int height) {
+        return jeiHelpers.getIngredientManager().createTypedIngredient(VanillaTypes.ITEM_STACK, itemStack, false)
+                .map(typedIngredient -> new GTClickableIngredient<>(typedIngredient, x, y, width, height))
+                .orElse(null);
+    }
+
+    @Override
+    public void registerCategories(@NotNull IRecipeCategoryRegistration registry) {
+        if (!GTCEu.MODS.isJEILoaded()) return;
+
+        jeiHelpers = registry.getJeiHelpers();
+        multiblocks = new MultiblockInfoCategory(jeiHelpers);
+        registry.addRecipeCategories(multiblocks);
         if (!ConfigHolder.INSTANCE.compat.hideOreProcessingDiagrams)
             registry.addRecipeCategories(new GTOreProcessingInfoCategory(jeiHelpers));
         registry.addRecipeCategories(new GTOreVeinInfoCategory(jeiHelpers));
@@ -60,15 +81,21 @@ public class GTJEIPlugin implements IModPlugin {
             registry.addRecipeCategories(new GTBedrockOreInfoCategory(jeiHelpers));
         for (GTRecipeCategory category : GTRegistries.RECIPE_CATEGORIES) {
             if (category.shouldRegisterDisplays()) {
-                registry.addRecipeCategories(new GTRecipeJEICategory(jeiHelpers, category));
+                registry.addRecipeCategories(new GTRecipeJEICategory(category));
             }
         }
         registry.addRecipeCategories(new GTProgrammedCircuitCategory(jeiHelpers));
     }
 
     @Override
+    public void registerAdvanced(@NotNull IAdvancedRegistration registration) {
+        if (!GTCEu.MODS.isJEILoaded()) return;
+        registration.addTypedRecipeManagerPlugin(MultiblockInfoCategory.RECIPE_TYPE, multiblocks);
+    }
+
+    @Override
     public void registerRecipeCatalysts(@NotNull IRecipeCatalystRegistration registration) {
-        if (!GTCEu.Mods.isJEILoaded()) return;
+        if (!GTCEu.MODS.isJEILoaded()) return;
 
         GTRecipeJEICategory.registerRecipeCatalysts(registration);
         if (!ConfigHolder.INSTANCE.compat.hideOreProcessingDiagrams)
@@ -84,9 +111,8 @@ public class GTJEIPlugin implements IModPlugin {
 
     @Override
     public void registerRecipes(@NotNull IRecipeRegistration registration) {
-        if (!GTCEu.Mods.isJEILoaded()) return;
+        if (!GTCEu.MODS.isJEILoaded()) return;
 
-        MultiblockInfoCategory.registerRecipes(registration);
         GTRecipeJEICategory.registerRecipes(registration);
         if (!ConfigHolder.INSTANCE.compat.hideOreProcessingDiagrams)
             GTOreProcessingInfoCategory.registerRecipes(registration);
@@ -99,7 +125,7 @@ public class GTJEIPlugin implements IModPlugin {
 
     @Override
     public void registerItemSubtypes(@NotNull ISubtypeRegistration registration) {
-        if (!GTCEu.Mods.isJEILoaded()) return;
+        if (!GTCEu.MODS.isJEILoaded()) return;
 
         registration.registerSubtypeInterpreter(GTItems.PROGRAMMED_CIRCUIT.asItem(),
                 CircuitSubtypeInterpreter.INSTANCE);
@@ -109,7 +135,7 @@ public class GTJEIPlugin implements IModPlugin {
     @Override
     public <T> void registerFluidSubtypes(@NotNull ISubtypeRegistration registration,
                                           @NotNull IPlatformFluidHelper<T> platformFluidHelper) {
-        if (!GTCEu.Mods.isJEILoaded()) return;
+        if (!GTCEu.MODS.isJEILoaded()) return;
 
         PotionFluidSubtypeInterpreter interpreter = PotionFluidSubtypeInterpreter.INSTANCE;
         PotionFluid potionFluid = GTFluids.POTION.get();
@@ -119,7 +145,7 @@ public class GTJEIPlugin implements IModPlugin {
 
     @Override
     public void registerExtraIngredients(@NotNull IExtraIngredientRegistration registration) {
-        if (!GTCEu.Mods.isJEILoaded()) return;
+        if (!GTCEu.MODS.isJEILoaded()) return;
 
         Collection<FluidStack> potionFluids = new ArrayList<>(BuiltInRegistries.POTION.size());
         BuiltInRegistries.POTION.holders().forEach(potion -> {

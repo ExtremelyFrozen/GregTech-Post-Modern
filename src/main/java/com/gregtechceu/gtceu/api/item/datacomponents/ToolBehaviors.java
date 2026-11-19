@@ -3,6 +3,7 @@ package com.gregtechceu.gtceu.api.item.datacomponents;
 import com.gregtechceu.gtceu.api.item.tool.behavior.IToolBehavior;
 import com.gregtechceu.gtceu.api.item.tool.behavior.ToolBehaviorType;
 import com.gregtechceu.gtceu.api.registry.GTRegistries;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 import com.gregtechceu.gtceu.utils.codec.StreamCodecUtils;
 
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -35,6 +36,11 @@ public record ToolBehaviors(@Unmodifiable Map<ToolBehaviorType<?>, IToolBehavior
             type -> (StreamCodec<? super RegistryFriendlyByteBuf, IToolBehavior<?>>) type.getStreamCodec());
     public static final StreamCodec<RegistryFriendlyByteBuf, ToolBehaviors> STREAM_CODEC = MAP_STREAM_CODEC
             .map(ToolBehaviors::new, ToolBehaviors::behaviors);
+
+    static {
+        FieldCodecs.register(ToolBehaviors.class, CODEC);
+        FieldCodecs.registerStream(ToolBehaviors.class, STREAM_CODEC);
+    }
     // spotless:on
 
     public ToolBehaviors(List<IToolBehavior<?>> behaviors) {

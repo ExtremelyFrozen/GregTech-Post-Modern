@@ -1,38 +1,47 @@
 package com.gregtechceu.gtceu.api.sync_system.managed
 
 import com.gregtechceu.gtceu.api.sync_system.SyncDataHolder
+import com.gregtechceu.gtceu.api.sync_system.SyncFieldData
 import com.gregtechceu.gtceu.common.data.GTDataComponents
+import com.gregtechceu.gtceu.common.network.packets.PacketRPCMenu
 
-import net.minecraft.core.HolderLookup
+import net.minecraft.core.RegistryAccess
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload
 import net.minecraft.world.item.ItemStack
 
-import org.jetbrains.annotations.Nullable
+/** Stack-owned annotated state. Loading happens after construction, and only changed saved data is written back. */
+abstract class ItemSyncHolder(val stack: ItemStack, val registries: RegistryAccess) : ISyncManaged {
+	private val storage: SyncDataHolder by lazy { SyncDataHolder(this) }
+	private var savedData = SyncFieldData.EMPTY
+	var menuId: Int = -1
 
-class ItemSyncHolder(owner: ISyncManaged) : ISyncManaged {
-	private val syncDataHolder: SyncDataHolder = SyncDataHolder(owner)
+	override fun getSyncDataHolder(): SyncDataHolder = storage
 
-	override fun getSyncDataHolder(): SyncDataHolder = syncDataHolder
-
-	fun saveToStack(stack: ItemStack, registries: HolderLookup.Provider) {
-		val data = syncDataHolder.serializeToItemComponents(registries)
-		if (!data.isEmpty) {
-			stack.set(GTDataComponents.BLOCK_ITEM_DATA, data)
+	fun saveToStack() {
+		val data = storage.serializeToSaveFieldData(registries)
+		if (data == savedData) return
+		if (data.isEmpty()) {
+			stack.remove(GTDataComponents.ITEM_DATA)
+		} else {
+			stack.set(GTDataComponents.ITEM_DATA, data)
 		}
+		savedData = data
 	}
 
-	fun loadFromStack(stack: ItemStack, registries: HolderLookup.Provider, clientSide: Boolean) {
-		val data = stack.get(GTDataComponents.BLOCK_ITEM_DATA)
-		if (data == null || data.isEmpty) {
-			return
-		}
-
-		syncDataHolder.deserializeItemComponents(registries, data)
+	fun loadFromStack() {
+		savedData = stack.get(GTDataComponents.ITEM_DATA) ?: SyncFieldData.EMPTY
+		storage.deserializeFieldData(registries, savedData, false)
 	}
 
-	@Nullable
 	override fun getParentSyncObject(): ISyncManaged? = null
 
-	override fun scheduleRenderUpdate() {}
+	override fun createRPCPacket(data: ByteArray): CustomPacketPayload = PacketRPCMenu(menuId, data)
 
-	override fun markAsChanged() {}
+	override fun markAsChanged() = saveToStack()
+
+	companion object {
+		/** Creates stack state through the item's reusable provider, then loads the annotated item fields. */
+		@JvmStatic
+		fun create(stack: ItemStack, registries: RegistryAccess): ItemSyncHolder? = (stack.item as? SyncItem)?.createSyncHolder(stack, registries)?.also { it.loadFromStack() }
+	}
 }

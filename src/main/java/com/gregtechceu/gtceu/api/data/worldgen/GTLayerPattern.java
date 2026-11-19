@@ -3,6 +3,7 @@ package com.gregtechceu.gtceu.api.data.worldgen;
 import com.gregtechceu.gtceu.api.data.chemical.material.Material;
 import com.gregtechceu.gtceu.api.data.worldgen.generator.VeinGenerator;
 import com.gregtechceu.gtceu.api.registry.GTRegistries;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.block.Block;
@@ -27,6 +28,10 @@ public class GTLayerPattern {
 
     public static final Codec<GTLayerPattern> CODEC = Codec.list(Layer.CODEC)
             .xmap(GTLayerPattern::new, pattern -> pattern.layers);
+
+    static {
+        FieldCodecs.register(GTLayerPattern.class, CODEC);
+    }
 
     public final List<Layer> layers;
 
@@ -90,6 +95,10 @@ public class GTLayerPattern {
                 Codec.intRange(0, Integer.MAX_VALUE).fieldOf("max_size").forGetter(layer -> layer.maxSize),
                 Codec.intRange(0, Integer.MAX_VALUE).fieldOf("weight").forGetter(layer -> layer.weight)
         ).apply(instance, Layer::new));
+
+    static {
+        FieldCodecs.register(Layer.class, CODEC);
+    }
         // spotless:on
         public final List<Either<List<TargetBlockState>, Material>> targets;
         public final int minSize;

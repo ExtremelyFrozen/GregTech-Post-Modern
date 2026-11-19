@@ -1,5 +1,7 @@
 package com.gregtechceu.gtceu.api.item.datacomponents;
 
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
+
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 
@@ -21,6 +23,11 @@ public record GTTool(Optional<Integer> enchantability, int lastCraftingUse) {
             ByteBufCodecs.optional(ByteBufCodecs.VAR_INT), GTTool::enchantability,
             ByteBufCodecs.VAR_INT, GTTool::lastCraftingUse,
             GTTool::new);
+
+    static {
+        FieldCodecs.register(GTTool.class, CODEC);
+        FieldCodecs.registerStream(GTTool.class, STREAM_CODEC);
+    }
 
     public GTTool() {
         this(Optional.empty(), 0);

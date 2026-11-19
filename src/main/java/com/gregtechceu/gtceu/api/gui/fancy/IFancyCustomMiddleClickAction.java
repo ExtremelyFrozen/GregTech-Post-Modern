@@ -1,11 +1,20 @@
 package com.gregtechceu.gtceu.api.gui.fancy;
 
-import net.minecraft.network.RegistryFriendlyByteBuf;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
+/**
+ * Handles middle-click shortcut actions on an LDLib2 Fancy configurator tab.
+ *
+ * <p>
+ * Implementations use this when the collapsed tab should expose a direct reset or alternate action without opening
+ * the expanded configurator body.
+ */
+public interface IFancyCustomMiddleClickAction {
 
-public interface IFancyCustomMiddleClickAction extends IFancyCustomClientActionHandler {
-
-    default void onMiddleClick(BiConsumer<Integer, Consumer<RegistryFriendlyByteBuf>> writeClientAction) {}
+    /**
+     * Handles a middle-click event for the owning Fancy tab.
+     *
+     * @param event LDLib2 mouse event carrying cursor and button data.
+     */
+    void onMiddleClick(UIEvent event);
 }

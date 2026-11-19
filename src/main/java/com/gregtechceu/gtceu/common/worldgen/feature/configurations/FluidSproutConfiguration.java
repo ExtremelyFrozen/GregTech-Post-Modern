@@ -1,5 +1,7 @@
 package com.gregtechceu.gtceu.common.worldgen.feature.configurations;
 
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
+
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.util.valueproviders.IntProvider;
 import net.minecraft.world.level.levelgen.feature.configurations.FeatureConfiguration;
@@ -19,4 +21,8 @@ public record FluidSproutConfiguration(Fluid fluid, IntProvider size, IntProvide
                             .forGetter(FluidSproutConfiguration::surfaceOffset),
                     Codec.FLOAT.fieldOf("sprout_chance").forGetter(FluidSproutConfiguration::sproutChance))
                     .apply(instance, FluidSproutConfiguration::new));
+
+    static {
+        FieldCodecs.register(FluidSproutConfiguration.class, CODEC);
+    }
 }

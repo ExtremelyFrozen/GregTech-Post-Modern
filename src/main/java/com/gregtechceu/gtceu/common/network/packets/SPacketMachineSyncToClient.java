@@ -1,20 +1,21 @@
 package com.gregtechceu.gtceu.common.network.packets;
 
 import com.gregtechceu.gtceu.GTCEu;
+import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
+import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.api.sync_system.SyncFieldData;
 import com.gregtechceu.gtceu.api.sync_system.managed.ManagedSyncBlockEntity;
 
+import com.lowdragmc.lowdraglib2.gui.holder.ModularUIContainerMenu;
+
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.entity.BlockEntity;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-import org.jetbrains.annotations.NotNull;
+import lombok.Getter;
 
 public class SPacketMachineSyncToClient implements CustomPacketPayload {
 
@@ -24,43 +25,48 @@ public class SPacketMachineSyncToClient implements CustomPacketPayload {
             .ofMember(SPacketMachineSyncToClient::encode, SPacketMachineSyncToClient::new);
 
     private final BlockPos pos;
-    private final DataComponentMap data;
+    private final SyncFieldData data;
+    @Getter
+    private final boolean fullSync;
 
-    public SPacketMachineSyncToClient(BlockPos pos, DataComponentMap data) {
+    public SPacketMachineSyncToClient(BlockPos pos, SyncFieldData data, boolean fullSync) {
         this.pos = pos;
         this.data = data;
+        this.fullSync = fullSync;
     }
 
-    public SPacketMachineSyncToClient(RegistryFriendlyByteBuf buf) {
-        this.pos = buf.readBlockPos();
-        this.data = SyncFieldData.DATA_COMPONENT_MAP_STREAM_CODEC.decode(buf);
+    public SPacketMachineSyncToClient(BlockPos pos, SyncFieldData data) {
+        this(pos, data, false);
     }
 
-    public void encode(RegistryFriendlyByteBuf buf) {
-        buf.writeBlockPos(pos);
-        SyncFieldData.DATA_COMPONENT_MAP_STREAM_CODEC.encode(buf, data);
+    public SPacketMachineSyncToClient(RegistryFriendlyByteBuf buffer) {
+        this(buffer.readBlockPos(), SyncFieldData.STREAM_CODEC.decode(buffer), buffer.readBoolean());
+    }
+
+    public void encode(RegistryFriendlyByteBuf buffer) {
+        buffer.writeBlockPos(pos);
+        SyncFieldData.STREAM_CODEC.encode(buffer, data);
+        buffer.writeBoolean(fullSync);
     }
 
     public void execute(IPayloadContext context) {
-        if (data.isEmpty()) {
-            return;
+        var player = context.player();
+        var level = player.level();
+        var world = level.getBlockEntity(pos);
+        if (world instanceof ManagedSyncBlockEntity managed) {
+            managed.getSyncDataHolder().applyClientNetworkUpdate(level.registryAccess(), data, fullSync);
         }
-
-        Level level = context.player().level();
-        if (!level.isClientSide || !level.isLoaded(pos)) {
-            return;
+        if (player.containerMenu instanceof ModularUIContainerMenu menu &&
+                menu.uiHolder instanceof MachineUIHolder holder && holder.getPos().equals(pos)) {
+            MetaMachine machine = holder.getMachine();
+            if (machine != world) {
+                machine.getSyncDataHolder().applyClientNetworkUpdate(level.registryAccess(), data, fullSync);
+            }
         }
-
-        BlockEntity blockEntity = level.getBlockEntity(pos);
-        if (!(blockEntity instanceof ManagedSyncBlockEntity syncBlockEntity)) {
-            return;
-        }
-
-        syncBlockEntity.getSyncDataHolder().applyClientNetworkUpdate(level.registryAccess(), data);
     }
 
     @Override
-    public @NotNull Type<SPacketMachineSyncToClient> type() {
+    public Type<SPacketMachineSyncToClient> type() {
         return TYPE;
     }
 }

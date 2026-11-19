@@ -304,19 +304,19 @@ public class BonkMachines {
             .recipeType(BonkRecipeTypes.LARGE_BONK_RECIPES)
             .recipeModifiers(OC_PERFECT_SUBTICK, BATCH_MODE)
             .appearanceBlock(CASING_PTFE_INERT)
-            .pattern(definition -> {
+            .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> {
                 var casing = blocks(CASING_PTFE_INERT.get()).setMinGlobalLimited(10);
-                var abilities = Predicates.autoAbilities(definition.getRecipeTypes())
-                        .or(Predicates.autoAbilities(true, false, false))
-                        .or(Predicates.abilities(BonkPartAbilities.BONK_HATCH));
-                return FactoryBlockPattern.start()
+                var abilities = PatternPredicate.autoAbilities(definition.getRecipeTypes())
+                        .or(PatternPredicate.autoAbilities(true, false, false))
+                        .or(PatternPredicate.abilities(BonkPartAbilities.BONK_HATCH));
+                return PatternBuilder.start(definition)
                         .aisle("XXX", "XCX", "XXX")
                         .aisle("XCX", "CPC", "XCX")
                         .aisle("XXX", "XSX", "XXX")
-                        .where('S', Predicates.controller(blocks(definition.getBlock())))
+                        .where('S', PatternPredicate.controller(blocks(definition.getBlock())))
                         .where('X', casing.or(abilities))
                         .where('P', blocks(CASING_POLYTETRAFLUOROETHYLENE_PIPE.get()))
-                        .where('C', Predicates.heatingCoils().setExactLimit(1)
+                        .where('C', PatternPredicate.heatingCoils().setExactLimit(1)
                                 .or(abilities)
                                 .or(casing))
                         .build();

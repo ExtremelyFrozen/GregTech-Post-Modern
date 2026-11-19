@@ -1,29 +1,26 @@
+def recipeViewer = providers.gradleProperty("recipeViewer").getOrElse("emi").toLowerCase(Locale.ROOT)
+
 dependencies {
     compileOnly(libs.jetbrains.annotations)
+    compileOnly(libs.jspecify)
 
-    testJarJar(testApi(libs.testframework.get()))
+    testImplementation(libs.testframework.get())
 
-    jarJar(api(libs.jackson.dataformat.get()))
-    jarJar(api(libs.jackson.annotations.get()))
-    jarJar(api(libs.jackson.core.get()))
-    jarJar(api(libs.jackson.databind.get()))
     jarJar(api(libs.zstd.get()))
-    additionalRuntimeClasspath(libs.jackson.dataformat)
-    additionalRuntimeClasspath(libs.jackson.annotations)
-    additionalRuntimeClasspath(libs.jackson.core)
-    additionalRuntimeClasspath(libs.jackson.databind)
     additionalRuntimeClasspath(libs.zstd)
 
-    jarJar(forge.kotlinforforge.get())
-    api(forge.kotlinforforge)
-
-    jarJar(api(forge.ldlib.get()))
+    jarJar(api(libs.kotlin.stdlib.get())) {
+        exclude group: 'org.jetbrains', module: 'annotations'
+    }
 
     // Registrate
     jarJar(api(forge.registrate.get()))
 
     // Configuration
     jarJar(api(forge.configuration.get()))
+
+    // LDLIB2
+    api(forge.ldlib2.get())
 
     // Recipe Viewers
     compileOnly(forge.bundles.jei)
@@ -42,9 +39,6 @@ dependencies {
     compileOnly(forge.ponder)
     compileOnly(variantOf(forge.create) { classifier("slim") })
     compileOnly(forge.flywheel.forge.api)
-
-    // KJS
-    compileOnly(forge.bundles.kjs)
 
     // Rendering / Optimizations
     compileOnly(forge.sodium)
@@ -75,21 +69,25 @@ dependencies {
     compileOnly(forge.cc.tweaked.forge.api)
 
     // Standard runtime mods //
-    localRuntime(libs.testframework)
-
     localRuntime(forge.jade)
     localRuntime(forge.ae2)
     localRuntime(forge.spark)
     localRuntime(forge.modernfix)
-    localRuntime(forge.create) {
-        // Needed to prevent game-test crashes
-        exclude group: "maven.modrinth", module: "journeymap"
-        exclude group: "info.journeymap", module: "journeymap-api-neoforge"
-    }
+//    localRuntime(forge.create) {
+//        // Needed to prevent game-test crashes
+//        exclude group: "maven.modrinth", module: "journeymap"
+//        exclude group: "info.journeymap", module: "journeymap-api-neoforge"
+//    }
 
     // Runtime Recipe Viewers - uncomment whichever one you want to use //
-    localRuntime(forge.emi)
-    localRuntime(forge.jei.neoforge.impl)
+    if (recipeViewer == "jei") {
+        localRuntime(forge.jei.neoforge.impl)
+    } else if (recipeViewer == "emi") {
+        localRuntime(forge.emi)
+    } else if (recipeViewer == "all") {
+        localRuntime(forge.jei.neoforge.impl)
+        localRuntime(forge.emi)
+    }
 
     // Client-only runtime mods //
     clientLocalRuntime(forge.sodium)
@@ -104,8 +102,6 @@ dependencies {
     extraLocalRuntime(forge.curios)
 //    extraLocalRuntime(forge.worldstripper)
     localRuntime(forge.cc.tweaked.forge.impl)
-
-    extraLocalRuntime(forge.bundles.kjs)
 
     extraLocalRuntime(forge.ftblibrary)
     extraLocalRuntime(forge.ftbteams)
@@ -124,6 +120,7 @@ dependencies {
         transitive = false
     }
     extraLocalRuntime(forge.observable)
+    extraLocalRuntime(forge.kotlinforforge)
     //////////////////////////
 
 }

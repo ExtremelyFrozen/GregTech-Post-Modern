@@ -5,6 +5,9 @@ title: "移除地表矿石指示物"
 
 # 移除地表矿石指示物
 
+!!! note "上游示例"
+    本页示例面向 GregTech CEu Modern。GTPM 1.21.1 的数据包和附属模组入口见[整合包制作](../index.md#upstream-kubejs)。
+
 ## 移除脚本
 
 ```js title="remove_piles.js"

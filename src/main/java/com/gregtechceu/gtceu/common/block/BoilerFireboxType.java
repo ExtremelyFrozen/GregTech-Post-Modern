@@ -1,6 +1,7 @@
 package com.gregtechceu.gtceu.common.block;
 
 import com.gregtechceu.gtceu.GTCEu;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 
 import net.minecraft.resources.ResourceLocation;
 
@@ -22,6 +23,10 @@ public record BoilerFireboxType(String name, ResourceLocation bottom, ResourceLo
             return DataResult.error(() -> "A firebox type named " + name + " does not exist");
         }
     }, BoilerFireboxType::name);
+
+    static {
+        FieldCodecs.register(BoilerFireboxType.class, CODEC);
+    }
 
     public BoilerFireboxType {
         FIREBOX_TYPES.put(name, this);

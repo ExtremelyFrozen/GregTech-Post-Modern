@@ -1,48 +1,54 @@
 package com.gregtechceu.gtceu.api.machine.fancyconfigurator;
 
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
+import com.gregtechceu.gtceu.api.gui.UITemplate;
+import com.gregtechceu.gtceu.api.gui.element.GTButtonElement;
+import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
+import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyConfigurator;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyCustomMiddleClickAction;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyCustomMouseWheelAction;
-import com.gregtechceu.gtceu.api.gui.widget.SlotWidget;
+import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
+import com.gregtechceu.gtceu.api.machine.MetaMachine;
+import com.gregtechceu.gtceu.api.machine.feature.IHasCircuitSlot;
+import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler;
 import com.gregtechceu.gtceu.common.item.behavior.IntCircuitBehaviour;
 import com.gregtechceu.gtceu.config.ConfigHolder;
 import com.gregtechceu.gtceu.data.lang.LangHandler;
 
-import com.lowdragmc.lowdraglib.gui.texture.GuiTextureGroup;
-import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
-import com.lowdragmc.lowdraglib.gui.texture.ItemStackTexture;
-import com.lowdragmc.lowdraglib.gui.widget.ButtonWidget;
-import com.lowdragmc.lowdraglib.gui.widget.LabelWidget;
-import com.lowdragmc.lowdraglib.gui.widget.Widget;
-import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
+import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
+import com.lowdragmc.lowdraglib2.gui.ui.elements.Button.State;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
 
-import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.neoforged.neoforge.items.ItemStackHandler;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 
+/**
+ * Fancy configurator for machine programmed-circuit slots.
+ *
+ * <p>
+ * The configurator keeps the client-visible circuit slot responsive locally, then sends GTM machine actions for the
+ * authoritative server write when the opened holder currently resolves to a remote machine.
+ */
 public class CircuitFancyConfigurator implements IFancyConfigurator, IFancyCustomMouseWheelAction,
                                       IFancyCustomMiddleClickAction {
 
-    private static final int SET_TO_ZERO = 2;
-    private static final int SET_TO_EMPTY = 3;
-    private static final int SET_TO_N = 4;
-
+    private static final int WIDTH = 174;
+    private static final int HEIGHT = 132;
+    private static final int SLOT_SIZE = 18;
+    private static final int SELECTED_SLOT = 0;
     private static final int NO_CONFIG = -1;
 
-    final ItemStackHandler circuitSlot;
+    private final IHasCircuitSlot circuitMachine;
 
-    public CircuitFancyConfigurator(ItemStackHandler circuitSlot) {
-        this.circuitSlot = circuitSlot;
+    public CircuitFancyConfigurator(IHasCircuitSlot circuitMachine) {
+        this.circuitMachine = circuitMachine;
     }
 
     @Override
@@ -51,152 +57,172 @@ public class CircuitFancyConfigurator implements IFancyConfigurator, IFancyCusto
     }
 
     @Override
-    public IGuiTexture getIcon() {
-        if (IntCircuitBehaviour.isIntegratedCircuit(circuitSlot.getStackInSlot(0))) {
-            return new ItemStackTexture(circuitSlot.getStackInSlot(0));
+    public IGuiTexture getIcon(State state) {
+        ItemStack circuitStack = circuitMachine.getCircuitInventory().getStackInSlot(SELECTED_SLOT);
+        if (IntCircuitBehaviour.isIntegratedCircuit(circuitStack)) {
+            return GuiTextures.itemStack(circuitStack);
         }
-        return new GuiTextureGroup(new ItemStackTexture(IntCircuitBehaviour.stack(0)),
-                new ItemStackTexture(Items.BARRIER));
+        return GuiTextures.group(GuiTextures.itemStack(IntCircuitBehaviour.stack(0)),
+                GuiTextures.itemStack(Items.BARRIER));
     }
 
     @Override
-    public boolean mouseWheelMove(BiConsumer<Integer, Consumer<RegistryFriendlyByteBuf>> writeClientAction,
-                                  double mouseX,
-                                  double mouseY, double wheelDelta) {
-        if (wheelDelta == 0) return false;
-        if (!ConfigHolder.INSTANCE.machines.ghostCircuit && circuitSlot.getStackInSlot(0).isEmpty()) return false;
-        int nextValue = getNextValue(wheelDelta > 0);
-        if (nextValue == NO_CONFIG) {
-            if (ConfigHolder.INSTANCE.machines.ghostCircuit) {
-                circuitSlot.setStackInSlot(0, ItemStack.EMPTY);
-                writeClientAction.accept(SET_TO_EMPTY, buf -> {});
-            }
-        } else {
-            circuitSlot.setStackInSlot(0, IntCircuitBehaviour.stack(nextValue));
-            writeClientAction.accept(SET_TO_N, buf -> buf.writeVarInt(nextValue));
-        }
-        return true;
+    public int getConfiguratorWidth() {
+        return WIDTH;
     }
 
     @Override
-    public void handleClientAction(int id, RegistryFriendlyByteBuf buffer) {
-        switch (id) {
-            case SET_TO_ZERO -> {
-                if (ConfigHolder.INSTANCE.machines.ghostCircuit || !circuitSlot.getStackInSlot(0).isEmpty())
-                    circuitSlot.setStackInSlot(0, IntCircuitBehaviour.stack(0));
-            }
-            case SET_TO_EMPTY -> {
-                if (ConfigHolder.INSTANCE.machines.ghostCircuit || circuitSlot.getStackInSlot(0).isEmpty())
-                    circuitSlot.setStackInSlot(0, ItemStack.EMPTY);
-                else
-                    circuitSlot.setStackInSlot(0, IntCircuitBehaviour.stack(0));
-            }
-            case SET_TO_N -> {
-                if (ConfigHolder.INSTANCE.machines.ghostCircuit || !circuitSlot.getStackInSlot(0).isEmpty())
-                    circuitSlot.setStackInSlot(0, IntCircuitBehaviour.stack(buffer.readVarInt()));
-            }
-        }
+    public int getConfiguratorHeight() {
+        return HEIGHT;
     }
 
     @Override
-    public void onMiddleClick(BiConsumer<Integer, Consumer<RegistryFriendlyByteBuf>> writeClientAction) {
-        if (!ConfigHolder.INSTANCE.machines.ghostCircuit && !circuitSlot.getStackInSlot(0).isEmpty())
-            circuitSlot.setStackInSlot(0, IntCircuitBehaviour.stack(0));
-        else
-            circuitSlot.setStackInSlot(0, ItemStack.EMPTY);
-        writeClientAction.accept(SET_TO_EMPTY, buf -> {});
-    }
+    public UIElement createConfigurator() {
+        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, WIDTH, HEIGHT);
 
-    @Override
-    public Widget createConfigurator() {
-        var group = new WidgetGroup(0, 0, 174, 132);
-        group.addWidget(new LabelWidget(9, 8, "Programmed Circuit Configuration"));
-        group.addWidget(new SlotWidget(circuitSlot, 0, (group.getSize().width - 18) / 2, 20,
-                !ConfigHolder.INSTANCE.machines.ghostCircuit, !ConfigHolder.INSTANCE.machines.ghostCircuit)
-                .setBackground(new GuiTextureGroup(GuiTextures.SLOT, GuiTextures.INT_CIRCUIT_OVERLAY)));
+        GTLabelElement label = new GTLabelElement(9, 8, 166, 10,
+                "Programmed Circuit Configuration", false);
+        label.textStyle(style -> style
+                .textColor(0x404040)
+                .textShadow(false)
+                .textAlignHorizontal(Horizontal.LEFT)
+                .textAlignVertical(Vertical.CENTER));
+        root.addChild(label);
+
+        int selectedSlotX = (WIDTH - SLOT_SIZE) / 2;
+        boolean canModifySlot = !ConfigHolder.INSTANCE.machines.ghostCircuit;
+        GTItemSlotElement selectedSlot = new GTItemSlotElement(circuitMachine.getCircuitInventory().storage,
+                SELECTED_SLOT);
+        selectedSlot.setBackgroundTexture(GuiTextures.group(GuiTextures.SLOT, GuiTextures.INT_CIRCUIT_OVERLAY))
+                .setCanPlace(stack -> canModifySlot)
+                .setCanTake(player -> canModifySlot);
+        UITemplate.setBounds(selectedSlot, selectedSlotX, 20, SLOT_SIZE, SLOT_SIZE);
+        root.addChild(selectedSlot);
+
         if (ConfigHolder.INSTANCE.machines.ghostCircuit) {
-            group.addWidget(new ButtonWidget((group.getSize().width - 18) / 2, 20, 18, 18, IGuiTexture.EMPTY,
-                    clickData -> {
-                        if (!clickData.isRemote) {
-                            circuitSlot.setStackInSlot(0, ItemStack.EMPTY);
-                        }
-                    }));
+            GTButtonElement clearButton = new GTButtonElement(selectedSlotX, 20, SLOT_SIZE, SLOT_SIZE,
+                    IGuiTexture.EMPTY, event -> setMachineCircuitConfiguration(NO_CONFIG));
+            clearButton.noText();
+            root.addChild(clearButton);
         }
-        int idx = 0;
+
+        int configuration = 0;
         for (int x = 0; x <= 2; x++) {
             for (int y = 0; y <= 8; y++) {
-                int finalIdx = idx;
-                group.addWidget(new ButtonWidget(5 + (18 * y), 48 + (18 * x), 18, 18,
-                        new GuiTextureGroup(GuiTextures.SLOT,
-                                new ItemStackTexture(IntCircuitBehaviour.stack(finalIdx)).scale(16f / 18)),
-                        clickData -> {
-                            if (!clickData.isRemote) {
-                                ItemStack stack = circuitSlot.getStackInSlot(0).copy();
-                                if (IntCircuitBehaviour.isIntegratedCircuit(stack)) {
-                                    IntCircuitBehaviour.setCircuitConfiguration(stack, finalIdx);
-                                    circuitSlot.setStackInSlot(0, stack);
-                                } else if (ConfigHolder.INSTANCE.machines.ghostCircuit) {
-                                    circuitSlot.setStackInSlot(0, IntCircuitBehaviour.stack(finalIdx));
-                                }
-                            }
-                        }));
-                idx++;
+                root.addChild(createCircuitButton(configuration, 5 + SLOT_SIZE * y, 48 + SLOT_SIZE * x));
+                configuration++;
             }
         }
         for (int x = 0; x <= 5; x++) {
-            int finalIdx = x + 27;
-            group.addWidget(new ButtonWidget(5 + (18 * x), 102, 18, 18,
-                    new GuiTextureGroup(GuiTextures.SLOT,
-                            new ItemStackTexture(IntCircuitBehaviour.stack(finalIdx)).scale(16f / 18)),
-                    clickData -> {
-                        if (!clickData.isRemote) {
-                            ItemStack stack = circuitSlot.getStackInSlot(0).copy();
-                            if (IntCircuitBehaviour.isIntegratedCircuit(stack)) {
-                                IntCircuitBehaviour.setCircuitConfiguration(stack, finalIdx);
-                                circuitSlot.setStackInSlot(0, stack);
-                            } else if (ConfigHolder.INSTANCE.machines.ghostCircuit) {
-                                circuitSlot.setStackInSlot(0, IntCircuitBehaviour.stack(finalIdx));
-                            }
-                        }
-                    }));
+            int finalConfiguration = x + 27;
+            root.addChild(createCircuitButton(finalConfiguration, 5 + SLOT_SIZE * x, 102));
         }
-        return group;
+        return root;
     }
 
     @Override
     public List<Component> getTooltips() {
-        var list = new ArrayList<>(IFancyConfigurator.super.getTooltips());
-        list.addAll(Arrays.stream(
-                LangHandler.getMultiLang("gtpm.gui.configurator_slot.tooltip").toArray(new MutableComponent[0]))
-                .toList());
-        return list;
+        List<Component> tooltips = new ArrayList<>(IFancyConfigurator.super.getTooltips());
+        tooltips.addAll(LangHandler.getMultiLang("gtpm.gui.configurator_slot.tooltip"));
+        return tooltips;
+    }
+
+    @Override
+    public boolean mouseWheelMove(UIEvent event) {
+        if (event.deltaY == 0) {
+            return false;
+        }
+        if (!ConfigHolder.INSTANCE.machines.ghostCircuit &&
+                circuitMachine.getCircuitInventory().getStackInSlot(SELECTED_SLOT).isEmpty()) {
+            return false;
+        }
+
+        setMachineCircuitConfiguration(getNextValue(event.deltaY > 0));
+        return true;
+    }
+
+    @Override
+    public void onMiddleClick(UIEvent event) {
+        setMachineCircuitConfiguration(NO_CONFIG);
+    }
+
+    private GTButtonElement createCircuitButton(int configuration, int x, int y) {
+        IGuiTexture texture = GuiTextures.group(GuiTextures.SLOT,
+                GuiTextures.itemStack(IntCircuitBehaviour.stack(configuration)).scale(16f / SLOT_SIZE));
+        GTButtonElement button = new GTButtonElement(x, y, SLOT_SIZE, SLOT_SIZE, texture,
+                event -> setCircuitButtonConfiguration(configuration));
+        button.noText();
+        return button;
+    }
+
+    private void setCircuitButtonConfiguration(int configuration) {
+        if (writeCircuitButtonConfiguration(circuitMachine.getCircuitInventory(), configuration)) {
+            sendCircuitConfiguration(configuration);
+        }
+    }
+
+    private void setMachineCircuitConfiguration(int configuration) {
+        writeMachineCircuitConfiguration(circuitMachine.getCircuitInventory(), configuration);
+        sendCircuitConfiguration(configuration);
+    }
+
+    private void sendCircuitConfiguration(int configuration) {
+        var machine = (MetaMachine) circuitMachine;
+        if (machine.isRemote()) {
+            machine.rpcToServer("configureCircuit", configuration);
+        }
     }
 
     private int getNextValue(boolean increment) {
-        int currentValue = IntCircuitBehaviour.getCircuitConfiguration(circuitSlot.getStackInSlot(0));
+        ItemStack currentStack = circuitMachine.getCircuitInventory().getStackInSlot(SELECTED_SLOT);
+        int currentValue = IntCircuitBehaviour.getCircuitConfiguration(currentStack);
         if (increment) {
-            // if at max, loop around to no circuit
             if (currentValue == IntCircuitBehaviour.CIRCUIT_MAX) {
                 return 0;
             }
-            // if at no circuit, skip 0 and return 1
-            if (this.circuitSlot.getStackInSlot(0).isEmpty()) {
+            if (currentStack.isEmpty()) {
                 return 1;
             }
-            // normal case: increment by 1
             return currentValue + 1;
-        } else {
-            // if at no circuit, loop around to max
-            if (this.circuitSlot.getStackInSlot(0).isEmpty() ||
-                    (currentValue == 0 && !ConfigHolder.INSTANCE.machines.ghostCircuit)) {
-                return IntCircuitBehaviour.CIRCUIT_MAX;
+        }
+        if (currentStack.isEmpty() || (currentValue == 0 && !ConfigHolder.INSTANCE.machines.ghostCircuit)) {
+            return IntCircuitBehaviour.CIRCUIT_MAX;
+        }
+        if (currentValue == 1 && ConfigHolder.INSTANCE.machines.ghostCircuit) {
+            return NO_CONFIG;
+        }
+        return currentValue - 1;
+    }
+
+    private static boolean writeCircuitButtonConfiguration(NotifiableItemStackHandler circuitInventory,
+                                                           int configuration) {
+        ItemStack stack = circuitInventory.getStackInSlot(SELECTED_SLOT).copy();
+        if (IntCircuitBehaviour.isIntegratedCircuit(stack)) {
+            IntCircuitBehaviour.setCircuitConfiguration(stack, configuration);
+            circuitInventory.setStackInSlot(SELECTED_SLOT, stack);
+            return true;
+        }
+        if (ConfigHolder.INSTANCE.machines.ghostCircuit) {
+            circuitInventory.setStackInSlot(SELECTED_SLOT, IntCircuitBehaviour.stack(configuration));
+            return true;
+        }
+        return false;
+    }
+
+    public static void writeMachineCircuitConfiguration(NotifiableItemStackHandler circuitInventory,
+                                                        int configuration) {
+        if (configuration == NO_CONFIG) {
+            if (ConfigHolder.INSTANCE.machines.ghostCircuit ||
+                    circuitInventory.getStackInSlot(SELECTED_SLOT).isEmpty()) {
+                circuitInventory.setStackInSlot(SELECTED_SLOT, ItemStack.EMPTY);
+            } else {
+                circuitInventory.setStackInSlot(SELECTED_SLOT, IntCircuitBehaviour.stack(0));
             }
-            // if at 1, skip 0 and return no circuit
-            if (currentValue == 1 && ConfigHolder.INSTANCE.machines.ghostCircuit) {
-                return -1;
-            }
-            // normal case: decrement by 1
-            return currentValue - 1;
+            return;
+        }
+        if (ConfigHolder.INSTANCE.machines.ghostCircuit ||
+                !circuitInventory.getStackInSlot(SELECTED_SLOT).isEmpty()) {
+            circuitInventory.setStackInSlot(SELECTED_SLOT, IntCircuitBehaviour.stack(configuration));
         }
     }
 }

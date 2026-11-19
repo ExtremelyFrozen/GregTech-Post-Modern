@@ -111,7 +111,6 @@ public class GTValues {
     public static final String MODID_JEI = "jei",
             MODID_EMI = "emi",
             MODID_APPENG = "ae2",
-            MODID_KUBEJS = "kubejs",
             MODID_IRIS = "iris",
             MODID_SODIUM = "sodium",
             MODID_OPTIFINE = "optifine",
@@ -122,6 +121,7 @@ public class GTValues {
             MODID_XAEROS_WORLDMAP = "xaeroworldmap",
             MODID_FTB_CHUNKS = "ftbchunks",
             MODID_JAVD = "javd",
+            MODID_FTB_LIBRARY = "ftblibrary",
             MODID_FTB_TEAMS = "ftbteams",
             MODID_ARGONAUTS = "argonauts",
             MODID_HERACLES = "heracles",
@@ -198,8 +198,8 @@ public class GTValues {
             GREEN.toString(),
             DARK_GREEN.toString(),
             YELLOW.toString(),
-            BLUE.toString() + BOLD.toString(),
-            RED.toString() + BOLD.toString() };
+            BLUE + BOLD.toString(),
+            RED + BOLD.toString() };
 
     public static final String[] VLVH = new String[] {
             "Primitive", // not doing the gray color for these first two because it looks weird

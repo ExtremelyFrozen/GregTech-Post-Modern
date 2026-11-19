@@ -9,10 +9,10 @@ title: 开发者文档
 
 以下页面介绍了在处理本代码库时经常会遇到的一些重要概念。
 
-!!! link "LDLib 文档"
-    [:material-github: LDLib-Architectury :material-arrow-right: Wiki](https://github.com/Low-Drag-MC/LDLib-Architectury/wiki)
+!!! link "LDLib2 文档"
+    [:material-github: LDLib2 :material-arrow-right: 文档](https://low-drag-mc.github.io/LowDragMC-Doc/en/ldlib2/)
 
-    本 mod 的许多常用功能都基于 LDLib 库。
+    本模组的界面使用 LDLib2。
     请同时参考它的文档。
 
 !!! link "Architectury Gradle Plugin"

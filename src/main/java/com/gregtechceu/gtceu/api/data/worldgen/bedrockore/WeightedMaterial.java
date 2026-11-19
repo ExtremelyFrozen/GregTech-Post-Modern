@@ -2,6 +2,7 @@ package com.gregtechceu.gtceu.api.data.worldgen.bedrockore;
 
 import com.gregtechceu.gtceu.api.data.chemical.material.Material;
 import com.gregtechceu.gtceu.api.registry.GTRegistries;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 import com.gregtechceu.gtceu.utils.WeightedEntry;
 
 import com.mojang.serialization.Codec;
@@ -14,4 +15,8 @@ public record WeightedMaterial(Material material, int weight) implements Weighte
                     GTRegistries.MATERIALS.byNameCodec().fieldOf("material").forGetter(WeightedMaterial::material),
                     Codec.INT.fieldOf("weight").forGetter(WeightedMaterial::weight))
                     .apply(instance, WeightedMaterial::new));
+
+    static {
+        FieldCodecs.register(WeightedMaterial.class, CODEC);
+    }
 }

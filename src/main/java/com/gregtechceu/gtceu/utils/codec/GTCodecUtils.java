@@ -1,15 +1,12 @@
 package com.gregtechceu.gtceu.utils.codec;
 
-import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.utils.memoization.GTMemoizer;
 
-import com.google.gson.JsonParseException;
 import com.mojang.datafixers.util.Either;
 import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.DynamicOps;
-import com.mojang.serialization.MapCodec;
 
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -39,28 +36,6 @@ public final class GTCodecUtils {
 
     public static <T> T unboxEither(Either<T, T> either) {
         return either.map(Function.identity(), Function.identity());
-    }
-
-    public static <T> MapCodec<T> quietExceptionCodec(Codec<T> codec, String field, boolean isKubeLoaded) {
-        return codec.optionalFieldOf(field, null).flatXmap(
-                val -> {
-                    if (val != null) return DataResult.success(val);
-
-                    String msg = "Recipe " + field + " field is invalid!";
-                    if (isKubeLoaded) {
-                        throw quietException(msg);
-                    } else {
-                        GTCEu.LOGGER.error(msg);
-                    }
-                    return DataResult.error(() -> msg);
-                },
-                DataResult::success);
-    }
-
-    public static JsonParseException quietException(String msg) {
-        var ex = new JsonParseException(msg);
-        ex.setStackTrace(new StackTraceElement[0]);
-        return ex;
     }
 
     public static <T> Codec<Supplier<T>> lazyParsingCodec(Codec<T> delegate) {

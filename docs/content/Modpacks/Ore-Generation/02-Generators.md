@@ -5,6 +5,9 @@ title: "Generators（生成器）"
 
 # 矿脉与指示物生成器
 
+!!! note "上游示例"
+    本页示例面向 GregTech CEu Modern。GTPM 1.21.1 的数据包和附属模组入口见[整合包制作](../index.md#upstream-kubejs)。
+
 ## 矿脉生成器 { #vein-generators }
 
 

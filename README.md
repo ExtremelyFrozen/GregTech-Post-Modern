@@ -1,13 +1,11 @@
 <p align="center"><img src="https://raw.githubusercontent.com/GregTechCEu/Branding/refs/heads/master/gregtech_ceu_modern_logo_large_modern.png" alt="Logo"></p>
 <h1 align="center">GregTech Post Modern</h1>
-<p align="center">GregTech Post Modern for modern Minecraft versions MinecraftForge (1.20.1) & NeoForge (1.21.1+).</p>
+<p align="center">GregTech Post Modern for Minecraft 1.21.1 on NeoForge.</p>
 <h1 align="center">
-    <a href="https://www.curseforge.com/minecraft/mc-mods/gregtechceu-modern"><img src="https://img.shields.io/badge/Available%20for-MC%201.20.1+%20-informational?style=for-the-badge" alt="Supported Versions"></a>
+    <a href="https://github.com/ExtremelyFrozen/GregTech-Post-Modern/releases"><img src="https://img.shields.io/badge/NeoForge-MC%201.21.1-informational?style=for-the-badge" alt="Supported Version"></a>
     <a href="https://github.com/ExtremelyFrozen/GregTech-Post-Modern/blob/1.21/LICENSE"><img src="https://img.shields.io/github/license/ExtremelyFrozen/GregTech-Post-Modern?style=for-the-badge" alt="License"></a>
     <a href="https://discord.gg/bWSWuYvURP"><img src="https://img.shields.io/discord/701354865217110096?color=5464ec&label=Discord&style=for-the-badge" alt="Discord"></a>
     <br>
-    <a href="https://www.curseforge.com/minecraft/mc-mods/gregtechceu-modern"><img src="https://cf.way2muchnoise.eu/890405.svg?badge_style=for_the_badge" alt="CurseForge"></a>
-    <a href="https://modrinth.com/mod/gregtechceu-modern"><img src="https://img.shields.io/modrinth/dt/gregtechceu-modern?logo=modrinth&label=&suffix=%20&style=for-the-badge&color=2d2d2d&labelColor=5ca424&logoColor=1c1c1c" alt="Modrinth"></a>
     <a href="https://github.com/ExtremelyFrozen/GregTech-Post-Modern/releases"><img src="https://img.shields.io/github/downloads/ExtremelyFrozen/GregTech-Post-Modern/total?sort=semver&logo=github&label=&style=for-the-badge&color=2d2d2d&labelColor=545454&logoColor=FFFFFF" alt="GitHub"></a>
 </h1>
 
@@ -15,29 +13,17 @@
 
 ## Developers
 
-To add GregTech Post Modern to your project as a dependency, add the following to your `build.gradle`:
+GregTech Post Modern builds for Minecraft 1.21.1 are available as NeoForge JARs. [GitHub Releases](https://github.com/ExtremelyFrozen/GregTech-Post-Modern/releases)
+
+If you publish your checkout to a local Maven repository, use the `gtpm-1.21.1` artifact and set `gtpm_version` to the version you published.
+
 ```groovy
 repositories {
-    maven {
-        name = 'GTCEu Maven'
-        url = 'https://maven.gtceu.com'
-        content {
-            includeGroup 'com.gregtechceu.gtceu'
-        }
-    }
+    mavenLocal()
 }
-```
-Then, you can add it as a dependency, with `${mc_version}` being your Minecraft version target and `${gtm_version}` being the version of GregTech Post Modern you want to use.
-```groovy
+
 dependencies {
-	// Forge (see below block as well if you use Forge Gradle)
-	implementation fg.deobf("com.gregtechceu.gtceu:gtceu-${mc_version}:${gtm_version}")
-
-	// NeoForge
-	implementation "com.gregtechceu.gtceu:gtceu-${mc_version}:${gtm_version}"
-
-	// Architectury
-	modImplementation "com.gregtechceu.gtceu:gtceu-${mc_version}:${gtm_version}"
+    implementation "com.gregtechceu.gtceu:gtpm-1.21.1:${gtpm_version}"
 }
 ```
 

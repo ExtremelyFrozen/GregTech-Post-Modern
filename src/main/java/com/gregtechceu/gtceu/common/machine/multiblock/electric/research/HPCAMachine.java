@@ -8,8 +8,17 @@ import com.gregtechceu.gtceu.api.capability.recipe.FluidRecipeCapability;
 import com.gregtechceu.gtceu.api.capability.recipe.IO;
 import com.gregtechceu.gtceu.api.computation.ComputationProducer;
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
+import com.gregtechceu.gtceu.api.gui.UITemplate;
+import com.gregtechceu.gtceu.api.gui.element.GTComponentPanelElement;
+import com.gregtechceu.gtceu.api.gui.element.GTImageElement;
+import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
+import com.gregtechceu.gtceu.api.gui.element.GTProgressBarElement;
+import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
+import com.gregtechceu.gtceu.api.gui.fancy.TooltipsPanel;
+import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
+import com.gregtechceu.gtceu.api.gui.texture.ProgressTexture;
 import com.gregtechceu.gtceu.api.gui.util.TimedProgressSupplier;
-import com.gregtechceu.gtceu.api.gui.widget.ExtendedProgressWidget;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.api.machine.TickableSubscription;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMaintenanceMachine;
@@ -33,12 +42,15 @@ import com.gregtechceu.gtceu.utils.FormattingUtil;
 import com.gregtechceu.gtceu.utils.GTTransferUtils;
 import com.gregtechceu.gtceu.utils.GTUtil;
 
-import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture;
-import com.lowdragmc.lowdraglib.gui.texture.ProgressTexture;
-import com.lowdragmc.lowdraglib.gui.texture.ResourceTexture;
-import com.lowdragmc.lowdraglib.gui.widget.ImageWidget;
-import com.lowdragmc.lowdraglib.gui.widget.Widget;
-import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup;
+import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
+import com.lowdragmc.lowdraglib2.gui.ui.data.FillDirection;
+import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
+import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
+import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollerMode;
+import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
+import com.lowdragmc.lowdraglib2.gui.ui.event.HoverTooltips;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.MethodsReturnNonnullByDefault;
@@ -55,11 +67,17 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMaps;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
+import lombok.AccessLevel;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
+import java.util.function.DoubleSupplier;
+import java.util.function.IntFunction;
 import java.util.function.Supplier;
 
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -69,7 +87,10 @@ import static com.gregtechceu.gtceu.data.recipe.CustomTags.HPCA_COOLANTS;
 @MethodsReturnNonnullByDefault
 @ParametersAreNonnullByDefault
 public class HPCAMachine extends WorkableElectricMultiblockMachine
-                         implements IOpticalComputationProvider, IControllable, ComputationProducer {
+                         implements IOpticalComputationProvider, ComputationProducer {
+
+    private static final int PAGE_WIDTH = 190;
+    private static final int PAGE_HEIGHT = 125;
 
     private static final double IDLE_TEMPERATURE = 200;
     private static final double DAMAGE_TEMPERATURE = 1000;
@@ -77,9 +98,16 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
     private IMaintenanceMachine maintenance;
     private EnergyContainerList energyContainer;
     private IFluidHandler coolantHandler;
+    @Getter(AccessLevel.PACKAGE)
     @SaveField
     @SyncToClient
     private final HPCAGridHandler hpcaHandler;
+    @Getter(AccessLevel.PACKAGE)
+    @SyncToClient
+    private List<Component> hpcaDisplayText = List.of();
+    @Getter(AccessLevel.PACKAGE)
+    @SyncToClient
+    private List<Component> hpcaInfoText = List.of();
 
     private boolean hasNotEnoughEnergy;
 
@@ -105,7 +133,7 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
         List<IEnergyContainer> energyContainers = new ArrayList<>();
         List<IFluidHandler> coolantContainers = new ArrayList<>();
         List<HPCAComponentTrait> componentTraits = new ArrayList<>();
-        Long2ObjectMap<IO> ioMap = getMultiblockState(DEFAULT_STRUCTURE).getMatchContext().getOrDefault("ioMap",
+        Long2ObjectMap<IO> ioMap = getMultiblockState(DEFAULT_STRUCTURE).getFacts().getOrDefault("ioMap",
                 Long2ObjectMaps.emptyMap());
         for (IMultiPart part : getParts()) {
             IO io = ioMap.getOrDefault(part.self().getBlockPos().asLong(), IO.BOTH);
@@ -133,6 +161,9 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
         this.energyContainer = new EnergyContainerList(energyContainers);
         this.coolantHandler = new FluidHandlerList(coolantContainers);
         this.hpcaHandler.onStructureForm(componentTraits);
+        if (!isRemote()) {
+            refreshHPCADisplay();
+        }
 
         scheduleForNextServerTick(this::updateTickSubscription);
     }
@@ -140,12 +171,16 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
     @Override
     public void onLoad() {
         super.onLoad();
+        if (!isRemote()) {
+            refreshHPCADisplay();
+        }
         scheduleForNextServerTick(this::updateTickSubscription);
     }
 
     @Override
     public void onUnload() {
         super.onUnload();
+        clearHPCADisplay();
         if (tickSubs != null) {
             tickSubs.unsubscribe();
             tickSubs = null;
@@ -168,6 +203,9 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
         this.updateActive(false);
         this.energyContainer = EnergyContainerList.EMPTY;
         this.hpcaHandler.onStructureInvalidate();
+        if (!isRemote()) {
+            refreshHPCADisplay();
+        }
     }
 
     @Override
@@ -227,7 +265,25 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
             // passively cool (slowly) if not active
             temperature = Math.max(IDLE_TEMPERATURE, temperature - 0.25);
         }
+        refreshHPCADisplay();
         this.updateActive(this.getEnergyContainer().getEnergyStored() > 0);
+    }
+
+    /** Refreshes the server-owned text snapshots consumed by the LDLib2 controller page. */
+    void refreshHPCADisplay() {
+        List<Component> nextDisplayText = createHPCADisplayText();
+        if (!hpcaDisplayText.equals(nextDisplayText)) {
+            hpcaDisplayText = nextDisplayText;
+        }
+        List<Component> nextText = hpcaHandler.createInfoText();
+        if (!hpcaInfoText.equals(nextText)) {
+            hpcaInfoText = nextText;
+        }
+    }
+
+    private void clearHPCADisplay() {
+        hpcaDisplayText = List.of();
+        hpcaInfoText = List.of();
     }
 
     private void updateActive(boolean active) {
@@ -266,42 +322,84 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
         }
     }
 
-    @Override
-    public Widget createUIWidget() {
-        WidgetGroup builder = (WidgetGroup) super.createUIWidget();
-        // Create the hover grid
-        builder.addWidget(new ExtendedProgressWidget(
-                () -> hpcaHandler.getAllocatedCWUt() > 0 ? progressSupplier.getAsDouble() : 0,
-                74, 57, 47, 47, GuiTextures.HPCA_COMPONENT_OUTLINE)
-                .setServerTooltipSupplier(hpcaHandler::addInfo)
-                .setFillDirection(ProgressTexture.FillDirection.LEFT_TO_RIGHT));
-        int startX = 76;
-        int startY = 59;
+    private void gatherClientComponentGrid() {
+        if (!isRemote()) {
+            return;
+        }
+        if (isFormed) {
+            hpcaHandler.tryGatherClientComponents(getLevel(), getBlockPos(), getFrontFacing(), getUpwardsFacing(),
+                    isFlipped);
+        } else {
+            hpcaHandler.clearClientComponents();
+        }
+    }
 
-        // we need to know what components we have on the client
-        if (getLevel().isClientSide) {
-            if (isFormed) {
-                hpcaHandler.tryGatherClientComponents(this.getLevel(), this.getBlockPos(), this.getFrontFacing(),
-                        this.getUpwardsFacing(), this.isFlipped);
-            } else {
-                hpcaHandler.clearClientComponents();
+    private static final class HPCAStatusGridElement extends UIElement {
+
+        private static final int GRID_SIZE = 3;
+        private static final int ICON_SIZE = 13;
+        private static final int ICON_STEP = 15;
+
+        private final Supplier<List<Component>> tooltipSupplier;
+        private final IntFunction<IGuiTexture> componentTextureSupplier;
+        private final List<GTImageElement> componentImages = new ArrayList<>(GRID_SIZE * GRID_SIZE);
+
+        private HPCAStatusGridElement(DoubleSupplier progressSupplier,
+                                      Supplier<List<Component>> tooltipSupplier,
+                                      IntFunction<IGuiTexture> componentTextureSupplier,
+                                      ProgressTexture progressTexture) {
+            this.tooltipSupplier = tooltipSupplier;
+            this.componentTextureSupplier = componentTextureSupplier;
+            UITemplate.setBounds(this, 74, 57, 47, 47);
+            setId("hpca_status_grid");
+            addEventListener(UIEvents.HOVER_TOOLTIPS, this::addInfoTooltip);
+
+            GTProgressBarElement progress = new GTProgressBarElement(progressSupplier);
+            progress.setProgressTexture(progressTexture.getEmptyBarArea(), progressTexture.getFilledBarArea());
+            progress.setFillDirection(FillDirection.LEFT_TO_RIGHT);
+            UITemplate.setBounds(progress, 0, 0, 47, 47);
+            addChild(progress);
+
+            for (int row = 0; row < GRID_SIZE; row++) {
+                for (int column = 0; column < GRID_SIZE; column++) {
+                    int index = row * GRID_SIZE + column;
+                    GTImageElement image = new GTImageElement(
+                            2 + ICON_STEP * column,
+                            2 + ICON_STEP * row,
+                            ICON_SIZE,
+                            ICON_SIZE,
+                            componentTextureSupplier.apply(index));
+                    componentImages.add(image);
+                    addChild(image);
+                }
             }
         }
-        for (int i = 0; i < 3; i++) {
-            for (int j = 0; j < 3; j++) {
-                final int index = i * 3 + j;
-                Supplier<IGuiTexture> textureSupplier = () -> hpcaHandler.getComponentTexture(index);
-                builder.addWidget(new ImageWidget(startX + (15 * j), startY + (15 * i), 13, 13, textureSupplier));
+
+        @Override
+        public void screenTick() {
+            for (int index = 0; index < componentImages.size(); index++) {
+                componentImages.get(index).setTexture(componentTextureSupplier.apply(index));
+            }
+            super.screenTick();
+        }
+
+        private void addInfoTooltip(UIEvent event) {
+            List<Component> tooltips = tooltipSupplier.get();
+            if (!tooltips.isEmpty()) {
+                event.hoverTooltips = new HoverTooltips(tooltips, null, null, null);
             }
         }
-        return builder;
     }
 
     @Override
     public void addDisplayText(List<Component> textList) {
-        MultiblockDisplayText.builder(textList, isFormed())
-                .setWorkingStatus(true, hpcaHandler.getAllocatedCWUt() > 0) // transform into two-state system for
-                                                                            // display
+        textList.addAll(hpcaDisplayText);
+    }
+
+    private List<Component> createHPCADisplayText() {
+        List<Component> text = new ArrayList<>();
+        MultiblockDisplayText.builder(text, isFormed())
+                .setWorkingStatus(true, hpcaHandler.cachedCWUt > 0) // transform into two-state system for display
                 .setWorkingStatusKeys(
                         "gtpm.multiblock.idling",
                         "gtpm.multiblock.idling",
@@ -326,6 +424,7 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
                     }
                 })
                 .addWorkingStatusLine();
+        return List.copyOf(text);
     }
 
     private ChatFormatting getDisplayTemperatureColor() {
@@ -459,6 +558,10 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
 
         private void clearComputationCache() {
             allocatedCWUt = 0;
+            if (cachedCWUt != 0) {
+                cachedCWUt = 0;
+                syncDataHolder.markClientSyncFieldDirty("cachedCWUt");
+            }
         }
 
         public void tick() {
@@ -709,6 +812,13 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
             }
         }
 
+        /** Captures the authoritative structural statistics sent to the LDLib2 status-grid tooltip. */
+        List<Component> createInfoText() {
+            List<Component> text = new ArrayList<>();
+            addInfo(text);
+            return List.copyOf(text);
+        }
+
         public void addWarnings(List<Component> textList) {
             List<Component> warnings = new ArrayList<>();
             if (numBridges > 1) {
@@ -737,7 +847,7 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
             }
         }
 
-        public ResourceTexture getComponentTexture(int index) {
+        public IGuiTexture getComponentTexture(int index) {
             if (components.size() <= index) {
                 return GuiTextures.BLANK_TRANSPARENT;
             }
@@ -772,6 +882,54 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
 
         public void clearClientComponents() {
             components.clear();
+        }
+    }
+
+    @Override
+    public UIElement createUIWidget(FancyMachineUIWidget shell) {
+        gatherClientComponentGrid();
+
+        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
+        root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
+
+        GTScrollerViewElement screen = new GTScrollerViewElement(4, 4, 182, 117);
+        screen.style(style -> style.backgroundTexture(getScreenTexture()));
+        screen.viewPort(viewPort -> viewPort
+                .layout(layout -> layout.paddingAll(0))
+                .style(style -> style.backgroundTexture(getScreenTexture())));
+        screen.scrollerStyle(style -> style
+                .mode(ScrollerMode.VERTICAL)
+                .verticalScrollDisplay(ScrollDisplay.AUTO)
+                .horizontalScrollDisplay(ScrollDisplay.NEVER));
+
+        GTLabelElement title = new GTLabelElement(4, 5, 174, 10,
+                getBlockState().getBlock().getDescriptionId(), true);
+        title.textStyle(style -> style
+                .textColor(0x404040)
+                .textShadow(false)
+                .textAlignHorizontal(Horizontal.LEFT)
+                .textAlignVertical(Vertical.CENTER));
+        screen.addScrollViewChild(title);
+        screen.addScrollViewChild(new GTComponentPanelElement(4, 17, HPCAMachine.this::addDisplayText)
+                .setMaxWidthLimit(150)
+                .clickHandler(HPCAMachine.this::handleDisplayClick));
+        root.addChild(screen);
+
+        ProgressTexture progressTexture = GuiTextures.progressBar(GuiTextures.HPCA_COMPONENT_OUTLINE);
+        root.addChild(new HPCAStatusGridElement(
+                () -> hpcaHandler.cachedCWUt > 0 ? progressSupplier.getAsDouble() : 0,
+                () -> hpcaInfoText,
+                hpcaHandler::getComponentTexture,
+                progressTexture));
+        return root;
+    }
+
+    @Override
+    public void attachTooltips(TooltipsPanel tooltipsPanel) {
+        for (IMultiPart part : getParts()) {
+            if (part instanceof IMaintenanceMachine maintenanceMachine) {
+                maintenanceMachine.attachMaintenanceTooltips(tooltipsPanel);
+            }
         }
     }
 }

@@ -28,7 +28,6 @@ import net.minecraft.world.level.levelgen.placement.HeightRangePlacement;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import dev.latvian.mods.rhino.util.HideFromJS;
 import it.unimi.dsi.fastutil.ints.IntIntPair;
 import lombok.Getter;
 import lombok.Setter;
@@ -136,7 +135,7 @@ public class GTOreDefinition {
         this.biomes = biomes;
         this.biomeWeightModifier = biomeWeightModifier;
         this.veinGenerator = veinGenerator;
-        this.indicatorGenerators = Objects.requireNonNullElseGet(indicatorGenerators, ArrayList::new);
+        this.indicatorGenerators = indicatorGenerators == null ? new ArrayList<>() : indicatorGenerators;
         this.biomeLookup = biomeLookup;
     }
 
@@ -182,7 +181,6 @@ public class GTOreDefinition {
         return this;
     }
 
-    @HideFromJS
     public GTOreDefinition biomes(TagKey<Biome> biomes) {
         if (biomeLookup == null) {
             GTRegistries.builtinRegistry().registry(GTRegistries.ORE_VEIN_REGISTRY)
@@ -200,7 +198,7 @@ public class GTOreDefinition {
     }
 
     public GTOreDefinition biomes(HolderSet<Biome> biomes) {
-        this.biomes = Objects.requireNonNullElseGet(biomes, HolderSet::empty);
+        this.biomes = biomes == null ? HolderSet.empty() : biomes;
         return this;
     }
 

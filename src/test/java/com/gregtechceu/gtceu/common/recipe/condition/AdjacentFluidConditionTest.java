@@ -5,7 +5,6 @@ import com.gregtechceu.gtceu.api.GTValues;
 import com.gregtechceu.gtceu.api.machine.SimpleTieredMachine;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler;
 import com.gregtechceu.gtceu.api.recipe.GTRecipeType;
-import com.gregtechceu.gtceu.common.data.GTRecipeTypes;
 import com.gregtechceu.gtceu.gametest.util.TestUtils;
 
 import net.minecraft.core.BlockPos;
@@ -29,8 +28,7 @@ public class AdjacentFluidConditionTest {
 
     @BeforeBatch(batch = "AdjacentFluidCondition")
     public static void prepare(ServerLevel level) {
-        ROCK_BREAKER_RECIPE_TYPE = TestUtils.createRecipeType("adjacent_fluid_conditions_tests",
-                GTRecipeTypes.ROCK_BREAKER_RECIPES);
+        ROCK_BREAKER_RECIPE_TYPE = TestUtils.getRecipeType("adjacent_fluid_conditions_tests");
         ROCK_BREAKER_RECIPE_TYPE.getAdditionHandler().beginStaging();
         ROCK_BREAKER_RECIPE_TYPE.getAdditionHandler().addRuntimeStaging(ROCK_BREAKER_RECIPE_TYPE
                 .recipeBuilder(GTCEu.id("test_adjacent_fluid_conditions"))

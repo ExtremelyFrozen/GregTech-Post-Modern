@@ -2,6 +2,9 @@
 title: 配方条件
 ---
 
+!!! note "上游示例"
+    本页示例面向 GregTech CEu Modern。GTPM 1.21.1 的数据包和附属模组入口见[整合包制作](../index.md#upstream-kubejs)。
+
 Recipe Conditions（配方条件）是配方属性，可以基于某些条件阻止配方启动，例如 Biome、Weather、Quest Completions，或你自己制作的自定义 Conditions。
 
 这些 conditions 可以同时用于 Java 和 KubeJS 配方。不过，自定义 conditions 只能在 Java addons 中实现。如果你想了解如何制作它们，请查看 [Custom Recipe Condition](../Examples/Custom-Recipe-Condition.md) 示例页面。

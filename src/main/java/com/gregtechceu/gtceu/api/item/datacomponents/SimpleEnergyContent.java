@@ -1,5 +1,7 @@
 package com.gregtechceu.gtceu.api.item.datacomponents;
 
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
+
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 
@@ -21,6 +23,11 @@ public record SimpleEnergyContent(long maxCharge, long charge, boolean infinite,
             ByteBufCodecs.BOOL, SimpleEnergyContent::infinite,
             ByteBufCodecs.BOOL, SimpleEnergyContent::dischargeMode,
             SimpleEnergyContent::new);
+
+    static {
+        FieldCodecs.register(SimpleEnergyContent.class, CODEC);
+        FieldCodecs.registerStream(SimpleEnergyContent.class, STREAM_CODEC);
+    }
 
     public SimpleEnergyContent(long maxCharge, long charge) {
         this(maxCharge, charge, false, false);

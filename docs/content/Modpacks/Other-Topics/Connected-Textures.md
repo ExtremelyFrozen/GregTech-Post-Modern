@@ -1,5 +1,5 @@
 ---
-title: 创建 Connected Textures
+title: 创建连接纹理
 ---
 
 **Connected textures** 顾名思义，是会与相邻 Block 连接的纹理。
@@ -51,13 +51,12 @@ CTM renderer 会通过从 5 张可用的 Block 纹理中组装 4 个象限来绘
 
 
 ??? example "MCMeta 文件示例"
-    （对于纹理 `mypack/assets/textures/blocks/texture.png` 及其 ctm 纹理 `mypack/assets/textures/blocks/texture_ctm.png`）
-    ```json title="mypack:blocks/texture.png.mcmeta"
+    `assets/mypack/textures/block/texture.png.mcmeta` 为同目录的 `texture.png` 指定连接纹理。
+    ```json title="assets/mypack/textures/block/texture.png.mcmeta"
     {
         "gtpm": {
-            "connection_texture": "mypack:blocks/texture_ctm"
+            "connection_texture": "mypack:block/texture_ctm"
         }
     }
     ```
-    未连接纹理的 CTM texture layout 在 [这里](https://github.com/ExtremelyFrozen/GregTech-Post-Modern/blob/1.21/src/main/resources/assets/gtceu/textures/block/ctm_test.png)，其连接纹理的布局在 [这里](https://github.com/ExtremelyFrozen/GregTech-Post-Modern/blob/1.21/src/main/resources/assets/gtceu/textures/block/ctm_test_ctm.png)。
-    对应的 MCMeta metadata 文件是 [这个](https://github.com/ExtremelyFrozen/GregTech-Post-Modern/blob/1.21/src/main/resources/assets/gtceu/textures/block/ctm_test.png.mcmeta)。
+    塑料混凝土的资源展示了内置纹理的目录结构和 `gtpm` 元数据。[基础纹理](https://github.com/ExtremelyFrozen/GregTech-Post-Modern/blob/1.21/src/main/resources/assets/gtpm/textures/block/casings/cleanroom/plascrete.png) · [连接纹理](https://github.com/ExtremelyFrozen/GregTech-Post-Modern/blob/1.21/src/main/resources/assets/gtpm/textures/block/casings/cleanroom/plascrete_ctm.png) · [元数据](https://github.com/ExtremelyFrozen/GregTech-Post-Modern/blob/1.21/src/main/resources/assets/gtpm/textures/block/casings/cleanroom/plascrete.png.mcmeta)

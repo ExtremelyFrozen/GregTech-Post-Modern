@@ -6,6 +6,7 @@ import com.gregtechceu.gtceu.api.item.tool.ToolHelper;
 import com.gregtechceu.gtceu.api.item.tool.behavior.IToolBehavior;
 import com.gregtechceu.gtceu.api.item.tool.behavior.ToolBehaviorType;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 import com.gregtechceu.gtceu.common.data.GTDataComponents;
 import com.gregtechceu.gtceu.common.data.GTToolBehaviors;
 
@@ -37,6 +38,11 @@ public class PlungerBehavior implements IToolBehavior<PlungerBehavior>, ICompone
     public static final PlungerBehavior INSTANCE = PlungerBehavior.create();
     public static final Codec<PlungerBehavior> CODEC = Codec.unit(INSTANCE);
     public static final StreamCodec<ByteBuf, PlungerBehavior> STREAM_CODEC = StreamCodec.unit(INSTANCE);
+
+    static {
+        FieldCodecs.register(PlungerBehavior.class, CODEC);
+        FieldCodecs.registerStream(PlungerBehavior.class, STREAM_CODEC);
+    }
 
     protected PlungerBehavior() {/**/}
 

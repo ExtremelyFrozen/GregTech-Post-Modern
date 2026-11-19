@@ -41,7 +41,7 @@ public class RecipeIteratorStressTest {
 
     @BeforeBatch(batch = "StressTests")
     public static void prepare(ServerLevel level) {
-        LCR_RECIPE_TYPE = TestUtils.createRecipeType("stress_tests", 3, 3, 3, 3);
+        LCR_RECIPE_TYPE = TestUtils.getRecipeType("stress_tests");
         // Force insert the recipe into the manager.
         LCR_RECIPE_TYPE.getAdditionHandler().beginStaging();
         LCR_RECIPE_TYPE.getAdditionHandler().addRuntimeStaging(LCR_RECIPE_TYPE

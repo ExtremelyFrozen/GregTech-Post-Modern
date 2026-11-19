@@ -1,5 +1,5 @@
 ---
-title: Central Monitor 与 Placeholder 系统
+title: 定制中央监控器与占位符系统
 ---
 
 ### 自定义 monitor module

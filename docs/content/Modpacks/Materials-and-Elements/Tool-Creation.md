@@ -2,6 +2,9 @@
 title: "工具创建"
 ---
 
+!!! note "上游示例"
+    本页示例面向 GregTech CEu Modern。GTPM 1.21.1 的数据包和附属模组入口见[整合包制作](../index.md#upstream-kubejs)。
+
 你可以在 Material 的代码中调用 toolStats，用自己创建的 Materials 制作工具。
 
 toolStats 接受以下参数：

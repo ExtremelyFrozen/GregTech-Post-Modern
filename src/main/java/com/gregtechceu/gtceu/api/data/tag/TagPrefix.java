@@ -15,6 +15,7 @@ import com.gregtechceu.gtceu.api.item.MaterialBlockItem;
 import com.gregtechceu.gtceu.api.item.TagPrefixItem;
 import com.gregtechceu.gtceu.api.item.tool.GTToolType;
 import com.gregtechceu.gtceu.api.registry.GTRegistries;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 import com.gregtechceu.gtceu.common.data.GTBlocks;
 import com.gregtechceu.gtceu.common.data.GTMaterialBlocks;
 import com.gregtechceu.gtceu.common.data.GTMaterialItems;
@@ -75,6 +76,10 @@ public class TagPrefix {
             str -> Optional.ofNullable(get(str)).map(DataResult::success)
                     .orElseGet(() -> DataResult.error(() -> "invalid TagPrefix: " + str)),
             prefix -> DataResult.success(prefix.name));
+
+    static {
+        FieldCodecs.register(TagPrefix.class, CODEC);
+    }
 
     public static void init() {}
 

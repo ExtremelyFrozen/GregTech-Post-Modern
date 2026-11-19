@@ -1,14 +1,12 @@
 package com.gregtechceu.gtceu.integration.ae2.machine;
 
 import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo;
-import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
-import com.gregtechceu.gtceu.api.gui.fancy.TabsWidget;
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.AutoStockingFancyConfigurator;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMultiPart;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
 import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
-import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
+import com.gregtechceu.gtceu.api.sync_system.annotations.ServerFieldChangeListener;
+import com.gregtechceu.gtceu.api.sync_system.annotations.SyncBoth;
 import com.gregtechceu.gtceu.common.data.datacomponents.AEInputConfigCopyData;
 import com.gregtechceu.gtceu.common.item.behavior.IntCircuitBehaviour;
 import com.gregtechceu.gtceu.config.ConfigHolder;
@@ -32,6 +30,7 @@ import appeng.api.storage.MEStorage;
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
 import lombok.Getter;
 import lombok.Setter;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Comparator;
@@ -41,18 +40,18 @@ import java.util.function.Predicate;
 
 public class MEStockingBusPartMachine extends MEInputBusPartMachine implements IMEStockingPart {
 
-    @SyncToClient
+    @SyncBoth
     @SaveField
     @Getter
     private boolean autoPull;
 
     @Getter
-    @Setter
     @SaveField
+    @SyncBoth
     private int minStackSize = 1;
     @Getter
-    @Setter
     @SaveField
+    @SyncBoth
     private int ticksPerCycle = 40;
 
     @Setter
@@ -123,11 +122,6 @@ public class MEStockingBusPartMachine extends MEInputBusPartMachine implements I
     }
 
     @Override
-    public void attachSideTabs(TabsWidget sideTabs) {
-        sideTabs.setMainTab(this); // removes the cover configurator, it's pointless and clashes with layout.
-    }
-
-    @Override
     protected void flushInventory() {
         // no-op, nothing to send back to the network
     }
@@ -145,6 +139,21 @@ public class MEStockingBusPartMachine extends MEInputBusPartMachine implements I
     @Override
     public IConfigurableSlotList getSlotList() {
         return aeItemHandler;
+    }
+
+    @Override
+    public void setMinStackSize(int minStackSize) {
+        this.minStackSize = minStackSize;
+    }
+
+    @Override
+    public void setTicksPerCycle(int ticksPerCycle) {
+        this.ticksPerCycle = ticksPerCycle;
+    }
+
+    @Override
+    public StockingTarget getStockingTarget() {
+        return StockingTarget.ITEM;
     }
 
     @Override
@@ -171,16 +180,38 @@ public class MEStockingBusPartMachine extends MEInputBusPartMachine implements I
 
     @Override
     public void setAutoPull(boolean autoPull) {
+        if (this.autoPull == autoPull) {
+            return;
+        }
         this.autoPull = autoPull;
         if (!isRemote()) {
-            syncDataHolder.markClientSyncFieldDirty("autoPull");
-            if (!this.autoPull) {
-                this.aeItemHandler.clearInventory(0);
-            } else if (updateMEStatus()) {
-                this.refreshList();
-                updateInventorySubscription();
-            }
+            updateAutoPullInventory();
         }
+    }
+
+    @ServerFieldChangeListener(fieldName = "autoPull")
+    private void updateAutoPullInventory() {
+        if (!autoPull) {
+            aeItemHandler.clearInventory(0);
+        } else if (updateMEStatus()) {
+            refreshList();
+            updateInventorySubscription();
+        }
+    }
+
+    @Override
+    public boolean isMEItemConfigAutoPull() {
+        return autoPull;
+    }
+
+    @Override
+    public boolean isMEItemStocking() {
+        return true;
+    }
+
+    @Override
+    protected boolean isConfiguredInOtherStockingPart(@NotNull GenericStack stack) {
+        return testConfiguredInOtherPart(stack);
     }
 
     /**
@@ -245,17 +276,6 @@ public class MEStockingBusPartMachine extends MEInputBusPartMachine implements I
         }
 
         aeItemHandler.clearInventory(index);
-    }
-
-    ///////////////////////////////
-    // ********** GUI ***********//
-    ///////////////////////////////
-
-    @Override
-    public void attachConfigurators(ConfiguratorPanel configuratorPanel) {
-        IMEStockingPart.super.attachConfigurators(configuratorPanel);
-        super.attachConfigurators(configuratorPanel);
-        configuratorPanel.attachConfigurators(new AutoStockingFancyConfigurator(this));
     }
 
     @Override

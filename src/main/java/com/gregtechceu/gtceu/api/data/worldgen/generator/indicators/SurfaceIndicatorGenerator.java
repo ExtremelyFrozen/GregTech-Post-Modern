@@ -6,6 +6,7 @@ import com.gregtechceu.gtceu.api.data.worldgen.generator.IndicatorGenerator;
 import com.gregtechceu.gtceu.api.data.worldgen.ores.GeneratedVeinMetadata;
 import com.gregtechceu.gtceu.api.data.worldgen.ores.OreIndicatorPlacer;
 import com.gregtechceu.gtceu.api.registry.GTRegistries;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 import com.gregtechceu.gtceu.common.data.GTMaterialBlocks;
 
 import net.minecraft.core.BlockPos;
@@ -38,7 +39,6 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -148,7 +148,7 @@ public class SurfaceIndicatorGenerator extends IndicatorGenerator {
 
             for (BlockPos pos : positions) {
                 // This is necessary because the heightmap can't be determined at the time of creating the placers
-                var section = Objects.requireNonNull(access.getSection(pos));
+                var section = access.getSection(pos);
 
                 int sectionX = SectionPos.sectionRelative(pos.getX());
                 int sectionY = SectionPos.sectionRelative(pos.getY());
@@ -209,6 +209,10 @@ public class SurfaceIndicatorGenerator extends IndicatorGenerator {
                 block -> getBlockState(block, Direction.UP));
 
         public static final Codec<IndicatorPlacement> CODEC = StringRepresentable.fromEnum(IndicatorPlacement::values);
+
+        static {
+            FieldCodecs.register(IndicatorPlacement.class, CODEC);
+        }
 
         public final TriFunction<WorldGenLevel, BulkSectionAccess, BlockPos, BlockPos> resolver;
         public final Function<Either<BlockState, Material>, BlockState> stateTransformer;

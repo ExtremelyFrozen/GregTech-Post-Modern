@@ -1,17 +1,16 @@
 ---
-title: Ore 生成
+title: 矿脉生成
 ---
 
 
-# Ore 生成
+# 矿脉生成
 
-由于 Minecraft 的 worldgen 限制 (1)，GTCEu 的 ore vein 生成没有使用原生 worldgen feature 系统。
-相反，我们使用自己的系统，将 ore vein 的生成与实际 ore 放置分离，确保 ore 只会被放置到当前正在生成的 chunk 中。
-本页大致说明 ore 的生成、缓存和放置流程。
+由于 Minecraft 的世界生成限制 (1)，GregTech Post Modern 单独生成矿脉形状，再将矿石放入当前正在生成的区块。
+下面介绍矿脉的生成、缓存和放置流程。
 { .annotate }
 
 1. 在 Minecraft 中，worldgen feature 只能在以 feature origin chunk 为中心的 3x3 chunk 区域内生成。
-   由于 GTCEu 引入的 vein 可能比这个范围更大，并且还会额外带有 random offset，ore 生成在某些情况下会超出允许区域，导致 server thread 卡死或死锁。
+   矿脉尺寸和随机偏移可能使矿脉超出允许区域，阻塞服务端线程。
 
 
 生成流程大致可以分为三个步骤：
@@ -33,7 +32,7 @@ title: Ore 生成
 尝试生成 chunk 时，`OrePlacer` 会向 `OreGenCache` 查询当前 chunk 周围的 vein 列表。
 
 周围区域的查询半径由 `oreVeinRandomOffset` 配置项和已注册的最大 vein size 共同决定。
-因此，无论额外 vein 是通过 KubeJS 还是 addon 注册，或默认 vein 被修改，它都会自动兼容。
+因此，查询半径也会覆盖附属模组新注册或修改后的矿脉。
 
 当然，ore gen cache 一次只能保存有限数量的已生成 vein，参见 `oreGenerationChunkCacheSize` 配置项。
 

@@ -74,7 +74,7 @@ public class TankValvePartMachine extends MultiblockPartMachine {
     }
 
     @Override
-    public void onNeighborChanged(net.minecraft.world.level.block.Block block, BlockPos fromPos, boolean isMoving) {
+    public void onNeighborChanged(Block block, BlockPos fromPos, boolean isMoving) {
         super.onNeighborChanged(block, fromPos, isMoving);
         autoIOSubscription.updateSubscription();
     }

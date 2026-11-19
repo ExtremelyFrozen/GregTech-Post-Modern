@@ -2,15 +2,19 @@ package com.gregtechceu.gtceu.integration.ae2.machine.trait;
 
 import com.gregtechceu.gtceu.api.machine.trait.MachineTrait;
 import com.gregtechceu.gtceu.api.machine.trait.MachineTraitType;
+import com.gregtechceu.gtceu.api.sync_system.ContextualFieldCodec;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
 import com.gregtechceu.gtceu.config.ConfigHolder;
 import com.gregtechceu.gtceu.integration.ae2.machine.feature.IGridConnectedMachine;
-import com.gregtechceu.gtceu.integration.ae2.utils.SerializableManagedGridNode;
+import com.gregtechceu.gtceu.integration.ae2.sync.GridNodeCodec;
 
 import net.minecraft.core.Direction;
 
 import appeng.api.networking.GridFlags;
+import appeng.me.ManagedGridNode;
 import appeng.me.helpers.BlockEntityNodeListener;
+import com.mojang.serialization.Codec;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.EnumSet;
@@ -24,6 +28,17 @@ import java.util.EnumSet;
  */
 public class GridNodeHolder extends MachineTrait {
 
+    static {
+        FieldCodecs.registerContextual(ManagedGridNode.class, new ContextualFieldCodec<ManagedGridNode>() {
+
+            @Override
+            public Codec<ManagedGridNode> codec(Context<ManagedGridNode> context) {
+                ManagedGridNode node = context.currentValue();
+                return GridNodeCodec.of(node == null ? ((GridNodeHolder) context.holder()).getMainNode() : node);
+            }
+        });
+    }
+
     public static final MachineTraitType<GridNodeHolder> TYPE = new MachineTraitType<>(GridNodeHolder.class);
 
     @Override
@@ -32,7 +47,7 @@ public class GridNodeHolder extends MachineTrait {
     }
 
     @SaveField
-    protected @Nullable SerializableManagedGridNode mainNode;
+    protected @Nullable ManagedGridNode mainNode;
     private boolean mainNodeCreationScheduled;
 
     public GridNodeHolder(IGridConnectedMachine machine) {
@@ -40,15 +55,15 @@ public class GridNodeHolder extends MachineTrait {
         this.mainNode = createManagedNode(machine);
     }
 
-    public SerializableManagedGridNode getMainNode() {
+    public ManagedGridNode getMainNode() {
         if (mainNode == null) {
             mainNode = createManagedNode((IGridConnectedMachine) getMachine());
         }
         return mainNode;
     }
 
-    protected SerializableManagedGridNode createManagedNode(IGridConnectedMachine machine) {
-        return (SerializableManagedGridNode) new SerializableManagedGridNode(machine,
+    protected ManagedGridNode createManagedNode(IGridConnectedMachine machine) {
+        return (ManagedGridNode) new ManagedGridNode(machine,
                 BlockEntityNodeListener.INSTANCE)
                 .setFlags(GridFlags.REQUIRE_CHANNEL)
                 .setVisualRepresentation(machine.self().getDefinition().getItem())

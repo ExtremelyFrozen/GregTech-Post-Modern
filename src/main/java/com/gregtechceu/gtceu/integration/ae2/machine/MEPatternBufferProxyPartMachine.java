@@ -3,6 +3,8 @@ package com.gregtechceu.gtceu.integration.ae2.machine;
 import com.gregtechceu.gtceu.api.GTValues;
 import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo;
 import com.gregtechceu.gtceu.api.capability.recipe.IO;
+import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
+import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.api.machine.feature.IDataStickInteractable;
 import com.gregtechceu.gtceu.api.machine.multiblock.part.TieredIOPartMachine;
@@ -12,21 +14,21 @@ import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
 import com.gregtechceu.gtceu.common.data.GTDataComponents;
 import com.gregtechceu.gtceu.integration.ae2.machine.trait.ProxySlotRecipeHandler;
 
-import com.lowdragmc.lowdraglib.gui.modular.ModularUI;
+import com.lowdragmc.lowdraglib2.gui.ui.UI;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.world.InteractionHand;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.phys.BlockHitResult;
 
 import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
-public class MEPatternBufferProxyPartMachine extends TieredIOPartMachine implements IDataStickInteractable {
+public class MEPatternBufferProxyPartMachine extends TieredIOPartMachine
+                                             implements IDataStickInteractable {
 
     @Getter
     private final ProxySlotRecipeHandler proxySlotRecipeHandler;
@@ -56,46 +58,71 @@ public class MEPatternBufferProxyPartMachine extends TieredIOPartMachine impleme
     }
 
     public void setBuffer(@Nullable BlockPos pos) {
-        bufferResolved = true;
-        var level = getLevel();
-        if (level == null || pos == null) {
-            buffer = null;
-        } else if (MetaMachine.getMachine(level, pos) instanceof MEPatternBufferPartMachine machine) {
-            bufferPos = pos;
-            buffer = machine;
-            machine.addProxy(this);
-            if (!isRemote()) proxySlotRecipeHandler.updateProxy(machine);
-        } else {
-            buffer = null;
-        }
-        syncDataHolder.markClientSyncFieldDirty("bufferPos");
+        bufferPos = pos;
+        replaceResolvedBuffer(resolveBuffer(pos));
     }
 
     @Nullable
     public MEPatternBufferPartMachine getBuffer() {
-        if (!bufferResolved) setBuffer(bufferPos);
+        MEPatternBufferPartMachine resolved = resolveBuffer(bufferPos);
+        if (!bufferResolved || resolved != buffer) {
+            replaceResolvedBuffer(resolved);
+        }
         return buffer;
     }
 
+    private @Nullable MEPatternBufferPartMachine resolveBuffer(@Nullable BlockPos pos) {
+        var level = getLevel();
+        if (level == null || pos == null) {
+            return null;
+        }
+        if (MetaMachine.getMachine(level, pos) instanceof MEPatternBufferPartMachine machine) {
+            return machine;
+        }
+        return null;
+    }
+
+    private void replaceResolvedBuffer(@Nullable MEPatternBufferPartMachine resolved) {
+        MEPatternBufferPartMachine previous = buffer;
+        if (previous == resolved && bufferResolved) {
+            return;
+        }
+        if (previous != null) {
+            previous.removeProxy(this);
+        }
+        proxySlotRecipeHandler.clearProxy();
+        buffer = resolved;
+        bufferResolved = true;
+        if (resolved != null) {
+            resolved.addProxy(this);
+            if (!isRemote()) {
+                proxySlotRecipeHandler.updateProxy(resolved);
+            }
+        }
+    }
+
     @Override
-    public boolean shouldOpenUI(Player player, InteractionHand hand, BlockHitResult hit) {
+    public boolean openUI(MetaMachine machine, ServerPlayer player) {
+        var linked = getBuffer();
+        return linked != null && linked.openUI(linked, player);
+    }
+
+    @Override
+    public boolean canCreateUI(Player player, MachineUIHolder holder) {
         return getBuffer() != null;
     }
 
     @Override
-    public ModularUI createUI(Player entityPlayer) {
-        assert getBuffer() != null; // UI should never be able to be opened when buffer is null
-        return getBuffer().createUI(entityPlayer);
+    public UI createUI(Player player, MachineUIHolder holder) {
+        return getBuffer().createUI(player, holder);
     }
+
+    /** Creates the proxy-local preview used by a surrounding multiblock without opening its linked buffer. */
 
     @Override
     public void onMachineDestroyed() {
         super.onMachineDestroyed();
-        var buf = getBuffer();
-        if (buf != null) {
-            buf.removeProxy(this);
-            proxySlotRecipeHandler.clearProxy();
-        }
+        setBuffer(null);
     }
 
     @Override
@@ -106,5 +133,10 @@ public class MEPatternBufferProxyPartMachine extends TieredIOPartMachine impleme
             return InteractionResult.SUCCESS;
         }
         return InteractionResult.PASS;
+    }
+
+    @Override
+    public IFancyUIProvider.PageGroupingData getPageGroupingData() {
+        return new IFancyUIProvider.PageGroupingData("gtpm.multiblock.page_switcher.io.import", 1);
     }
 }

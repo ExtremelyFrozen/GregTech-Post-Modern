@@ -1,9 +1,10 @@
 package com.gregtechceu.gtceu.core.mixins;
 
+import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.recipe.GTRecipe;
 import com.gregtechceu.gtceu.api.recipe.GTRecipeDefinition;
 import com.gregtechceu.gtceu.api.recipe.GTRecipeType;
-import com.gregtechceu.gtceu.api.recipe.lookup.StagingRecipeDB;
+import com.gregtechceu.gtceu.api.recipe.lookup.RecipeAdditionHandler;
 import com.gregtechceu.gtceu.data.recipe.builder.GTRecipeBuilder;
 
 import net.minecraft.advancements.Advancement;
@@ -23,6 +24,7 @@ import net.neoforged.neoforge.common.conditions.ICondition;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 import com.google.gson.JsonElement;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
@@ -32,11 +34,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.stream.Stream;
 
 @Mixin(value = RecipeManager.class, priority = 1500)
 public abstract class RecipeManagerLateMixin {
@@ -54,7 +53,8 @@ public abstract class RecipeManagerLateMixin {
             at = @At(value = "TAIL"))
     private void gtceu$cloneVanillaRecipes(Map<ResourceLocation, JsonElement> map, ResourceManager resourceManager,
                                            ProfilerFiller profiler, CallbackInfo ci) {
-        var recipesByName = new HashMap<>(byName);
+        long startTime = System.nanoTime();
+        var recipesByName = new Object2ObjectOpenHashMap<>(byName);
         byName.values().forEach(holder -> {
             if (holder.value() instanceof GTRecipeDefinition definition) {
                 new GTRecipeBuilder(definition.toRuntime(), definition.recipeType)
@@ -77,49 +77,49 @@ public abstract class RecipeManagerLateMixin {
             }
         });
         gtceu$replaceRecipes(recipesByName);
+        long clonedTime = System.nanoTime();
 
         for (RecipeType<?> recipeType : BuiltInRegistries.RECIPE_TYPE) {
             if (recipeType instanceof GTRecipeType gtRecipeType) {
-                var stagingDB = new StagingRecipeDB();
+                gtRecipeType.beginStagingRecipes();
+                RecipeAdditionHandler additionHandler = gtRecipeType.getAdditionHandler();
 
                 var proxyRecipes = gtRecipeType.getProxyRecipes();
                 for (Map.Entry<RecipeType<?>, List<RecipeHolder<GTRecipe>>> entry : proxyRecipes.entrySet()) {
                     var type = entry.getKey();
                     var recipes = entry.getValue();
                     recipes.clear();
-                    if (this.byType.containsKey(type)) {
-                        for (var recipe : this.byType.get(type)) {
-                            recipes.add(gtRecipeType.toGTRecipe(recipe));
-                        }
+                    for (var recipe : this.byType.get(type)) {
+                        recipes.add(gtRecipeType.toGTRecipe(recipe));
                     }
                 }
 
-                if (this.byType.containsKey(gtRecipeType)) {
-                    Stream.concat(
-                            this.byType.get(gtRecipeType).stream(),
-                            proxyRecipes.entrySet().stream().flatMap(entry -> entry.getValue().stream()))
-                            .filter(Objects::nonNull)
-                            .forEach(holder -> gtceu$addRecipeToStaging(stagingDB, holder));
-                } else if (!proxyRecipes.isEmpty()) {
-                    proxyRecipes.values().stream()
-                            .flatMap(List::stream)
-                            .forEach(gtRecipe -> stagingDB.addRuntime(gtRecipe.value()));
+                for (RecipeHolder<?> recipe : this.byType.get(gtRecipeType)) {
+                    gtceu$addRecipeToStaging(additionHandler, recipe);
+                }
+                for (List<RecipeHolder<GTRecipe>> recipes : proxyRecipes.values()) {
+                    for (RecipeHolder<GTRecipe> recipe : recipes) {
+                        additionHandler.addRuntimeStaging(recipe.value());
+                    }
                 }
 
-                stagingDB.populateDB(gtRecipeType.db());
+                gtRecipeType.completeStagingRecipes();
             }
         }
+        long finishedTime = System.nanoTime();
+        GTCEu.LOGGER.info("GregTech prepared {} recipes: cloning {}ms, lookup indexing {}ms", byName.size(),
+                (clonedTime - startTime) / 1_000_000, (finishedTime - clonedTime) / 1_000_000);
     }
 
     @Unique
-    private static void gtceu$addRecipeToStaging(StagingRecipeDB stagingDB, RecipeHolder<?> holder) {
+    private static void gtceu$addRecipeToStaging(RecipeAdditionHandler additionHandler, RecipeHolder<?> holder) {
         Recipe<?> recipe = holder.value();
         if (recipe instanceof GTRecipeDefinition definition) {
             definition.setId(holder.id());
-            stagingDB.add(definition);
+            additionHandler.addStaging(definition);
         } else if (recipe instanceof GTRecipe gtRecipe) {
             gtRecipe.setId(holder.id());
-            stagingDB.addRuntime(gtRecipe);
+            additionHandler.addRuntimeStaging(gtRecipe);
         }
     }
 

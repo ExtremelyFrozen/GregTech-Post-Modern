@@ -5,6 +5,9 @@ title: 自定义 Recipe Type
 
 ## 创建 Recipe Type
 
+!!! note "上游示例"
+    本页示例面向 GregTech CEu Modern。GTPM 1.21.1 的数据包和附属模组入口见[整合包制作](../index.md#upstream-kubejs)。
+
 !!! important "Recipe Type 必须先于 Machine 或 Multiblock 注册"
 
 ```js title="test_recipe_type.js"

@@ -5,10 +5,11 @@ title: 整合包制作
 
 # 整合包制作
 
-GregTech Post Modern 为可定制性提供了广泛的 KubeJS 集成。
-面向整合包作者的大多数工具都围绕这个 KubeJS API 展开。
+GregTech Post Modern 1.21.1 使用 `gtpm` 命名空间。通过数据包覆盖配方或世界生成时，使用 `data/gtpm/` 下的对应路径。通过资源包覆盖内置纹理或界面时，使用 `assets/gtpm/`。注册新机器、材料或配方类型时使用 Java 附属模组的注册 API。源码入口见[文档之外](./Beyond-The-Docs.md)。
 
-请参考本节了解如何使用这些工具，以及相关示例。
+## 上游 KubeJS 示例 { #upstream-kubejs }
+
+GTPM 1.21.1 已移除内置 KubeJS 集成。本节保留上游 GregTech CEu Modern 的脚本供迁移时参考，其中的 `GTCEuStartupEvents`、`GTCEuServerEvents`、`event.recipes.gtceu` 和 `gtceu:*` 使用上游的 API 与注册 ID。
 
 
 ## 通用说明

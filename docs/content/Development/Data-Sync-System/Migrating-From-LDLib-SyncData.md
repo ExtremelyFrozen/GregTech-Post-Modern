@@ -46,8 +46,6 @@ class CustomMachine extends SimpleTieredMachine {
 
     public void setCustomIntValue(int newValue) {
         this.customIntValue = newValue;
-        ////// IMPORTANT: markClientSyncFieldDirty must be called to update client synced fields.
-        getSyncDataHolder().markClientSyncFieldDirty("customIntValue");
     }
 }
 
@@ -61,10 +59,14 @@ class CustomMachine extends SimpleTieredMachine {
 - 将 `IAsyncAutoSyncBlockEntity`、`IAutoPersistBlockEntity`、`IAutoSyncBlockEntity` 和 `IManagedBlockEntity` 替换为继承 `ManagedSyncBlockEntity`。
 - 只有真正需要 `SavedData` 后端的全局或跨区块持久数据才迁移到 `ManagedSavedData`。默认 sync save key 是 `${GTCEu.MOD_ID}_sync_data`，当前 key 为 `gtpm_sync_data`；如果某个 `SavedData` 子类需要独立后端，应设置专用 key。
 
+### LDLib2 界面迁移
+
+页签、临时筛选等界面状态可保留在客户端。需要同步的业务状态使用 GTPM 的同步字段。机器、覆板等需要服务端执行的操作可参照现有的 `@RPCMethod` 用法，在服务端验证操作目标和参数后更新状态。
+
 ### 注解
 
-!!! warning
-client 同步字段**不会**自动检测变更。修改 client 同步字段时，请调用 `ISyncManaged.syncDataHolder.markClientSyncFieldDirty(FIELD_NAME)`。
+!!! note
+    同步系统会自动检测字段变更。可变对象的内部状态可以通过受管子对象或上下文 Codec 同步。
 
 - `@DescSynced` -> `@SyncToClient`
 - `@RequireRerender` -> `@RerenderOnChanged`

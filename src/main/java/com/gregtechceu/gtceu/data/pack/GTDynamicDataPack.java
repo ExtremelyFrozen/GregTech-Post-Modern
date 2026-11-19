@@ -4,7 +4,7 @@ import com.gregtechceu.gtceu.GTCEu;
 import com.gregtechceu.gtceu.api.addon.AddonFinder;
 import com.gregtechceu.gtceu.config.ConfigHolder;
 
-import com.lowdragmc.lowdraglib.Platform;
+import com.lowdragmc.lowdraglib2.Platform;
 
 import net.minecraft.SharedConstants;
 import net.minecraft.advancements.Advancement;
@@ -54,7 +54,7 @@ public class GTDynamicDataPack implements PackResources {
     private final PackLocationInfo info;
 
     static {
-        SERVER_DOMAINS.addAll(Sets.newHashSet(GTCEu.MOD_ID, "minecraft", "neoforge", "c", "kubejs"));
+        SERVER_DOMAINS.addAll(Sets.newHashSet(GTCEu.MOD_ID, "minecraft", "neoforge", "c"));
     }
 
     public GTDynamicDataPack(PackLocationInfo info) {

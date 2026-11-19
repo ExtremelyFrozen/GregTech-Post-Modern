@@ -1,6 +1,7 @@
 package com.gregtechceu.gtceu.common.data.datacomponents;
 
 import com.gregtechceu.gtceu.api.data.worldgen.ores.GeneratedVeinMetadata;
+import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
@@ -20,6 +21,11 @@ public record OreProspectionCache(List<Entry> entries) {
     public static final StreamCodec<RegistryFriendlyByteBuf, OreProspectionCache> STREAM_CODEC = Entry.STREAM_CODEC
             .apply(ByteBufCodecs.list())
             .map(OreProspectionCache::new, OreProspectionCache::entries);
+
+    static {
+        FieldCodecs.register(OreProspectionCache.class, CODEC);
+        FieldCodecs.registerStream(OreProspectionCache.class, STREAM_CODEC);
+    }
 
     public OreProspectionCache {
         entries = List.copyOf(entries);
@@ -60,6 +66,11 @@ public record OreProspectionCache(List<Entry> entries) {
                 }
             }
         };
+
+        static {
+            FieldCodecs.register(Entry.class, CODEC);
+            FieldCodecs.registerStream(Entry.class, STREAM_CODEC);
+        }
 
         public Entry {
             veins = List.copyOf(veins);

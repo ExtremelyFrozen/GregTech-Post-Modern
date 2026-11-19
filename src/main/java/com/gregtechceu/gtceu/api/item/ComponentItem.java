@@ -2,17 +2,21 @@ package com.gregtechceu.gtceu.api.item;
 
 import com.gregtechceu.gtceu.api.capability.GTCapabilityHelper;
 import com.gregtechceu.gtceu.api.capability.IElectricItem;
+import com.gregtechceu.gtceu.api.gui.factory.HeldItemUIHolder;
+import com.gregtechceu.gtceu.api.gui.factory.HeldItemUIProvider;
 import com.gregtechceu.gtceu.api.item.capability.ElectricItem;
 import com.gregtechceu.gtceu.api.item.component.*;
+import com.gregtechceu.gtceu.api.sync_system.managed.ItemSyncHolder;
+import com.gregtechceu.gtceu.api.sync_system.managed.SyncItem;
 
-import com.lowdragmc.lowdraglib.client.renderer.IItemRendererProvider;
-import com.lowdragmc.lowdraglib.client.renderer.IRenderer;
-import com.lowdragmc.lowdraglib.gui.factory.HeldItemUIFactory;
-import com.lowdragmc.lowdraglib.gui.modular.ModularUI;
+import com.lowdragmc.lowdraglib2.client.renderer.IItemRendererProvider;
+import com.lowdragmc.lowdraglib2.client.renderer.IRenderer;
+import com.lowdragmc.lowdraglib2.gui.ui.UI;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.NonNullList;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.InteractionHand;
@@ -42,7 +46,8 @@ import java.util.Arrays;
 import java.util.List;
 
 public class ComponentItem extends Item
-                           implements HeldItemUIFactory.IHeldItemUIHolder, IItemRendererProvider, IComponentItem {
+                           implements HeldItemUIProvider, IItemRendererProvider,
+                           IComponentItem, SyncItem {
 
     @Getter
     protected List<IItemComponent> components;
@@ -62,6 +67,17 @@ public class ComponentItem extends Item
         for (IItemComponent component : components) {
             component.onAttached(this);
         }
+    }
+
+    @Nullable
+    @Override
+    public ItemSyncHolder createSyncHolder(ItemStack stack, RegistryAccess registries) {
+        for (IItemComponent component : components) {
+            if (component instanceof SyncItem syncItem) {
+                return syncItem.createSyncHolder(stack, registries);
+            }
+        }
+        return null;
     }
 
     public void fillItemCategory(CreativeModeTab category, NonNullList<ItemStack> items) {
@@ -293,12 +309,30 @@ public class ComponentItem extends Item
     }
 
     @Override
-    @Nullable
-    public ModularUI createUI(Player entityPlayer, HeldItemUIFactory.HeldItemHolder holder) {
+    public boolean canCreateUI(Player entityPlayer, HeldItemUIHolder holder) {
+        var factory = getUIFactory(holder);
+        return factory != null && factory.canCreateUI(holder, entityPlayer);
+    }
+
+    @Override
+    public UI createUI(Player entityPlayer, HeldItemUIHolder holder) {
+        var factory = getUIFactory(holder);
+        if (factory != null) return factory.createUI(holder, entityPlayer);
+        throw new IllegalStateException("No item component exposes an LDLib2 UI for the opened stack.");
+    }
+
+    @Override
+    public boolean isUIStillValid(Player entityPlayer, HeldItemUIHolder holder) {
+        var factory = getUIFactory(holder);
+        return factory == null ? HeldItemUIProvider.super.isUIStillValid(entityPlayer, holder) :
+                factory.isUIStillValid(holder, entityPlayer);
+    }
+
+    /** Uses the opened stack's stateful component so UI callbacks can update its annotated fields directly. */
+    public @Nullable IItemUIFactory getUIFactory(HeldItemUIHolder holder) {
+        if (holder.getSyncHolder() instanceof IItemUIFactory factory) return factory;
         for (IItemComponent component : components) {
-            if (component instanceof IItemUIFactory uiFactory) {
-                return uiFactory.createUI(holder, entityPlayer);
-            }
+            if (component instanceof IItemUIFactory factory) return factory;
         }
         return null;
     }
