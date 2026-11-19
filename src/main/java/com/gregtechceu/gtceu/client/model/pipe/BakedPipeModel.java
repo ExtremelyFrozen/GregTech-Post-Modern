@@ -26,6 +26,7 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.BlockAndTintGetter;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.neoforge.client.ChunkRenderTypeSet;
 import net.neoforged.neoforge.client.model.data.ModelData;
 
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -142,13 +143,38 @@ public class BakedPipeModel extends BaseBakedModel implements ICoverableRenderer
         for (BakedModel restrictor : this.restrictors.values()) {
             modelData = restrictor.getModelData(level, pos, state, modelData);
         }
+        if (level.getBlockEntity(pos) instanceof IPipeNode<?, ?> pipeNode) {
+            Map<Direction, ModelData> coverData = ICoverableRenderer.collectCoverModelData(pipeNode.getCoverContainer(),
+                    pos, level, modelData);
+            if (!coverData.isEmpty()) {
+                return modelData.derive().with(GTModelProperties.COVER_MODEL_DATA, coverData).build();
+            }
+        }
         return modelData;
     }
 
-    @SuppressWarnings("deprecation")
+    @Override
+    public ChunkRenderTypeSet getRenderTypes(BlockState state, RandomSource rand, ModelData modelData) {
+        ChunkRenderTypeSet pipeLayers = super.getRenderTypes(state, rand, modelData);
+        BlockAndTintGetter level = modelData.get(GTModelProperties.LEVEL);
+        BlockPos pos = modelData.get(GTModelProperties.POS);
+        if (level == null || pos == null || !(level.getBlockEntity(pos) instanceof IPipeNode<?, ?> pipeNode)) {
+            return pipeLayers;
+        }
+
+        ChunkRenderTypeSet coverLayers = getCoverRenderTypes(pipeNode.getCoverContainer(), pos, level, rand, modelData);
+        return ChunkRenderTypeSet.union(pipeLayers, coverLayers);
+    }
+
+    @Deprecated
     @Override
     public TextureAtlasSprite getParticleIcon() {
-        return parts.get(null).getParticleIcon();
+        return getParticleIcon(ModelData.EMPTY);
+    }
+
+    @Override
+    public TextureAtlasSprite getParticleIcon(ModelData modelData) {
+        return parts.get(null).getParticleIcon(modelData);
     }
 
     @Override

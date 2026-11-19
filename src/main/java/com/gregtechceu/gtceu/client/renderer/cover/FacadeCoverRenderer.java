@@ -40,6 +40,7 @@ import net.neoforged.neoforge.client.model.data.ModelData;
 import com.mojang.blaze3d.vertex.PoseStack;
 import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
@@ -120,6 +121,11 @@ public class FacadeCoverRenderer extends BaseBakedModel implements ICoverRendere
         if (!(coverBehavior instanceof FacadeCover facadeCover)) {
             return;
         }
+        Direction attachedSide = coverBehavior.attachedSide;
+        if (side != attachedSide && (side != null || !coverBehavior.coverHolder.shouldRenderBackSide())) {
+            return;
+        }
+
         BlockState facadeState = facadeCover.getFacadeState();
         if (facadeState.getRenderShape() != RenderShape.MODEL) {
             return;
@@ -130,26 +136,20 @@ public class FacadeCoverRenderer extends BaseBakedModel implements ICoverRendere
             return;
         }
 
-        ModelData facadeData = facadeModel.getModelData(level, pos, facadeState, modelData);
-        if (renderType != null && !facadeModel.getRenderTypes(facadeState, rand, facadeData).contains(renderType)) {
-            return;
-        }
-
-        Direction attachedSide = coverBehavior.attachedSide;
-        if (side != attachedSide && (side != null || !coverBehavior.coverHolder.shouldRenderBackSide())) {
+        if (renderType != null && !facadeModel.getRenderTypes(facadeState, rand, modelData).contains(renderType)) {
             return;
         }
 
         IQuadTransformer clamper = FACADE_PLANE_TRANSFORMERS.get(attachedSide);
         BlockColors blockColors = Minecraft.getInstance().getBlockColors();
 
-        List<BakedQuad> facadeQuads = new LinkedList<>(
-                facadeModel.getQuads(facadeState, null, rand, facadeData, renderType));
+        List<BakedQuad> facadeQuads = new ObjectArrayList<>(
+                facadeModel.getQuads(facadeState, null, rand, modelData, renderType));
         if (side != null) {
-            facadeQuads.addAll(facadeModel.getQuads(facadeState, side, rand, facadeData, renderType));
+            facadeQuads.addAll(facadeModel.getQuads(facadeState, side, rand, modelData, renderType));
         } else {
             for (Direction cullFace : GTUtil.DIRECTIONS) {
-                facadeQuads.addAll(facadeModel.getQuads(facadeState, cullFace, rand, facadeData, renderType));
+                facadeQuads.addAll(facadeModel.getQuads(facadeState, cullFace, rand, modelData, renderType));
             }
         }
 

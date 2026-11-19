@@ -19,7 +19,6 @@ import com.gregtechceu.gtceu.client.util.RenderUtil;
 import com.gregtechceu.gtceu.common.data.models.GTModels;
 import com.gregtechceu.gtceu.common.machine.trait.AutoOutputTrait;
 import com.gregtechceu.gtceu.core.mixins.neoforge.BakedModelWrapperAccessor;
-import com.gregtechceu.gtceu.utils.GTUtil;
 
 import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
@@ -190,16 +189,8 @@ public final class MachineModel extends BaseBakedModel implements ICoverableRend
         }
 
         if (machine != null) {
-            Map<Direction, ModelData> coverModelData = new EnumMap<>(Direction.class);
-            for (Direction side : GTUtil.DIRECTIONS) {
-                var coverBehavior = machine.getCoverContainer().getCoverAtSide(side);
-                if (coverBehavior == null) continue;
-
-                ModelData data = coverBehavior.getCoverRenderer().get()
-                        .getModelData(coverBehavior, pos, level, modelData);
-                coverModelData.put(side, data);
-            }
-            builder.with(GTModelProperties.COVER_MODEL_DATA, coverModelData);
+            builder.with(GTModelProperties.COVER_MODEL_DATA,
+                    ICoverableRenderer.collectCoverModelData(machine.getCoverContainer(), pos, level, modelData));
         }
         return builder.build();
     }
