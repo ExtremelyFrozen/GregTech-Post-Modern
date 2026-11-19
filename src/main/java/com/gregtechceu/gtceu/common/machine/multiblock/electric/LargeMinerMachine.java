@@ -421,7 +421,7 @@ public class LargeMinerMachine extends WorkableElectricMultiblockMachine
                 .textAlignVertical(Vertical.CENTER));
         screen.addScrollViewChild(title);
         screen.addScrollViewChild(new GTComponentPanelElement(4, 17, LargeMinerMachine.this::addDisplayText)
-                .setMaxWidthLimit(200)
+                .setMaxWidthLimit(DISPLAY_TEXT_WIDTH)
                 .clickHandler(
                         (componentData, clickData) -> handleDisplayClick(
                                 shell.getOpeningPlayer(), holder, componentData)));

@@ -234,7 +234,7 @@ public class ResearchStationMachine extends WorkableElectricMultiblockMachine {
         screen.addScrollViewChild(title);
         screen.addScrollViewChild(new GTComponentPanelElement(4, 17,
                 ResearchStationMachine.this::addDisplayText)
-                .setMaxWidthLimit(200)
+                .setMaxWidthLimit(DISPLAY_TEXT_WIDTH)
                 .clickHandler(ResearchStationMachine.this::handleDisplayClick));
         root.addChild(screen);
         return root;

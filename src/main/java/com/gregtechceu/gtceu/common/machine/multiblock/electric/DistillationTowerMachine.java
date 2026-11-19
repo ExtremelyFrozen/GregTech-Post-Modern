@@ -310,7 +310,7 @@ public class DistillationTowerMachine extends WorkableElectricMultiblockMachine
             }
 
             if (!applyFluidOutputs(recipe, FluidAction.SIMULATE, getMachine().getVoidingMode())) {
-                return ActionResult.fail(Component.translatable("gtceu.recipe_logic.insufficient_out")
+                return ActionResult.fail(Component.translatable("gtpm.recipe_logic.insufficient_out")
                         .append(": ")
                         .append(FluidRecipeCapability.CAP.getName()), FluidRecipeCapability.CAP, IO.OUT);
             }
@@ -420,7 +420,7 @@ public class DistillationTowerMachine extends WorkableElectricMultiblockMachine
         screen.addScrollViewChild(title);
         screen.addScrollViewChild(new GTComponentPanelElement(4, 17,
                 DistillationTowerMachine.this::addDisplayText)
-                .setMaxWidthLimit(200)
+                .setMaxWidthLimit(DISPLAY_TEXT_WIDTH)
                 .clickHandler(DistillationTowerMachine.this::handleDisplayClick));
         root.addChild(screen);
         return root;

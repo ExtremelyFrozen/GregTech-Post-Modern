@@ -210,7 +210,7 @@ public class LargeMacerationTowerMachine extends WorkableElectricMultiblockMachi
         screen.addScrollViewChild(title);
         screen.addScrollViewChild(new GTComponentPanelElement(4, 17,
                 LargeMacerationTowerMachine.this::addDisplayText)
-                .setMaxWidthLimit(200)
+                .setMaxWidthLimit(DISPLAY_TEXT_WIDTH)
                 .clickHandler(LargeMacerationTowerMachine.this::handleDisplayClick));
         root.addChild(screen);
         return root;

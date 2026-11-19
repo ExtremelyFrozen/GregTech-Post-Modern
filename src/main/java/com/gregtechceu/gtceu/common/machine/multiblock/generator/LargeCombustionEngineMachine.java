@@ -357,7 +357,7 @@ public class LargeCombustionEngineMachine extends WorkableElectricMultiblockMach
         screen.addScrollViewChild(title);
         screen.addScrollViewChild(new GTComponentPanelElement(4, 17,
                 LargeCombustionEngineMachine.this::addDisplayText)
-                .setMaxWidthLimit(200)
+                .setMaxWidthLimit(DISPLAY_TEXT_WIDTH)
                 .clickHandler(LargeCombustionEngineMachine.this::handleDisplayClick));
         root.addChild(screen);
         return root;

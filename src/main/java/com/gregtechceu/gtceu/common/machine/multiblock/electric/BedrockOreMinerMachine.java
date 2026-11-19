@@ -286,7 +286,7 @@ public class BedrockOreMinerMachine extends WorkableElectricMultiblockMachine {
         screen.addScrollViewChild(title);
         screen.addScrollViewChild(new GTComponentPanelElement(4, 17,
                 BedrockOreMinerMachine.this::addDisplayText)
-                .setMaxWidthLimit(200)
+                .setMaxWidthLimit(DISPLAY_TEXT_WIDTH)
                 .clickHandler(BedrockOreMinerMachine.this::handleDisplayClick));
         root.addChild(screen);
         return root;

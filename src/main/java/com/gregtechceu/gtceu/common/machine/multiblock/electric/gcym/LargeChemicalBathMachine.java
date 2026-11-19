@@ -175,7 +175,7 @@ public class LargeChemicalBathMachine extends WorkableElectricMultiblockMachine 
         screen.addScrollViewChild(title);
         screen.addScrollViewChild(new GTComponentPanelElement(4, 17,
                 LargeChemicalBathMachine.this::addDisplayText)
-                .setMaxWidthLimit(200)
+                .setMaxWidthLimit(DISPLAY_TEXT_WIDTH)
                 .clickHandler(LargeChemicalBathMachine.this::handleDisplayClick));
         root.addChild(screen);
         return root;

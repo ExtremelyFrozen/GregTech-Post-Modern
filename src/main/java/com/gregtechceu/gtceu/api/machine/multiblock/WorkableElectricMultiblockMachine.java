@@ -65,6 +65,8 @@ public class WorkableElectricMultiblockMachine extends WorkableMultiblockMachine
 
     private static final int PAGE_WIDTH = 190;
     private static final int PAGE_HEIGHT = 125;
+    // Leave room for the vertical scrollbar and both text margins in the 182 px display.
+    protected static final int DISPLAY_TEXT_WIDTH = 168;
 
     // runtime
     protected @Nullable EnergyContainerList energyContainer;
@@ -133,7 +135,7 @@ public class WorkableElectricMultiblockMachine extends WorkableMultiblockMachine
         super.onPartUnload();
         this.energyContainer = null;
         this.tier = 0;
-        clearDisplayOpenings();
+        refreshDisplayTracking();
     }
 
     private void refreshDisplayTracking() {
@@ -353,7 +355,7 @@ public class WorkableElectricMultiblockMachine extends WorkableMultiblockMachine
         screen.addScrollViewChild(title);
         screen.addScrollViewChild(new GTComponentPanelElement(4, 17,
                 WorkableElectricMultiblockMachine.this::appendSyncedDisplay)
-                .setMaxWidthLimit(200)
+                .setMaxWidthLimit(DISPLAY_TEXT_WIDTH)
                 .clickHandler(WorkableElectricMultiblockMachine.this::handleDisplayClick));
         root.addChild(screen);
         return root;
