@@ -840,7 +840,7 @@ public class GTRecipeBuilder {
     }
 
     public GTRecipeBuilder chancedInput(ItemStack stack, int chance, int tierChanceBoost) {
-        return chancedInput(SizedIngredient.of(stack.getItem(), stack.getCount()), chance, tierChanceBoost);
+        return chancedInput(RecipeHelper.makeSizedIngredient(stack), chance, tierChanceBoost);
     }
 
     public GTRecipeBuilder chancedInput(FluidStack stack, int chance, int tierChanceBoost) {
@@ -848,7 +848,7 @@ public class GTRecipeBuilder {
     }
 
     public GTRecipeBuilder chancedOutput(ItemStack stack, int chance, int tierChanceBoost) {
-        return chancedOutput(SizedIngredient.of(stack.getItem(), stack.getCount()), chance, tierChanceBoost);
+        return chancedOutput(RecipeHelper.makeSizedIngredient(stack), chance, tierChanceBoost);
     }
 
     public GTRecipeBuilder chancedOutput(FluidStack stack, int chance, int tierChanceBoost) {
