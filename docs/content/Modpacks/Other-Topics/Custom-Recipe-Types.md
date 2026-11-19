@@ -1,27 +1,19 @@
 ---
-title: 自定义 Recipe Type
+title: 自定义配方类型
 ---
 
 
-## 创建 Recipe Type
+# 自定义配方类型
 
-!!! note "上游示例"
-    本页示例面向 GregTech CEu Modern。GTPM 1.21.1 的数据包和附属模组入口见[整合包制作](../index.md#upstream-kubejs)。
+附属模组可通过 `GTRecipeTypes.register(id, group, proxyRecipes...)` 注册配方类型。它以同一个 ID 登记 Minecraft 配方类型和序列化器。`setMaxIOSize` 依次指定物品输入、物品输出、流体输入和流体输出槽位上限。
 
-!!! important "Recipe Type 必须先于 Machine 或 Multiblock 注册"
+??? example "注册有一个物品输入和输出的类型"
 
-```js title="test_recipe_type.js"
-GTCEuStartupEvents.registry('gtceu:recipe_type', event => {
-    event.create('test_recipe_type')
-        .category('test')
-        .setEUIO('in')
-        .setMaxIOSize(3, 3, 3, 3) // (1)
-        .setSlotOverlay(false, false, GuiTextures.SOLIDIFIER_OVERLAY)
-        .setProgressBar(GuiTextures.PROGRESS_BAR_ARROW, FillDirection.LEFT_TO_RIGHT) // (2)
-        .setSound(GTSoundEntries.COOLING)
-})
-```
+    ```java
+    static final GTRecipeType POLISHING = GTRecipeTypes.register(
+                    ResourceLocation.fromNamespaceAndPath("example", "polishing"),
+                    GTRecipeTypes.ELECTRIC)
+            .setMaxIOSize(1, 1, 0, 0);
+    ```
 
-1. 最大 Item 输入数、最大 Item 输出数、最大 Fluid 输入数、最大 Fluid 输出数
-2. 可用的 ```GuiTextures``` 和 ```FillDirection``` 列表可在 GregTech Post Modern GitHub 或 .jar 文件中找到。
-
+在机器构建器上用 `recipeType(POLISHING)` 绑定类型。数据包用 `"type": "example:polishing"`，Java 配方生成使用 `POLISHING.recipeBuilder(id)`。通过 `proxyRecipes` 参数可把指定的原版或附属模组配方类型纳入代理配方。 [添加机器配方](../Recipes/Adding-and-Removing-Recipes.md) · [配方界面](LDLib-UI-Editor.md)

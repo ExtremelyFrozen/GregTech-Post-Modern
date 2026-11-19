@@ -1,204 +1,99 @@
 ---
-title: "添加与移除配方"
+title: 添加、替换与移除配方
 ---
 
 
-# 添加与移除配方
+# 添加、替换与移除机器配方
 
-!!! note "上游示例"
-    本页示例面向 GregTech CEu Modern。GTPM 1.21.1 的数据包和附属模组入口见[整合包制作](../index.md#upstream-kubejs)。
-
-## 移除配方
-
-用 KubeJS 移除 GregTech Post Modern 配方的方式与其他配方相同，可以按：
-ID、Mod、Input、Output、Type 或它们的组合来移除。
-
-```js title="gtceu_removal.js"
-ServerEvents.recipes(event => {
-    event.remove({ id: 'gtceu:smelting/sticky_resin_from_slime' }) // (1)
-    event.remove({ mod: 'gtceu' }) // (2)
-    event.remove({ type: 'gtceu:arc_furnace' }) // (3)
-    event.remove({ input: '#forge:ingots/iron' }) // (4)
-    event.remove({ output: 'minecraft:cobblestone' }) // (5)
-    event.remove({ type: 'gtceu:assembler', input: '#forge:plates/steel' }) // (6)
-})
-```
-
-1. 只移除 slime 到 sticky resin 的熔炉配方。
-2. 移除 gtceu mod id 下的所有配方。
-3. 移除 arc furnace 中的所有配方。
-4. 移除输入为 `#forge:ingots/iron` 的所有配方。
-5. 移除输出为 `minecraft:cobblestone` 的所有配方。
-6. 移除 gtceu assembler 中输入为 `#forge:plates/steel` 的所有配方。
+GTPM 1.21.1 通过 Minecraft 数据包加载机器配方。配方文件位于 `data/<命名空间>/recipe/<路径>.json`，文件路径决定配方 ID，顶层 `type` 指定机器配方类型。GTPM 内置机器类型使用 `gtpm` 命名空间。
 
 
-## 修改配方
+## 添加配方 { #add-recipes }
 
-使用 KubeJS 可以修改现有 GregTech Post Modern 配方的 Inputs 或 Outputs，定位配方时使用同一套方式。
+把配方放入已启用的数据包的 `data` 目录。下例添加 `example:macerator/cobblestone_to_sand`，粉碎机每刻消耗 8 EU，运行 100 刻后将一个圆石变成一个沙子。
 
-```js title="gtceu_modify.js"
-ServerEvents.recipes(event => {
-    event.replaceInput({ mod: 'gtceu' }, 'minecraft:sand', '#forge:sand') // (1)
-    event.replaceOutput({ type: 'gtceu:arc_furnace' }, 'gtceu:wrought_iron_ingot', 'minecraft:dirt') // (2)
-})
-```
+??? example "data/example/recipe/macerator/cobblestone_to_sand.json"
 
-1. 定位所有输入为 `minecraft:sand` 的 gtceu 配方，并将其替换为 `#forge:sand`。
-2. 定位所有输出为 `gtceu:wrought_iron_ingot` 的 gtceu arc furnace 配方，并将其替换为
-   `minecraft:dirt`。
+    ```json
+    {
+      "type": "gtpm:macerator",
+      "duration": 100,
+      "tier": 1,
+      "inputs": {
+        "item": [
+          { "content": { "ingredient": { "item": "minecraft:cobblestone" }, "count": 1 } }
+        ]
+      },
+      "outputs": {
+        "item": [
+          { "content": { "ingredient": { "item": "minecraft:sand" }, "count": 1 } }
+        ]
+      },
+      "tickInputs": {
+        "eu": [
+          { "content": 8 }
+        ]
+      }
+    }
+    ```
 
-
-## 添加配方
-
-语法：`event.recipes.gtceu.RECIPE_TYPE(string: recipe id)`
-
-```js title="gtceu_add.js"
-ServerEvents.recipes(event => {
-    event.recipes.gtceu.assembler('test')
-        .itemInputs(
-            '64x minecraft:dirt',
-            '32x minecraft:diamond'
-        )
-        .inputFluids(
-            Fluid.of('minecraft:lava', 1500)
-        )
-        .itemOutputs(
-            'minecraft:stick'
-        )
-        .duration(100)
-        .EUt(30)
-})
-```
-
-### 添加输入与输出的事件调用
-
-- 基础调用：
-    - `.input()`:
-      最基础的输入定义。接收两个参数：一个定义输入类型的 RecipeCapability，以及一个定义输入内容的 Object。
-      可用的 RecipeCapability 可以在 GregTech Post Modern 的 GitHub 或 mod 的 .JAR 文件中找到，但包含
-      GregTech Post Modern 原生 RecipeCapability 的类 `GTRecipeCapabilites` 需要在脚本中手动加载。
-      这个方法在 Javascript 中不太方便使用；通常更建议使用下方这些明确表达输入类型的方法。
-    - `.output()`:
-      与上方类似，但定义的是输出。接收完全相同的参数。这个方法同样不太方便使用；
-      通常更建议使用下方这些明确表达输出类型的方法。
-- Inputs:
-    - Items:
-        - `.itemInput()`
-        - `.itemInputs()`
-        - `.chancedInput()`
-        - `.itemInputsRanged()`
-        - `.notConsumable()`
-    - Fluids:
-        - `.inputFluids()`
-        - `.chancedFluidInput()`
-        - `.inputFluidsRanged()`
-        - `.notConsumableFluid()`
-    - Misc:
-        - `.circuit()`
-- Outputs:
-    - Items:
-        - `.itemOutput()`
-        - `.itemOutputs()`
-        - `.chancedOutput()`
-        - `.itemOutputsRanged()`
-    - Fluids:
-        - `.outputFluids()`
-        - `.chancedFluidOutput()`
-        - `.outputFluidsRanged()`
-- Energy:
-    - `.inputEU(long)`:
-      让配方在启动时消耗一次性 EU。最常见于 fusion reactor 配方。传入值会保存为 total EU 的 `Long`，recipe tier 会由该 EU 值推导。
-    - `.inputEU(voltage, amperage)`:
-      让配方在启动时消耗一次性 EU。保存值是 `voltage * amperage` 的 total EU，recipe tier 由 voltage 推导。
-    - `.outputEU(long)`:
-      让配方在完成时产出一次性 EU。传入值会保存为 total EU 的 `Long`，recipe tier 会由该 EU 值推导。
-    - `.outputEU(voltage, amperage)`:
-      让配方在完成时产出一次性 EU。保存值是 `voltage * amperage` 的 total EU，recipe tier 由 voltage 推导。
-    - `.EUt(long)`:
-      接收表示 EU/t 的数值。正数表示每 tick 输入 EU/t，负数表示每 tick 输出 EU/t。recipe builder 会临时切到 per-tick 语义后委托 input/output EU 写入；recipe content 会保存为 total EU/t 的 `Long` 值，tier 推导沿用被委托的 input/output EU 规则。
-    - `.EUt(voltage, amperage)`:
-      将 content 保存为 `voltage * amperage` 的 total EU/t，而不是分别保存电压和安培数；recipe tier 由 `Math.abs(voltage)` 推导。
-    - `.tier(int)`:
-      recipe tier 现在独立存储在 `GTRecipeDefinition` / `GTRecipe` 上；当不能或不想依赖 `.EUt(voltage, amperage)` 推导 tier 时，请手动指定 `.tier(int)`。
-- Chanced Ingredients:
-    - 不是每次配方运行都会消耗或产出的 ingredients。可以表示为分数，也可以表示为 10,000 分制的整数概率。
-    - 将 Input ingredient 的 Chance 设为 `0` 会使该 ingredient 在 EMI 中标记为 `Non-Consumed`。
-      也可以更方便地使用 `.notConsumable()` 实现。
-    - 带 chanced ingredients 的配方还可以为每组输入/输出指定 Chance Logic，使用一个或多个函数：
-      `.chancedItemInputLogic()`、`.chancedFluidInputLogic()`、`.chancedTickInputLogic()`、
-      `.chancedItemOutputLogic()`、`.chancedFluidOutputLogic()`、`.chancedTickOutputLogic()`
-    - chanced logic 的有效选项：
-        - `or` - （默认）任意通过 chance roll 的 item/fluid 都会被产出或消耗。
-        - `and` - 如果_所有_ item/fluid 都通过 chance roll，则全部一起产出或消耗；否则全部不产出或消耗。
-        - `xor` - 归一化 ingredient 概率，并保证每次运行正好有一个 chanced item/fluid 被
-        产出或消耗。XOR 的行为在 7.0.0 中发生了变化。
-        - `first` - 按注册顺序为每个 item/fluid 进行 chance roll。只返回第一个成功的 item。
-        在 7.0.0 之前，这是 `xor` logic 的行为。
-            - 由于行为不可预测，FIRST 自 7.3.0 起已弃用，并计划在 8.0.0 中移除。
-- Ranged Ingredients:
-    - Item 或 Fluid ingredients 会在 `min, max` 范围内随机消耗或产出数量（闭区间）。
-- Circuits
-    - 许多 GT 配方使用 Configuration 值为 `1-32` 的 `Programmed Circuit` 物品作为 `Non-Consumed` 输入，
-用来与同一机器中使用相似 ingredients 的其他配方区分开。`.circuit()` 会向配方添加一个 circuit。
-- 更细粒度的功能：
-    - `.perTick()`:
-      使用它可以控制配方输入/输出是在配方运行的每 tick 消耗/产出，还是在配方开始/结束时一次性消耗/产出。
-      使用 `.perTick(true)` 设为 true 后，recipe builder 会将之后的 input/output 调用视为 per-tick。
-      记得在你希望 per-tick 的调用结束后用 `.perTick(false)` 将其设回 false，避免产生不想要的行为。
+运行 `/reload` 重新加载服务端配方。客户端收到完整一轮配方同步后，JEI 和 EMI 会更新配方展示。
 
 
-### 研究系统
+## 输入、输出与配方条件
 
-GTCEu 拥有 Research System，可以为配方添加额外要求，例如：
-Scanner Research、Station Research 和 Computation。
+| 字段 | 用途 |
+| --- | --- |
+| `inputs`、`outputs` | 开始时消耗、完成时输出的内容。 |
+| `tickInputs`、`tickOutputs` | 每刻消耗、每刻输出的内容。发电配方将产出的 EU 写入 `tickOutputs.eu`。 |
+| `duration` | 普通配方的处理刻数。研究站的算力配方在这里保存需要累计的 CWU。 |
+| `tier` | 配方电压等级编号，例如 `1` 为 LV。 |
+| `recipeConditions` | 运行时条件列表，例如维度或洁净室。 |
+| `category`、`groupColor`、`data` | 配方分类、处理器组颜色和随配方保存的类型化数据组件。 |
 
-```js title="scanner_research.js"
-ServerEvents.recipes(event => {
-    event.recipes.gtceu.assembly_line('scanner_test')
-        .itemInputs('64x minecraft:coal')
-        .itemOutputs('minecraft:diamond')
-        .duration(10000)
-        .EUt(GTValues.VA[GTValues.IV])
-        ["scannerResearch(java.util.function.UnaryOperator)"](b => b.researchStack(Item.of('minecraft:coal_block')).EUt(GTValues.VA[GTValues.IV]).duration(420)) // (1)
-})
-```
+内容按能力分组。`item` 使用带数量的物品成分，`fluid` 使用带用量的流体成分，`eu` 使用整数，`cwu` 使用 CWU 数值。每个条目在 `content` 中写入实际内容，概率条目可加 `chance`、`maxChance` 和 `tierChanceBoost`。每组可通过对应的 `inputChanceLogics`、`outputChanceLogics`、`tickInputChanceLogics` 或 `tickOutputChanceLogics` 指定概率逻辑。
 
-1. 注意，由于 JS 集成的工作方式，你必须强制 `scannerResearch` 以特定方式解释：
-   Scanner Research 在 `.researchStack()` 对象中接收 `ItemStack` 输入，也可以在 `.researchStack()` 对象外定义 `EUt` 和
-   `Duration`。
+GTPM 配方条件由机器运行时判断。数据包加载条件由 NeoForge 在加载配方时判断。 [配方条件](Recipe-Conditions.md)
 
-```js title="station_research"
-ServerEvents.recipes(event => {
-    event.recipes.gtceu.assembly_line('station_test')
-        .itemInputs('64x minecraft:coal')
-        .itemOutputs('minecraft:diamond')
-        .duration(10000)
-        .EUt(GTValues.VA[GTValues.IV])
-        .stationResearch(b => b.researchStack(Item.of('minecraft:coal_block')).EUt(GTValues.VA[GTValues.IV]).CWUt(10)) // (1)
-})
-```
 
-1. 与 `Scanner Research` 一样，`Station Research` 在 `.researchStack()` 对象中接收 `ItemStack` 输入，
-   但你只能在 `.researchStack()` 对象外定义 `EUt` 和 `CWUt`。`CWUt` 用于定义
-   `Station Research` 配方的持续时间。
+## 替换与移除配方 { #replace-or-remove-recipes }
 
-### 碎石机流体
+1. 确认原配方 ID，包括冒号前的命名空间和完整路径。
+2. 在优先级更高的数据包中创建同一 ID 的 JSON。`gtpm:<路径>` 对应 `data/gtpm/recipe/<路径>.json`。
+3. 替换时写入完整的新配方。移除时给覆盖文件添加恒为假的 NeoForge 加载条件。
+4. 执行 `/reload`。查看器里的代理配方来自原始配方类型，例如机器显示的原版熔炼配方。修改或移除这类配方时使用其原始配方 ID。
 
-碎石机配方使用 AdjacentFluidConditions。
+??? example "让同名覆盖文件跳过加载"
 
-在 GTPM 附属模组中，可以用 `GTRecipeBuilder.adjacentFluids(...)` 添加相邻流体条件。[GTRecipeBuilder](https://github.com/ExtremelyFrozen/GregTech-Post-Modern/blob/1.21/src/main/java/com/gregtechceu/gtceu/data/recipe/builder/GTRecipeBuilder.java)
+    ```json
+    {
+      "type": "gtpm:macerator",
+      "neoforge:conditions": [
+        { "type": "neoforge:false" }
+      ]
+    }
+    ```
 
-```js title="rock_breaker.js"
-ServerEvents.recipes(event => {
-    event.recipes.gtceu.rock_breaker('rhino_jank')
-        .notConsumable('minecraft:dirt')
-        .itemOutputs('minecraft:dirt')
-        .adjacentFluids('minecraft:water')
-        .adjacentFluids('minecraft:lava')
-        .duration(16)
-        .EUt(30)
-})
-```
+配方类型也可以根据已有配方生成派生配方。控制这类配方时，编辑驱动生成的原始配方。附属模组可通过 `IGTAddon.removeRecipes(Consumer<ResourceLocation>)` 在配方解析前移除相应的资源 ID。
 
-### 更多自定义 ingredients
-更多自定义 ingredients 请参见[侧边栏中的 Ingredients 列表](Ingredients/index.md)。
+
+## 在附属模组中生成配方
+
+在 `IGTAddon.addRecipes(RecipeOutput)` 中，通过配方类型的 `recipeBuilder` 构造定义并调用 `save`。生成器会在 ID 路径前加上配方类型路径。用此入口编写的配方会在数据重载时随模组内置配方生成。
+
+??? example "用 Java 生成同一条粉碎机配方"
+
+    ```java
+    GTRecipeTypes.MACERATOR_RECIPES
+            .recipeBuilder(ResourceLocation.fromNamespaceAndPath("example", "cobblestone_to_sand"))
+            .inputItems(Items.COBBLESTONE)
+            .outputItems(Items.SAND)
+            .duration(100)
+            .EUt(8)
+            .tier(GTValues.LV)
+            .save(output);
+    ```
+
+`EUt(long)` 写入每刻总 EU。双参数版本使用 `voltage * amperage` 计算总量，等级由电压推导。`inputEU` 和 `outputEU` 写入一次性总量。需要指定不同等级时，在设置 EU 后调用 `tier(int)`。
+
+装配线研究可通过 `scannerResearch` 生成扫描仪配方，也可以用 `stationResearch` 对应研究站配方。研究站的构建器可通过 `CWUt(minimum, total)` 设定每刻最低算力和总算力。使用已有研究数据时，`researchWithoutRecipe` 将配方与指定研究 ID 关联。 [算力与研究](../../Gameplay/Electricity/Computation.md) · [配方定义和运行逻辑](../../Development/Recipe-Logic/Recipe-Logic.md)

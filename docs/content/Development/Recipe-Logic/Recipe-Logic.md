@@ -1,42 +1,27 @@
 ---
-title: "配方逻辑"
+title: 配方逻辑
 ---
 
-# 配方逻辑
 
-任何 `WorkableMachine` 都会将 `RecipeLogic` 作为 trait。这类 machine 拥有一个 `TickableSubscription`，用于调用 `recipeLogic.serverTick`。
+# 配方定义与机器状态
 
-## 定义态与运行态
+| 类型 | 职责 |
+| --- | --- |
+| `GTRecipeDefinition` | 配方加载、同步、研究查询与查看器消费的定义。通过 `GTRecipeSerializer` 进行数据与网络序列化。 |
+| `GTRecipe` | 搜索、超频、并行和执行使用的运行时配方。记录执行过程需要的派生数据。 |
+| `RecipeLogic` | 机器的配方 trait，管理搜索、修改、进度、消耗、产出和失败原因。 |
+| `WorkLogic` | 通用工作状态 trait，管理工作开关、状态、等待原因和 Tick 订阅。`RecipeLogic` 扩展该类。 |
 
-recipe 系统现在明确区分定义态和运行态。`GTRecipeDefinition` 是定义态，用于表示数据加载、展示和查询时的稳定 recipe 定义；`GTRecipe` 是运行态，用于实际匹配、执行、消耗、输出和 modifier 处理。
+`GTRecipeDefinition.toRuntime()` 复制能力内容和可变配方数据。查看器、配方 ID 和研究数据查询使用定义。修改超频、并行或执行字段时操作运行时配方。`GTRecipeBuilder.buildDefinition()` 生成定义，`save(RecipeOutput)` 导出定义；`build()` 提供运行时配方。
 
-`GTRecipeDefinition.toRuntime()` 必须对内容、chance logic、condition、DataComponents 等数据做深复制，避免运行态执行过程污染定义态数据。展示层应读取 `GTRecipeDefinition`，不要读取会被执行过程修改的 runtime `GTRecipe`。
+输入、输出、每刻输入和每刻输出均使用 `ContentListMap`，按 `RecipeCapability` 键访问。内置能力包括物品、流体、EU 与 CWU。EU 能力保存 `Long` 总量，配方等级用独立的 `tier` 表示。`RecipeHandlerGroup` 和 `RecipeHandlerList` 决定参与匹配和执行的处理器组合。
 
-`ContentListMap` 统一承载 item、fluid、EU、CWU 以及其他 `RecipeCapability` 内容。handler 分组由 `RecipeHandlerGroup` 和 `RecipeHandlerList` 承接，recipe I/O 不再只围绕 item、fluid 和 EU 的固定结构展开。
 
-condition 检查分为启动路径和 per-tick 路径。`RecipeCondition.perTick` 为 true 的 condition 会在 `RecipeHelper.checkConditions(..., true)` 中参与每 tick 检查，用于运行中的动态条件。
+## 运行流程
 
-recipe I/O、condition 和 modifier 失败都应通过 `ActionResult` 或 failure reason 向上返回具体原因。`RecipeLogic` 会收集这些原因，用于等待状态和失败提示；不要用静默失败掩盖可诊断的问题。
+1. `RecipeLogic` 重用可运行的上一条配方，或者根据机器提供的输入查询候选。
+2. `IRecipeLogicMachine.fullModifyRecipe` 应用机器的运行时修改器，再检查条件与输入输出。通过检查后消耗开始输入，进入工作状态。
+3. 每次工作 Tick 检查动态条件和每刻 I/O。成功后增加进度，失败时记录 `ActionResult` 的原因并进入等待。
+4. 到达目标进度后发送一次性输出。输出受阻时保留待完成状态。输出成功后，根据当前条件和修改器开始下一轮或回到空闲。
 
-## `serverTick` 流程
-
-下面是一个略微简化后的 `recipeLogic.serverTick`：
-```java title="RecipeLogic.java"
-public void serverTick() {
-    if (!isSuspend()) {
-        if (!isIdle() && lastRecipe != null) {
-            if (progress < duration) {
-                handleRecipeWorking();
-            }
-            if (progress >= duration) {
-                onRecipeFinish();
-            }
-        } else {
-            findAndHandleRecipe();
-        } // Code for re-doing previous recipe
-    }
-    // Logic for unsubscribing if needed
-}
-```
-
-我们会在 [Recipe Searching](./Recipe-Searching.md) 和 [Recipe Execution](./Recipe-Execution.md) 中拆解这个方法。
+通用机器界面和 Jade 从 `IWorkLogicMachine` 读取状态。需要查看当前配方、匹配失败原因和配方处理器时使用 `IRecipeLogicMachine`。 [配方搜索](Recipe-Searching.md) · [配方执行](Recipe-Execution.md)
