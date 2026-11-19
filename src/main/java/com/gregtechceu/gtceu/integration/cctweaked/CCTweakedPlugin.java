@@ -24,7 +24,7 @@ public class CCTweakedPlugin {
         ForgeComputerCraftAPI.registerGenericCapability(GTCapability.CAPABILITY_ENERGY_INFO_PROVIDER);
         ForgeComputerCraftAPI.registerGenericCapability(GTCapability.CAPABILITY_WORKABLE);
         ForgeComputerCraftAPI.registerGenericCapability(GTCapability.CAPABILITY_COVERABLE);
-        PlaceholderHandler.addPlaceholder(new Placeholder("bufferText") {
+        PlaceholderHandler.addPlaceholder(new Placeholder("bufferText", true) {
 
             @Override
             public MultiLineComponent apply(PlaceholderContext ctx,

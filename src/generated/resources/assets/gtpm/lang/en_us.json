@@ -2263,6 +2263,7 @@
     "gtpm.computer_monitor_cover.error.no_ae": "Cover holder does not have an AE2 network!",
     "gtpm.computer_monitor_cover.error.no_cover": "No cover!",
     "gtpm.computer_monitor_cover.error.no_placeholder": "No such placeholder: '%s'!",
+    "gtpm.computer_monitor_cover.error.no_target": "No target selected for the monitor group",
     "gtpm.computer_monitor_cover.error.not_enough_args": "Expected at least %d args, got %d!",
     "gtpm.computer_monitor_cover.error.not_in_range": "Expected %s to be between %d and %d (inclusive), got %d",
     "gtpm.computer_monitor_cover.error.not_supported": "This feature is not supported by this block/cover!",

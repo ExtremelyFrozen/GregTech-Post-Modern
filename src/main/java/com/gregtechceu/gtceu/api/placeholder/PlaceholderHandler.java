@@ -11,11 +11,13 @@ import com.gregtechceu.gtceu.utils.GTUtil;
 import net.minecraft.ChatFormatting;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.core.component.DataComponentMap;
+import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 
 import java.util.*;
 
@@ -34,7 +36,7 @@ public class PlaceholderHandler {
     private static final char NEWLINE = '\n';
     private static final char ESCAPED_NEWLINE = 'n';
 
-    private static final Map<String, Placeholder> placeholders = new HashMap<>();
+    private static final Map<String, Placeholder> placeholders = new Object2ObjectOpenHashMap<>();
 
     @OnlyIn(Dist.CLIENT)
     private static final class RendererHolder {
@@ -78,12 +80,14 @@ public class PlaceholderHandler {
     public static MultiLineComponent processPlaceholder(List<MultiLineComponent> placeholder,
                                                         PlaceholderContext context,
                                                         Object2IntOpenHashMap<String> indices) throws PlaceholderException {
-        if (!placeholderExists(placeholder.get(0)))
-            throw new UnknownPlaceholderException(placeholder.get(0).toString());
-        String name = placeholder.get(0).toString();
-        indices.addTo(name, 1);
-        return placeholders.get(name).apply(context.withIndex(indices.getInt(name)),
-                placeholder.subList(1, placeholder.size()));
+        String name = placeholder.getFirst().toString();
+        Placeholder action = placeholders.get(name);
+        if (action == null) throw new UnknownPlaceholderException(name);
+        if (action.isRequiresTarget() && context.pos() == null) {
+            throw new PlaceholderException(Component.translatable("gtpm.computer_monitor_cover.error.no_target"));
+        }
+        int index = indices.addTo(name, 1) + 1;
+        return action.apply(context.withIndex(index), placeholder.subList(1, placeholder.size()));
     }
 
     public static MultiLineComponent processPlaceholders(String s, PlaceholderContext ctx) {
@@ -172,7 +176,8 @@ public class PlaceholderHandler {
         MultiLineComponent out = MultiLineComponent.literal("Exceptions:");
         out.appendNewline();
         exceptions.forEach(exception -> {
-            out.append(exception.getMessage());
+            out.append(exception instanceof PlaceholderException error ? error.getMessageComponent() :
+                    Component.literal(String.valueOf(exception.getMessage())));
             out.appendNewline();
         });
         return out.withStyle(ChatFormatting.DARK_RED);

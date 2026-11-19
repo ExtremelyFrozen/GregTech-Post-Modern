@@ -36,6 +36,7 @@ import com.gregtechceu.gtceu.utils.GTTransferUtils;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSource;
 import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
@@ -108,29 +109,31 @@ public class GTPlaceholders {
             GTCreateIntegration.init();
         }
 
-        PlaceholderHandler.addPlaceholder(new Placeholder("energy") {
+        PlaceholderHandler.addPlaceholder(new Placeholder("energy", true) {
 
             @Override
             public MultiLineComponent apply(PlaceholderContext ctx,
                                             List<MultiLineComponent> args) throws PlaceholderException {
                 PlaceholderUtils.checkArgs(args, 0);
-                if (ctx.level().getBlockEntity(ctx.pos()) instanceof IEnergyInfoProvider energyInfoProvider) {
+                BlockPos pos = ctx.pos();
+                if (ctx.level().getBlockEntity(pos) instanceof IEnergyInfoProvider energyInfoProvider) {
                     return MultiLineComponent.literal(energyInfoProvider.getEnergyInfo().stored().longValue());
                 }
-                IEnergyContainer energy = GTCapabilityHelper.getEnergyContainer(ctx.level(), ctx.pos(), ctx.side());
+                IEnergyContainer energy = GTCapabilityHelper.getEnergyContainer(ctx.level(), pos, ctx.side());
                 return MultiLineComponent.literal(energy != null ? energy.getEnergyStored() : 0);
             }
         });
-        PlaceholderHandler.addPlaceholder(new Placeholder("energyCapacity") {
+        PlaceholderHandler.addPlaceholder(new Placeholder("energyCapacity", true) {
 
             @Override
             public MultiLineComponent apply(PlaceholderContext ctx,
                                             List<MultiLineComponent> args) throws PlaceholderException {
                 PlaceholderUtils.checkArgs(args, 0);
-                if (ctx.level().getBlockEntity(ctx.pos()) instanceof IEnergyInfoProvider energyInfoProvider) {
+                BlockPos pos = ctx.pos();
+                if (ctx.level().getBlockEntity(pos) instanceof IEnergyInfoProvider energyInfoProvider) {
                     return MultiLineComponent.literal(energyInfoProvider.getEnergyInfo().capacity().longValue());
                 }
-                IEnergyContainer energy = GTCapabilityHelper.getEnergyContainer(ctx.level(), ctx.pos(), ctx.side());
+                IEnergyContainer energy = GTCapabilityHelper.getEnergyContainer(ctx.level(), pos, ctx.side());
                 return MultiLineComponent.literal(energy != null ? energy.getEnergyCapacity() : 0);
             }
         });
@@ -143,7 +146,7 @@ public class GTPlaceholders {
                 return MultiLineComponent.literal(GTStringUtils.calc(stringArgs));
             }
         });
-        PlaceholderHandler.addPlaceholder(new Placeholder("itemCount") {
+        PlaceholderHandler.addPlaceholder(new Placeholder("itemCount", true) {
 
             @Override
             public MultiLineComponent apply(PlaceholderContext ctx,
@@ -171,7 +174,7 @@ public class GTPlaceholders {
                 throw new InvalidArgsException();
             }
         });
-        PlaceholderHandler.addPlaceholder(new Placeholder("fluidCount") {
+        PlaceholderHandler.addPlaceholder(new Placeholder("fluidCount", true) {
 
             @Override
             public MultiLineComponent apply(PlaceholderContext ctx,
@@ -295,7 +298,7 @@ public class GTPlaceholders {
                 return new MultiLineComponent(args.get(i + 1)).setIgnoreSpaces(true);
             }
         });
-        PlaceholderHandler.addPlaceholder(new Placeholder("redstone") {
+        PlaceholderHandler.addPlaceholder(new Placeholder("redstone", true) {
 
             @Override
             public MultiLineComponent apply(PlaceholderContext ctx,
@@ -329,7 +332,7 @@ public class GTPlaceholders {
                 return MultiLineComponent.of(ctx.previousText().get(i - 1)).setIgnoreSpaces(true);
             }
         });
-        PlaceholderHandler.addPlaceholder(new Placeholder("progress") {
+        PlaceholderHandler.addPlaceholder(new Placeholder("progress", true) {
 
             @Override
             public MultiLineComponent apply(PlaceholderContext ctx,
@@ -341,7 +344,7 @@ public class GTPlaceholders {
                 return MultiLineComponent.literal(workable.getProgress());
             }
         });
-        PlaceholderHandler.addPlaceholder(new Placeholder("maxProgress") {
+        PlaceholderHandler.addPlaceholder(new Placeholder("maxProgress", true) {
 
             @Override
             public MultiLineComponent apply(PlaceholderContext ctx,
@@ -353,7 +356,7 @@ public class GTPlaceholders {
                 return MultiLineComponent.literal(workable.getMaxProgress());
             }
         });
-        PlaceholderHandler.addPlaceholder(new Placeholder("maintenance") {
+        PlaceholderHandler.addPlaceholder(new Placeholder("maintenance", true) {
 
             @Override
             public MultiLineComponent apply(PlaceholderContext ctx,
@@ -365,7 +368,7 @@ public class GTPlaceholders {
                 return MultiLineComponent.literal(maintenance.hasMaintenanceProblems() ? 1 : 0);
             }
         });
-        PlaceholderHandler.addPlaceholder(new Placeholder("active") {
+        PlaceholderHandler.addPlaceholder(new Placeholder("active", true) {
 
             @Override
             public MultiLineComponent apply(PlaceholderContext ctx,
@@ -377,7 +380,7 @@ public class GTPlaceholders {
                 return MultiLineComponent.literal(workable.isActive() ? 1 : 0);
             }
         });
-        PlaceholderHandler.addPlaceholder(new Placeholder("voltage") {
+        PlaceholderHandler.addPlaceholder(new Placeholder("voltage", true) {
 
             @Override
             public MultiLineComponent apply(PlaceholderContext ctx,
@@ -389,7 +392,7 @@ public class GTPlaceholders {
                 throw new NotSupportedException();
             }
         });
-        PlaceholderHandler.addPlaceholder(new Placeholder("amperage") {
+        PlaceholderHandler.addPlaceholder(new Placeholder("amperage", true) {
 
             @Override
             public MultiLineComponent apply(PlaceholderContext ctx,
@@ -756,7 +759,7 @@ public class GTPlaceholders {
                         ((double) n) / max, suffixes.get(max)));
             }
         });
-        PlaceholderHandler.addPlaceholder(new Placeholder("click") {
+        PlaceholderHandler.addPlaceholder(new Placeholder("click", true) {
 
             @Override
             public MultiLineComponent apply(PlaceholderContext ctx,
@@ -978,18 +981,11 @@ public class GTPlaceholders {
                 return MultiLineComponent.literal(ctx.itemStackHandler().getStackInSlot(slot - 1).toString());
             }
         });
-    }
-
-    @OnlyIn(Dist.CLIENT)
-    public static void initRenderers() {
-        PlaceholderHandler.addRenderer("module", new ModulePlaceholderRenderer());
-        PlaceholderHandler.addRenderer("rect", new RectPlaceholderRenderer());
-        PlaceholderHandler.addRenderer("quad", new QuadPlaceholderRenderer());
-        PlaceholderHandler.addPlaceholder(new Placeholder("blockNbt") {
+        PlaceholderHandler.addPlaceholder(new Placeholder("blockNbt", true) {
 
             @Override
-            public MultiLineComponent apply(PlaceholderContext ctx, List<MultiLineComponent> args)
-                                                                                                   throws PlaceholderException {
+            public MultiLineComponent apply(PlaceholderContext ctx,
+                                            List<MultiLineComponent> args) throws PlaceholderException {
                 BlockEntity blockEntity = ctx.level().getBlockEntity(ctx.pos());
                 if (blockEntity == null) return MultiLineComponent.empty();
                 var components = blockEntity.components();
@@ -1008,5 +1004,12 @@ public class GTPlaceholders {
                 return MultiLineComponent.literal(String.valueOf(components.get(componentType)));
             }
         });
+    }
+
+    @OnlyIn(Dist.CLIENT)
+    public static void initRenderers() {
+        PlaceholderHandler.addRenderer("module", new ModulePlaceholderRenderer());
+        PlaceholderHandler.addRenderer("rect", new RectPlaceholderRenderer());
+        PlaceholderHandler.addRenderer("quad", new QuadPlaceholderRenderer());
     }
 }

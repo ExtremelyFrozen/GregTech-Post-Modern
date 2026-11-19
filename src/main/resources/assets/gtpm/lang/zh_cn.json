@@ -2254,6 +2254,7 @@
 	"gtpm.computer_monitor_cover.error.no_ae": "覆盖板支架未接入AE2网络！",
 	"gtpm.computer_monitor_cover.error.no_cover": "无覆盖板！",
 	"gtpm.computer_monitor_cover.error.no_placeholder": "不存在占位符“%s”！",
+	"gtpm.computer_monitor_cover.error.no_target": "监控组未选中有效目标",
 	"gtpm.computer_monitor_cover.error.not_enough_args": "至少需要%d个参数，但实际只有%d个！",
 	"gtpm.computer_monitor_cover.error.not_in_range": "期望%s在%d和%d之间（含边界），但得到%d",
 	"gtpm.computer_monitor_cover.error.not_supported": "该方块/覆盖板不支持此功能！",

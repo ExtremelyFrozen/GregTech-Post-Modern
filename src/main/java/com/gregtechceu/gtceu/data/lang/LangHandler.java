@@ -1829,6 +1829,7 @@ public class LangHandler {
         provider.add("gtpm.computer_monitor_cover.error.wrong_number_of_args", "Expected %d args, got %d!");
         provider.add("gtpm.computer_monitor_cover.error.not_enough_args", "Expected at least %d args, got %d!");
         provider.add("gtpm.computer_monitor_cover.error.no_cover", "No cover!");
+        provider.add("gtpm.computer_monitor_cover.error.no_target", "No target selected for the monitor group");
         provider.add("gtpm.computer_monitor_cover.error.exception", "Unexpected exception occurred: %s");
         provider.add("gtpm.computer_monitor_cover.error.not_in_range",
                 "Expected %s to be between %d and %d (inclusive), got %d");

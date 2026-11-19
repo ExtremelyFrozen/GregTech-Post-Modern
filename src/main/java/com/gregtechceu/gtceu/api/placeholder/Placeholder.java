@@ -15,6 +15,8 @@ public abstract class Placeholder {
     private final String name;
     @Getter
     private final int priority;
+    @Getter
+    private final boolean requiresTarget;
 
     public abstract MultiLineComponent apply(PlaceholderContext ctx,
                                              List<MultiLineComponent> args) throws PlaceholderException;
@@ -24,8 +26,17 @@ public abstract class Placeholder {
     }
 
     public Placeholder(String name, int priority) {
+        this(name, priority, false);
+    }
+
+    public Placeholder(String name, boolean requiresTarget) {
+        this(name, 0, requiresTarget);
+    }
+
+    public Placeholder(String name, int priority, boolean requiresTarget) {
         this.name = name;
         this.priority = priority;
+        this.requiresTarget = requiresTarget;
     }
 
     protected PlaceholderData getData(PlaceholderContext ctx) {
