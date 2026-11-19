@@ -267,6 +267,17 @@ public class MonitorGroup implements ISyncManaged {
         return context == null ? level : context.level();
     }
 
+    public @Nullable IItemHandler getTargetDataItems(Level monitorLevel) {
+        BlockPos pos = target;
+        if (pos == null || !monitorLevel.isLoaded(pos)) return null;
+        return getDataItemsAt(monitorLevel, pos);
+    }
+
+    private static @Nullable IItemHandler getDataItemsAt(Level level, BlockPos pos) {
+        IMonitorComponent component = GTCapabilityHelper.getMonitorComponent(level, pos, null);
+        return component == null ? null : component.getDataItems();
+    }
+
     /**
      * Resolves a loaded target in the monitor's level or through its selected data hatch slot.
      * The caller can skip evaluation while the target or its level is unavailable.
@@ -277,8 +288,7 @@ public class MonitorGroup implements ISyncManaged {
 
         Level targetLevel = monitorLevel;
         Direction side = targetCoverSide;
-        IMonitorComponent component = GTCapabilityHelper.getMonitorComponent(monitorLevel, pos, null);
-        IItemHandler dataItems = component == null ? null : component.getDataItems();
+        IItemHandler dataItems = getDataItemsAt(monitorLevel, pos);
         if (dataItems != null) {
             if (dataSlot < 0 || dataSlot >= dataItems.getSlots()) return null;
             GlobalPosWithRot link = dataItems.getStackInSlot(dataSlot).get(GTDataComponents.MONITOR_TARGET);
@@ -299,6 +309,7 @@ public class MonitorGroup implements ISyncManaged {
             ICoverable coverable = GTCapabilityHelper.getCoverable(targetLevel, pos, side);
             if (coverable != null) cover = coverable.getCoverAtSide(side);
         }
-        return new PlaceholderContext(targetLevel, pos, side, placeholderSlotsHandler, cover, null, uuid);
+        return new PlaceholderContext(targetLevel, pos, side, placeholderSlotsHandler, cover, null, uuid, 0,
+                monitorLevel, this);
     }
 }

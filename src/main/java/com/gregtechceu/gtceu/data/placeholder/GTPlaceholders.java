@@ -25,6 +25,7 @@ import com.gregtechceu.gtceu.common.item.datacomponents.BindingData;
 import com.gregtechceu.gtceu.common.item.datacomponents.DataItem;
 import com.gregtechceu.gtceu.common.item.datacomponents.FormatStringList;
 import com.gregtechceu.gtceu.common.item.modules.ImageModuleBehaviour;
+import com.gregtechceu.gtceu.common.machine.multiblock.electric.monitor.MonitorGroup;
 import com.gregtechceu.gtceu.common.machine.multiblock.part.monitor.AdvancedMonitorPartMachine;
 import com.gregtechceu.gtceu.config.ConfigHolder;
 import com.gregtechceu.gtceu.integration.ae2.GTAEPlaceholders;
@@ -975,6 +976,33 @@ public class GTPlaceholders {
                 if (ctx.itemStackHandler() == null) throw new NotSupportedException();
                 PlaceholderUtils.checkRange("slot index", 1, ctx.itemStackHandler().getSlots(), slot);
                 return MultiLineComponent.literal(ctx.itemStackHandler().getStackInSlot(slot - 1).toString());
+            }
+        });
+        PlaceholderHandler.addPlaceholder(new Placeholder("targetSlot") {
+
+            @Override
+            public MultiLineComponent apply(PlaceholderContext ctx,
+                                            List<MultiLineComponent> args) throws PlaceholderException {
+                PlaceholderUtils.checkArgs(args, 0);
+                MonitorGroup group = ctx.monitorGroup();
+                if (group == null) throw new NotSupportedException();
+                return MultiLineComponent.literal(group.getDataSlot() + 1);
+            }
+        });
+        PlaceholderHandler.addPlaceholder(new Placeholder("setTargetSlot") {
+
+            @Override
+            public MultiLineComponent apply(PlaceholderContext ctx,
+                                            List<MultiLineComponent> args) throws PlaceholderException {
+                PlaceholderUtils.checkArgs(args, 1);
+                MonitorGroup group = ctx.monitorGroup();
+                if (group == null) throw new NotSupportedException();
+                IItemHandler dataItems = group.getTargetDataItems(ctx.monitorLevel());
+                if (dataItems == null) throw new NotSupportedException();
+                int slot = PlaceholderUtils.toInt(args.getFirst());
+                PlaceholderUtils.checkRange("slot index", 1, dataItems.getSlots(), slot);
+                group.setDataSlot(slot - 1);
+                return MultiLineComponent.empty();
             }
         });
         PlaceholderHandler.addPlaceholder(new Placeholder("blockNbt") {

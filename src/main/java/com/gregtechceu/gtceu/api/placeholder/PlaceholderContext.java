@@ -1,6 +1,7 @@
 package com.gregtechceu.gtceu.api.placeholder;
 
 import com.gregtechceu.gtceu.api.cover.CoverBehavior;
+import com.gregtechceu.gtceu.common.machine.multiblock.electric.monitor.MonitorGroup;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -21,7 +22,20 @@ public record PlaceholderContext(Level level,
                                  @Nullable CoverBehavior cover,
                                  @Nullable MultiLineComponent previousText,
                                  UUID uuid,
-                                 @With int index) {
+                                 @With int index,
+                                 Level monitorLevel,
+                                 @Nullable MonitorGroup monitorGroup) {
+
+    public PlaceholderContext(Level level,
+                              BlockPos pos,
+                              @Nullable Direction side,
+                              @Nullable ItemStackHandler itemStackHandler,
+                              @Nullable CoverBehavior cover,
+                              @Nullable MultiLineComponent previousText,
+                              UUID uuid,
+                              int index) {
+        this(level, pos, side, itemStackHandler, cover, previousText, uuid, index, level, null);
+    }
 
     public PlaceholderContext(Level level,
                               BlockPos pos,

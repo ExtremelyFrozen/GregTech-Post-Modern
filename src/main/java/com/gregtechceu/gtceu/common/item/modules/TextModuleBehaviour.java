@@ -66,9 +66,13 @@ public class TextModuleBehaviour implements IMonitorModuleItem, IAddInformation 
         }
 
         PlaceholderContext context = group.resolvePlaceholderContext(machine.getLevel(), uuid);
+        int selectedSlot = group.getDataSlot();
         List<Component> text = context == null ? NO_TARGET_TEXT :
                 PlaceholderHandler.processPlaceholders(getPlaceholderText(stack), context).toImmutable();
         stack.update(GTDataComponents.TEXT_LINE_LIST, TextLineList.EMPTY, lines -> lines.withLines(text));
+        if (selectedSlot != group.getDataSlot()) {
+            machine.markMonitorGroupDataChanged();
+        }
     }
 
     @Override
