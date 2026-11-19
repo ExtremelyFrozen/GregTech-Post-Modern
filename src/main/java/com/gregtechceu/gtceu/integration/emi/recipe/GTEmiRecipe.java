@@ -31,11 +31,15 @@ public class GTEmiRecipe extends ModularUIEMIRecipe {
     private final Supplier<GTEmiIngredients> xeiIngredients;
 
     public GTEmiRecipe(GTRecipeDefinition recipe, EmiRecipeCategory category, RecipeUISize size) {
+        this(recipe, category, size, new EmiTagStacks());
+    }
+
+    GTEmiRecipe(GTRecipeDefinition recipe, EmiRecipeCategory category, RecipeUISize size, EmiTagStacks tags) {
         super(GTEmiRecipe::createModularUI);
         this.category = category;
         this.recipe = recipe;
         this.size = size;
-        this.xeiIngredients = Suppliers.memoize(() -> GTEmiIngredients.create(recipe));
+        this.xeiIngredients = Suppliers.memoize(() -> GTEmiIngredients.create(recipe, tags));
     }
 
     @Override
