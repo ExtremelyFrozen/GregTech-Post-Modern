@@ -1,42 +1,38 @@
 ---
-title: "Bedrock Ore Veins（基岩矿脉）"
+title: 基岩矿脉
 ---
 
 
-# Bedrock Ore Veins（基岩矿脉）
+# 基岩矿脉
 
-!!! note "上游示例"
-    本页示例面向 GregTech CEu Modern。GTPM 1.21.1 的数据包和附属模组入口见[整合包制作](../index.md#upstream-kubejs)。
+基岩矿脉使用 `gtpm:bedrock_ore` 动态注册表。将 JSON 放在 `data/<命名空间>/gtpm/bedrock_ore/<路径>.json`，启用数据包后重新进入世界。探矿仪和基岩采矿机按世界中的对应矿脉工作。
 
-虽然默认未启用，但 GregTech Post Modern 包含 bedrock ore veins 和 bedrock ore miners。
+??? example "data/example/gtpm/bedrock_ore/tin.json"
 
-要启用此功能，需要启用配置选项 **Machines -> doBedrockOres** 并重启游戏。
+    ```json
+    {
+      "weight": 30,
+      "size": 3,
+      "yield": 4,
+      "depletion_amount": 1,
+      "depletion_chance": 10,
+      "depleted_yield": 1,
+      "materials": [
+        { "material": "gtpm:tin", "weight": 3 },
+        { "material": "gtpm:cassiterite", "weight": 1 }
+      ],
+      "dimension_filter": ["minecraft:overworld"]
+    }
+    ```
 
-!!! warning "默认没有配方"
-    各等级的 bedrock ore miners 默认没有任何配方。整合包开发者需要自行为这些机器创建
-    合成配方。
+| 字段 | 用途 |
+| --- | --- |
+| `weight`、`weight_modifier` | 矿脉基础选择权重和生物群系修正。 |
+| `size` | 矿脉范围，单位为区块。 |
+| `yield` | 矿脉未耗尽时的产量，可写为正整数或正整数 IntProvider。 |
+| `depletion_amount`、`depletion_chance` | 每次耗竭扣除量与触发百分比。 |
+| `depleted_yield` | 矿脉耗尽后的产量。 |
+| `materials` | 候选材料及各自相对权重。 |
+| `dimension_filter` | 矿脉可出现的维度。 |
 
-
-## 添加 Bedrock Veins
-
-默认情况下，mod 不包含任何 bedrock ore veins。
-
-可以使用 `bedrockOreVeins` server event 添加它们：
-
-```js
-GTCEuServerEvents.bedrockOreVeins(event => {
-    event.add('kubejs:overworld_bedrock_ore_vein_iron', vein => {
-        vein.weight(100)
-            .size(3) // (1)
-            .yield(10, 20)
-            .material(GTMaterials.Goethite, 5) // (2)
-            .material(GTMaterials.Limonite, 2)
-            .material(GTMaterials.Hematite, 2)
-            .material(GTMaterials.Malachite, 1)
-            .dimensions('minecraft:overworld')
-    })
-})
-```
-
-1. Bedrock vein 的直径，以 chunks 为单位
-2. 第二个参数定义每个循环中开采到各 Material 的概率
+[基岩矿脉数据模型](https://github.com/ExtremelyFrozen/GregTech-Post-Modern/blob/1.21/src/main/java/com/gregtechceu/gtceu/api/data/worldgen/bedrockore/BedrockOreDefinition.java)

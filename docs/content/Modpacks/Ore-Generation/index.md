@@ -1,20 +1,14 @@
 ---
-title: "Ore Generation（矿石生成）"
+title: 矿脉生成
 ---
 
 
-# Ore Generation（矿石生成）
+# 矿脉生成
 
-GregTech 拥有自己的 Ore Generation 系统，它与 Minecraft 标准系统有很大不同。
-由于技术限制，此系统不使用 Minecraft 的 features，工作方式也略有不同。
+整合包可在数据包中定义普通矿脉、基岩矿脉与基岩流体矿脉。修改相关注册表后，重启服务端或重新进入单人世界以加载新定义。普通矿脉按更新后的定义在新生成的区块中放置矿石。
 
-GT 的矿石会以大型 Ore Vein 的形式生成，这些矿脉会沿着遍布世界的网格放置（每个矿脉还有随机偏移）。
-
-在本节中，你将学习如何为整合包自定义 Ore Generation。
-
-
-## 重新加载 Ore Generation
-
-!!! warning
-    更改 Ore Generation 后，你必须**重启服务器**或**重新打开世界**！
-    在这种情况下，仅使用 `/reload` 是不够的。
+- [添加、覆盖和停用普通矿脉](01-Customizing-Veins.md)
+- [矿脉和地表指示物生成器](02-Generators.md)
+- [生成层与维度](04-Layers-and-Dimensions.md)
+- [定义基岩矿脉](Bedrock-Ore-Veins.md)
+- [定义基岩流体矿脉](Bedrock-Fluid-Veins.md)

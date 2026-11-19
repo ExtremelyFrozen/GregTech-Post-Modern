@@ -1,26 +1,14 @@
 ---
-title: "移除地表矿石指示物"
+title: 移除地表矿石指示物
 ---
 
 
 # 移除地表矿石指示物
 
-!!! note "上游示例"
-    本页示例面向 GregTech CEu Modern。GTPM 1.21.1 的数据包和附属模组入口见[整合包制作](../index.md#upstream-kubejs)。
+地表指示物由每个矿脉的 `indicators` 列表控制。
 
-## 移除脚本
+1. 找到要修改的矿脉 ID，从内置资源复制整份定义。例如 `gtpm:cassiterite` 使用 `data/gtpm/gtpm/ore_vein/cassiterite.json`。
+2. 在数据包中以相同的路径保存定义，将 `indicators` 设置为空列表 `[]`。
+3. 重新进入世界，让新生成区块使用修改后的矿脉定义。
 
-```js title="remove_piles.js"
-GTCEuServerEvents.oreVeins(event => {
-    event.modifyAll((veinId, vein) => {
-        vein.surfaceIndicatorGenerator(indicator => indicator
-            .block(Block.getBlock("minecraft:air")) // (1)
-            .placement("above")
-            .density(0.4) // Unsure if this matters
-            .radius(5) // Unsure if this matters
-        )
-    })
-})
-```
-
-1. 将原本会生成矿石堆的位置替换为空气方块，从效果上移除它。
+[矿脉文件路径与覆盖方式](../Ore-Generation/01-Customizing-Veins.md)
