@@ -1,3 +1,8 @@
+---
+title: 电力机器
+---
+
+
 # 电力机器（Electric Machines） { #electric-machines }
 
 GregTech Post Modern 中绝大多数功能性机器都由 EU 驱动。和 Generators 一样，它们之间也有许多共同规则和模式。

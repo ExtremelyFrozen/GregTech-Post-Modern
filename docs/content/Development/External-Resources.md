@@ -51,12 +51,12 @@ GregTech Post Modern 使用 LDLib2 构建机器、覆板和配方界面。
     Mojang DataFixerUpper 库的非官方文档。
 
 
-## Registrate & Architectury
+## Registrate 与 ModDevGradle
 
 !!! link "使用 Registrate"
     [:material-github: Registrate](https://github.com/tterrag1098/Registrate)
 
-!!! link "Architectury Gradle Plugin"
-    [Architectury-Wiki :material-arrow-right: Gradle Plugin](https://docs.architectury.dev/plugin/introduction)
+!!! link "NeoForge ModDevGradle"
+    [:material-github: NeoForge ModDevGradle](https://github.com/neoforged/ModDevGradle)
 
-    请注意，我们只使用 Architectury 的构建系统，而不是 Architectury 库本身。
+    GTPM 使用 ModDevGradle 配置 NeoForge 和开发运行环境。 [开发运行环境](General-Topics/Development-Environment.md)

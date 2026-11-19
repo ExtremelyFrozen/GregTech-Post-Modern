@@ -1,3 +1,8 @@
+---
+title: 发电机
+---
+
+
 # 发电机（Generators） { #generators }
 
 Generators 是每 tick 消耗 Fuel 并产生 EU 的机器。发电机有多种不同类型，
