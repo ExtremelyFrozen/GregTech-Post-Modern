@@ -26,6 +26,7 @@ import it.unimi.dsi.fastutil.booleans.BooleanArrayList;
 import it.unimi.dsi.fastutil.booleans.BooleanList;
 import it.unimi.dsi.fastutil.ints.IntImmutableList;
 import it.unimi.dsi.fastutil.ints.IntSet;
+import org.jetbrains.annotations.ApiStatus;
 
 import java.util.List;
 import java.util.function.Supplier;
@@ -116,6 +117,12 @@ public class GTOreByProductWidget {
         return ModularUI.of(new GTOreByProductWidget(material).createUI());
     }
 
+    /** Intermediate products participate in both output lookups and usages. */
+    @ApiStatus.Internal
+    public static boolean isIntermediateOutput(int slotIndex) {
+        return !FINAL_OUTPUT_INDICES.contains(slotIndex * 2);
+    }
+
     public UI createUI() {
         UIElement root = new UIElement();
         root.layout(layout -> {
@@ -171,7 +178,7 @@ public class GTOreByProductWidget {
             int y = ITEM_OUTPUT_LOCATIONS.getInt(i + 1);
             outputBackgrounds.addChild(createTextureElement(x, y, SLOT_SIZE, SLOT_SIZE, GuiTextures.SLOT));
             itemStackGroup.addChild(createOutputSlot(recipeWrapper, itemOutputsHandler, slotIndex, itemInputs.size(),
-                    i, x, y));
+                    x, y));
         }
         addSifterOutputBackgrounds(outputBackgrounds, itemOutputExists, hasSifter);
 
@@ -233,8 +240,7 @@ public class GTOreByProductWidget {
     }
 
     private static GTItemSlotElement createOutputSlot(GTOreByProduct recipeWrapper, CustomItemStackHandler handler,
-                                                      int slotIndex, int itemInputCount, int locationIndex, int x,
-                                                      int y) {
+                                                      int slotIndex, int itemInputCount, int x, int y) {
         Content chance = recipeWrapper.getChance(slotIndex + itemInputCount);
         float xeiChance = 1.0f;
         IGuiTexture overlay = IGuiTexture.EMPTY;
@@ -255,7 +261,7 @@ public class GTOreByProductWidget {
         slot.setOnAddedTooltips((element, tooltips) -> recipeWrapper.getTooltip(slotIndex + itemInputCount, tooltips));
         slot.xeiRecipeSlot(GTXEIHelper.output(), xeiChance, 1, stackSupplier);
         slot.xeiRecipeIngredient(GTXEIHelper.output(), stackSupplier);
-        if (!FINAL_OUTPUT_INDICES.contains(locationIndex)) {
+        if (isIntermediateOutput(slotIndex)) {
             slot.xeiRecipeIngredient(GTXEIHelper.input(), stackSupplier);
         }
         slot.setIngredientIO(GTXEIHelper.output());

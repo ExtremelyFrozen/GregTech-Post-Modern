@@ -30,6 +30,8 @@ import com.google.common.collect.ImmutableList;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectIntPair;
+import lombok.Getter;
+import org.jetbrains.annotations.ApiStatus;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -50,8 +52,11 @@ public class GTOreByProduct {
 
     private final Int2ObjectMap<Content> chances = new Int2ObjectOpenHashMap<>();
     protected final List<ItemEntryList> itemInputs = new ArrayList<>();
+    @Getter(onMethod_ = @ApiStatus.Internal)
     protected final NonNullList<ItemStack> itemOutputs = NonNullList.create();
+    @Getter(onMethod_ = @ApiStatus.Internal)
     protected final List<FluidEntryList> fluidInputs = new ArrayList<>();
+    private final int visibleItemInputCount;
     private boolean hasDirectSmelt = false;
     private boolean hasChemBath = false;
     private boolean hasSeparator = false;
@@ -141,7 +146,8 @@ public class GTOreByProduct {
             addToInputs(ItemStack.EMPTY);
         }
 
-        // add prefixes that should count as inputs to input lists (they will not be displayed in actual page)
+        visibleItemInputCount = itemInputs.size();
+        // Add prefixes for viewers that index them separately from the visible slots.
         for (TagPrefix prefix : IN_PROCESSING_STEPS) {
             itemInputs.add(ItemTagList.of(ChemicalHelper.getTag(prefix, material), 1, DataComponentPatch.EMPTY));
         }
@@ -306,6 +312,11 @@ public class GTOreByProduct {
 
     public Content getChance(int slot) {
         return chances.get(slot);
+    }
+
+    @ApiStatus.Internal
+    public List<ItemEntryList> getVisibleItemInputs() {
+        return itemInputs.subList(0, visibleItemInputCount);
     }
 
     public boolean hasSifter() {
