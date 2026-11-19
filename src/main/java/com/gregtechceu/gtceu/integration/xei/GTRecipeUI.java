@@ -49,13 +49,15 @@ import net.minecraft.world.level.block.Blocks;
 import com.google.common.collect.Table;
 import com.google.common.collect.Tables;
 import dev.vfyjxf.taffy.style.TaffyPosition;
+import it.unimi.dsi.fastutil.objects.Object2ObjectArrayMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Predicate;
 
 /**
@@ -89,13 +91,13 @@ public final class GTRecipeUI {
                                                               int chanceTier,
                                                               Predicate<RecipeCapability<?>> capabilityFilter) {
         var storages = Tables.newCustomTable(new EnumMap<>(IO.class),
-                LinkedHashMap<RecipeCapability<?>, Object>::new);
+                Object2ObjectArrayMap<RecipeCapability<?>, Object>::new);
         var contents = Tables.newCustomTable(new EnumMap<>(IO.class),
-                LinkedHashMap<RecipeCapability<?>, List<Content>>::new);
+                Object2ObjectArrayMap<RecipeCapability<?>, List<Content>>::new);
         collectStorage(storages, contents, recipe, capabilityFilter);
         var recipeHolder = new GTRecipeTypeUI.RecipeHolder(GTRecipeTypeUI.XEI_PROGRESS, storages,
                 DataComponentMap.EMPTY, recipe.conditions, false, false);
-        List<UIElement> elements = new ArrayList<>();
+        var elements = new ObjectArrayList<UIElement>();
         for (var capabilityEntry : contents.rowMap().entrySet()) {
             IO io = capabilityEntry.getKey();
             for (var contentsEntry : capabilityEntry.getValue().entrySet()) {
@@ -481,7 +483,9 @@ public final class GTRecipeUI {
                                         ContentListMap recipeContents,
                                         IO io,
                                         Predicate<RecipeCapability<?>> capabilityFilter) {
-        for (var entry : recipeContents.entrySet()) {
+        var entries = recipeContents.fastIterator();
+        while (entries.hasNext()) {
+            var entry = entries.next();
             RecipeCapability<?> cap = entry.getKey();
             if (!capabilityFilter.test(cap)) {
                 continue;
@@ -491,7 +495,8 @@ public final class GTRecipeUI {
             if (existing == null) {
                 contents.put(io, cap, entryContents);
             } else {
-                ArrayList<Content> fullContents = new ArrayList<>(existing);
+                var fullContents = new ObjectArrayList<Content>(existing.size() + entryContents.size());
+                fullContents.addAll(existing);
                 fullContents.addAll(entryContents);
                 contents.put(io, cap, fullContents);
             }
@@ -505,18 +510,22 @@ public final class GTRecipeUI {
         if (!contents.containsRow(io)) {
             return;
         }
-        Map<RecipeCapability<?>, List<Object>> capabilities = new LinkedHashMap<>();
-        for (var entry : contents.row(io).entrySet()) {
+        var row = contents.row(io);
+        var capabilities = new Object2ObjectLinkedOpenHashMap<RecipeCapability<?>, List<Object>>(row.size());
+        for (var entry : row.entrySet()) {
             RecipeCapability<?> cap = entry.getKey();
             capabilities.put(cap, cap.createXEIContainerContents(entry.getValue(), recipe, io));
         }
-        for (var entry : capabilities.entrySet()) {
+        var containers = capabilities.object2ObjectEntrySet().fastIterator();
+        while (containers.hasNext()) {
+            var entry = containers.next();
             RecipeCapability<?> cap = entry.getKey();
+            var slots = entry.getValue();
             int maxSlots = io == IO.IN ? recipe.recipeType.getMaxInputs(cap) : recipe.recipeType.getMaxOutputs(cap);
-            while (entry.getValue().size() < maxSlots) {
-                entry.getValue().add(null);
+            while (slots.size() < maxSlots) {
+                slots.add(null);
             }
-            var container = cap.createXEIContainer(entry.getValue());
+            var container = cap.createXEIContainer(slots);
             if (container != null) {
                 storages.put(io, cap, container);
             }

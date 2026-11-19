@@ -52,13 +52,18 @@ public record GTEmiIngredients(ObjectList<EmiIngredient> inputs, ObjectList<EmiI
 
     private boolean addContents(ContentListMap contents, ContentListMap tickContents, IO io, EmiTagStacks tags) {
         boolean needsUI = false;
+        boolean hasTickContents = !tickContents.isEmpty();
         var regular = contents.fastIterator();
         while (regular.hasNext()) {
             var entry = regular.next();
             RecipeCapability<?> capability = entry.getKey();
             needsUI |= addContents(capability, entry.getValue(), io, tags);
-            needsUI |= addContents(capability, tickContents.getOrDefault(capability, ObjectList.of()), io, tags);
+            if (hasTickContents) {
+                needsUI |= addContents(capability, tickContents.getOrDefault(capability, ObjectList.of()), io, tags);
+            }
         }
+        if (!hasTickContents) return needsUI;
+
         var ticking = tickContents.fastIterator();
         while (ticking.hasNext()) {
             var entry = ticking.next();
