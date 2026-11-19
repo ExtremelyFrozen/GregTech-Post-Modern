@@ -1,80 +1,48 @@
 ---
-title: "从 LDLib SyncData 迁移"
+title: 从 LDLib SyncData 迁移
 ---
+
+
 # 从 LDLib SyncData 迁移
 
-### 简单示例
+GTPM 的保存与同步由 `SyncDataHolder` 和字段 Codec 驱动。LDLib2 提供界面、控件和菜单框架。
 
-这个简单示例覆盖了向标准 machine、machine trait 或 cover 添加同步/保存字段时的大多数用例。
 
-#### 使用 LDLib 时：
-```java
-class CustomMachine extends SimpleTieredMachine {
-    protected static final ManagedFieldHolder MANAGED_FIELD_HOLDER = new ManagedFieldHolder(CustomMachine.class,
-            SimpleTieredMachine.MANAGED_FIELD_HOLDER);
+## 字段迁移
 
-    @Override
-    public ManagedFieldHolder getFieldHolder() {
-        return MANAGED_FIELD_HOLDER;
-    }
+| 旧入口 | 当前入口 |
+| --- | --- |
+| `ManagedFieldHolder`、`FieldManagedStorage` | `ISyncManaged` 和 `SyncDataHolder`。现有机器、trait 与覆板通过自身持有者接入。 |
+| `@Persisted(key = "...")` | `@SaveField(nbtKey = "...")`。使用原字段键时仍需匹配当前 Codec 的数据结构。 |
+| `@DescSynced` | `@SyncToClient`。客户端可编辑且服务端需要回传的设置使用 `@SyncBoth`。 |
+| `@RequireRerender` | `@RerenderOnChanged`。 |
+| `@UpdateListener` | `@ClientFieldChangeListener`。服务端提交回调使用 `@ServerFieldChangeListener`。 |
+| `IAutoPersistBlockEntity`、`IAutoSyncBlockEntity` | `ManagedSyncBlockEntity`，由 ticker 调用 `serverTick()`。 |
+| `ValueTransformer` 和字段的旧 NBT 编解码入口 | 在 `FieldCodecs` 注册 `Codec`、`StreamCodec` 或 `ContextualFieldCodec`。 |
+| 手写配置动作包 | 双向同步字段或受管对象的方法 RPC。 |
 
-    @Getter
-    @Persisted
-    @DescSynced
-    @RequireRerender
-    protected int customIntValue;
+??? example "迁移机器的两个字段"
 
-    @Persisted(key = "customNBTKey")
-    protected String customStringValue;
-
-    public void setCustomIntValue(int newValue) {
-        this.customIntValue = newValue;
-    }
-}
-```
-
-#### 新系统：
-```java
-class CustomMachine extends SimpleTieredMachine {
-    @Getter
-    @SaveField
+    ```java
+    @SaveField(nbtKey = "custom_value")
     @SyncToClient
-    protected int customIntValue;
+    @RerenderOnChanged
+    private int displayValue;
 
-    @SaveField(nbtKey = "customNBTKey")
-    protected String customStringValue;
+    @SaveField(nbtKey = "custom_name")
+    private String customName = "";
+    ```
 
-    public void setCustomIntValue(int newValue) {
-        this.customIntValue = newValue;
-    }
-}
+    `displayValue` 在服务端更新后同步到客户端并刷新渲染。`customName` 随世界存档保存。
 
-```
 
-### 通用迁移准则
+## 存档与物品
 
-- 移除所有 `ManagedFieldHolder` 字段。
-- 将 `FieldManagedStorage` 字段替换为 `SyncDataHolder` 字段。
-- 将 `IEnhancedManaged` 对象替换为 `ISyncManaged`。
-- 将 `IAsyncAutoSyncBlockEntity`、`IAutoPersistBlockEntity`、`IAutoSyncBlockEntity` 和 `IManagedBlockEntity` 替换为继承 `ManagedSyncBlockEntity`。
-- 只有真正需要 `SavedData` 后端的全局或跨区块持久数据才迁移到 `ManagedSavedData`。默认 sync save key 是 `${GTCEu.MOD_ID}_sync_data`，当前 key 为 `gtpm_sync_data`；如果某个 `SavedData` 子类需要独立后端，应设置专用 key。
+自定义存档工具和 GameTest 模板应使用 `gtpm_sync_data` 及相应的 `SyncFieldData` 表示。迁移已有方块实体数据时，可在 `loadAdditional(tag, registries)` 中转换旧字段，然后调用父类以读取转换后的数据。字段值结构由现行 Codec 决定。
 
-### LDLib2 界面迁移
+机器拆装时随掉落物保留的属性使用 `@ItemSave`。可手持的物品通过 `ItemSyncHolder` 使用 `gtpm:item_data`。机器记忆卡使用独立的配置数据组件，并通过 `ICopyable` 的 Codec 字段读写。 [持有者与 Codec](Usage.md) · [复制机器与覆板设置](../../Modpacks/Other-Topics/Cover-Machine-Copy-Paste-Support.md)
 
-页签、临时筛选等界面状态可保留在客户端。需要同步的业务状态使用 GTPM 的同步字段。机器、覆板等需要服务端执行的操作可参照现有的 `@RPCMethod` 用法，在服务端验证操作目标和参数后更新状态。
 
-### 注解
+## 界面迁移
 
-!!! note
-    同步系统会自动检测字段变更。可变对象的内部状态可以通过受管子对象或上下文 Codec 同步。
-
-- `@DescSynced` -> `@SyncToClient`
-- `@RequireRerender` -> `@RerenderOnChanged`
-- `@Persisted` -> `@SaveField`
-- `@UpdateListener` -> 在 listener method 上使用 `@ClientFieldChangeListener`
-- `@DropSaved` - 已移除，改为让 machine 实现 `IDropSaveMachine`
-- `@ReadOnlyManaged` 和 `@LazyManaged` - 有关复杂 sync object 的说明，请参阅用法文档
-
-### 其他变更
-
- - `saveCustomPersistedData` 和 `loadCustomPersistedData` 方法，以及自定义数据类型的序列化 - 请参阅 `ValueTransformer<T>` 和 `ValueTransformers` 类。
+旧 LDLib 界面布局可以从 LDLib2 模板重建。界面上的普通设置可直接绑定到双向同步字段，执行操作用方法 RPC。 [LDLib2 界面编辑器](../../Modpacks/Other-Topics/LDLib-UI-Editor.md) · [方法 RPC](RPC.md)

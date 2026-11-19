@@ -9,10 +9,9 @@ title: 首页
 
 GregTech Post Modern（GTPM）基于 [GregTech CEu Modern](https://github.com/GregTechCEu/GregTech-Modern)。本站介绍 Minecraft 1.21.1 与 NeoForge 下的 GTPM，模组 ID 为 `gtpm`。
 
-!!! danger "施工中"
-    请注意，这份文档目前仍处于大量施工阶段，因此还有许多内容缺失。
-
-    如果你找不到需要的内容，欢迎在 [我们的 Discord](https://discord.gg/bWSWuYvURP) 提问。
+- 玩法指南介绍机器、电力、矿脉和终端。 [玩法指南](Gameplay/index.md)
+- 整合包文档介绍数据包、资源包和附属模组。 [整合包制作](Modpacks/index.md)
+- 开发文档介绍当前的结构与配方模型、字段同步和运行环境。 [开发文档](Development/index.md)
 
 
 ## 下载

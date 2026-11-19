@@ -1,15 +1,16 @@
 ---
-title: 为 Cover 和 Machine 添加 Copy & Paste 支持
+title: 复制机器与覆板设置
 ---
 
-Machine Memory Card 物品允许将 Machine 设置和 Cover 复制到其他 Machine。
 
-要添加需要额外复制的字段，请在 Machine 或 Cover 上重写以下方法：
-```java
-/// Copies the current machine/cover config to a CompoundTag.
-public CompoundTag copyConfig(CompoundTag tag);
-/// Loads a machine/cover config from a CompoundTag.
-public void pasteConfig(ServerPlayer player, CompoundTag tag);
-/// Returns a list of items (covers, filters, etc) which are needed to copy and paste this machine.
-public List<ItemStack> getItemsRequiredToPaste();
-```
+# 为机器与覆板添加设置复制
+
+机器记忆卡通过 `ICopyable` 读写 `SyncFieldData`。受管对象的默认实现通过字段 Codec 复制 `@SaveField` 数据。机器和覆板可选择其中用于配置的字段，并在粘贴时用同一组键读回。
+
+| 方法 | 用途 |
+| --- | --- |
+| `copyConfig(HolderLookup.Provider registries)` | 导出配置字段，返回 `SyncFieldData`。 |
+| `pasteConfig(ServerPlayer player, HolderLookup.Provider registries, SyncFieldData config)` | 在服务端应用字段数据，并执行需要的设置更新。 |
+| `getItemsRequiredToPaste()` | 返回粘贴设置所需的物品，例如目标缺少的覆板。 |
+
+组合配置时可使用 `ConfigCopyHelper` 选取字段和合并覆板数据。记忆卡的配置组件与机器掉落物持久化分别读写，随机器拆装保存的字段使用 `@ItemSave`。 [ICopyable 源码](https://github.com/ExtremelyFrozen/GregTech-Post-Modern/blob/1.21/src/main/java/com/gregtechceu/gtceu/api/blockentity/ICopyable.java) · [字段保存](../../Development/Data-Sync-System/Usage.md)

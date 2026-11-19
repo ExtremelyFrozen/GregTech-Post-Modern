@@ -2,7 +2,7 @@
 title: 中央监控器与占位符系统
 ---
 
-### 中央监控器 { #central-monitor }
+# 中央监控器 { #central-monitor }
 
 中央监控器是一个多方块结构，可以插入模块来渲染图片和文本。<br>
 图片每 120 秒更新一次，文本更新速度取决于提供给该多方块结构的电压。
@@ -24,9 +24,7 @@ title: 中央监控器与占位符系统
 group 创建后不能再向其中添加 Monitor。图片尺寸由该 group 的左上角和右下角决定，
 两者之间的方块必须属于同一个 group。Text Module 只会在其 group 的 Monitor 上显示文本。
 
-!!! warning "Image Module 有一些 Bug，因此图片可能不会立即显示"
-
-### Text Module（文本模块）
+## 文本模块
 
 你可能已经注意到 Text Module 的 UI 中有一个数字输入框。它是文本缩放值，其中 1 表示 1/16 方块高度的行高。
 你可能也注意到 Text Module 左侧还有一些额外槽位。
@@ -38,7 +36,7 @@ group 创建后不能再向其中添加 Monitor。图片尺寸由该 group 的�
 
 !!! note "对于 Computer Monitor Cover，目标方块始终是该 Cover 放置在其上的方块。"
 
-### Placeholders（占位符）
+## 占位符
 
 玩家可以在 Monitor Text Module 或 Computer Monitor Cover 中使用 Placeholder（后者的能力稍受限制）。
 例如，玩家可以在 Text Module 中写入如下内容：

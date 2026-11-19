@@ -3,8 +3,26 @@ title: Material 创建
 ---
 
 
-!!! note "上游示例"
-    本页示例面向 GregTech CEu Modern。GTPM 1.21.1 的数据包和附属模组入口见[整合包制作](../index.md#upstream-kubejs)。
+# 注册材料
+
+在附属模组的材料注册阶段，用 `Material.Builder` 定义材料，并通过 `buildAndRegister()` 注册。材料 ID 使用附属模组自己的命名空间。注册完成后可在 `PostMaterialEvent` 中为既有材料补充属性。
+
+??? example "注册带粉末和锭的材料"
+
+    ```java
+    Material exampleMetal = new Material.Builder(
+            ResourceLocation.fromNamespaceAndPath("example", "example_metal"))
+            .ingot()
+            .color(0xB4A67A)
+            .buildAndRegister();
+    ```
+
+材料流体可用 `FluidBuilder` 指定注册与渲染参数。显式纹理优先于材料生成的默认纹理。 [Material 源码](https://github.com/ExtremelyFrozen/GregTech-Post-Modern/blob/1.21/src/main/java/com/gregtechceu/gtceu/api/data/chemical/material/Material.java) · [FluidBuilder 源码](https://github.com/ExtremelyFrozen/GregTech-Post-Modern/blob/1.21/src/main/java/com/gregtechceu/gtceu/api/fluids/FluidBuilder.java)
+
+
+## 上游材料脚本
+
+以下示例使用 GregTech CEu Modern 的 KubeJS API。 [GTPM 迁移指南](../Changes/1.21-Migration.md)
 
 Materials 是游戏内物品或流体。它们可以是 dusts、ingots、gems、fluids 及其所有派生形态。
 !!! note

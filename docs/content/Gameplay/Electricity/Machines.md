@@ -1,3 +1,8 @@
+---
+title: 电力机器
+---
+
+
 # 电力机器（Electric Machines） { #electric-machines }
 
 GregTech Post Modern 中绝大多数功能性机器都由 EU 驱动。和 Generators 一样，它们之间也有许多共同规则和模式。
@@ -43,6 +48,8 @@ Battery 也能抵消 Powerstalling，让机器缓冲足够电力以短时间爆�
 这*不是* GregTech Post Modern 中的功能。
 
 ## 多方块机器（Multiblock Machines） { #multiblock-machines }
+
+在 JEI 或 EMI 中查看所需的方块与舱室，使用终端预览或搭建，并在主机界面重新检测结构。 [多方块预览、搭建与检测](../Multiblocks.md)
 
 从作为 MV 门槛的 Electric Blast Furnace 开始，并在 HV 和 IV 阶段大幅扩展，Multiblock Machines
 用于解决需要更高处理速度和吞吐量，或需要执行过大、过耗电而无法在单方块机器中运行的工艺。所有多方块电力机器都具备以下特性：

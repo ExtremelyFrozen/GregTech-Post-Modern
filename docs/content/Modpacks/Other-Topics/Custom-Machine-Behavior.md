@@ -1,71 +1,44 @@
 ---
-title: 自定义 Machine Behavior
+title: 自定义机器行为
 ---
 
-!!! Warning "警告"
-    Custom Machine Behavior 目前仅在 Java 中受支持。
 
-有时，你会想在 Machine 中执行一些无法通过 Recipe Conditions 或 Recipe Modifiers 实现的操作。这时，Custom Machine Behavior 可能就是合适的工具。
+# 自定义机器行为
 
-它通过注册一个自定义 `TickableSubscription` 工作，该 subscription 会在每个 tick 被调用。
-这里我们要制作一个 greenhouse，它在运行时还会把自身上方的所有 dirt 变成 grass。
-```java
+附属模组可以继承与机器类型对应的类，并将构造器传给 `GTRegistrate.machine` 或 `multiblock`。与配方执行相关的行为通过 `IRecipeLogicMachine` 的工作钩子实现。
 
-public class Greenhouse extends WorkableElectricMultiblockMachine {
 
-    private TickableSubscription tickSubscription;
+## 配方运行中的行为
 
-    @Override
-    public void onStructureFormed() {
-        super.onStructureFormed();
-        if (!isRemote()) {
-            tickSubscription = this.subscribeServerTick(this::turnGreenery);
+`beforeWorking` 在消耗开始输入前执行，可以返回组件说明无法启动的原因。`onWorking` 在每刻条件与 I/O 成功后执行，返回 `false` 会中止当前配方。`afterWorking` 在配方到达完成阶段时执行。
+
+??? example "机器工作时将上方泥土变成草方块"
+
+    ```java
+    public class Greenhouse extends WorkableElectricMultiblockMachine {
+        public Greenhouse(BlockEntityCreationInfo info) {
+            super(info);
+        }
+
+        @Override
+        public boolean onWorking() {
+            if (!super.onWorking()) {
+                return false;
+            }
+            if (getLevel() instanceof ServerLevel level) {
+                BlockPos above = getBlockPos().above();
+                if (level.getBlockState(above).is(Blocks.DIRT)) {
+                    level.setBlockAndUpdate(above, Blocks.GRASS_BLOCK.defaultBlockState());
+                }
+            }
+            return true;
         }
     }
+    ```
 
-    @Override
-    public void onStructureInvalid() {
-        super.onStructureInvalid();
-        if (!isRemote()) {
-            tickSubscription.unsubscribe();
-            tickSubscription = null;
-        }
-    }
+在机器注册入口使用 `Greenhouse::new`。涉及具体配方条件和超频、并行的行为可以复用各自的配方接口。 [配方执行](../../Development/Recipe-Logic/Recipe-Execution.md) · [自定义修改器](../Recipes/Custom-Recipe-Modifiers.md)
 
-    private void turnGreenery(){
-        if(!getRecipeLogic().isActive()) return;
-        BlockPos currentPosition = getRecipeLogic().getMachine().getHolder().getCurrentPos();
-        BlockPos abovePosition = currentPosition.above();
-        if(this.getLevel().getBlockState(abovePosition).equals(Blocks.DIRT.defaultBlockState())){
-            this.getLevel().setBlock(abovePosition, Blocks.GRASS.defaultBlockState(), 3);
-        }
-    }
-}
-```
-`tickSubscription` 字段是当前应当每 tick 调用一次的 subscription 引用。创建该 subscription 时，我们会告诉服务端每 tick 运行一次 `this.turnGreenery()`。
 
-在该方法中，我们只需检查 recipe logic 是否处于活动状态；如果是，并且 Machine 上方的 Block 已经是 dirt，就将它变成 grass。
+## 独立于配方的 Tick
 
-要使用它，可以这样写：
-```java
-    public static final MultiblockMachineDefinition GREENHOUSE = REGISTRATE
-        .multiblock("green_house", Greenhouse::new)
-        .rotationState(RotationState.ALL)
-        .recipeType(MyRecipeTypes.GREENHOUSE)
-        .recipeModifiers(OC_PERFECT_SUBTICK, BATCH_MODE)
-        .appearanceBlock(CASING_PTFE_INERT)
-        .pattern(MultiblockControllerMachine.DEFAULT_STRUCTURE, definition -> {
-            var casing = blocks(CASING_PTFE_INERT.get()).setMinGlobalLimited(10);
-            var abilities = PatternPredicate.autoAbilities(definition.getRecipeTypes())
-                    .or(PatternPredicate.autoAbilities(true, false, false));
-            return PatternBuilder.start(definition)
-                    .aisle("XSX", "XXX", "XXX")
-                    .aisle("XXX", "XXX", "XXX")
-                    .where('S', PatternPredicate.controller(blocks(definition.getBlock())))
-                    .where('X', casing.or(abilities))
-                    .build();
-        })
-        .workableCasingModel(GTCEu.id("block/casings/solid/machine_casing_inert_ptfe"),
-                GTCEu.id("block/multiblock/large_chemical_reactor"))
-        .register();
-```
+机器可通过 `subscribeServerTick` 调度自身操作。多方块的启动和停止点分别是 `formStructure(String name)` 和 `invalidateStructure(String name)`。按对应的结构名管理订阅，结构失效或机器卸载时取消订阅。需要根据某个状态订阅和取消时，可以用 `ConditionalSubscriptionHandler` 管理生命周期。 [Tick 更新](../../Development/General-Topics/Tick-Updates.md)

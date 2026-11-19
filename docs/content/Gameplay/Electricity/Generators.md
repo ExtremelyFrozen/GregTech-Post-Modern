@@ -1,3 +1,8 @@
+---
+title: 发电机
+---
+
+
 # 发电机（Generators） { #generators }
 
 Generators 是每 tick 消耗 Fuel 并产生 EU 的机器。发电机有多种不同类型，
@@ -66,6 +71,8 @@ Large Combustion Engine（EV）和 Extreme Combustion Engine（IV）是大型发
 该提升会使发电机燃料消耗翻倍，但会使能量产出变为三倍（LCE）或四倍（ECE）。
 
 如果 LCE/ECE 的 Dynamo Hatch 被 EU 填满，引擎会暂停并停止消耗燃料。
+
+引擎界面以 mB 显示当前运行配方的实际燃料需求，这个数值已经包含并行量。未运行时，能匹配燃料的引擎会按可用发电电压显示预计需求。
 
 Large Combustion Engines 建造成本高，但投入运行后维护量较低；Gasoline 等更高 tier 的燃烧燃料能量密度也相当高。
 

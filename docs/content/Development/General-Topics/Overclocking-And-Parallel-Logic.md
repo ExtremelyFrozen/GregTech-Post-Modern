@@ -1,80 +1,31 @@
 ---
-title: 超频与并行逻辑
+title: 超频与并行
 ---
 
 
-# 如何设置超频与并行逻辑
+# 超频与并行
 
-为了提高通用性，GregTech Post Modern 重写了 `RecipeLogic`，使其支持 EU、item 和 fluid 之外的输入与输出。
-
-新的 `RecipeLogic` 不再直接处理超频和并行逻辑，而是通过 `IRecipeLogicMachine` 将这些逻辑委托给 machine：
-
-```java
-/**
- * Override it to modify recipe on the fly e.g. applying overclock,
- * change chance, etc
- *
- * @param recipe recipe from detected from GTRecipeType
- * @return modified recipe.
- *         null -- this recipe is unavailable
- */
-@Nullable
-GTRecipe modifyRecipe(GTRecipe recipe);
-```
+机器在 `IRecipeLogicMachine.fullModifyRecipe` 中为运行时配方应用修改器。`GTRecipe` 的 `tier` 表示配方等级，`getInputEUt()` 和 `getOutputEUt()` 返回每刻总用电量和发电量。
 
 
 ## 电力超频
 
-通常，简单的电力超频可以按以下方式实现。细节请参阅 `OverclockingLogic` 和 `RecipeHelper`。
+机器定义可以使用 `GTRecipeModifiers.OC_NON_PERFECT`、`OC_PERFECT` 或相应的子刻版本。修改器根据 `IOverclockMachine.getOverclockVoltage()` 与配方用量计算超频。机器等级电压由 `ITieredMachine.getTierVoltage()` 提供。
 
-recipe tier 已从 EU 内容中独立出来，存储在 `recipe.tier`。EU 内容表示的是该 recipe 的 total EU/t，不再承担 recipe tier 的含义。进行机器电压判断时应使用 `ITieredMachine#getTierVoltage`；执行 overclock 计算时应使用 `IOverclockMachine#getOverclockVoltage`。
-
-```java
-public @Nullable GTRecipe modifyRecipe(GTRecipe recipe) {
-    if (RecipeHelper.getRecipeEUtTier(recipe) > getTier()) {
-        return null;
-    }
-
-    return RecipeHelper.applyOverclock(
-        getDefinition().getOverclockingLogic(),
-        recipe,
-        getMaxVoltage()
-    );
-}
-```
+发电配方以 `getOutputEUt()` 读取每刻产出。大型燃烧引擎的燃料显示使用当前运行配方中的实际输入。尚未运行但已经找到候选时，才按机器可用发电电压预估并行消耗。
 
 
-## 并行逻辑
+## 并行与批处理
 
-并行逻辑实现起来也不复杂。这里以 `generator` 为例：
+机器可通过 `GTRecipeModifiers.PARALLEL_HATCH` 采用可用并行仓的设置，并通过 `BATCH_MODE` 使用批处理。`ParallelLogic` 根据可用输入、输出容量及机器条件限制实际并行数量。自定义修改器要同时记录并行数量和修改对应能力的内容。`parallels`、`batchParallels` 和 `subtickParallels` 用于保存并行信息，具体用量由内容修改器处理。
 
-```java
-public @Nullable GTRecipe modifyRecipe(GTRecipe recipe) {
-    var EUt = RecipeHelper.getOutputEUt(recipe); // get the recipe's EU/t
+??? example "给机器组合并行、超频与批处理"
 
-    if (EUt > 0) {
-        // calculate the max parallel limitation.
-        var maxParallel = (int) (Math.min(
-            energyContainer.getOutputVoltage(),
-            GTValues.V[overclockTier]
-        ) / EUt);
+    ```java
+    builder.recipeModifiers(
+            GTRecipeModifiers.PARALLEL_HATCH,
+            GTRecipeModifiers.OC_NON_PERFECT_SUBTICK,
+            GTRecipeModifiers.BATCH_MODE);
+    ```
 
-        while (maxParallel > 0) {
-            // copy and apply parallel, it will affect all recipes' contents
-            // and the recipe duration.
-            var copied = recipe.copy(ContentModifier.multiplier(maxParallel));
-
-            // If the machine has enough ingredients, return copied recipe.
-            if (copied.matchRecipe(this)) {
-                copied.duration = copied.duration / maxParallel;
-
-                return copied;
-            }
-
-            // Trying to halve the number of parallelism
-            maxParallel /= 2;
-        }
-    }
-    return null;
-}
-```
+[配方执行](../Recipe-Logic/Recipe-Execution.md) · [自定义修改器](../../Modpacks/Recipes/Custom-Recipe-Modifiers.md)
