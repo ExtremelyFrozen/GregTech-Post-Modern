@@ -50,7 +50,7 @@ public class Symptom {
             SYMPTOM_SLOWNESS_ID);
     public static final Symptom AIR_SUPPLY_DEBUFF = new Symptom(defaultKey("air_supply_debuff"), 10, 1,
             (hazardEffectTracker, damageSource, configuredSymptom, baseSymptom, modifier) -> hazardEffectTracker
-                    .setMaxAirSupply(300 - 10 * modifier));
+                    .setMaxAirSupply(modifier == 0 ? -1 : 300 - 10 * modifier));
     public static final Symptom BLINDNESS = new Symptom(defaultKey("blindness"), 10, 0, MobEffects.BLINDNESS);
     public static final Symptom NAUSEA = new Symptom(defaultKey("nausea"), 10, 0, MobEffects.CONFUSION);
     public static final Symptom MINING_FATIGUE = new Symptom(defaultKey("mining_fatigue"), 10, 1,
