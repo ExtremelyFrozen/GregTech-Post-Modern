@@ -1,11 +1,14 @@
 ---
-title: "Ore Processing Plant"
+title: "矿石处理厂"
 ---
 
 
-# Ore Processing Plant Multiblock (by trulyno)
+# 矿石处理厂 Multiblock（作者：trulyno）
 
-## Recipe Type
+!!! note "上游示例"
+    本页示例面向 GregTech CEu Modern。GTPM 1.21.1 的数据包和附属模组入口见[整合包制作](../../index.md#upstream-kubejs)。
+
+## 配方类型
 
 === "JavaScript"
     ```js title="ore_processing_plant.js"
@@ -27,7 +30,7 @@ title: "Ore Processing Plant"
     ```
 
 
-## Multiblock
+## Multiblock 结构
 === "JavaScript"
     ```js title="ore_processing_plant.js"
     GTCEuStartupEvents.registry('gtceu:machine', event => {
@@ -36,7 +39,7 @@ title: "Ore Processing Plant"
             .recipeType('ore_processing_plant')
             .recipeModifiers(GTRecipeModifiers.PARALLEL_HATCH, GTRecipeModifiers.ELECTRIC_OVERCLOCK.apply(OverclockingLogic.PERFECT_OVERCLOCK))
             .appearanceBlock(GTBlocks.CASING_TUNGSTENSTEEL_ROBUST)
-            .pattern(definition => PatternBuilder.start()
+            .pattern(definition => FactoryBlockPattern.start()
                 .aisle(' AAA ', ' FFF ', ' FFF ', '  F  ', '     ', '     ', '     ')
                 .aisle('AFFFA', 'FG GF', 'F   F', ' F F ', ' FFF ', '  F  ', '  B  ')
                 .aisle('AFFFA', 'F P F', 'F P F', 'F P F', ' FPF ', ' FMF ', ' B B ')
@@ -69,7 +72,7 @@ title: "Ore Processing Plant"
             .recipeType(RecipeTypes.ORE_PROCESSING_PLANT)
             .recipeModifiers(GTRecipeModifiers.PARALLEL_HATCH, GTRecipeModifiers.ELECTRIC_OVERCLOCK.apply(OverclockingLogic.PERFECT_OVERCLOCK))
             .appearanceBlock(GTBlocks.CASING_TUNGSTENSTEEL_ROBUST)
-            .pattern(definition => PatternBuilder.start()
+            .pattern(definition => FactoryBlockPattern.start()
                 .aisle(' AAA ', ' FFF ', ' FFF ', '  F  ', '     ', '     ', '     ')
                 .aisle('AFFFA', 'FG GF', 'F   F', ' F F ', ' FFF ', '  F  ', '  B  ')
                 .aisle('AFFFA', 'F P F', 'F P F', 'F P F', ' FPF ', ' FMF ', ' B B ')
@@ -95,7 +98,7 @@ title: "Ore Processing Plant"
     ```
 
 
-## Lang
+## 语言文件
 
 ```json title="en_us.json"
 {

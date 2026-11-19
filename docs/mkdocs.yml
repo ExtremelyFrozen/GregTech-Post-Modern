@@ -1,14 +1,15 @@
-site_name: GregTech Modern Docs
-site_url: https://gregtechceu.github.io/GregTech-Modern
+site_name: GregTech Post Modern 文档
+site_url: https://extremelyfrozen.github.io/GregTech-Post-Modern/
 
-repo_name: GregTech Modern
-repo_url: https://github.com/GregTechCEu/GregTech-Modern
-edit_uri: blob/1.20.1/docs/content/
+repo_name: GregTech Post Modern
+repo_url: https://github.com/ExtremelyFrozen/GregTech-Post-Modern
+edit_uri: blob/1.21/docs/content/
 
 docs_dir: content
 
 theme:
   name: material
+  language: zh
   logo: assets/logo.png
   favicon: assets/favicon.png
   icon:
@@ -20,14 +21,14 @@ theme:
       accent: custom
       toggle:
         icon: material/brightness-7
-        name: Switch to dark mode
+        name: 切换至深色模式
     # Palette toggle for dark mode
     - scheme: slate
       primary: custom
       accent: custom
       toggle:
         icon: material/brightness-4
-        name: Switch to light mode
+        name: 切换至浅色模式
   features:
     - navigation.instant
     - navigation.sections
@@ -52,12 +53,11 @@ extra:
   social:
     - icon: fontawesome/brands/discord
       link: https://discord.gg/bWSWuYvURP
-    - icon: simple/curseforge
-      link: https://www.curseforge.com/minecraft/mc-mods/gregtechceu-modern/files
-    - icon: simple/modrinth
-      link: https://modrinth.com/mod/gregtechceu-modern
+    - icon: material/download
+      link: https://github.com/ExtremelyFrozen/GregTech-Post-Modern/releases
+      name: 下载 GregTech Post Modern
     - icon: fontawesome/brands/github
-      link: https://github.com/GregTechCEu/GregTech-Modern
+      link: https://github.com/ExtremelyFrozen/GregTech-Post-Modern
 
 markdown_extensions:
   - admonition

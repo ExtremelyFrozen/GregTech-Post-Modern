@@ -1,71 +1,34 @@
 ---
-title: LDLib2 UI Editor
+title: LDLib2 界面编辑器
 ---
 
-# LDLib2 UI Editor
+# LDLib2 界面编辑器
 
-GTCEu Modern uses LDLib2 XML for editable machine and recipe type UIs. Run `/gtceu ui_editor` to open the editor. The
-command requires administrator permission.
+GregTech Post Modern 使用 LDLib2 XML 定义可编辑的机器界面和配方类型界面。在游戏内使用 `/gtceu ui_editor` 打开编辑器，执行命令需要管理员权限。
 
-## Editing a template
+## 从模板创建界面
 
-Open the **Templates** menu and select either **Machine** or **Recipe**. Selecting an entry creates a GT XML project from
-the XML supplied by that template and assigns its runtime target. The selected target also determines the default save
-location.
+打开 **Templates** 菜单，选择 **Machine** 或 **Recipe**，再选择实际要编辑的机器或配方类型。编辑器会用相应的模板创建 XML 项目，并根据所选目标设置默认保存路径。
 
-The project view is an XML source editor with a rendered preview. The play/stop control switches the preview into and
-out of simulation mode. Edit the XML source directly; it is the authoritative project representation.
+在源码区直接编辑 XML，在预览区查看界面。用播放和停止按钮切换模拟状态。项目保存的是 XML 源码。
 
-!!! note
-    This workflow does not provide hierarchy or inspector-based visual editing, and it does not serialize an edited
-    `UIElement` tree back to XML.
+## 工作区和保存路径
 
-## Workspace and save paths
+编辑器的工作区是 `<游戏目录>/ldlib2/assets/`。目标 ID 为 `<namespace>:<path>` 时，使用以下路径。
 
-The active editor workspace is:
+- 机器界面使用 `<namespace>/ui/machine/<path>.xml`。
+- 配方类型界面使用 `<namespace>/ui/recipe_type/<path>.xml`。
 
-```text
-<gameDir>/ldlib2/assets/
-```
+例如，装配线的配方类型 `gtpm:assembly_line` 对应 `gtpm/ui/recipe_type/assembly_line.xml`。将 XML 保存到工作区中的对应路径会使该目标的缓存失效。重新打开界面即可看到变更。工作区外的 XML 可以保存回原位置，将它移到对应目标路径后才会成为运行时覆盖文件。
 
-For a target resource location `<namespace>:<path>`, templates use these default paths:
+## XML 绑定
 
-- Machine: `<assetsRoot>/<namespace>/ui/machine/<path>.xml`
-- Recipe type: `<assetsRoot>/<namespace>/ui/recipe_type/<path>.xml`
+- 用 UTF-8 无 BOM 保存格式正确的 LDLib2 XML。自定义文件解析或绑定失败时，对应界面会在日志中报告错误。
+- 机器和配方模板的根元素需要固定像素宽度和高度。
+- 配方进度至少需要一个 `id="progress"` 的 `gtpm-progress-bar` 或 `gtpm-dual-progress`。
+- 物品、流体等输入和输出控件采用 `<capability>_<io>_<index>` 格式，例如 `item_in_0`、`fluid_out_0`。索引从 0 开始，元素类型要与相应能力匹配。
+- 机器模板沿用配方绑定。单方块有电压等级的机器需要一个 `id="battery_slot"` 的 `gtpm-item-slot`，单方块发电机需要一个 `id="energy_container"` 的 `gtpm-progress-bar`。
 
-Saving a recognized Machine or Recipe target under the active assets root invalidates the corresponding runtime XML
-cache. The next time that UI is created, GTCEu reads the saved XML. An already open machine or recipe UI is not rebuilt
-in place, so reopen it to see the change.
+## 迁移旧界面
 
-XML files outside the active assets root can still be opened, edited, and saved back to their original location. GTCEu
-logs a warning for such saves and does not reload a runtime target. To make it an active override, save the project from
-the editor to its canonical path under `<gameDir>/ldlib2/assets/`.
-
-## Runtime XML contracts
-
-Keep the following contracts when editing a generated template:
-
-- Save XML as strict UTF-8 without a byte order mark (BOM). The editor and runtime reject a BOM, and runtime loading
-  also rejects malformed UTF-8.
-- The XML must be well-formed LDLib2 UI XML. If a custom resource exists but cannot be decoded, parsed, or bound, GTCEu
-  logs the error and fails that UI creation instead of silently falling back to the default template.
-- The root element of both machine and recipe templates must declare fixed pixel `width` and `height` values. Percentage,
-  automatic, or otherwise non-fixed root dimensions cannot provide the size required by the machine shell and recipe
-  viewer.
-- Recipe progress binding requires at least one `gtm-progress-bar` or `gtm-dual-progress` with `id="progress"`.
-- Recipe capability elements that receive runtime storage or content must retain IDs in the form
-  `<capability>_<io>_<index>`, where `<io>` is `in` or `out` and `<index>` is zero-based. Examples include `item_in_0`
-  and `fluid_out_0`. The element type must still match the capability.
-- Machine templates also retain the recipe binding IDs above. A simple tiered machine additionally requires exactly one
-  `gtm-item-slot` with `id="battery_slot"`; a simple generator requires exactly one `gtm-progress-bar` with
-  `id="energy_container"`.
-
-The generated Machine and Recipe templates already satisfy these contracts. Preserve their binding IDs when changing
-layout, styles, or textures.
-
-## Legacy files
-
-LDLib1 `.mui` and `.rtui` files are historical formats and are no longer loaded by the runtime. They cannot be converted
-by renaming the extension or treating their contents as LDLib2 XML. Recreate the layout and binding contract in an
-LDLib2 XML template, then save it to the canonical Machine or Recipe path above. New custom UI work should not add
-LDLib1 `.mui` or `.rtui` assets.
+从 LDLib1 的 `.mui` 或 `.rtui` 迁移时，先在 LDLib2 中为目标生成 XML 模板，再在模板上重建布局。保留模板的运行时绑定 ID。

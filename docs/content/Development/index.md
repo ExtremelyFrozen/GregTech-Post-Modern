@@ -1,22 +1,21 @@
 ---
-title: Developer Documentation
+title: 开发者文档
 ---
 
 
-# Developing GTCEu Modern
+# 开发 GregTech Post Modern
 
-If you want to contribute to the development of GTCEu Modern, please feel free to submit a 
-pull request with your changes.
+如果你希望参与 GregTech Post Modern 的开发，欢迎提交包含改动的 pull request。
 
-The following pages describe a few important concepts that you will likely run into when working with our codebase.
+以下页面介绍了在处理本代码库时经常会遇到的一些重要概念。
 
-!!! link "LDLib2 Docs"
-    [:material-github: LDLib2 :material-arrow-right: Docs](https://low-drag-mc.github.io/LowDragMC-Doc/en/ldlib2/)
+!!! link "LDLib2 文档"
+    [:material-github: LDLib2 :material-arrow-right: 文档](https://low-drag-mc.github.io/LowDragMC-Doc/en/ldlib2/)
 
-    This mod is based on the LDLib2 library for a lot of commonly used functionality.
-    Please refer to its documentation as well.
+    本模组的界面使用 LDLib2。
+    请同时参考它的文档。
 
 !!! link "Architectury Gradle Plugin"
     [Architectury-Wiki :material-arrow-right: Gradle Plugin](https://docs.architectury.dev/plugin/introduction)
 
-    This mod is using Architectury's build system, for compatibiliy across multiple moding platforms.
+    本 mod 使用 Architectury 的构建系统，以兼容多个 modding 平台。

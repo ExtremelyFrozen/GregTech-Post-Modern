@@ -1,29 +1,22 @@
 ---
-title: "Configuring Oil Sprouts"
+title: 配置原油苗
 ---
 
-# Configuring Oil Sprouts
+# 配置原油苗
 
-!!! warning "This feature is named raw_oil_**sprout**, not raw_oil_spout."
+原油苗由 Minecraft 的世界生成特征 `gtpm:raw_oil_sprout` 生成。可以使用数据包覆盖对应的 JSON 文件。
 
-Oil Sprouts are generated via Minecraft's "Configured Feature" system, and can be customized via standard datapacks.
-If you are using kubejs, placing files in the `kubejs/data` folder is equivalent to adding files to a datapack.
+## 移除原油苗
 
-## Removing Oil Sprouts
+在数据包中用 `minecraft:no_op` 覆盖原油苗的 configured feature，可以禁用其生成。
 
-To disable oil sprouts entirely, place the following file in `kubejs/data/gtceu/worldgen/configured_feature/raw_oil_sprout.json`,
-or create a datapack containing the equivalent. This will replace the sprouts with a `no_op` - i.e. a feature that does nothing.
-
-```json title="data/gtceu/worldgen/configured_feature/raw_oil_sprout.json"
+```json title="data/gtpm/worldgen/configured_feature/raw_oil_sprout.json"
 {
-"type": "minecraft:no_op",
-"config": {}
+    "type": "minecraft:no_op",
+    "config": {}
 }
 ```
 
-## Adjusting Oil Sprout Placement Conditions
+## 调整原油苗放置条件
 
-If you just want to adjust the rarity of oil sprouts, that is configured via the "Placed Feature" system. Copy the
-[current version](https://github.com/GregTechCEu/GregTech-Modern/blob/1.20.1/src/generated/resources/data/gtceu/worldgen/placed_feature/raw_oil_sprout.json)
-of the placed feature file to `kubejs/data/gtceu/worldgen/placed_feature/raw_oil_sprout.json`, and modify the settings
-as desired. (The default file uses a `"minecraft:rarity_filter"` to give a 1/64 chance of each chunk containing a sprout.)
+将内置的 placed feature 复制到数据包的 `data/gtpm/worldgen/placed_feature/raw_oil_sprout.json`。修改 `minecraft:rarity_filter` 的 `chance` 即可调整放置频率，默认值为 `128`。[原油苗放置配置](https://github.com/ExtremelyFrozen/GregTech-Post-Modern/blob/1.21/src/generated/resources/data/gtpm/worldgen/placed_feature/raw_oil_sprout.json)

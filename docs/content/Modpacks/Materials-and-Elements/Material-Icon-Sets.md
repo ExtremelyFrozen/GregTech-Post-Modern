@@ -1,16 +1,19 @@
 ---
-title: Icon Sets
+title: "Icon Sets（图标集）"
 ---
 
 
-# Icon Sets
+# Icon Sets（图标集）
 
-The material system uses icon sets to determine the textures of generated blocks and items.
+!!! note "上游示例"
+    本页示例面向 GregTech CEu Modern。GTPM 1.21.1 的数据包和附属模组入口见[整合包制作](../index.md#upstream-kubejs)。
+
+Material 系统使用 Icon Sets 来决定生成方块和物品的贴图。
 
 
-## Available Icon Sets
+## 可用 Icon Sets
 
-The following icon sets are available by default:
+默认可用以下 Icon Sets：
 
 - `GTMaterialIconSet.BRIGHT`
 - `GTMaterialIconSet.CERTUS`
@@ -38,9 +41,9 @@ The following icon sets are available by default:
 - `GTMaterialIconSet.WOOD`
 
 
-## Custom Icon Sets
+## 自定义 Icon Sets
 
-Custom iconsets can be specified as well, using the `gtceu:matieral_icon_set` event:
+也可以使用 `gtceu:material_icon_set` 事件指定自定义材质图标集。
 
 ```js title="custom_iconsets.js"
 GTCEuStartupEvents.registry('gtceu:material_icon_set', event => {

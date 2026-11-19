@@ -1,13 +1,13 @@
 ---
-title: "Migrating from LDLib SyncData"
+title: "从 LDLib SyncData 迁移"
 ---
-# Migrating from LDLib SyncData
+# 从 LDLib SyncData 迁移
 
-### Simple example
+### 简单示例
 
-This simple example covers the majority of use cases when adding sync/save fields to a standard machine, machine trait or cover.
+这个简单示例覆盖了向标准 machine、machine trait 或 cover 添加同步/保存字段时的大多数用例。
 
-#### With LDLib:
+#### 使用 LDLib 时：
 ```java
 class CustomMachine extends SimpleTieredMachine {
     protected static final ManagedFieldHolder MANAGED_FIELD_HOLDER = new ManagedFieldHolder(CustomMachine.class,
@@ -18,12 +18,12 @@ class CustomMachine extends SimpleTieredMachine {
         return MANAGED_FIELD_HOLDER;
     }
 
-    @Getter 
+    @Getter
     @Persisted
     @DescSynced
     @RequireRerender
     protected int customIntValue;
-    
+
     @Persisted(key = "customNBTKey")
     protected String customStringValue;
 
@@ -33,17 +33,17 @@ class CustomMachine extends SimpleTieredMachine {
 }
 ```
 
-#### New System:
+#### 新系统：
 ```java
 class CustomMachine extends SimpleTieredMachine {
-    @Getter 
+    @Getter
     @SaveField
     @SyncToClient
     protected int customIntValue;
-    
+
     @SaveField(nbtKey = "customNBTKey")
     protected String customStringValue;
-    
+
     public void setCustomIntValue(int newValue) {
         this.customIntValue = newValue;
     }
@@ -51,37 +51,30 @@ class CustomMachine extends SimpleTieredMachine {
 
 ```
 
-### General migration guidelines
+### 通用迁移准则
 
-- Remove all `ManagedFieldHolder` fields.
-- Replace `FieldManagedStorage` fields with `SyncDataHolder` fields.
-- Replace `IEnhancedManaged` objects with `ISyncManaged`.
-- Replace `IAsyncAutoSyncBlockEntity`, `IAutoPersistBlockEntity`, `IAutoSyncBlockEntity` and `IManagedBlockEntity` by extending `ManagedSyncBlockEntity`.
+- 移除所有 `ManagedFieldHolder` 字段。
+- 将 `FieldManagedStorage` 字段替换为 `SyncDataHolder` 字段。
+- 将 `IEnhancedManaged` 对象替换为 `ISyncManaged`。
+- 将 `IAsyncAutoSyncBlockEntity`、`IAutoPersistBlockEntity`、`IAutoSyncBlockEntity` 和 `IManagedBlockEntity` 替换为继承 `ManagedSyncBlockEntity`。
+- 只有真正需要 `SavedData` 后端的全局或跨区块持久数据才迁移到 `ManagedSavedData`。默认 sync save key 是 `${GTCEu.MOD_ID}_sync_data`，当前 key 为 `gtpm_sync_data`；如果某个 `SavedData` 子类需要独立后端，应设置专用 key。
 
-### LDLib2 UI migration rule
+### LDLib2 界面迁移
 
-UI migration must not replace LDLib SyncData with LDLib2 syncdata or RPC. UI state changes must continue through GTM's sync system and its automatic synchronization path. New LDLib2 UI code must not introduce `@RPCMethod`, `RPCEmitter`, `setOnServerClick`, or manual dirty-marking calls as the business synchronization path.
+页签、临时筛选等界面状态可保留在客户端。需要同步的业务状态使用 GTPM 的同步字段。机器、覆板等需要服务端执行的操作可参照现有的 `@RPCMethod` 用法，在服务端验证操作目标和参数后更新状态。
 
-LDLib2 UI events are split into three categories:
-
-- Local UI state, such as selected tabs or temporary filters, stays client-local.
-- Field changes use GTM automatic sync fields and the existing field packets.
-- One-shot commands use GTM action packets for machine, cover, or held-item holders.
-
-Action handlers run only on the server. They must validate the holder identity, player permissions, action id, and payload type before applying changes. Cover UIs must keep their close notification path, and held-item UIs must validate both the opened hand and the opened stack identity before accepting actions.
-
-### Annotations
+### 注解
 
 !!! note
-Client sync fields are scanned for value changes automatically. Use sync-managed child state or contextual codecs for mutable holders whose internal state changes without replacing the field value.
+    同步系统会自动检测字段变更。可变对象的内部状态可以通过受管子对象或上下文 Codec 同步。
 
 - `@DescSynced` -> `@SyncToClient`
 - `@RequireRerender` -> `@RerenderOnChanged`
 - `@Persisted` -> `@SaveField`
-- `@UpdateListener` -> `@ClientFieldChangeListener` on listener method.
-- `@DropSaved` - Removed, make machines implement `IDropSaveMachine` instead
-- `@ReadOnlyManaged` and `@LazyManaged` See usage docs for instructions on complex sync objects 
+- `@UpdateListener` -> 在 listener method 上使用 `@ClientFieldChangeListener`
+- `@DropSaved` - 已移除，改为让 machine 实现 `IDropSaveMachine`
+- `@ReadOnlyManaged` 和 `@LazyManaged` - 有关复杂 sync object 的说明，请参阅用法文档
 
-### Other changes
+### 其他变更
 
- - `saveCustomPersistedData` & `loadCustomPersistedData` methods, and serialization of custom data types - See `ValueTransformer<T>` and `ValueTransformers` classes.
+ - `saveCustomPersistedData` 和 `loadCustomPersistedData` 方法，以及自定义数据类型的序列化 - 请参阅 `ValueTransformer<T>` 和 `ValueTransformers` 类。

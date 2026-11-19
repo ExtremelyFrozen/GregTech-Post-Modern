@@ -1,39 +1,16 @@
 ---
-title: Beyond the Docs
+title: 文档之外
 ---
 
 
-# Beyond the Docs
+# 文档之外
 
-While we try to keep this documentation up to date and as complete as possible, it may not always contain all of the latest information.
+## GregTech Post Modern 1.21.1
 
-As an additional resource to these docs, you can also reference our KubeJS integration directly in the source code:  
-[`src/main/java/com/gregtechceu/gtceu/integration/kjs`](https://github.com/GregTechCEu/GregTech-Modern/tree/1.20.1/src/main/java/com/gregtechceu/gtceu/integration/kjs)
+- 在 Java 附属模组中，使用 `Material.Builder` 定义材料，使用 `GTRegistrate` 注册，使用 `GTRecipeBuilder` 生成配方。[Material](https://github.com/ExtremelyFrozen/GregTech-Post-Modern/blob/1.21/src/main/java/com/gregtechceu/gtceu/api/data/chemical/material/Material.java) · [GTRegistrate](https://github.com/ExtremelyFrozen/GregTech-Post-Modern/blob/1.21/src/main/java/com/gregtechceu/gtceu/api/registry/registrate/GTRegistrate.java) · [GTRecipeBuilder](https://github.com/ExtremelyFrozen/GregTech-Post-Modern/blob/1.21/src/main/java/com/gregtechceu/gtceu/data/recipe/builder/GTRecipeBuilder.java)
+- Java 多方块代码使用 `PatternBuilder.start(definition)` 构造结构，并用 `PatternPredicate` 定义匹配条件。内置机器的结构也可以存放为 JSON。[GTMultiMachines](https://github.com/ExtremelyFrozen/GregTech-Post-Modern/blob/1.21/src/main/java/com/gregtechceu/gtceu/common/data/machines/GTMultiMachines.java) · [原始高炉结构 JSON](https://github.com/ExtremelyFrozen/GregTech-Post-Modern/blob/1.21/src/main/resources/multiblock/gtpm/json/primitive_blast_furnace.json)
+- 数据包可以使用 `gtpm` 配方序列化器、世界生成特征和标签。参考内置的世界生成 JSON 或配方数据模型。[世界生成资源](https://github.com/ExtremelyFrozen/GregTech-Post-Modern/tree/1.21/src/generated/resources/data/gtpm/worldgen) · [GTRecipeDefinition](https://github.com/ExtremelyFrozen/GregTech-Post-Modern/blob/1.21/src/main/java/com/gregtechceu/gtceu/api/recipe/GTRecipeDefinition.java)
 
-Continue reading for a few important places you may want to check.
+## 上游 KubeJS 源码
 
-
-## Builders
-
-!!! link "Builders"
-    [`src/main/java/com/gregtechceu/gtceu/integration/kjs/builders`](https://github.com/GregTechCEu/GregTech-Modern/tree/1.20.1/src/main/java/com/gregtechceu/gtceu/integration/kjs/builders)
-
-If you're not sure what methods and fields are available on one of our builders, you can find all of them in this directory.
-
-
-## Material Builder
-
-!!! link "Material Builder"
-    [`src/main/java/com/gregtechceu/gtceu/api/data/chemical/material/Material.java`](https://github.com/GregTechCEu/GregTech-Modern/blob/1.20.1/src/main/java/com/gregtechceu/gtceu/api/data/chemical/material/Material.java)
-
-The material builder is not located in the KJS integration package.  
-Please reference the nested `Material.Builder` class instead.
-
-
-## Bindings & Type Wrappers
-
-!!! link "GregTechKubeJSPlugin"
-    [`src/main/java/com/gregtechceu/gtceu/integration/kjs/GregTechKubeJSPlugin.java`](https://github.com/GregTechCEu/GregTech-Modern/blob/1.20.1/src/main/java/com/gregtechceu/gtceu/integration/kjs/GregTechKubeJSPlugin.java)
-
-- For a list of our custom bindings, see `GregTechKubeJSPlugin.registerBindings()`
-- For a list of our type wrappers and their accepted inputs, see `GregTechKubeJSPlugin.registerTypeWrappers()`
+历史脚本中的事件绑定、构建器和类型转换可在上游的 `integration/kjs` 包中查询。[GregTech CEu Modern 1.20.1 的 KubeJS 源码](https://github.com/GregTechCEu/GregTech-Modern/tree/1.20.1/src/main/java/com/gregtechceu/gtceu/integration/kjs)

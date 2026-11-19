@@ -1,12 +1,15 @@
 ---
-title: Ambiguous Methods
+title: Ambiguous Methods（歧义方法）
 ---
 
-## Ambiguous Methods
-Sometimes in KJS, you run into ambiguous methods when calling functions. 
-This happens when there's multiple overloads (e.g. methods with the same name but different types) and KubeJS isn't sure which function to call with your arguments.
+## Ambiguous Methods（歧义方法）
+!!! note "上游示例"
+    本页示例面向 GregTech CEu Modern。GTPM 1.21.1 的数据包和附属模组入口见[整合包制作](../index.md#upstream-kubejs)。
 
-For example, when you do:
+有时在 KJS 中调用函数时会遇到 ambiguous methods。
+当存在多个 overloads（例如同名但类型不同的方法）且 KubeJS 无法根据你的参数判断应该调用哪个函数时，就会发生这种情况。
+
+例如，当你这样写：
 ```js
 
 GTCEuStartupEvents.registry('gtceu:machine', event => {
@@ -16,14 +19,14 @@ GTCEuStartupEvents.registry('gtceu:machine', event => {
 })
 ```
 
-you'd get the error:
+会得到以下错误：
 ```
-Error in 'GTCEuStartupEvents.registry': The choice of Java method com.gregtechceu.gtceu.api.registry.registrate.MultiblockMachineBuilder.tooltips matching JavaScript argument types (net.minecraft.network.chat.MutableComponent) is ambiguous; candidate methods are: 
+Error in 'GTCEuStartupEvents.registry': The choice of Java method com.gregtechceu.gtceu.api.registry.registrate.MultiblockMachineBuilder.tooltips matching JavaScript argument types (net.minecraft.network.chat.MutableComponent) is ambiguous; candidate methods are:
     class com.gregtechceu.gtceu.api.registry.registrate.MachineBuilder tooltips(java.util.List)
     class com.gregtechceu.gtceu.api.registry.registrate.MachineBuilder tooltips(net.minecraft.network.chat.Component[])
 ```
 
-In this case, there's ambiguity between the following 2 java functions:
+本例中，以下 2 个 Java 函数之间存在歧义：
 ```java
     public MachineBuilder<DEFINITION> tooltips(@Nullable Component... components) {
         return tooltips(Arrays.asList(components));
@@ -35,7 +38,7 @@ In this case, there's ambiguity between the following 2 java functions:
     }
 ```
 
-You would want to select one of the two, and this can be done in the following way:
+你需要从两者中选择一个，可以用以下方式完成：
 ```js
 GTCEuStartupEvents.registry('gtceu:machine', event => {
     event.create('unboxinator', 'multiblock')
@@ -43,7 +46,7 @@ GTCEuStartupEvents.registry('gtceu:machine', event => {
         // Rest of the multiblock
 })
 ```
-or
+或者
 ```js
 GTCEuStartupEvents.registry('gtceu:machine', event => {
     event.create('unboxinator', 'multiblock')
@@ -52,11 +55,13 @@ GTCEuStartupEvents.registry('gtceu:machine', event => {
 })
 ```
 
-Because of the way javascript indexing works, `.foo` and `["foo"]` are the same thing, so you can just keep chaning your functions afterward, since it's just a "normal" builder method, just called in a more specific way.
+由于 JavaScript 索引的工作方式，`.foo` 和 `["foo"]` 是同一件事，因此之后仍然可以继续链式调用函数，因为它只是一个“普通”的 builder method，只是用更具体的方式调用。
 
-## Ambiguous Constructors
-This same problem can occur when trying to call a constructor.  
-For example, when you do
+## Ambiguous Constructors（歧义构造函数）
+
+为 GTPM 编写 Java 附属模组时，可以用 `GuiTextures.resource(...)` 创建资源纹理。下面的构造函数示例和报错来自上游的 KubeJS 与 Rhino 环境。
+尝试调用 constructor 时也可能遇到同样的问题。
+例如，当你这样写：
 ```js
 GTCEuStartupEvents.registry("gtceu:recipe_type", event => {
   event.create("unboxinator")
@@ -67,19 +72,14 @@ GTCEuStartupEvents.registry("gtceu:recipe_type", event => {
     // Rest of the recipe type
 })
 ```
-You'd get the following error:
+会得到以下错误：
 ```
-dev.latvian.mods.rhino.EvaluatorException: The choice of Java constructor com.gregtechceu.gtceu.api.gui.texture.ResourceTexture matching JavaScript argument types (string) is ambiguous; candidate constructors are: 
+dev.latvian.mods.rhino.EvaluatorException: The choice of Java constructor com.lowdragmc.lowdraglib.gui.texture.ResourceTexture matching JavaScript argument types (string) is ambiguous; candidate constructors are:
     ResourceTexture(net.minecraft.resources.ResourceLocation)
     ResourceTexture(java.lang.String) (startup_scripts:example.js#17)
 ```
 
-For new scripts, prefer the GTCEu texture facade when possible:
-```js
-GuiTextures.resource("kubejs:textures/gui/progress_bar/progress_bar_stone_oreifier.png")
-```
-
-You would want to select one of the two, and this can be done in the following way:
+你需要从两者中选择一个，可以用以下方式完成：
 ```js
 GTCEuStartupEvents.registry("gtceu:recipe_type", event => {
   event.create("unboxinator")
@@ -90,7 +90,7 @@ GTCEuStartupEvents.registry("gtceu:recipe_type", event => {
     // Rest of the recipe type
 })
 ```
-or
+或者
 ```js
 GTCEuStartupEvents.registry("gtceu:recipe_type", event => {
   event.create("unboxinator")
@@ -101,5 +101,5 @@ GTCEuStartupEvents.registry("gtceu:recipe_type", event => {
     // Rest of the recipe type
 })
 ```
-!!! Note
-    Generics don't exist in compiled code, so e.g. a call to `memoize(Supplier<T> delegate)` would turn into `["memoize(Supplier)"](...)`
+!!! Note "注意"
+    编译后的代码中不存在 generics，因此例如调用 `memoize(Supplier<T> delegate)` 会变成 `["memoize(Supplier)"](...)`

@@ -1,12 +1,15 @@
 ---
-title: Custom Machines
+title: 自定义 Machine
 ---
 
 
-# Custom Machines
+# 自定义 Machine
 
 
-## Creating Custom Steam Machine
+!!! note "上游示例"
+    本页示例面向 GregTech CEu Modern。GTPM 1.21.1 的数据包和附属模组入口见[整合包制作](../index.md#upstream-kubejs)。
+
+## 创建自定义 Steam Machine
 
 ```js title="test_steam_machine.js"
 GTCEuStartupEvents.registry('gtceu:machine', event => {
@@ -14,10 +17,10 @@ GTCEuStartupEvents.registry('gtceu:machine', event => {
 })
 ```
 
-1. Machine ID, Machine Type, Has High Pressure Varient
+1. Machine ID、Machine Type、是否具有 High Pressure Variant
 
 
-## Creating Custom Electric Machine
+## 创建自定义 Electric Machine
 
 ```js title="test_electric_machine.js"
 GTCEuStartupEvents.registry('gtceu:machine', event => {
@@ -29,11 +32,11 @@ GTCEuStartupEvents.registry('gtceu:machine', event => {
 ```
 
 
-1. Machine ID, Machine Type, Pollution Produced, Voltage Tiers
+1. Machine ID、Machine Type、产生的污染、Voltage Tiers
 
 
 
-## Creating Custom Kinetic Machine
+## 创建自定义 Kinetic Machine
 
 ```js title="test_kinetic_machine.js"
 GTCEuStartupEvents.registry('gtceu:machine', event => {
@@ -45,7 +48,7 @@ GTCEuStartupEvents.registry('gtceu:machine', event => {
 ```
 
 
-## Creating Custom Generator
+## 创建自定义 Generator
 
 ```js title="test_generator.js"
 GTCEuStartupEvents.registry('gtceu:machine', event => {
@@ -56,7 +59,7 @@ GTCEuStartupEvents.registry('gtceu:machine', event => {
 ```
 
 
-## Creating Custom Multiblock
+## 创建自定义 Multiblock
 
 ```js title="test_multiblock.js"
 GTCEuStartupEvents.registry('gtceu:machine', event => {
@@ -66,7 +69,7 @@ GTCEuStartupEvents.registry('gtceu:machine', event => {
         .appearanceBlock(GTBlocks.CASING_STEEL_SOLID)
         .recipeTypes(['test_recipe_type_1', 'test_recipe_type_2'])
         .recipeModifiers([GTRecipeModifiers.PARALLEL_HATCH, ELECTRIC_OVERCLOCK.apply(PERFECT_OVERCLOCK)]) // (2)
-        .pattern(definition => PatternBuilder.start()
+        .pattern(definition => FactoryBlockPattern.start()
             .aisle('CCC', 'GGG', 'CCC')
             .aisle('CCC', 'GDG', 'CSC')
             .aisle('CKC', 'GGG', 'CMC')
@@ -86,12 +89,12 @@ GTCEuStartupEvents.registry('gtceu:machine', event => {
 ```
 
 
-1. You can add tooltips to your multiblock controllers that show up when you mouseover them. Each separate call of ```.tooltips()``` will add a separate line to the controller's tooltip. ```Component.translatable()``` reads entries from .json lang files placed in ```kubejs/assets/gtceu/lang``` or supplied via a standalone resource pack. The ```Component``` class is autoloaded by KubeJS at compile time; it doesn't need to be manually loaded.
-2. If electric and/or multiblock machines can process your custom recipe type, ```.recipeModifiers()``` will allow you to fine-tune the behaviour of these machine when running recipes of your custom recipe type. ```GTRecipeModifiers.PARALLEL_HATCH``` will enable Multiblock Machines to parallelize recipes of your custom type via an optional Parallel Hatch, while ```ELECTRIC_OVERCLOCK.apply(PERFECT_OVERCLOCK)```will define how your recipes overclock in electric machines and multiblocks.
+1. 你可以为 multiblock controllers 添加 tooltips，这些内容会在鼠标悬停时显示。每次单独调用 ```.tooltips()``` 都会向 controller 的 tooltip 添加单独一行。```Component.translatable()``` 会读取放在 ```kubejs/assets/gtceu/lang``` 中的 .json lang 文件，或由独立资源包提供的条目。```Component``` 类会在编译时由 KubeJS 自动加载，不需要手动加载。
+2. 如果 electric 和/或 multiblock machines 可以处理你的 custom recipe type，```.recipeModifiers()``` 可以让你在这些 Machine 运行该 custom recipe type 的 recipes 时微调其行为。```GTRecipeModifiers.PARALLEL_HATCH``` 会让 Multiblock Machines 能够通过可选的 Parallel Hatch 并行处理你的自定义类型 recipes，而 ```ELECTRIC_OVERCLOCK.apply(PERFECT_OVERCLOCK)``` 会定义你的 recipes 在 electric machines 和 multiblocks 中如何 overclock。
 
-### Shape Info
+### Shape Info（形状信息）
 
-Shape Info is used to manually define how your multiblock appears in the JEI/EMI multiblock preview tab.
+在上游示例中，Shape Info 定义多方块在配方查看器里的预览。GTPM 的 JEI 和 EMI 预览使用机器的多方块结构定义。
 
 ```js title="shape_info_test.js"
 GTCEuStartupEvents.registry('gtceu:machine', event => {
@@ -99,7 +102,7 @@ GTCEuStartupEvents.registry('gtceu:machine', event => {
         .rotationState(RotationState.NON_Y_AXIS)
         .appearanceBlock(GTBlocks.CASING_STEEL_SOLID)
         .recipeTypes(['test_recipe_type_1', 'test_recipe_type_2'])
-        .pattern(definition => PatternBuilder.start()
+        .pattern(definition => FactoryBlockPattern.start()
             .aisle('CCC', 'GGG', 'CCC')
             .aisle('CCC', 'GDG', 'CSC')
             .aisle('CKC', 'GGG', 'CMC')

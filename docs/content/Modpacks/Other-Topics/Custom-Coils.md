@@ -1,9 +1,12 @@
 ---
-title: Custom Coils
+title: 自定义 Coil
 ---
 
 
-## Coil Creation
+## Coil 创建 { #standard-coils }
+
+!!! note "上游示例"
+    本页示例面向 GregTech CEu Modern。GTPM 1.21.1 的数据包和附属模组入口见[整合包制作](../index.md#upstream-kubejs)。
 
 ```js
 StartupEvents.registry('block', event => {
@@ -20,4 +23,4 @@ StartupEvents.registry('block', event => {
 })
 ```
 
-1. The Energy Discount must be at least 1.
+1. Energy Discount 必须至少为 1。

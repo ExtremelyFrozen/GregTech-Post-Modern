@@ -1,13 +1,13 @@
 ---
-title: "Annotations"
+title: "注解"
 ---
 
-# Annotations
-The following annotations define the sync/save behaviour for an `ISyncManaged` object.
+# 注解
+以下注解定义了 `ISyncManaged` 对象的同步和保存行为。
 
 ### `@SaveField`
 
-The `@SaveField` annotation defines a field that should be saved to the server. `nbtKey` is optional, the key will default to the field name.
+`@SaveField` 注解定义了应保存到 server 的字段。`nbtKey` 是可选项，默认会使用字段名作为 key。
 ```java
 @SaveField(nbtKey="nbtKeyToSaveTo")
 public int mySaveInt = 10;
@@ -15,10 +15,8 @@ public int mySaveInt = 10;
 
 ### `@SyncToClient`
 
-The `@SyncToClient` annotation defines a field with a value that should be synced to clients.
+`@SyncToClient` 将字段的变更同步到客户端。同步系统在受管 Tick 中自动检测变更，可以直接给字段赋值。
 
-!!! warning 
-    Client sync fields are scanned for value changes automatically. Prefer assigning the field directly and let the sync system collect changes during the managed tick.
 ```java
 @SaveField(nbtKey="nbtKeyToSaveTo")
 @SyncToClient
@@ -29,22 +27,16 @@ public int mySaveAndSyncInt = 10;
 public long mySyncRerenderLong = 10000L;
 
 public void serverTick() {
-    int newIntValue = getNewIntValue();
-    long newLongValue = getNewLongValue();
-    if (mySaveAndSyncInt != newIntValue) {
-        mySaveAndSyncInt = newIntValue;
-    }
-    if (mySyncRerenderLong != newLongValue) {
-        mySyncRerenderLong = newLongValue;
-    }
+    mySaveAndSyncInt = getNewIntValue();
+    mySyncRerenderLong = getNewLongValue();
 }
 ```
 
-### `@ClientFieldChangeListener` and `@RerenderOnChanged`
+### `@ClientFieldChangeListener` 与 `@RerenderOnChanged`
 
-The `@ClientFieldChangeListener` annotation defines a method to be called on the client when a client sync field has changed value;
+`@ClientFieldChangeListener` 注解定义了当 client 同步字段的值发生变化时，应在 client 调用的方法。
 
-Annotating a `@SyncToClient` field with `@RerenderOnChanged` will cause clients to rerender the block entity when this field changes.
+在 `@SyncToClient` 字段上添加 `@RerenderOnChanged` 后，当该字段变化时，client 会重新渲染该 block entity。
 
 ```java
 @SyncToClient

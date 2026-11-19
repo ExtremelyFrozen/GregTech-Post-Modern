@@ -1,13 +1,13 @@
 ---
-title: Creating Connected Textures
+title: 创建连接纹理
 ---
 
-**Connected textures** are, as the name would imply, textures that connect with neighboring blocks.
+**Connected textures** 顾名思义，是会与相邻 Block 连接的纹理。
 
-The CTM renderer will draw the block faces by assembling 4 quadrants from the 5 available block textures.
-The normal `texture.png` is the block's "unconnected" texture, and is used when CTM is disabled or the block
-has nothing to connect to.  
-`texture.png` has the outside corner quadrants and `texture_ctm.png` contains the connections.
+CTM renderer 会通过从 5 张可用的 Block 纹理中组装 4 个象限来绘制 Block 面。
+普通的 `texture.png` 是 Block 的“未连接”纹理，会在 CTM 被禁用或该 Block
+没有可连接对象时使用。
+`texture.png` 包含外角象限，`texture_ctm.png` 包含连接部分。
 ```
 ┌─────────────────┐ ┌────────────────────────────────┐
 │ texture.png     │ │ texture_ctm.png                │
@@ -28,7 +28,7 @@ has nothing to connect to.
                     └────────────────────────────────┘
 ```
 
-For example, combining sections 4/4, 2/1, 5/4, and 3/1, we can generate a texture connected to the right!
+例如，组合 4/4、2/1、5/4 和 3/1 这些区域，就能生成一个向右连接的纹理！
 ```
 ╔══════╤═══════
 ║      │      │
@@ -37,8 +37,8 @@ For example, combining sections 4/4, 2/1, 5/4, and 3/1, we can generate a textur
 ║      │      │
 ║ 5/4  │ 3/1  │
 ╚══════╧═══════
-```  
-Combining sections 0/2, 2/3, 5/4, and 3/1, we can generate a texture in the shape of an L (connected to the right and up):
+```
+组合 0/2、2/3、5/4 和 3/1 这些区域，就能生成一个 L 形纹理（向右和向上连接）：
 ```
 ║ ─────┼───── ╚
 ║      │      │
@@ -50,14 +50,13 @@ Combining sections 0/2, 2/3, 5/4, and 3/1, we can generate a texture in the shap
 ```
 
 
-??? example "Example MCMeta file"
-    (For a texture `mypack/assets/textures/blocks/texture.png` with a ctm texture `mypack/assets/textures/blocks/texture_ctm.png`)
-    ```json title="mypack:blocks/texture.png.mcmeta"
+??? example "MCMeta 文件示例"
+    `assets/mypack/textures/block/texture.png.mcmeta` 为同目录的 `texture.png` 指定连接纹理。
+    ```json title="assets/mypack/textures/block/texture.png.mcmeta"
     {
         "gtpm": {
-            "connection_texture": "mypack:blocks/texture_ctm"
+            "connection_texture": "mypack:block/texture_ctm"
         }
     }
     ```
-    The CTM texture layout is [here](https://github.com/GregTechCEu/GregTech-Modern/blob/1.20.1/src/main/resources/assets/gtceu/textures/block/ctm_test.png) for the unconnected texture and [here](https://github.com/GregTechCEu/GregTech-Modern/blob/1.20.1/src/main/resources/assets/gtceu/textures/block/ctm_test_ctm.png) for its connections.
-    Its MCMeta metadata file is [this one](https://github.com/GregTechCEu/GregTech-Modern/blob/1.20.1/src/main/resources/assets/gtceu/textures/block/ctm_test.png.mcmeta).
+    塑料混凝土的资源展示了内置纹理的目录结构和 `gtpm` 元数据。[基础纹理](https://github.com/ExtremelyFrozen/GregTech-Post-Modern/blob/1.21/src/main/resources/assets/gtpm/textures/block/casings/cleanroom/plascrete.png) · [连接纹理](https://github.com/ExtremelyFrozen/GregTech-Post-Modern/blob/1.21/src/main/resources/assets/gtpm/textures/block/casings/cleanroom/plascrete_ctm.png) · [元数据](https://github.com/ExtremelyFrozen/GregTech-Post-Modern/blob/1.21/src/main/resources/assets/gtpm/textures/block/casings/cleanroom/plascrete.png.mcmeta)

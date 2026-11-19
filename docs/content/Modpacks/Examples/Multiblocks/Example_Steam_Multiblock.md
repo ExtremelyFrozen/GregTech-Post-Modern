@@ -1,17 +1,20 @@
 ---
-title: "Example Steam Multiblock"
+title: "Steam Multiblock 示例"
 ---
 
-### Large Steam Compressor Multiblock 
+### 大型蒸汽压缩机 Multiblock
 
-Below is an example of a multiblock using the SteamParallelMultiblockMachine class.
-Steam multiblocks such as the Steam Grinder and Steam Oven use this class.
+!!! note "上游示例"
+    本页示例面向 GregTech CEu Modern。GTPM 1.21.1 的数据包和附属模组入口见[整合包制作](../../index.md#upstream-kubejs)。
 
-### Multiblock
+下面是一个使用 SteamParallelMultiblockMachine 类的 Multiblock 示例。
+Steam Grinder、Steam Oven 等蒸汽 Multiblock 会使用这个类。
+
+### Multiblock 结构
 
 === "JavaScript"
     ```js title="example_steam_multiblock_multiblock.js"
-    
+
     // In order to use multiblock logic extending beyond the default multiblock type for KJS (WorkableElectricMultiblockMachine), you need to load a class.
     const $SteamMulti = Java.loadClass('com.gregtechceu.gtceu.common.machine.multiblock.steam.SteamParallelMultiblockMachine');
 
@@ -23,7 +26,7 @@ Steam multiblocks such as the Steam Grinder and Steam Oven use this class.
             .recipeType('compressor')
             .recipeModifier((machine, recipe) => $SteamMulti.recipeModifier(machine, recipe), true)
             .appearanceBlock(GTBlocks.BRONZE_HULL)
-            .pattern(definition => PatternBuilder.start()
+            .pattern(definition => FactoryBlockPattern.start()
                 .aisle("BCCCB", "BBCBB", "BBCBB", "BBBBB", "BBBBB")
                 .aisle("CDDDC", "BDBDB", "BDEDB", "BBDBB", "BBBBB")
                 .aisle("CDDDC", "CBBBC", "CEFEC", "BDDDB", "BBGBB")
@@ -53,7 +56,7 @@ Steam multiblocks such as the Steam Grinder and Steam Oven use this class.
             .recipeType(COMPRESSOR_RECIPES)
             .recipeModifier((machine, recipe) -> SteamParallelMultiblockMachine.recipeModifier(machine, recipe), true)
             .appearanceBlock(GTBlocks.BRONZE_HULL)
-            .pattern(definition -> PatternBuilder.start()
+            .pattern(definition -> FactoryBlockPattern.start()
                     .aisle("BCCCB", "BBCBB", "BBCBB", "BBBBB", "BBBBB")
                     .aisle("CDDDC", "BDBDB", "BDEDB", "BBDBB", "BBBBB")
                     .aisle("CDDDC", "CBBBC", "CEFEC", "BDDDB", "BBGBB")
@@ -75,15 +78,11 @@ Steam multiblocks such as the Steam Grinder and Steam Oven use this class.
             .register();
     ```
 
-### Lang
+### 语言文件
 
 ```json title="en_us.json"
 {
     "block.gtceu.large_steam_compressor": "Large Steam Compressor",
 }
 ```
-
-
-
-
 

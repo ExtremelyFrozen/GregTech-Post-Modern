@@ -1,18 +1,21 @@
 ---
-title: "Example Turbine"
+title: "Turbine 示例"
 ---
 
-### Example Turbine
+### Turbine 示例
 
-Below is an example of a multiblock using the LargeTurbineMachine class for making custom large turbines.
+!!! note "上游示例"
+    本页示例面向 GregTech CEu Modern。GTPM 1.21.1 的数据包和附属模组入口见[整合包制作](../../index.md#upstream-kubejs)。
 
-### Multiblock
+下面是一个使用 LargeTurbineMachine 类创建自定义大型涡轮的 Multiblock 示例。
+
+### Multiblock 结构
 
 === "JavaScript"
     ```js title="hyper_gas_turbine.js"
     // In order to use multiblock logic extending beyond the normal WorkableElectricMultiblockMachine, (This is the multiblock type used by default for kubejs) you need to load a class. LargeTurbineMachines such as the gas, steam, and plasma turbines use this class.
     const $LargeTurbineMachine = Java.loadClass("com.gregtechceu.gtceu.common.machine.multiblock.generator.LargeTurbineMachine")
-    
+
     GTCEuStartupEvents.registry('gtceu:machine', event => {
         event.create('hyper_gas_turbine', 'multiblock')
             .machine((holder) => new $LargeTurbineMachine(holder, GTValues.LuV)) // The value shows one rotor holder tier above the recommended minimum rotor holder. The tier of rotor holder provides a boost based on the efficiency stat.
@@ -20,7 +23,7 @@ Below is an example of a multiblock using the LargeTurbineMachine class for maki
             .recipeTypes("gas_turbine")
             .recipeModifiers([GTRecipeModifiers.OC_NON_PERFECT_SUBTICK, GTRecipeModifiers.BATCH_MODE, (machine, recipe) => $LargeTurbineMachine.recipeModifier(machine, recipe)])
             .appearanceBlock(GTBlocks.CASING_STAINLESS_TURBINE)
-            .pattern(definition => PatternBuilder.start()
+            .pattern(definition => FactoryBlockPattern.start()
                     .aisle("BBBBBBB", "BBBCBBB", "BBBDBBB", "BBBCBBB", "BBBBBBB")
                     .aisle("BBBCBBB", "BBCACBB", "BBCFCBB", "BBCACBB", "BBBCBBB")
                     .aisle("BBCCCBB", "BCAAACB", "BCAFACB", "BCAFACB", "BBCCCBB")
@@ -51,7 +54,7 @@ Below is an example of a multiblock using the LargeTurbineMachine class for maki
             .recipeType(GTRecipeTypes.GAS_TURBINE_FUELS)
             .recipeModifiers(GTRecipeModifiers.OC_NON_PERFECT_SUBTICK, GTRecipeModifiers.BATCH_MODE, LargeTurbineMachine::recipeModifier)
             .appearanceBlock(GTBlocks.CASING_STAINLESS_TURBINE)
-            .pattern(definition -> PatternBuilder.start()
+            .pattern(definition -> FactoryBlockPattern.start()
                 .aisle("BBBBBBB", "BBBCBBB", "BBBDBBB", "BBBCBBB", "BBBBBBB")
                 .aisle("BBBCBBB", "BBCACBB", "BBCECBB", "BBCACBB", "BBBCBBB")
                 .aisle("BBCCCBB", "BCAAACB", "BCAEACB", "BCAEACB", "BBCCCBB")
@@ -75,16 +78,13 @@ Below is an example of a multiblock using the LargeTurbineMachine class for maki
     ```
 
 
-### Lang
+### 语言文件
 
 ```json title="en_us.json"
 {
     "block.gtceu.hyper_gas_turbine": "Hyper Gas Turbine",
 }
 ```
-
-
-
 
 
 

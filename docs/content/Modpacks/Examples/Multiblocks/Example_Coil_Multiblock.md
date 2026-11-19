@@ -1,18 +1,21 @@
 ---
-title: "Example Coil Multiblock"
+title: "Coil Multiblock 示例"
 ---
 
-### Superheated Pyrolyzing Oven Multiblock (by Phoenixvine)
+### 过热热解炉 Multiblock（作者：Phoenixvine）
 
 
-Below is an example of a multiblock using the CoilWorkableElectricMultiblockMachine class and the pyrolyseOvenOverclock machine logic.
+!!! note "上游示例"
+    本页示例面向 GregTech CEu Modern。GTPM 1.21.1 的数据包和附属模组入口见[整合包制作](../../index.md#upstream-kubejs)。
 
-### Multiblock
+下面是一个使用 CoilWorkableElectricMultiblockMachine 类和 pyrolyseOvenOverclock 机器逻辑的 Multiblock 示例。
+
+### Multiblock 结构
 === "JavaScript"
     ```js title="superheated_pyrolyzing_oven_multiblock.js"
     // In order to use multiblock logic extending beyond the normal WorkableElectricMultiblockMachine, (This is the multiblock type used by default for kubejs) you need to load a class. Coil multiblocks such as the Electric Blast Furnace, Pyrolyse Oven, and the Cracker use this class.
     const CoilWorkableElectricMultiblockMachine = Java.loadClass("com.gregtechceu.gtceu.api.machine.multiblock.CoilWorkableElectricMultiblockMachine")
-    
+
     GTCEuStartupEvents.registry('gtceu:machine', event => {
         event.create("superheated_pyrolyzing_oven", "multiblock")
             .machine((holder) => new CoilWorkableElectricMultiblockMachine(holder))
@@ -20,12 +23,12 @@ Below is an example of a multiblock using the CoilWorkableElectricMultiblockMach
             .recipeTypes('pyrolyse_oven')
             .recipeModifiers(
                 [
-                    GTRecipeModifiers.PARALLEL_HATCH,  
+                    GTRecipeModifiers.PARALLEL_HATCH,
                     (machine, recipe) => GTRecipeModifiers.pyrolyseOvenOverclock(machine, recipe)
                 ]
             )
             .appearanceBlock(GTBlocks.CASING_STEEL_SOLID)
-            .pattern(definition => PatternBuilder.start()
+            .pattern(definition => FactoryBlockPattern.start()
                 .aisle("BBCCCBB", "BBCDCBB", "BBCCCBB", "BBCCCBB", "BBEEEBB", "BBEEEBB")
                 .aisle("BCCCCCB", "BCAFACB", "BCAFACB", "BCGGGCB", "BEAAAEB", "BEHHHEB")
                 .aisle("CCCCCCC", "CAAFAAC", "CAAFAAC", "CGGGGGC", "EAAAAAE", "EHHHHHE")
@@ -35,7 +38,7 @@ Below is an example of a multiblock using the CoilWorkableElectricMultiblockMach
                 .aisle("BBCCCBB", "BBCICBB", "BBCCCBB", "BBCCCBB", "BBEEEBB", "BBEEEBB")
                 .where('A', Predicates.blocks("minecraft:air"))
                 .where('B', Predicates.any())
-                .where('C', Predicates.blocks('gtceu:solid_machine_casing').setMinGlobalLimited(10) 
+                .where('C', Predicates.blocks('gtceu:solid_machine_casing').setMinGlobalLimited(10)
                     .or(Predicates.abilities(PartAbility.MAINTENANCE).setExactLimit(1))
                     .or(Predicates.abilities(PartAbility.PARALLEL_HATCH).setMaxGlobalLimited(1))
                     .or(Predicates.autoAbilities(definition.getRecipeTypes())))
@@ -49,7 +52,7 @@ Below is an example of a multiblock using the CoilWorkableElectricMultiblockMach
                 .build())
             .workableCasingModel("gtceu:block/casings/solid/machine_casing_solid_steel",
                 "gtceu:block/multiblock/pyrolyse_oven");
-    
+
     })
     ```
 
@@ -64,7 +67,7 @@ Below is an example of a multiblock using the CoilWorkableElectricMultiblockMach
             .recipeModifiers(GTRecipeModifiers.PARALLEL_HATCH,
                 (machine, recipe) -> GTRecipeModifiers.pyrolyseOvenOverclock(machine, recipe))
             .appearanceBlock(GTBlocks.CASING_STEEL_SOLID)
-            .pattern(definition -> PatternBuilder.start()
+            .pattern(definition -> FactoryBlockPattern.start()
                 .aisle("BBCCCBB", "BBCDCBB", "BBCCCBB", "BBCCCBB", "BBEEEBB", "BBEEEBB")
                 .aisle("BCCCCCB", "BCAFACB", "BCAFACB", "BCGGGCB", "BEAAAEB", "BEHHHEB")
                 .aisle("CCCCCCC", "CAAFAAC", "CAAFAAC", "CGGGGGC", "EAAAAAE", "EHHHHHE")
@@ -91,12 +94,10 @@ Below is an example of a multiblock using the CoilWorkableElectricMultiblockMach
             .register();
     ```
 
-### Lang
+### 语言文件
 
 ```json title="en_us.json"
 {
     "block.gtceu.superheated_pyrolyzing_oven": "Superheated Pyrolyzing Oven",
 }
 ```
-
-
