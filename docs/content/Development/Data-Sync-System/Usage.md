@@ -1,110 +1,53 @@
 ---
-title: "用法"
+title: 持有者与 Codec
 ---
 
-## 用法
 
-### 将类注册到 sync system
-
-系统的核心是 `ISyncManaged` 接口，它表示一个需要同步到 client 或需要保存的类。
-所有需要同步或保存的 block entity 都必须继承抽象类 `ManagedSyncBlockEntity`。
-
-!!! warning
-  继承 `ManagedSyncBlockEntity` 的 block entity 必须在 ticker 中***每 tick*** 调用 `ManagedSyncBlockEntity::updateTick`，否则不会保存。
-
-```java
-class MySyncObject implements ISyncManaged {
-    // Any class that directly implements ISyncManaged must have the following:
-     @Getter
-     protected final SyncDataHolder syncDataHolder = new SyncDataHolder(this);
+# 持有者与 Codec
 
 
-    /**
-     * Function called when the SyncDataHolder requests a rerender
-     */
-    void scheduleRenderUpdate();
+## 持有者
 
-    /**
-     * Function called to notify the server that this object has been updated and must be synced to clients
-     */
-    void markAsChanged();
-}
-```
+| 类型 | 用途 |
+| --- | --- |
+| `ManagedSyncBlockEntity` | 普通方块实体。世界保存通过 `gtpm_sync_data` 下的 `SyncFieldData` 写入。服务端 `serverTick()` 扫描字段，初始状态与增量通过同步包发送给相应客户端。 |
+| `ISyncManaged` | 需要主动跟踪字段、同步或执行实例 RPC 的对象。实现 `getSyncDataHolder()`，并通过 `getParentSyncObject()` 接入拥有同步生命周期的宿主。机器、机器 trait 和覆板已有该接入点。 |
+| `ISyncAnnotated` | 用字段描述的值对象。通过所在受管字段或自身 Codec 读写。构造器或工厂提供存档缺省值。 |
+| `ManagedSavedData` | 跨区块或全局的原版 `SavedData`。默认键为 `gtpm_sync_data`，子类也可指定保存键。 |
+| `ItemSyncHolder` 与 `SyncItem` | 每个物品栈的字段状态。`ItemSyncHolder.create(stack, registries)` 通过物品的工厂创建实例并读取 `gtpm:item_data` 组件。`saveToStack()` 写回数据，`SyncMenu` 在界面生命周期中驱动双向同步。 |
 
-### 选择保存后端
+自定义方块实体在服务端 ticker 调用 `serverTick()`。覆盖该方法时调用 `super.serverTick()`，让持有者发送字段变更。已有机器、trait 或覆板子类直接为字段添加所需注解。 [字段注解](Annotations.md)
 
-普通 BlockEntity 的保存和 client 同步应使用 `ManagedSyncBlockEntity`。`ManagedSavedData` 只适合真正需要以 `SavedData` 作为后端的全局或跨区块持久数据，不应作为普通 BlockEntity 保存字段的替代方案。
+机器掉落物字段由 `@ItemSave` 指定。手持物品的 `ItemSyncHolder` 直接使用 `@SaveField`，例如终端的主机绑定和结构选项。
 
-默认 sync save key 是 `${GTCEu.MOD_ID}_sync_data`。当前 mod id 为 `gtpm`，所以默认写入 `CompoundTag` 的 key 是 `gtpm_sync_data`。如果一个 `SavedData` 子类需要独立后端，应由该子类设置专用 key。
 
-### 注册由系统管理的字段
-参阅 [Annotations](Annotations.md)。
+## 类型与 Codec 注册
 
-### 类型兼容性
-默认支持以下字段类型：
+`FieldCodecs` 按字段声明类型查找编码器。内置注册覆盖基本类型、枚举、数组、常用 Minecraft 值和 GTPM 注册表引用。受支持的 Java、Kotlin 和 fastutil 集合按声明的类型参数解析元素 Codec，例如 `List<ItemStack>` 和 `Map<ResourceLocation, Integer>`。
 
-- 任何实现 `ISyncManaged` 的类
-- 任何实现 `INBTSerializable<Tag>` 的类
-- 所有 primitive type
-- 如果 `T`、`K` 是受支持类型：
-   - `T[]`
-   - `Set<T>`
-   - `List<T>`,
-   - `Map<T, K>`
-- `String`
-- `ItemStack`
-- `FluidStack`
-- `UUID`
-- `BlockPos`
-- `CompoundTag`
-- `GTRecipe`
-- `GTRecipeType`
-- `MachineRenderState`
-- `Material`
-- `Component`
+| 接口 | 用途 |
+| --- | --- |
+| `FieldCodecs.register(type, codec)` | 注册可独立编码的值，包括记录、注册表引用和带有原生 Codec 的领域对象。 |
+| `FieldCodecs.registerStream(type, streamCodec)` | 注册网络编码，支持基于 `ByteBuf` 或 `RegistryFriendlyByteBuf` 的 `StreamCodec`。 |
+| `FieldCodecs.registerContextual(type, codec)` | 根据当前值、注册表、字段信息或同步上下文提供 `Codec<T>`。例如解码时更新既有容器。 |
+| `FieldCodecs.registerFactory(type, factory)` | 为需在解码时创建的受管类型提供实例工厂。 |
+| `FieldCodecs.createCodec(factory)` | 从工厂创建的对象及其 `@SaveField` 生成 Codec。`createStreamCodec(factory)` 提供使用注册表的网络编码。 |
 
-### 为额外类型添加支持
+在领域类型或实际使用点注册其 Codec，并在字段元数据首次解析前完成注册。已注册的独立 Codec 可同时供保存与同步路径使用。对只需同步的类型，可以注册网络 Codec。对同时保存与同步的类型，提供持久化 Codec，并按需要注册独立的网络 Codec。
 
-`ValueTransformer<T>` 抽象类定义了 `T` 类型值应如何序列化。
+??? example "注册可保存的坐标值"
 
-要为额外类型添加支持，请调用 `ValueTransformers.registerTransformer(Class<T> cls, ValueTransformer<T> transformer)` 或 `ValueTransformers.registerTransformerSupplier(Class<T> cls, Supplier<ValueTransformer<T>> func)`。
+    ```java
+    public record ScanTarget(BlockPos position) {
+        public static final Codec<ScanTarget> CODEC =
+                BlockPos.CODEC.xmap(ScanTarget::new, ScanTarget::position);
 
-此外，也可以显式指定某个字段使用特定的 value transformer：
-```java
-/**
- * Example from HullMachine.java. This example shows serialization of an AE2 class which may or may not be loaded at runtime.
- */
-
-@SaveField(nbtKey = "grid_node")
-private final Object gridNodeHost;
-
-private static class GridNodeHostTransformer implements ValueTransformer<Object> {
-
-  @Override
-  public Tag serializeNBT(Object value, TransformerContext<Object> context) {
-    if (GTCEu.Mods.isAE2Loaded() &&
-            (context.currentValue()) instanceof IGridConnectedBlockEntity connectedBlockEntity) {
-      var compound = new CompoundTag();
-      connectedBlockEntity.getMainNode().saveToNBT(compound);
-      return compound;
+        public static void registerFieldCodec() {
+            FieldCodecs.register(ScanTarget.class, CODEC);
+        }
     }
-    return new CompoundTag();
-  }
+    ```
 
-  @Override
-  public @Nullable Object deserializeNBT(Tag tag, TransformerContext<Object> context) {
-    if (GTCEu.Mods.isAE2Loaded() &&
-            context.currentValue() instanceof IGridConnectedBlockEntity connectedBlockEntity &&
-            tag instanceof CompoundTag c) {
-      connectedBlockEntity.getMainNode().loadFromNBT(c);
-    }
-    return null;
-  }
-}
+    在附属模组初始化时调用 `ScanTarget.registerFieldCodec()`。受管对象可将 `ScanTarget` 用作保存或同步字段。
 
-static {
-  ClassSyncData.getClassData(HullMachine.class).setCustomTransformerForField("gridNodeHost",
-          new GridNodeHostTransformer());
-}
-
-```
+持久化以 `SyncFieldData.CODEC` 和相应的注册表上下文写入。网络字段按自身 Codec 直接编码。上下文 Codec 提供值的编码方式，调用者选择保存或网络场景。 [FieldCodecs 源码](https://github.com/ExtremelyFrozen/GregTech-Post-Modern/blob/1.21/src/main/java/com/gregtechceu/gtceu/api/sync_system/FieldCodecs.kt)
