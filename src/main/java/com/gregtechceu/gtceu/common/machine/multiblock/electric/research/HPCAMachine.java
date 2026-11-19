@@ -93,6 +93,7 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
     private static final int PAGE_HEIGHT = 125;
 
     private static final double IDLE_TEMPERATURE = 200;
+    private static final double WARNING_TEMPERATURE = 500;
     private static final double DAMAGE_TEMPERATURE = 1000;
 
     private IMaintenanceMachine maintenance;
@@ -397,8 +398,8 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
     }
 
     private List<Component> createHPCADisplayText() {
-        List<Component> text = new ArrayList<>();
-        MultiblockDisplayText.builder(text, isFormed())
+        List<Component> text = new ObjectArrayList<>();
+        var display = MultiblockDisplayText.builder(text, isFormed())
                 .setWorkingStatus(true, hpcaHandler.cachedCWUt > 0) // transform into two-state system for display
                 .setWorkingStatusKeys(
                         "gtpm.multiblock.idling",
@@ -423,74 +424,41 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
                                 cwutInfo).withStyle(ChatFormatting.GRAY));
                     }
                 })
-                .addWorkingStatusLine();
+                .addWorkingStatusLine()
+                .addLowPowerLine(hasNotEnoughEnergy);
+        if (isFormed()) {
+            var temperatureText = Component.literal(Math.round(temperature / 10.0) + "\u00B0C")
+                    .withStyle(getDisplayTemperatureColor());
+            text.add(Component.translatable("gtpm.multiblock.hpca.temperature", temperatureText)
+                    .withStyle(ChatFormatting.GRAY));
+            if (temperature >= DAMAGE_TEMPERATURE) {
+                text.add(Component.translatable("gtpm.multiblock.hpca.error_temperature")
+                        .withStyle(ChatFormatting.RED));
+            } else if (temperature >= WARNING_TEMPERATURE) {
+                text.add(Component.translatable("gtpm.multiblock.hpca.warning_temperature")
+                        .withStyle(ChatFormatting.YELLOW));
+                if (isActive()) {
+                    text.add(Component.translatable("gtpm.multiblock.hpca.warning_temperature_active_cool")
+                            .withStyle(ChatFormatting.GRAY));
+                }
+            }
+            hpcaHandler.addWarnings(text);
+            hpcaHandler.addErrors(text);
+            if (maintenance != null) {
+                display.addMaintenanceProblemLines(maintenance.getMaintenanceProblems());
+            }
+        }
         return List.copyOf(text);
     }
 
     private ChatFormatting getDisplayTemperatureColor() {
-        if (temperature < 500) {
+        if (temperature < WARNING_TEMPERATURE) {
             return ChatFormatting.GREEN;
         } else if (temperature < 750) {
             return ChatFormatting.YELLOW;
         }
         return ChatFormatting.RED;
     }
-
-    /*
-     * @Override
-     * protected void addWarningText(List<Component> textList) {
-     * MultiblockDisplayText.builder(textList, isFormed(), false)
-     * .addLowPowerLine(hasNotEnoughEnergy)
-     * .addCustom(tl -> {
-     * if (isStructureFormed()) {
-     * if (temperature > 500) {
-     * // Temperature warning
-     * tl.add(TextComponentUtil.translationWithColor(
-     * TextFormatting.YELLOW,
-     * "gtceu.multiblock.hpca.warning_temperature"));
-     *
-     * // Active cooler overdrive warning
-     * tl.add(TextComponentUtil.translationWithColor(
-     * TextFormatting.GRAY,
-     * "gtceu.multiblock.hpca.warning_temperature_active_cool"));
-     * }
-     *
-     * // Structure warnings
-     * hpcaHandler.addWarnings(tl);
-     * }
-     * })
-     * .addMaintenanceProblemLines(getMaintenanceProblems());
-     * }
-     *
-     * @Override
-     * protected void addErrorText(List<Component> textList) {
-     * super.addErrorText(textList);
-     * if (isFormed()) {
-     * if (temperature > 1000) {
-     * textList.add(Component.translatable("gtceu.multiblock.hpca.error_temperature").withStyle(ChatFormatting.RED));
-     * }
-     * hpcaHandler.addErrors(textList);
-     * }
-     * }
-     *
-     * @Override
-     * public void addBarHoverText(List<Component> hoverList, int index) {
-     * if (index == 0) {
-     * Component cwutInfo = Component.literal(
-     * hpcaHandler.cachedCWUt + " / " + hpcaHandler.getMaxCWUt() + " CWU/t").withStyle(ChatFormatting.AQUA);
-     * hoverList.add(Component.translatable(
-     * "gtceu.multiblock.hpca.computation",
-     * cwutInfo).withStyle(ChatFormatting.GRAY));
-     * } else {
-     * Component tempInfo = Component.literal(,
-     * Math.round(temperature / 10.0D) + "°C").withStyle(getDisplayTemperatureColor());
-     * hoverList.add(TextComponentUtil.translationWithColor(
-     * TextFormatting.GRAY,
-     * "gtceu.multiblock.hpca.temperature",
-     * tempInfo));
-     * }
-     * }
-     */
 
     // Handles the logic of this structure's specific HPCA component grid
     public static class HPCAGridHandler implements ISyncManaged {
@@ -820,23 +788,22 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
         }
 
         public void addWarnings(List<Component> textList) {
-            List<Component> warnings = new ArrayList<>();
+            int start = textList.size();
             if (numBridges > 1) {
-                warnings.add(Component.translatable("gtpm.multiblock.hpca.warning_multiple_bridges")
+                textList.add(Component.translatable("gtpm.multiblock.hpca.warning_multiple_bridges")
                         .withStyle(ChatFormatting.GRAY));
             }
             if (computationProviders.isEmpty()) {
-                warnings.add(Component.translatable("gtpm.multiblock.hpca.warning_no_computation")
+                textList.add(Component.translatable("gtpm.multiblock.hpca.warning_no_computation")
                         .withStyle(ChatFormatting.GRAY));
             }
             if (getMaxCoolingDemand() > getMaxCoolingAmount()) {
-                warnings.add(Component.translatable("gtpm.multiblock.hpca.warning_low_cooling")
+                textList.add(Component.translatable("gtpm.multiblock.hpca.warning_low_cooling")
                         .withStyle(ChatFormatting.GRAY));
             }
-            if (!warnings.isEmpty()) {
-                textList.add(Component.translatable("gtpm.multiblock.hpca.warning_structure_header")
+            if (textList.size() != start) {
+                textList.add(start, Component.translatable("gtpm.multiblock.hpca.warning_structure_header")
                         .withStyle(ChatFormatting.YELLOW));
-                textList.addAll(warnings);
             }
         }
 

@@ -612,7 +612,7 @@ public class MultiblockDisplayText {
         public Builder addMaintenanceProblemLines(byte maintenanceProblems) {
             if (!isStructureFormed || !ConfigHolder.INSTANCE.machines.enableMaintenance)
                 return this;
-            if (maintenanceProblems <= 0b111111 && maintenanceProblems > 0) {
+            if (maintenanceProblems >= 0 && maintenanceProblems < 0b111111) {
                 addMaintenanceProblemHeader();
 
                 // Wrench
