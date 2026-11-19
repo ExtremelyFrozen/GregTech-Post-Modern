@@ -2,10 +2,15 @@
 title: 定制中央监控器与占位符系统
 ---
 
-### 自定义 monitor module
-如果想添加 monitor module，只需向你的 `ComponentItem` 附加一个实现 `IMonitorModuleItem` 的 component。
-Module 可以拥有自定义 UI，可以被 tick（在 placeholder 中或不在其中），最重要的是可以被渲染。
+
+# 定制中央监控器与占位符
+
+## 自定义监控模块
+
+向 `ComponentItem` 添加实现 `IMonitorModuleItem` 的组件。模块用 `getRenderer` 提供渲染器，通过 `tick` 更新监控组上的显示数据。用作占位符的输入时，通过 `tickInPlaceholder` 更新。在当前监控组的菜单中，`createConfigurationElement` 返回 LDLib2 元素，交互可以通过提供的 `actionSender` 发送模块 RPC。
+
 ??? example "Java 中的自定义 module 示例"
+
     ```java
     public class ExampleModuleBehaviour implements IMonitorModuleItem {
         @Override
@@ -38,10 +43,9 @@ Module 可以拥有自定义 UI，可以被 tick（在 placeholder 中或不在�
         }
 
         @Override
-        public Widget createUIWidget(ItemStack stack, CentralMonitorMachine machine, MonitorGroup group) {
-            // should create the UI for your module and return it
-            // if the module doesn't need a UI just return new WidgetGroup()
-            return new WidgetGroup();
+        public UIElement createConfigurationElement(ItemStack stack, CentralMonitorMachine machine,
+                                                     MonitorGroup group, Consumer<Runnable> actionSender) {
+            return new UIElement();
         }
     }
     ```

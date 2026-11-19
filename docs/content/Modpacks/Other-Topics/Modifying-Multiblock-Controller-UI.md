@@ -1,45 +1,32 @@
 ---
-title: 修改 Multiblock Controller UI
+title: 多方块主机界面
 ---
-# 修改 Multiblock Controller UI
 
-!!! note "上游示例"
-    本页示例面向 GregTech CEu Modern。GTPM 1.21.1 的数据包和附属模组入口见[整合包制作](../index.md#upstream-kubejs)。
 
-## 添加 text component
-要向 UI 添加 text component，需要在 multiblock registration builder 中使用 `.additionalDisplay`。
-`.additionalDisplay` 接收一个 lambda，该 lambda 接收 2 个参数：正在被添加 component 的 `IMultiController` machine，以及现有 components 的 `List<Component>`。
-使用示例如下：
+# 修改多方块主机界面
 
-```js title="ui_modified_multiblock.js"
-GTCEuStartupEvents.registry('gtceu:machine', event => {
-    event.create('ui_modified_multiblock', 'multiblock')
-		.rotationState(RotationState.NON_Y_AXIS)
-		.recipeType('electrolyzer')
-		.recipeModifiers([GTRecipeModifiers.OC_NON_PERFECT_SUBTICK])
-		.appearanceBlock(() => Block.getBlock("gtceu:solid_machine_casing"))
-		.pattern(definition => FactoryBlockPattern.start()
-			.aisle('###','   ','###')
-			.aisle('###',' S ','###')
-			.aisle('#C#','   ','###')
-			.where('C', Predicates.controller(Predicates.blocks(definition.get())))
-			.where('#', Predicates.blocks("gtceu:solid_machine_casing")
-				.or(Predicates.abilities(PartAbility.IMPORT_ITEMS).setPreviewCount(1))
-				.or(Predicates.abilities(PartAbility.EXPORT_ITEMS).setPreviewCount(1))
-				.or(Predicates.abilities(PartAbility.INPUT_ENERGY).setMaxGlobalLimited(1).setPreviewCount(1)))
-			.where('S', Predicates.blocks("gtceu:steel_machine_casing"))
-			.where(' ', Predicates.any())
-			.build())
-		.workableCasingModel("gtceu:block/casings/solid/machine_casing_solid_steel", "gtceu:block/multiblock/blast_furnace")
-		.additionalDisplay((machine, components) => { // (3)
-			if (machine.isFormed()) { // (1)
-				components.add(Component.literal("I am text component #1")) // (2)
-                components.add(Component.literal("I am text component #2"))
-			}
-		})
-});
-```
+多方块主页由机器的 LDLib2 页面提供。整合包可在机器定义中添加状态文本，附属模组也可以自定义整个页面。
 
-1. 检查 multiblock 是否已 formed。
-2. 要添加新行，请使用 `components.add(Component)`。
-3. 使用 `.additionalDisplay()` 添加 text component。
+
+## 添加主机状态文本
+
+`MultiblockMachineBuilder.additionalDisplay` 接收 `BiConsumer<MultiblockControllerMachine, List<Component>>`。在回调中向组件列表加入文本，默认多方块显示页会把它与机器状态一并绘制。
+
+??? example "成型时增加一行本地化提示"
+
+    ```java
+    builder.additionalDisplay((machine, text) -> {
+        if (machine.isFormed()) {
+            text.add(Component.translatable("machine.example.heater.ready"));
+        }
+    });
+    ```
+
+    在附属模组的语言资源中定义该翻译键。
+
+
+## 定制 LDLib2 页面
+
+在控制器类中覆盖 `createUIWidget(FancyMachineUIWidget shell)`，返回 LDLib2 的 `UIElement`。`GTComponentPanelElement` 可从 `addDisplayText` 读取动态文本。`attachSideTabs` 和 `attachConfigurators` 分别提供侧边页和设置控件。拥有交互槽位的页面还可以由可用部件提供。 [IFancyUIProvider 源码](https://github.com/ExtremelyFrozen/GregTech-Post-Modern/blob/1.21/src/main/java/com/gregtechceu/gtceu/api/gui/fancy/IFancyUIProvider.java)
+
+机器、部件与覆板使用自身的界面入口。客户端状态显示使用 `@SyncToClient`，双向设置使用 `@SyncBoth`，需要执行一次的交互使用 `@RPCMethod`。 [字段同步](../../Development/Data-Sync-System/index.md) · [XML 模板](LDLib-UI-Editor.md)
