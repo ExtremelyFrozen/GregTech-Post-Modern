@@ -22,7 +22,7 @@ import org.jspecify.annotations.NullMarked;
 
 import java.util.function.IntFunction;
 
-/** Tag members for one EMI registration pass. Each recipe owns the stacks it exposes to EMI. */
+/** Caches tag members on the thread building the recipe ingredients. Each recipe owns its EMI stacks. */
 @NullMarked
 final class EmiTagStacks {
 
@@ -63,17 +63,17 @@ final class EmiTagStacks {
         }
     }
 
-    private synchronized Item[] membersOfItemTag(TagKey<Item> tag) {
+    private Item[] membersOfItemTag(TagKey<Item> tag) {
         return items.computeIfAbsent(tag,
-                (TagKey<Item> key) -> snapshotMembers(BuiltInRegistries.ITEM, key, Item[]::new));
+                (TagKey<Item> key) -> loadTagMembers(BuiltInRegistries.ITEM, key, Item[]::new));
     }
 
-    private synchronized Fluid[] membersOfFluidTag(TagKey<Fluid> tag) {
+    private Fluid[] membersOfFluidTag(TagKey<Fluid> tag) {
         return fluids.computeIfAbsent(tag,
-                (TagKey<Fluid> key) -> snapshotMembers(BuiltInRegistries.FLUID, key, Fluid[]::new));
+                (TagKey<Fluid> key) -> loadTagMembers(BuiltInRegistries.FLUID, key, Fluid[]::new));
     }
 
-    private static <T> T[] snapshotMembers(Registry<T> registry, TagKey<T> tag, IntFunction<T[]> array) {
+    private static <T> T[] loadTagMembers(Registry<T> registry, TagKey<T> tag, IntFunction<T[]> array) {
         return registry.getTag(tag).map(members -> members.stream().map(Holder::value).toArray(array))
                 .orElseGet(() -> array.apply(0));
     }

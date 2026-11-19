@@ -40,6 +40,7 @@ public class GTRecipeEMICategory extends EmiRecipeCategory {
     public static void registerDisplays(EmiRegistry registry) {
         List<GTRecipeCategory> subCategories = new ObjectArrayList<>();
         Map<GTRecipeType, RecipeUISize> sizes = new Reference2ObjectOpenHashMap<>();
+        // Resolve tags during registration so recipes only retain the ingredients used by EMI.
         var tags = new EmiTagStacks();
         // run main categories first
         for (GTRecipeCategory category : GTRegistries.RECIPE_CATEGORIES) {
@@ -55,7 +56,8 @@ public class GTRecipeEMICategory extends EmiRecipeCategory {
             RecipeUISize size = sizes.computeIfAbsent(type,
                     recipeType -> recipeType.getRecipeUI().getXEIRecipeUISize());
             for (var recipe : type.getClientRecipesInCategory(category)) {
-                registry.addRecipe(new GTEmiRecipe(recipe, emiCategory, size, tags));
+                var ingredients = GTEmiIngredients.create(recipe, tags);
+                registry.addRecipe(new GTEmiRecipe(recipe, emiCategory, size, ingredients));
             }
         }
         // run subcategories
@@ -66,7 +68,8 @@ public class GTRecipeEMICategory extends EmiRecipeCategory {
             RecipeUISize size = sizes.computeIfAbsent(type,
                     recipeType -> recipeType.getRecipeUI().getXEIRecipeUISize());
             for (var recipe : type.getClientRecipesInCategory(subCategory)) {
-                registry.addRecipe(new GTEmiRecipe(recipe, emiCategory, size, tags));
+                var ingredients = GTEmiIngredients.create(recipe, tags);
+                registry.addRecipe(new GTEmiRecipe(recipe, emiCategory, size, ingredients));
             }
         }
     }
