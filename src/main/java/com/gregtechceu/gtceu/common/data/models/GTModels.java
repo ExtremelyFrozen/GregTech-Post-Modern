@@ -115,7 +115,7 @@ public class GTModels {
 
             prov.getVariantBuilder(ctx.getEntry())
                     .forAllStates(state -> {
-                        if (state.getValue(LampBlock.LIGHT)) {
+                        if (LampBlock.isLightActive(state)) {
                             ModelBuilder<?> model = prov.models()
                                     .getBuilder(ctx.getName() +
                                             (state.getValue(GTBlockStateProperties.BLOOM) ? "_bloom" : ""))
