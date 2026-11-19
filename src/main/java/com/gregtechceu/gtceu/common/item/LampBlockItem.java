@@ -37,16 +37,16 @@ public class LampBlockItem extends BlockItem {
     @Nullable
     @Override
     protected BlockState getPlacementState(BlockPlaceContext context) {
-        BlockState returnValue = super.getPlacementState(context);
-        ItemStack handItem = context.getItemInHand();
-        if (returnValue != null) {
-            LampData data = handItem.getOrDefault(GTDataComponents.LAMP_DATA, LampData.EMPTY);
-            returnValue = returnValue
-                    .setValue(LampBlock.INVERTED, data.inverted())
-                    .setValue(LampBlock.BLOOM, data.bloom())
-                    .setValue(LampBlock.LIGHT, data.lit());
-        }
-        return returnValue;
+        BlockState state = super.getPlacementState(context);
+        return state == null ? null : applyLampData(state, context.getItemInHand());
+    }
+
+    public BlockState applyLampData(BlockState state, ItemStack stack) {
+        LampData data = stack.get(GTDataComponents.LAMP_DATA);
+        if (data == null) return state;
+        return state.setValue(LampBlock.INVERTED, data.inverted())
+                .setValue(LampBlock.BLOOM, data.bloom())
+                .setValue(LampBlock.LIGHT, data.lit());
     }
 
     public void fillItemCategory(CreativeModeTab category, NonNullList<ItemStack> items) {

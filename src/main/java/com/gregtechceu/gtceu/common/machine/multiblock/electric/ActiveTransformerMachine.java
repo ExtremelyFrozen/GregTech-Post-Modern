@@ -4,30 +4,18 @@ import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo;
 import com.gregtechceu.gtceu.api.capability.IEnergyContainer;
 import com.gregtechceu.gtceu.api.capability.recipe.EURecipeCapability;
 import com.gregtechceu.gtceu.api.capability.recipe.IO;
-import com.gregtechceu.gtceu.api.gui.GuiTextures;
-import com.gregtechceu.gtceu.api.gui.UITemplate;
-import com.gregtechceu.gtceu.api.gui.element.GTComponentPanelElement;
-import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
-import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
 import com.gregtechceu.gtceu.api.machine.ConditionalSubscriptionHandler;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMultiPart;
+import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockDisplayText;
 import com.gregtechceu.gtceu.api.machine.multiblock.PartAbility;
 import com.gregtechceu.gtceu.api.machine.multiblock.WorkableElectricMultiblockMachine;
 import com.gregtechceu.gtceu.api.machine.trait.WorkLogic;
 import com.gregtechceu.gtceu.api.misc.EnergyContainerList;
 import com.gregtechceu.gtceu.api.multiblock.structurepredicate.PatternPredicate;
-import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
 import com.gregtechceu.gtceu.config.ConfigHolder;
 import com.gregtechceu.gtceu.utils.FormattingUtil;
 import com.gregtechceu.gtceu.utils.GTUtil;
-
-import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
-import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
-import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
-import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollerMode;
-import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.network.chat.Component;
@@ -48,15 +36,9 @@ import static com.gregtechceu.gtceu.api.multiblock.structurepredicate.PatternPre
 @MethodsReturnNonnullByDefault
 public class ActiveTransformerMachine extends WorkableElectricMultiblockMachine {
 
-    private static final int PAGE_WIDTH = 190;
-    private static final int PAGE_HEIGHT = 125;
-
     private EnergyContainerList powerOutput;
     private EnergyContainerList powerInput;
     protected ConditionalSubscriptionHandler converterSubscription;
-    private final ConditionalSubscriptionHandler displaySubscription;
-    @SyncToClient
-    private List<Component> displayText = List.of();
 
     public ActiveTransformerMachine(BlockEntityCreationInfo info) {
         super(info);
@@ -65,8 +47,6 @@ public class ActiveTransformerMachine extends WorkableElectricMultiblockMachine 
 
         this.converterSubscription = new ConditionalSubscriptionHandler(this, this::convertEnergyTick,
                 this::isSubscriptionActive);
-        this.displaySubscription = new ConditionalSubscriptionHandler(this, this::refreshDisplayText,
-                this::isFormed);
     }
 
     public void convertEnergyTick() {
@@ -134,10 +114,6 @@ public class ActiveTransformerMachine extends WorkableElectricMultiblockMachine 
         this.powerOutput = new EnergyContainerList(powerOutput);
         this.powerInput = new EnergyContainerList(powerInput);
 
-        if (!isRemote()) {
-            refreshDisplayText();
-            displaySubscription.updateSubscription();
-        }
         converterSubscription.updateSubscription();
     }
 
@@ -190,10 +166,8 @@ public class ActiveTransformerMachine extends WorkableElectricMultiblockMachine 
     private void resetTransferRuntimeState() {
         this.powerOutput = EnergyContainerList.EMPTY;
         this.powerInput = EnergyContainerList.EMPTY;
-        this.displayText = List.of();
         getWorkLogic().setStatus(WorkLogic.Status.SUSPEND);
         converterSubscription.unsubscribe();
-        displaySubscription.unsubscribe();
     }
 
     public static PatternPredicate getHatchPatternPredicates() {
@@ -207,86 +181,24 @@ public class ActiveTransformerMachine extends WorkableElectricMultiblockMachine 
 
     @Override
     public void addDisplayText(@NotNull List<Component> textList) {
-        textList.addAll(displayText);
-    }
+        boolean formed = isFormed();
+        boolean workingEnabled = isWorkingEnabled();
+        boolean active = isActive();
+        MultiblockDisplayText.builder(textList, formed)
+                .setWorkingStatus(workingEnabled, active)
+                .addWorkingStatusLine();
+        if (!formed || !workingEnabled || !active) return;
 
-    private void refreshDisplayText() {
-        DisplayState state = captureDisplayState(isFormed(), isWorkingEnabled(), isActive(), powerInput, powerOutput,
-                !ConfigHolder.INSTANCE.machines.harmlessActiveTransformers);
-        List<Component> nextText = createDisplayText(state);
-        if (!displayText.equals(nextText)) {
-            displayText = nextText;
+        textList.add(Component.translatable("gtpm.multiblock.active_transformer.max_input",
+                FormattingUtil.formatNumbers(powerInput.getTotalEUt())));
+        textList.add(Component.translatable("gtpm.multiblock.active_transformer.max_output",
+                FormattingUtil.formatNumbers(powerOutput.getTotalEUt())));
+        textList.add(Component.translatable("gtpm.multiblock.active_transformer.average_in",
+                FormattingUtil.formatNumbers(Math.abs(powerInput.getInputPerSec() / 20))));
+        textList.add(Component.translatable("gtpm.multiblock.active_transformer.average_out",
+                FormattingUtil.formatNumbers(Math.abs(powerOutput.getOutputPerSec() / 20))));
+        if (!ConfigHolder.INSTANCE.machines.harmlessActiveTransformers) {
+            textList.add(Component.translatable("gtpm.multiblock.active_transformer.danger_enabled"));
         }
-    }
-
-    static DisplayState captureDisplayState(boolean formed, boolean workingEnabled, boolean active,
-                                            EnergyContainerList powerInput, EnergyContainerList powerOutput,
-                                            boolean dangerEnabled) {
-        return new DisplayState(formed, workingEnabled, active,
-                powerInput.getTotalEUt(), powerOutput.getTotalEUt(),
-                Math.abs(powerInput.getInputPerSec() / 20),
-                Math.abs(powerOutput.getOutputPerSec() / 20), dangerEnabled);
-    }
-
-    static List<Component> createDisplayText(DisplayState state) {
-        if (!state.formed()) {
-            return List.of();
-        }
-
-        List<Component> text = new ArrayList<>();
-        if (!state.workingEnabled()) {
-            text.add(Component.translatable("gtpm.multiblock.work_paused"));
-        } else if (state.active()) {
-            text.add(Component.translatable("gtpm.multiblock.running"));
-            text.add(Component.translatable("gtpm.multiblock.active_transformer.max_input",
-                    FormattingUtil.formatNumbers(state.maxInput())));
-            text.add(Component.translatable("gtpm.multiblock.active_transformer.max_output",
-                    FormattingUtil.formatNumbers(state.maxOutput())));
-            text.add(Component.translatable("gtpm.multiblock.active_transformer.average_in",
-                    FormattingUtil.formatNumbers(state.averageInput())));
-            text.add(Component.translatable("gtpm.multiblock.active_transformer.average_out",
-                    FormattingUtil.formatNumbers(state.averageOutput())));
-            if (state.dangerEnabled()) {
-                text.add(Component.translatable("gtpm.multiblock.active_transformer.danger_enabled"));
-            }
-        } else {
-            text.add(Component.translatable("gtpm.multiblock.idling"));
-        }
-        return List.copyOf(text);
-    }
-
-    record DisplayState(boolean formed, boolean workingEnabled, boolean active,
-                        long maxInput, long maxOutput, long averageInput, long averageOutput,
-                        boolean dangerEnabled) {}
-
-    @Override
-    public UIElement createUIWidget(FancyMachineUIWidget shell) {
-        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
-        root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
-
-        GTScrollerViewElement screen = new GTScrollerViewElement(4, 4, 182, 117);
-        screen.style(style -> style.backgroundTexture(getScreenTexture()));
-        screen.viewPort(viewPort -> viewPort
-                .layout(layout -> layout.paddingAll(0))
-                .style(style -> style.backgroundTexture(getScreenTexture())));
-        screen.scrollerStyle(style -> style
-                .mode(ScrollerMode.VERTICAL)
-                .verticalScrollDisplay(ScrollDisplay.AUTO)
-                .horizontalScrollDisplay(ScrollDisplay.NEVER));
-
-        GTLabelElement title = new GTLabelElement(4, 5, 174, 10,
-                getBlockState().getBlock().getDescriptionId(), true);
-        title.textStyle(style -> style
-                .textColor(0x404040)
-                .textShadow(false)
-                .textAlignHorizontal(Horizontal.LEFT)
-                .textAlignVertical(Vertical.CENTER));
-        screen.addScrollViewChild(title);
-        screen.addScrollViewChild(new GTComponentPanelElement(4, 17,
-                ActiveTransformerMachine.this::addDisplayText)
-                .setMaxWidthLimit(150)
-                .clickHandler(ActiveTransformerMachine.this::handleDisplayClick));
-        root.addChild(screen);
-        return root;
     }
 }

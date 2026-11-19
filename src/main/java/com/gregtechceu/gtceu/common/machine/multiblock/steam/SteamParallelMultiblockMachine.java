@@ -6,6 +6,7 @@ import com.gregtechceu.gtceu.api.capability.recipe.FluidRecipeCapability;
 import com.gregtechceu.gtceu.api.capability.recipe.IO;
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
 import com.gregtechceu.gtceu.api.gui.UITemplate;
+import com.gregtechceu.gtceu.api.gui.element.GTComponentPanelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
@@ -31,12 +32,10 @@ import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
 import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollerMode;
-import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 import net.minecraft.world.entity.player.Player;
 
@@ -45,7 +44,6 @@ import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class SteamParallelMultiblockMachine extends WorkableMultiblockMachine implements IUIMachine {
@@ -210,42 +208,7 @@ public class SteamParallelMultiblockMachine extends WorkableMultiblockMachine im
         return label;
     }
 
-    private GTLabelElement createDisplayTextPanel() {
-        GTLabelElement label = new GTLabelElement(4, 17, 150, 104) {
-
-            @Override
-            public void screenTick() {
-                updateDisplayText(this);
-                super.screenTick();
-            }
-        };
-        updateDisplayText(label);
-        label.textStyle(style -> style
-                .textColor(0xFFFFFF)
-                .textShadow(false)
-                .textAlignHorizontal(Horizontal.LEFT)
-                .textAlignVertical(Vertical.TOP)
-                .textWrap(TextWrap.WRAP)
-                .fontSize(9f)
-                .lineSpacing(0f));
-        return label;
-    }
-
-    private void updateDisplayText(GTLabelElement label) {
-        List<Component> displayText = new ArrayList<>();
-        addDisplayText(displayText);
-        label.setText(buildDisplayText(displayText));
-        label.layout(layout -> layout.height(Math.max(104, displayText.size() * 10)));
-    }
-
-    private MutableComponent buildDisplayText(List<Component> displayText) {
-        MutableComponent text = Component.empty();
-        for (int index = 0; index < displayText.size(); index++) {
-            if (index > 0) {
-                text.append("\n");
-            }
-            text.append(displayText.get(index));
-        }
-        return text;
+    private GTComponentPanelElement createDisplayTextPanel() {
+        return new GTComponentPanelElement(4, 17, this::addDisplayText).setMaxWidthLimit(148);
     }
 }

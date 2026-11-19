@@ -42,12 +42,11 @@ public class GTAEPlaceholders {
     private GTAEPlaceholders() {}
 
     private static IGrid getGrid(PlaceholderContext ctx) throws PlaceholderException {
-        if (ctx.pos() == null) throw new NotSupportedException();
         IInWorldGridNodeHost nodeHost = GridHelper.getNodeHost(ctx.level(), ctx.pos());
         if (nodeHost != null) {
             IGridNode node = nodeHost.getGridNode(ctx.side());
             if (node != null) return node.getGrid();
-        } ;
+        }
         BlockEntity blockEntity = ctx.level().getBlockEntity(ctx.pos());
         if (blockEntity instanceof IGridConnectedBlockEntity gridMachine) {
             IGrid nullable = gridMachine.getMainNode().getGrid();
@@ -111,8 +110,9 @@ public class GTAEPlaceholders {
                 IGrid grid = getGrid(ctx);
                 if (args.isEmpty()) return MultiLineComponent.literal(countItems((ItemFilter) null, grid));
                 if (args.size() == 1)
-                    return MultiLineComponent.literal(countItems(GTStringUtils.componentsToString(args.get(0)), grid));
-                if (GTStringUtils.equals(args.get(0), "filter")) {
+                    return MultiLineComponent
+                            .literal(countItems(GTStringUtils.componentsToString(args.getFirst()), grid));
+                if (GTStringUtils.equals(args.getFirst(), "filter")) {
                     int slot = PlaceholderUtils.toInt(args.get(1));
                     try {
                         PlaceholderUtils.checkRange("slot index", 1, 8, slot);
@@ -134,7 +134,8 @@ public class GTAEPlaceholders {
                 IGrid grid = getGrid(ctx);
                 if (args.isEmpty()) return MultiLineComponent.literal(countFluids(null, grid));
                 if (args.size() == 1)
-                    return MultiLineComponent.literal(countFluids(GTStringUtils.componentsToString(args.get(0)), grid));
+                    return MultiLineComponent
+                            .literal(countFluids(GTStringUtils.componentsToString(args.getFirst()), grid));
                 throw new WrongNumberOfArgsException(1, args.size());
             }
         });
@@ -175,15 +176,15 @@ public class GTAEPlaceholders {
                                             List<MultiLineComponent> args) throws PlaceholderException {
                 IGrid grid = getGrid(ctx);
                 PlaceholderUtils.checkArgs(args, 1);
-                if (GTStringUtils.equals(args.get(0), "power")) {
+                if (GTStringUtils.equals(args.getFirst(), "power")) {
                     return MultiLineComponent.literal(grid.getSpatialService().requiredPower());
-                } else if (GTStringUtils.equals(args.get(0), "efficiency")) {
+                } else if (GTStringUtils.equals(args.getFirst(), "efficiency")) {
                     return MultiLineComponent.literal(grid.getSpatialService().currentEfficiency());
-                } else if (GTStringUtils.equals(args.get(0), "sizeX")) {
+                } else if (GTStringUtils.equals(args.getFirst(), "sizeX")) {
                     return MultiLineComponent.literal(getSpatialSize(grid).x);
-                } else if (GTStringUtils.equals(args.get(0), "sizeY")) {
+                } else if (GTStringUtils.equals(args.getFirst(), "sizeY")) {
                     return MultiLineComponent.literal(getSpatialSize(grid).y);
-                } else if (GTStringUtils.equals(args.get(0), "sizeZ")) {
+                } else if (GTStringUtils.equals(args.getFirst(), "sizeZ")) {
                     return MultiLineComponent.literal(getSpatialSize(grid).z);
                 } else throw new InvalidArgsException();
             }
@@ -196,7 +197,7 @@ public class GTAEPlaceholders {
                 IGrid grid = getGrid(ctx);
                 PlaceholderUtils.checkArgs(args, 1, true);
                 ICraftingService crafting = grid.getCraftingService();
-                if (GTStringUtils.equals(args.get(0), "get")) {
+                if (GTStringUtils.equals(args.getFirst(), "get")) {
                     if (GTStringUtils.equals(args.get(1), "amount"))
                         return MultiLineComponent.literal(crafting.getCpus().size());
                     int index = PlaceholderUtils.toInt(args.get(1));

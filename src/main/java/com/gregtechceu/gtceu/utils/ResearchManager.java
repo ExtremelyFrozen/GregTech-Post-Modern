@@ -1,5 +1,6 @@
 package com.gregtechceu.gtceu.utils;
 
+import com.gregtechceu.gtceu.api.capability.recipe.FluidRecipeCapability;
 import com.gregtechceu.gtceu.api.capability.recipe.IO;
 import com.gregtechceu.gtceu.api.capability.recipe.IRecipeCapabilityHolder;
 import com.gregtechceu.gtceu.api.capability.recipe.ItemRecipeCapability;
@@ -61,6 +62,30 @@ public final class ResearchManager {
         @Nullable
         DataItem dataItem = stack.get(GTDataComponents.DATA_ITEM);
         return dataItem != null && (!dataItem.requireDataBank() || isDataBank);
+    }
+
+    public static void addResearchOutputNames(Collection<GTRecipeDefinition> recipes, Consumer<Component> addLine) {
+        var names = new ObjectOpenHashSet<Component>();
+        for (GTRecipeDefinition recipe : recipes) {
+            Component name = getResearchOutputName(recipe);
+            if (name != null && names.add(name)) {
+                addLine.accept(Component.translatable("behavior.data_item.data", name));
+            }
+        }
+    }
+
+    private static @Nullable Component getResearchOutputName(GTRecipeDefinition recipe) {
+        for (var content : recipe.getOutputContents(ItemRecipeCapability.CAP)) {
+            for (ItemStack stack : ItemRecipeCapability.CAP.of(content.content).getItems()) {
+                if (!stack.isEmpty()) return stack.getHoverName();
+            }
+        }
+        for (var content : recipe.getOutputContents(FluidRecipeCapability.CAP)) {
+            for (FluidStack stack : FluidRecipeCapability.CAP.of(content.content).getFluids()) {
+                if (!stack.isEmpty()) return stack.getHoverName();
+            }
+        }
+        return null;
     }
 
     /**
@@ -141,25 +166,13 @@ public final class ResearchManager {
         @Override
         public void addToTooltip(Item.TooltipContext context, Consumer<Component> tooltipAdder,
                                  TooltipFlag tooltipFlag) {
-            Collection<GTRecipeDefinition> recipes = recipeType().getDataStickEntry(researchId());
+            Collection<GTRecipeDefinition> recipes = recipeType().getClientDataStickEntry(researchId());
             if (recipes == null || recipes.isEmpty()) {
                 return;
             }
             tooltipAdder.accept(Component.translatable("behavior.data_item.title", recipeType().getName()));
 
-            Collection<ItemStack> added = new ObjectOpenHashSet<>();
-            outer:
-            for (GTRecipeDefinition recipe : recipes) {
-                ItemStack output = ItemRecipeCapability.CAP
-                        .of(recipe.getOutputContents(ItemRecipeCapability.CAP).getFirst().content)
-                        .getItems()[0];
-                for (var item : added) {
-                    if (output.is(item.getItem())) continue outer;
-                }
-                if (added.add(output)) {
-                    tooltipAdder.accept(Component.translatable("behavior.data_item.data", output.getHoverName()));
-                }
-            }
+            addResearchOutputNames(recipes, tooltipAdder);
         }
     }
 

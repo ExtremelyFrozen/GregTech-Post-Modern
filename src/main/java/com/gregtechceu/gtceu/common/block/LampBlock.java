@@ -78,9 +78,9 @@ public class LampBlock extends Block {
 
     public ItemStack getStackFromIndex(int i) {
         ItemStack stack = new ItemStack(this);
-        LampBlockItem.LampData data = new LampBlockItem.LampData((i & LampBlock.INVERTED_FLAG) == 0,
-                (i & LampBlock.BLOOM_FLAG) == 0,
-                (i & LampBlock.LIGHT_FLAG) == 0);
+        LampBlockItem.LampData data = new LampBlockItem.LampData((i & LampBlock.INVERTED_FLAG) != 0,
+                (i & LampBlock.BLOOM_FLAG) != 0,
+                (i & LampBlock.LIGHT_FLAG) != 0);
         stack.set(GTDataComponents.LAMP_DATA, data);
         return stack;
     }
@@ -141,7 +141,8 @@ public class LampBlock extends Block {
     @Override
     public void appendHoverText(ItemStack stack, Item.TooltipContext pContext, List<Component> tooltip,
                                 TooltipFlag flag) {
-        LampBlockItem.LampData data = stack.getOrDefault(GTDataComponents.LAMP_DATA, LampBlockItem.LampData.EMPTY);
+        LampBlockItem.LampData data = stack.get(GTDataComponents.LAMP_DATA);
+        if (data == null) return;
         if (data.inverted())
             tooltip.add(Component.translatable("block.gtpm.lamp.tooltip.inverted"));
         if (!data.bloom())

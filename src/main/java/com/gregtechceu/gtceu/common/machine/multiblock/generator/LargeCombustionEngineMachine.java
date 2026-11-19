@@ -6,15 +6,9 @@ import com.gregtechceu.gtceu.api.capability.recipe.FluidRecipeCapability;
 import com.gregtechceu.gtceu.api.capability.recipe.IO;
 import com.gregtechceu.gtceu.api.fluids.store.FluidStorageKeys;
 import com.gregtechceu.gtceu.api.gui.GuiTextures;
-import com.gregtechceu.gtceu.api.gui.UITemplate;
-import com.gregtechceu.gtceu.api.gui.element.GTComponentPanelElement;
-import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
-import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
 import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyTooltip;
 import com.gregtechceu.gtceu.api.gui.fancy.TooltipsPanel;
-import com.gregtechceu.gtceu.api.machine.ConditionalSubscriptionHandler;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.VoidingModeConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
@@ -35,12 +29,6 @@ import com.gregtechceu.gtceu.data.recipe.builder.GTRecipeBuilder;
 import com.gregtechceu.gtceu.utils.FormattingUtil;
 import com.gregtechceu.gtceu.utils.GTMath;
 
-import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
-import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
-import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
-import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollerMode;
-import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
-
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
@@ -51,14 +39,10 @@ import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
 public class LargeCombustionEngineMachine extends WorkableElectricMultiblockMachine {
-
-    private static final int PAGE_WIDTH = 190;
-    private static final int PAGE_HEIGHT = 125;
 
     private static final FluidStack OXYGEN_STACK = GTMaterials.Oxygen.getFluid(1);
     private static final FluidStack LIQUID_OXYGEN_STACK = GTMaterials.Oxygen.getFluid(FluidStorageKeys.LIQUID, 4);
@@ -71,19 +55,12 @@ public class LargeCombustionEngineMachine extends WorkableElectricMultiblockMach
     private boolean isOxygenBoosted = false;
     private int runningTimer = 0;
     @Getter(AccessLevel.PACKAGE)
-    private final ConditionalSubscriptionHandler displaySubscription;
-    @Getter(AccessLevel.PACKAGE)
-    @SyncToClient
-    private List<Component> displayText = List.of();
-    @Getter(AccessLevel.PACKAGE)
     @SyncToClient
     private boolean intakeObstructed;
 
     public LargeCombustionEngineMachine(BlockEntityCreationInfo info, int tier) {
         super(info);
         this.tier = tier;
-        displaySubscription = new ConditionalSubscriptionHandler(this, this::refreshDisplayText,
-                this::isFormed);
     }
 
     protected boolean isIntakesObstructed() {
@@ -103,46 +80,15 @@ public class LargeCombustionEngineMachine extends WorkableElectricMultiblockMach
     }
 
     @Override
-    public void onLoad() {
-        super.onLoad();
-        if (!isRemote()) {
-            refreshDisplayText();
-            displaySubscription.initialize(getLevel());
-        }
-    }
-
-    @Override
-    public void formStructure(String structureName) {
-        super.formStructure(structureName);
-        if (!DEFAULT_STRUCTURE.equals(structureName) || isRemote()) return;
-        refreshDisplayText();
-        displaySubscription.updateSubscription();
-    }
-
-    @Override
-    public void invalidateStructure(String structureName) {
-        super.invalidateStructure(structureName);
-        if (!DEFAULT_STRUCTURE.equals(structureName) || isRemote()) return;
-        refreshDisplayText();
-        displaySubscription.updateSubscription();
-    }
-
-    @Override
     public void onUnload() {
         super.onUnload();
-        resetDisplayText();
+        intakeObstructed = false;
     }
 
     @Override
     public void onPartUnload() {
         super.onPartUnload();
-        resetDisplayText();
-    }
-
-    private void resetDisplayText() {
-        displayText = List.of();
         intakeObstructed = false;
-        displaySubscription.unsubscribe();
     }
 
     private boolean isExtreme() {
@@ -255,62 +201,35 @@ public class LargeCombustionEngineMachine extends WorkableElectricMultiblockMach
 
     @Override
     public void addDisplayText(List<Component> textList) {
-        textList.addAll(displayText);
-    }
-
-    void refreshDisplayText() {
-        List<Component> nextText = createDisplayText(captureDisplayState());
-        if (!displayText.equals(nextText)) {
-            displayText = nextText;
-        }
-
-        boolean nextIntakeObstruction = isFormed() && isIntakesObstructed();
-        if (intakeObstructed != nextIntakeObstruction) {
-            intakeObstructed = nextIntakeObstruction;
-        }
-    }
-
-    protected DisplayState captureDisplayState() {
+        boolean formed = isFormed();
         var workLogic = getWorkLogic();
+        boolean active = workLogic.isActive();
+        boolean workingEnabled = workLogic.isWorkingEnabled();
         GTRecipe lastRecipe = recipeLogic.getLastRecipe();
         long lastEUt = lastRecipe == null ? 0 : lastRecipe.getOutputEUt();
-        boolean active = workLogic.isActive();
-        return new DisplayState(
-                isFormed(), workLogic.isWorkingEnabled(), active, tier, lastEUt,
-                isFormed() && active ? getRecipeFluidInputInfo() : null,
-                recipeLogic.getDuration(), isOxygenBoosted);
-    }
+        var display = MultiblockDisplayText.builder(textList, formed)
+                .setWorkingStatus(workingEnabled, active);
 
-    static List<Component> createDisplayText(DisplayState state) {
-        List<Component> text = new ArrayList<>();
-        MultiblockDisplayText.Builder builder = MultiblockDisplayText.builder(text, state.formed())
-                .setWorkingStatus(state.workingEnabled(), state.active());
-
-        if (state.tier() > GTValues.EV) {
-            builder.addEnergyProductionLine(GTValues.V[state.tier() + 1], state.lastEUt());
+        if (tier > GTValues.EV) {
+            display.addEnergyProductionLine(GTValues.V[tier + 1], lastEUt);
         } else {
-            builder.addEnergyProductionAmpsLine(GTValues.V[state.tier()] * 3, 3);
+            display.addEnergyProductionAmpsLine(GTValues.V[tier] * 3, 3);
         }
-
-        if (state.active() && state.workingEnabled()) {
-            builder.addCurrentEnergyProductionLine(state.lastEUt());
+        if (active && workingEnabled) {
+            display.addCurrentEnergyProductionLine(lastEUt);
         }
-
-        builder.addFuelNeededLine(state.requiredFuel(), state.recipeDuration());
-
-        if (state.formed() && state.oxygenBoosted()) {
-            String key = state.tier() > GTValues.EV ?
+        if (formed && active) {
+            display.addFuelNeededLine(getRecipeFluidInputInfo(), recipeLogic.getDuration());
+        }
+        if (formed && isOxygenBoosted) {
+            String key = tier > GTValues.EV ?
                     "gtpm.multiblock.large_combustion_engine.liquid_oxygen_boosted" :
                     "gtpm.multiblock.large_combustion_engine.oxygen_boosted";
-            builder.addCustom(tl -> tl.add(Component.translatable(key).withStyle(ChatFormatting.AQUA)));
+            textList.add(Component.translatable(key).withStyle(ChatFormatting.AQUA));
         }
-
-        builder.addWorkingStatusLine();
-        return List.copyOf(text);
+        display.addWorkingStatusLine();
+        intakeObstructed = formed && isIntakesObstructed();
     }
-
-    record DisplayState(boolean formed, boolean workingEnabled, boolean active, int tier, long lastEUt,
-                        @Nullable String requiredFuel, int recipeDuration, boolean oxygenBoosted) {}
 
     @Nullable
     public String getRecipeFluidInputInfo() {
@@ -330,37 +249,6 @@ public class LargeCombustionEngineMachine extends WorkableElectricMultiblockMach
                 .of(recipe.getInputContents(FluidRecipeCapability.CAP).getFirst().getContent());
         int neededAmount = GTMath.saturatedCast(parallel * fuel.amount());
         return ChatFormatting.RED + FormattingUtil.formatNumbers(neededAmount) + "mB";
-    }
-
-    @Override
-    public UIElement createUIWidget(FancyMachineUIWidget shell) {
-        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
-        root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
-
-        GTScrollerViewElement screen = new GTScrollerViewElement(4, 4, 182, 117);
-        screen.style(style -> style.backgroundTexture(getScreenTexture()));
-        screen.viewPort(viewPort -> viewPort
-                .layout(layout -> layout.paddingAll(0))
-                .style(style -> style.backgroundTexture(getScreenTexture())));
-        screen.scrollerStyle(style -> style
-                .mode(ScrollerMode.VERTICAL)
-                .verticalScrollDisplay(ScrollDisplay.AUTO)
-                .horizontalScrollDisplay(ScrollDisplay.NEVER));
-
-        GTLabelElement title = new GTLabelElement(4, 5, 174, 10,
-                getBlockState().getBlock().getDescriptionId(), true);
-        title.textStyle(style -> style
-                .textColor(0x404040)
-                .textShadow(false)
-                .textAlignHorizontal(Horizontal.LEFT)
-                .textAlignVertical(Vertical.CENTER));
-        screen.addScrollViewChild(title);
-        screen.addScrollViewChild(new GTComponentPanelElement(4, 17,
-                LargeCombustionEngineMachine.this::addDisplayText)
-                .setMaxWidthLimit(200)
-                .clickHandler(LargeCombustionEngineMachine.this::handleDisplayClick));
-        root.addChild(screen);
-        return root;
     }
 
     @Override

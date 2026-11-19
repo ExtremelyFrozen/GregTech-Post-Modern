@@ -93,6 +93,7 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
     private static final int PAGE_HEIGHT = 125;
 
     private static final double IDLE_TEMPERATURE = 200;
+    private static final double WARNING_TEMPERATURE = 500;
     private static final double DAMAGE_TEMPERATURE = 1000;
 
     private IMaintenanceMachine maintenance;
@@ -102,9 +103,6 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
     @SaveField
     @SyncToClient
     private final HPCAGridHandler hpcaHandler;
-    @Getter(AccessLevel.PACKAGE)
-    @SyncToClient
-    private List<Component> hpcaDisplayText = List.of();
     @Getter(AccessLevel.PACKAGE)
     @SyncToClient
     private List<Component> hpcaInfoText = List.of();
@@ -161,9 +159,6 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
         this.energyContainer = new EnergyContainerList(energyContainers);
         this.coolantHandler = new FluidHandlerList(coolantContainers);
         this.hpcaHandler.onStructureForm(componentTraits);
-        if (!isRemote()) {
-            refreshHPCADisplay();
-        }
 
         scheduleForNextServerTick(this::updateTickSubscription);
     }
@@ -171,16 +166,13 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
     @Override
     public void onLoad() {
         super.onLoad();
-        if (!isRemote()) {
-            refreshHPCADisplay();
-        }
         scheduleForNextServerTick(this::updateTickSubscription);
     }
 
     @Override
     public void onUnload() {
         super.onUnload();
-        clearHPCADisplay();
+        hpcaInfoText = List.of();
         if (tickSubs != null) {
             tickSubs.unsubscribe();
             tickSubs = null;
@@ -203,9 +195,6 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
         this.updateActive(false);
         this.energyContainer = EnergyContainerList.EMPTY;
         this.hpcaHandler.onStructureInvalidate();
-        if (!isRemote()) {
-            refreshHPCADisplay();
-        }
     }
 
     @Override
@@ -265,25 +254,7 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
             // passively cool (slowly) if not active
             temperature = Math.max(IDLE_TEMPERATURE, temperature - 0.25);
         }
-        refreshHPCADisplay();
         this.updateActive(this.getEnergyContainer().getEnergyStored() > 0);
-    }
-
-    /** Refreshes the server-owned text snapshots consumed by the LDLib2 controller page. */
-    void refreshHPCADisplay() {
-        List<Component> nextDisplayText = createHPCADisplayText();
-        if (!hpcaDisplayText.equals(nextDisplayText)) {
-            hpcaDisplayText = nextDisplayText;
-        }
-        List<Component> nextText = hpcaHandler.createInfoText();
-        if (!hpcaInfoText.equals(nextText)) {
-            hpcaInfoText = nextText;
-        }
-    }
-
-    private void clearHPCADisplay() {
-        hpcaDisplayText = List.of();
-        hpcaInfoText = List.of();
     }
 
     private void updateActive(boolean active) {
@@ -350,7 +321,7 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
                                       ProgressTexture progressTexture) {
             this.tooltipSupplier = tooltipSupplier;
             this.componentTextureSupplier = componentTextureSupplier;
-            UITemplate.setBounds(this, 74, 57, 47, 47);
+            UITemplate.setBounds(this, 134, 39, 47, 47);
             setId("hpca_status_grid");
             addEventListener(UIEvents.HOVER_TOOLTIPS, this::addInfoTooltip);
 
@@ -393,19 +364,15 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
 
     @Override
     public void addDisplayText(List<Component> textList) {
-        textList.addAll(hpcaDisplayText);
-    }
-
-    private List<Component> createHPCADisplayText() {
-        List<Component> text = new ArrayList<>();
-        MultiblockDisplayText.builder(text, isFormed())
+        boolean formed = isFormed();
+        var display = MultiblockDisplayText.builder(textList, formed)
                 .setWorkingStatus(true, hpcaHandler.cachedCWUt > 0) // transform into two-state system for display
                 .setWorkingStatusKeys(
                         "gtpm.multiblock.idling",
                         "gtpm.multiblock.idling",
                         "gtpm.multiblock.data_bank.providing")
                 .addCustom(tl -> {
-                    if (isFormed()) {
+                    if (formed) {
                         // Energy Usage
                         tl.add(Component.translatable(
                                 "gtpm.multiblock.hpca.energy",
@@ -423,74 +390,44 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
                                 cwutInfo).withStyle(ChatFormatting.GRAY));
                     }
                 })
-                .addWorkingStatusLine();
-        return List.copyOf(text);
+                .addWorkingStatusLine()
+                .addLowPowerLine(hasNotEnoughEnergy);
+        if (formed) {
+            var temperatureText = Component.literal(Math.round(temperature / 10.0) + "\u00B0C")
+                    .withStyle(getDisplayTemperatureColor());
+            textList.add(Component.translatable("gtpm.multiblock.hpca.temperature", temperatureText)
+                    .withStyle(ChatFormatting.GRAY));
+            if (temperature >= DAMAGE_TEMPERATURE) {
+                textList.add(Component.translatable("gtpm.multiblock.hpca.error_temperature")
+                        .withStyle(ChatFormatting.RED));
+            } else if (temperature >= WARNING_TEMPERATURE) {
+                textList.add(Component.translatable("gtpm.multiblock.hpca.warning_temperature")
+                        .withStyle(ChatFormatting.YELLOW));
+                if (isActive()) {
+                    textList.add(Component.translatable("gtpm.multiblock.hpca.warning_temperature_active_cool")
+                            .withStyle(ChatFormatting.GRAY));
+                }
+            }
+            hpcaHandler.addWarnings(textList);
+            hpcaHandler.addErrors(textList);
+            if (maintenance != null) {
+                display.addMaintenanceProblemLines(maintenance.getMaintenanceProblems());
+            }
+        }
+        List<Component> info = formed ? hpcaHandler.createInfoText() : List.of();
+        if (!hpcaInfoText.equals(info)) {
+            hpcaInfoText = info;
+        }
     }
 
     private ChatFormatting getDisplayTemperatureColor() {
-        if (temperature < 500) {
+        if (temperature < WARNING_TEMPERATURE) {
             return ChatFormatting.GREEN;
         } else if (temperature < 750) {
             return ChatFormatting.YELLOW;
         }
         return ChatFormatting.RED;
     }
-
-    /*
-     * @Override
-     * protected void addWarningText(List<Component> textList) {
-     * MultiblockDisplayText.builder(textList, isFormed(), false)
-     * .addLowPowerLine(hasNotEnoughEnergy)
-     * .addCustom(tl -> {
-     * if (isStructureFormed()) {
-     * if (temperature > 500) {
-     * // Temperature warning
-     * tl.add(TextComponentUtil.translationWithColor(
-     * TextFormatting.YELLOW,
-     * "gtceu.multiblock.hpca.warning_temperature"));
-     *
-     * // Active cooler overdrive warning
-     * tl.add(TextComponentUtil.translationWithColor(
-     * TextFormatting.GRAY,
-     * "gtceu.multiblock.hpca.warning_temperature_active_cool"));
-     * }
-     *
-     * // Structure warnings
-     * hpcaHandler.addWarnings(tl);
-     * }
-     * })
-     * .addMaintenanceProblemLines(getMaintenanceProblems());
-     * }
-     *
-     * @Override
-     * protected void addErrorText(List<Component> textList) {
-     * super.addErrorText(textList);
-     * if (isFormed()) {
-     * if (temperature > 1000) {
-     * textList.add(Component.translatable("gtceu.multiblock.hpca.error_temperature").withStyle(ChatFormatting.RED));
-     * }
-     * hpcaHandler.addErrors(textList);
-     * }
-     * }
-     *
-     * @Override
-     * public void addBarHoverText(List<Component> hoverList, int index) {
-     * if (index == 0) {
-     * Component cwutInfo = Component.literal(
-     * hpcaHandler.cachedCWUt + " / " + hpcaHandler.getMaxCWUt() + " CWU/t").withStyle(ChatFormatting.AQUA);
-     * hoverList.add(Component.translatable(
-     * "gtceu.multiblock.hpca.computation",
-     * cwutInfo).withStyle(ChatFormatting.GRAY));
-     * } else {
-     * Component tempInfo = Component.literal(,
-     * Math.round(temperature / 10.0D) + "°C").withStyle(getDisplayTemperatureColor());
-     * hoverList.add(TextComponentUtil.translationWithColor(
-     * TextFormatting.GRAY,
-     * "gtceu.multiblock.hpca.temperature",
-     * tempInfo));
-     * }
-     * }
-     */
 
     // Handles the logic of this structure's specific HPCA component grid
     public static class HPCAGridHandler implements ISyncManaged {
@@ -820,23 +757,22 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
         }
 
         public void addWarnings(List<Component> textList) {
-            List<Component> warnings = new ArrayList<>();
+            int start = textList.size();
             if (numBridges > 1) {
-                warnings.add(Component.translatable("gtpm.multiblock.hpca.warning_multiple_bridges")
+                textList.add(Component.translatable("gtpm.multiblock.hpca.warning_multiple_bridges")
                         .withStyle(ChatFormatting.GRAY));
             }
             if (computationProviders.isEmpty()) {
-                warnings.add(Component.translatable("gtpm.multiblock.hpca.warning_no_computation")
+                textList.add(Component.translatable("gtpm.multiblock.hpca.warning_no_computation")
                         .withStyle(ChatFormatting.GRAY));
             }
             if (getMaxCoolingDemand() > getMaxCoolingAmount()) {
-                warnings.add(Component.translatable("gtpm.multiblock.hpca.warning_low_cooling")
+                textList.add(Component.translatable("gtpm.multiblock.hpca.warning_low_cooling")
                         .withStyle(ChatFormatting.GRAY));
             }
-            if (!warnings.isEmpty()) {
-                textList.add(Component.translatable("gtpm.multiblock.hpca.warning_structure_header")
+            if (textList.size() != start) {
+                textList.add(start, Component.translatable("gtpm.multiblock.hpca.warning_structure_header")
                         .withStyle(ChatFormatting.YELLOW));
-                textList.addAll(warnings);
             }
         }
 
@@ -892,7 +828,7 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
         UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
 
-        GTScrollerViewElement screen = new GTScrollerViewElement(4, 4, 182, 117);
+        GTScrollerViewElement screen = new GTScrollerViewElement(4, 4, 124, 117);
         screen.style(style -> style.backgroundTexture(getScreenTexture()));
         screen.viewPort(viewPort -> viewPort
                 .layout(layout -> layout.paddingAll(0))
@@ -902,7 +838,7 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
                 .verticalScrollDisplay(ScrollDisplay.AUTO)
                 .horizontalScrollDisplay(ScrollDisplay.NEVER));
 
-        GTLabelElement title = new GTLabelElement(4, 5, 174, 10,
+        GTLabelElement title = new GTLabelElement(4, 5, 116, 10,
                 getBlockState().getBlock().getDescriptionId(), true);
         title.textStyle(style -> style
                 .textColor(0x404040)
@@ -910,8 +846,8 @@ public class HPCAMachine extends WorkableElectricMultiblockMachine
                 .textAlignHorizontal(Horizontal.LEFT)
                 .textAlignVertical(Vertical.CENTER));
         screen.addScrollViewChild(title);
-        screen.addScrollViewChild(new GTComponentPanelElement(4, 17, HPCAMachine.this::addDisplayText)
-                .setMaxWidthLimit(150)
+        screen.addScrollViewChild(new GTComponentPanelElement(4, 17, this::getDisplay)
+                .setMaxWidthLimit(110)
                 .clickHandler(HPCAMachine.this::handleDisplayClick));
         root.addChild(screen);
 

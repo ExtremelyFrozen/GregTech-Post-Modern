@@ -28,6 +28,7 @@ import net.minecraft.util.FormattedCharSequence;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 
+import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -35,6 +36,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 
@@ -52,14 +54,21 @@ public class GTComponentPanelElement extends UIElement {
     private int y;
     private int width;
     private int height;
+    @Getter
     private int maxWidthLimit;
     @Nullable
     private Consumer<List<Component>> textSupplier;
     @Nullable
+    private Supplier<List<Component>> textSnapshot;
+    @Nullable
     private BiConsumer<String, ClickData> clickHandler;
+    @Getter
     private List<Component> lastText = new ArrayList<>();
+    @Getter
     private List<FormattedCharSequence> cacheLines = Collections.emptyList();
+    @Getter
     private boolean center;
+    @Getter
     private int space = 2;
 
     public GTComponentPanelElement() {
@@ -80,6 +89,16 @@ public class GTComponentPanelElement extends UIElement {
         moveTo(x, y);
         this.lastText = new ArrayList<>(text);
         refreshDisplayText();
+    }
+
+    /**
+     * Reads an immutable text snapshot. The supplier publishes a new list when the text changes.
+     */
+    public GTComponentPanelElement(int x, int y, Supplier<List<Component>> textSnapshot) {
+        this();
+        moveTo(x, y);
+        this.textSnapshot = textSnapshot;
+        refreshTextFromSupplier();
     }
 
     public static Component withButton(Component textComponent, String componentData) {
@@ -121,6 +140,7 @@ public class GTComponentPanelElement extends UIElement {
     }
 
     public GTComponentPanelElement textSupplier(@Nullable Consumer<List<Component>> textSupplier) {
+        this.textSnapshot = null;
         this.textSupplier = textSupplier;
         refreshTextFromSupplier();
         return this;
@@ -143,26 +163,6 @@ public class GTComponentPanelElement extends UIElement {
         this.lastText = new ArrayList<>(text);
         refreshDisplayText();
         return this;
-    }
-
-    public int getMaxWidthLimit() {
-        return maxWidthLimit;
-    }
-
-    public boolean isCenter() {
-        return center;
-    }
-
-    public int getSpace() {
-        return space;
-    }
-
-    public List<Component> getLastText() {
-        return lastText;
-    }
-
-    public List<FormattedCharSequence> getCacheLines() {
-        return cacheLines;
     }
 
     @Override
@@ -210,6 +210,14 @@ public class GTComponentPanelElement extends UIElement {
     }
 
     private void refreshTextFromSupplier() {
+        if (textSnapshot != null) {
+            List<Component> text = textSnapshot.get();
+            if (lastText != text) {
+                lastText = text;
+                refreshDisplayText();
+            }
+            return;
+        }
         if (textSupplier == null) {
             return;
         }

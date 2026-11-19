@@ -1704,7 +1704,8 @@ public class LangHandler {
                 "  {data getp <slot>} -> p",
                 "  {data setp <slot> <value>} -> sets p, returns an empty string",
                 "  {data inc <slot>} -> increments p by 1, if p becomes more than or equal to capacity, sets p to 0",
-                "  {data dec <slot>} -> decrements p by 1, if p becomes less than 0, sets p to (capacity - 1)");
+                "  {data dec <slot>} -> decrements p by 1, if p becomes less than 0, sets p to (capacity - 1)",
+                "If the slot argument is equal to 0, this placeholder will manipulate the data stick that is currently targeted by this text module inside a data hatch.");
         multiLang(provider, "gtpm.placeholder_info.combine",
                 "Combines all of it's arguments into a single string (by escaping all spaces between the arguments)",
                 "Example: {combine abc def ghi jkl mno} -> \"abc\\ def\\ ghi\\ jkl\\ mno\"",
@@ -1810,6 +1811,16 @@ public class LangHandler {
                 "Usage:",
                 "  {blockNbt} -> full block entity data component map",
                 "  {blockNbt <component_id>} -> the value of a data component");
+        multiLang(provider, "gtpm.placeholder_info.targetSlot",
+                "Returns the index of the targeted data hatch slot",
+                "Usage:",
+                "  {targetSlot} -> <slot> (from 1 to 4/9/16)");
+        multiLang(provider, "gtpm.placeholder_info.setTargetSlot",
+                "Sets the index of the targeted data hatch slot.",
+                "The change will take effect immediately after this placeholder executes.",
+                "(Further placeholders will reference the new target)",
+                "Usage:",
+                "  {setTargetSlot <slot>} -> empty string");
         provider.add("gtpm.ender_item_link_cover.title", "Ender Item Link");
         provider.add("gtpm.ender_item_link_cover.tooltip",
                 "§7Transports §fItems§7 with a §fWireless §dEnder§f Connection§7 as §fCover§7.");
@@ -1829,6 +1840,8 @@ public class LangHandler {
         provider.add("gtpm.computer_monitor_cover.error.wrong_number_of_args", "Expected %d args, got %d!");
         provider.add("gtpm.computer_monitor_cover.error.not_enough_args", "Expected at least %d args, got %d!");
         provider.add("gtpm.computer_monitor_cover.error.no_cover", "No cover!");
+        provider.add("gtpm.computer_monitor_cover.error.no_target", "No target selected for the monitor group");
+        provider.add("gtpm.computer_monitor_cover.error.no_target_in_slot", "No loaded target in data hatch slot %s");
         provider.add("gtpm.computer_monitor_cover.error.exception", "Unexpected exception occurred: %s");
         provider.add("gtpm.computer_monitor_cover.error.not_in_range",
                 "Expected %s to be between %d and %d (inclusive), got %d");

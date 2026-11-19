@@ -62,11 +62,9 @@ public class MachineConfigCopyBehaviour implements IInteractionItem, IAddInforma
     @Override
     public InteractionResult onItemUseFirst(ItemStack stack, UseOnContext context) {
         var blockEntity = context.getLevel().getBlockEntity(context.getClickedPos());
-        var player = context.getPlayer();
-
-        if (!(player instanceof ServerPlayer)) return InteractionResult.PASS;
+        if (!(context.getPlayer() instanceof ServerPlayer player)) return InteractionResult.PASS;
         if (blockEntity instanceof MetaMachine mm &&
-                !MachineOwner.canOpenOwnerMachine(context.getPlayer(), mm))
+                !MachineOwner.canOpenOwnerMachine(player, mm))
             return InteractionResult.FAIL;
 
         if (context.isSecondaryUseActive()) {
@@ -86,7 +84,7 @@ public class MachineConfigCopyBehaviour implements IInteractionItem, IAddInforma
 
         } else {
             MachineConfigCopyData copiedData = stack.get(GTDataComponents.DATA_COPY_TAG);
-            if (copiedData == null) return InteractionResult.PASS;
+            if (copiedData == null || !(blockEntity instanceof ICopyable copyable)) return InteractionResult.PASS;
 
             if (!player.isCreative() && !GTTransferUtils.extractItemsFromPlayerInv(player, copiedData.itemsToPaste(),
                     true)) {
@@ -97,9 +95,7 @@ public class MachineConfigCopyBehaviour implements IInteractionItem, IAddInforma
             if (!player.isCreative()) GTTransferUtils.extractItemsFromPlayerInv(player, copiedData.itemsToPaste(),
                     false);
 
-            if (blockEntity instanceof ICopyable copyable) {
-                copyable.pasteConfig((ServerPlayer) player, context.getLevel().registryAccess(), copiedData.config());
-            }
+            copyable.pasteConfig(player, context.getLevel().registryAccess(), copiedData.config());
 
             player.displayClientMessage(Component.translatable("behaviour.memory_card.client_msg.pasted"), true);
 

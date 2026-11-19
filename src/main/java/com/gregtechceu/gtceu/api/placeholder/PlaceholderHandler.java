@@ -6,16 +6,19 @@ import com.gregtechceu.gtceu.api.placeholder.exceptions.UnclosedBracketException
 import com.gregtechceu.gtceu.api.placeholder.exceptions.UnexpectedBracketException;
 import com.gregtechceu.gtceu.api.placeholder.exceptions.UnknownPlaceholderException;
 import com.gregtechceu.gtceu.client.renderer.monitor.IMonitorRenderer;
+import com.gregtechceu.gtceu.common.machine.multiblock.electric.monitor.MonitorGroup;
 import com.gregtechceu.gtceu.utils.GTUtil;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.MethodsReturnNonnullByDefault;
 import net.minecraft.core.component.DataComponentMap;
+import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 
 import java.util.*;
 
@@ -34,7 +37,7 @@ public class PlaceholderHandler {
     private static final char NEWLINE = '\n';
     private static final char ESCAPED_NEWLINE = 'n';
 
-    private static final Map<String, Placeholder> placeholders = new HashMap<>();
+    private static final Map<String, Placeholder> placeholders = new Object2ObjectOpenHashMap<>();
 
     @OnlyIn(Dist.CLIENT)
     private static final class RendererHolder {
@@ -78,17 +81,18 @@ public class PlaceholderHandler {
     public static MultiLineComponent processPlaceholder(List<MultiLineComponent> placeholder,
                                                         PlaceholderContext context,
                                                         Object2IntOpenHashMap<String> indices) throws PlaceholderException {
-        if (!placeholderExists(placeholder.get(0)))
-            throw new UnknownPlaceholderException(placeholder.get(0).toString());
-        String name = placeholder.get(0).toString();
-        indices.addTo(name, 1);
-        return placeholders.get(name).apply(context.withIndex(indices.getInt(name)),
-                placeholder.subList(1, placeholder.size()));
+        String name = placeholder.getFirst().toString();
+        Placeholder action = placeholders.get(name);
+        if (action == null) throw new UnknownPlaceholderException(name);
+        int index = indices.addTo(name, 1) + 1;
+        return action.apply(context.withIndex(index), placeholder.subList(1, placeholder.size()));
     }
 
     public static MultiLineComponent processPlaceholders(String s, PlaceholderContext ctx) {
         if (ctx.level().isClientSide)
             GTCEu.LOGGER.warn("Placeholder processing is running on client instead of server!");
+        MonitorGroup group = ctx.monitorGroup();
+        int resolvedSlot = group == null ? 0 : group.getDataSlot();
         List<Exception> exceptions = new ArrayList<>();
         Object2IntOpenHashMap<String> indices = new Object2IntOpenHashMap<>();
         boolean escape = false;
@@ -125,6 +129,20 @@ public class PlaceholderHandler {
                             List<MultiLineComponent> placeholder = stack.pop();
                             if (stack.isEmpty()) throw new UnexpectedBracketException();
                             MultiLineComponent result = processPlaceholder(placeholder, ctx, indices);
+                            if (group != null && group.getDataSlot() != resolvedSlot) {
+                                int nextSlot = group.getDataSlot();
+                                PlaceholderContext next = group.resolvePlaceholderContext(ctx.monitorLevel(),
+                                        ctx.uuid());
+                                if (next == null) {
+                                    group.setDataSlot(resolvedSlot);
+                                    return MultiLineComponent.of(Component
+                                            .translatable("gtpm.computer_monitor_cover.error.no_target_in_slot",
+                                                    nextSlot + 1)
+                                            .withStyle(ChatFormatting.DARK_RED));
+                                }
+                                ctx = next;
+                                resolvedSlot = nextSlot;
+                            }
                             if (result.isIgnoreSpaces() || stack.size() == 1) {
                                 stack.peek().getLast().append(result);
                             } else {

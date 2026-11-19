@@ -13,9 +13,15 @@ import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.player.Player;
 
 import it.unimi.dsi.fastutil.objects.Object2FloatMap;
+import it.unimi.dsi.fastutil.objects.Object2FloatMaps;
 import it.unimi.dsi.fastutil.objects.Object2FloatOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
+import it.unimi.dsi.fastutil.objects.ObjectSet;
+import it.unimi.dsi.fastutil.objects.Reference2ObjectMap;
+import it.unimi.dsi.fastutil.objects.Reference2ObjectMaps;
+import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
 import lombok.Getter;
 import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
@@ -24,13 +30,12 @@ import java.util.*;
 
 public class MedicalConditionTracker implements IMedicalConditionTracker {
 
-    @Getter
-    private final Object2FloatMap<MedicalCondition> medicalConditions = new Object2FloatOpenHashMap<>();
-    private final Set<MedicalCondition> permanentConditions = new HashSet<>();
-    private final Object2IntMap<Symptom.ConfiguredSymptom> activeSymptoms = new Object2IntOpenHashMap<>();
+    private final Object2FloatOpenHashMap<MedicalCondition> medicalConditions = new Object2FloatOpenHashMap<>();
+    private final ObjectSet<MedicalCondition> permanentConditions = new ObjectOpenHashSet<>();
+    private Reference2ObjectMap<Symptom, ActiveSymptom> activeSymptoms = new Reference2ObjectOpenHashMap<>();
     private final Object2IntMap<Holder<MobEffect>> activeMobEffects = new Object2IntOpenHashMap<>();
 
-    private final Set<MedicalCondition> flaggedForRemoval = new HashSet<>();
+    private final ObjectSet<MedicalCondition> flaggedForRemoval = new ObjectOpenHashSet<>();
 
     @Setter
     private int maxAirSupply = -1;
@@ -40,6 +45,11 @@ public class MedicalConditionTracker implements IMedicalConditionTracker {
 
     public MedicalConditionTracker(Player player) {
         this.player = player;
+    }
+
+    @Override
+    public Object2FloatMap<MedicalCondition> getMedicalConditions() {
+        return medicalConditions;
     }
 
     @Override
@@ -65,8 +75,8 @@ public class MedicalConditionTracker implements IMedicalConditionTracker {
                         medicalConditions.getFloat(condition) + condition.idleProgressionRate * multiplier);
                 evaluateMedicalCondition(condition);
             }
-            if (!medicalConditions.isEmpty()) {
-                updateActiveSymptoms();
+            if (!medicalConditions.isEmpty() || !flaggedForRemoval.isEmpty()) {
+                updateActiveSymptoms(true);
             }
         }
     }
@@ -74,65 +84,55 @@ public class MedicalConditionTracker implements IMedicalConditionTracker {
     public void progressCondition(@NotNull MedicalCondition condition, float strength) {
         if (player.isCreative()) return;
 
-        medicalConditions.put(condition, medicalConditions.getOrDefault(condition, 0) + strength);
-
-        updateActiveSymptoms();
+        medicalConditions.addTo(condition, strength);
+        evaluateMedicalCondition(condition);
+        updateActiveSymptoms(true);
     }
 
-    private void updateActiveSymptoms() {
-        for (MedicalCondition condition : medicalConditions.keySet()) {
-            if (medicalConditions.getFloat(condition) >= condition.maxProgression * 2) {
+    private void updateActiveSymptoms(boolean tickSymptoms) {
+        for (MedicalCondition condition : flaggedForRemoval) {
+            medicalConditions.removeFloat(condition);
+        }
+        flaggedForRemoval.clear();
+
+        var nextSymptoms = new Reference2ObjectOpenHashMap<Symptom, ActiveSymptom>(activeSymptoms.size());
+        for (var entry : Object2FloatMaps.fastIterable(medicalConditions)) {
+            MedicalCondition condition = entry.getKey();
+            float progression = entry.getFloatValue();
+            if (condition.canBePermanent && progression >= condition.maxProgression * 2) {
                 // If condition has been applied for 2x the maximum time, make it permanent.
                 permanentConditions.add(condition);
             }
 
-            for (Symptom.ConfiguredSymptom symptom : condition.symptoms) {
-                int stage = calculateStage(condition, symptom);
-                if (stage <= 0) {
-                    continue;
-                }
-                symptom.symptom.tick(this, condition, symptom, stage);
-
-                Optional<Symptom.ConfiguredSymptom> currentSymptomOptional = activeSymptoms.keySet()
-                        .stream()
-                        .filter(symptom1 -> symptom1.symptom == symptom.symptom)
-                        .findFirst();
-                if (currentSymptomOptional.isEmpty()) {
-                    activeSymptoms.put(symptom, stage);
-                    symptom.symptom.applyProgression(this, condition, null, stage);
-                    continue;
-                }
-                Symptom.ConfiguredSymptom currentSymptom = currentSymptomOptional.get();
-                if (currentSymptom == symptom && stage > activeSymptoms.getOrDefault(symptom, 0)) {
-                    symptom.symptom.applyProgression(this, condition, symptom,
-                            activeSymptoms.getOrDefault(symptom, 0));
-                    activeSymptoms.replace(symptom, stage);
-                    symptom.symptom.applyProgression(this, condition, symptom, stage);
-                    continue;
-                }
-                if (symptom.relativeHarshness * stage >
-                        currentSymptom.relativeHarshness * activeSymptoms.getOrDefault(currentSymptom, 0)) {
-                    currentSymptom.symptom.applyProgression(this, condition, symptom,
-                            activeSymptoms.getOrDefault(currentSymptom, 0));
-                    activeSymptoms.removeInt(currentSymptom);
-                    activeSymptoms.put(symptom, stage);
-                    symptom.symptom.applyProgression(this, condition, symptom, stage);
+            for (Symptom.ConfiguredSymptom configured : condition.symptoms) {
+                int stage = calculateStage(condition, configured, progression);
+                if (stage > 0) {
+                    if (tickSymptoms) {
+                        configured.symptom.tick(this, condition, configured, stage);
+                    }
+                    ActiveSymptom candidate = new ActiveSymptom(condition, configured, stage);
+                    nextSymptoms.merge(configured.symptom, candidate,
+                            (current, next) -> next.strength() > current.strength() ? next : current);
                 }
             }
         }
 
-        if (flaggedForRemoval.isEmpty()) {
-            return;
-        }
-        for (MedicalCondition condition : flaggedForRemoval) {
-            for (Symptom.ConfiguredSymptom configuredSymptom : activeSymptoms.keySet().stream()
-                    .filter(condition.symptoms::contains).toList()) {
-                // reset all symptom effects for this condition
-                configuredSymptom.symptom.applyProgression(this, condition, configuredSymptom, 0);
+        for (var entry : Reference2ObjectMaps.fastIterable(activeSymptoms)) {
+            Symptom symptom = entry.getKey();
+            ActiveSymptom previous = entry.getValue();
+            if (!previous.equals(nextSymptoms.get(symptom))) {
+                symptom.applyProgression(this, previous.condition(), previous.configured(), 0);
             }
-            medicalConditions.removeFloat(condition);
         }
-        flaggedForRemoval.clear();
+
+        for (var entry : Reference2ObjectMaps.fastIterable(nextSymptoms)) {
+            Symptom symptom = entry.getKey();
+            ActiveSymptom current = entry.getValue();
+            if (!current.equals(activeSymptoms.get(symptom))) {
+                symptom.applyProgression(this, current.condition(), current.configured(), current.stage());
+            }
+        }
+        activeSymptoms = nextSymptoms;
     }
 
     @Override
@@ -141,9 +141,20 @@ public class MedicalConditionTracker implements IMedicalConditionTracker {
         permanentConditions.remove(condition);
     }
 
-    private int calculateStage(MedicalCondition condition, Symptom.ConfiguredSymptom symptom) {
-        return (int) Math.floor(Math.min(medicalConditions.getFloat(condition), condition.maxProgression) /
-                (symptom.progressionThreshold * condition.maxProgression * symptom.stages));
+    private static int calculateStage(MedicalCondition condition, Symptom.ConfiguredSymptom symptom,
+                                      float progression) {
+        float threshold = symptom.progressionThreshold * condition.maxProgression;
+        if (progression >= condition.maxProgression) return symptom.stages;
+        if (progression <= threshold) return 0;
+        float fraction = (progression - threshold) / (condition.maxProgression - threshold);
+        return (int) (fraction * symptom.stages);
+    }
+
+    private record ActiveSymptom(MedicalCondition condition, Symptom.ConfiguredSymptom configured, int stage) {
+
+        private float strength() {
+            return configured.relativeHarshness * stage;
+        }
     }
 
     // removes MedicalConditions without progression
@@ -165,11 +176,11 @@ public class MedicalConditionTracker implements IMedicalConditionTracker {
     @Override
     public void heal(MedicalCondition condition, int progression) {
         if (progression >= medicalConditions.getOrDefault(condition, 0)) {
-            medicalConditions.removeFloat(condition);
-            permanentConditions.remove(condition);
-            return;
+            removeMedicalCondition(condition);
+        } else {
+            medicalConditions.addTo(condition, -progression);
         }
-        medicalConditions.replace(condition, medicalConditions.getOrDefault(condition, 0) - progression);
+        updateActiveSymptoms(false);
     }
 
     @Override

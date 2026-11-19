@@ -7,13 +7,7 @@ import com.gregtechceu.gtceu.api.capability.IEnergyContainer;
 import com.gregtechceu.gtceu.api.capability.recipe.EURecipeCapability;
 import com.gregtechceu.gtceu.api.capability.recipe.FluidRecipeCapability;
 import com.gregtechceu.gtceu.api.capability.recipe.IO;
-import com.gregtechceu.gtceu.api.gui.GuiTextures;
-import com.gregtechceu.gtceu.api.gui.UITemplate;
-import com.gregtechceu.gtceu.api.gui.element.GTComponentPanelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
-import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
-import com.gregtechceu.gtceu.api.machine.ConditionalSubscriptionHandler;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.api.machine.TickableSubscription;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMultiPart;
@@ -36,11 +30,7 @@ import com.gregtechceu.gtceu.utils.FormattingUtil;
 import com.gregtechceu.gtceu.utils.GTUtil;
 
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
-import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
-import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
-import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollerMode;
 import com.lowdragmc.lowdraglib2.gui.ui.data.TextWrap;
-import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
 
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.level.block.Block;
@@ -51,7 +41,6 @@ import it.unimi.dsi.fastutil.longs.Long2IntAVLTreeMap;
 import it.unimi.dsi.fastutil.longs.Long2IntSortedMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMaps;
-import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
@@ -67,9 +56,6 @@ import static com.gregtechceu.gtceu.common.data.GTBlocks.*;
 
 public class FusionReactorMachine extends WorkableElectricMultiblockMachine {
 
-    private static final int PAGE_WIDTH = 190;
-    private static final int PAGE_HEIGHT = 125;
-
     // Standard OC used for Fusion
     public static final OverclockingLogic FUSION_OC = OverclockingLogic.create(PERFECT_HALF_DURATION_FACTOR,
             PERFECT_HALF_VOLTAGE_FACTOR, false);
@@ -83,11 +69,6 @@ public class FusionReactorMachine extends WorkableElectricMultiblockMachine {
 
     @Getter
     private final int tier;
-    @Getter(AccessLevel.PACKAGE)
-    private final ConditionalSubscriptionHandler displaySubscription;
-    @Getter(AccessLevel.PACKAGE)
-    @SyncToClient
-    private List<Component> displayText = List.of();
     @Nullable
     protected EnergyContainerList inputEnergyContainers;
     @SaveField
@@ -111,8 +92,6 @@ public class FusionReactorMachine extends WorkableElectricMultiblockMachine {
         super(info);
         this.tier = tier;
         this.energyContainer = attachTrait(new NotifiableEnergyContainer(0, 0, 0, 0, 0));
-        this.displaySubscription = new ConditionalSubscriptionHandler(this, this::refreshDisplayText,
-                this::isFormed);
         energyContainer.setCapabilityValidator(candidate -> candidate == null);
     }
 
@@ -125,8 +104,6 @@ public class FusionReactorMachine extends WorkableElectricMultiblockMachine {
         super.onLoad();
         if (!isRemote()) {
             updatePreHeatSubscription();
-            refreshDisplayText();
-            displaySubscription.initialize(getLevel());
         }
     }
 
@@ -155,10 +132,6 @@ public class FusionReactorMachine extends WorkableElectricMultiblockMachine {
         this.inputEnergyContainers = new EnergyContainerList(energyContainers);
         energyContainer.resetBasicInfo(calculateEnergyStorageFactor(getTier(), energyContainers.size()), 0, 0, 0, 0);
         updatePreHeatSubscription();
-        if (!isRemote()) {
-            refreshDisplayText();
-            displaySubscription.updateSubscription();
-        }
     }
 
     @Override
@@ -170,27 +143,6 @@ public class FusionReactorMachine extends WorkableElectricMultiblockMachine {
         energyContainer.resetBasicInfo(0, 0, 0, 0, 0);
         energyContainer.setEnergyStored(0);
         updatePreHeatSubscription();
-        if (!isRemote()) {
-            refreshDisplayText();
-            displaySubscription.updateSubscription();
-        }
-    }
-
-    @Override
-    public void onUnload() {
-        super.onUnload();
-        clearDisplayRuntimeState();
-    }
-
-    @Override
-    public void onPartUnload() {
-        super.onPartUnload();
-        clearDisplayRuntimeState();
-    }
-
-    private void clearDisplayRuntimeState() {
-        displayText = List.of();
-        displaySubscription.unsubscribe();
     }
 
     //////////////////////////////////////
@@ -329,39 +281,13 @@ public class FusionReactorMachine extends WorkableElectricMultiblockMachine {
     //////////////////////////////////////
     @Override
     public void addDisplayText(List<Component> textList) {
-        textList.addAll(displayText);
-    }
-
-    void refreshDisplayText() {
-        List<Component> nextText = new ArrayList<>();
-        collectServerDisplayText(nextText);
-        nextText = List.copyOf(nextText);
-        if (!displayText.equals(nextText)) {
-            displayText = nextText;
-        }
-    }
-
-    protected void collectServerDisplayText(List<Component> textList) {
         super.addDisplayText(textList);
-        textList.addAll(createFusionDisplayText(captureDisplayState()));
-    }
-
-    protected DisplayState captureDisplayState() {
-        return new DisplayState(isFormed(), energyContainer.getEnergyStored(), energyContainer.getEnergyCapacity(),
-                heat);
-    }
-
-    static List<Component> createFusionDisplayText(DisplayState state) {
-        if (!state.formed()) {
-            return List.of();
+        if (isFormed()) {
+            textList.add(Component.translatable("gtpm.multiblock.fusion_reactor.energy",
+                    energyContainer.getEnergyStored(), energyContainer.getEnergyCapacity()));
+            textList.add(Component.translatable("gtpm.multiblock.fusion_reactor.heat", heat));
         }
-        return List.of(
-                Component.translatable("gtpm.multiblock.fusion_reactor.energy",
-                        state.energyStored(), state.energyCapacity()),
-                Component.translatable("gtpm.multiblock.fusion_reactor.heat", state.heat()));
     }
-
-    record DisplayState(boolean formed, long energyStored, long energyCapacity, long heat) {}
 
     public static void addEUToStartLabel(GTRecipeDefinition recipe, UIElement root,
                                          RecipeUISize rootSize) {
@@ -430,34 +356,5 @@ public class FusionReactorMachine extends WorkableElectricMultiblockMachine {
             case UV -> FusionCasingBlock.CasingType.FUSION_CASING_MK3;
             default -> FusionCasingBlock.CasingType.FUSION_CASING;
         };
-    }
-
-    @Override
-    public UIElement createUIWidget(FancyMachineUIWidget shell) {
-        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
-        UITemplate.setBackgroundTexture(root, GuiTextures.BACKGROUND_INVERSE);
-
-        GTScrollerViewElement screen = new GTScrollerViewElement(4, 4, 182, 117);
-        UITemplate.setBackgroundTexture(screen, getScreenTexture());
-        screen.viewPort.layout(layout -> layout.paddingAll(0));
-        UITemplate.setBackgroundTexture(screen.viewPort, getScreenTexture());
-        screen.scrollerStyle(style -> style
-                .mode(ScrollerMode.VERTICAL)
-                .verticalScrollDisplay(ScrollDisplay.AUTO)
-                .horizontalScrollDisplay(ScrollDisplay.NEVER));
-
-        GTLabelElement title = new GTLabelElement(4, 5, 174, 10,
-                getBlockState().getBlock().getDescriptionId(), true);
-        title.textStyle(style -> style
-                .textColor(0x404040)
-                .textShadow(false)
-                .textAlignHorizontal(Horizontal.LEFT)
-                .textAlignVertical(Vertical.CENTER));
-        screen.addScrollViewChild(title);
-        screen.addScrollViewChild(new GTComponentPanelElement(4, 17, FusionReactorMachine.this::addDisplayText)
-                .setMaxWidthLimit(200)
-                .clickHandler(FusionReactorMachine.this::handleDisplayClick));
-        root.addChild(screen);
-        return root;
     }
 }

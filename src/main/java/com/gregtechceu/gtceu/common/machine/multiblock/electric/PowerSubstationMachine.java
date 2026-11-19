@@ -10,6 +10,7 @@ import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTComponentPanelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
+import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
 import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider;
@@ -21,6 +22,7 @@ import com.gregtechceu.gtceu.api.machine.feature.multiblock.IDisplayUIMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMaintenanceMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMultiPart;
 import com.gregtechceu.gtceu.api.machine.multiblock.IBatteryData;
+import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockDisplayText;
 import com.gregtechceu.gtceu.api.machine.multiblock.WorkableMultiblockMachine;
 import com.gregtechceu.gtceu.api.machine.trait.MachineTrait;
 import com.gregtechceu.gtceu.api.machine.trait.MachineTraitType;
@@ -28,10 +30,10 @@ import com.gregtechceu.gtceu.api.machine.trait.WorkLogic;
 import com.gregtechceu.gtceu.api.misc.EnergyContainerList;
 import com.gregtechceu.gtceu.api.sync_system.FieldCodecs;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
-import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
 import com.gregtechceu.gtceu.config.ConfigHolder;
 import com.gregtechceu.gtceu.utils.FormattingUtil;
 
+import com.lowdragmc.lowdraglib2.gui.ui.UI;
 import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
 import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
 import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
@@ -43,7 +45,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
-import net.minecraft.util.Mth;
+import net.minecraft.world.entity.player.Player;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.mojang.serialization.Codec;
@@ -101,17 +103,12 @@ public class PowerSubstationMachine extends WorkableMultiblockMachine
     private long outputPerSec;
 
     protected final ConditionalSubscriptionHandler tickSubscription;
-    private final ConditionalSubscriptionHandler displaySubscription;
-    @SyncToClient
-    private List<Component> displayText = List.of();
 
     public PowerSubstationMachine(BlockEntityCreationInfo info) {
         super(info);
         this.inputHatches = EnergyContainerList.EMPTY;
         this.outputHatches = EnergyContainerList.EMPTY;
         this.tickSubscription = new ConditionalSubscriptionHandler(this, this::transferEnergyTick, this::isFormed);
-        this.displaySubscription = new ConditionalSubscriptionHandler(this, this::refreshDisplayText,
-                this::isFormed);
         this.energyBank = attachTrait(new PowerStationEnergyBank(List.of()));
     }
 
@@ -169,10 +166,6 @@ public class PowerSubstationMachine extends WorkableMultiblockMachine
         energyBank.rebuild(batteries);
         this.passiveDrain = this.energyBank.getPassiveDrainPerTick();
 
-        if (!isRemote()) {
-            refreshDisplayText();
-            displaySubscription.updateSubscription();
-        }
         tickSubscription.updateSubscription();
     }
 
@@ -208,9 +201,7 @@ public class PowerSubstationMachine extends WorkableMultiblockMachine
         this.inputPerSec = 0;
         this.netOutLastSec = 0;
         this.outputPerSec = 0;
-        this.displayText = List.of();
         tickSubscription.unsubscribe();
-        displaySubscription.unsubscribe();
     }
 
     protected void transferEnergyTick() {
@@ -246,38 +237,16 @@ public class PowerSubstationMachine extends WorkableMultiblockMachine
 
     @Override
     public void addDisplayText(List<Component> textList) {
-        textList.addAll(displayText);
-    }
-
-    void refreshDisplayText() {
-        List<Component> partDisplay = new ArrayList<>();
-        for (IMultiPart part : getParts()) {
-            part.addMultiText(partDisplay);
-        }
-        List<Component> additionalDisplay = new ArrayList<>();
-        getDefinition().getAdditionalDisplay().accept(this, additionalDisplay);
-
+        IDisplayUIMachine.super.addDisplayText(textList);
         boolean formed = isFormed();
-        DisplayState state = new DisplayState(formed, isWorkingEnabled(), isActive(), getWorkLogic().isWaiting(),
-                energyBank.getStored(), energyBank.getCapacity(), formed ? getPassiveDrain() : 0,
-                inputPerSec, outputPerSec, getLevel().tickRateManager().tickrate());
-        List<Component> nextText = createDisplayText(state, partDisplay, additionalDisplay);
-        if (!displayText.equals(nextText)) {
-            displayText = nextText;
-        }
-    }
-
-    static List<Component> createDisplayText(DisplayState state, List<Component> partDisplay,
-                                             List<Component> additionalDisplay) {
-        List<Component> text = new ArrayList<>(partDisplay.size() + additionalDisplay.size() + 8);
-        text.addAll(partDisplay);
-        if (state.formed()) {
-            if (!state.workingEnabled()) {
-                text.add(Component.translatable("gtpm.multiblock.work_paused"));
-            } else if (state.active()) {
-                text.add(Component.translatable("gtpm.multiblock.running"));
+        MultiblockDisplayText.builder(textList, formed);
+        if (formed) {
+            if (!isWorkingEnabled()) {
+                textList.add(Component.translatable("gtpm.multiblock.work_paused"));
+            } else if (isActive()) {
+                textList.add(Component.translatable("gtpm.multiblock.running"));
             } else {
-                text.add(Component.translatable("gtpm.multiblock.idling"));
+                textList.add(Component.translatable("gtpm.multiblock.idling"));
             }
 
             Style styleGold = Style.EMPTY.withColor(ChatFormatting.GOLD);
@@ -285,64 +254,54 @@ public class PowerSubstationMachine extends WorkableMultiblockMachine
             Style styleGreen = Style.EMPTY.withColor(ChatFormatting.GREEN);
             Style styleRed = Style.EMPTY.withColor(ChatFormatting.RED);
 
-            if (state.waiting()) {
-                text.add(Component.translatable("gtpm.multiblock.waiting").setStyle(styleRed));
+            if (getWorkLogic().isWaiting()) {
+                textList.add(Component.translatable("gtpm.multiblock.waiting").setStyle(styleRed));
             }
 
-            MutableComponent storedComponent = Component.literal(FormattingUtil.formatNumbers(state.stored()));
-            text.add(Component.translatable("gtpm.multiblock.power_substation.stored",
+            BigInteger stored = energyBank.getStored();
+            BigInteger capacity = energyBank.getCapacity();
+            MutableComponent storedComponent = Component.literal(FormattingUtil.formatNumbers(stored));
+            textList.add(Component.translatable("gtpm.multiblock.power_substation.stored",
                     storedComponent.setStyle(styleGold)));
 
-            MutableComponent capacityComponent = Component.literal(FormattingUtil.formatNumbers(state.capacity()));
-            text.add(Component.translatable("gtpm.multiblock.power_substation.capacity",
+            MutableComponent capacityComponent = Component.literal(FormattingUtil.formatNumbers(capacity));
+            textList.add(Component.translatable("gtpm.multiblock.power_substation.capacity",
                     capacityComponent.setStyle(styleGold)));
 
             MutableComponent passiveDrainComponent = Component.literal(
-                    FormattingUtil.formatNumbers(state.passiveDrain()));
-            text.add(Component.translatable("gtpm.multiblock.power_substation.passive_drain",
+                    FormattingUtil.formatNumbers(getPassiveDrain()));
+            textList.add(Component.translatable("gtpm.multiblock.power_substation.passive_drain",
                     passiveDrainComponent.setStyle(styleDarkRed)));
 
             MutableComponent averageInputComponent = Component.literal(
-                    FormattingUtil.formatNumbers(state.inputPerSec() / 20));
-            text.add(Component
+                    FormattingUtil.formatNumbers(inputPerSec / 20));
+            textList.add(Component
                     .translatable("gtpm.multiblock.power_substation.average_in",
                             averageInputComponent.setStyle(styleGreen))
                     .withStyle(Style.EMPTY.withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
                             Component.translatable("gtpm.multiblock.power_substation.average_in_hover")))));
 
             MutableComponent averageOutputComponent = Component.literal(
-                    FormattingUtil.formatNumbers(Math.abs(state.outputPerSec() / 20)));
-            text.add(Component
+                    FormattingUtil.formatNumbers(Math.abs(outputPerSec / 20)));
+            textList.add(Component
                     .translatable("gtpm.multiblock.power_substation.average_out",
                             averageOutputComponent.setStyle(styleRed))
                     .withStyle(Style.EMPTY.withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
                             Component.translatable("gtpm.multiblock.power_substation.average_out_hover")))));
 
-            if (state.inputPerSec() > state.outputPerSec()) {
-                BigInteger timeToFillSeconds = state.capacity().subtract(state.stored())
-                        .divide(BigInteger.valueOf(Mth.floor(
-                                (state.inputPerSec() - state.outputPerSec()) / 20.0f * state.tickRate())));
-                text.add(Component.translatable("gtpm.multiblock.power_substation.time_to_fill",
+            long netPerSecond = (long) ((inputPerSec - outputPerSec) / 20.0 *
+                    getLevel().tickRateManager().tickrate());
+            if (netPerSecond > 0) {
+                BigInteger timeToFillSeconds = capacity.subtract(stored).divide(BigInteger.valueOf(netPerSecond));
+                textList.add(Component.translatable("gtpm.multiblock.power_substation.time_to_fill",
                         getTimeToFillDrainText(timeToFillSeconds).setStyle(styleGreen)));
-            } else if (state.inputPerSec() < state.outputPerSec()) {
-                BigInteger timeToDrainSeconds = state.stored()
-                        .divide(BigInteger.valueOf(Mth.floor(
-                                (state.outputPerSec() - state.inputPerSec()) / 20.0f * state.tickRate())));
-                text.add(Component.translatable("gtpm.multiblock.power_substation.time_to_drain",
+            } else if (netPerSecond < 0) {
+                BigInteger timeToDrainSeconds = stored.divide(BigInteger.valueOf(netPerSecond).negate());
+                textList.add(Component.translatable("gtpm.multiblock.power_substation.time_to_drain",
                         getTimeToFillDrainText(timeToDrainSeconds).setStyle(styleRed)));
             }
         }
-        text.addAll(additionalDisplay);
-        return List.copyOf(text);
-    }
-
-    record DisplayState(boolean formed, boolean workingEnabled, boolean active, boolean waiting,
-                        BigInteger stored, BigInteger capacity, long passiveDrain,
-                        long inputPerSec, long outputPerSec, float tickRate) {}
-
-    @VisibleForTesting
-    List<Component> getDisplayText() {
-        return displayText;
+        getDefinition().getAdditionalDisplay().accept(this, textList);
     }
 
     private static MutableComponent getTimeToFillDrainText(BigInteger timeToFillSeconds) {
@@ -631,6 +590,12 @@ public class PowerSubstationMachine extends WorkableMultiblockMachine
     }
 
     @Override
+    public UI createUI(Player player, MachineUIHolder holder) {
+        return createDisplayUI(new FancyMachineUIWidget(this, player.getInventory(), holder,
+                getPageWidth(), getPageHeight()), this);
+    }
+
+    @Override
     public UIElement createUIWidget(FancyMachineUIWidget shell) {
         UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
         root.style(style -> style.backgroundTexture(GuiTextures.BACKGROUND_INVERSE));
@@ -654,7 +619,7 @@ public class PowerSubstationMachine extends WorkableMultiblockMachine
                 .textAlignVertical(Vertical.CENTER));
         screen.addScrollViewChild(title);
         screen.addScrollViewChild(new GTComponentPanelElement(4, 17,
-                PowerSubstationMachine.this::addDisplayText)
+                this::getDisplay)
                 .setMaxWidthLimit(150)
                 .clickHandler(PowerSubstationMachine.this::handleDisplayClick));
         root.addChild(screen);

@@ -2,7 +2,7 @@ package com.gregtechceu.gtceu.api.placeholder.exceptions;
 
 public class PlaceholderException extends Exception {
 
-    private String message;
+    private final String message;
     private int line = 0, symbol = 0;
 
     public PlaceholderException(String message) {

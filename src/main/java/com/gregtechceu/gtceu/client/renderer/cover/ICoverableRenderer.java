@@ -42,6 +42,26 @@ public interface ICoverableRenderer {
         COVER_BACK_PLATE[0] = atlas.getSprite(GTCEu.id("block/material_sets/dull/wire_side"));
     }
 
+    /**
+     * Collects the model data of the attached covers for the model's current rebuild.
+     * The caller uses the returned face map for both render layer selection and quad generation.
+     */
+    @OnlyIn(Dist.CLIENT)
+    static Map<Direction, ModelData> collectCoverModelData(ICoverable coverable, BlockPos pos,
+                                                           BlockAndTintGetter level, ModelData holderData) {
+        Map<Direction, ModelData> coverData = Map.of();
+        for (Direction side : GTUtil.DIRECTIONS) {
+            CoverBehavior cover = coverable.getCoverAtSide(side);
+            if (cover == null) continue;
+
+            ModelData data = cover.getCoverRenderer().get().getModelData(cover, pos, level, holderData);
+            if (data == ModelData.EMPTY) continue;
+            if (coverData.isEmpty()) coverData = new EnumMap<>(Direction.class);
+            coverData.put(side, data);
+        }
+        return coverData;
+    }
+
     @OnlyIn(Dist.CLIENT)
     default void renderCovers(List<BakedQuad> quads, @NotNull ICoverable coverable,
                               BlockPos pos, BlockAndTintGetter level, @Nullable Direction side,

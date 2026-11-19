@@ -4,12 +4,14 @@ import com.gregtechceu.gtceu.client.util.ModelEventHelper;
 import com.gregtechceu.gtceu.common.item.LampBlockItem;
 
 import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
+import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.client.resources.model.ModelResourceLocation;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.ItemDisplayContext;
 import net.neoforged.neoforge.client.extensions.common.IClientItemExtensions;
 import net.neoforged.neoforge.client.model.BakedModelWrapper;
 
+import com.mojang.blaze3d.vertex.PoseStack;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -28,11 +30,10 @@ public final class LampItemRendererHelper {
     };
 
     public static void registerModelBakeListener(LampBlockItem item) {
+        ModelResourceLocation modelLoc = ModelResourceLocation.inventory(BuiltInRegistries.ITEM.getKey(item));
         ModelEventHelper.registerBakeEventListener(false,
                 (resourceLocation, bakedModel, rootModel, modelBakery) -> {
-                    ResourceLocation model = BuiltInRegistries.ITEM.getKey(item).withPrefix("item/");
-                    ModelResourceLocation modelLoc = ModelResourceLocation.inventory(model);
-                    if (!resourceLocation.equals(model) && !resourceLocation.equals(modelLoc)) {
+                    if (!modelLoc.equals(resourceLocation)) {
                         return bakedModel;
                     }
                     return new BakedModelWrapper<>(bakedModel) {
@@ -40,6 +41,13 @@ public final class LampItemRendererHelper {
                         @Override
                         public boolean isCustomRenderer() {
                             return true;
+                        }
+
+                        @Override
+                        public BakedModel applyTransform(ItemDisplayContext displayContext, PoseStack poseStack,
+                                                         boolean leftHanded) {
+                            super.applyTransform(displayContext, poseStack, leftHanded);
+                            return this;
                         }
                     };
                 });

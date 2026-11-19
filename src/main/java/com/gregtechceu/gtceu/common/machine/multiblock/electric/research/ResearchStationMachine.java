@@ -2,72 +2,36 @@ package com.gregtechceu.gtceu.common.machine.multiblock.electric.research;
 
 import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo;
 import com.gregtechceu.gtceu.api.capability.recipe.IO;
-import com.gregtechceu.gtceu.api.gui.GuiTextures;
-import com.gregtechceu.gtceu.api.gui.UITemplate;
-import com.gregtechceu.gtceu.api.gui.element.GTComponentPanelElement;
-import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
-import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
 import com.gregtechceu.gtceu.api.gui.fancy.TooltipsPanel;
-import com.gregtechceu.gtceu.api.machine.ConditionalSubscriptionHandler;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMaintenanceMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMultiPart;
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockDisplayText;
 import com.gregtechceu.gtceu.api.machine.multiblock.WorkableElectricMultiblockMachine;
 import com.gregtechceu.gtceu.api.machine.trait.NetworkedComputationContainer;
-import com.gregtechceu.gtceu.api.misc.EnergyContainerList;
-import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
 import com.gregtechceu.gtceu.common.computation.ComputationNetworkManager;
 import com.gregtechceu.gtceu.common.machine.multiblock.part.ObjectHolderMachine;
 import com.gregtechceu.gtceu.common.machine.multiblock.part.OpticalComputationHatchMachine;
 
-import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
-import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
-import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
-import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollerMode;
-import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
-
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 
-import lombok.AccessLevel;
 import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
 public class ResearchStationMachine extends WorkableElectricMultiblockMachine {
 
-    private static final int PAGE_WIDTH = 190;
-    private static final int PAGE_HEIGHT = 125;
-
     @Getter
     private final NetworkedComputationContainer importComputation;
     @Getter
     private @Nullable ObjectHolderMachine objectHolder;
-    @Getter(AccessLevel.PACKAGE)
-    private final ConditionalSubscriptionHandler displaySubscription;
-    @Getter(AccessLevel.PACKAGE)
-    @SyncToClient
-    private List<Component> displayText = List.of();
 
     public ResearchStationMachine(BlockEntityCreationInfo info) {
         super(info);
         this.importComputation = attachTrait(new NetworkedComputationContainer(IO.IN));
-        this.displaySubscription = new ConditionalSubscriptionHandler(this, this::refreshDisplayText,
-                this::isFormed);
-    }
-
-    @Override
-    public void onLoad() {
-        super.onLoad();
-        if (!isRemote()) {
-            refreshDisplayText();
-            displaySubscription.initialize(getLevel());
-        }
     }
 
     @Override
@@ -86,11 +50,6 @@ public class ResearchStationMachine extends WorkableElectricMultiblockMachine {
 
         if (objectHolder == null) {
             invalidateStructure(structureName);
-            return;
-        }
-        if (!isRemote()) {
-            refreshDisplayText();
-            displaySubscription.updateSubscription();
         }
     }
 
@@ -118,27 +77,6 @@ public class ResearchStationMachine extends WorkableElectricMultiblockMachine {
             objectHolder = null;
         }
         super.invalidateStructure(structureName);
-        if (defaultStructure && !isRemote()) {
-            refreshDisplayText();
-            displaySubscription.updateSubscription();
-        }
-    }
-
-    @Override
-    public void onUnload() {
-        super.onUnload();
-        clearDisplayRuntimeState();
-    }
-
-    @Override
-    public void onPartUnload() {
-        super.onPartUnload();
-        clearDisplayRuntimeState();
-    }
-
-    private void clearDisplayRuntimeState() {
-        displayText = List.of();
-        displaySubscription.unsubscribe();
     }
 
     @Override
@@ -160,84 +98,17 @@ public class ResearchStationMachine extends WorkableElectricMultiblockMachine {
     }
 
     @Override
-    public void setWorkingEnabled(boolean isWorkingAllowed) {
-        super.setWorkingEnabled(isWorkingAllowed);
-        if (!isRemote()) {
-            refreshDisplayText();
-        }
-    }
-
-    @Override
     public void addDisplayText(List<Component> textList) {
-        textList.addAll(displayText);
-    }
-
-    void refreshDisplayText() {
-        List<Component> nextText = createDisplayText(captureDisplayState());
-        if (!displayText.equals(nextText)) {
-            displayText = nextText;
-        }
-    }
-
-    protected DisplayState captureDisplayState() {
         var workLogic = getWorkLogic();
-        return captureDisplayState(isFormed(), workLogic.isWorkingEnabled(), workLogic.isActive(),
-                energyContainer, tier, getMaxComputation(), recipeLogic.getProgressPercent());
-    }
-
-    static DisplayState captureDisplayState(boolean formed, boolean workingEnabled, boolean active,
-                                            @Nullable EnergyContainerList energyContainer, int tier,
-                                            int maxComputation, double progressPercent) {
-        return new DisplayState(formed, workingEnabled, active, energyContainer, tier, maxComputation,
-                progressPercent);
-    }
-
-    static List<Component> createDisplayText(DisplayState state) {
-        List<Component> text = new ArrayList<>(5);
-        MultiblockDisplayText.builder(text, state.formed())
-                .setWorkingStatus(state.workingEnabled(), state.active())
+        MultiblockDisplayText.builder(textList, isFormed())
+                .setWorkingStatus(workLogic.isWorkingEnabled(), workLogic.isActive())
                 .setWorkingStatusKeys("gtpm.multiblock.idling", "gtpm.multiblock.work_paused",
                         "gtpm.multiblock.research_station.researching")
-                .addEnergyUsageLine(state.energyContainer())
-                .addEnergyTierLine(state.tier())
+                .addEnergyUsageLine(energyContainer)
+                .addEnergyTierLine(tier)
                 .addWorkingStatusLine()
-                .addComputationUsageLine(state.maxComputation())
-                .addProgressLineOnlyPercent(state.progressPercent());
-        return List.copyOf(text);
-    }
-
-    record DisplayState(boolean formed, boolean workingEnabled, boolean active,
-                        @Nullable EnergyContainerList energyContainer, int tier,
-                        int maxComputation, double progressPercent) {}
-
-    @Override
-    public UIElement createUIWidget(FancyMachineUIWidget shell) {
-        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
-        UITemplate.setBackgroundTexture(root, GuiTextures.BACKGROUND_INVERSE);
-
-        GTScrollerViewElement screen = new GTScrollerViewElement(4, 4, 182, 117);
-        UITemplate.setBackgroundTexture(screen, getScreenTexture());
-        screen.viewPort.layout(layout -> layout.paddingAll(0));
-        UITemplate.setBackgroundTexture(screen.viewPort, getScreenTexture());
-        screen.scrollerStyle(style -> style
-                .mode(ScrollerMode.VERTICAL)
-                .verticalScrollDisplay(ScrollDisplay.AUTO)
-                .horizontalScrollDisplay(ScrollDisplay.NEVER));
-
-        GTLabelElement title = new GTLabelElement(4, 5, 174, 10,
-                getBlockState().getBlock().getDescriptionId(), true);
-        title.textStyle(style -> style
-                .textColor(0x404040)
-                .textShadow(false)
-                .textAlignHorizontal(Horizontal.LEFT)
-                .textAlignVertical(Vertical.CENTER));
-        screen.addScrollViewChild(title);
-        screen.addScrollViewChild(new GTComponentPanelElement(4, 17,
-                ResearchStationMachine.this::addDisplayText)
-                .setMaxWidthLimit(200)
-                .clickHandler(ResearchStationMachine.this::handleDisplayClick));
-        root.addChild(screen);
-        return root;
+                .addComputationUsageLine(getMaxComputation())
+                .addProgressLineOnlyPercent(recipeLogic.getProgressPercent());
     }
 
     @Override

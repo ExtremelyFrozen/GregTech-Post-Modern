@@ -1,6 +1,7 @@
 package com.gregtechceu.gtceu.api.placeholder;
 
 import com.gregtechceu.gtceu.api.cover.CoverBehavior;
+import com.gregtechceu.gtceu.common.machine.multiblock.electric.monitor.MonitorGroup;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -8,22 +9,37 @@ import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.items.ItemStackHandler;
 
 import lombok.With;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
 import java.util.UUID;
 
+@NullMarked
 public record PlaceholderContext(Level level,
                                  BlockPos pos,
-                                 Direction side,
+                                 @Nullable Direction side,
                                  @Nullable ItemStackHandler itemStackHandler,
                                  @Nullable CoverBehavior cover,
                                  @Nullable MultiLineComponent previousText,
                                  UUID uuid,
-                                 @With int index) {
+                                 @With int index,
+                                 Level monitorLevel,
+                                 @Nullable MonitorGroup monitorGroup) {
 
     public PlaceholderContext(Level level,
                               BlockPos pos,
-                              Direction side,
+                              @Nullable Direction side,
+                              @Nullable ItemStackHandler itemStackHandler,
+                              @Nullable CoverBehavior cover,
+                              @Nullable MultiLineComponent previousText,
+                              UUID uuid,
+                              int index) {
+        this(level, pos, side, itemStackHandler, cover, previousText, uuid, index, level, null);
+    }
+
+    public PlaceholderContext(Level level,
+                              BlockPos pos,
+                              @Nullable Direction side,
                               @Nullable ItemStackHandler itemStackHandler,
                               @Nullable CoverBehavior cover,
                               @Nullable MultiLineComponent previousText,

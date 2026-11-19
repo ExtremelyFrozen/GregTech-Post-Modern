@@ -95,9 +95,10 @@ public class GTRecipeType implements RecipeType<GTRecipeDefinition> {
     private final GTRecipeCategory category;
     @Getter
     private final Map<GTRecipeCategory, Set<GTRecipeDefinition>> categoryMap = new Object2ObjectOpenHashMap<>();
+    private final Map<GTRecipeCategory, Set<GTRecipeDefinition>> clientCategoryMap = new Reference2ObjectOpenHashMap<>();
     /**
      * Prevents recipe-viewer reloads from appending the same synthetic display recipes to the current recipe
-     * generation. The flag is reset when a new recipe staging cycle starts.
+     * generation. The flag is reset after the client accepts a new recipe sync.
      */
     private boolean representativeRecipesBuilt;
     private final RecipeDB db = new RecipeDB();
@@ -111,10 +112,13 @@ public class GTRecipeType implements RecipeType<GTRecipeDefinition> {
     @Getter
     private int voltageTextOffset = 20;
     private final Map<String, Collection<GTRecipeDefinition>> researchEntries = new Object2ObjectOpenHashMap<>();
+    private final Map<String, Collection<GTRecipeDefinition>> clientResearchEntries = new Object2ObjectOpenHashMap<>();
     @Getter
     private final List<ICustomRecipeLogic> customRecipeLogicRunners = new ArrayList<>();
     @Getter
     private int minRecipeConditions = 0;
+    @Getter
+    private int clientMinRecipeConditions;
 
     public GTRecipeType(ResourceLocation registryName, String group, RecipeType<?>... proxyRecipes) {
         this.registryName = registryName;
@@ -297,14 +301,17 @@ public class GTRecipeType implements RecipeType<GTRecipeDefinition> {
     }
 
     public void addDataStickEntry(@NotNull String researchId, @NotNull GTRecipeDefinition recipe) {
-        Collection<GTRecipeDefinition> collection = researchEntries.computeIfAbsent(researchId,
-                (k) -> new ObjectOpenHashSet<>());
-        collection.add(recipe);
+        researchEntries.computeIfAbsent(researchId, id -> new ObjectOpenHashSet<>()).add(recipe);
     }
 
     @Nullable
     public Collection<GTRecipeDefinition> getDataStickEntry(@NotNull String researchId) {
         return researchEntries.get(researchId);
+    }
+
+    @Nullable
+    public Collection<GTRecipeDefinition> getClientDataStickEntry(String researchId) {
+        return clientResearchEntries.get(researchId);
     }
 
     public boolean removeDataStickEntry(@NotNull String researchId, @NotNull GTRecipeDefinition recipe) {
@@ -343,8 +350,9 @@ public class GTRecipeType implements RecipeType<GTRecipeDefinition> {
         representativeRecipesBuilt = true;
     }
 
+    /** Adds a representative recipe for the client recipe viewer. */
     public void addToMainCategory(GTRecipeDefinition recipe) {
-        addToCategoryMap(category, recipe);
+        addToClientCategory(category, recipe);
     }
 
     public void addToCategoryMap(GTRecipeCategory category, GTRecipeDefinition recipe) {
@@ -358,6 +366,14 @@ public class GTRecipeType implements RecipeType<GTRecipeDefinition> {
 
     public Set<GTRecipeDefinition> getRecipesInCategory(GTRecipeCategory category) {
         return Collections.unmodifiableSet(categoryMap.getOrDefault(category, Set.of()));
+    }
+
+    public Set<GTRecipeCategory> getClientCategories() {
+        return Collections.unmodifiableSet(clientCategoryMap.keySet());
+    }
+
+    public Set<GTRecipeDefinition> getClientRecipesInCategory(GTRecipeCategory category) {
+        return Collections.unmodifiableSet(clientCategoryMap.getOrDefault(category, Set.of()));
     }
 
     public String getTranslationKey() {
@@ -375,7 +391,9 @@ public class GTRecipeType implements RecipeType<GTRecipeDefinition> {
     @ApiStatus.Internal
     public synchronized void beginStagingRecipes() {
         additionHandler.beginStaging();
-        clearRecipeGeneration();
+        categoryMap.clear();
+        researchEntries.clear();
+        minRecipeConditions = 0;
     }
 
     /**
@@ -386,7 +404,7 @@ public class GTRecipeType implements RecipeType<GTRecipeDefinition> {
         additionHandler.completeStaging();
         for (Set<GTRecipeDefinition> recipes : categoryMap.values()) {
             for (GTRecipeDefinition recipe : recipes) {
-                addResearchEntries(recipe);
+                addResearchEntries(researchEntries, recipe);
             }
         }
     }
@@ -398,25 +416,32 @@ public class GTRecipeType implements RecipeType<GTRecipeDefinition> {
      */
     @ApiStatus.Internal
     public synchronized void replaceClientRecipes(Iterable<GTRecipeDefinition> recipes) {
-        clearRecipeGeneration();
+        clientCategoryMap.clear();
+        clientResearchEntries.clear();
+        representativeRecipesBuilt = false;
+        clientMinRecipeConditions = 0;
         for (GTRecipeDefinition recipe : recipes) {
-            addToCategoryMap(recipe.recipeCategory, recipe);
-            addResearchEntries(recipe);
+            addClientRecipe(recipe);
         }
     }
 
-    private void clearRecipeGeneration() {
-        categoryMap.clear();
-        researchEntries.clear();
-        representativeRecipesBuilt = false;
-        minRecipeConditions = 0;
+    @ApiStatus.Internal
+    void addClientRecipe(GTRecipeDefinition recipe) {
+        addToClientCategory(recipe.recipeCategory, recipe);
+        addResearchEntries(clientResearchEntries, recipe);
     }
 
-    private void addResearchEntries(GTRecipeDefinition recipe) {
+    private void addToClientCategory(GTRecipeCategory category, GTRecipeDefinition recipe) {
+        clientMinRecipeConditions = Math.max(clientMinRecipeConditions, recipe.conditions.size());
+        clientCategoryMap.computeIfAbsent(category, key -> new ObjectLinkedOpenHashSet<>()).add(recipe);
+    }
+
+    private static void addResearchEntries(Map<String, Collection<GTRecipeDefinition>> index,
+                                           GTRecipeDefinition recipe) {
         for (RecipeCondition<?> condition : recipe.conditions) {
             if (condition instanceof ResearchCondition researchCondition) {
                 for (ResearchData.ResearchEntry entry : researchCondition.data) {
-                    addDataStickEntry(entry.researchId(), recipe);
+                    index.computeIfAbsent(entry.researchId(), id -> new ObjectOpenHashSet<>()).add(recipe);
                 }
             }
         }

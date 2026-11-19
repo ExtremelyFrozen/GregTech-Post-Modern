@@ -65,13 +65,13 @@ public class GTRecipeJEICategory extends ModularUIRecipeCategory<GTRecipeDefinit
                 subCategories.add(category);
                 continue;
             }
-            var wrapped = List.copyOf(type.getRecipesInCategory(category));
+            var wrapped = List.copyOf(type.getClientRecipesInCategory(category));
             registration.addRecipes(TYPES.apply(category), wrapped);
         }
         for (GTRecipeCategory subCategory : subCategories) {
             if (!subCategory.shouldRegisterDisplays()) continue;
             var type = subCategory.getRecipeType();
-            var wrapped = List.copyOf(type.getRecipesInCategory(subCategory));
+            var wrapped = List.copyOf(type.getClientRecipesInCategory(subCategory));
             registration.addRecipes(TYPES.apply(subCategory), wrapped);
         }
     }
@@ -79,7 +79,7 @@ public class GTRecipeJEICategory extends ModularUIRecipeCategory<GTRecipeDefinit
     public static void registerRecipeCatalysts(IRecipeCatalystRegistration registration) {
         for (MachineDefinition machine : GTRegistries.MACHINES) {
             for (GTRecipeType type : machine.getRecipeTypes()) {
-                for (GTRecipeCategory category : type.getCategories()) {
+                for (GTRecipeCategory category : type.getClientCategories()) {
                     if (!category.isXEIVisible() && !GTCEu.isDev()) continue;
                     registration.addRecipeCatalyst(machine.asStack(), machineType(category));
                 }

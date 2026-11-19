@@ -388,7 +388,7 @@ public class ItemRecipeCapability extends RecipeCapability<SizedIngredient> {
             }
             if (researchData != null) {
                 Collection<GTRecipeDefinition> possibleRecipes = researchData.recipeType()
-                        .getDataStickEntry(researchData.researchId());
+                        .getClientDataStickEntry(researchData.researchId());
                 Set<ItemStack> cache = new ObjectOpenCustomHashSet<>(ItemStackHashStrategy.comparingItem());
                 if (possibleRecipes != null) {
                     for (GTRecipeDefinition r : possibleRecipes) {

@@ -53,7 +53,7 @@ public class GTRecipeEMICategory extends EmiRecipeCategory {
             EmiRecipeCategory emiCategory = CATEGORIES.apply(category);
             RecipeUISize size = sizes.computeIfAbsent(type,
                     recipeType -> recipeType.getRecipeUI().getXEIRecipeUISize());
-            type.getRecipesInCategory(category).stream()
+            type.getClientRecipesInCategory(category).stream()
                     .map(recipe -> new GTEmiRecipe(recipe, emiCategory, size))
                     .forEach(registry::addRecipe);
         }
@@ -64,7 +64,7 @@ public class GTRecipeEMICategory extends EmiRecipeCategory {
             EmiRecipeCategory emiCategory = CATEGORIES.apply(subCategory);
             RecipeUISize size = sizes.computeIfAbsent(type,
                     recipeType -> recipeType.getRecipeUI().getXEIRecipeUISize());
-            type.getRecipesInCategory(subCategory).stream()
+            type.getClientRecipesInCategory(subCategory).stream()
                     .map(recipe -> new GTEmiRecipe(recipe, emiCategory, size))
                     .forEach(registry::addRecipe);
         }
@@ -73,7 +73,7 @@ public class GTRecipeEMICategory extends EmiRecipeCategory {
     public static void registerWorkStations(EmiRegistry registry) {
         for (MachineDefinition machine : GTEMIPlugin.SORTED_MACHINES) {
             for (GTRecipeType type : machine.getRecipeTypes()) {
-                for (GTRecipeCategory category : type.getCategories()) {
+                for (GTRecipeCategory category : type.getClientCategories()) {
                     if (!category.isXEIVisible() && !GTCEu.isDev()) continue;
                     registry.addWorkstation(machineCategory(category), EmiStack.of(machine.asStack()));
                 }

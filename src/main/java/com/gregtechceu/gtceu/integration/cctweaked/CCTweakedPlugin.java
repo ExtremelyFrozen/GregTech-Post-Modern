@@ -31,7 +31,7 @@ public class CCTweakedPlugin {
                                             List<MultiLineComponent> args) throws PlaceholderException {
                 PlaceholderUtils.checkArgs(args, 1);
                 if (!(ctx.cover() instanceof IPlaceholderInfoProviderCover cover)) throw new NotSupportedException();
-                int i = PlaceholderUtils.toInt(args.get(0));
+                int i = PlaceholderUtils.toInt(args.getFirst());
                 PlaceholderUtils.checkRange("line number", 1, 100, i);
                 return MultiLineComponent.of(cover.getComputerCraftTextBuffer().get(i - 1));
             }

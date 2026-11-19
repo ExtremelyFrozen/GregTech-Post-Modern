@@ -54,27 +54,25 @@ public class TextModuleBehaviour implements IMonitorModuleItem, IAddInformation 
     private static final int CONFIGURATION_WIDTH = PLACEHOLDER_REFERENCE_WIDTH + CONFIGURATION_GAP + EDITOR_WIDTH;
     private static final int CONFIGURATION_HEIGHT = 104;
     private static final int EDITOR_X = PLACEHOLDER_REFERENCE_WIDTH + CONFIGURATION_GAP;
-
-    private void updateText(ItemStack stack, CentralMonitorMachine machine, MonitorGroup group) {
-        if (!stack.has(GTDataComponents.PLACEHOLDER_UUID)) {
-            stack.set(GTDataComponents.PLACEHOLDER_UUID, UUID.randomUUID());
-        }
-        MultiLineComponent text = PlaceholderHandler.processPlaceholders(
-                getPlaceholderText(stack),
-                new PlaceholderContext(
-                        group.getTargetLevel(machine.getLevel()),
-                        group.getTarget(machine.getLevel()),
-                        group.getTargetCoverSide(),
-                        group.getPlaceholderSlotsHandler(),
-                        group.getTargetCover(machine.getLevel()),
-                        null,
-                        stack.get(GTDataComponents.PLACEHOLDER_UUID)));
-        stack.update(GTDataComponents.TEXT_LINE_LIST, TextLineList.EMPTY, lines -> lines.withLines(text.toImmutable()));
-    }
+    private static final List<Component> NO_TARGET_TEXT = List.of(
+            Component.translatable("gtpm.computer_monitor_cover.error.no_target").withStyle(ChatFormatting.DARK_RED));
 
     @Override
     public void tick(ItemStack stack, CentralMonitorMachine machine, MonitorGroup group) {
-        this.updateText(stack, machine, group);
+        UUID uuid = stack.get(GTDataComponents.PLACEHOLDER_UUID);
+        if (uuid == null) {
+            uuid = UUID.randomUUID();
+            stack.set(GTDataComponents.PLACEHOLDER_UUID, uuid);
+        }
+
+        PlaceholderContext context = group.resolvePlaceholderContext(machine.getLevel(), uuid);
+        int selectedSlot = group.getDataSlot();
+        List<Component> text = context == null ? NO_TARGET_TEXT :
+                PlaceholderHandler.processPlaceholders(getPlaceholderText(stack), context).toImmutable();
+        stack.update(GTDataComponents.TEXT_LINE_LIST, TextLineList.EMPTY, lines -> lines.withLines(text));
+        if (selectedSlot != group.getDataSlot()) {
+            machine.markMonitorGroupDataChanged();
+        }
     }
 
     @Override
@@ -158,21 +156,13 @@ public class TextModuleBehaviour implements IMonitorModuleItem, IAddInformation 
                 requestedScale));
     }
 
-    private static final class TextEditSession {
-
-        private final UUID holderIncarnation;
-        private final UUID groupIdentity;
-        private final UUID moduleSlotIncarnation;
-        private final ItemStack expectedModule;
-        private final long expectedConfigurationRevision;
+    private record TextEditSession(UUID holderIncarnation, UUID groupIdentity, UUID moduleSlotIncarnation,
+                                   ItemStack expectedModule, long expectedConfigurationRevision) {
 
         private TextEditSession(UUID holderIncarnation, UUID groupIdentity, UUID moduleSlotIncarnation,
                                 long expectedConfigurationRevision, ItemStack expectedModule) {
-            this.holderIncarnation = holderIncarnation;
-            this.groupIdentity = groupIdentity;
-            this.moduleSlotIncarnation = moduleSlotIncarnation;
-            this.expectedConfigurationRevision = expectedConfigurationRevision;
-            this.expectedModule = expectedModule;
+            this(holderIncarnation, groupIdentity, moduleSlotIncarnation, expectedModule,
+                    expectedConfigurationRevision);
         }
 
         private static TextEditSession open(CentralMonitorMachine machine, MonitorGroup group, ItemStack module) {
@@ -200,8 +190,7 @@ public class TextModuleBehaviour implements IMonitorModuleItem, IAddInformation 
 
     /** Captures editable data without placeholder identity and server-derived display text. */
     public static ItemStack captureExpectedModule(ItemStack module) {
-        ItemStack moduleCopy = module.copy();
-        moduleCopy.remove(GTDataComponents.TEXT_LINE_LIST.get());
+        ItemStack moduleCopy = ImageModuleBehaviour.captureExpectedModule(module);
         moduleCopy.remove(GTDataComponents.PLACEHOLDER_UUID.get());
         return moduleCopy;
     }

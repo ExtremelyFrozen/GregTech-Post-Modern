@@ -6,25 +6,18 @@ import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo;
 import com.gregtechceu.gtceu.api.capability.IEnergyContainer;
 import com.gregtechceu.gtceu.api.capability.recipe.EURecipeCapability;
 import com.gregtechceu.gtceu.api.capability.recipe.IO;
-import com.gregtechceu.gtceu.api.gui.GuiTextures;
-import com.gregtechceu.gtceu.api.gui.UITemplate;
-import com.gregtechceu.gtceu.api.gui.element.GTComponentPanelElement;
-import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
-import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
 import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
-import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
 import com.gregtechceu.gtceu.api.gui.fancy.TooltipsPanel;
-import com.gregtechceu.gtceu.api.machine.ConditionalSubscriptionHandler;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.VoidingModeConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
 import com.gregtechceu.gtceu.api.machine.feature.IDataInfoProvider;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMaintenanceMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMultiPart;
 import com.gregtechceu.gtceu.api.machine.multiblock.CleanroomType;
+import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockDisplayText;
 import com.gregtechceu.gtceu.api.machine.multiblock.WorkableElectricMultiblockMachine;
 import com.gregtechceu.gtceu.api.misc.EnergyContainerList;
 import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField;
-import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
 import com.gregtechceu.gtceu.common.item.behavior.PortableScannerBehavior;
 import com.gregtechceu.gtceu.common.machine.electric.HullMachine;
 import com.gregtechceu.gtceu.common.machine.multiblock.part.DiodePartMachine;
@@ -33,17 +26,9 @@ import com.gregtechceu.gtceu.common.machine.trait.CleanroomProviderTrait;
 import com.gregtechceu.gtceu.common.machine.trait.CleanroomReceiverTrait;
 import com.gregtechceu.gtceu.utils.GTUtil;
 
-import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
-import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
-import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
-import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollerMode;
-import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
-
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.HoverEvent;
-import net.minecraft.network.chat.Style;
 import net.minecraft.util.Mth;
 
 import com.google.common.collect.ImmutableSet;
@@ -51,7 +36,6 @@ import com.google.common.collect.Sets;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMaps;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
-import lombok.AccessLevel;
 import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
 
@@ -59,9 +43,6 @@ import java.util.*;
 
 public class CleanroomMachine extends WorkableElectricMultiblockMachine
                               implements IDataInfoProvider {
-
-    private static final int PAGE_WIDTH = 190;
-    private static final int PAGE_HEIGHT = 125;
 
     public static final int CLEAN_AMOUNT_THRESHOLD = 95;
     public static final int MIN_CLEAN_AMOUNT = 0;
@@ -84,19 +65,10 @@ public class CleanroomMachine extends WorkableElectricMultiblockMachine
     private Collection<CleanroomReceiverTrait> cleanroomReceivers;
 
     private final CleanroomProviderTrait cleanroomProviderTrait;
-    @Getter(AccessLevel.PACKAGE)
-    private final ConditionalSubscriptionHandler displaySubscription;
-    @Getter(AccessLevel.PACKAGE)
-    @SyncToClient
-    private List<Component> displayText = List.of();
-    private boolean displayControllerLoaded;
-    private boolean displayStructureAvailable;
 
     public CleanroomMachine(BlockEntityCreationInfo info) {
         super(info, new CleanroomLogic());
         this.cleanroomProviderTrait = attachTrait(new CleanroomProviderTrait());
-        this.displaySubscription = new ConditionalSubscriptionHandler(this, this::refreshDisplayText,
-                () -> displayControllerLoaded && displayStructureAvailable && isFormed());
     }
 
     @Override
@@ -107,17 +79,6 @@ public class CleanroomMachine extends WorkableElectricMultiblockMachine
     //////////////////////////////////////
     // *** Multiblock LifeCycle ***//
     //////////////////////////////////////
-
-    @Override
-    public void onLoad() {
-        super.onLoad();
-        if (!isRemote()) {
-            displayControllerLoaded = true;
-            displayStructureAvailable = isFormed();
-            refreshDisplayText();
-            displaySubscription.initialize(getLevel());
-        }
-    }
 
     @Override
     public void formStructure(String structureName) {
@@ -158,11 +119,6 @@ public class CleanroomMachine extends WorkableElectricMultiblockMachine
         var area = (lDist + rDist + 1) * (bDist + fDist + 1);
         var duration = Math.pow(area, 0.8) * (hDist + 1);
         this.getRecipeLogic().setDuration(Math.max(100, (int) duration));
-        if (!isRemote()) {
-            displayStructureAvailable = true;
-            refreshDisplayText();
-            displaySubscription.updateSubscription();
-        }
     }
 
     @Override
@@ -176,30 +132,6 @@ public class CleanroomMachine extends WorkableElectricMultiblockMachine
             this.cleanroomReceivers.forEach(CleanroomReceiverTrait::removeCleanroom);
             this.cleanroomReceivers = null;
         }
-        if (!isRemote()) {
-            displayStructureAvailable = false;
-            refreshDisplayText();
-            displaySubscription.updateSubscription();
-        }
-    }
-
-    @Override
-    public void onUnload() {
-        super.onUnload();
-        displayControllerLoaded = false;
-        suspendDisplayRuntimeState();
-    }
-
-    @Override
-    public void onPartUnload() {
-        super.onPartUnload();
-        suspendDisplayRuntimeState();
-    }
-
-    private void suspendDisplayRuntimeState() {
-        displayStructureAvailable = false;
-        displayText = List.of();
-        displaySubscription.unsubscribe();
     }
 
     @Override
@@ -253,81 +185,38 @@ public class CleanroomMachine extends WorkableElectricMultiblockMachine
 
     @Override
     public void addDisplayText(List<Component> textList) {
-        textList.addAll(displayText);
-    }
-
-    void refreshDisplayText() {
-        List<Component> nextText = new ArrayList<>();
-        collectServerDisplayText(nextText);
-        nextText = List.copyOf(nextText);
-        if (!displayText.equals(nextText)) {
-            displayText = nextText;
-        }
-    }
-
-    protected void collectServerDisplayText(List<Component> textList) {
-        textList.addAll(createDisplayText(captureDisplayState()));
-    }
-
-    protected DisplayState captureDisplayState() {
+        boolean formed = isFormed();
         var workLogic = getWorkLogic();
-        return new DisplayState(isFormed(), getMaxVoltage(), cleanroomType, workLogic.isWorkingEnabled(),
-                workLogic.isActive(), workLogic.isWaiting(), recipeLogic.getProgress(), recipeLogic.getDuration(),
-                (int) (recipeLogic.getProgressPercent() * 100), cleanroomProviderTrait.isActive(), cleanAmount,
-                lDist + rDist + 1, hDist + 1, fDist + bDist + 1);
-    }
+        var display = MultiblockDisplayText.builder(textList, formed)
+                .setWorkingStatus(workLogic.isWorkingEnabled(), workLogic.isActive());
+        if (!formed) return;
 
-    static List<Component> createDisplayText(DisplayState state) {
-        List<Component> text = new ArrayList<>();
-        if (state.formed()) {
-            if (state.maxVoltage() > 0) {
-                String voltageName = GTValues.VNF[GTUtil.getFloorTierByVoltage(state.maxVoltage())];
-                text.add(Component.translatable("gtpm.multiblock.max_energy_per_tick", state.maxVoltage(),
-                        voltageName));
-            }
-
-            if (state.cleanroomType() != null) {
-                text.add(Component.translatable(state.cleanroomType().translationKey()));
-            }
-
-            if (!state.workingEnabled()) {
-                text.add(Component.translatable("gtpm.multiblock.work_paused"));
-            } else if (state.active()) {
-                text.add(Component.translatable("gtpm.multiblock.running"));
-                float currentInSec = (float) state.progress() / 20.0f;
-                float maxInSec = (float) state.duration() / 20.0f;
-                text.add(Component.translatable("gtpm.multiblock.progress",
-                        String.format(Locale.ROOT, "%.2f", currentInSec),
-                        String.format(Locale.ROOT, "%.2f", maxInSec), state.progressPercent()));
-            } else {
-                text.add(Component.translatable("gtpm.multiblock.idling"));
-            }
-
-            if (state.waiting()) {
-                text.add(Component.translatable("gtpm.multiblock.waiting")
-                        .setStyle(Style.EMPTY.withColor(ChatFormatting.RED)));
-            }
-
-            text.add(Component.translatable(state.clean() ? "gtpm.multiblock.cleanroom.clean_state" :
-                    "gtpm.multiblock.cleanroom.dirty_state"));
-            text.add(Component.translatable("gtpm.multiblock.cleanroom.clean_amount", state.cleanAmount()));
-            text.add(Component.translatable("gtpm.multiblock.dimensions.0"));
-            text.add(Component.translatable("gtpm.multiblock.dimensions.1", state.width(), state.height(),
-                    state.depth()));
-        } else {
-            Component tooltip = Component.translatable("gtpm.multiblock.invalid_structure.tooltip")
-                    .withStyle(ChatFormatting.GRAY);
-            text.add(Component.translatable("gtpm.multiblock.invalid_structure")
-                    .withStyle(Style.EMPTY.withColor(ChatFormatting.RED)
-                            .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, tooltip))));
+        long maxVoltage = getMaxVoltage();
+        if (maxVoltage > 0) {
+            String voltageName = GTValues.VNF[GTUtil.getFloorTierByVoltage(maxVoltage)];
+            textList.add(Component.translatable("gtpm.multiblock.max_energy_per_tick", maxVoltage, voltageName));
         }
-        return List.copyOf(text);
+        if (cleanroomType != null) {
+            textList.add(Component.translatable(cleanroomType.translationKey()));
+        }
+        display.addWorkingStatusLine();
+        if (workLogic.isWorkingEnabled() && workLogic.isActive()) {
+            float currentInSec = recipeLogic.getProgress() / 20.0f;
+            float maxInSec = recipeLogic.getDuration() / 20.0f;
+            textList.add(Component.translatable("gtpm.multiblock.progress",
+                    String.format(Locale.ROOT, "%.2f", currentInSec),
+                    String.format(Locale.ROOT, "%.2f", maxInSec), (int) (recipeLogic.getProgressPercent() * 100)));
+        }
+        if (workLogic.isWaiting()) {
+            textList.add(Component.translatable("gtpm.multiblock.waiting").withStyle(ChatFormatting.RED));
+        }
+        textList.add(Component.translatable(cleanroomProviderTrait.isActive() ?
+                "gtpm.multiblock.cleanroom.clean_state" : "gtpm.multiblock.cleanroom.dirty_state"));
+        textList.add(Component.translatable("gtpm.multiblock.cleanroom.clean_amount", cleanAmount));
+        textList.add(Component.translatable("gtpm.multiblock.dimensions.0"));
+        textList.add(Component.translatable("gtpm.multiblock.dimensions.1",
+                lDist + rDist + 1, hDist + 1, fDist + bDist + 1));
     }
-
-    record DisplayState(boolean formed, long maxVoltage, @Nullable CleanroomType cleanroomType,
-                        boolean workingEnabled, boolean active, boolean waiting,
-                        int progress, int duration, int progressPercent,
-                        boolean clean, int cleanAmount, int width, int height, int depth) {}
 
     /**
      * Adjust the cleanroom's clean amount
@@ -365,35 +254,6 @@ public class CleanroomMachine extends WorkableElectricMultiblockMachine
 
     @Override
     public void setWorkingEnabled(boolean ignored) {}
-
-    @Override
-    public UIElement createUIWidget(FancyMachineUIWidget shell) {
-        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
-        UITemplate.setBackgroundTexture(root, GuiTextures.BACKGROUND_INVERSE);
-
-        GTScrollerViewElement screen = new GTScrollerViewElement(4, 4, 182, 117);
-        UITemplate.setBackgroundTexture(screen, getScreenTexture());
-        screen.viewPort.layout(layout -> layout.paddingAll(0));
-        UITemplate.setBackgroundTexture(screen.viewPort, getScreenTexture());
-        screen.scrollerStyle(style -> style
-                .mode(ScrollerMode.VERTICAL)
-                .verticalScrollDisplay(ScrollDisplay.AUTO)
-                .horizontalScrollDisplay(ScrollDisplay.NEVER));
-
-        GTLabelElement title = new GTLabelElement(4, 5, 174, 10,
-                getBlockState().getBlock().getDescriptionId(), true);
-        title.textStyle(style -> style
-                .textColor(0x404040)
-                .textShadow(false)
-                .textAlignHorizontal(Horizontal.LEFT)
-                .textAlignVertical(Vertical.CENTER));
-        screen.addScrollViewChild(title);
-        screen.addScrollViewChild(new GTComponentPanelElement(4, 17, CleanroomMachine.this::addDisplayText)
-                .setMaxWidthLimit(200)
-                .clickHandler(CleanroomMachine.this::handleDisplayClick));
-        root.addChild(screen);
-        return root;
-    }
 
     @Override
     public void attachConfigurators(ConfiguratorPanel configuratorPanel) {

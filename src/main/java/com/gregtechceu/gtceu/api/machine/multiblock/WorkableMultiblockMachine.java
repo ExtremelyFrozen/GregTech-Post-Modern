@@ -6,7 +6,10 @@ import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo;
 import com.gregtechceu.gtceu.api.capability.recipe.IO;
 import com.gregtechceu.gtceu.api.capability.recipe.IRecipeHandler;
 import com.gregtechceu.gtceu.api.capability.recipe.RecipeCapability;
+import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
+import com.gregtechceu.gtceu.api.machine.TickableSubscription;
 import com.gregtechceu.gtceu.api.machine.feature.IMufflableMachine;
+import com.gregtechceu.gtceu.api.machine.feature.multiblock.IDisplayUIMachine;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMultiPart;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IWorkableMultiController;
 import com.gregtechceu.gtceu.api.machine.property.GTMachineModelProperties;
@@ -22,8 +25,13 @@ import com.gregtechceu.gtceu.client.model.machine.MachineRenderState;
 import com.gregtechceu.gtceu.common.machine.trait.CleanroomReceiverTrait;
 import com.gregtechceu.gtceu.utils.ISubscription;
 
+import com.lowdragmc.lowdraglib2.gui.ui.UI;
+import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvents;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.level.block.Block;
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
@@ -31,6 +39,10 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectMaps;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongSet;
 import it.unimi.dsi.fastutil.longs.LongSets;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import it.unimi.dsi.fastutil.objects.Reference2ObjectMaps;
+import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
@@ -73,6 +85,13 @@ public abstract class WorkableMultiblockMachine extends MultiblockControllerMach
     @SyncBoth
     protected VoidingMode voidingMode = VoidingMode.VOID_NONE;
 
+    @SyncToClient
+    @Getter(AccessLevel.PROTECTED)
+    private List<Component> display = List.of();
+    private @Nullable Reference2ObjectOpenHashMap<Player, AbstractContainerMenu> displayViewers;
+    private @Nullable ObjectArrayList<Component> displayBuffer;
+    private @Nullable TickableSubscription displaySubscription;
+
     public WorkableMultiblockMachine(BlockEntityCreationInfo info,
                                      RecipeLogic recipeLogic) {
         super(info);
@@ -106,8 +125,70 @@ public abstract class WorkableMultiblockMachine extends MultiblockControllerMach
     @Override
     public void onUnload() {
         super.onUnload();
+        stopDisplayUpdates();
         traitSubscriptions.forEach(ISubscription::unsubscribe);
         traitSubscriptions.clear();
+    }
+
+    /**
+     * Ties the server-side text producer to the lifecycle of an open LDLib2 menu.
+     */
+    protected final UI createDisplayUI(FancyMachineUIWidget shell, IDisplayUIMachine displayMachine) {
+        if (!isRemote()) {
+            shell.addEventListener(UIEvents.MUI_CHANGED, event -> {
+                var modularUI = shell.getModularUI();
+                if (modularUI == null) return;
+                var menu = modularUI.getMenu();
+                if (menu == null) return;
+
+                if (displayViewers == null) {
+                    displayViewers = new Reference2ObjectOpenHashMap<>(1);
+                    displayBuffer = new ObjectArrayList<>(8);
+                    displaySubscription = subscribeServerTick(() -> updateDisplayViewers(displayMachine));
+                }
+                if (displayViewers.put(shell.getOpeningPlayer(), menu) != menu) {
+                    updateDisplay(displayMachine, displayBuffer);
+                }
+            });
+        }
+        return UI.of(shell);
+    }
+
+    private void updateDisplayViewers(IDisplayUIMachine displayMachine) {
+        if (displayViewers == null || displayBuffer == null) return;
+
+        var viewers = Reference2ObjectMaps.fastIterator(displayViewers);
+        while (viewers.hasNext()) {
+            var viewer = viewers.next();
+            if (viewer.getKey().containerMenu != viewer.getValue()) {
+                viewers.remove();
+            }
+        }
+        if (displayViewers.isEmpty()) {
+            stopDisplayUpdates();
+        } else {
+            updateDisplay(displayMachine, displayBuffer);
+        }
+    }
+
+    private void updateDisplay(IDisplayUIMachine displayMachine, ObjectArrayList<Component> buffer) {
+        buffer.clear();
+        if (isFormed() && !isWorkLogicAvailable()) {
+            MultiblockDisplayText.builder(buffer, false);
+        } else {
+            displayMachine.addDisplayText(buffer);
+        }
+        if (!display.equals(buffer)) {
+            display = List.copyOf(buffer);
+        }
+    }
+
+    private void stopDisplayUpdates() {
+        unsubscribe(displaySubscription);
+        displaySubscription = null;
+        displayViewers = null;
+        displayBuffer = null;
+        display = List.of();
     }
 
     //////////////////////////////////////
