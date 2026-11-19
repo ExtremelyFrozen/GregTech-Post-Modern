@@ -5,7 +5,7 @@ import com.gregtechceu.gtceu.api.data.medicalcondition.MedicalCondition;
 import com.gregtechceu.gtceu.api.data.medicalcondition.Symptom;
 import com.gregtechceu.gtceu.common.data.GTDataComponents;
 import com.gregtechceu.gtceu.common.data.datacomponents.MedicalConditionTrackerData;
-import it.unimi.dsi.fastutil.objects.ObjectSet;
+
 import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.world.effect.MobEffect;
@@ -18,6 +18,7 @@ import it.unimi.dsi.fastutil.objects.Object2FloatOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
+import it.unimi.dsi.fastutil.objects.ObjectSet;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectMap;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectMaps;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
@@ -140,7 +141,8 @@ public class MedicalConditionTracker implements IMedicalConditionTracker {
         permanentConditions.remove(condition);
     }
 
-    private static int calculateStage(MedicalCondition condition, Symptom.ConfiguredSymptom symptom, float progression) {
+    private static int calculateStage(MedicalCondition condition, Symptom.ConfiguredSymptom symptom,
+                                      float progression) {
         float threshold = symptom.progressionThreshold * condition.maxProgression;
         if (progression >= condition.maxProgression) return symptom.stages;
         if (progression <= threshold) return 0;

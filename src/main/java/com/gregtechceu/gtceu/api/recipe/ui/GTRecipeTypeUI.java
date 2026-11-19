@@ -618,7 +618,8 @@ public class GTRecipeTypeUI {
      * @return the height used to determine size of background texture in JEI
      */
     public int getPropertyHeightShift() {
-        int maxPropertyCount = maxTooltips + recipeType.getDataInfos().size() + recipeType.getClientMinRecipeConditions();
+        int maxPropertyCount = maxTooltips + recipeType.getDataInfos().size() +
+                recipeType.getClientMinRecipeConditions();
         return maxPropertyCount * 10; // GTRecipeXEIHelper#LINE_HEIGHT
     }
 

@@ -28,6 +28,7 @@ import net.minecraft.util.FormattedCharSequence;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 
+import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -53,6 +54,7 @@ public class GTComponentPanelElement extends UIElement {
     private int y;
     private int width;
     private int height;
+    @Getter
     private int maxWidthLimit;
     @Nullable
     private Consumer<List<Component>> textSupplier;
@@ -60,9 +62,13 @@ public class GTComponentPanelElement extends UIElement {
     private Supplier<List<Component>> textSnapshot;
     @Nullable
     private BiConsumer<String, ClickData> clickHandler;
+    @Getter
     private List<Component> lastText = new ArrayList<>();
+    @Getter
     private List<FormattedCharSequence> cacheLines = Collections.emptyList();
+    @Getter
     private boolean center;
+    @Getter
     private int space = 2;
 
     public GTComponentPanelElement() {
@@ -157,26 +163,6 @@ public class GTComponentPanelElement extends UIElement {
         this.lastText = new ArrayList<>(text);
         refreshDisplayText();
         return this;
-    }
-
-    public int getMaxWidthLimit() {
-        return maxWidthLimit;
-    }
-
-    public boolean isCenter() {
-        return center;
-    }
-
-    public int getSpace() {
-        return space;
-    }
-
-    public List<Component> getLastText() {
-        return lastText;
-    }
-
-    public List<FormattedCharSequence> getCacheLines() {
-        return cacheLines;
     }
 
     @Override
