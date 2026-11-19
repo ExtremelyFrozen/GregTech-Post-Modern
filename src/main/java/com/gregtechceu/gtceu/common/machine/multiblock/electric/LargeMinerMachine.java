@@ -8,22 +8,16 @@ import com.gregtechceu.gtceu.api.capability.recipe.EURecipeCapability;
 import com.gregtechceu.gtceu.api.capability.recipe.FluidRecipeCapability;
 import com.gregtechceu.gtceu.api.capability.recipe.IO;
 import com.gregtechceu.gtceu.api.data.chemical.material.Material;
-import com.gregtechceu.gtceu.api.gui.GuiTextures;
-import com.gregtechceu.gtceu.api.gui.UITemplate;
 import com.gregtechceu.gtceu.api.gui.element.GTComponentPanelElement;
-import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
-import com.gregtechceu.gtceu.api.gui.element.GTScrollerViewElement;
 import com.gregtechceu.gtceu.api.gui.factory.MachineUIHolder;
 import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel;
 import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget;
-import com.gregtechceu.gtceu.api.machine.ConditionalSubscriptionHandler;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.VoidingModeConfigurator;
 import com.gregtechceu.gtceu.api.machine.fancyconfigurator.WorkingEnabledConfigurator;
 import com.gregtechceu.gtceu.api.machine.feature.IDataInfoProvider;
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMultiPart;
 import com.gregtechceu.gtceu.api.machine.multiblock.WorkableElectricMultiblockMachine;
 import com.gregtechceu.gtceu.api.misc.EnergyContainerList;
-import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
 import com.gregtechceu.gtceu.api.sync_system.managed.ISyncManaged;
 import com.gregtechceu.gtceu.api.sync_system.rpc.RPCMethod;
 import com.gregtechceu.gtceu.api.transfer.fluid.FluidHandlerList;
@@ -35,11 +29,7 @@ import com.gregtechceu.gtceu.utils.ExtendedUseOnContext;
 import com.gregtechceu.gtceu.utils.GTTransferUtils;
 import com.gregtechceu.gtceu.utils.GTUtil;
 
-import com.lowdragmc.lowdraglib2.gui.ui.UIElement;
-import com.lowdragmc.lowdraglib2.gui.ui.data.Horizontal;
-import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollDisplay;
-import com.lowdragmc.lowdraglib2.gui.ui.data.ScrollerMode;
-import com.lowdragmc.lowdraglib2.gui.ui.data.Vertical;
+import com.lowdragmc.lowdraglib2.gui.util.ClickData;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.Direction;
@@ -67,9 +57,6 @@ import static com.gregtechceu.gtceu.common.data.GTMaterials.DrillingFluid;
 public class LargeMinerMachine extends WorkableElectricMultiblockMachine
                                implements IMiner, IDataInfoProvider {
 
-    private static final int PAGE_WIDTH = 190;
-    private static final int PAGE_HEIGHT = 125;
-
     public static final int CHUNK_LENGTH = 16;
     @Getter
     private final int tier;
@@ -79,19 +66,12 @@ public class LargeMinerMachine extends WorkableElectricMultiblockMachine
     protected FluidHandlerList inputFluidInventory;
     @Getter(AccessLevel.PACKAGE)
     private final int drillingFluidConsumePerTick;
-    @Getter(AccessLevel.PACKAGE)
-    private final ConditionalSubscriptionHandler displaySubscription;
-    @Getter(AccessLevel.PACKAGE)
-    @SyncToClient
-    private List<Component> displayText = List.of();
 
     public LargeMinerMachine(BlockEntityCreationInfo info, int tier, int speed, int maximumChunkDiameter, int fortune,
                              int drillingFluidConsumePerTick) {
         super(info, new LargeMinerLogic(fortune, speed, maximumChunkDiameter * CHUNK_LENGTH / 2));
         this.tier = tier;
         this.drillingFluidConsumePerTick = drillingFluidConsumePerTick;
-        this.displaySubscription = new ConditionalSubscriptionHandler(this, this::refreshDisplayText,
-                this::isFormed);
     }
 
     @Override
@@ -118,51 +98,12 @@ public class LargeMinerMachine extends WorkableElectricMultiblockMachine
     // ******* Logic *********//
     //////////////////////////////////////
     @Override
-    public void onLoad() {
-        super.onLoad();
-        if (!isRemote()) {
-            refreshDisplayText();
-            displaySubscription.initialize(getLevel());
-        }
-    }
-
-    @Override
     public void formStructure(String structureName) {
         super.formStructure(structureName);
         if (!DEFAULT_STRUCTURE.equals(structureName)) return;
         Direction opposite = this.getUpwardsFacing().getOpposite();
         getRecipeLogic().setDir(opposite == Direction.NORTH ? Direction.UP : Direction.DOWN);
         initializeAbilities();
-        if (!isRemote()) {
-            refreshDisplayText();
-            displaySubscription.updateSubscription();
-        }
-    }
-
-    @Override
-    public void invalidateStructure(String structureName) {
-        super.invalidateStructure(structureName);
-        if (DEFAULT_STRUCTURE.equals(structureName) && !isRemote()) {
-            refreshDisplayText();
-            displaySubscription.updateSubscription();
-        }
-    }
-
-    @Override
-    public void onUnload() {
-        super.onUnload();
-        clearDisplayRuntimeState();
-    }
-
-    @Override
-    public void onPartUnload() {
-        super.onPartUnload();
-        clearDisplayRuntimeState();
-    }
-
-    private void clearDisplayRuntimeState() {
-        displayText = List.of();
-        displaySubscription.unsubscribe();
     }
 
     @Override
@@ -248,55 +189,30 @@ public class LargeMinerMachine extends WorkableElectricMultiblockMachine
     //////////////////////////////////////
     @Override
     public void addDisplayText(List<Component> textList) {
-        textList.addAll(displayText);
-    }
-
-    void refreshDisplayText() {
-        List<Component> nextText = new ArrayList<>();
-        collectServerDisplayText(nextText);
-        nextText = List.copyOf(nextText);
-        if (!displayText.equals(nextText)) {
-            displayText = nextText;
-        }
-    }
-
-    protected void collectServerDisplayText(List<Component> textList) {
         super.addDisplayText(textList);
-        textList.addAll(createLargeMinerDisplayText(captureDisplayState()));
-    }
+        if (!isFormed()) return;
 
-    protected DisplayState captureDisplayState() {
-        LargeMinerLogic logic = getRecipeLogic();
-        return new DisplayState(isFormed(), logic.getX(), logic.getY(), logic.getZ(), logic.isSilkTouchMode(),
-                logic.isChunkMode(), logic.getCurrentRadius(), logic.isDone());
-    }
-
-    static List<Component> createLargeMinerDisplayText(DisplayState state) {
-        if (!state.formed()) {
-            return List.of();
-        }
-
-        List<Component> text = new ArrayList<>(7);
-        text.add(Component.translatable("gtpm.machine.miner.startx", displayCoordinate(state.x())));
-        text.add(Component.translatable("gtpm.machine.miner.starty", displayCoordinate(state.y())));
-        text.add(Component.translatable("gtpm.machine.miner.startz", displayCoordinate(state.z())));
-        text.add(Component.translatable("gtpm.universal.tooltip.silk_touch")
-                .append(modeButton(state.silkTouchMode(), "silk_touch")));
-        text.add(Component.translatable("gtpm.universal.tooltip.chunk_mode")
-                .append(modeButton(state.chunkMode(), "chunk_mode")));
-        if (state.chunkMode()) {
-            int workingAreaChunks = state.currentRadius() * 2 / CHUNK_LENGTH;
-            text.add(Component.translatable("gtpm.universal.tooltip.working_area_chunks", workingAreaChunks,
+        var logic = getRecipeLogic();
+        boolean chunkMode = logic.isChunkMode();
+        textList.add(Component.translatable("gtpm.machine.miner.startx", displayCoordinate(logic.getX())));
+        textList.add(Component.translatable("gtpm.machine.miner.starty", displayCoordinate(logic.getY())));
+        textList.add(Component.translatable("gtpm.machine.miner.startz", displayCoordinate(logic.getZ())));
+        textList.add(Component.translatable("gtpm.universal.tooltip.silk_touch")
+                .append(modeButton(logic.isSilkTouchMode(), "silk_touch")));
+        textList.add(Component.translatable("gtpm.universal.tooltip.chunk_mode")
+                .append(modeButton(chunkMode, "chunk_mode")));
+        if (chunkMode) {
+            int workingAreaChunks = logic.getCurrentRadius() * 2 / CHUNK_LENGTH;
+            textList.add(Component.translatable("gtpm.universal.tooltip.working_area_chunks", workingAreaChunks,
                     workingAreaChunks));
         } else {
-            int workingArea = IMiner.getWorkingArea(state.currentRadius());
-            text.add(Component.translatable("gtpm.universal.tooltip.working_area", workingArea, workingArea));
+            int workingArea = IMiner.getWorkingArea(logic.getCurrentRadius());
+            textList.add(Component.translatable("gtpm.universal.tooltip.working_area", workingArea, workingArea));
         }
-        if (state.done()) {
-            text.add(Component.translatable("gtpm.multiblock.large_miner.done")
+        if (logic.isDone()) {
+            textList.add(Component.translatable("gtpm.multiblock.large_miner.done")
                     .setStyle(Style.EMPTY.withColor(ChatFormatting.GREEN)));
         }
-        return List.copyOf(text);
     }
 
     private static int displayCoordinate(int coordinate) {
@@ -310,9 +226,6 @@ public class LargeMinerMachine extends WorkableElectricMultiblockMachine
                 .append(Component.literal("]")), componentData);
     }
 
-    record DisplayState(boolean formed, int x, int y, int z, boolean silkTouchMode, boolean chunkMode,
-                        int currentRadius, boolean done) {}
-
     Consumer<ISyncManaged> resolveLargeMinerDisplayAction(MachineUIHolder holder, String componentData) {
         return switch (componentData) {
             case "silk_touch" -> managed -> managed.rpcToServer("toggleLargeMinerSilkTouch");
@@ -321,7 +234,10 @@ public class LargeMinerMachine extends WorkableElectricMultiblockMachine
         };
     }
 
-    private void handleDisplayClick(Player player, MachineUIHolder holder, String componentData) {
+    @Override
+    protected void handleDisplayClick(FancyMachineUIWidget shell, String componentData, ClickData clickData) {
+        Player player = shell.getOpeningPlayer();
+        MachineUIHolder holder = shell.getHolder(this);
         Consumer<ISyncManaged> action = resolveLargeMinerDisplayAction(holder, componentData);
         if (player.level().isClientSide()) {
             action.accept(holder.getMachine());
@@ -335,7 +251,6 @@ public class LargeMinerMachine extends WorkableElectricMultiblockMachine
             return;
         }
         logic.setSilkTouchMode(!logic.isSilkTouchMode());
-        refreshDisplayText();
     }
 
     @RPCMethod
@@ -345,7 +260,6 @@ public class LargeMinerMachine extends WorkableElectricMultiblockMachine
             return;
         }
         logic.setChunkMode(!logic.isChunkMode());
-        refreshDisplayText();
     }
 
     //////////////////////////////////////
@@ -394,39 +308,6 @@ public class LargeMinerMachine extends WorkableElectricMultiblockMachine
                     Component.translatable("gtpm.universal.tooltip.working_area", workingArea, workingArea));
         }
         return new ArrayList<>();
-    }
-
-    @Override
-    public UIElement createUIWidget(FancyMachineUIWidget shell) {
-        MachineUIHolder holder = shell.getHolder(this);
-
-        UIElement root = UITemplate.setBounds(new UIElement(), 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
-        UITemplate.setBackgroundTexture(root, GuiTextures.BACKGROUND_INVERSE);
-
-        GTScrollerViewElement screen = new GTScrollerViewElement(4, 4, 182, 117);
-        UITemplate.setBackgroundTexture(screen, getScreenTexture());
-        screen.viewPort.layout(layout -> layout.paddingAll(0));
-        UITemplate.setBackgroundTexture(screen.viewPort, getScreenTexture());
-        screen.scrollerStyle(style -> style
-                .mode(ScrollerMode.VERTICAL)
-                .verticalScrollDisplay(ScrollDisplay.AUTO)
-                .horizontalScrollDisplay(ScrollDisplay.NEVER));
-
-        GTLabelElement title = new GTLabelElement(4, 5, 174, 10,
-                getBlockState().getBlock().getDescriptionId(), true);
-        title.textStyle(style -> style
-                .textColor(0x404040)
-                .textShadow(false)
-                .textAlignHorizontal(Horizontal.LEFT)
-                .textAlignVertical(Vertical.CENTER));
-        screen.addScrollViewChild(title);
-        screen.addScrollViewChild(new GTComponentPanelElement(4, 17, LargeMinerMachine.this::addDisplayText)
-                .setMaxWidthLimit(DISPLAY_TEXT_WIDTH)
-                .clickHandler(
-                        (componentData, clickData) -> handleDisplayClick(
-                                shell.getOpeningPlayer(), holder, componentData)));
-        root.addChild(screen);
-        return root;
     }
 
     @Override
