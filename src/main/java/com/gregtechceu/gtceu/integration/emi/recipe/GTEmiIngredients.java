@@ -35,10 +35,14 @@ public record GTEmiIngredients(ObjectList<EmiIngredient> inputs, ObjectList<EmiI
                                ObjectList<EmiStack> outputs) {
 
     public static GTEmiIngredients create(GTRecipeDefinition recipe) {
+        return create(recipe, new EmiTagStacks());
+    }
+
+    static GTEmiIngredients create(GTRecipeDefinition recipe, EmiTagStacks tags) {
         GTEmiIngredients ingredients = new GTEmiIngredients(new ObjectArrayList<>(), new ObjectArrayList<>(),
                 new ObjectArrayList<>());
-        boolean needsUI = ingredients.addContents(recipe.inputs, recipe.tickInputs, IO.IN);
-        needsUI |= ingredients.addContents(recipe.outputs, recipe.tickOutputs, IO.OUT);
+        boolean needsUI = ingredients.addContents(recipe.inputs, recipe.tickInputs, IO.IN, tags);
+        needsUI |= ingredients.addContents(recipe.outputs, recipe.tickOutputs, IO.OUT, tags);
         ingredients.addResearch(recipe);
         if (needsUI) {
             ingredients.addCustomCapabilities(recipe);
@@ -46,35 +50,38 @@ public record GTEmiIngredients(ObjectList<EmiIngredient> inputs, ObjectList<EmiI
         return ingredients;
     }
 
-    private boolean addContents(ContentListMap contents, ContentListMap tickContents, IO io) {
+    private boolean addContents(ContentListMap contents, ContentListMap tickContents, IO io, EmiTagStacks tags) {
         boolean needsUI = false;
+        boolean hasTickContents = !tickContents.isEmpty();
         var regular = contents.fastIterator();
         while (regular.hasNext()) {
             var entry = regular.next();
             RecipeCapability<?> capability = entry.getKey();
-            needsUI |= addContents(capability, entry.getValue(), io);
-            needsUI |= addContents(capability, tickContents.getOrDefault(capability, ObjectList.of()), io);
+            needsUI |= addContents(capability, entry.getValue(), io, tags);
+            if (hasTickContents) {
+                needsUI |= addContents(capability, tickContents.getOrDefault(capability, ObjectList.of()), io, tags);
+            }
         }
+        if (!hasTickContents) return needsUI;
+
         var ticking = tickContents.fastIterator();
         while (ticking.hasNext()) {
             var entry = ticking.next();
             if (!contents.containsKey(entry.getKey())) {
-                needsUI |= addContents(entry.getKey(), entry.getValue(), io);
+                needsUI |= addContents(entry.getKey(), entry.getValue(), io, tags);
             }
         }
         return needsUI;
     }
 
-    private boolean addContents(RecipeCapability<?> capability, List<Content> contents, IO io) {
+    private boolean addContents(RecipeCapability<?> capability, List<Content> contents, IO io, EmiTagStacks tags) {
         if (capability == ItemRecipeCapability.CAP) {
             for (Content content : contents) {
                 var ingredient = ItemRecipeCapability.CAP.of(content.content);
                 boolean catalyst = content.chance == 0 ||
                         ingredient.ingredient().getCustomIngredient() instanceof IntCircuitIngredient;
                 ObjectList<? super EmiStack> target = io == IO.OUT ? outputs : catalyst ? catalysts : inputs;
-                for (var stack : ItemRecipeCapability.mapItem(ingredient).getStacks()) {
-                    target.add(EmiStack.of(stack));
-                }
+                tags.append(ItemRecipeCapability.mapItem(ingredient), target);
             }
             return false;
         }
@@ -82,9 +89,7 @@ public record GTEmiIngredients(ObjectList<EmiIngredient> inputs, ObjectList<EmiI
             for (Content content : contents) {
                 var ingredient = FluidRecipeCapability.CAP.of(content.content);
                 ObjectList<? super EmiStack> target = io == IO.OUT ? outputs : content.chance == 0 ? catalysts : inputs;
-                for (var stack : FluidRecipeCapability.mapFluid(ingredient).getStacks()) {
-                    target.add(EmiStack.of(stack.getFluid(), stack.getComponentsPatch(), stack.getAmount()));
-                }
+                tags.append(FluidRecipeCapability.mapFluid(ingredient), target);
             }
             return false;
         }

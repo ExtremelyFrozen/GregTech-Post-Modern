@@ -2,6 +2,9 @@ package com.gregtechceu.gtceu.integration.emi.multipage;
 
 import com.gregtechceu.gtceu.api.gui.widget.PatternPreviewWidget;
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition;
+import com.gregtechceu.gtceu.api.multiblock.preview.PatternGenerationGuard;
+import com.gregtechceu.gtceu.api.multiblock.preview.PatternGenerationGuard.Resolution;
+import com.gregtechceu.gtceu.data.pattern.StructurePatternRegistry;
 import com.gregtechceu.gtceu.integration.xei.multiblock.MultiblockInfo;
 
 import com.lowdragmc.lowdraglib2.gui.ui.event.UIEvent;
@@ -20,21 +23,21 @@ import dev.emi.emi.api.stack.EmiIngredient;
 import dev.emi.emi.api.stack.EmiStack;
 import dev.emi.emi.api.widget.SlotWidget;
 import dev.emi.emi.api.widget.WidgetHolder;
-import dev.emi.emi.registry.EmiRecipes;
-import dev.emi.emi.runtime.EmiReloadManager;
 import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
 import it.unimi.dsi.fastutil.objects.ObjectList;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
 import org.joml.Vector2f;
 import org.joml.Vector3f;
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
+@NullMarked
 public class MultiblockInfoEmiRecipe extends ModularUIEMIRecipe {
 
     private final MultiblockInfo info;
+    private volatile @Nullable Resolution<IndexedIngredients> indexedIngredients;
 
     public MultiblockInfoEmiRecipe(MultiblockMachineDefinition definition) {
         super(recipe -> PatternPreviewWidget.createModularUI(((MultiblockInfoEmiRecipe) recipe).info));
@@ -42,7 +45,7 @@ public class MultiblockInfoEmiRecipe extends ModularUIEMIRecipe {
     }
 
     @Override
-    public void addWidgets(@NotNull WidgetHolder widgets) {
+    public void addWidgets(WidgetHolder widgets) {
         var ui = getModularUI();
         ui.init(getDisplayWidth(), getDisplayHeight());
         ((PatternPreviewWidget) ui.ui.rootElement).reset();
@@ -99,30 +102,23 @@ public class MultiblockInfoEmiRecipe extends ModularUIEMIRecipe {
     }
 
     @Override
-    public @Nullable ResourceLocation getId() {
+    public ResourceLocation getId() {
         return info.getDefinition().getId().withPrefix("/");
     }
 
     @Override
-    public @NotNull ObjectList<EmiStack> getOutputs() {
-        return info.getOutputs().stream().map(EmiStack::of)
-                .collect(ObjectImmutableList.toList());
+    public ObjectList<EmiStack> getOutputs() {
+        return getIndexedIngredients().outputs();
     }
 
     @Override
-    public @NotNull List<EmiIngredient> getInputs() {
-        // Both native indexing passes need the candidate superset. EMI's pruneUses then queries the live inputs.
-        if (!EmiReloadManager.isLoaded() || EmiRecipes.activeWorker != null) {
-            return info.getPotentialInputs().stream().<EmiIngredient>map(key -> EmiStack.of(key.prototype()))
-                    .collect(ObjectImmutableList.toList());
-        }
-        return info.getMaterials().stream().map(material -> EmiIngredient.of(material.candidates().stream()
-                .map(stack -> EmiStack.of(stack).setAmount(material.required())).toList()))
-                .collect(ObjectImmutableList.toList());
+    public List<EmiIngredient> getInputs() {
+        // EMI reads this list again when filtering uses after the bake.
+        return getIndexedIngredients().inputs();
     }
 
     @Override
-    public @NotNull List<EmiIngredient> getCatalysts() {
+    public List<EmiIngredient> getCatalysts() {
         return ObjectList.of();
     }
 
@@ -140,4 +136,21 @@ public class MultiblockInfoEmiRecipe extends ModularUIEMIRecipe {
     public int getDisplayHeight() {
         return Math.min(PatternPreviewWidget.HEIGHT, Minecraft.getInstance().getWindow().getGuiScaledHeight() - 96);
     }
+
+    private IndexedIngredients getIndexedIngredients() {
+        var cached = indexedIngredients;
+        if (cached != null && cached.generation() == StructurePatternRegistry.generation()) return cached.value();
+
+        var resolved = PatternGenerationGuard.resolve(StructurePatternRegistry::generation, attempt -> {
+            ObjectList<EmiIngredient> inputs = info.getPotentialInputs().stream()
+                    .<EmiIngredient>map(key -> EmiStack.of(key.prototype()))
+                    .collect(ObjectImmutableList.toList());
+            var outputs = info.getOutputs().stream().map(EmiStack::of).collect(ObjectImmutableList.toList());
+            return new IndexedIngredients(inputs, outputs);
+        });
+        indexedIngredients = resolved;
+        return resolved.value();
+    }
+
+    private record IndexedIngredients(ObjectList<EmiIngredient> inputs, ObjectList<EmiStack> outputs) {}
 }

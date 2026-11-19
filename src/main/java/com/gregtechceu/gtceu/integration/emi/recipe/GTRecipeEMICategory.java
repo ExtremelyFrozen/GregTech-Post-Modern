@@ -19,9 +19,9 @@ import dev.emi.emi.api.recipe.EmiRecipeCategory;
 import dev.emi.emi.api.recipe.VanillaEmiRecipeCategories;
 import dev.emi.emi.api.render.EmiRenderable;
 import dev.emi.emi.api.stack.EmiStack;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
 
-import java.util.ArrayList;
-import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -38,8 +38,10 @@ public class GTRecipeEMICategory extends EmiRecipeCategory {
     }
 
     public static void registerDisplays(EmiRegistry registry) {
-        List<GTRecipeCategory> subCategories = new ArrayList<>();
-        Map<GTRecipeType, RecipeUISize> sizes = new IdentityHashMap<>();
+        List<GTRecipeCategory> subCategories = new ObjectArrayList<>();
+        Map<GTRecipeType, RecipeUISize> sizes = new Reference2ObjectOpenHashMap<>();
+        // Resolve tags during registration so recipes only retain the ingredients used by EMI.
+        var tags = new EmiTagStacks();
         // run main categories first
         for (GTRecipeCategory category : GTRegistries.RECIPE_CATEGORIES) {
             if (!category.shouldRegisterDisplays()) continue;
@@ -53,9 +55,10 @@ public class GTRecipeEMICategory extends EmiRecipeCategory {
             EmiRecipeCategory emiCategory = CATEGORIES.apply(category);
             RecipeUISize size = sizes.computeIfAbsent(type,
                     recipeType -> recipeType.getRecipeUI().getXEIRecipeUISize());
-            type.getClientRecipesInCategory(category).stream()
-                    .map(recipe -> new GTEmiRecipe(recipe, emiCategory, size))
-                    .forEach(registry::addRecipe);
+            for (var recipe : type.getClientRecipesInCategory(category)) {
+                var ingredients = GTEmiIngredients.create(recipe, tags);
+                registry.addRecipe(new GTEmiRecipe(recipe, emiCategory, size, ingredients));
+            }
         }
         // run subcategories
         for (var subCategory : subCategories) {
@@ -64,9 +67,10 @@ public class GTRecipeEMICategory extends EmiRecipeCategory {
             EmiRecipeCategory emiCategory = CATEGORIES.apply(subCategory);
             RecipeUISize size = sizes.computeIfAbsent(type,
                     recipeType -> recipeType.getRecipeUI().getXEIRecipeUISize());
-            type.getClientRecipesInCategory(subCategory).stream()
-                    .map(recipe -> new GTEmiRecipe(recipe, emiCategory, size))
-                    .forEach(registry::addRecipe);
+            for (var recipe : type.getClientRecipesInCategory(subCategory)) {
+                var ingredients = GTEmiIngredients.create(recipe, tags);
+                registry.addRecipe(new GTEmiRecipe(recipe, emiCategory, size, ingredients));
+            }
         }
     }
 

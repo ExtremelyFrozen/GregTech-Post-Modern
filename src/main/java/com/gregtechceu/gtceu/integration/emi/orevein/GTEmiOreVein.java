@@ -11,8 +11,10 @@ import net.minecraft.core.Holder;
 import net.minecraft.resources.ResourceLocation;
 
 import dev.emi.emi.api.recipe.EmiRecipeCategory;
+import dev.emi.emi.api.stack.EmiIngredient;
 import dev.emi.emi.api.stack.EmiStack;
-import org.jetbrains.annotations.NotNull;
+import it.unimi.dsi.fastutil.objects.ObjectImmutableList;
+import it.unimi.dsi.fastutil.objects.ObjectList;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
@@ -20,10 +22,17 @@ import java.util.List;
 public class GTEmiOreVein extends ModularUIEMIRecipe {
 
     private final Holder<GTOreDefinition> oreDefinition;
+    private final ObjectList<EmiIngredient> catalysts;
+    private final ObjectList<EmiStack> outputs;
 
     public GTEmiOreVein(Holder<GTOreDefinition> oreDefinition) {
         super(GTEmiOreVein::createModularUI);
         this.oreDefinition = oreDefinition;
+        var definition = oreDefinition.value();
+        catalysts = VeinEmiIngredients.dimensionCatalysts(definition.dimensionFilter());
+        outputs = GTOreVeinWidget.getContainedOresAndBlocks(definition).stream()
+                .map(EmiStack::of)
+                .collect(ObjectImmutableList.toList());
     }
 
     @Override
@@ -49,11 +58,18 @@ public class GTEmiOreVein extends ModularUIEMIRecipe {
     }
 
     @Override
-    public @NotNull List<EmiStack> getOutputs() {
-        return GTOreVeinWidget.getContainedOresAndBlocks(oreDefinition.value())
-                .stream()
-                .map(EmiStack::of)
-                .toList();
+    public List<EmiIngredient> getInputs() {
+        return ObjectList.of();
+    }
+
+    @Override
+    public List<EmiIngredient> getCatalysts() {
+        return catalysts;
+    }
+
+    @Override
+    public List<EmiStack> getOutputs() {
+        return outputs;
     }
 
     private static ModularUI createModularUI(ModularUIEMIRecipe recipe) {

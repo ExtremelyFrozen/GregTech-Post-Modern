@@ -11,15 +11,25 @@ import net.minecraft.core.Holder;
 import net.minecraft.resources.ResourceLocation;
 
 import dev.emi.emi.api.recipe.EmiRecipeCategory;
+import dev.emi.emi.api.stack.EmiIngredient;
+import dev.emi.emi.api.stack.EmiStack;
+import it.unimi.dsi.fastutil.objects.ObjectList;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.List;
 
 public class GTBedrockFluid extends ModularUIEMIRecipe {
 
     private final Holder<BedrockFluidDefinition> fluid;
+    private final ObjectList<EmiIngredient> catalysts;
+    private final ObjectList<EmiStack> outputs;
 
     public GTBedrockFluid(Holder<BedrockFluidDefinition> fluid) {
         super(GTBedrockFluid::createModularUI);
         this.fluid = fluid;
+        var definition = fluid.value();
+        catalysts = VeinEmiIngredients.dimensionCatalysts(definition.getDimensionFilter());
+        outputs = ObjectList.of(EmiStack.of(definition.getStoredFluid(), GTBedrockFluidWidget.DISPLAY_AMOUNT));
     }
 
     @Override
@@ -42,6 +52,21 @@ public class GTBedrockFluid extends ModularUIEMIRecipe {
     @Override
     public int getDisplayHeight() {
         return GTBedrockFluidWidget.HEIGHT;
+    }
+
+    @Override
+    public List<EmiIngredient> getInputs() {
+        return ObjectList.of();
+    }
+
+    @Override
+    public List<EmiIngredient> getCatalysts() {
+        return catalysts;
+    }
+
+    @Override
+    public List<EmiStack> getOutputs() {
+        return outputs;
     }
 
     private static ModularUI createModularUI(ModularUIEMIRecipe recipe) {

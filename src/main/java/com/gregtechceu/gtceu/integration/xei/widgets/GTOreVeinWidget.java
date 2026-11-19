@@ -9,9 +9,7 @@ import com.gregtechceu.gtceu.api.gui.element.GTItemSlotElement;
 import com.gregtechceu.gtceu.api.gui.element.GTLabelElement;
 import com.gregtechceu.gtceu.api.gui.texture.IGuiTexture;
 import com.gregtechceu.gtceu.api.gui.texture.TextTexture;
-import com.gregtechceu.gtceu.api.registry.GTRegistries;
 import com.gregtechceu.gtceu.api.transfer.item.CustomItemStackHandler;
-import com.gregtechceu.gtceu.common.recipe.condition.DimensionCondition;
 import com.gregtechceu.gtceu.config.ConfigHolder;
 import com.gregtechceu.gtceu.integration.xei.GTXEIHelper;
 
@@ -25,14 +23,12 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.levelgen.heightproviders.HeightProvider;
 import net.minecraft.world.level.levelgen.heightproviders.UniformHeight;
 
 import dev.vfyjxf.taffy.style.TaffyPosition;
 import it.unimi.dsi.fastutil.ints.IntList;
 
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -149,15 +145,10 @@ public class GTOreVeinWidget {
         }
 
         int rowSlots = (WIDTH - 2 * TEXT_X + DIMENSION_INTERVAL) / (DIMENSION_SLOT_SIZE + DIMENSION_INTERVAL);
-        DimensionMarker[] dimMarkers = dimensionFilter.stream()
-                .map(dimension -> GTRegistries.DIMENSION_MARKERS.getOptional(dimension.location())
-                        .orElseGet(() -> new DimensionMarker(DimensionMarker.MAX_TIER, () -> Blocks.BARRIER,
-                                DimensionCondition.getDimensionName(dimension))))
-                .sorted(Comparator.comparingInt(DimensionMarker::getTier))
-                .toArray(DimensionMarker[]::new);
-        CustomItemStackHandler handler = new CustomItemStackHandler(dimMarkers.length);
-        for (int i = 0; i < dimMarkers.length; i++) {
-            DimensionMarker dimMarker = dimMarkers[i];
+        var dimMarkers = VeinDimensionMarkers.resolve(dimensionFilter);
+        CustomItemStackHandler handler = new CustomItemStackHandler(dimMarkers.size());
+        for (int i = 0; i < dimMarkers.size(); i++) {
+            DimensionMarker dimMarker = dimMarkers.get(i);
             ItemStack icon = dimMarker.getIcon();
             handler.setStackInSlot(i, icon);
             root.addChild(createDimensionMarker(handler, i, dimMarker, rowSlots));
