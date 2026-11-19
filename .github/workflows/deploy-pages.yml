@@ -34,5 +34,5 @@ jobs:
         run: git config user.name 'github-actions[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
       - name: Deploy pages to gh-pages branch
         run: mike deploy "${{ github.ref_name }}" --push
-      - name: Ensure 1.20.1 is the default version
-        run: mike set-default 1.20.1 --push
+      - name: Ensure 1.21 is the default version
+        run: mike set-default 1.21 --push
